@@ -13,9 +13,9 @@ tz = ZoneInfo(TZ_INFO)
 def get_db_connection():
     return psycopg2.connect(
         host=os.getenv("POSTGRES_HOST", "postgres"),
-        database=os.getenv("POSTGRES_DB", "course_assistant"),
-        user=os.getenv("POSTGRES_USER", "your_username"),
-        password=os.getenv("POSTGRES_PASSWORD", "your_password"),
+        database=os.getenv("POSTGRES_DB", "fitness_assistant"),
+        user=os.getenv("POSTGRES_USER", "postgres"),
+        password=os.getenv("POSTGRES_PASSWORD", "postgres"),
     )
 
 
@@ -112,38 +112,58 @@ def save_feedback(conversation_id, feedback, timestamp=None):
         conn.close()
 
 
-def get_recent_conversations(limit=5, relevance=None):
-    conn = get_db_connection()
-    try:
-        with conn.cursor(cursor_factory=DictCursor) as cur:
-            query = """
-                SELECT c.*, f.feedback
-                FROM conversations c
-                LEFT JOIN feedback f ON c.id = f.conversation_id
-            """
-            if relevance:
-                query += f" WHERE c.relevance = '{relevance}'"
-            query += " ORDER BY c.timestamp DESC LIMIT %s"
-
+def get_recent_conversations(limit=10):
+    """Retrieve recent conversations with feedback"""
+    query = """
+        SELECT 
+            c.id,
+            c.id as conversation_id,
+            c.question,
+            c.answer,
+            c.model_used,
+            c.response_time,
+            c.relevance,
+            c.total_tokens,
+            c.openai_cost,
+            c.timestamp,
+            f.feedback
+        FROM conversations c
+        LEFT JOIN feedback f ON c.id = f.conversation_id
+        ORDER BY c.timestamp DESC
+        LIMIT %s
+    """
+    
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
             cur.execute(query, (limit,))
-            return cur.fetchall()
-    finally:
-        conn.close()
+            columns = [desc[0] for desc in cur.description]
+            rows = cur.fetchall()
+            
+            conversations = []
+            for row in rows:
+                conversations.append(dict(zip(columns, row)))
+            
+            return conversations
 
 
 def get_feedback_stats():
-    conn = get_db_connection()
-    try:
-        with conn.cursor(cursor_factory=DictCursor) as cur:
-            cur.execute("""
-                SELECT 
-                    SUM(CASE WHEN feedback > 0 THEN 1 ELSE 0 END) as thumbs_up,
-                    SUM(CASE WHEN feedback < 0 THEN 1 ELSE 0 END) as thumbs_down
-                FROM feedback
-            """)
-            return cur.fetchone()
-    finally:
-        conn.close()
+    """Get thumbs up/down statistics"""
+    query = """
+        SELECT 
+            COUNT(CASE WHEN feedback = 1 THEN 1 END) as thumbs_up,
+            COUNT(CASE WHEN feedback = -1 THEN 1 END) as thumbs_down
+        FROM feedback
+    """
+    
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query)
+            result = cur.fetchone()
+            
+            return {
+                "thumbs_up": result[0] or 0,
+                "thumbs_down": result[1] or 0
+            }
 
 
 def check_timezone():

@@ -1,13 +1,13 @@
 import json
-
+import os
 from time import time
-
-from openai import OpenAI
+import requests
 
 import ingest
 
 
-client = OpenAI()
+# Configure Ollama (local LLM)
+OLLAMA_BASE_URL = os.getenv('OLLAMA_BASE_URL', 'http://host.docker.internal:11434')
 index = ingest.load_index()
 
 
@@ -61,17 +61,48 @@ def build_prompt(query, search_results):
     return prompt
 
 
-def llm(prompt, model="gpt-4o-mini"):
-    response = client.chat.completions.create(
-        model=model, messages=[{"role": "user", "content": prompt}]
-    )
-
-    answer = response.choices[0].message.content
-
+def llm(prompt, model="llama3.2:3b"):
+    # Map model names to Ollama models
+    if model in ["gpt-4o-mini", "gemini-1.5-flash", "gemini-2.5-flash"]:
+        model = "llama3.2:3b"  # Fast, lightweight
+    elif model in ["gpt-4o", "gemini-1.5-pro", "gemini-2.5-pro"]:
+        model = "llama3.2:3b"  # Can use llama3.1:8b if you have more RAM
+    
+    # Call Ollama API
+    try:
+        url = f"{OLLAMA_BASE_URL}/api/generate"
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False
+        }
+        print(f"[DEBUG] Calling Ollama at: {url}")
+        print(f"[DEBUG] Model: {model}")
+        print(f"[DEBUG] Prompt length: {len(prompt)} chars")
+        
+        response = requests.post(url, json=payload, timeout=120)
+        
+        print(f"[DEBUG] Response status: {response.status_code}")
+        print(f"[DEBUG] Response headers: {dict(response.headers)}")
+        
+        response.raise_for_status()
+        result = response.json()
+        answer = result.get('response', '')
+        
+        # Get actual token counts from Ollama
+        prompt_tokens = result.get('prompt_eval_count', 0)
+        completion_tokens = result.get('eval_count', 0)
+        
+    except Exception as e:
+        print(f"[DEBUG] Ollama error: {type(e).__name__}: {e}")
+        answer = f"Error calling Ollama: {str(e)}. Make sure Ollama is running with 'ollama serve'."
+        prompt_tokens = 0
+        completion_tokens = 0
+    
     token_stats = {
-        "prompt_tokens": response.usage.prompt_tokens,
-        "completion_tokens": response.usage.completion_tokens,
-        "total_tokens": response.usage.total_tokens,
+        "prompt_tokens": int(prompt_tokens),
+        "completion_tokens": int(completion_tokens),
+        "total_tokens": int(prompt_tokens + completion_tokens),
     }
 
     return answer, token_stats
@@ -111,19 +142,26 @@ def evaluate_relevance(question, answer):
 
 
 def calculate_openai_cost(model, tokens):
-    openai_cost = 0
+    # Google Gemini pricing (as of 2024)
+    gemini_cost = 0
 
-    if model == "gpt-4o-mini":
-        openai_cost = (
-            tokens["prompt_tokens"] * 0.00015 + tokens["completion_tokens"] * 0.0006
+    if "gemini-1.5-flash" in model or "gpt-4o-mini" in model:
+        # Gemini 1.5 Flash: $0.075 per 1M input tokens, $0.30 per 1M output tokens
+        gemini_cost = (
+            tokens["prompt_tokens"] * 0.000075 + tokens["completion_tokens"] * 0.0003
+        ) / 1000
+    elif "gemini-1.5-pro" in model or "gpt-4o" in model:
+        # Gemini 1.5 Pro: $1.25 per 1M input tokens, $5.00 per 1M output tokens
+        gemini_cost = (
+            tokens["prompt_tokens"] * 0.00125 + tokens["completion_tokens"] * 0.005
         ) / 1000
     else:
-        print("Model not recognized. OpenAI cost calculation failed.")
+        print("Model not recognized. Cost calculation failed.")
 
-    return openai_cost
+    return gemini_cost
 
 
-def rag(query, model="gpt-4o-mini"):
+def rag(query, model="gemini-1.5-flash"):
     t0 = time()
 
     search_results = search(query)

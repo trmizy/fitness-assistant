@@ -1,3 +1,57 @@
+# 💪 Fitness Assistant - Microservice Architecture
+
+A modern gym/fitness AI assistant with a dark-themed web interface, built using microservices architecture.
+
+## 🏗️ Architecture
+
+- **Frontend Service**: React + Vite + TypeScript + TailwindCSS
+- **API Service**: Python Flask backend with RAG capabilities
+- **Database Service**: PostgreSQL 13
+- **Reverse Proxy**: Nginx for routing and CORS handling
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Docker & Docker Compose
+- OpenAI API Key
+
+### Setup
+
+1. **Clone and navigate to project**
+```bash
+cd "d:\dự án tương lai cần đạt được\fitness-assistant"
+```
+
+2. **Create `.env` file** (copy from `.env.example`)
+```bash
+cp .env.example .env
+```
+
+3. **Edit `.env` and add your credentials**
+```env
+POSTGRES_DB=fitness_assistant
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_secure_password
+
+OPENAI_API_KEY=sk-your-openai-key-here
+
+VITE_API_BASE_URL=http://localhost/api
+```
+
+4. **Start all services**
+```bash
+docker compose up -d --build
+```
+
+5. **Access the application**
+- Frontend: http://localhost
+- API (direct): http://localhost:5000
+- API (via proxy): http://localhost/api
+
+## 📁 Project Structure
+
+````markdown
 # Fitness Assistant
 
 
@@ -334,3 +388,4 @@ Refer to the ["Using the Application" section](#using-the-application)
 for examples on how to interact with the application.
 
 # This demo will run on ```polymathic.tech:5000```
+````
