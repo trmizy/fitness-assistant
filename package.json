@@ -1,0 +1,38 @@
+{
+  "name": "ai-gym-coach",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI Gym Coach Microservices System",
+  "workspaces": [
+    "frontend/*",
+    "backend/gateway",
+    "backend/services/*",
+    "backend/shared"
+  ],
+  "scripts": {
+    "dev": "pnpm run --parallel --filter './frontend/*' --filter './backend/gateway' --filter './backend/services/*' dev",
+    "build": "pnpm run --recursive build",
+    "clean": "pnpm run --recursive clean",
+    "docker:up": "docker-compose -f infra/compose/docker-compose.dev.yml up -d",
+    "docker:down": "docker-compose -f infra/compose/docker-compose.dev.yml down",
+    "docker:build": "docker-compose -f infra/compose/docker-compose.dev.yml build",
+    "db:migrate": "pnpm run --filter '@gym-coach/auth-service' db:migrate && pnpm run --filter '@gym-coach/user-service' db:migrate && pnpm run --filter '@gym-coach/fitness-service' db:migrate && pnpm run --filter '@gym-coach/ai-service' db:migrate",
+    "db:seed": "pnpm run --filter '@gym-coach/auth-service' db:seed && pnpm run --filter '@gym-coach/user-service' db:seed && pnpm run --filter '@gym-coach/fitness-service' db:seed",
+    "test": "pnpm run --recursive test"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "prom-client": "^15.1.3"
+  }
+}

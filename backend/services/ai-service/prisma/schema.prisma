@@ -1,0 +1,47 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Conversation {
+  id                    String   @id @default(uuid())
+  userId                String?  @map("user_id")
+  question              String
+  answer                String
+  modelUsed             String   @map("model_used")
+  responseTime          Float    @map("response_time")
+  relevance             String?
+  relevanceExplanation  String?  @map("relevance_explanation")
+  promptTokens          Int      @map("prompt_tokens")
+  completionTokens      Int      @map("completion_tokens")
+  totalTokens           Int      @map("total_tokens")
+  cost                  Float    @default(0)
+  feedback              Int?     // 1 for thumbs up, -1 for thumbs down
+  feedbackTimestamp     DateTime? @map("feedback_timestamp")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("conversations")
+}
+
+model WorkoutPlan {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  goal        String
+  duration    Int      // weeks
+  daysPerWeek Int      @map("days_per_week")
+  plan        Json     // Store full workout plan as JSON
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("workout_plans")
+}
