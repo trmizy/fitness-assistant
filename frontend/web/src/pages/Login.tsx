@@ -22,7 +22,10 @@ export default function Login() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      if (!res.ok) throw new Error('Invalid email or password');
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || 'Invalid email or password');
+      }
       const data = await res.json();
       login(data.accessToken, data.refreshToken, data.user);
       navigate('/');

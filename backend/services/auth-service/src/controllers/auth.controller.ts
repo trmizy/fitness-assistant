@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { authService } from '../services/auth.service';
 import { authRepository } from '../repositories/auth.repository';
-import { registerSchema, loginSchema, refreshSchema } from '../models/auth.models';
+import {
+  registerStartSchema,
+  registerVerifySchema,
+  loginSchema,
+  refreshSchema,
+} from '../models/auth.models';
 
 function auditMeta(req: Request) {
   return {
@@ -15,8 +20,27 @@ function auditMeta(req: Request) {
 export const authController = {
   async register(req: Request, res: Response): Promise<void> {
     try {
-      const body = registerSchema.parse(req.body);
+      const body = registerStartSchema.parse(req.body);
       const result = await authService.register(body);
+      res.status(202).json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, 'Register error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async verifyRegistration(req: Request, res: Response): Promise<void> {
+    try {
+      const body = registerVerifySchema.parse(req.body);
+      const result = await authService.verifyRegistration(body);
       await authRepository.createAuditLog({
         userId: result.user.id,
         action: 'REGISTER',
@@ -32,7 +56,7 @@ export const authController = {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error(error, 'Register error');
+      logger.error(error, 'Verify registration error');
       res.status(500).json({ error: 'Internal server error' });
     }
   },
