@@ -8,6 +8,9 @@ export default function Register() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' });
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [otpInfo, setOtpInfo] = useState<{ email: string; expiresInMinutes: number } | null>(null);
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,12 +27,42 @@ export default function Register() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error('Registration failed. Please try again.');
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || 'Registration failed. Please try again.');
+      }
+      const data = await res.json();
+      setOtpInfo({
+        email: data.email || form.email,
+        expiresInMinutes: data.expiresInMinutes || 10,
+      });
+      setStep('otp');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/register/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, otp }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || 'OTP verification failed');
+      }
       const data = await res.json();
       login(data.accessToken, data.refreshToken, data.user);
       navigate('/');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : 'OTP verification failed');
     } finally {
       setLoading(false);
     }
@@ -58,45 +91,70 @@ export default function Register() {
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{error}</div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="label">First Name</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <input type="text" value={form.firstName} onChange={set('firstName')}
-                    className="input pl-9" placeholder="Alex" required />
+          {step === 'form' ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">First Name</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                    <input type="text" value={form.firstName} onChange={set('firstName')}
+                      className="input pl-9" placeholder="Alex" required />
+                  </div>
+                </div>
+                <div>
+                  <label className="label">Last Name</label>
+                  <input type="text" value={form.lastName} onChange={set('lastName')}
+                    className="input" placeholder="Nguyen" required />
                 </div>
               </div>
+
               <div>
-                <label className="label">Last Name</label>
-                <input type="text" value={form.lastName} onChange={set('lastName')}
-                  className="input" placeholder="Nguyen" required />
+                <label className="label">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <input type="email" value={form.email} onChange={set('email')}
+                    className="input pl-9" placeholder="you@example.com" required />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="label">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <input type="email" value={form.email} onChange={set('email')}
-                  className="input pl-9" placeholder="you@example.com" required />
+              <div>
+                <label className="label">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <input type="password" value={form.password} onChange={set('password')}
+                    className="input pl-9" placeholder="Min. 8 characters" minLength={8} required />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="label">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <input type="password" value={form.password} onChange={set('password')}
-                  className="input pl-9" placeholder="Min. 8 characters" minLength={8} required />
+              <button type="submit" className="btn-primary w-full" disabled={loading}>
+                {loading ? 'Sending code…' : 'Send OTP'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerify} className="space-y-4">
+              <div className="text-sm text-zinc-400">
+                We sent a 6-digit code to <span className="text-zinc-200">{otpInfo?.email}</span>.
+                {' '}It expires in {otpInfo?.expiresInMinutes ?? 10} minutes.
               </div>
-            </div>
-
-            <button type="submit" className="btn-primary w-full" disabled={loading}>
-              {loading ? 'Creating account…' : 'Create account'}
-            </button>
-          </form>
+              <div>
+                <label className="label">Verification Code</label>
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={e => setOtp(e.target.value)}
+                  className="input"
+                  placeholder="Enter 6-digit code"
+                  minLength={6}
+                  maxLength={6}
+                  required
+                />
+              </div>
+              <button type="submit" className="btn-primary w-full" disabled={loading}>
+                {loading ? 'Verifying…' : 'Verify & Create Account'}
+              </button>
+            </form>
+          )}
 
           <div className="relative my-5">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-zinc-800" /></div>

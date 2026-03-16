@@ -42,4 +42,47 @@ export const authRepository = {
     userAgent?: string | null;
     metadata?: any;
   }) => prisma.auditLog.create({ data }),
+
+  findEmailVerificationByEmail: (email: string) =>
+    prisma.emailVerification.findUnique({ where: { email } }),
+
+  upsertEmailVerification: (data: {
+    email: string;
+    passwordHash: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    otpHash: string;
+    expiresAt: Date;
+    sentAt: Date;
+  }) =>
+    prisma.emailVerification.upsert({
+      where: { email: data.email },
+      create: {
+        email: data.email,
+        passwordHash: data.passwordHash,
+        firstName: data.firstName ?? null,
+        lastName: data.lastName ?? null,
+        otpHash: data.otpHash,
+        expiresAt: data.expiresAt,
+        sentAt: data.sentAt,
+      },
+      update: {
+        passwordHash: data.passwordHash,
+        firstName: data.firstName ?? null,
+        lastName: data.lastName ?? null,
+        otpHash: data.otpHash,
+        expiresAt: data.expiresAt,
+        sentAt: data.sentAt,
+        attempts: 0,
+      },
+    }),
+
+  incrementEmailVerificationAttempts: (email: string) =>
+    prisma.emailVerification.update({
+      where: { email },
+      data: { attempts: { increment: 1 } },
+    }),
+
+  deleteEmailVerification: (email: string) =>
+    prisma.emailVerification.delete({ where: { email } }),
 };

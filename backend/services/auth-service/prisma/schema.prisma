@@ -42,6 +42,23 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+model EmailVerification {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String?
+  lastName     String?
+  otpHash      String
+  attempts     Int      @default(0)
+  expiresAt    DateTime
+  sentAt       DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("email_verifications")
+}
+
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String

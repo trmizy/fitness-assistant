@@ -29,7 +29,11 @@ export const authService = {
   
   register: async (email: string, password: string, firstName: string, lastName: string) => {
     const { data } = await api.post('/auth/register', { email, password, firstName, lastName });
-    // Store tokens if registration successful
+    return data;
+  },
+
+  verifyRegistration: async (email: string, otp: string) => {
+    const { data } = await api.post('/auth/register/verify', { email, otp });
     if (data.accessToken) {
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
