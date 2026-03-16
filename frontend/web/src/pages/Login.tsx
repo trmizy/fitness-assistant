@@ -49,7 +49,7 @@ export default function Login() {
         </div>
 
         <div className="card">
-          <h1 className="text-xl font-semibold text-white mb-1">Welcome back</h1>
+          <h1 className="text-xl font-semibold text-white mb-1">Welcome </h1>
           <p className="text-sm text-zinc-400 mb-6">Sign in to your account to continue</p>
 
           {error && (
@@ -72,7 +72,7 @@ export default function Login() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  className="input pl-9" placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" required />
+                  className="input pl-9" placeholder="Password" required />
               </div>
             </div>
             <button type="submit" className="btn-primary w-full" disabled={loading}>

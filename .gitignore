@@ -1,12 +1,68 @@
-node_modules
-dist
-build
-*.log
-.env
-.env.local
-*.env
-.DS_Store
-coverage
+# ------------------------------
+# Dependencies / Package managers
+# ------------------------------
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# ------------------------------
+# Build outputs / caches
+# ------------------------------
+dist/
+build/
+coverage/
+.turbo/
+.cache/
 *.tsbuildinfo
-.idea
-.vscode
+*.tmp
+*.temp
+
+# ------------------------------
+# Logs
+# ------------------------------
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ------------------------------
+# Environment / secrets
+# ------------------------------
+.env
+.env.*
+*.env
+!.env.example
+!.env.*.example
+
+# Private keys / certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# ------------------------------
+# OS / editor
+# ------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ------------------------------
+# Runtime / local data artifacts
+# ------------------------------
+*.db
+*.sqlite
+*.sqlite3
+*.pid
+*.seed
+
+# Docker / compose local overrides
+docker-compose.override.yml
+
+# Misc backups
+*.bak
+*.old
+*.orig
