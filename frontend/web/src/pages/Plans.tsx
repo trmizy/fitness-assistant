@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { CalendarDays, Utensils, Dumbbell, Flame } from 'lucide-react';
-import { mockWorkoutPlan, mockMealPlan } from '../data/mock';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -8,19 +7,19 @@ export default function Plans() {
   const [tab, setTab]         = useState<'workout' | 'meal'>('workout');
   const [activeDay, setActiveDay] = useState(0);
 
-  const mealDay = mockMealPlan[activeDay];
-  const workoutDay = mockWorkoutPlan[activeDay];
+  const mealDay = null; // No mock data
+  const workoutDay = null; // No mock data
 
-  const totalCals = mealDay?.meals.reduce((acc, m) => acc + m.calories, 0) ?? 0;
-  const totalProt = mealDay?.meals.reduce((acc, m) => acc + m.protein, 0) ?? 0;
-  const totalCarb = mealDay?.meals.reduce((acc, m) => acc + m.carbs, 0) ?? 0;
-  const totalFat  = mealDay?.meals.reduce((acc, m) => acc + m.fats, 0) ?? 0;
+  const totalCals = 0;
+  const totalProt = 0;
+  const totalCarb = 0;
+  const totalFat  = 0;
 
   // Group MealItems by mealType
-  const mealGroups = mealDay
+  const mealGroups: any[] = mealDay
     ? (['breakfast', 'lunch', 'snack', 'dinner'] as const).map(type => ({
         type,
-        items: mealDay.meals.filter(m => m.mealType === type),
+        items: (mealDay as any).meals.filter((m: any) => m.mealType === type),
       })).filter(g => g.items.length > 0)
     : [];
 
@@ -42,8 +41,7 @@ export default function Plans() {
       {/* Day selector */}
       <div className="grid grid-cols-7 gap-2">
         {DAYS.map((d, i) => {
-          const wDay = mockWorkoutPlan[i];
-          const isRest = tab === 'workout' ? wDay?.isRest : false;
+          const isRest = false;
           return (
             <button key={d} onClick={() => setActiveDay(i)}
               className={`p-2 rounded-lg text-center transition-colors
@@ -66,16 +64,16 @@ export default function Plans() {
         <div className="space-y-4">
           <div className="card">
             <div className="flex items-center justify-between mb-1">
-              <h3 className="font-semibold text-white">{DAYS[activeDay]} — {workoutDay.focus ?? 'Rest Day'}</h3>
-              {workoutDay.isRest
+              <h3 className="font-semibold text-white">{DAYS[activeDay]} — {(workoutDay as any)?.focus ?? 'Rest Day'}</h3>
+              {(workoutDay as any)?.isRest
                 ? <span className="badge badge-zinc">Rest</span>
                 : <span className="badge badge-green">Training</span>}
             </div>
-            {workoutDay.isRest ? (
+            {(workoutDay as any)?.isRest ? (
               <p className="text-sm text-zinc-400 mt-2">Active recovery day. Focus on mobility, stretching, or light cardio.</p>
             ) : (
               <div className="space-y-4 mt-4">
-                {workoutDay.exercises.map((ex, i) => (
+                {(workoutDay as any)?.exercises.map((ex: any, i: number) => (
                   <div key={i} className="flex items-start justify-between py-3 border-b border-zinc-800 last:border-0">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0">
@@ -117,10 +115,10 @@ export default function Plans() {
 
           {/* Meals grouped by type */}
           {mealGroups.map(({ type, items }) => {
-            const groupCals = items.reduce((a, i) => a + i.calories, 0);
-            const groupProt = items.reduce((a, i) => a + i.protein, 0);
-            const groupCarb = items.reduce((a, i) => a + i.carbs, 0);
-            const groupFat  = items.reduce((a, i) => a + i.fats, 0);
+            const groupCals = items.reduce((a: number, i: any) => a + i.calories, 0);
+            const groupProt = items.reduce((a: number, i: any) => a + i.protein, 0);
+            const groupCarb = items.reduce((a: number, i: any) => a + i.carbs, 0);
+            const groupFat  = items.reduce((a: number, i: any) => a + i.fats, 0);
             return (
               <div key={type} className="card">
                 <div className="flex items-center justify-between mb-3">
@@ -134,7 +132,7 @@ export default function Plans() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  {items.map((item, j) => (
+                  {items.map((item: any, j: number) => (
                     <div key={j} className="flex items-center justify-between text-sm">
                       <span className="text-zinc-300">{item.name}</span>
                       <span className="text-xs text-zinc-500">

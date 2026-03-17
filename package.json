@@ -16,7 +16,7 @@
     "docker:up": "docker-compose -f infra/compose/docker-compose.dev.yml up -d",
     "docker:down": "docker-compose -f infra/compose/docker-compose.dev.yml down",
     "docker:build": "docker-compose -f infra/compose/docker-compose.dev.yml build",
-    "db:migrate": "pnpm run --filter '@gym-coach/auth-service' db:migrate && pnpm run --filter '@gym-coach/user-service' db:migrate && pnpm run --filter '@gym-coach/fitness-service' db:migrate && pnpm run --filter '@gym-coach/ai-service' db:migrate",
+    "db:migrate": "pnpm run --filter '@gym-coach/auth-service' db:migrate && pnpm run --filter '@gym-coach/user-service' db:migrate && pnpm run --filter '@gym-coach/fitness-service' db:migrate && pnpm run --filter '@gym-coach/ai-service' db:migrate && pnpm run --filter '@gym-coach/chat-service' db:migrate",
     "db:seed": "pnpm run --filter '@gym-coach/auth-service' db:seed && pnpm run --filter '@gym-coach/user-service' db:seed && pnpm run --filter '@gym-coach/fitness-service' db:seed",
     "test": "pnpm run --recursive test"
   },

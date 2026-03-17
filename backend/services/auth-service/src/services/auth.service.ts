@@ -7,7 +7,7 @@ import type { RegisterStartDto, RegisterVerifyDto } from '../models/auth.models'
 import { sendOtpEmail } from './email.service';
 
 const ACCESS_TOKEN_SECRET =
-  process.env.JWT_SECRET || 'access-secret-key-change-in-production';
+  process.env.JWT_SECRET || 'dev_jwt_secret_change_in_production';
 const REFRESH_TOKEN_SECRET =
   process.env.JWT_REFRESH_SECRET || 'refresh-secret-key-change-in-production';
 const ACCESS_TOKEN_EXPIRY =
@@ -18,8 +18,8 @@ const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES || 10);
 const OTP_RESEND_SECONDS = Number(process.env.OTP_RESEND_SECONDS || 60);
 const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
 
-function generateAccessToken(userId: string, role: string): string {
-  return jwt.sign({ userId, role }, ACCESS_TOKEN_SECRET, {
+function generateAccessToken(userId: string, role: string, email: string): string {
+  return jwt.sign({ userId, role, email }, ACCESS_TOKEN_SECRET, {
     expiresIn: ACCESS_TOKEN_EXPIRY,
   });
 }
@@ -128,7 +128,7 @@ export const authService = {
 
     await authRepository.deleteEmailVerification(data.email);
 
-    const accessToken = generateAccessToken(user.id, user.role);
+    const accessToken = generateAccessToken(user.id, user.role, user.email);
     const refreshToken = generateRefreshToken(user.id);
     await authRepository.createRefreshToken({
       token: refreshToken,
@@ -156,7 +156,7 @@ export const authService = {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) throw { status: 401, message: 'Invalid credentials' };
 
-    const accessToken = generateAccessToken(user.id, user.role);
+    const accessToken = generateAccessToken(user.id, user.role, user.email);
     const refreshToken = generateRefreshToken(user.id);
     await authRepository.createRefreshToken({
       token: refreshToken,
@@ -195,6 +195,7 @@ export const authService = {
     const accessToken = generateAccessToken(
       storedToken.user.id,
       storedToken.user.role,
+      storedToken.user.email,
     );
     const newRefreshToken = generateRefreshToken(storedToken.user.id);
     await authRepository.deleteRefreshToken(storedToken.id);

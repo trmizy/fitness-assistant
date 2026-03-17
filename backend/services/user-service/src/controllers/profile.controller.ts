@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { profileService } from '../services/profile.service';
+import { profileRepository } from '../repositories/profile.repository';
 import { profileSchema } from '../models/profile.models';
 import type { AuthRequest } from '../middleware/auth.middleware';
 
@@ -28,6 +29,28 @@ export const profileController = {
       }
       logger.error(error, 'Update profile error');
       res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async listPTs(_req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const profiles = await profileRepository.findPTs();
+      res.json({ pts: profiles });
+    } catch (error) {
+      logger.error(error, 'List PTs error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async becomePT(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await profileService.becomePT(req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      logger.error(error, 'Become PT error');
+      res.status(error.message?.includes('not allowed') ? 403 : 500).json({
+        error: error.message || 'Internal server error',
+      });
     }
   },
 

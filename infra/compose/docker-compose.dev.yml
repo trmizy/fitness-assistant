@@ -4,6 +4,9 @@ services:
     build:
       context: ../..          # repo root (so pnpm workspace files are accessible)
       dockerfile: frontend/web/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3000
+        VITE_CHAT_WS_URL: http://localhost:3005
     container_name: gymcoach-web
     ports:
       - "5173:80"
@@ -29,6 +32,7 @@ services:
       USER_SERVICE_URL: http://user-service:3004
       FITNESS_SERVICE_URL: http://fitness-service:3002
       AI_SERVICE_URL: http://ai-service:3003
+      CHAT_SERVICE_URL: http://chat-service:3005
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
       CORS_ORIGIN: http://localhost:5173
     depends_on:
@@ -39,6 +43,8 @@ services:
       fitness-service:
         condition: service_healthy
       ai-service:
+        condition: service_healthy
+      chat-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
@@ -95,6 +101,7 @@ services:
       NODE_ENV: production
       PORT: 3004
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
+      AUTH_SERVICE_URL: http://auth-service:3001
     depends_on:
       postgres:
         condition: service_healthy
@@ -162,6 +169,36 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+    restart: unless-stopped
+
+  # ── Chat Service ─────────────────────────────────────────────────────────
+  chat-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/chat-service/Dockerfile
+    container_name: gymcoach-chat
+    ports:
+      - "3005:3005"
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      CHAT_SERVICE_PORT: 3005
+      CHAT_DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3004
+      CORS_ORIGIN: http://localhost:5173
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
   # ── Infrastructure ────────────────────────────────────────────────────────
