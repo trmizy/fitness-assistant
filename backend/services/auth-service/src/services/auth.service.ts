@@ -85,13 +85,29 @@ export const authService = {
       sentAt,
     });
 
-    await sendOtpEmail(data.email, otp, data.firstName, OTP_EXPIRY_MINUTES);
+    const emailResult = await sendOtpEmail(
+      data.email,
+      otp,
+      data.firstName,
+      OTP_EXPIRY_MINUTES,
+    );
 
-    return {
+    const response: {
+      message: string;
+      email: string;
+      expiresInMinutes: number;
+      devOtp?: string;
+    } = {
       message: 'OTP sent',
       email: data.email,
       expiresInMinutes: OTP_EXPIRY_MINUTES,
     };
+
+    if (!emailResult.delivered && process.env.NODE_ENV !== 'production') {
+      response.devOtp = otp;
+    }
+
+    return response;
   },
 
   async verifyRegistration(data: RegisterVerifyDto) {

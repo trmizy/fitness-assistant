@@ -1,63 +1,118 @@
 services:
-  # ── Frontend ──────────────────────────────────────────────────────────────
-  web:
-    build:
-      context: ../..          # repo root (so pnpm workspace files are accessible)
-      dockerfile: frontend/web/Dockerfile
-    container_name: gymcoach-web
-    ports:
-      - "5173:80"
-    depends_on:
-      - api-gateway
-    restart: unless-stopped
-    networks:
-      - default
-
-  # ── API Gateway ───────────────────────────────────────────────────────────
-  api-gateway:
-    build:
-      context: ../..          # repo root
-      dockerfile: backend/gateway/Dockerfile
-    container_name: gymcoach-gateway
-    ports:
-      - "3000:3000"
+  # One-time dependency install for all workspace packages
+  deps:
+    image: node:20-alpine
+    working_dir: /app
+    command: >-
+      sh -c "npm install -g pnpm@8.15.1
+      && pnpm install --frozen-lockfile --force"
+    volumes:
+      - ../..:/app
+      - root_node_modules:/app/node_modules
+      - shared_node_modules:/app/backend/shared/node_modules
+      - gateway_node_modules:/app/backend/gateway/node_modules
+      - auth_node_modules:/app/backend/services/auth-service/node_modules
+      - user_node_modules:/app/backend/services/user-service/node_modules
+      - fitness_node_modules:/app/backend/services/fitness-service/node_modules
+      - ai_node_modules:/app/backend/services/ai-service/node_modules
+      - web_node_modules:/app/frontend/web/node_modules
+      - pnpm_store:/app/.pnpm-store
     environment:
-      NODE_ENV: production
+      PNPM_STORE_DIR: /app/.pnpm-store
+      CI: "1"
+      PNPM_DISABLE_SELF_UPDATE_CHECK: "1"
+
+  # ── Frontend (hot reload) ────────────────────────────────────────────────
+  web:
+    image: node:20-alpine
+    working_dir: /app
+    command: >-
+      sh -c "npm install -g pnpm@8.15.1
+      && pnpm --filter @gym-coach/web dev --host 0.0.0.0 --port 5173"
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+      api-gateway:
+        condition: service_started
+    volumes:
+      - ../..:/app
+      - root_node_modules:/app/node_modules
+      - web_node_modules:/app/frontend/web/node_modules
+      - pnpm_store:/app/.pnpm-store
+    environment:
+      VITE_API_URL: http://localhost:3000
+      VITE_PROXY_TARGET: http://api-gateway:3000
+      CHOKIDAR_USEPOLLING: "1"
+      PNPM_STORE_DIR: /app/.pnpm-store
+      CI: "1"
+      PNPM_DISABLE_SELF_UPDATE_CHECK: "1"
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+
+  # ── API Gateway (hot reload) ─────────────────────────────────────────────
+  api-gateway:
+    image: node:20-alpine
+    working_dir: /app
+    command: >-
+      sh -c "npm install -g pnpm@8.15.1
+      && pnpm --filter @gym-coach/api-gateway dev"
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+      auth-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      fitness-service:
+        condition: service_started
+      ai-service:
+        condition: service_started
+    volumes:
+      - ../..:/app
+      - root_node_modules:/app/node_modules
+      - shared_node_modules:/app/backend/shared/node_modules
+      - gateway_node_modules:/app/backend/gateway/node_modules
+      - pnpm_store:/app/.pnpm-store
+    environment:
+      NODE_ENV: development
       PORT: 3000
-      # Corrected internal Docker service URLs and ports
       AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3004
       FITNESS_SERVICE_URL: http://fitness-service:3002
       AI_SERVICE_URL: http://ai-service:3003
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
       CORS_ORIGIN: http://localhost:5173
-    depends_on:
-      auth-service:
-        condition: service_healthy
-      user-service:
-        condition: service_healthy
-      fitness-service:
-        condition: service_healthy
-      ai-service:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+      CHOKIDAR_USEPOLLING: "1"
+      PNPM_STORE_DIR: /app/.pnpm-store
+      CI: "1"
+      PNPM_DISABLE_SELF_UPDATE_CHECK: "1"
+    ports:
+      - "3000:3000"
     restart: unless-stopped
 
-  # ── Auth Service ──────────────────────────────────────────────────────────
+  # ── Auth Service (hot reload) ────────────────────────────────────────────
   auth-service:
-    build:
-      context: ../..
-      dockerfile: backend/services/auth-service/Dockerfile
-    container_name: gymcoach-auth
-    ports:
-      - "3001:3001"
+    image: node:20-alpine
+    working_dir: /app
+    command: >-
+      sh -c "npm install -g pnpm@8.15.1
+      && apk add --no-cache openssl
+      && pnpm --filter @gym-coach/auth-service db:generate
+      && pnpm --filter @gym-coach/auth-service dev"
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../..:/app
+      - root_node_modules:/app/node_modules
+      - shared_node_modules:/app/backend/shared/node_modules
+      - auth_node_modules:/app/backend/services/auth-service/node_modules
+      - pnpm_store:/app/.pnpm-store
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
@@ -72,96 +127,127 @@ services:
       OTP_EXPIRY_MINUTES: ${OTP_EXPIRY_MINUTES:-10}
       OTP_RESEND_SECONDS: ${OTP_RESEND_SECONDS:-60}
       OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-5}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+      CHOKIDAR_USEPOLLING: "1"
+      PNPM_STORE_DIR: /app/.pnpm-store
+      CI: "1"
+      PNPM_DISABLE_SELF_UPDATE_CHECK: "1"
+    ports:
+      - "3001:3001"
     restart: unless-stopped
 
-  # ── User Service ──────────────────────────────────────────────────────────
+  # ── User Service (hot reload) ────────────────────────────────────────────
   user-service:
-    build:
-      context: ../..
-      dockerfile: backend/services/user-service/Dockerfile
-    container_name: gymcoach-user
-    ports:
-      - "3004:3004"
+    image: node:20-alpine
+    working_dir: /app
+    command: >-
+      sh -c "npm install -g pnpm@8.15.1
+      && apk add --no-cache openssl
+      && pnpm --filter @gym-coach/user-service db:generate
+      && pnpm --filter @gym-coach/user-service dev"
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../..:/app
+      - root_node_modules:/app/node_modules
+      - shared_node_modules:/app/backend/shared/node_modules
+      - user_node_modules:/app/backend/services/user-service/node_modules
+      - pnpm_store:/app/.pnpm-store
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3004
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+      CHOKIDAR_USEPOLLING: "1"
+      PNPM_STORE_DIR: /app/.pnpm-store
+      CI: "1"
+      PNPM_DISABLE_SELF_UPDATE_CHECK: "1"
+    ports:
+      - "3004:3004"
     restart: unless-stopped
 
-  # ── Fitness Service ───────────────────────────────────────────────────────
+  # ── Fitness Service (hot reload) ─────────────────────────────────────────
   fitness-service:
-    build:
-      context: ../..
-      dockerfile: backend/services/fitness-service/Dockerfile
-    container_name: gymcoach-fitness
-    ports:
-      - "3002:3002"
-    environment:
-      NODE_ENV: production
-      PORT: 3002
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+    image: node:20-alpine
+    working_dir: /app
+    command: >-
+      sh -c "npm install -g pnpm@8.15.1
+      && apk add --no-cache openssl
+      && pnpm --filter @gym-coach/fitness-service db:generate
+      && pnpm --filter @gym-coach/fitness-service dev"
     depends_on:
+      deps:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
-    restart: unless-stopped
-
-  # ── AI Service ────────────────────────────────────────────────────────────
-  ai-service:
-    build:
-      context: ../..
-      dockerfile: backend/services/ai-service/Dockerfile
-    container_name: gymcoach-ai
-    ports:
-      - "3003:3003"
+    volumes:
+      - ../..:/app
+      - root_node_modules:/app/node_modules
+      - shared_node_modules:/app/backend/shared/node_modules
+      - fitness_node_modules:/app/backend/services/fitness-service/node_modules
+      - pnpm_store:/app/.pnpm-store
     environment:
-      NODE_ENV: production
-      PORT: 3003
+      NODE_ENV: development
+      PORT: 3002
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      QDRANT_HOST: qdrant
-      QDRANT_PORT: 6333
+      AUTH_SERVICE_URL: http://auth-service:3001
+      AI_SERVICE_URL: http://ai-service:3003
+      CHOKIDAR_USEPOLLING: "1"
+      PNPM_STORE_DIR: /app/.pnpm-store
+      CI: "1"
+      PNPM_DISABLE_SELF_UPDATE_CHECK: "1"
+    ports:
+      - "3002:3002"
+    restart: unless-stopped
+
+  # ── AI Service (hot reload) ──────────────────────────────────────────────
+  ai-service:
+    image: node:20-alpine
+    working_dir: /app
+    command: >-
+      sh -c "npm install -g pnpm@8.15.1
+      && apk add --no-cache openssl
+      && pnpm --filter @gym-coach/ai-service db:generate
+      && pnpm --filter @gym-coach/ai-service dev"
     depends_on:
+      deps:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       qdrant:
         condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 15s
+    volumes:
+      - ../..:/app
+      - root_node_modules:/app/node_modules
+      - shared_node_modules:/app/backend/shared/node_modules
+      - ai_node_modules:/app/backend/services/ai-service/node_modules
+      - pnpm_store:/app/.pnpm-store
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      CHOKIDAR_USEPOLLING: "1"
+      PNPM_STORE_DIR: /app/.pnpm-store
+      CI: "1"
+      PNPM_DISABLE_SELF_UPDATE_CHECK: "1"
+    ports:
+      - "3003:3003"
     restart: unless-stopped
 
   # ── Infrastructure ────────────────────────────────────────────────────────
@@ -211,6 +297,15 @@ volumes:
   postgres_data:
   redis_data:
   qdrant_data:
+  root_node_modules:
+  shared_node_modules:
+  gateway_node_modules:
+  auth_node_modules:
+  user_node_modules:
+  fitness_node_modules:
+  ai_node_modules:
+  web_node_modules:
+  pnpm_store:
 
 networks:
   default:

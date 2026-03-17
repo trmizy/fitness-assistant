@@ -1,0 +1,119 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ExerciseType {
+  STRENGTH
+  CARDIO
+  MOBILITY
+  STRENGTH_CARDIO
+  STRENGTH_MOBILITY
+}
+
+enum EquipmentType {
+  BODYWEIGHT
+  BARBELL
+  DUMBBELLS
+  KETTLEBELL
+  MACHINE
+  RESISTANCE_BAND
+  CABLE
+  MEDICINE_BALL
+  FOAM_ROLLER
+}
+
+enum BodyPart {
+  UPPER_BODY
+  LOWER_BODY
+  CORE
+  FULL_BODY
+}
+
+enum MovementType {
+  PUSH
+  PULL
+  HOLD
+  STRETCH
+}
+
+model Exercise {
+  id                    String        @id @default(uuid())
+  exerciseName          String        @map("exercise_name")
+  typeOfActivity        ExerciseType  @map("type_of_activity")
+  typeOfEquipment       EquipmentType @map("type_of_equipment")
+  bodyPart              BodyPart      @map("body_part")
+  type                  MovementType
+  muscleGroupsActivated String[]      @map("muscle_groups_activated")
+  instructions          String
+  videoUrl              String?       @map("video_url")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  workoutExercises WorkoutExercise[]
+
+  @@index([bodyPart, typeOfActivity])
+  @@index([typeOfEquipment])
+  @@map("exercises")
+}
+
+model Workout {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  date        DateTime @default(now())
+  duration    Int? // minutes
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  exercises WorkoutExercise[]
+
+  @@index([userId, date])
+  @@map("workouts")
+}
+
+model WorkoutExercise {
+  id         String   @id @default(uuid())
+  workoutId  String   @map("workout_id")
+  exerciseId String   @map("exercise_id")
+  sets       Int
+  reps       Int?
+  duration   Int? // seconds for holds/cardio
+  weight     Float? // kg
+  notes      String?
+  order      Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  workout  Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@index([workoutId])
+  @@index([exerciseId])
+  @@map("workout_exercises")
+}
+
+model NutritionLog {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  date      DateTime @default(now())
+  mealType  String   @map("meal_type") // breakfast, lunch, dinner, snack
+  foodName  String   @map("food_name")
+  calories  Int
+  protein   Float? // grams
+  carbs     Float? // grams
+  fats      Float? // grams
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, date])
+  @@map("nutrition_logs")
+}

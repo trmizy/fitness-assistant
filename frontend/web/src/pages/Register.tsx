@@ -11,6 +11,7 @@ export default function Register() {
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [otpInfo, setOtpInfo] = useState<{ email: string; expiresInMinutes: number } | null>(null);
+  const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -32,6 +33,7 @@ export default function Register() {
         throw new Error(errBody.error || 'Registration failed. Please try again.');
       }
       const data = await res.json();
+      setDevOtpHint(data.devOtp || null);
       setOtpInfo({
         email: data.email || form.email,
         expiresInMinutes: data.expiresInMinutes || 10,
@@ -149,6 +151,11 @@ export default function Register() {
                   maxLength={6}
                   required
                 />
+                {devOtpHint && (
+                  <p className="mt-2 text-xs text-amber-300">
+                    Dev OTP: <span className="font-mono">{devOtpHint}</span>
+                  </p>
+                )}
               </div>
               <button type="submit" className="btn-primary w-full" disabled={loading}>
                 {loading ? 'Verifying…' : 'Verify & Create Account'}
