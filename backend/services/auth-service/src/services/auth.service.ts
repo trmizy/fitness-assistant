@@ -1,14 +1,22 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import type { SignOptions } from 'jsonwebtoken';
+import crypto from 'crypto';
 import { authRepository } from '../repositories/auth.repository';
-import type { RegisterDto } from '../models/auth.models';
+import type { RegisterStartDto, RegisterVerifyDto } from '../models/auth.models';
+import { sendOtpEmail } from './email.service';
 
 const ACCESS_TOKEN_SECRET =
   process.env.JWT_SECRET || 'access-secret-key-change-in-production';
 const REFRESH_TOKEN_SECRET =
   process.env.JWT_REFRESH_SECRET || 'refresh-secret-key-change-in-production';
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
+const ACCESS_TOKEN_EXPIRY =
+  (process.env.JWT_ACCESS_EXPIRY as SignOptions['expiresIn']) || '15m';
+const REFRESH_TOKEN_EXPIRY =
+  (process.env.JWT_REFRESH_EXPIRY as SignOptions['expiresIn']) || '7d';
+const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES || 10);
+const OTP_RESEND_SECONDS = Number(process.env.OTP_RESEND_SECONDS || 60);
+const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
 
 function generateAccessToken(userId: string, role: string): string {
   return jwt.sign({ userId, role }, ACCESS_TOKEN_SECRET, {
@@ -28,19 +36,97 @@ function makeRefreshExpiry(): Date {
   return expiresAt;
 }
 
+function makeOtpExpiry(): Date {
+  const expiresAt = new Date();
+  expiresAt.setMinutes(expiresAt.getMinutes() + OTP_EXPIRY_MINUTES);
+  return expiresAt;
+}
+
+function hashOtp(otp: string): string {
+  return crypto.createHash('sha256').update(otp).digest('hex');
+}
+
+function generateOtp(): string {
+  return crypto.randomInt(100000, 1000000).toString();
+}
+
 export const authService = {
-  async register(data: RegisterDto) {
+  async register(data: RegisterStartDto) {
     const existing = await authRepository.findUserByEmail(data.email);
     if (existing) throw { status: 400, message: 'Email already registered' };
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-    const user = await authRepository.createUser({
+    const previous = await authRepository.findEmailVerificationByEmail(data.email);
+    if (previous?.sentAt) {
+      const secondsSinceLastSend =
+        (Date.now() - previous.sentAt.getTime()) / 1000;
+      if (secondsSinceLastSend < OTP_RESEND_SECONDS) {
+        throw {
+          status: 429,
+          message: `OTP recently sent. Please wait ${Math.ceil(
+            OTP_RESEND_SECONDS - secondsSinceLastSend,
+          )}s`,
+        };
+      }
+    }
+
+    const otp = generateOtp();
+    const otpHash = hashOtp(otp);
+    const passwordHash = await bcrypt.hash(data.password, 10);
+    const expiresAt = makeOtpExpiry();
+    const sentAt = new Date();
+
+    await authRepository.upsertEmailVerification({
       email: data.email,
-      password: hashedPassword,
-      firstName: data.firstName,
-      lastName: data.lastName,
+      passwordHash,
+      firstName: data.firstName ?? null,
+      lastName: data.lastName ?? null,
+      otpHash,
+      expiresAt,
+      sentAt,
+    });
+
+    await sendOtpEmail(data.email, otp, data.firstName, OTP_EXPIRY_MINUTES);
+
+    return {
+      message: 'OTP sent',
+      email: data.email,
+      expiresInMinutes: OTP_EXPIRY_MINUTES,
+    };
+  },
+
+  async verifyRegistration(data: RegisterVerifyDto) {
+    const record = await authRepository.findEmailVerificationByEmail(data.email);
+    if (!record) throw { status: 400, message: 'OTP not found' };
+
+    if (record.expiresAt < new Date()) {
+      throw { status: 400, message: 'OTP expired' };
+    }
+
+    if (record.attempts >= OTP_MAX_ATTEMPTS) {
+      throw { status: 429, message: 'OTP attempts exceeded' };
+    }
+
+    const otpHash = hashOtp(data.otp);
+    if (otpHash !== record.otpHash) {
+      await authRepository.incrementEmailVerificationAttempts(data.email);
+      throw { status: 400, message: 'Invalid OTP' };
+    }
+
+    const existing = await authRepository.findUserByEmail(data.email);
+    if (existing) {
+      await authRepository.deleteEmailVerification(data.email);
+      throw { status: 400, message: 'Email already registered' };
+    }
+
+    const user = await authRepository.createUser({
+      email: record.email,
+      password: record.passwordHash,
+      firstName: record.firstName ?? undefined,
+      lastName: record.lastName ?? undefined,
       role: 'USER',
     });
+
+    await authRepository.deleteEmailVerification(data.email);
 
     const accessToken = generateAccessToken(user.id, user.role);
     const refreshToken = generateRefreshToken(user.id);
