@@ -11,8 +11,10 @@ const SMTP_SECURE =
 
 function assertSmtpConfig() {
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_FROM) {
-    throw { status: 500, message: 'Email service not configured' };
+    return false;
   }
+
+  return true;
 }
 
 export async function sendOtpEmail(
@@ -21,7 +23,18 @@ export async function sendOtpEmail(
   firstName?: string,
   expiresInMinutes = 10,
 ) {
-  assertSmtpConfig();
+  const hasSmtpConfig = assertSmtpConfig();
+  if (!hasSmtpConfig) {
+    if (process.env.NODE_ENV === 'production') {
+      throw { status: 500, message: 'Email service not configured' };
+    }
+
+    logger.warn(
+      { to, otp },
+      'SMTP not configured. Using development OTP fallback.',
+    );
+    return { delivered: false as const };
+  }
 
   const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
@@ -60,4 +73,5 @@ export async function sendOtpEmail(
   });
 
   logger.info({ to }, 'OTP email sent');
+  return { delivered: true as const };
 }
