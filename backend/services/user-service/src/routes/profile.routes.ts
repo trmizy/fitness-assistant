@@ -6,6 +6,10 @@ const router = Router();
 
 router.get('/me', authMiddleware, profileController.getProfile as any);
 router.put('/me', authMiddleware, profileController.upsertProfile as any);
+router.patch('/me/become-pt', authMiddleware, profileController.becomePT as any);
 router.delete('/me', authMiddleware, profileController.deleteProfile as any);
+
+// Listing PT users — used by the chat-service to validate PT-client conversations
+router.get('/pts', authMiddleware, profileController.listPTs as any);
 
 export default router;

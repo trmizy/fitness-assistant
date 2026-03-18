@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, User, Scale, Dumbbell, CalendarDays,
-  Bot, LogOut, Menu, X, Activity,
+  Bot, LogOut, Menu, X, Activity, MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,6 +13,7 @@ const navItems = [
   { path: '/workouts', label: 'Workouts',  icon: Dumbbell },
   { path: '/plans',    label: 'Plans',     icon: CalendarDays },
   { path: '/coach',    label: 'AI Coach',  icon: Bot },
+  { path: '/chat',     label: 'Chat',      icon: MessageSquare },
 ];
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
@@ -22,6 +23,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/workouts': { title: 'Workouts',   subtitle: 'Training logs & history' },
   '/plans':    { title: 'Plans',      subtitle: 'Workout & meal planning' },
   '/coach':    { title: 'AI Coach',   subtitle: 'Your personal fitness AI' },
+  '/chat':     { title: 'Chat',       subtitle: 'Messages with your PT or clients' },
 };
 
 export default function Layout() {

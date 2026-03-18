@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Activity, Mail, Lock, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { mockUser } from '../data/mock';
 
 export default function Login() {
   const { login } = useAuth();
@@ -36,10 +35,7 @@ export default function Login() {
     }
   };
 
-  const handleDemo = () => {
-    login('demo-token', 'demo-refresh', mockUser);
-    navigate('/');
-  };
+
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
@@ -83,20 +79,7 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-zinc-800" />
-            </div>
-            <div className="relative flex justify-center text-xs text-zinc-500">
-              <span className="bg-zinc-900 px-2">or</span>
-            </div>
-          </div>
 
-          <button onClick={handleDemo}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600/10 border border-emerald-600/20 text-emerald-400 text-sm font-medium hover:bg-emerald-600/20 transition-colors">
-            <Zap className="w-4 h-4" />
-            Try Demo Mode (no backend needed)
-          </button>
 
           <p className="mt-5 text-center text-sm text-zinc-500">
             {/* eslint-disable-next-line react/no-unescaped-entities */}

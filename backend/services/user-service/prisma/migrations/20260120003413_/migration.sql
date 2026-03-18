@@ -27,7 +27,6 @@ CREATE TABLE "user_profiles" (
     "targetWeight" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-
     CONSTRAINT "user_profiles_pkey" PRIMARY KEY ("id")
 );
 

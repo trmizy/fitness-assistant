@@ -58,6 +58,16 @@ export const profileService = {
     const { data } = await api.put('/profile/me', profile);
     return data;
   },
+
+  becomePT: async () => {
+    const { data } = await api.patch('/profile/me/become-pt');
+    return data;
+  },
+
+  listPTs: async () => {
+    const { data } = await api.get('/profile/pts');
+    return data;
+  },
 };
 
 export const inbodyService = {
@@ -140,6 +150,30 @@ export const coachService = {
   
   getConversations: async () => {
     const { data } = await api.get('/ai/conversations');
+    return data;
+  },
+};
+
+export const chatService = {
+  createDirectConversation: async (targetUserId: string) => {
+    const { data } = await api.post('/chat/conversations/direct', { targetUserId });
+    return data;
+  },
+
+  listConversations: async () => {
+    const { data } = await api.get('/chat/conversations');
+    return data;
+  },
+
+  getMessages: async (conversationId: string, page = 1, limit = 30) => {
+    const { data } = await api.get(
+      `/chat/conversations/${conversationId}/messages?page=${page}&limit=${limit}`,
+    );
+    return data;
+  },
+
+  sendMessage: async (conversationId: string, content: string) => {
+    const { data } = await api.post(`/chat/conversations/${conversationId}/messages`, { content });
     return data;
   },
 };

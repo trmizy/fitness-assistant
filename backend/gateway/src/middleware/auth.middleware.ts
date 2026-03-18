@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { logger } from '@gym-coach/shared';
 
 const JWT_SECRET =
-  process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+  process.env.JWT_SECRET || 'dev_jwt_secret_change_in_production';
 
 export function authMiddleware(
   req: Request,
@@ -25,7 +25,7 @@ export function authMiddleware(
 
     // Forward user info to downstream services via headers
     req.headers['x-user-id'] = payload.userId;
-    req.headers['x-user-email'] = payload.email;
+    req.headers['x-user-email'] = payload.email || '';
     req.headers['x-user-role'] = payload.role || 'user';
 
     return next();

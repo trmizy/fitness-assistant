@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
-import { mockMessages, suggestionChips } from '../data/mock';
+
 import type { Message } from '../types';
 
 export default function Coach() {
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -25,7 +25,7 @@ export default function Coach() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken') ?? 'demo-token'}`,
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         },
         body: JSON.stringify({ message: text }),
       });
@@ -111,15 +111,7 @@ export default function Coach() {
 
       {/* Suggestions */}
       <div className="flex-shrink-0 flex gap-2 overflow-x-auto pb-3 pt-1 scrollbar-none">
-        {suggestionChips.map(chip => (
-          <button key={chip} onClick={() => send(chip)}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs
-                       bg-zinc-800 text-zinc-400 border border-zinc-700 hover:border-emerald-600/50
-                       hover:text-emerald-400 transition-colors whitespace-nowrap">
-            <Sparkles className="w-3 h-3" />
-            {chip}
-          </button>
-        ))}
+        {/* No suggestions without mock data */}
       </div>
 
       {/* Input */}

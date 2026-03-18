@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Dumbbell, Plus, X, ChevronDown, ChevronUp, Clock, Flame } from 'lucide-react';
-import { mockWorkouts } from '../data/mock';
+
 import type { WorkoutLog } from '../types';
 
 export default function Workouts() {
-  const [workouts, setWorkouts] = useState<WorkoutLog[]>(mockWorkouts);
-  const [expanded, setExpanded] = useState<string | null>(mockWorkouts[0]?.id ?? null);
+  const [workouts, setWorkouts] = useState<WorkoutLog[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', date: '', duration: '', notes: '' });
 

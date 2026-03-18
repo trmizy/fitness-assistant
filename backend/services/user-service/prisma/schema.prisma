@@ -40,6 +40,13 @@ model UserProfile {
   id        String   @id @default(uuid())
   userId    String   @unique // References auth-service User.id
   
+  // PT Status
+  // Currently a simple boolean flag. Future expansion:
+  // - role: CLIENT | PT | ADMIN (enum)
+  // - ptApplicationStatus: NONE | PENDING | APPROVED | REJECTED (enum)
+  // - ptCertificateUrl, ptBio, ptSpecialties, etc.
+  isPT      Boolean  @default(false)
+
   // Demographics
   age       Int?
   gender    Gender?

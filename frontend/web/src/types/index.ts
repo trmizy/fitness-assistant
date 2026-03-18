@@ -10,6 +10,7 @@ export interface User {
   age?: number;
   goal?: string;
   fitnessLevel?: 'beginner' | 'intermediate' | 'advanced';
+  isPT?: boolean;
 }
 
 export interface InBodyEntry {
@@ -83,4 +84,31 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+}
+
+// ── Chat types ────────────────────────────────────────────────
+export interface ConversationParticipant {
+  id: string;
+  conversationId: string;
+  userId: string;
+  joinedAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface Conversation {
+  id: string;
+  type: 'DIRECT';
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  participants: ConversationParticipant[];
+  messages: ChatMessage[];
 }

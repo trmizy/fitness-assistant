@@ -10,6 +10,7 @@ const USER_SERVICE_URL =
 const FITNESS_SERVICE_URL =
   process.env.FITNESS_SERVICE_URL || 'http://localhost:3002';
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:3003';
+const CHAT_SERVICE_URL = process.env.CHAT_SERVICE_URL || 'http://localhost:3005';
 
 function serviceUnavailable(serviceName: string) {
   return (err: Error, _req: Request, res: Response) => {
@@ -96,6 +97,17 @@ router.use(
     target: AI_SERVICE_URL,
     changeOrigin: true,
     onError: serviceUnavailable('AI service'),
+  }),
+);
+
+// Protected — Chat Service (REST only; Socket.IO connects directly to :3005)
+router.use(
+  '/chat',
+  authMiddleware,
+  createProxyMiddleware({
+    target: CHAT_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('Chat service'),
   }),
 );
 

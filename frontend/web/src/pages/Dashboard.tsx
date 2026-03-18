@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Scale, Dumbbell, Flame, TrendingUp, ChevronRight, CalendarDays, Bot } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { mockInBodyHistory, mockWorkouts } from '../data/mock';
 
 function StatCard({ icon: Icon, label, value, sub, color = 'emerald' }: {
   icon: React.ElementType; label: string; value: string; sub: string; color?: string;
@@ -29,10 +28,9 @@ function StatCard({ icon: Icon, label, value, sub, color = 'emerald' }: {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const latest = mockInBodyHistory[mockInBodyHistory.length - 1];
-  const prev   = mockInBodyHistory[mockInBodyHistory.length - 2];
-  const weightDiff = (latest.weight - prev.weight).toFixed(1);
-  const recentWorkouts = mockWorkouts.slice(0, 3);
+  const latest = { weight: 0, bodyFat: 0, muscleMass: 0, bmi: 0 };
+  const weightDiff = "0.0";
+  const recentWorkouts: any[] = [];
 
   const displayName = user ? `${user.firstName} ${user.lastName}` : 'Athlete';
 
@@ -119,15 +117,7 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {[...mockInBodyHistory].reverse().slice(0, 4).map(e => (
-                <tr key={e.date} className="border-b border-zinc-800/50 last:border-0">
-                  <td className="py-3 px-3 text-zinc-300 first:pl-0">{e.date}</td>
-                  <td className="py-3 px-3 text-white font-medium">{e.weight} kg</td>
-                  <td className="py-3 px-3 text-orange-400">{e.bodyFat}%</td>
-                  <td className="py-3 px-3 text-blue-400">{e.muscleMass} kg</td>
-                  <td className="py-3 px-3 text-zinc-300">{e.bmi}</td>
-                </tr>
-              ))}
+              {/* No data */}
             </tbody>
           </table>
         </div>

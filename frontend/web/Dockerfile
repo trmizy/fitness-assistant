@@ -18,6 +18,12 @@ RUN pnpm install --filter @gym-coach/web --frozen-lockfile
 # Copy the full frontend source
 COPY frontend/web ./frontend/web
 
+# Vite bakes env vars at build time — pass them via --build-arg
+ARG VITE_API_URL=http://localhost:3000
+ARG VITE_CHAT_WS_URL=http://localhost:3005
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_CHAT_WS_URL=$VITE_CHAT_WS_URL
+
 # Build production bundle
 RUN pnpm --filter @gym-coach/web build
 

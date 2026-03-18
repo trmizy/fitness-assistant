@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { User, Target, Edit3, Save, X } from 'lucide-react';
+import axios from 'axios';
+import { User, Target, Edit3, Save, X, Award } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { profileService } from '../services/api';
 
 const goalLabels: Record<string, string> = {
   muscle_gain:   'Muscle Gain',
@@ -16,8 +18,10 @@ const levelLabels: Record<string, string> = {
 };
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [ptLoading, setPtLoading] = useState(false);
+  const [ptError, setPtError] = useState<string | null>(null);
   const [form, setForm] = useState({
     firstName: user?.firstName ?? '',
     lastName:  user?.lastName  ?? '',
@@ -34,6 +38,23 @@ export default function Profile() {
 
   const initials = `${form.firstName[0] ?? '?'}${form.lastName[0] ?? ''}`.toUpperCase();
 
+  const handleBecomePT = async () => {
+    setPtLoading(true);
+    setPtError(null);
+    try {
+      await profileService.becomePT();
+      updateUser({ isPT: true });
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        setPtError(error.response?.data?.error || 'Failed to become PT. Please try again.');
+      } else {
+        setPtError('Failed to become PT. Please try again.');
+      }
+    } finally {
+      setPtLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl space-y-6">
       {/* Avatar + name */}
@@ -42,7 +63,14 @@ export default function Profile() {
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold text-white">{form.firstName} {form.lastName}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-white">{form.firstName} {form.lastName}</h2>
+            {user?.isPT && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600/20 text-emerald-400 text-xs font-medium border border-emerald-600/30">
+                <Award className="w-3 h-3" /> PT
+              </span>
+            )}
+          </div>
           <p className="text-sm text-zinc-400">{goalLabels[form.goal]} &middot; {levelLabels[form.level]}</p>
         </div>
         <button onClick={() => setEditing(!editing)}
@@ -117,6 +145,32 @@ export default function Profile() {
           </div>
         )}
       </div>
+
+      {/* Become PT */}
+      {!user?.isPT && (
+        <div className="card border border-emerald-600/20 bg-emerald-600/5">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-lg bg-emerald-600/20 flex items-center justify-center shrink-0">
+              <Award className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-white mb-1">Become a Personal Trainer</h3>
+              <p className="text-sm text-zinc-400 mb-4">
+                Activate your PT status to offer coaching services and chat with clients.
+              </p>
+              {ptError && <p className="text-sm text-red-400 mb-3">{ptError}</p>}
+              <button
+                onClick={handleBecomePT}
+                disabled={ptLoading}
+                className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Award className="w-4 h-4" />
+                {ptLoading ? 'Activating...' : 'Become a PT'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats summary */}
       <div className="grid grid-cols-3 gap-4">

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Scale, TrendingDown, Activity, Plus, X } from 'lucide-react';
-import { mockInBodyHistory } from '../data/mock';
+
 import type { InBodyEntry } from '../types';
 
 export default function InBody() {
-  const [entries, setEntries] = useState<InBodyEntry[]>(mockInBodyHistory);
+  const [entries, setEntries] = useState<InBodyEntry[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ date: '', weight: '', bodyFat: '', muscleMass: '', bmi: '' });
 
@@ -39,11 +39,11 @@ export default function InBody() {
     <div className="space-y-6">
       {/* Latest snapshot */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { icon: Scale,        label: 'Weight',      value: `${latest.weight} kg`,     diffObj: diff(latest.weight, prev.weight),     color: 'emerald', invert: true  },
-          { icon: TrendingDown, label: 'Body Fat',    value: `${latest.bodyFat}%`,      diffObj: diff(latest.bodyFat, prev.bodyFat),   color: 'orange',  invert: true  },
-          { icon: Activity,     label: 'Muscle Mass', value: `${latest.muscleMass} kg`, diffObj: diff(latest.muscleMass, prev.muscleMass), color: 'blue', invert: false },
-          { icon: Scale,        label: 'BMI',         value: String(latest.bmi),          diffObj: diff(latest.bmi, prev.bmi),           color: 'purple',  invert: true  },
+        {latest ? [
+          { icon: Scale,        label: 'Weight',      value: `${latest.weight} kg`,     diffObj: diff(latest.weight, prev?.weight ?? latest.weight),     color: 'emerald', invert: true  },
+          { icon: TrendingDown, label: 'Body Fat',    value: `${latest.bodyFat}%`,      diffObj: diff(latest.bodyFat, prev?.bodyFat ?? latest.bodyFat),   color: 'orange',  invert: true  },
+          { icon: Activity,     label: 'Muscle Mass', value: `${latest.muscleMass} kg`, diffObj: diff(latest.muscleMass, prev?.muscleMass ?? latest.muscleMass), color: 'blue', invert: false },
+          { icon: Scale,        label: 'BMI',         value: String(latest.bmi),          diffObj: diff(latest.bmi, prev?.bmi ?? latest.bmi),           color: 'purple',  invert: true  },
         ].map(({ icon: Icon, label, value, diffObj, color, invert }) => {
           const isGood = invert ? !diffObj.positive : diffObj.positive;
           return (
@@ -58,7 +58,11 @@ export default function InBody() {
               </p>
             </div>
           );
-        })}
+        }) : (
+          <div className="col-span-full card text-center py-10">
+             <p className="text-zinc-500">No measurements yet. Add your first entry below.</p>
+          </div>
+        )}
       </div>
 
       {/* History table + add button */}

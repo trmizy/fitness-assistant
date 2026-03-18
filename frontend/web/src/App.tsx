@@ -11,6 +11,7 @@ import Workouts from './pages/Workouts';
 import Plans from './pages/Plans';
 import Coach from './pages/Coach';
 import Layout from './components/Layout';
+import Chat from './pages/Chat';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1 } },
@@ -39,6 +40,7 @@ function AppRoutes() {
         <Route path="workouts" element={<Workouts />} />
         <Route path="plans"    element={<Plans />} />
         <Route path="coach"    element={<Coach />} />
+        <Route path="chat"     element={<Chat />} />
       </Route>
       <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
     </Routes>
