@@ -1,7 +1,31 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Scale, Dumbbell, Flame, TrendingUp, ChevronRight, CalendarDays, Bot } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { profileService, workoutService } from '../services/api';
+
+type ProfileResponse = {
+  profile?: {
+    currentWeight?: number;
+    targetWeight?: number;
+  } | null;
+};
+
+type WorkoutStats = {
+  totalWorkouts: number;
+  totalDuration: number;
+  totalExercises: number;
+  averageDuration: number;
+  workoutsPerWeek: string;
+};
+
+type WorkoutItem = {
+  id: string;
+  name: string;
+  date: string;
+  duration?: number | null;
+  exercises: unknown[];
+};
 
 function StatCard({ icon: Icon, label, value, sub, color = 'emerald' }: {
   icon: React.ElementType; label: string; value: string; sub: string; color?: string;
@@ -28,11 +52,60 @@ function StatCard({ icon: Icon, label, value, sub, color = 'emerald' }: {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const latest = { weight: 0, bodyFat: 0, muscleMass: 0, bmi: 0 };
-  const weightDiff = "0.0";
-  const recentWorkouts: any[] = [];
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<ProfileResponse['profile']>(null);
+  const [stats, setStats] = useState<WorkoutStats | null>(null);
+  const [recentWorkouts, setRecentWorkouts] = useState<WorkoutItem[]>([]);
 
-  const displayName = user ? `${user.firstName} ${user.lastName}` : 'Athlete';
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const [profileRes, statsRes, workoutsRes] = await Promise.all([
+          profileService.getProfile(),
+          workoutService.getStats(),
+          workoutService.getHistory(1, 3),
+        ]);
+
+        setProfile((profileRes as ProfileResponse).profile ?? null);
+        setStats(statsRes as WorkoutStats);
+        setRecentWorkouts(Array.isArray(workoutsRes) ? (workoutsRes as WorkoutItem[]) : []);
+      } catch {
+        setProfile(null);
+        setStats(null);
+        setRecentWorkouts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  const streakDays = useMemo(() => {
+    if (recentWorkouts.length === 0) return 0;
+
+    const workoutDays = new Set(
+      recentWorkouts.map((w) => new Date(w.date).toISOString().slice(0, 10)),
+    );
+
+    let streak = 0;
+    const current = new Date();
+    while (true) {
+      const dayKey = current.toISOString().slice(0, 10);
+      if (!workoutDays.has(dayKey)) break;
+      streak += 1;
+      current.setDate(current.getDate() - 1);
+    }
+
+    return streak;
+  }, [recentWorkouts]);
+
+  const currentWeight = profile?.currentWeight;
+  const targetWeight = profile?.targetWeight;
+  const weightGap =
+    typeof currentWeight === 'number' && typeof targetWeight === 'number'
+      ? (currentWeight - targetWeight).toFixed(1)
+      : null;
 
   return (
     <div className="space-y-6">
@@ -46,10 +119,34 @@ export default function Dashboard() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Scale}       label="Current Weight"  value={`${latest.weight} kg`}        sub={`${weightDiff} kg this month`} color="emerald" />
-        <StatCard icon={TrendingUp}  label="Body Fat"        value={`${latest.bodyFat}%`}         sub="Target: 12%"                    color="orange"  />
-        <StatCard icon={Dumbbell}    label="Workouts / Week" value="4"                              sub="Goal: 5 sessions"               color="blue"    />
-        <StatCard icon={Flame}       label="Active Streak"   value="12 days"                        sub="Personal best: 21 days"         color="purple"  />
+        <StatCard
+          icon={Scale}
+          label="Current Weight"
+          value={typeof currentWeight === 'number' ? `${currentWeight} kg` : '--'}
+          sub={weightGap !== null ? `${weightGap} kg vs target` : 'Update profile to see weight'}
+          color="emerald"
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Total Duration"
+          value={stats ? `${Math.round(stats.totalDuration / 60)} h` : '--'}
+          sub={stats ? `${stats.totalDuration} min in last 30 days` : 'No workout stats yet'}
+          color="orange"
+        />
+        <StatCard
+          icon={Dumbbell}
+          label="Workouts / Week"
+          value={stats ? `${stats.workoutsPerWeek}` : '--'}
+          sub={stats ? `${stats.totalWorkouts} sessions in 30 days` : 'No workout stats yet'}
+          color="blue"
+        />
+        <StatCard
+          icon={Flame}
+          label="Active Streak"
+          value={`${streakDays} day${streakDays === 1 ? '' : 's'}`}
+          sub={streakDays > 0 ? 'Based on recent logs' : 'Log workouts to build streak'}
+          color="purple"
+        />
       </div>
 
       {/* Two-column lower section */}
@@ -63,6 +160,9 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="space-y-3">
+            {!loading && recentWorkouts.length === 0 && (
+              <p className="text-sm text-zinc-500 py-6">No workouts yet. Start by logging your first session.</p>
+            )}
             {recentWorkouts.map(w => (
               <div key={w.id} className="flex items-center justify-between py-3 border-b border-zinc-800 last:border-0">
                 <div className="flex items-center gap-3">
@@ -71,7 +171,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">{w.name}</p>
-                    <p className="text-xs text-zinc-500">{w.date} &middot; {w.duration} min</p>
+                    <p className="text-xs text-zinc-500">{new Date(w.date).toLocaleDateString()} &middot; {w.duration ?? 0} min</p>
                   </div>
                 </div>
                 <span className="badge badge-green">{w.exercises.length} exercises</span>
@@ -104,23 +204,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Body composition progress */}
+      {/* Workout summary */}
       <div className="card">
-        <h3 className="font-semibold text-white mb-4">Body Composition Progress</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-zinc-800">
-                {['Date', 'Weight', 'Body Fat', 'Muscle Mass', 'BMI'].map(h => (
-                  <th key={h} className="text-left py-2 px-3 text-xs font-medium text-zinc-500 first:pl-0">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* No data */}
-            </tbody>
-          </table>
-        </div>
+        <h3 className="font-semibold text-white mb-4">Your Data Summary</h3>
+        <p className="text-sm text-zinc-400">
+          Dashboard now shows your real account data from backend services. If a section is empty,
+          it means you have not logged that data yet.
+        </p>
       </div>
     </div>
   );

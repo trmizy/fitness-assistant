@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, Mail, Lock, Zap } from 'lucide-react';
+import { Activity, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
@@ -34,8 +34,6 @@ export default function Login() {
       setLoading(false);
     }
   };
-
-
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
@@ -78,8 +76,6 @@ export default function Login() {
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
-
-
 
           <p className="mt-5 text-center text-sm text-zinc-500">
             {/* eslint-disable-next-line react/no-unescaped-entities */}
