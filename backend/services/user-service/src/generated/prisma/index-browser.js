@@ -125,6 +125,7 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.UserProfileScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  isPT: 'isPT',
   age: 'age',
   gender: 'gender',
   heightCm: 'heightCm',
@@ -136,6 +137,33 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   injuries: 'injuries',
   currentWeight: 'currentWeight',
   targetWeight: 'targetWeight',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InBodyEntryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  date: 'date',
+  weight: 'weight',
+  height: 'height',
+  bmi: 'bmi',
+  bmr: 'bmr',
+  bodyFat: 'bodyFat',
+  bodyFatPct: 'bodyFatPct',
+  muscleMass: 'muscleMass',
+  rightArmMuscle: 'rightArmMuscle',
+  leftArmMuscle: 'leftArmMuscle',
+  trunkMuscle: 'trunkMuscle',
+  rightLegMuscle: 'rightLegMuscle',
+  leftLegMuscle: 'leftLegMuscle',
+  rightArmFat: 'rightArmFat',
+  leftArmFat: 'leftArmFat',
+  trunkFat: 'trunkFat',
+  rightLegFat: 'rightLegFat',
+  leftLegFat: 'leftLegFat',
+  status: 'status',
+  notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -182,7 +210,8 @@ exports.ExperienceLevel = exports.$Enums.ExperienceLevel = {
 };
 
 exports.Prisma.ModelName = {
-  UserProfile: 'UserProfile'
+  UserProfile: 'UserProfile',
+  InBodyEntry: 'InBodyEntry'
 };
 
 /**

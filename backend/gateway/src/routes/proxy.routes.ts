@@ -111,4 +111,16 @@ router.use(
   }),
 );
 
+// Protected — InBody (User Service)
+router.use(
+  '/inbody',
+  authMiddleware,
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/inbody': '/inbody' },
+    onError: serviceUnavailable('User service'),
+  }),
+);
+
 export default router;

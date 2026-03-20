@@ -40,6 +40,13 @@ model UserProfile {
   id     String @id @default(uuid())
   userId String @unique // References auth-service User.id
 
+  // PT Status
+  // Currently a simple boolean flag. Future expansion:
+  // - role: CLIENT | PT | ADMIN (enum)
+  // - ptApplicationStatus: NONE | PENDING | APPROVED | REJECTED (enum)
+  // - ptCertificateUrl, ptBio, ptSpecialties, etc.
+  isPT Boolean @default(false)
+
   // Demographics
   age      Int?
   gender   Gender?
@@ -63,4 +70,41 @@ model UserProfile {
   updatedAt DateTime @updatedAt
 
   @@map("user_profiles")
+}
+
+model InBodyEntry {
+  id     String   @id @default(uuid())
+  userId String   @map("user_id")
+  date   DateTime @default(now())
+
+  // Basic metrics
+  weight     Float
+  height     Float?
+  bmi        Float?
+  bmr        Float?
+  bodyFat    Float  @map("body_fat") // Mass in kg or %? Let's use mass kg
+  bodyFatPct Float? @map("body_fat_pct") // Percentage
+  muscleMass Float  @map("muscle_mass")
+
+  // Segmental Lean Analysis (kg)
+  rightArmMuscle Float? @map("right_arm_muscle")
+  leftArmMuscle  Float? @map("left_arm_muscle")
+  trunkMuscle    Float? @map("trunk_muscle")
+  rightLegMuscle Float? @map("right_leg_muscle")
+  leftLegMuscle  Float? @map("left_leg_muscle")
+
+  // Segmental Fat Analysis (kg)
+  rightArmFat Float? @map("right_arm_fat")
+  leftArmFat  Float? @map("left_arm_fat")
+  trunkFat    Float? @map("trunk_fat")
+  rightLegFat Float? @map("right_leg_fat")
+  leftLegFat  Float? @map("left_leg_fat")
+
+  status    String   @default("manual") // manual, extracted, pending
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, date])
+  @@map("inbody_entries")
 }

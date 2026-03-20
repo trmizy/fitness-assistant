@@ -18,6 +18,11 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
  * 
  */
 export type UserProfile = $Result.DefaultSelection<Prisma.$UserProfilePayload>
+/**
+ * Model InBodyEntry
+ * 
+ */
+export type InBodyEntry = $Result.DefaultSelection<Prisma.$InBodyEntryPayload>
 
 /**
  * Enums
@@ -211,6 +216,16 @@ export class PrismaClient<
     * ```
     */
   get userProfile(): Prisma.UserProfileDelegate<ExtArgs>;
+
+  /**
+   * `prisma.inBodyEntry`: Exposes CRUD operations for the **InBodyEntry** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more InBodyEntries
+    * const inBodyEntries = await prisma.inBodyEntry.findMany()
+    * ```
+    */
+  get inBodyEntry(): Prisma.InBodyEntryDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -652,7 +667,8 @@ export namespace Prisma {
 
 
   export const ModelName: {
-    UserProfile: 'UserProfile'
+    UserProfile: 'UserProfile',
+    InBodyEntry: 'InBodyEntry'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -668,7 +684,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile"
+      modelProps: "userProfile" | "inBodyEntry"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -739,6 +755,76 @@ export namespace Prisma {
           count: {
             args: Prisma.UserProfileCountArgs<ExtArgs>
             result: $Utils.Optional<UserProfileCountAggregateOutputType> | number
+          }
+        }
+      }
+      InBodyEntry: {
+        payload: Prisma.$InBodyEntryPayload<ExtArgs>
+        fields: Prisma.InBodyEntryFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.InBodyEntryFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InBodyEntryPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.InBodyEntryFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InBodyEntryPayload>
+          }
+          findFirst: {
+            args: Prisma.InBodyEntryFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InBodyEntryPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.InBodyEntryFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InBodyEntryPayload>
+          }
+          findMany: {
+            args: Prisma.InBodyEntryFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InBodyEntryPayload>[]
+          }
+          create: {
+            args: Prisma.InBodyEntryCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InBodyEntryPayload>
+          }
+          createMany: {
+            args: Prisma.InBodyEntryCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.InBodyEntryCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InBodyEntryPayload>[]
+          }
+          delete: {
+            args: Prisma.InBodyEntryDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InBodyEntryPayload>
+          }
+          update: {
+            args: Prisma.InBodyEntryUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InBodyEntryPayload>
+          }
+          deleteMany: {
+            args: Prisma.InBodyEntryDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.InBodyEntryUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.InBodyEntryUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InBodyEntryPayload>
+          }
+          aggregate: {
+            args: Prisma.InBodyEntryAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateInBodyEntry>
+          }
+          groupBy: {
+            args: Prisma.InBodyEntryGroupByArgs<ExtArgs>
+            result: $Utils.Optional<InBodyEntryGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.InBodyEntryCountArgs<ExtArgs>
+            result: $Utils.Optional<InBodyEntryCountAggregateOutputType> | number
           }
         }
       }
@@ -934,6 +1020,7 @@ export namespace Prisma {
   export type UserProfileMinAggregateOutputType = {
     id: string | null
     userId: string | null
+    isPT: boolean | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -949,6 +1036,7 @@ export namespace Prisma {
   export type UserProfileMaxAggregateOutputType = {
     id: string | null
     userId: string | null
+    isPT: boolean | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -964,6 +1052,7 @@ export namespace Prisma {
   export type UserProfileCountAggregateOutputType = {
     id: number
     userId: number
+    isPT: number
     age: number
     gender: number
     heightCm: number
@@ -1000,6 +1089,7 @@ export namespace Prisma {
   export type UserProfileMinAggregateInputType = {
     id?: true
     userId?: true
+    isPT?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -1015,6 +1105,7 @@ export namespace Prisma {
   export type UserProfileMaxAggregateInputType = {
     id?: true
     userId?: true
+    isPT?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -1030,6 +1121,7 @@ export namespace Prisma {
   export type UserProfileCountAggregateInputType = {
     id?: true
     userId?: true
+    isPT?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -1135,6 +1227,7 @@ export namespace Prisma {
   export type UserProfileGroupByOutputType = {
     id: string
     userId: string
+    isPT: boolean
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -1172,6 +1265,7 @@ export namespace Prisma {
   export type UserProfileSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
+    isPT?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -1190,6 +1284,7 @@ export namespace Prisma {
   export type UserProfileSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
+    isPT?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -1208,6 +1303,7 @@ export namespace Prisma {
   export type UserProfileSelectScalar = {
     id?: boolean
     userId?: boolean
+    isPT?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -1230,6 +1326,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       userId: string
+      isPT: boolean
       age: number | null
       gender: $Enums.Gender | null
       heightCm: number | null
@@ -1638,6 +1735,7 @@ export namespace Prisma {
   interface UserProfileFieldRefs {
     readonly id: FieldRef<"UserProfile", 'String'>
     readonly userId: FieldRef<"UserProfile", 'String'>
+    readonly isPT: FieldRef<"UserProfile", 'Boolean'>
     readonly age: FieldRef<"UserProfile", 'Int'>
     readonly gender: FieldRef<"UserProfile", 'Gender'>
     readonly heightCm: FieldRef<"UserProfile", 'Float'>
@@ -1940,6 +2038,1210 @@ export namespace Prisma {
 
 
   /**
+   * Model InBodyEntry
+   */
+
+  export type AggregateInBodyEntry = {
+    _count: InBodyEntryCountAggregateOutputType | null
+    _avg: InBodyEntryAvgAggregateOutputType | null
+    _sum: InBodyEntrySumAggregateOutputType | null
+    _min: InBodyEntryMinAggregateOutputType | null
+    _max: InBodyEntryMaxAggregateOutputType | null
+  }
+
+  export type InBodyEntryAvgAggregateOutputType = {
+    weight: number | null
+    height: number | null
+    bmi: number | null
+    bmr: number | null
+    bodyFat: number | null
+    bodyFatPct: number | null
+    muscleMass: number | null
+    rightArmMuscle: number | null
+    leftArmMuscle: number | null
+    trunkMuscle: number | null
+    rightLegMuscle: number | null
+    leftLegMuscle: number | null
+    rightArmFat: number | null
+    leftArmFat: number | null
+    trunkFat: number | null
+    rightLegFat: number | null
+    leftLegFat: number | null
+  }
+
+  export type InBodyEntrySumAggregateOutputType = {
+    weight: number | null
+    height: number | null
+    bmi: number | null
+    bmr: number | null
+    bodyFat: number | null
+    bodyFatPct: number | null
+    muscleMass: number | null
+    rightArmMuscle: number | null
+    leftArmMuscle: number | null
+    trunkMuscle: number | null
+    rightLegMuscle: number | null
+    leftLegMuscle: number | null
+    rightArmFat: number | null
+    leftArmFat: number | null
+    trunkFat: number | null
+    rightLegFat: number | null
+    leftLegFat: number | null
+  }
+
+  export type InBodyEntryMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    date: Date | null
+    weight: number | null
+    height: number | null
+    bmi: number | null
+    bmr: number | null
+    bodyFat: number | null
+    bodyFatPct: number | null
+    muscleMass: number | null
+    rightArmMuscle: number | null
+    leftArmMuscle: number | null
+    trunkMuscle: number | null
+    rightLegMuscle: number | null
+    leftLegMuscle: number | null
+    rightArmFat: number | null
+    leftArmFat: number | null
+    trunkFat: number | null
+    rightLegFat: number | null
+    leftLegFat: number | null
+    status: string | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type InBodyEntryMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    date: Date | null
+    weight: number | null
+    height: number | null
+    bmi: number | null
+    bmr: number | null
+    bodyFat: number | null
+    bodyFatPct: number | null
+    muscleMass: number | null
+    rightArmMuscle: number | null
+    leftArmMuscle: number | null
+    trunkMuscle: number | null
+    rightLegMuscle: number | null
+    leftLegMuscle: number | null
+    rightArmFat: number | null
+    leftArmFat: number | null
+    trunkFat: number | null
+    rightLegFat: number | null
+    leftLegFat: number | null
+    status: string | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type InBodyEntryCountAggregateOutputType = {
+    id: number
+    userId: number
+    date: number
+    weight: number
+    height: number
+    bmi: number
+    bmr: number
+    bodyFat: number
+    bodyFatPct: number
+    muscleMass: number
+    rightArmMuscle: number
+    leftArmMuscle: number
+    trunkMuscle: number
+    rightLegMuscle: number
+    leftLegMuscle: number
+    rightArmFat: number
+    leftArmFat: number
+    trunkFat: number
+    rightLegFat: number
+    leftLegFat: number
+    status: number
+    notes: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type InBodyEntryAvgAggregateInputType = {
+    weight?: true
+    height?: true
+    bmi?: true
+    bmr?: true
+    bodyFat?: true
+    bodyFatPct?: true
+    muscleMass?: true
+    rightArmMuscle?: true
+    leftArmMuscle?: true
+    trunkMuscle?: true
+    rightLegMuscle?: true
+    leftLegMuscle?: true
+    rightArmFat?: true
+    leftArmFat?: true
+    trunkFat?: true
+    rightLegFat?: true
+    leftLegFat?: true
+  }
+
+  export type InBodyEntrySumAggregateInputType = {
+    weight?: true
+    height?: true
+    bmi?: true
+    bmr?: true
+    bodyFat?: true
+    bodyFatPct?: true
+    muscleMass?: true
+    rightArmMuscle?: true
+    leftArmMuscle?: true
+    trunkMuscle?: true
+    rightLegMuscle?: true
+    leftLegMuscle?: true
+    rightArmFat?: true
+    leftArmFat?: true
+    trunkFat?: true
+    rightLegFat?: true
+    leftLegFat?: true
+  }
+
+  export type InBodyEntryMinAggregateInputType = {
+    id?: true
+    userId?: true
+    date?: true
+    weight?: true
+    height?: true
+    bmi?: true
+    bmr?: true
+    bodyFat?: true
+    bodyFatPct?: true
+    muscleMass?: true
+    rightArmMuscle?: true
+    leftArmMuscle?: true
+    trunkMuscle?: true
+    rightLegMuscle?: true
+    leftLegMuscle?: true
+    rightArmFat?: true
+    leftArmFat?: true
+    trunkFat?: true
+    rightLegFat?: true
+    leftLegFat?: true
+    status?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type InBodyEntryMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    date?: true
+    weight?: true
+    height?: true
+    bmi?: true
+    bmr?: true
+    bodyFat?: true
+    bodyFatPct?: true
+    muscleMass?: true
+    rightArmMuscle?: true
+    leftArmMuscle?: true
+    trunkMuscle?: true
+    rightLegMuscle?: true
+    leftLegMuscle?: true
+    rightArmFat?: true
+    leftArmFat?: true
+    trunkFat?: true
+    rightLegFat?: true
+    leftLegFat?: true
+    status?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type InBodyEntryCountAggregateInputType = {
+    id?: true
+    userId?: true
+    date?: true
+    weight?: true
+    height?: true
+    bmi?: true
+    bmr?: true
+    bodyFat?: true
+    bodyFatPct?: true
+    muscleMass?: true
+    rightArmMuscle?: true
+    leftArmMuscle?: true
+    trunkMuscle?: true
+    rightLegMuscle?: true
+    leftLegMuscle?: true
+    rightArmFat?: true
+    leftArmFat?: true
+    trunkFat?: true
+    rightLegFat?: true
+    leftLegFat?: true
+    status?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type InBodyEntryAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which InBodyEntry to aggregate.
+     */
+    where?: InBodyEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InBodyEntries to fetch.
+     */
+    orderBy?: InBodyEntryOrderByWithRelationInput | InBodyEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: InBodyEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InBodyEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InBodyEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned InBodyEntries
+    **/
+    _count?: true | InBodyEntryCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: InBodyEntryAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: InBodyEntrySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: InBodyEntryMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: InBodyEntryMaxAggregateInputType
+  }
+
+  export type GetInBodyEntryAggregateType<T extends InBodyEntryAggregateArgs> = {
+        [P in keyof T & keyof AggregateInBodyEntry]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateInBodyEntry[P]>
+      : GetScalarType<T[P], AggregateInBodyEntry[P]>
+  }
+
+
+
+
+  export type InBodyEntryGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: InBodyEntryWhereInput
+    orderBy?: InBodyEntryOrderByWithAggregationInput | InBodyEntryOrderByWithAggregationInput[]
+    by: InBodyEntryScalarFieldEnum[] | InBodyEntryScalarFieldEnum
+    having?: InBodyEntryScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: InBodyEntryCountAggregateInputType | true
+    _avg?: InBodyEntryAvgAggregateInputType
+    _sum?: InBodyEntrySumAggregateInputType
+    _min?: InBodyEntryMinAggregateInputType
+    _max?: InBodyEntryMaxAggregateInputType
+  }
+
+  export type InBodyEntryGroupByOutputType = {
+    id: string
+    userId: string
+    date: Date
+    weight: number
+    height: number | null
+    bmi: number | null
+    bmr: number | null
+    bodyFat: number
+    bodyFatPct: number | null
+    muscleMass: number
+    rightArmMuscle: number | null
+    leftArmMuscle: number | null
+    trunkMuscle: number | null
+    rightLegMuscle: number | null
+    leftLegMuscle: number | null
+    rightArmFat: number | null
+    leftArmFat: number | null
+    trunkFat: number | null
+    rightLegFat: number | null
+    leftLegFat: number | null
+    status: string
+    notes: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: InBodyEntryCountAggregateOutputType | null
+    _avg: InBodyEntryAvgAggregateOutputType | null
+    _sum: InBodyEntrySumAggregateOutputType | null
+    _min: InBodyEntryMinAggregateOutputType | null
+    _max: InBodyEntryMaxAggregateOutputType | null
+  }
+
+  type GetInBodyEntryGroupByPayload<T extends InBodyEntryGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<InBodyEntryGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof InBodyEntryGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], InBodyEntryGroupByOutputType[P]>
+            : GetScalarType<T[P], InBodyEntryGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type InBodyEntrySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    date?: boolean
+    weight?: boolean
+    height?: boolean
+    bmi?: boolean
+    bmr?: boolean
+    bodyFat?: boolean
+    bodyFatPct?: boolean
+    muscleMass?: boolean
+    rightArmMuscle?: boolean
+    leftArmMuscle?: boolean
+    trunkMuscle?: boolean
+    rightLegMuscle?: boolean
+    leftLegMuscle?: boolean
+    rightArmFat?: boolean
+    leftArmFat?: boolean
+    trunkFat?: boolean
+    rightLegFat?: boolean
+    leftLegFat?: boolean
+    status?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["inBodyEntry"]>
+
+  export type InBodyEntrySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    date?: boolean
+    weight?: boolean
+    height?: boolean
+    bmi?: boolean
+    bmr?: boolean
+    bodyFat?: boolean
+    bodyFatPct?: boolean
+    muscleMass?: boolean
+    rightArmMuscle?: boolean
+    leftArmMuscle?: boolean
+    trunkMuscle?: boolean
+    rightLegMuscle?: boolean
+    leftLegMuscle?: boolean
+    rightArmFat?: boolean
+    leftArmFat?: boolean
+    trunkFat?: boolean
+    rightLegFat?: boolean
+    leftLegFat?: boolean
+    status?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["inBodyEntry"]>
+
+  export type InBodyEntrySelectScalar = {
+    id?: boolean
+    userId?: boolean
+    date?: boolean
+    weight?: boolean
+    height?: boolean
+    bmi?: boolean
+    bmr?: boolean
+    bodyFat?: boolean
+    bodyFatPct?: boolean
+    muscleMass?: boolean
+    rightArmMuscle?: boolean
+    leftArmMuscle?: boolean
+    trunkMuscle?: boolean
+    rightLegMuscle?: boolean
+    leftLegMuscle?: boolean
+    rightArmFat?: boolean
+    leftArmFat?: boolean
+    trunkFat?: boolean
+    rightLegFat?: boolean
+    leftLegFat?: boolean
+    status?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $InBodyEntryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "InBodyEntry"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      date: Date
+      weight: number
+      height: number | null
+      bmi: number | null
+      bmr: number | null
+      bodyFat: number
+      bodyFatPct: number | null
+      muscleMass: number
+      rightArmMuscle: number | null
+      leftArmMuscle: number | null
+      trunkMuscle: number | null
+      rightLegMuscle: number | null
+      leftLegMuscle: number | null
+      rightArmFat: number | null
+      leftArmFat: number | null
+      trunkFat: number | null
+      rightLegFat: number | null
+      leftLegFat: number | null
+      status: string
+      notes: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["inBodyEntry"]>
+    composites: {}
+  }
+
+  type InBodyEntryGetPayload<S extends boolean | null | undefined | InBodyEntryDefaultArgs> = $Result.GetResult<Prisma.$InBodyEntryPayload, S>
+
+  type InBodyEntryCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<InBodyEntryFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: InBodyEntryCountAggregateInputType | true
+    }
+
+  export interface InBodyEntryDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['InBodyEntry'], meta: { name: 'InBodyEntry' } }
+    /**
+     * Find zero or one InBodyEntry that matches the filter.
+     * @param {InBodyEntryFindUniqueArgs} args - Arguments to find a InBodyEntry
+     * @example
+     * // Get one InBodyEntry
+     * const inBodyEntry = await prisma.inBodyEntry.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends InBodyEntryFindUniqueArgs>(args: SelectSubset<T, InBodyEntryFindUniqueArgs<ExtArgs>>): Prisma__InBodyEntryClient<$Result.GetResult<Prisma.$InBodyEntryPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one InBodyEntry that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {InBodyEntryFindUniqueOrThrowArgs} args - Arguments to find a InBodyEntry
+     * @example
+     * // Get one InBodyEntry
+     * const inBodyEntry = await prisma.inBodyEntry.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends InBodyEntryFindUniqueOrThrowArgs>(args: SelectSubset<T, InBodyEntryFindUniqueOrThrowArgs<ExtArgs>>): Prisma__InBodyEntryClient<$Result.GetResult<Prisma.$InBodyEntryPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first InBodyEntry that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InBodyEntryFindFirstArgs} args - Arguments to find a InBodyEntry
+     * @example
+     * // Get one InBodyEntry
+     * const inBodyEntry = await prisma.inBodyEntry.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends InBodyEntryFindFirstArgs>(args?: SelectSubset<T, InBodyEntryFindFirstArgs<ExtArgs>>): Prisma__InBodyEntryClient<$Result.GetResult<Prisma.$InBodyEntryPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first InBodyEntry that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InBodyEntryFindFirstOrThrowArgs} args - Arguments to find a InBodyEntry
+     * @example
+     * // Get one InBodyEntry
+     * const inBodyEntry = await prisma.inBodyEntry.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends InBodyEntryFindFirstOrThrowArgs>(args?: SelectSubset<T, InBodyEntryFindFirstOrThrowArgs<ExtArgs>>): Prisma__InBodyEntryClient<$Result.GetResult<Prisma.$InBodyEntryPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more InBodyEntries that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InBodyEntryFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all InBodyEntries
+     * const inBodyEntries = await prisma.inBodyEntry.findMany()
+     * 
+     * // Get first 10 InBodyEntries
+     * const inBodyEntries = await prisma.inBodyEntry.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const inBodyEntryWithIdOnly = await prisma.inBodyEntry.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends InBodyEntryFindManyArgs>(args?: SelectSubset<T, InBodyEntryFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InBodyEntryPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a InBodyEntry.
+     * @param {InBodyEntryCreateArgs} args - Arguments to create a InBodyEntry.
+     * @example
+     * // Create one InBodyEntry
+     * const InBodyEntry = await prisma.inBodyEntry.create({
+     *   data: {
+     *     // ... data to create a InBodyEntry
+     *   }
+     * })
+     * 
+     */
+    create<T extends InBodyEntryCreateArgs>(args: SelectSubset<T, InBodyEntryCreateArgs<ExtArgs>>): Prisma__InBodyEntryClient<$Result.GetResult<Prisma.$InBodyEntryPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many InBodyEntries.
+     * @param {InBodyEntryCreateManyArgs} args - Arguments to create many InBodyEntries.
+     * @example
+     * // Create many InBodyEntries
+     * const inBodyEntry = await prisma.inBodyEntry.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends InBodyEntryCreateManyArgs>(args?: SelectSubset<T, InBodyEntryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many InBodyEntries and returns the data saved in the database.
+     * @param {InBodyEntryCreateManyAndReturnArgs} args - Arguments to create many InBodyEntries.
+     * @example
+     * // Create many InBodyEntries
+     * const inBodyEntry = await prisma.inBodyEntry.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many InBodyEntries and only return the `id`
+     * const inBodyEntryWithIdOnly = await prisma.inBodyEntry.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends InBodyEntryCreateManyAndReturnArgs>(args?: SelectSubset<T, InBodyEntryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InBodyEntryPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a InBodyEntry.
+     * @param {InBodyEntryDeleteArgs} args - Arguments to delete one InBodyEntry.
+     * @example
+     * // Delete one InBodyEntry
+     * const InBodyEntry = await prisma.inBodyEntry.delete({
+     *   where: {
+     *     // ... filter to delete one InBodyEntry
+     *   }
+     * })
+     * 
+     */
+    delete<T extends InBodyEntryDeleteArgs>(args: SelectSubset<T, InBodyEntryDeleteArgs<ExtArgs>>): Prisma__InBodyEntryClient<$Result.GetResult<Prisma.$InBodyEntryPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one InBodyEntry.
+     * @param {InBodyEntryUpdateArgs} args - Arguments to update one InBodyEntry.
+     * @example
+     * // Update one InBodyEntry
+     * const inBodyEntry = await prisma.inBodyEntry.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends InBodyEntryUpdateArgs>(args: SelectSubset<T, InBodyEntryUpdateArgs<ExtArgs>>): Prisma__InBodyEntryClient<$Result.GetResult<Prisma.$InBodyEntryPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more InBodyEntries.
+     * @param {InBodyEntryDeleteManyArgs} args - Arguments to filter InBodyEntries to delete.
+     * @example
+     * // Delete a few InBodyEntries
+     * const { count } = await prisma.inBodyEntry.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends InBodyEntryDeleteManyArgs>(args?: SelectSubset<T, InBodyEntryDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more InBodyEntries.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InBodyEntryUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many InBodyEntries
+     * const inBodyEntry = await prisma.inBodyEntry.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends InBodyEntryUpdateManyArgs>(args: SelectSubset<T, InBodyEntryUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one InBodyEntry.
+     * @param {InBodyEntryUpsertArgs} args - Arguments to update or create a InBodyEntry.
+     * @example
+     * // Update or create a InBodyEntry
+     * const inBodyEntry = await prisma.inBodyEntry.upsert({
+     *   create: {
+     *     // ... data to create a InBodyEntry
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the InBodyEntry we want to update
+     *   }
+     * })
+     */
+    upsert<T extends InBodyEntryUpsertArgs>(args: SelectSubset<T, InBodyEntryUpsertArgs<ExtArgs>>): Prisma__InBodyEntryClient<$Result.GetResult<Prisma.$InBodyEntryPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of InBodyEntries.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InBodyEntryCountArgs} args - Arguments to filter InBodyEntries to count.
+     * @example
+     * // Count the number of InBodyEntries
+     * const count = await prisma.inBodyEntry.count({
+     *   where: {
+     *     // ... the filter for the InBodyEntries we want to count
+     *   }
+     * })
+    **/
+    count<T extends InBodyEntryCountArgs>(
+      args?: Subset<T, InBodyEntryCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], InBodyEntryCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a InBodyEntry.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InBodyEntryAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends InBodyEntryAggregateArgs>(args: Subset<T, InBodyEntryAggregateArgs>): Prisma.PrismaPromise<GetInBodyEntryAggregateType<T>>
+
+    /**
+     * Group by InBodyEntry.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InBodyEntryGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends InBodyEntryGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: InBodyEntryGroupByArgs['orderBy'] }
+        : { orderBy?: InBodyEntryGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, InBodyEntryGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetInBodyEntryGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the InBodyEntry model
+   */
+  readonly fields: InBodyEntryFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for InBodyEntry.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__InBodyEntryClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the InBodyEntry model
+   */ 
+  interface InBodyEntryFieldRefs {
+    readonly id: FieldRef<"InBodyEntry", 'String'>
+    readonly userId: FieldRef<"InBodyEntry", 'String'>
+    readonly date: FieldRef<"InBodyEntry", 'DateTime'>
+    readonly weight: FieldRef<"InBodyEntry", 'Float'>
+    readonly height: FieldRef<"InBodyEntry", 'Float'>
+    readonly bmi: FieldRef<"InBodyEntry", 'Float'>
+    readonly bmr: FieldRef<"InBodyEntry", 'Float'>
+    readonly bodyFat: FieldRef<"InBodyEntry", 'Float'>
+    readonly bodyFatPct: FieldRef<"InBodyEntry", 'Float'>
+    readonly muscleMass: FieldRef<"InBodyEntry", 'Float'>
+    readonly rightArmMuscle: FieldRef<"InBodyEntry", 'Float'>
+    readonly leftArmMuscle: FieldRef<"InBodyEntry", 'Float'>
+    readonly trunkMuscle: FieldRef<"InBodyEntry", 'Float'>
+    readonly rightLegMuscle: FieldRef<"InBodyEntry", 'Float'>
+    readonly leftLegMuscle: FieldRef<"InBodyEntry", 'Float'>
+    readonly rightArmFat: FieldRef<"InBodyEntry", 'Float'>
+    readonly leftArmFat: FieldRef<"InBodyEntry", 'Float'>
+    readonly trunkFat: FieldRef<"InBodyEntry", 'Float'>
+    readonly rightLegFat: FieldRef<"InBodyEntry", 'Float'>
+    readonly leftLegFat: FieldRef<"InBodyEntry", 'Float'>
+    readonly status: FieldRef<"InBodyEntry", 'String'>
+    readonly notes: FieldRef<"InBodyEntry", 'String'>
+    readonly createdAt: FieldRef<"InBodyEntry", 'DateTime'>
+    readonly updatedAt: FieldRef<"InBodyEntry", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * InBodyEntry findUnique
+   */
+  export type InBodyEntryFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InBodyEntry
+     */
+    select?: InBodyEntrySelect<ExtArgs> | null
+    /**
+     * Filter, which InBodyEntry to fetch.
+     */
+    where: InBodyEntryWhereUniqueInput
+  }
+
+  /**
+   * InBodyEntry findUniqueOrThrow
+   */
+  export type InBodyEntryFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InBodyEntry
+     */
+    select?: InBodyEntrySelect<ExtArgs> | null
+    /**
+     * Filter, which InBodyEntry to fetch.
+     */
+    where: InBodyEntryWhereUniqueInput
+  }
+
+  /**
+   * InBodyEntry findFirst
+   */
+  export type InBodyEntryFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InBodyEntry
+     */
+    select?: InBodyEntrySelect<ExtArgs> | null
+    /**
+     * Filter, which InBodyEntry to fetch.
+     */
+    where?: InBodyEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InBodyEntries to fetch.
+     */
+    orderBy?: InBodyEntryOrderByWithRelationInput | InBodyEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for InBodyEntries.
+     */
+    cursor?: InBodyEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InBodyEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InBodyEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of InBodyEntries.
+     */
+    distinct?: InBodyEntryScalarFieldEnum | InBodyEntryScalarFieldEnum[]
+  }
+
+  /**
+   * InBodyEntry findFirstOrThrow
+   */
+  export type InBodyEntryFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InBodyEntry
+     */
+    select?: InBodyEntrySelect<ExtArgs> | null
+    /**
+     * Filter, which InBodyEntry to fetch.
+     */
+    where?: InBodyEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InBodyEntries to fetch.
+     */
+    orderBy?: InBodyEntryOrderByWithRelationInput | InBodyEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for InBodyEntries.
+     */
+    cursor?: InBodyEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InBodyEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InBodyEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of InBodyEntries.
+     */
+    distinct?: InBodyEntryScalarFieldEnum | InBodyEntryScalarFieldEnum[]
+  }
+
+  /**
+   * InBodyEntry findMany
+   */
+  export type InBodyEntryFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InBodyEntry
+     */
+    select?: InBodyEntrySelect<ExtArgs> | null
+    /**
+     * Filter, which InBodyEntries to fetch.
+     */
+    where?: InBodyEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InBodyEntries to fetch.
+     */
+    orderBy?: InBodyEntryOrderByWithRelationInput | InBodyEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing InBodyEntries.
+     */
+    cursor?: InBodyEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InBodyEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InBodyEntries.
+     */
+    skip?: number
+    distinct?: InBodyEntryScalarFieldEnum | InBodyEntryScalarFieldEnum[]
+  }
+
+  /**
+   * InBodyEntry create
+   */
+  export type InBodyEntryCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InBodyEntry
+     */
+    select?: InBodyEntrySelect<ExtArgs> | null
+    /**
+     * The data needed to create a InBodyEntry.
+     */
+    data: XOR<InBodyEntryCreateInput, InBodyEntryUncheckedCreateInput>
+  }
+
+  /**
+   * InBodyEntry createMany
+   */
+  export type InBodyEntryCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many InBodyEntries.
+     */
+    data: InBodyEntryCreateManyInput | InBodyEntryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * InBodyEntry createManyAndReturn
+   */
+  export type InBodyEntryCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InBodyEntry
+     */
+    select?: InBodyEntrySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many InBodyEntries.
+     */
+    data: InBodyEntryCreateManyInput | InBodyEntryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * InBodyEntry update
+   */
+  export type InBodyEntryUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InBodyEntry
+     */
+    select?: InBodyEntrySelect<ExtArgs> | null
+    /**
+     * The data needed to update a InBodyEntry.
+     */
+    data: XOR<InBodyEntryUpdateInput, InBodyEntryUncheckedUpdateInput>
+    /**
+     * Choose, which InBodyEntry to update.
+     */
+    where: InBodyEntryWhereUniqueInput
+  }
+
+  /**
+   * InBodyEntry updateMany
+   */
+  export type InBodyEntryUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update InBodyEntries.
+     */
+    data: XOR<InBodyEntryUpdateManyMutationInput, InBodyEntryUncheckedUpdateManyInput>
+    /**
+     * Filter which InBodyEntries to update
+     */
+    where?: InBodyEntryWhereInput
+  }
+
+  /**
+   * InBodyEntry upsert
+   */
+  export type InBodyEntryUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InBodyEntry
+     */
+    select?: InBodyEntrySelect<ExtArgs> | null
+    /**
+     * The filter to search for the InBodyEntry to update in case it exists.
+     */
+    where: InBodyEntryWhereUniqueInput
+    /**
+     * In case the InBodyEntry found by the `where` argument doesn't exist, create a new InBodyEntry with this data.
+     */
+    create: XOR<InBodyEntryCreateInput, InBodyEntryUncheckedCreateInput>
+    /**
+     * In case the InBodyEntry was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<InBodyEntryUpdateInput, InBodyEntryUncheckedUpdateInput>
+  }
+
+  /**
+   * InBodyEntry delete
+   */
+  export type InBodyEntryDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InBodyEntry
+     */
+    select?: InBodyEntrySelect<ExtArgs> | null
+    /**
+     * Filter which InBodyEntry to delete.
+     */
+    where: InBodyEntryWhereUniqueInput
+  }
+
+  /**
+   * InBodyEntry deleteMany
+   */
+  export type InBodyEntryDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which InBodyEntries to delete
+     */
+    where?: InBodyEntryWhereInput
+  }
+
+  /**
+   * InBodyEntry without action
+   */
+  export type InBodyEntryDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InBodyEntry
+     */
+    select?: InBodyEntrySelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -1956,6 +3258,7 @@ export namespace Prisma {
   export const UserProfileScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
+    isPT: 'isPT',
     age: 'age',
     gender: 'gender',
     heightCm: 'heightCm',
@@ -1972,6 +3275,36 @@ export namespace Prisma {
   };
 
   export type UserProfileScalarFieldEnum = (typeof UserProfileScalarFieldEnum)[keyof typeof UserProfileScalarFieldEnum]
+
+
+  export const InBodyEntryScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    date: 'date',
+    weight: 'weight',
+    height: 'height',
+    bmi: 'bmi',
+    bmr: 'bmr',
+    bodyFat: 'bodyFat',
+    bodyFatPct: 'bodyFatPct',
+    muscleMass: 'muscleMass',
+    rightArmMuscle: 'rightArmMuscle',
+    leftArmMuscle: 'leftArmMuscle',
+    trunkMuscle: 'trunkMuscle',
+    rightLegMuscle: 'rightLegMuscle',
+    leftLegMuscle: 'leftLegMuscle',
+    rightArmFat: 'rightArmFat',
+    leftArmFat: 'leftArmFat',
+    trunkFat: 'trunkFat',
+    rightLegFat: 'rightLegFat',
+    leftLegFat: 'leftLegFat',
+    status: 'status',
+    notes: 'notes',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type InBodyEntryScalarFieldEnum = (typeof InBodyEntryScalarFieldEnum)[keyof typeof InBodyEntryScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -2014,6 +3347,13 @@ export namespace Prisma {
    * Reference to a field of type 'String[]'
    */
   export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -2124,6 +3464,7 @@ export namespace Prisma {
     NOT?: UserProfileWhereInput | UserProfileWhereInput[]
     id?: StringFilter<"UserProfile"> | string
     userId?: StringFilter<"UserProfile"> | string
+    isPT?: BoolFilter<"UserProfile"> | boolean
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableFilter<"UserProfile"> | number | null
@@ -2142,6 +3483,7 @@ export namespace Prisma {
   export type UserProfileOrderByWithRelationInput = {
     id?: SortOrder
     userId?: SortOrder
+    isPT?: SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     heightCm?: SortOrderInput | SortOrder
@@ -2163,6 +3505,7 @@ export namespace Prisma {
     AND?: UserProfileWhereInput | UserProfileWhereInput[]
     OR?: UserProfileWhereInput[]
     NOT?: UserProfileWhereInput | UserProfileWhereInput[]
+    isPT?: BoolFilter<"UserProfile"> | boolean
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableFilter<"UserProfile"> | number | null
@@ -2181,6 +3524,7 @@ export namespace Prisma {
   export type UserProfileOrderByWithAggregationInput = {
     id?: SortOrder
     userId?: SortOrder
+    isPT?: SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     heightCm?: SortOrderInput | SortOrder
@@ -2207,6 +3551,7 @@ export namespace Prisma {
     NOT?: UserProfileScalarWhereWithAggregatesInput | UserProfileScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"UserProfile"> | string
     userId?: StringWithAggregatesFilter<"UserProfile"> | string
+    isPT?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     age?: IntNullableWithAggregatesFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableWithAggregatesFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
@@ -2222,9 +3567,159 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
   }
 
+  export type InBodyEntryWhereInput = {
+    AND?: InBodyEntryWhereInput | InBodyEntryWhereInput[]
+    OR?: InBodyEntryWhereInput[]
+    NOT?: InBodyEntryWhereInput | InBodyEntryWhereInput[]
+    id?: StringFilter<"InBodyEntry"> | string
+    userId?: StringFilter<"InBodyEntry"> | string
+    date?: DateTimeFilter<"InBodyEntry"> | Date | string
+    weight?: FloatFilter<"InBodyEntry"> | number
+    height?: FloatNullableFilter<"InBodyEntry"> | number | null
+    bmi?: FloatNullableFilter<"InBodyEntry"> | number | null
+    bmr?: FloatNullableFilter<"InBodyEntry"> | number | null
+    bodyFat?: FloatFilter<"InBodyEntry"> | number
+    bodyFatPct?: FloatNullableFilter<"InBodyEntry"> | number | null
+    muscleMass?: FloatFilter<"InBodyEntry"> | number
+    rightArmMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
+    leftArmMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
+    trunkMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
+    rightLegMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
+    leftLegMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
+    rightArmFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    leftArmFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    trunkFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    rightLegFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    leftLegFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    status?: StringFilter<"InBodyEntry"> | string
+    notes?: StringNullableFilter<"InBodyEntry"> | string | null
+    createdAt?: DateTimeFilter<"InBodyEntry"> | Date | string
+    updatedAt?: DateTimeFilter<"InBodyEntry"> | Date | string
+  }
+
+  export type InBodyEntryOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    date?: SortOrder
+    weight?: SortOrder
+    height?: SortOrderInput | SortOrder
+    bmi?: SortOrderInput | SortOrder
+    bmr?: SortOrderInput | SortOrder
+    bodyFat?: SortOrder
+    bodyFatPct?: SortOrderInput | SortOrder
+    muscleMass?: SortOrder
+    rightArmMuscle?: SortOrderInput | SortOrder
+    leftArmMuscle?: SortOrderInput | SortOrder
+    trunkMuscle?: SortOrderInput | SortOrder
+    rightLegMuscle?: SortOrderInput | SortOrder
+    leftLegMuscle?: SortOrderInput | SortOrder
+    rightArmFat?: SortOrderInput | SortOrder
+    leftArmFat?: SortOrderInput | SortOrder
+    trunkFat?: SortOrderInput | SortOrder
+    rightLegFat?: SortOrderInput | SortOrder
+    leftLegFat?: SortOrderInput | SortOrder
+    status?: SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InBodyEntryWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: InBodyEntryWhereInput | InBodyEntryWhereInput[]
+    OR?: InBodyEntryWhereInput[]
+    NOT?: InBodyEntryWhereInput | InBodyEntryWhereInput[]
+    userId?: StringFilter<"InBodyEntry"> | string
+    date?: DateTimeFilter<"InBodyEntry"> | Date | string
+    weight?: FloatFilter<"InBodyEntry"> | number
+    height?: FloatNullableFilter<"InBodyEntry"> | number | null
+    bmi?: FloatNullableFilter<"InBodyEntry"> | number | null
+    bmr?: FloatNullableFilter<"InBodyEntry"> | number | null
+    bodyFat?: FloatFilter<"InBodyEntry"> | number
+    bodyFatPct?: FloatNullableFilter<"InBodyEntry"> | number | null
+    muscleMass?: FloatFilter<"InBodyEntry"> | number
+    rightArmMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
+    leftArmMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
+    trunkMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
+    rightLegMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
+    leftLegMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
+    rightArmFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    leftArmFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    trunkFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    rightLegFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    leftLegFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    status?: StringFilter<"InBodyEntry"> | string
+    notes?: StringNullableFilter<"InBodyEntry"> | string | null
+    createdAt?: DateTimeFilter<"InBodyEntry"> | Date | string
+    updatedAt?: DateTimeFilter<"InBodyEntry"> | Date | string
+  }, "id">
+
+  export type InBodyEntryOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    date?: SortOrder
+    weight?: SortOrder
+    height?: SortOrderInput | SortOrder
+    bmi?: SortOrderInput | SortOrder
+    bmr?: SortOrderInput | SortOrder
+    bodyFat?: SortOrder
+    bodyFatPct?: SortOrderInput | SortOrder
+    muscleMass?: SortOrder
+    rightArmMuscle?: SortOrderInput | SortOrder
+    leftArmMuscle?: SortOrderInput | SortOrder
+    trunkMuscle?: SortOrderInput | SortOrder
+    rightLegMuscle?: SortOrderInput | SortOrder
+    leftLegMuscle?: SortOrderInput | SortOrder
+    rightArmFat?: SortOrderInput | SortOrder
+    leftArmFat?: SortOrderInput | SortOrder
+    trunkFat?: SortOrderInput | SortOrder
+    rightLegFat?: SortOrderInput | SortOrder
+    leftLegFat?: SortOrderInput | SortOrder
+    status?: SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: InBodyEntryCountOrderByAggregateInput
+    _avg?: InBodyEntryAvgOrderByAggregateInput
+    _max?: InBodyEntryMaxOrderByAggregateInput
+    _min?: InBodyEntryMinOrderByAggregateInput
+    _sum?: InBodyEntrySumOrderByAggregateInput
+  }
+
+  export type InBodyEntryScalarWhereWithAggregatesInput = {
+    AND?: InBodyEntryScalarWhereWithAggregatesInput | InBodyEntryScalarWhereWithAggregatesInput[]
+    OR?: InBodyEntryScalarWhereWithAggregatesInput[]
+    NOT?: InBodyEntryScalarWhereWithAggregatesInput | InBodyEntryScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"InBodyEntry"> | string
+    userId?: StringWithAggregatesFilter<"InBodyEntry"> | string
+    date?: DateTimeWithAggregatesFilter<"InBodyEntry"> | Date | string
+    weight?: FloatWithAggregatesFilter<"InBodyEntry"> | number
+    height?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    bmi?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    bmr?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    bodyFat?: FloatWithAggregatesFilter<"InBodyEntry"> | number
+    bodyFatPct?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    muscleMass?: FloatWithAggregatesFilter<"InBodyEntry"> | number
+    rightArmMuscle?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    leftArmMuscle?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    trunkMuscle?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    rightLegMuscle?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    leftLegMuscle?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    rightArmFat?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    leftArmFat?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    trunkFat?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    rightLegFat?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    leftLegFat?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    status?: StringWithAggregatesFilter<"InBodyEntry"> | string
+    notes?: StringNullableWithAggregatesFilter<"InBodyEntry"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"InBodyEntry"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"InBodyEntry"> | Date | string
+  }
+
   export type UserProfileCreateInput = {
     id?: string
     userId: string
+    isPT?: boolean
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -2243,6 +3738,7 @@ export namespace Prisma {
   export type UserProfileUncheckedCreateInput = {
     id?: string
     userId: string
+    isPT?: boolean
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -2261,6 +3757,7 @@ export namespace Prisma {
   export type UserProfileUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -2279,6 +3776,7 @@ export namespace Prisma {
   export type UserProfileUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -2297,6 +3795,7 @@ export namespace Prisma {
   export type UserProfileCreateManyInput = {
     id?: string
     userId: string
+    isPT?: boolean
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -2315,6 +3814,7 @@ export namespace Prisma {
   export type UserProfileUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -2333,6 +3833,7 @@ export namespace Prisma {
   export type UserProfileUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -2344,6 +3845,195 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InBodyEntryCreateInput = {
+    id?: string
+    userId: string
+    date?: Date | string
+    weight: number
+    height?: number | null
+    bmi?: number | null
+    bmr?: number | null
+    bodyFat: number
+    bodyFatPct?: number | null
+    muscleMass: number
+    rightArmMuscle?: number | null
+    leftArmMuscle?: number | null
+    trunkMuscle?: number | null
+    rightLegMuscle?: number | null
+    leftLegMuscle?: number | null
+    rightArmFat?: number | null
+    leftArmFat?: number | null
+    trunkFat?: number | null
+    rightLegFat?: number | null
+    leftLegFat?: number | null
+    status?: string
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type InBodyEntryUncheckedCreateInput = {
+    id?: string
+    userId: string
+    date?: Date | string
+    weight: number
+    height?: number | null
+    bmi?: number | null
+    bmr?: number | null
+    bodyFat: number
+    bodyFatPct?: number | null
+    muscleMass: number
+    rightArmMuscle?: number | null
+    leftArmMuscle?: number | null
+    trunkMuscle?: number | null
+    rightLegMuscle?: number | null
+    leftLegMuscle?: number | null
+    rightArmFat?: number | null
+    leftArmFat?: number | null
+    trunkFat?: number | null
+    rightLegFat?: number | null
+    leftLegFat?: number | null
+    status?: string
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type InBodyEntryUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    weight?: FloatFieldUpdateOperationsInput | number
+    height?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmi?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmr?: NullableFloatFieldUpdateOperationsInput | number | null
+    bodyFat?: FloatFieldUpdateOperationsInput | number
+    bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    muscleMass?: FloatFieldUpdateOperationsInput | number
+    rightArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    trunkMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightLegMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftLegMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightArmFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftArmFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    trunkFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightLegFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftLegFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    status?: StringFieldUpdateOperationsInput | string
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InBodyEntryUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    weight?: FloatFieldUpdateOperationsInput | number
+    height?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmi?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmr?: NullableFloatFieldUpdateOperationsInput | number | null
+    bodyFat?: FloatFieldUpdateOperationsInput | number
+    bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    muscleMass?: FloatFieldUpdateOperationsInput | number
+    rightArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    trunkMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightLegMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftLegMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightArmFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftArmFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    trunkFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightLegFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftLegFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    status?: StringFieldUpdateOperationsInput | string
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InBodyEntryCreateManyInput = {
+    id?: string
+    userId: string
+    date?: Date | string
+    weight: number
+    height?: number | null
+    bmi?: number | null
+    bmr?: number | null
+    bodyFat: number
+    bodyFatPct?: number | null
+    muscleMass: number
+    rightArmMuscle?: number | null
+    leftArmMuscle?: number | null
+    trunkMuscle?: number | null
+    rightLegMuscle?: number | null
+    leftLegMuscle?: number | null
+    rightArmFat?: number | null
+    leftArmFat?: number | null
+    trunkFat?: number | null
+    rightLegFat?: number | null
+    leftLegFat?: number | null
+    status?: string
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type InBodyEntryUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    weight?: FloatFieldUpdateOperationsInput | number
+    height?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmi?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmr?: NullableFloatFieldUpdateOperationsInput | number | null
+    bodyFat?: FloatFieldUpdateOperationsInput | number
+    bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    muscleMass?: FloatFieldUpdateOperationsInput | number
+    rightArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    trunkMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightLegMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftLegMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightArmFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftArmFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    trunkFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightLegFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftLegFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    status?: StringFieldUpdateOperationsInput | string
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InBodyEntryUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    weight?: FloatFieldUpdateOperationsInput | number
+    height?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmi?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmr?: NullableFloatFieldUpdateOperationsInput | number | null
+    bodyFat?: FloatFieldUpdateOperationsInput | number
+    bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    muscleMass?: FloatFieldUpdateOperationsInput | number
+    rightArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    trunkMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightLegMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftLegMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightArmFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftArmFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    trunkFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    rightLegFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    leftLegFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    status?: StringFieldUpdateOperationsInput | string
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -2361,6 +4051,11 @@ export namespace Prisma {
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     mode?: QueryMode
     not?: NestedStringFilter<$PrismaModel> | string
+  }
+
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -2448,6 +4143,7 @@ export namespace Prisma {
   export type UserProfileCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    isPT?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -2474,6 +4170,7 @@ export namespace Prisma {
   export type UserProfileMaxOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    isPT?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -2489,6 +4186,7 @@ export namespace Prisma {
   export type UserProfileMinOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    isPT?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -2525,6 +4223,14 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -2613,6 +4319,187 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type FloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type InBodyEntryCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    date?: SortOrder
+    weight?: SortOrder
+    height?: SortOrder
+    bmi?: SortOrder
+    bmr?: SortOrder
+    bodyFat?: SortOrder
+    bodyFatPct?: SortOrder
+    muscleMass?: SortOrder
+    rightArmMuscle?: SortOrder
+    leftArmMuscle?: SortOrder
+    trunkMuscle?: SortOrder
+    rightLegMuscle?: SortOrder
+    leftLegMuscle?: SortOrder
+    rightArmFat?: SortOrder
+    leftArmFat?: SortOrder
+    trunkFat?: SortOrder
+    rightLegFat?: SortOrder
+    leftLegFat?: SortOrder
+    status?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InBodyEntryAvgOrderByAggregateInput = {
+    weight?: SortOrder
+    height?: SortOrder
+    bmi?: SortOrder
+    bmr?: SortOrder
+    bodyFat?: SortOrder
+    bodyFatPct?: SortOrder
+    muscleMass?: SortOrder
+    rightArmMuscle?: SortOrder
+    leftArmMuscle?: SortOrder
+    trunkMuscle?: SortOrder
+    rightLegMuscle?: SortOrder
+    leftLegMuscle?: SortOrder
+    rightArmFat?: SortOrder
+    leftArmFat?: SortOrder
+    trunkFat?: SortOrder
+    rightLegFat?: SortOrder
+    leftLegFat?: SortOrder
+  }
+
+  export type InBodyEntryMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    date?: SortOrder
+    weight?: SortOrder
+    height?: SortOrder
+    bmi?: SortOrder
+    bmr?: SortOrder
+    bodyFat?: SortOrder
+    bodyFatPct?: SortOrder
+    muscleMass?: SortOrder
+    rightArmMuscle?: SortOrder
+    leftArmMuscle?: SortOrder
+    trunkMuscle?: SortOrder
+    rightLegMuscle?: SortOrder
+    leftLegMuscle?: SortOrder
+    rightArmFat?: SortOrder
+    leftArmFat?: SortOrder
+    trunkFat?: SortOrder
+    rightLegFat?: SortOrder
+    leftLegFat?: SortOrder
+    status?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InBodyEntryMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    date?: SortOrder
+    weight?: SortOrder
+    height?: SortOrder
+    bmi?: SortOrder
+    bmr?: SortOrder
+    bodyFat?: SortOrder
+    bodyFatPct?: SortOrder
+    muscleMass?: SortOrder
+    rightArmMuscle?: SortOrder
+    leftArmMuscle?: SortOrder
+    trunkMuscle?: SortOrder
+    rightLegMuscle?: SortOrder
+    leftLegMuscle?: SortOrder
+    rightArmFat?: SortOrder
+    leftArmFat?: SortOrder
+    trunkFat?: SortOrder
+    rightLegFat?: SortOrder
+    leftLegFat?: SortOrder
+    status?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InBodyEntrySumOrderByAggregateInput = {
+    weight?: SortOrder
+    height?: SortOrder
+    bmi?: SortOrder
+    bmr?: SortOrder
+    bodyFat?: SortOrder
+    bodyFatPct?: SortOrder
+    muscleMass?: SortOrder
+    rightArmMuscle?: SortOrder
+    leftArmMuscle?: SortOrder
+    trunkMuscle?: SortOrder
+    rightLegMuscle?: SortOrder
+    leftLegMuscle?: SortOrder
+    rightArmFat?: SortOrder
+    leftArmFat?: SortOrder
+    trunkFat?: SortOrder
+    rightLegFat?: SortOrder
+    leftLegFat?: SortOrder
+  }
+
+  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
   export type UserProfileCreatepreferredTrainingDaysInput = {
     set: number[]
   }
@@ -2627,6 +4514,10 @@ export namespace Prisma {
 
   export type StringFieldUpdateOperationsInput = {
     set?: string
+  }
+
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
   }
 
   export type NullableIntFieldUpdateOperationsInput = {
@@ -2680,6 +4571,18 @@ export namespace Prisma {
     set?: Date | string
   }
 
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -2692,6 +4595,11 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     not?: NestedStringFilter<$PrismaModel> | string
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type NestedIntNullableFilter<$PrismaModel = never> = {
@@ -2783,6 +4691,14 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -2869,6 +4785,64 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedStringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
 
 
   /**
@@ -2878,6 +4852,10 @@ export namespace Prisma {
      * @deprecated Use UserProfileDefaultArgs instead
      */
     export type UserProfileArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = UserProfileDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use InBodyEntryDefaultArgs instead
+     */
+    export type InBodyEntryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = InBodyEntryDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany
