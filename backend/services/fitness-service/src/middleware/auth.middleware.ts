@@ -19,9 +19,14 @@ export async function authMiddleware(
 
     const authServiceUrl =
       process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
-    const response = await axios.post(`${authServiceUrl}/auth/verify`, {
-      token,
-    });
+    const response = await axios.post(
+      `${authServiceUrl}/auth/verify`,
+      {},
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 5000,
+      },
+    );
     req.user = response.data.user;
     return next();
   } catch (error) {

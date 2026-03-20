@@ -12,6 +12,26 @@ export const authRepository = {
       select: { id: true, email: true, firstName: true, lastName: true, role: true },
     }),
 
+  updateUserById: (
+    id: string,
+    data: { firstName?: string | null; lastName?: string | null },
+  ) =>
+    prisma.user.update({
+      where: { id },
+      data: {
+        ...(data.firstName !== undefined ? { firstName: data.firstName } : {}),
+        ...(data.lastName !== undefined ? { lastName: data.lastName } : {}),
+      },
+      select: { id: true, email: true, firstName: true, lastName: true, role: true },
+    }),
+
+  updateUserRoleById: (id: string, role: Role) =>
+    prisma.user.update({
+      where: { id },
+      data: { role },
+      select: { id: true, email: true, firstName: true, lastName: true, role: true },
+    }),
+
   createUser: (data: {
     email: string;
     password: string;

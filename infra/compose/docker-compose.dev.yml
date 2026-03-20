@@ -78,6 +78,7 @@ services:
       OTP_EXPIRY_MINUTES: ${OTP_EXPIRY_MINUTES:-10}
       OTP_RESEND_SECONDS: ${OTP_RESEND_SECONDS:-60}
       OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-5}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     depends_on:
       postgres:
         condition: service_healthy
@@ -102,6 +103,7 @@ services:
       PORT: 3004
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
       AUTH_SERVICE_URL: http://auth-service:3001
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     depends_on:
       postgres:
         condition: service_healthy
@@ -127,6 +129,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      AUTH_SERVICE_URL: http://auth-service:3001
     depends_on:
       postgres:
         condition: service_healthy
@@ -156,6 +159,10 @@ services:
       REDIS_PORT: 6379
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
+      LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
     depends_on:
       postgres:
         condition: service_healthy

@@ -31,8 +31,9 @@ COPY --from=builder /app/backend/shared/dist ./backend/shared/dist
 COPY --from=builder /app/backend/shared/package.json ./backend/shared/package.json
 COPY --from=builder /app/backend/services/user-service/node_modules ./backend/services/user-service/node_modules
 COPY --from=builder /app/backend/services/user-service/dist ./backend/services/user-service/dist
+COPY --from=builder /app/backend/services/user-service/src/generated ./backend/services/user-service/dist/generated
 COPY --from=builder /app/backend/services/user-service/package.json ./backend/services/user-service/package.json
 COPY --from=builder /app/backend/services/user-service/prisma ./backend/services/user-service/prisma
 WORKDIR /app/backend/services/user-service
 EXPOSE 3004
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/server.js"]
+CMD ["node", "dist/server.js"]

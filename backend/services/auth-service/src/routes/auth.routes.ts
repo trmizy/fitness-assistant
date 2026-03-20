@@ -9,5 +9,8 @@ router.post('/login', authController.login);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
 router.post('/verify', authController.verify);
+router.patch('/me', authController.updateMe);
+router.patch('/users/:userId/role', authController.updateUserRole);
+router.patch('/internal/users/:userId/role', authController.updateUserRoleInternal);
 
 export default router;

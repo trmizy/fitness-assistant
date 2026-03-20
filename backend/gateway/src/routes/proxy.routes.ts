@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { logger } from '@gym-coach/shared';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, requireRoles } from '../middleware/auth.middleware';
 
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
@@ -27,6 +27,18 @@ function serviceUnavailable(serviceName: string) {
 
 const router = Router();
 
+// Protected — Auth role management (admin only)
+router.use(
+  '/auth/users/:userId/role',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({
+    target: AUTH_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('Auth service'),
+  }),
+);
+
 // Public — Auth Service
 router.use(
   '/auth',
@@ -35,6 +47,19 @@ router.use(
     changeOrigin: true,
     pathRewrite: { '^/auth': '/auth' },
     onError: serviceUnavailable('Auth service'),
+  }),
+);
+
+// Protected — PT registration (only customer/admin can trigger)
+router.use(
+  '/profile/me/become-pt',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'ADMIN'),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/profile': '/profile' },
+    onError: serviceUnavailable('User service'),
   }),
 );
 
@@ -96,6 +121,17 @@ router.use(
   createProxyMiddleware({
     target: AI_SERVICE_URL,
     changeOrigin: true,
+    onProxyReq: (proxyReq, req) => {
+      const userId = req.headers['x-user-id'];
+      const userEmail = req.headers['x-user-email'];
+      const userRole = req.headers['x-user-role'];
+
+      if (typeof userId === 'string') proxyReq.setHeader('x-user-id', userId);
+      if (typeof userEmail === 'string')
+        proxyReq.setHeader('x-user-email', userEmail);
+      if (typeof userRole === 'string')
+        proxyReq.setHeader('x-user-role', userRole);
+    },
     onError: serviceUnavailable('AI service'),
   }),
 );

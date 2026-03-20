@@ -24,6 +24,19 @@ export default function Chat() {
 
   // ── Load conversations on mount ───────────────────────────────
   useEffect(() => {
+    if (!user?.id) {
+      setConversations([]);
+      setActiveConvId(null);
+      setMessages([]);
+      setPts([]);
+      return;
+    }
+
+    setConversations([]);
+    setActiveConvId(null);
+    setMessages([]);
+    setPts([]);
+
     chatService.listConversations()
       .then(d => setConversations(d.conversations ?? []))
       .catch(() => {});
@@ -31,7 +44,7 @@ export default function Chat() {
     profileService.listPTs()
       .then(d => setPts(d.pts ?? []))
       .catch(() => {});
-  }, []);
+  }, [user?.id]);
 
   // ── Socket.IO setup ───────────────────────────────────────────
   useEffect(() => {

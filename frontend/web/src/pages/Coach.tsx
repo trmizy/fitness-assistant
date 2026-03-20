@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
 import { coachService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import type { Message } from '../types';
 
 const suggestionChips = [
@@ -18,6 +19,7 @@ type ConversationItem = {
 };
 
 export default function Coach() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,8 +27,16 @@ export default function Coach() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!user?.id) {
+      setMessages([]);
+      setError('');
+      return;
+    }
+
     const loadHistory = async () => {
       try {
+        setError('');
+        setMessages([]);
         const data = await coachService.getConversations();
         const conversations: ConversationItem[] = Array.isArray(data?.conversations)
           ? (data.conversations as ConversationItem[])
@@ -50,7 +60,7 @@ export default function Coach() {
     };
 
     loadHistory();
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

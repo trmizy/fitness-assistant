@@ -48,6 +48,12 @@ Chay tu thu muc goc repo:
 docker compose -f infra/compose/docker-compose.dev.yml --env-file .env up --build -d
 ```
 
+Hoac dung script mot lenh (tu dong bat Ollama neu chua chay):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-docker-with-ollama.ps1
+```
+
 ### 2.3 Kiem tra sau khi chay
 
 ```powershell

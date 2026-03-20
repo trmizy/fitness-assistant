@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, Utensils, Dumbbell, Flame } from 'lucide-react';
 import api, { workoutService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 type WorkoutItem = {
   id: string;
@@ -32,6 +33,7 @@ function sameDay(a: Date, b: Date): boolean {
 }
 
 export default function Plans() {
+  const { user } = useAuth();
   const [tab, setTab] = useState<'workout' | 'meal'>('workout');
   const [activeDay, setActiveDay] = useState(0);
   const [workouts, setWorkouts] = useState<WorkoutItem[]>([]);
@@ -52,7 +54,16 @@ export default function Plans() {
   }, [activeDay]);
 
   useEffect(() => {
+    if (!user?.id) {
+      setWorkouts([]);
+      setNutritionLogs([]);
+      setLoading(false);
+      setError('');
+      return;
+    }
+
     const loadData = async () => {
+      setLoading(true);
       try {
         setError('');
         const [workoutRes, nutritionRes] = await Promise.all([
@@ -72,7 +83,7 @@ export default function Plans() {
     };
 
     loadData();
-  }, []);
+  }, [user?.id]);
 
   const workoutsOfDay = useMemo(
     () => workouts.filter((w) => sameDay(new Date(w.date), selectedDate)),

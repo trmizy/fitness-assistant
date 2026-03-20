@@ -3,7 +3,12 @@ import jwt from 'jsonwebtoken';
 import type { SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
 import { authRepository } from '../repositories/auth.repository';
-import type { RegisterStartDto, RegisterVerifyDto } from '../models/auth.models';
+import type {
+  RegisterStartDto,
+  RegisterVerifyDto,
+  UpdateMeDto,
+  UpdateUserRoleDto,
+} from '../models/auth.models';
 import { sendOtpEmail } from './email.service';
 
 const ACCESS_TOKEN_SECRET =
@@ -139,7 +144,7 @@ export const authService = {
       password: record.passwordHash,
       firstName: record.firstName ?? undefined,
       lastName: record.lastName ?? undefined,
-      role: 'USER',
+      role: 'CUSTOMER',
     });
 
     await authRepository.deleteEmailVerification(data.email);
@@ -252,5 +257,36 @@ export const authService = {
     const user = await authRepository.findUserById(decoded.userId);
     if (!user) throw { status: 401, message: 'User not found' };
     return user;
+  },
+
+  async updateMe(token: string, data: UpdateMeDto) {
+    const user = await this.verifyToken(token);
+    const updated = await authRepository.updateUserById(user.id, {
+      ...(data.firstName !== undefined ? { firstName: data.firstName } : {}),
+      ...(data.lastName !== undefined ? { lastName: data.lastName } : {}),
+    });
+
+    return {
+      user: {
+        id: updated.id,
+        email: updated.email,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        role: updated.role,
+      },
+    };
+  },
+
+  async updateUserRole(userId: string, data: UpdateUserRoleDto) {
+    const updated = await authRepository.updateUserRoleById(userId, data.role);
+    return {
+      user: {
+        id: updated.id,
+        email: updated.email,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        role: updated.role,
+      },
+    };
   },
 };

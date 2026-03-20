@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Dumbbell, Plus, X, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { workoutService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 type WorkoutItem = {
   id: string;
@@ -20,6 +21,7 @@ type WorkoutItem = {
 };
 
 export default function Workouts() {
+  const { user } = useAuth();
   const [workouts, setWorkouts] = useState<WorkoutItem[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -28,7 +30,15 @@ export default function Workouts() {
   const [form, setForm] = useState({ name: '', date: '', duration: '', notes: '' });
 
   useEffect(() => {
+    if (!user?.id) {
+      setWorkouts([]);
+      setExpanded(null);
+      setLoading(false);
+      return;
+    }
+
     const load = async () => {
+      setLoading(true);
       try {
         setError('');
         const data = await workoutService.getHistory(1, 50);
@@ -44,7 +54,7 @@ export default function Workouts() {
     };
 
     load();
-  }, []);
+  }, [user?.id]);
 
   const toggle = (id: string) => setExpanded((e) => (e === id ? null : id));
 

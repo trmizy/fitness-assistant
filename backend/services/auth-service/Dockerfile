@@ -31,6 +31,7 @@ COPY --from=builder /app/backend/shared/dist ./backend/shared/dist
 COPY --from=builder /app/backend/shared/package.json ./backend/shared/package.json
 COPY --from=builder /app/backend/services/auth-service/node_modules ./backend/services/auth-service/node_modules
 COPY --from=builder /app/backend/services/auth-service/dist ./backend/services/auth-service/dist
+COPY --from=builder /app/backend/services/auth-service/src/generated ./backend/services/auth-service/dist/generated
 COPY --from=builder /app/backend/services/auth-service/package.json ./backend/services/auth-service/package.json
 COPY --from=builder /app/backend/services/auth-service/prisma ./backend/services/auth-service/prisma
 WORKDIR /app/backend/services/auth-service

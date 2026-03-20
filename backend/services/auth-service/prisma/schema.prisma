@@ -10,7 +10,8 @@ datasource db {
 }
 
 enum Role {
-  USER
+  CUSTOMER
+  PT
   ADMIN
 }
 
@@ -20,7 +21,7 @@ model User {
   password  String
   firstName String?
   lastName  String?
-  role      Role     @default(USER)
+  role      Role     @default(CUSTOMER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -8,7 +8,17 @@ import {
   registerVerifySchema,
   loginSchema,
   refreshSchema,
+  updateMeSchema,
+  updateUserRoleSchema,
 } from '../models/auth.models';
+
+const INTERNAL_SERVICE_SECRET =
+  process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
+
+function getBearerToken(req: Request): string | null {
+  const token = req.headers.authorization?.split(' ')[1];
+  return token || null;
+}
 
 function auditMeta(req: Request) {
   return {
@@ -142,6 +152,91 @@ export const authController = {
         return;
       }
       logger.error(error, 'Verify token error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async updateMe(req: Request, res: Response): Promise<void> {
+    try {
+      const token = getBearerToken(req);
+      if (!token) {
+        res.status(401).json({ error: 'No token provided' });
+        return;
+      }
+
+      const body = updateMeSchema.parse(req.body);
+      const result = await authService.updateMe(token, body);
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, 'Update me error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async updateUserRole(req: Request, res: Response): Promise<void> {
+    try {
+      const token = getBearerToken(req);
+      if (!token) {
+        res.status(401).json({ error: 'No token provided' });
+        return;
+      }
+
+      const actor = await authService.verifyToken(token);
+      if (actor.role !== 'ADMIN') {
+        res.status(403).json({ error: 'Forbidden: admin role required' });
+        return;
+      }
+
+      const body = updateUserRoleSchema.parse(req.body);
+      const result = await authService.updateUserRole(req.params.userId, body);
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, 'Update user role error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async updateUserRoleInternal(req: Request, res: Response): Promise<void> {
+    try {
+      const serviceSecret = req.headers['x-service-secret'];
+      const secret = Array.isArray(serviceSecret)
+        ? serviceSecret[0]
+        : serviceSecret;
+
+      if (!secret || secret !== INTERNAL_SERVICE_SECRET) {
+        res.status(403).json({ error: 'Forbidden: invalid service secret' });
+        return;
+      }
+
+      const body = updateUserRoleSchema.parse(req.body);
+      const result = await authService.updateUserRole(req.params.userId, body);
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, 'Internal update user role error');
       res.status(500).json({ error: 'Internal server error' });
     }
   },

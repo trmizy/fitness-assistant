@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Scale, TrendingDown, Activity, Plus, X } from 'lucide-react';
 import { profileService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 type Profile = {
   age?: number;
@@ -12,6 +13,7 @@ type Profile = {
 };
 
 export default function InBody() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -46,8 +48,14 @@ export default function InBody() {
   };
 
   useEffect(() => {
+    if (!user?.id) {
+      setProfile(null);
+      setError('');
+      return;
+    }
+
     loadProfile();
-  }, []);
+  }, [user?.id]);
 
   const set =
     (k: keyof typeof form) =>

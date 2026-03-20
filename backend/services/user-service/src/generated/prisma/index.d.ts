@@ -934,6 +934,7 @@ export namespace Prisma {
   export type UserProfileMinAggregateOutputType = {
     id: string | null
     userId: string | null
+    isPT: boolean | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -949,6 +950,7 @@ export namespace Prisma {
   export type UserProfileMaxAggregateOutputType = {
     id: string | null
     userId: string | null
+    isPT: boolean | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -964,6 +966,7 @@ export namespace Prisma {
   export type UserProfileCountAggregateOutputType = {
     id: number
     userId: number
+    isPT: number
     age: number
     gender: number
     heightCm: number
@@ -1000,6 +1003,7 @@ export namespace Prisma {
   export type UserProfileMinAggregateInputType = {
     id?: true
     userId?: true
+    isPT?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -1015,6 +1019,7 @@ export namespace Prisma {
   export type UserProfileMaxAggregateInputType = {
     id?: true
     userId?: true
+    isPT?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -1030,6 +1035,7 @@ export namespace Prisma {
   export type UserProfileCountAggregateInputType = {
     id?: true
     userId?: true
+    isPT?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -1135,6 +1141,7 @@ export namespace Prisma {
   export type UserProfileGroupByOutputType = {
     id: string
     userId: string
+    isPT: boolean
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -1172,6 +1179,7 @@ export namespace Prisma {
   export type UserProfileSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
+    isPT?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -1190,6 +1198,7 @@ export namespace Prisma {
   export type UserProfileSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
+    isPT?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -1208,6 +1217,7 @@ export namespace Prisma {
   export type UserProfileSelectScalar = {
     id?: boolean
     userId?: boolean
+    isPT?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -1230,6 +1240,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       userId: string
+      isPT: boolean
       age: number | null
       gender: $Enums.Gender | null
       heightCm: number | null
@@ -1638,6 +1649,7 @@ export namespace Prisma {
   interface UserProfileFieldRefs {
     readonly id: FieldRef<"UserProfile", 'String'>
     readonly userId: FieldRef<"UserProfile", 'String'>
+    readonly isPT: FieldRef<"UserProfile", 'Boolean'>
     readonly age: FieldRef<"UserProfile", 'Int'>
     readonly gender: FieldRef<"UserProfile", 'Gender'>
     readonly heightCm: FieldRef<"UserProfile", 'Float'>
@@ -1956,6 +1968,7 @@ export namespace Prisma {
   export const UserProfileScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
+    isPT: 'isPT',
     age: 'age',
     gender: 'gender',
     heightCm: 'heightCm',
@@ -2014,6 +2027,13 @@ export namespace Prisma {
    * Reference to a field of type 'String[]'
    */
   export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -2124,6 +2144,7 @@ export namespace Prisma {
     NOT?: UserProfileWhereInput | UserProfileWhereInput[]
     id?: StringFilter<"UserProfile"> | string
     userId?: StringFilter<"UserProfile"> | string
+    isPT?: BoolFilter<"UserProfile"> | boolean
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableFilter<"UserProfile"> | number | null
@@ -2142,6 +2163,7 @@ export namespace Prisma {
   export type UserProfileOrderByWithRelationInput = {
     id?: SortOrder
     userId?: SortOrder
+    isPT?: SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     heightCm?: SortOrderInput | SortOrder
@@ -2163,6 +2185,7 @@ export namespace Prisma {
     AND?: UserProfileWhereInput | UserProfileWhereInput[]
     OR?: UserProfileWhereInput[]
     NOT?: UserProfileWhereInput | UserProfileWhereInput[]
+    isPT?: BoolFilter<"UserProfile"> | boolean
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableFilter<"UserProfile"> | number | null
@@ -2181,6 +2204,7 @@ export namespace Prisma {
   export type UserProfileOrderByWithAggregationInput = {
     id?: SortOrder
     userId?: SortOrder
+    isPT?: SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     heightCm?: SortOrderInput | SortOrder
@@ -2207,6 +2231,7 @@ export namespace Prisma {
     NOT?: UserProfileScalarWhereWithAggregatesInput | UserProfileScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"UserProfile"> | string
     userId?: StringWithAggregatesFilter<"UserProfile"> | string
+    isPT?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     age?: IntNullableWithAggregatesFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableWithAggregatesFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
@@ -2225,6 +2250,7 @@ export namespace Prisma {
   export type UserProfileCreateInput = {
     id?: string
     userId: string
+    isPT?: boolean
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -2243,6 +2269,7 @@ export namespace Prisma {
   export type UserProfileUncheckedCreateInput = {
     id?: string
     userId: string
+    isPT?: boolean
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -2261,6 +2288,7 @@ export namespace Prisma {
   export type UserProfileUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -2279,6 +2307,7 @@ export namespace Prisma {
   export type UserProfileUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -2297,6 +2326,7 @@ export namespace Prisma {
   export type UserProfileCreateManyInput = {
     id?: string
     userId: string
+    isPT?: boolean
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -2315,6 +2345,7 @@ export namespace Prisma {
   export type UserProfileUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -2333,6 +2364,7 @@ export namespace Prisma {
   export type UserProfileUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -2361,6 +2393,11 @@ export namespace Prisma {
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     mode?: QueryMode
     not?: NestedStringFilter<$PrismaModel> | string
+  }
+
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -2448,6 +2485,7 @@ export namespace Prisma {
   export type UserProfileCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    isPT?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -2474,6 +2512,7 @@ export namespace Prisma {
   export type UserProfileMaxOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    isPT?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -2489,6 +2528,7 @@ export namespace Prisma {
   export type UserProfileMinOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    isPT?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -2525,6 +2565,14 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -2629,6 +2677,10 @@ export namespace Prisma {
     set?: string
   }
 
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
   export type NullableIntFieldUpdateOperationsInput = {
     set?: number | null
     increment?: number
@@ -2692,6 +2744,11 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     not?: NestedStringFilter<$PrismaModel> | string
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type NestedIntNullableFilter<$PrismaModel = never> = {
@@ -2781,6 +2838,14 @@ export namespace Prisma {
     gt?: number | IntFieldRefInput<$PrismaModel>
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntFilter<$PrismaModel> | number
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {

@@ -58,7 +58,16 @@ export default function Dashboard() {
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutItem[]>([]);
 
   useEffect(() => {
+    if (!user?.id) {
+      setProfile(null);
+      setStats(null);
+      setRecentWorkouts([]);
+      setLoading(false);
+      return;
+    }
+
     const loadDashboard = async () => {
+      setLoading(true);
       try {
         const [profileRes, statsRes, workoutsRes] = await Promise.all([
           profileService.getProfile(),
@@ -79,7 +88,7 @@ export default function Dashboard() {
     };
 
     loadDashboard();
-  }, []);
+  }, [user?.id]);
 
   const streakDays = useMemo(() => {
     if (recentWorkouts.length === 0) return 0;

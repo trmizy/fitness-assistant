@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosHeaders } from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -14,6 +14,57 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (!axios.isAxiosError(error)) {
+      return Promise.reject(error);
+    }
+
+    const originalConfig = error.config as (typeof error.config & { _retry?: boolean }) | undefined;
+    const status = error.response?.status;
+    const requestUrl = originalConfig?.url || '';
+
+    // Try one refresh cycle for expired access tokens.
+    if (status === 401 && originalConfig && !originalConfig._retry && !requestUrl.includes('/auth/login') && !requestUrl.includes('/auth/refresh')) {
+      originalConfig._retry = true;
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      if (refreshToken) {
+        try {
+          const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken }, {
+            headers: { 'Content-Type': 'application/json' },
+          });
+
+          if (data?.accessToken) {
+            localStorage.setItem('accessToken', data.accessToken);
+            if (data.refreshToken) {
+              localStorage.setItem('refreshToken', data.refreshToken);
+            }
+
+            const nextHeaders = AxiosHeaders.from(originalConfig.headers);
+            nextHeaders.set('Authorization', `Bearer ${data.accessToken}`);
+            originalConfig.headers = nextHeaders;
+
+            return api(originalConfig);
+          }
+        } catch {
+          // If refresh fails, fall through to forced logout.
+        }
+      }
+
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
 
 export const authService = {
   login: async (email: string, password: string) => {
@@ -40,6 +91,11 @@ export const authService = {
       return { success: true, user: data.user };
     }
     return { success: false };
+  },
+
+  updateMe: async (payload: { firstName?: string; lastName?: string }) => {
+    const { data } = await api.patch('/auth/me', payload);
+    return data;
   },
   
   logout: () => {

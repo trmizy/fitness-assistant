@@ -31,6 +31,7 @@ COPY --from=builder /app/backend/shared/dist ./backend/shared/dist
 COPY --from=builder /app/backend/shared/package.json ./backend/shared/package.json
 COPY --from=builder /app/backend/services/ai-service/node_modules ./backend/services/ai-service/node_modules
 COPY --from=builder /app/backend/services/ai-service/dist ./backend/services/ai-service/dist
+COPY --from=builder /app/backend/services/ai-service/src/generated ./backend/services/ai-service/dist/generated
 COPY --from=builder /app/backend/services/ai-service/package.json ./backend/services/ai-service/package.json
 COPY --from=builder /app/backend/services/ai-service/prisma ./backend/services/ai-service/prisma
 WORKDIR /app/backend/services/ai-service
