@@ -227,12 +227,14 @@ export function Sidebar() {
       <div className="p-3 border-t border-zinc-800/60">
         <div className="flex items-center gap-2.5 px-3 py-2.5 bg-zinc-900 rounded-xl border border-zinc-800/60 mb-2">
           <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-xs font-bold text-black flex-shrink-0 shadow-md shadow-green-500/20">
-            {user?.avatar || "?"}
+            {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || "U"}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs text-zinc-100 font-semibold truncate">{user?.name}</div>
+            <div className="text-xs text-zinc-100 font-semibold truncate">
+              {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email.split('@')[0] : "Client"}
+            </div>
             <div className="text-xs text-zinc-500 truncate">
-              {role === "client" ? "Client" : role === "pt" ? "Personal Trainer" : "Administrator"}
+              {role === "client" ? "Member" : role === "pt" ? "Personal Trainer" : "Administrator"}
             </div>
           </div>
         </div>

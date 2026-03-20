@@ -15,6 +15,7 @@ interface AppContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  setUser: (user: User | null) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   updateUser: (updates: Partial<User>) => void;
@@ -85,6 +86,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       user, role, isPT, isAdmin,
       activeView, setActiveView,
       isAuthenticated, login, logout,
+      setUser,
       sidebarOpen, setSidebarOpen,
       updateUser
     }}>

@@ -6,6 +6,7 @@ import {
   Upload, X, Check, AlertCircle, Clock, Eye, FileText,
   Instagram, Youtube, Linkedin, ArrowLeft
 } from "lucide-react";
+import { useApp } from "../../context/AppContext";
 
 const inp   = "w-full px-3 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 placeholder-zinc-600 transition-all";
 const lbl   = "text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold";
@@ -85,6 +86,7 @@ function UploadBox({ label: labelText, hint }: { label:string; hint?:string }) {
 }
 
 export function PTApplicationPage() {
+  const { user } = useApp();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [submitted,   setSubmitted]   = useState(false);
@@ -190,8 +192,8 @@ export function PTApplicationPage() {
             <h3 className="text-zinc-100 font-bold">Personal Information</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><p className={lbl}>Full Name *</p><input className={inp} defaultValue="Alex Johnson" /></div>
-            <div><p className={lbl}>Date of Birth *</p><input type="date" className={inp} defaultValue="1997-03-15" /></div>
+            <div><p className={lbl}>Full Name *</p><input className={inp} defaultValue={`${user?.firstName || ''} ${user?.lastName || ''}`} /></div>
+            <div><p className={lbl}>Date of Birth *</p><input type="date" className={inp} defaultValue={user?.age ? new Date(new Date().getFullYear() - user.age, 0, 1).toISOString().split('T')[0] : "1997-03-15"} /></div>
             <div>
               <p className={lbl}>Gender *</p>
               <select className={inp}><option>Male</option><option>Female</option><option>Prefer not to say</option></select>
@@ -202,7 +204,7 @@ export function PTApplicationPage() {
               <input className={inp} placeholder="Street, District, City, Province, Postal Code" defaultValue="123 Sukhumvit Rd, Khlong Toei, Bangkok 10110" />
             </div>
             <div><p className={lbl}>Nationality</p><input className={inp} defaultValue="Thai" /></div>
-            <div><p className={lbl}>Email *</p><input type="email" className={inp} defaultValue="alex@example.com" /></div>
+            <div><p className={lbl}>Email *</p><input type="email" className={inp} defaultValue={user?.email || ""} /></div>
           </div>
         </div>
       )}
@@ -463,12 +465,12 @@ export function PTApplicationPage() {
           </div>
           {[
             { title:"Personal Information", icon:User,      step:0, rows:[
-                {label:"Full Name",    value:"Alex Johnson"},
-                {label:"DOB",          value:"Mar 15, 1997"},
-                {label:"Gender",       value:"Male"},
+                {label:"Full Name",    value:`${user?.firstName || ''} ${user?.lastName || ''}`},
+                {label:"DOB",          value:user?.age ? new Date(new Date().getFullYear() - user.age, 0, 1).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : "Mar 15, 1997"},
+                {label:"Gender",       value:"Prefer not to say"},
                 {label:"Phone",        value:"+66 81 234 5678"},
                 {label:"Address",      value:"123 Sukhumvit Rd, Bangkok 10110"},
-                {label:"Email",        value:"alex@example.com"},
+                {label:"Email",        value:user?.email || "alex@example.com"},
             ]},
             { title:"Identity & Verification", icon:Shield, step:1, rows:[
                 {label:"National ID",   value:"1 2345 67890 12 3 (entered)"},

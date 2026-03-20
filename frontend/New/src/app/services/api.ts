@@ -38,6 +38,7 @@ export const authService = {
     if (data.accessToken) {
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('user', JSON.stringify(data.user));
       return { success: true, user: data.user };
     }
     return { success: false };
@@ -184,6 +185,25 @@ export const chatService = {
 
   sendMessage: async (conversationId: string, content: string) => {
     const { data } = await api.post(`/chat/conversations/${conversationId}/messages`, { content });
+    return data;
+  },
+};
+
+export const nutritionService = {
+  getLogs: async (startDate?: string, endDate?: string, mealType?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (mealType) params.append('mealType', mealType);
+    const { data } = await api.get(`/nutrition?${params.toString()}`);
+    return data;
+  },
+  createLog: async (log: any) => {
+    const { data } = await api.post('/nutrition', log);
+    return data;
+  },
+  deleteLog: async (id: string) => {
+    const { data } = await api.delete(`/nutrition/${id}`);
     return data;
   },
 };

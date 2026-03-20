@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, Send, Lightbulb, AlertCircle, RefreshCw, User } from "lucide-react";
+import { Bot, Send, Lightbulb, AlertCircle, RefreshCw, User, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { inbodyService } from "../../services/api";
 
 interface ChatMessage { id: number; from: "user" | "ai"; text: string; time: string; }
 
@@ -12,37 +14,80 @@ const suggestions = [
   "What's the best time to do cardio?",
 ];
 
-const initialMessages: ChatMessage[] = [
-  { id: 1, from: "ai", text: "Hi Alex! I'm your AI Fitness Coach. I've analyzed your latest InBody data and training history. How can I help you today?\n\n📊 **Quick Summary:**\n- Weight: 75.1 kg (↓ 6.9 kg from start)\n- Muscle Mass: 36.5 kg (↑ 2.5 kg)\n- Body Fat: 18.2% (↓ 3.1%)\n\nYou're making great progress! Ask me anything about your fitness journey.", time: "Now" }
-];
+const initialMessage = (latest: any, prev: any) => {
+  const weightStr = latest ? `${latest.weight} kg` : "---";
+  const weightDiff = (latest && prev) ? (latest.weight - prev.weight).toFixed(1) : "0.0";
+  const muscleStr = latest ? `${latest.muscleMass} kg` : "---";
+  const muscleDiff = (latest && prev) ? (latest.muscleMass - prev.muscleMass).toFixed(1) : "0.0";
+  const fatStr = latest ? `${latest.bodyFatPct}%` : "---";
 
-const aiReplies: Record<string, string> = {
-  "protein": "Based on your current weight of 75.1 kg and your goal of fat loss while preserving muscle, I recommend **160g of protein per day** (about 2.1g per kg of body weight).\n\n📌 **High-protein food sources:**\n• Chicken breast: 31g/100g\n• Greek yogurt: 10g/100g\n• Whey protein: 24g/30g serving\n• Eggs: 6g each\n\nYour current meal plan is designed to hit this target. Would you like me to show you a meal timing breakdown?",
-  "body fat": "Your body fat has decreased from 21.8% to 18.2% over 5 months — that's excellent progress! Here's why it might feel slow sometimes:\n\n1. **Caloric deficit accuracy** – slight underestimation of portions is common\n2. **Training intensity** – your recent workout data shows some skipped sessions\n3. **Sleep quality** – poor sleep increases cortisol, which can slow fat loss\n\n💡 **My recommendation:** Track your food more precisely for 2 weeks and aim for 7-8 hours of sleep. Do you want a revised plan?",
-  "default": "That's a great question! Based on your current fitness data and program, here's what I recommend:\n\nYour progress has been consistent and measurable. The key is to maintain your current habit stack while making small adjustments based on feedback.\n\n⚠️ **Note:** This is AI-generated guidance based on your data. It's not a substitute for medical advice. For medical concerns, please consult a healthcare professional.",
+  return {
+    id: 1,
+    from: "ai" as const,
+    text: `Hi! I'm your AI Fitness Coach. I've analyzed your fitness data. How can I help you today?\n\n📊 **Latest Stats:**\n- Weight: ${weightStr} (${weightDiff.startsWith("-") ? "↓" : "↑"} ${Math.abs(Number(weightDiff))} kg)\n- Muscle: ${muscleStr} (${muscleDiff.startsWith("-") ? "↓" : "↑"} ${Math.abs(Number(muscleDiff))} kg)\n- Body Fat: ${fatStr}\n\nAsk me anything about your progress!`,
+    time: "Now"
+  };
+};
+
+const getAiReply = (text: string, latest: any) => {
+  const lower = text.toLowerCase();
+  const weight = latest?.weight || "---";
+  
+  if (lower.includes("protein")) {
+    const proteinFactor = 2.0;
+    const proteinTarget = latest?.weight ? Math.round(latest.weight * proteinFactor) : 150;
+    return `Based on your weight of ${weight} kg, I recommend **${proteinTarget}g of protein per day**.\n\n📌 **Tips:**\n• Scale: ${proteinFactor}g per kg\n• Sources: Chicken, Eggs, Whey, Greek Yogurt.`;
+  }
+  
+  if (lower.includes("fat")) {
+    return `Your latest body fat is ${latest?.bodyFatPct || "---"}%.\n\n💡 **Focus:**\n1. Maintain a slight caloric deficit\n2. Keep protein high\n3. Consistency with your training sessions.`;
+  }
+
+  return "That's a great question! Based on your data, the best strategy is consistent training and proper recovery. Do you have a specific goal in mind?";
 };
 
 export function AICoachPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const { data: history = [], isLoading } = useQuery({
+    queryKey: ["inbody-history"],
+    queryFn: inbodyService.getHistory
+  });
+
+  const latest = history[0];
+  const prev = history[1];
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isLoading && messages.length === 0) {
+      setMessages([initialMessage(latest, prev)]);
+    }
+  }, [isLoading, latest, prev]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const send = (text: string) => {
     if (!text.trim()) return;
-    const userMsg: ChatMessage = { id: messages.length + 1, from: "user", text: text.trim(), time: "Now" };
-    setMessages(prev => [...prev, userMsg]);
+    const userMsg: ChatMessage = { id: Date.now(), from: "user", text: text.trim(), time: "Now" };
+    setMessages(prevMsgs => [...prevMsgs, userMsg]);
     setInput("");
-    setLoading(true);
+    setAiLoading(true);
     setTimeout(() => {
-      const lower = text.toLowerCase();
-      const reply = lower.includes("protein") ? aiReplies.protein : lower.includes("fat") ? aiReplies["body fat"] : aiReplies.default;
-      setMessages(prev => [...prev, { id: prev.length + 1, from: "ai", text: reply, time: "Now" }]);
-      setLoading(false);
+      const replyText = getAiReply(text, latest);
+      setMessages(prevMsgs => [...prevMsgs, { id: Date.now() + 1, from: "ai", text: replyText, time: "Now" }]);
+      setAiLoading(false);
     }, 1200);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-zinc-950">
+        <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+      </div>
+    );
+  }
 
   const renderText = (text: string) => {
     return text.split("\n").map((line, i) => {
@@ -104,7 +149,7 @@ export function AICoachPage() {
             )}
           </div>
         ))}
-        {loading && (
+        {aiLoading && (
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-green-500/15 border border-green-500/20 rounded-full flex items-center justify-center">
               <Bot className="w-4 h-4 text-green-400" />
@@ -143,17 +188,17 @@ export function AICoachPage() {
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && !loading && send(input)}
+            onKeyDown={e => e.key === "Enter" && !aiLoading && send(input)}
             placeholder="Ask your AI coach anything…"
             className="flex-1 px-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-zinc-200 placeholder-zinc-600 transition-all"
-            disabled={loading}
+            disabled={aiLoading}
           />
           <button
             onClick={() => send(input)}
-            disabled={!input.trim() || loading}
+            disabled={!input.trim() || aiLoading}
             className="w-10 h-10 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black rounded-xl flex items-center justify-center transition-all flex-shrink-0 shadow-lg shadow-green-500/20"
           >
-            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {aiLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </div>
         <p className="text-center text-xs text-zinc-600 mt-2">AI responses are based on your fitness data and are not medical advice.</p>

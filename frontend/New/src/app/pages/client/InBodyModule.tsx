@@ -105,8 +105,7 @@ export function InBodyModule() {
     { subject: "Muscle", A: (latest.muscleMass / 50) * 100 },
     { subject: "Fat",    A: (latest.bodyFat / 30) * 100 },
     { subject: "BMI",    A: (latest.bmi / 35) * 100 },
-    { subject: "Water",  A: 80 }, // Placeholder
-    { subject: "Score",  A: 75 }, // Placeholder
+    { subject: "BMR",    A: ((latest.bmr || 1500) / 2500) * 100 },
   ];
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
@@ -337,7 +336,7 @@ export function InBodyModule() {
                     { label: "Trunk",     value: latest.trunkMuscle,    norm: 24.0 },
                     { label: "Right Leg", value: latest.rightLegMuscle, norm: 9.5 },
                     { label: "Left Leg",  value: latest.leftLegMuscle,  norm: 9.5 },
-                  ].map((s) => {
+                  ].map((s: { label: string; value: number | undefined; norm: number; }) => {
                     const val = s.value || 0;
                     const norm = s.norm;
                     return (
@@ -371,7 +370,7 @@ export function InBodyModule() {
             </button>
           </div>
           <div className="space-y-2">
-            {history.slice(0, 3).map((r, i) => {
+            {history.slice(0, 3).map((r: any, i: number) => {
               const cfg = statusConfig[r.status];
               return (
                 <div key={r.id} className={`flex items-center gap-4 p-3 rounded-xl border ${i === 0 ? "bg-green-500/5 border-green-500/15" : "bg-zinc-900 border-zinc-800/60"}`}>
@@ -523,7 +522,7 @@ export function InBodyModule() {
               { label: "Processing", key: "processing" },
               { label: "Review",     key: "review"     },
               { label: "Done",       key: "done"       },
-            ].map((s, i) => {
+            ].map((s: { label: string; key: string; }, i: number) => {
               const stepKeys  = ["drop", "preview", "processing", "review", "done", "failed"];
               const currIdx   = stepKeys.indexOf(uploadStep);
               const thisIdx   = stepKeys.indexOf(s.key);
@@ -612,12 +611,12 @@ export function InBodyModule() {
               <div className="text-zinc-200 font-bold mb-1">Extracting Data with AI…</div>
               <p className="text-zinc-500 text-sm">Scanning your InBody report for body composition values</p>
               <div className="flex gap-1 justify-center mt-5">
-                {[0, 1, 2].map(i => (
+                {[0, 1, 2].map((i: number) => (
                   <div key={i} className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
               <div className="mt-4 space-y-1.5 text-left max-w-xs mx-auto">
-                {["Detecting InBody format…", "Reading metric labels…", "Extracting numeric values…"].map((t, i) => (
+                {["Detecting InBody format…", "Reading metric labels…", "Extracting numeric values…"].map((t: string, i: number) => (
                   <div key={t} className="flex items-center gap-2 text-xs text-zinc-600">
                     <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
                     {t}
@@ -642,7 +641,7 @@ export function InBodyModule() {
                   { label: "Body Fat (kg)",                 field: "bodyFat",    value: extractedData?.bodyFat },
                   { label: "Body Fat %",                    field: "bodyFatPct", value: extractedData?.bodyFatPct },
                   { label: "BMI",                            field: "bmi",        value: extractedData?.bmi },
-                ].map(f => (
+                ].map((f: { label: string; field: string; value: number | undefined; }) => (
                   <div key={f.field} className="flex items-center gap-3">
                     <div className="flex-1">
                       <label className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
@@ -715,7 +714,7 @@ export function InBodyModule() {
         <div className="space-y-4">
           {/* Status legend */}
           <div className="flex flex-wrap gap-2">
-            {Object.entries(statusConfig).map(([k, cfg]) => (
+            {Object.entries(statusConfig).map(([k, cfg]: [string, { label: string; color: string; dot: string; }]) => (
               <span key={k} className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-semibold border ${cfg.color}`}>
                 <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                 {cfg.label}
@@ -816,7 +815,7 @@ export function InBodyModule() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {["weight", "muscle", "fat", "bfp"].map(key => {
+            {(["weight", "muscle", "fat", "bfp"] as const).map(key => {
               const labelMap: Record<string, string> = { weight: "Weight (kg)", muscle: "Muscle (kg)", fat: "Body Fat (kg)", bfp: "Body Fat %" };
               const aVal   = history[compareA][key as keyof typeof history[0]] as number;
               const bVal   = history[compareB][key as keyof typeof history[0]] as number;

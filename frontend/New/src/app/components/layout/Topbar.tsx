@@ -40,7 +40,7 @@ export function Topbar() {
     ? { label: "Trainer Mode",   bg: "bg-green-500/10",  border: "border-green-500/20",  text: "text-green-400",  dot: "bg-green-500"  }
     : isPT && activeView === "client"
     ? { label: "Client Mode",    bg: "bg-zinc-800",      border: "border-zinc-700/50",   text: "text-zinc-300",   dot: "bg-zinc-400"   }
-    : { label: "Client",         bg: "bg-green-500/10",  border: "border-green-500/20",  text: "text-green-400",  dot: "bg-green-500"  };
+    : { label: "Personal Profile",  bg: "bg-green-500/10",  border: "border-green-500/20",  text: "text-green-400",  dot: "bg-green-500"  };
 
   const avatarBg = isAdmin ? "bg-violet-500" : "bg-green-500";
 
@@ -155,7 +155,7 @@ export function Topbar() {
             onClick={() => { setUserOpen(!userOpen); setNotifOpen(false); }}
           >
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-black ${avatarBg}`}>
-              {user?.avatar || "U"}
+              {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || "U"}
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-zinc-500 hidden sm:block" />
           </button>
@@ -168,10 +168,12 @@ export function Topbar() {
                 <div className="px-4 py-3 border-b border-zinc-800">
                   <div className="flex items-center gap-2.5">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-black ${avatarBg} shadow-md`}>
-                      {user?.avatar || "U"}
+                      {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || "U"}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-zinc-100">{user?.name}</p>
+                      <p className="text-sm font-semibold text-zinc-100">
+                        {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email.split('@')[0] : "Personal Profile"}
+                      </p>
                       <p className="text-xs text-zinc-500">{user?.email}</p>
                     </div>
                   </div>
@@ -244,7 +246,7 @@ export function Topbar() {
                     className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
                   >
                     <ArrowLeftRight className="w-4 h-4" />
-                    Switch to {activeView === "pt" ? "Client" : "Trainer"} View
+                    Switch to {activeView === "pt" ? "Personal" : "Trainer"} View
                   </button>
                 )}
 

@@ -32,12 +32,20 @@ import { UserManagement } from "./pages/admin/UserManagement";
 import { PTManagement } from "./pages/admin/PTManagement";
 import { SystemMonitoring } from "./pages/admin/SystemMonitoring";
 
+import { Toaster } from "sonner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
+
 /** Root layout — provides AppContext to the entire router tree */
 function Root() {
   return (
-    <AppProvider>
-      <Outlet />
-    </AppProvider>
+    <QueryClientProvider client={queryClient}>
+      <AppProvider>
+        <Toaster position="top-center" expand={false} richColors />
+        <Outlet />
+      </AppProvider>
+    </QueryClientProvider>
   );
 }
 

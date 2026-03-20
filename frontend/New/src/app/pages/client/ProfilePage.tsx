@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { User, Edit3, Check, Zap, ChevronRight, Award } from "lucide-react";
+import { User, Edit3, Check, Zap, ChevronRight, Award, Loader2 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { profileService } from "../../services/api";
+import { toast } from "sonner";
 
 const goals = [
   { key: "lose_fat",       label: "Lose Fat",       emoji: "🔥" },
@@ -18,16 +21,91 @@ const inputClass  = "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-
 const selectClass = "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 bg-zinc-800/60 text-zinc-200";
 
 export function ProfilePage() {
-  const { isPT, setActiveView } = useApp();
+  const { user, isPT, setActiveView } = useApp();
   const navigate = useNavigate();
+
+  const { data: profileData, isLoading } = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
+      const res = await profileService.getProfile();
+      return res.profile;
+    }
+  });
 
   const [editing,  setEditing]  = useState(false);
   const [goal,     setGoal]     = useState("lose_fat");
   const [activity, setActivity] = useState("Moderately active");
   const [diet,     setDiet]     = useState("High protein");
 
-  // For a pure client, ptStatus shows PT upgrade banner
-  const [ptStatus] = useState<"not_pt" | "pending" | "approved">("not_pt");
+  const [age,    setAge]    = useState("");
+  const [gender, setGender] = useState("");
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+
+  // Sync component state with fetched profile data
+  useEffect(() => {
+    if (profileData) {
+      if (profileData.goal) {
+        const goalMap: any = {
+          WEIGHT_LOSS: "lose_fat",
+          MUSCLE_GAIN: "gain_muscle",
+          MAINTENANCE: "maintain",
+          ATHLETIC_PERFORMANCE: "improve_health"
+        };
+        setGoal(goalMap[profileData.goal] || "lose_fat");
+      }
+      if (profileData.activityLevel) {
+        const activityMap: any = {
+          SEDENTARY: "Sedentary",
+          LIGHTLY_ACTIVE: "Lightly active",
+          MODERATELY_ACTIVE: "Moderately active",
+          VERY_ACTIVE: "Very active",
+          EXTREMELY_ACTIVE: "Extremely active"
+        };
+        setActivity(activityMap[profileData.activityLevel] || "Moderately active");
+      }
+      setAge(profileData.age?.toString() || "");
+      setGender(profileData.gender || "");
+      setHeight(profileData.heightCm?.toString() || "");
+      setWeight(profileData.currentWeight?.toString() || "");
+    }
+  }, [profileData]);
+
+  const ptStatus: "not_pt" | "pending" | "approved" = profileData?.isPT ? "approved" : "not_pt";
+
+  const queryClient = useQueryClient();
+
+  const updateMutation = useMutation({
+    mutationFn: (newProfile: any) => profileService.updateProfile(newProfile),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      toast.success("Profile updated successfully");
+      setEditing(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Failed to update profile");
+    }
+  });
+
+  const handleSave = () => {
+    updateMutation.mutate({
+      goal: goal === "lose_fat" ? "WEIGHT_LOSS" : goal === "gain_muscle" ? "MUSCLE_GAIN" : goal === "maintain" ? "MAINTENANCE" : "ATHLETIC_PERFORMANCE",
+      activityLevel: activity.toUpperCase().replace(/\s+/g, '_'),
+      age: age ? parseInt(age) : undefined,
+      gender: gender ? gender.toUpperCase() : undefined,
+      heightCm: height ? parseFloat(height) : undefined,
+      currentWeight: weight ? parseFloat(weight) : undefined,
+      dietaryPreference: diet,
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+      </div>
+    );
+  }
 
   const ptStatusConfig = {
     not_pt:   { label: "Not enrolled",    bg: "bg-zinc-700/50",  text: "text-zinc-400",  border: "border-zinc-700",     desc: "Apply to become a certified personal trainer on this platform" },
@@ -51,14 +129,21 @@ export function ProfilePage() {
           <p className="text-zinc-500 text-sm mt-0.5">Your personal information and fitness preferences</p>
         </div>
         <button
-          onClick={() => setEditing(!editing)}
+          onClick={() => editing ? handleSave() : setEditing(true)}
+          disabled={updateMutation.isPending}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg ${
             editing
               ? "bg-green-500 text-black shadow-green-500/25 hover:bg-green-400"
               : "bg-zinc-800 text-zinc-300 border border-zinc-700/60 hover:bg-zinc-700 hover:text-zinc-100 shadow-none"
           }`}
         >
-          {editing ? <><Check className="w-4 h-4" /> Save</> : <><Edit3 className="w-4 h-4" /> Edit</>}
+          {updateMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : editing ? (
+            <><Check className="w-4 h-4" /> Save</>
+          ) : (
+            <><Edit3 className="w-4 h-4" /> Edit</>
+          )}
         </button>
       </div>
 
@@ -66,11 +151,11 @@ export function ProfilePage() {
         {/* Avatar card */}
         <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-6 flex flex-col items-center text-center">
           <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-black text-2xl font-bold mb-3 shadow-xl shadow-green-500/20">
-            AJ
+            {user?.firstName?.[0] || "?"}{user?.lastName?.[0] || ""}
           </div>
-          <h2 className="text-zinc-100 font-bold">Alex Johnson</h2>
+          <h2 className="text-zinc-100 font-bold">{user ? `${user.firstName} ${user.lastName}` : "Client"}</h2>
           <p className="text-zinc-500 text-sm mt-0.5">
-            {isPT ? "Personal Trainer" : "Client"} · Member since Jan 2025
+            {isPT ? "Personal Trainer" : "Client"} · Member since 2026
           </p>
           <div className="flex gap-2 mt-3 flex-wrap justify-center">
             <span className="px-2.5 py-1 bg-zinc-800 text-zinc-400 border border-zinc-700/50 text-xs font-semibold rounded-full">Week 12</span>
@@ -95,22 +180,38 @@ export function ProfilePage() {
             <h3 className="text-sm font-semibold text-zinc-200 mb-3">Personal Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { label: "Full Name",    value: "Alex Johnson"     },
-                { label: "Email",        value: "alex@example.com" },
-                { label: "Age",          value: "28"               },
-                { label: "Gender",       value: "Male"             },
-                { label: "Height (cm)",  value: "178"              },
-                { label: "Weight (kg)",  value: "75.1"             },
+                { label: "Full Name",    value: user ? `${user.firstName} ${user.lastName}` : "" },
+                { label: "Email",        value: user?.email || "" },
+                { label: "Age",          value: age,    setter: setAge,    type: "number" },
+                { label: "Height (cm)",  value: height, setter: setHeight, type: "number" },
+                { label: "Weight (kg)",  value: weight, setter: setWeight, type: "number" },
               ].map(f => (
                 <div key={f.label}>
                   <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">{f.label}</label>
-                  {editing ? (
-                    <input defaultValue={f.value} className={inputClass} />
+                  {editing && f.setter ? (
+                    <input
+                      type={f.type}
+                      value={f.value}
+                      onChange={(e) => f.setter(e.target.value)}
+                      className={inputClass}
+                    />
                   ) : (
-                    <div className="text-sm font-medium text-zinc-300 py-2">{f.value}</div>
+                    <div className="text-sm font-medium text-zinc-300 py-2">{f.value || "Not set"}</div>
                   )}
                 </div>
               ))}
+              <div>
+                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">Gender</label>
+                {editing ? (
+                  <select value={gender} onChange={e => setGender(e.target.value)} className={selectClass}>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                ) : (
+                  <div className="text-sm font-medium text-zinc-300 py-2">{gender || "Not set"}</div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -164,9 +265,9 @@ export function ProfilePage() {
               <div className="sm:col-span-2">
                 <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">Health Notes</label>
                 {editing ? (
-                  <textarea rows={2} defaultValue="No known injuries. Mild lower back sensitivity when squatting heavy." className={`${inputClass} resize-none`} />
+                  <textarea rows={2} placeholder="Any injuries or medical conditions..." className={`${inputClass} resize-none`} />
                 ) : (
-                  <div className="text-sm text-zinc-400 py-2">No known injuries. Mild lower back sensitivity when squatting heavy.</div>
+                  <div className="text-sm text-zinc-400 py-2">No known injuries.</div>
                 )}
               </div>
             </div>
