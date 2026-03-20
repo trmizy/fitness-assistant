@@ -19,6 +19,7 @@ COPY tsconfig.base.json ./
 RUN pnpm --filter @gym-coach/shared build
 RUN pnpm --filter @gym-coach/user-service db:generate
 RUN pnpm --filter @gym-coach/user-service build
+RUN cp -R backend/services/user-service/src/generated backend/services/user-service/dist/
 
 FROM base AS runner
 WORKDIR /app
