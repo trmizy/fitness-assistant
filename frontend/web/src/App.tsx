@@ -18,7 +18,7 @@ const queryClient = new QueryClient({
 });
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   return (
     <Routes>
@@ -32,7 +32,7 @@ function AppRoutes() {
       />
       <Route
         path="/"
-        element={isAuthenticated ? <Layout /> : <Navigate to="/login" replace />}
+        element={isAuthenticated ? <Layout key={user?.id ?? 'anon'} /> : <Navigate to="/login" replace />}
       >
         <Route index element={<Dashboard />} />
         <Route path="profile"  element={<Profile />} />

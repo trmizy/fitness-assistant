@@ -17,7 +17,7 @@ async function main() {
       password: hashedPassword,
       firstName: 'John',
       lastName: 'Doe',
-      role: 'USER',
+      role: 'CUSTOMER',
     },
   });
 
@@ -29,7 +29,7 @@ async function main() {
       password: hashedPassword,
       firstName: 'Jane',
       lastName: 'Smith',
-      role: 'USER',
+      role: 'CUSTOMER',
     },
   });
 

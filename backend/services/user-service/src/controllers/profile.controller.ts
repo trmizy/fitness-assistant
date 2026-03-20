@@ -44,7 +44,7 @@ export const profileController = {
 
   async becomePT(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const result = await profileService.becomePT(req.user!.id);
+      const result = await profileService.becomePT(req.user!.id, req.user!.role);
       res.json(result);
     } catch (error: any) {
       logger.error(error, 'Become PT error');

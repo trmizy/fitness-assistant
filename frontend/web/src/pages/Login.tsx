@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, Mail, Lock, Zap } from 'lucide-react';
+import { Activity, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
@@ -15,11 +15,27 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    const formEl = e.currentTarget as HTMLFormElement;
+    const formData = new FormData(formEl);
+    const submittedEmail = String(formData.get('email') ?? email).trim();
+    const submittedPassword = String(formData.get('password') ?? password);
+
+    if (!submittedEmail || !submittedPassword) {
+      setError('Please enter your email and password');
+      setLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: submittedEmail, password: submittedPassword }),
+        signal: controller.signal,
       });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
@@ -27,15 +43,25 @@ export default function Login() {
       }
       const data = await res.json();
       login(data.accessToken, data.refreshToken, data.user);
-      navigate('/');
+      navigate('/', { replace: true });
+
+      // Fallback for rare router stalls after successful auth.
+      window.setTimeout(() => {
+        if (window.location.pathname === '/login') {
+          window.location.assign('/');
+        }
+      }, 200);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const message =
+        err instanceof Error && err.name === 'AbortError'
+          ? 'Login request timed out. Please try again.'
+          : (err instanceof Error ? err.message : 'Login failed');
+      setError(message);
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
   };
-
-
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
@@ -62,7 +88,7 @@ export default function Login() {
               <label className="label">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                <input name="email" autoComplete="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
                   className="input pl-9" placeholder="you@example.com" required />
               </div>
             </div>
@@ -70,7 +96,7 @@ export default function Login() {
               <label className="label">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                <input name="password" autoComplete="current-password" type="password" value={password} onChange={e => setPassword(e.target.value)}
                   className="input pl-9" placeholder="Password" required />
               </div>
             </div>
@@ -78,8 +104,6 @@ export default function Login() {
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
-
-
 
           <p className="mt-5 text-center text-sm text-zinc-500">
             {/* eslint-disable-next-line react/no-unescaped-entities */}

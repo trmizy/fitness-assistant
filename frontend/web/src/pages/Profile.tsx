@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { User, Target, Edit3, Save, X, Award } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { profileService } from '../services/api';
+import { authService, profileService } from '../services/api';
 
 const goalLabels: Record<string, string> = {
   muscle_gain:   'Muscle Gain',
@@ -20,14 +20,17 @@ const levelLabels: Record<string, string> = {
 export default function Profile() {
   const { user, updateUser } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [ptLoading, setPtLoading] = useState(false);
   const [ptError, setPtError] = useState<string | null>(null);
   const [form, setForm] = useState({
     firstName: user?.firstName ?? '',
     lastName:  user?.lastName  ?? '',
-    height:    user?.height    ?? 175,
-    weight:    user?.weight    ?? 75,
-    age:       user?.age       ?? 28,
+    height:    user?.height    ?? '',
+    weight:    user?.weight    ?? '',
+    age:       user?.age       ?? '',
     goal:      user?.goal      ?? 'muscle_gain',
     level:     user?.fitnessLevel ?? 'intermediate',
   });
@@ -37,13 +40,76 @@ export default function Profile() {
       setForm(f => ({ ...f, [k]: e.target.value }));
 
   const initials = `${form.firstName[0] ?? '?'}${form.lastName[0] ?? ''}`.toUpperCase();
+  const heightValue = Number(form.height);
+  const weightValue = Number(form.weight);
+  const bmiValue =
+    heightValue > 0 && Number.isFinite(weightValue)
+      ? (weightValue / ((heightValue / 100) ** 2)).toFixed(1)
+      : '--';
+
+  const goalToApi: Record<string, string> = {
+    muscle_gain: 'MUSCLE_GAIN',
+    fat_loss: 'WEIGHT_LOSS',
+    maintain: 'MAINTENANCE',
+    endurance: 'ATHLETIC_PERFORMANCE',
+  };
+
+  const goalFromApi: Record<string, string> = {
+    MUSCLE_GAIN: 'muscle_gain',
+    WEIGHT_LOSS: 'fat_loss',
+    MAINTENANCE: 'maintain',
+    ATHLETIC_PERFORMANCE: 'endurance',
+  };
+
+  const levelToApi: Record<string, string> = {
+    beginner: 'BEGINNER',
+    intermediate: 'INTERMEDIATE',
+    advanced: 'ADVANCED',
+  };
+
+  const levelFromApi: Record<string, string> = {
+    BEGINNER: 'beginner',
+    INTERMEDIATE: 'intermediate',
+    ADVANCED: 'advanced',
+  };
+
+  const loadProfile = async () => {
+    try {
+      const data = await profileService.getProfile();
+      const profile = data?.profile;
+      if (!profile) return;
+      setForm((f) => ({
+        ...f,
+        age: profile.age?.toString?.() ?? f.age,
+        height: profile.heightCm?.toString?.() ?? f.height,
+        weight: profile.currentWeight?.toString?.() ?? f.weight,
+        goal: goalFromApi[profile.goal] ?? f.goal,
+        level:
+          (levelFromApi[profile.experienceLevel] as
+            | 'beginner'
+            | 'intermediate'
+            | 'advanced'
+            | undefined) ?? f.level,
+      }));
+    } catch {
+      // Keep existing local values when profile endpoint is unavailable.
+    }
+  };
+
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+
+    loadProfile();
+  }, [user?.id]);
 
   const handleBecomePT = async () => {
     setPtLoading(true);
     setPtError(null);
     try {
       await profileService.becomePT();
-      updateUser({ isPT: true });
+      updateUser({ isPT: true, role: 'PT' });
     } catch (error) {
       if (axios.isAxiosError(error)) {
         setPtError(error.response?.data?.error || 'Failed to become PT. Please try again.');
@@ -52,6 +118,52 @@ export default function Profile() {
       }
     } finally {
       setPtLoading(false);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(null);
+    try {
+      const authResult = await authService.updateMe({
+        firstName: form.firstName,
+        lastName: form.lastName,
+      });
+
+      await profileService.updateProfile({
+        age: form.age ? Number(form.age) : undefined,
+        heightCm: form.height ? Number(form.height) : undefined,
+        currentWeight: form.weight ? Number(form.weight) : undefined,
+        goal: goalToApi[form.goal],
+        experienceLevel: levelToApi[form.level],
+      });
+
+      updateUser({
+        firstName: authResult?.user?.firstName ?? form.firstName,
+        lastName: authResult?.user?.lastName ?? form.lastName,
+        age: form.age ? Number(form.age) : undefined,
+        height: form.height ? Number(form.height) : undefined,
+        weight: form.weight ? Number(form.weight) : undefined,
+        goal: form.goal,
+        fitnessLevel: form.level as 'beginner' | 'intermediate' | 'advanced',
+      });
+
+      setEditing(false);
+      setSaveSuccess('Profile saved successfully.');
+      await loadProfile();
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          setSaveError('Session expired. Please login again.');
+        } else {
+          setSaveError(error.response?.data?.error || 'Failed to save profile changes.');
+        }
+      } else {
+        setSaveError('Failed to save profile changes.');
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -137,13 +249,17 @@ export default function Profile() {
         {editing && (
           <div className="mt-5 flex justify-end">
             <button
-              onClick={() => setEditing(false)}
-              className="btn-primary flex items-center gap-2">
+              onClick={handleSaveChanges}
+              disabled={saving}
+              className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
               <Save className="w-4 h-4" />
-              Save Changes
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         )}
+
+        {saveError && <p className="mt-3 text-sm text-red-400">{saveError}</p>}
+        {saveSuccess && <p className="mt-3 text-sm text-emerald-400">{saveSuccess}</p>}
       </div>
 
       {/* Become PT */}
@@ -175,7 +291,7 @@ export default function Profile() {
       {/* Stats summary */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'BMI',    value: (form.weight / ((form.height / 100) ** 2)).toFixed(1) },
+          { label: 'BMI',    value: bmiValue },
           { label: 'Height', value: `${form.height} cm` },
           { label: 'Weight', value: `${form.weight} kg` },
         ].map(({ label, value }) => (

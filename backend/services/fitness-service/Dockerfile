@@ -31,6 +31,7 @@ COPY --from=builder /app/backend/shared/dist ./backend/shared/dist
 COPY --from=builder /app/backend/shared/package.json ./backend/shared/package.json
 COPY --from=builder /app/backend/services/fitness-service/node_modules ./backend/services/fitness-service/node_modules
 COPY --from=builder /app/backend/services/fitness-service/dist ./backend/services/fitness-service/dist
+COPY --from=builder /app/backend/services/fitness-service/src/generated ./backend/services/fitness-service/dist/generated
 COPY --from=builder /app/backend/services/fitness-service/package.json ./backend/services/fitness-service/package.json
 COPY --from=builder /app/backend/services/fitness-service/prisma ./backend/services/fitness-service/prisma
 WORKDIR /app/backend/services/fitness-service

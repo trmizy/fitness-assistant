@@ -3,12 +3,23 @@ import { logger } from '@gym-coach/shared';
 import { ragService } from '../services/rag.service';
 import { conversationService } from '../services/conversation.service';
 
+function getAuthenticatedUserId(req: Request): string | null {
+  const userId = req.headers['x-user-id'];
+  if (Array.isArray(userId)) return userId[0] || null;
+  return userId || null;
+}
+
 export const aiController = {
   async ask(req: Request, res: Response): Promise<void> {
     try {
-      const { question, userId } = req.body;
+      const { question } = req.body;
+      const userId = getAuthenticatedUserId(req);
       if (!question) {
         res.status(400).json({ error: 'No question provided' });
+        return;
+      }
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
         return;
       }
       const result = await ragService.rag(question, userId);
@@ -21,9 +32,14 @@ export const aiController = {
 
   async getConversations(req: Request, res: Response): Promise<void> {
     try {
-      const { userId, limit } = req.query;
+      const userId = getAuthenticatedUserId(req);
+      const { limit } = req.query;
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
       const result = await conversationService.getConversations(
-        userId as string | undefined,
+        userId,
         limit ? parseInt(limit as string) : 10,
       );
       res.json(result);
@@ -79,7 +95,12 @@ export const aiController = {
 
   async generatePlan(req: Request, res: Response): Promise<void> {
     try {
-      const { userId, goal, durationWeeks, daysPerWeek } = req.body;
+      const userId = getAuthenticatedUserId(req);
+      const { goal, durationWeeks, daysPerWeek } = req.body;
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
       const result = await conversationService.queuePlanGeneration({
         userId,
         goal,
