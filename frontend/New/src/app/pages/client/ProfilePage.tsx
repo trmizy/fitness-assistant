@@ -25,11 +25,12 @@ export function ProfilePage() {
   const navigate = useNavigate();
 
   const { data: profileData, isLoading } = useQuery({
-    queryKey: ["profile"],
+    queryKey: ["profile", user?.id],
     queryFn: async () => {
       const res = await profileService.getProfile();
       return res.profile;
-    }
+    },
+    enabled: !!user?.id
   });
 
   const [editing,  setEditing]  = useState(false);
@@ -78,7 +79,7 @@ export function ProfilePage() {
   const updateMutation = useMutation({
     mutationFn: (newProfile: any) => profileService.updateProfile(newProfile),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
       toast.success("Profile updated successfully");
       setEditing(false);
     },

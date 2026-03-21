@@ -34,14 +34,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch { return null; }
   });
 
-  const role: UserRole = user?.role === "ADMIN" ? "admin" : (user?.isPT ? "pt" : "client");
+  const role: UserRole = user?.role === "ADMIN" ? "admin" : (user?.isPT || user?.role === "PT" ? "pt" : "client");
   const isPT    = role === "pt";
   const isAdmin = role === "admin";
 
   // Set default view based on role when user changes
   useEffect(() => {
     if (user) {
-      setActiveView(user.isPT ? "pt" : "client");
+      setActiveView(user.isPT || user.role === "PT" ? "pt" : "client");
     }
   }, [user]);
 

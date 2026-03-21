@@ -4,52 +4,6 @@ import { useApp, UserRole } from "../../context/AppContext";
 import { Eye, EyeOff, Dumbbell, User, Zap, Shield, ArrowRight, Activity, Brain } from "lucide-react";
 
 // Demo account tiles — clicking one fills the form
-const demoAccounts: {
-  role: UserRole;
-  name: string;
-  email: string;
-  subtitle: string;
-  avatar: string;
-  icon: React.ElementType;
-  accent: string;
-  accentBg: string;
-  accentBorder: string;
-}[] = [
-  {
-    role: "client",
-    name: "Alex Johnson",
-    email: "alex@example.com",
-    subtitle: "Client Account",
-    avatar: "AJ",
-    icon: User,
-    accent: "text-green-400",
-    accentBg: "bg-green-500/10",
-    accentBorder: "border-green-500/30",
-  },
-  {
-    role: "pt",
-    name: "Sarah Mitchell",
-    email: "sarah@trainer.com",
-    subtitle: "Personal Trainer",
-    avatar: "SM",
-    icon: Zap,
-    accent: "text-emerald-400",
-    accentBg: "bg-emerald-500/10",
-    accentBorder: "border-emerald-500/30",
-  },
-  {
-    role: "admin",
-    name: "Admin User",
-    email: "admin@fitnessai.com",
-    subtitle: "Platform Admin",
-    avatar: "AU",
-    icon: Shield,
-    accent: "text-violet-400",
-    accentBg: "bg-violet-500/10",
-    accentBorder: "border-violet-500/30",
-  },
-];
-
 const features = [
   { icon: Activity, text: "InBody body composition analysis" },
   { icon: Brain,    text: "AI-generated workout & nutrition plans" },
@@ -60,17 +14,11 @@ export function LoginPage() {
   const { login } = useApp();
   const navigate = useNavigate();
 
-  const [email,    setEmail]    = useState("alex@example.com");
-  const [password, setPassword] = useState("password123");
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
   const [showPw,   setShowPw]   = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState<string | null>(null);
-
-  // Fill form from demo tile
-  const fillDemo = (acc: typeof demoAccounts[0]) => {
-    setEmail(acc.email);
-    setPassword("password123");
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,37 +168,6 @@ export function LoginPage() {
             </button>
           </form>
 
-          {/* ── Demo accounts ── */}
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex-1 h-px bg-zinc-800" />
-              <span className="text-xs text-zinc-600 font-semibold uppercase tracking-wider">Demo Accounts</span>
-              <div className="flex-1 h-px bg-zinc-800" />
-            </div>
-            <p className="text-xs text-zinc-600 text-center mb-3">Click any account to load credentials</p>
-            <div className="grid grid-cols-3 gap-2">
-              {demoAccounts.map((acc) => (
-                <button
-                  key={acc.role}
-                  type="button"
-                  onClick={() => fillDemo(acc)}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all text-center border-zinc-800 hover:border-zinc-700 bg-zinc-800/30`}
-                >
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-black ${
-                    acc.role === "admin" ? "bg-violet-500" : "bg-green-500"
-                  }`}>
-                    {acc.avatar}
-                  </div>
-                  <div>
-                    <div className={`text-xs font-semibold leading-tight text-zinc-400`}>
-                      {acc.name.split(" ")[0]}
-                    </div>
-                    <div className="text-xs text-zinc-600 leading-tight mt-0.5">{acc.subtitle}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
 
           <p className="text-center text-sm text-zinc-500 mt-5">
             Don't have an account?{" "}

@@ -108,3 +108,16 @@ model InBodyEntry {
   @@index([userId, date])
   @@map("inbody_entries")
 }
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  text      String
+  type      String   @default("info") // info, success, warning, error
+  unread    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}

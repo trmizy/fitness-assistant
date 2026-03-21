@@ -7,17 +7,17 @@ import {
 import { useApp } from "../../context/AppContext";
 
 const notifications = [
-  { id: 1, text: "AI Plan ready for review",     time: "2m ago",  unread: true  },
-  { id: 2, text: "Session tomorrow at 10:00 AM", time: "1h ago",  unread: true  },
-  { id: 3, text: "InBody analysis complete",     time: "3h ago",  unread: false },
+  { id: 1, text: "AI Plan ready for review", time: "2m ago", unread: true },
+  { id: 2, text: "Session tomorrow at 10:00 AM", time: "1h ago", unread: true },
+  { id: 3, text: "InBody analysis complete", time: "3h ago", unread: false },
 ];
 
 export function Topbar() {
   const { user, role, isPT, isAdmin, activeView, setActiveView, setSidebarOpen, logout } = useApp();
   const navigate = useNavigate();
 
-  const [notifOpen,  setNotifOpen]  = useState(false);
-  const [userOpen,   setUserOpen]   = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
@@ -35,12 +35,12 @@ export function Topbar() {
 
   // ── Workspace badge config ──────────────────────────────────────────────
   const workspaceBadge = isAdmin
-    ? { label: "Admin",          bg: "bg-violet-500/10", border: "border-violet-500/20", text: "text-violet-400", dot: "bg-violet-500" }
+    ? { label: "Admin", bg: "bg-violet-500/10", border: "border-violet-500/20", text: "text-violet-400", dot: "bg-violet-500" }
     : isPT && activeView === "pt"
-    ? { label: "Trainer Mode",   bg: "bg-green-500/10",  border: "border-green-500/20",  text: "text-green-400",  dot: "bg-green-500"  }
-    : isPT && activeView === "client"
-    ? { label: "Client Mode",    bg: "bg-zinc-800",      border: "border-zinc-700/50",   text: "text-zinc-300",   dot: "bg-zinc-400"   }
-    : { label: "Personal Profile",  bg: "bg-green-500/10",  border: "border-green-500/20",  text: "text-green-400",  dot: "bg-green-500"  };
+      ? { label: "Trainer Mode", bg: "bg-green-500/10", border: "border-green-500/20", text: "text-green-400", dot: "bg-green-500" }
+      : isPT && activeView === "client"
+        ? { label: "Client Mode", bg: "bg-zinc-800", border: "border-zinc-700/50", text: "text-zinc-300", dot: "bg-zinc-400" }
+        : { label: "Personal Profile", bg: "bg-green-500/10", border: "border-green-500/20", text: "text-green-400", dot: "bg-green-500" };
 
   const avatarBg = isAdmin ? "bg-violet-500" : "bg-green-500";
 
@@ -79,22 +79,20 @@ export function Topbar() {
           <div className="hidden sm:flex items-center bg-zinc-800/70 border border-zinc-700/50 rounded-xl p-1 gap-0.5 mr-1">
             <button
               onClick={() => switchToView("client")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeView === "client"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeView === "client"
                   ? "bg-zinc-700 text-zinc-100 shadow-sm"
                   : "text-zinc-500 hover:text-zinc-300"
-              }`}
+                }`}
             >
               <User className="w-3 h-3" />
               <span className="hidden md:block">Client</span>
             </button>
             <button
               onClick={() => switchToView("pt")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeView === "pt"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeView === "pt"
                   ? "bg-green-500 text-black shadow-sm shadow-green-500/30"
                   : "text-zinc-500 hover:text-zinc-300"
-              }`}
+                }`}
             >
               <Zap className="w-3 h-3" />
               <span className="hidden md:block">Trainer</span>
@@ -196,21 +194,19 @@ export function Topbar() {
                     <div className="flex gap-1.5">
                       <button
                         onClick={() => switchToView("client")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border ${
-                          activeView === "client"
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border ${activeView === "client"
                             ? "bg-zinc-700 text-zinc-100 border-zinc-600"
                             : "text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300"
-                        }`}
+                          }`}
                       >
                         <User className="w-3 h-3" /> Client
                       </button>
                       <button
                         onClick={() => switchToView("pt")}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border ${
-                          activeView === "pt"
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border ${activeView === "pt"
                             ? "bg-green-500 text-black border-green-500 shadow-sm shadow-green-500/30"
                             : "text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300"
-                        }`}
+                          }`}
                       >
                         <Zap className="w-3 h-3" /> Trainer
                       </button>

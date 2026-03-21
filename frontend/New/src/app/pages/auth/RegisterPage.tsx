@@ -22,11 +22,11 @@ export function RegisterPage() {
   // Profile State
   const [profile, setProfile] = useState({
     age: "",
-    gender: "MALE", // Changed default to uppercase to match backend enum
+    gender: "MALE", // Default to MALE to match UI
     heightCm: "",
     currentWeight: "",
-    activityLevel: "MODERATELY_ACTIVE",
-    goal: "WEIGHT_LOSS"
+    activityLevel: "LIGHTLY_ACTIVE", // Default value
+    goal: ""
   });
 
   const goals = [
@@ -80,28 +80,38 @@ export function RegisterPage() {
   };
 
   const handleSaveProfile = async () => {
+    const ageVal = parseInt(profile.age);
+    const heightVal = parseFloat(profile.heightCm);
+    const weightVal = parseFloat(profile.currentWeight);
+
+    // Validation
+    if (!profile.age || !profile.heightCm || !profile.currentWeight || !profile.gender || !profile.goal) {
+      toast.error("Please fill in all mandatory fields");
+      return;
+    }
+
+    if (isNaN(ageVal) || ageVal < 13 || ageVal > 120) {
+      toast.error("Please enter a valid age (13-120)");
+      return;
+    }
+
     setLoading(true);
     try {
-      const ageVal = parseInt(profile.age);
-      const heightVal = parseFloat(profile.heightCm);
-      const weightVal = parseFloat(profile.currentWeight);
-
       const payload: any = {
-        gender: profile.gender.toUpperCase(),
+        gender: profile.gender,
         activityLevel: profile.activityLevel,
-        goal: profile.goal.toUpperCase()
+        goal: profile.goal,
+        age: ageVal,
+        heightCm: heightVal,
+        currentWeight: weightVal
       };
 
-      if (!isNaN(ageVal) && ageVal > 0) payload.age = ageVal;
-      if (!isNaN(heightVal) && heightVal > 0) payload.heightCm = heightVal;
-      if (!isNaN(weightVal) && weightVal > 0) payload.currentWeight = weightVal;
-
       await profileService.updateProfile(payload);
+      toast.success("Profile updated successfully");
       setStep(4); // Move to Done
     } catch (error: any) {
       console.error("Profile update error:", error);
-      toast.error("Failed to update profile features");
-      setStep(4); // Show "Done" UI anyway
+      toast.error(error.response?.data?.error || "Failed to update profile features");
     } finally {
       setLoading(false);
     }
@@ -207,7 +217,7 @@ export function RegisterPage() {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 className="w-full bg-zinc-800 border-2 border-zinc-700 rounded-xl py-3 text-center text-2xl font-bold tracking-[0.5em] text-green-500 focus:border-green-500 outline-none transition-all"
-                placeholder="000000"
+                placeholder=""
               />
               
               <button 
@@ -231,7 +241,7 @@ export function RegisterPage() {
                     value={profile.age}
                     onChange={(e) => setProfile({...profile, age: e.target.value})}
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500" 
-                    placeholder="25" 
+                    placeholder="" 
                   />
                 </div>
                 <div>
@@ -252,7 +262,7 @@ export function RegisterPage() {
                     value={profile.heightCm}
                     onChange={(e) => setProfile({...profile, heightCm: e.target.value})}
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500" 
-                    placeholder="175" 
+                    placeholder="" 
                   />
                 </div>
                 <div>
@@ -261,7 +271,7 @@ export function RegisterPage() {
                     value={profile.currentWeight}
                     onChange={(e) => setProfile({...profile, currentWeight: e.target.value})}
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500" 
-                    placeholder="70" 
+                    placeholder="" 
                   />
                 </div>
               </div>
@@ -335,8 +345,8 @@ export function RegisterPage() {
             {(step === 2 || step === 3) && (
               <button 
                 onClick={() => step === 2 ? setStep(3) : handleSaveProfile()}
-                disabled={loading}
-                className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 transition-all flex items-center justify-center gap-2"
+                disabled={loading || (step === 2 && (!profile.age || !profile.gender || !profile.heightCm || !profile.currentWeight)) || (step === 3 && !profile.goal)}
+                className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               >
                 {loading ? "Saving..." : "Continue"} <ArrowRight className="w-4 h-4" />
               </button>
