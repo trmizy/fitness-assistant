@@ -181,7 +181,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "D:\\project_personal\\fitness-assistant\\backend\\services\\auth-service\\src\\generated\\prisma",
+      "value": "D:\\FitnessAssistant\\backend\\services\\auth-service\\src\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -199,7 +199,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "D:\\project_personal\\fitness-assistant\\backend\\services\\auth-service\\prisma\\schema.prisma",
+    "sourceFilePath": "D:\\FitnessAssistant\\backend\\services\\auth-service\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
