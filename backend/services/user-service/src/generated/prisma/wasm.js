@@ -168,6 +168,16 @@ exports.Prisma.InBodyEntryScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  text: 'text',
+  type: 'type',
+  unread: 'unread',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -211,7 +221,8 @@ exports.ExperienceLevel = exports.$Enums.ExperienceLevel = {
 
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
-  InBodyEntry: 'InBodyEntry'
+  InBodyEntry: 'InBodyEntry',
+  Notification: 'Notification'
 };
 
 /**

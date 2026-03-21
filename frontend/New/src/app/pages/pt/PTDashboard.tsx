@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { Users, Calendar, FileText, ClipboardList, TrendingUp, AlertCircle, ChevronRight, Clock, CheckCircle } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from "recharts";
+import { useApp } from "../../context/AppContext";
 
 const kpis = [
   { label: "Active Clients", value: "14", change: "+2", icon: Users, color: "text-green-400", bg: "bg-green-500/10", iconBg: "bg-green-500/15", border: "border-green-500/20" },
@@ -39,6 +40,7 @@ const pendingPlans = [
 
 export function PTDashboard() {
   const navigate = useNavigate();
+  const { user } = useApp();
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
@@ -46,7 +48,7 @@ export function PTDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-zinc-100">Good morning, Sarah 👋</h1>
+          <h1 className="text-zinc-100">Good morning, {user?.firstName || 'Coach'} 👋</h1>
           <p className="text-zinc-500 text-sm mt-0.5">{today}</p>
         </div>
         <div className="flex gap-2">
