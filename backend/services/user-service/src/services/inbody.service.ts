@@ -22,37 +22,37 @@ export const inbodyService = {
       // Call the Python OCR script
       const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
       
-      const { stdout, stderr } = await execAsync(`${pythonCmd} -m inbody_extractor --image "${imagePath}" --json`);
-      
-      if (stderr && !stdout) {
+      const { stdout, stderr } = await execAsync(
+        `${pythonCmd} -m inbody_extractor --image "${imagePath}" --json`,
+        { maxBuffer: 10 * 1024 * 1024 },
+      );
+
+      if (stderr && !stdout.trim()) {
         throw new Error(`OCR Error: ${stderr}`);
       }
 
-      const result = JSON.parse(stdout);
-      
-      // Map OCR result to Database model
-      const entryData = {
-        weight: result.composition?.weight || 0,
-        height: result.composition?.height,
-        muscleMass: result.composition?.skeletal_muscle_mass || 0,
-        bodyFat: result.composition?.body_fat_mass || 0,
-        bodyFatPct: result.composition?.percent_body_fat,
-        bmi: result.composition?.bmi,
-        bmr: result.composition?.bmr,
-        
-        // Segmental Lean
-        rightArmMuscle: result.segmental_lean?.right_arm?.lean_mass,
-        leftArmMuscle: result.segmental_lean?.left_arm?.lean_mass,
-        trunkMuscle: result.segmental_lean?.trunk?.lean_mass,
-        rightLegMuscle: result.segmental_lean?.right_leg?.lean_mass,
-        leftLegMuscle: result.segmental_lean?.left_leg?.lean_mass,
+      const result = JSON.parse(stdout.trim());
 
-        // Segmental Fat
-        rightArmFat: result.segmental_fat?.right_arm?.fat_mass,
-        leftArmFat: result.segmental_fat?.left_arm?.fat_mass,
-        trunkFat: result.segmental_fat?.trunk?.fat_mass,
-        rightLegFat: result.segmental_fat?.right_leg?.fat_mass,
-        leftLegFat: result.segmental_fat?.left_leg?.fat_mass,
+      // Map OCR result to Database model (fields match InBodyResult in models.py)
+      const entryData = {
+        weight: result.weight || 0,
+        height: result.height,
+        muscleMass: result.skeletal_muscle_mass || 0,
+        bodyFat: result.body_fat_mass || 0,
+
+        // Segmental Lean Analysis
+        rightArmMuscle: result.segmental_lean_analysis?.right_arm_muscle,
+        leftArmMuscle: result.segmental_lean_analysis?.left_arm_muscle,
+        trunkMuscle: result.segmental_lean_analysis?.trunk_muscle,
+        rightLegMuscle: result.segmental_lean_analysis?.right_leg_muscle,
+        leftLegMuscle: result.segmental_lean_analysis?.left_leg_muscle,
+
+        // Segmental Fat Analysis
+        rightArmFat: result.segmental_fat_analysis?.right_arm_muscle,
+        leftArmFat: result.segmental_fat_analysis?.left_arm_muscle,
+        trunkFat: result.segmental_fat_analysis?.trunk_muscle,
+        rightLegFat: result.segmental_fat_analysis?.right_leg_muscle,
+        leftLegFat: result.segmental_fat_analysis?.left_leg_muscle,
 
         status: 'extracted',
         notes: 'AI Extracted from image',

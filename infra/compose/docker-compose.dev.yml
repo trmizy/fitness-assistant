@@ -3,13 +3,13 @@ services:
   web:
     build:
       context: ../..          # repo root (so pnpm workspace files are accessible)
-      dockerfile: frontend/web/Dockerfile
+      dockerfile: frontend/New/Dockerfile
       args:
         VITE_API_URL: http://localhost:3000
         VITE_CHAT_WS_URL: http://localhost:3005
     container_name: gymcoach-web
     ports:
-      - "5173:80"
+      - "5174:80"
     depends_on:
       - api-gateway
     restart: unless-stopped
@@ -33,7 +33,7 @@ services:
       FITNESS_SERVICE_URL: http://fitness-service:3002
       AI_SERVICE_URL: http://ai-service:3003
       CHAT_SERVICE_URL: http://chat-service:3005
-      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:5174}
     env_file:
       - ../../.env
@@ -67,19 +67,13 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
       JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-7d}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-465}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
-      SMTP_FROM: ${SMTP_FROM:-}
       SMTP_SECURE: ${SMTP_SECURE:-true}
-      OTP_EXPIRY_MINUTES: ${OTP_EXPIRY_MINUTES:-10}
-      OTP_RESEND_SECONDS: ${OTP_RESEND_SECONDS:-60}
-      OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-5}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:
       - ../../.env
@@ -105,7 +99,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3004
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_user
       AUTH_SERVICE_URL: http://auth-service:3001
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:
@@ -120,6 +114,9 @@ services:
       retries: 5
       start_period: 15s
     restart: unless-stopped
+    volumes:
+      - user_uploads:/app/backend/services/user-service/uploads
+      - easyocr_models:/root/.EasyOCR/model
 
   # ── Fitness Service ───────────────────────────────────────────────────────
   fitness-service:
@@ -132,7 +129,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3002
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_fitness
       REDIS_HOST: redis
       REDIS_PORT: 6379
       AUTH_SERVICE_URL: http://auth-service:3001
@@ -162,7 +159,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3003
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_ai
       REDIS_HOST: redis
       REDIS_PORT: 6379
       QDRANT_HOST: qdrant
@@ -233,6 +230,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gymcoach"]
@@ -266,6 +264,8 @@ services:
       - QDRANT__SERVICE__GRPC_PORT=6334
 
 volumes:
+  user_uploads:
+  easyocr_models:
   postgres_data:
   redis_data:
   qdrant_data:

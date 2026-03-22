@@ -1,174 +1,149 @@
-"""Anchor-text-based block locator.
+"""Anchor-text-based block locator with template fallback positions.
 
-After full-page OCR, this module finds known anchor labels
-(e.g. "Segmental Lean Analysis") and defines ROI rectangles
-*relative* to each anchor's bounding box.
+After full-page OCR, finds section labels (multi-word anchors via line
+merging) and defines ROI rectangles relative to each anchor.
+If an anchor is not found, falls back to template-based positions
+for the InBody 270 standard layout.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
-import re
-import numpy as np
 
-from .ocr_engine import OCRHit
-
-# Each anchor maps a logical block name → (list of keywords, y_min_frac, y_max_frac)
-# This helps avoid picking up the same word in different parts of the page.
-# Header: look for ID, Gender, Height, Age at the very top
-ANCHOR_DEFS: Dict[str, Tuple[List[str], float, float]] = {
-    "header":             (["gender", "height", "age", "id", "male", "female"], 0.0, 0.12),
-    "body_composition":   (["body composition", "composition"], 0.05, 0.30),
-    "muscle_fat":         (["muscle-fat", "muscle fat"], 0.20, 0.45),
-    "obesity":            (["obesity analysis", "obesity evaluation"], 0.30, 0.60),
-    "segmental_lean":     (["segmental lean", "segmental"], 0.40, 0.65),
-    "segmental_fat":      (["segmental fat", "segmental"], 0.40, 0.65),
-}
-
-# Distinguish between Lean and Fat by horizontal position if both use "segmental"
-# Special logic will be added to locate_blocks for this.
+from .ocr_engine import OCRHit, merge_hits_to_lines
 
 
 @dataclass
 class LocatedBlock:
     """A named block with its anchor bbox and expanded ROI."""
     name: str
-    anchor_bbox: List[List[float]]         # original OCR bbox of the anchor text
-    roi: Tuple[int, int, int, int]         # (x1, y1, x2, y2) in warped-image coords
+    anchor_bbox: List[List[float]]
+    roi: Tuple[int, int, int, int]          # (x1, y1, x2, y2)
     ocr_hits: List[OCRHit] = field(default_factory=list)
 
 
-def _bbox_center(bbox: List[List[float]]) -> Tuple[float, float]:
-    xs = [p[0] for p in bbox]
-    ys = [p[1] for p in bbox]
-    return (sum(xs) / len(xs), sum(ys) / len(ys))
-
-
-def _bbox_top_left(bbox: List[List[float]]) -> Tuple[float, float]:
-    return (min(p[0] for p in bbox), min(p[1] for p in bbox))
-
-
-def _bbox_dims(bbox: List[List[float]]) -> Tuple[float, float]:
-    """Return (width, height) of a bbox."""
-    xs = [p[0] for p in bbox]
-    ys = [p[1] for p in bbox]
-    return (max(xs) - min(xs), max(ys) - min(ys))
-
-
-def _find_anchor(hits: List[OCRHit], 
-                 keywords: List[str], 
-                 y_min_f: float, 
-                 y_max_f: float,
-                 img_h: int) -> Optional[OCRHit]:
-    """Find the best anchor hit within the specified vertical range."""
-    for bbox, text, conf in hits:
-        text_lower = text.lower().strip()
-        _, ay = _bbox_top_left(bbox)
-        y_frac = ay / img_h
-        
-        if y_min_f <= y_frac <= y_max_f:
-            for kw in keywords:
-                if kw.lower() in text_lower:
-                    print(f"DEBUG: Anchor Match Found! '{kw}' in '{text}' at y_frac={y_frac:.3f}")
-                    return (bbox, text, conf)
-    return None
-
-def _find_anchor_with_x(hits: List[OCRHit], 
-                        keywords: List[str], 
-                        y_min_f: float, y_max_f: float,
-                        x_min_f: float, x_max_f: float,
-                        img_w: int, img_h: int) -> Optional[OCRHit]:
-    """Find anchor hit with both x and y spatial constraints."""
-    for bbox, text, conf in hits:
-        text_lower = text.lower().strip()
-        ax, ay = _bbox_top_left(bbox)
-        y_frac = ay / img_h
-        x_frac = ax / img_w
-        
-        if y_min_f <= y_frac <= y_max_f and x_min_f <= x_frac <= x_max_f:
-            for kw in keywords:
-                if kw.lower() in text_lower:
-                    return (bbox, text, conf)
-    return None
-
-
-# ---------------------------------------------------------------------------
-# ROI definitions relative to anchor
-# ---------------------------------------------------------------------------
-# For each block we define the ROI as an offset+size relative to the anchor's
-# top-left corner.  Units are fractions of the *image* width (W) and height (H).
-# Format: (dx_frac, dy_frac, w_frac, h_frac)
-#   dx is shift right from anchor left edge  (negative = shift left)
-#   dy is shift down  from anchor top edge   (negative = shift up)
-#   w_frac, h_frac are the ROI size.
-
-# ROI definitions relative to anchor (dx, dy, w, h)
-# Be generous with height (h) to ensure we capture the full table/block.
-ROI_SPEC: Dict[str, Tuple[float, float, float, float]] = {
-    "header":             (-0.40, 0.0, 0.95, 0.12),
-    "body_composition":   (-0.02, 0.02, 0.65, 0.25),
-    "muscle_fat":         (-0.02, 0.02, 0.50, 0.20),
-    "obesity":            (-0.02, 0.02, 0.50, 0.20),
-    "segmental_lean":     (-0.02, 0.03, 0.35, 0.30),
-    "segmental_fat":      (-0.02, 0.03, 0.35, 0.30),
+# -----------------------------------------------------------------------
+# Template fallback ROIs (fractions of canonical image) for InBody 270
+# Format: (x1_frac, y1_frac, x2_frac, y2_frac)
+# -----------------------------------------------------------------------
+TEMPLATE_ROIS: Dict[str, Tuple[float, float, float, float]] = {
+    "header":           (0.00, 0.00, 0.60, 0.10),
+    "body_composition": (0.00, 0.06, 0.55, 0.28),
+    "muscle_fat":       (0.00, 0.27, 0.55, 0.42),
+    "segmental_lean":   (0.00, 0.53, 0.38, 0.70),
+    "segmental_fat":    (0.30, 0.53, 0.62, 0.70),
 }
 
-# Wait, 0.30 is still too much. Let's use 0.25 for segmental.
-ROI_SPEC["segmental_lean"] = (-0.02, 0.02, 0.35, 0.26)
-ROI_SPEC["segmental_fat"]  = (-0.02, 0.02, 0.35, 0.26)
+# Anchor definitions: name → (keywords, y_min_frac, y_max_frac)
+ANCHOR_DEFS: Dict[str, Tuple[List[str], float, float]] = {
+    "header":           (["height", "gender", "age"], 0.0, 0.10),
+    "body_composition": (["body composition", "composition analysis"], 0.05, 0.20),
+    "muscle_fat":       (["muscle-fat", "muscle fat"], 0.20, 0.40),
+    "segmental_lean":   (["segmental lean"], 0.45, 0.65),
+    "segmental_fat":    (["segmental fat"], 0.45, 0.65),
+}
+
+# ROI offset+size from anchor: (dx, dy, w, h) as fractions of image dims
+ROI_FROM_ANCHOR: Dict[str, Tuple[float, float, float, float]] = {
+    "header":           (-0.02, -0.01, 0.55, 0.06),
+    "body_composition": (-0.02,  0.00, 0.55, 0.16),
+    "muscle_fat":       (-0.02,  0.00, 0.55, 0.13),
+    "segmental_lean":   (-0.02,  0.01, 0.38, 0.16),
+    "segmental_fat":    (-0.02,  0.01, 0.38, 0.16),
+}
+
+
+def _find_anchor_in_lines(lines: List[Dict],
+                          keywords: List[str],
+                          y_min_f: float, y_max_f: float,
+                          img_h: int,
+                          x_min_f: float = 0.0,
+                          x_max_f: float = 1.0,
+                          img_w: int = 1) -> Optional[Dict]:
+    """Find the first merged line whose text contains one of *keywords*
+    and whose position falls within the spatial bounds.
+
+    When x-constraints are active, checks each individual hit's x-position
+    rather than the line's leftmost x — this prevents issues when two
+    section titles share the same y-coordinate (e.g. "Segmental Lean
+    Analysis" and "Segmental Fat Analysis" on the same line).
+    """
+    use_hit_x = (x_min_f > 0.01 or x_max_f < 0.99)
+
+    for line in lines:
+        y_frac = line['y'] / img_h
+        if not (y_min_f <= y_frac <= y_max_f):
+            continue
+
+        text_lower = line['text'].lower()
+        for kw in keywords:
+            if kw in text_lower:
+                if not use_hit_x:
+                    return line
+                # Check x at individual-hit level using the first
+                # word of the keyword (handles multi-word keywords
+                # like "segmental lean" matched against word-level hits)
+                kw_first = kw.split()[0]
+                for hit in line['hits']:
+                    if kw_first in hit[1].lower():
+                        hit_x = min(p[0] for p in hit[0])
+                        if x_min_f <= hit_x / img_w <= x_max_f:
+                            return {
+                                'text': line['text'],
+                                'y': line['y'],
+                                'x': hit_x,
+                                'hits': line['hits'],
+                            }
+    return None
 
 
 def locate_blocks(hits: List[OCRHit],
                   img_w: int, img_h: int) -> Dict[str, LocatedBlock]:
-    """Locate all named blocks using anchor text from full-page OCR.
+    """Locate all named blocks using anchor text with template fallbacks.
 
-    Args:
-        hits:  Full-page OCR results.
-        img_w: Width of the (warped) image.
-        img_h: Height of the (warped) image.
-
-    Returns:
-        Dictionary mapping block names to ``LocatedBlock``s.
+    1. Merge word-level OCR hits into logical lines (enables multi-word
+       anchor matching such as "Segmental Lean").
+    2. For each block, try to find its anchor line within spatial bounds.
+    3. If found → compute ROI relative to anchor position.
+    4. If not found → use template-based fallback position.
     """
+    lines = merge_hits_to_lines(hits, y_tolerance=15.0)
     blocks: Dict[str, LocatedBlock] = {}
 
     for block_name, (keywords, y_min, y_max) in ANCHOR_DEFS.items():
-        # Custom logic for segmental to avoid picking the wrong one
+        # Segmental lean/fat need x-constraints to differentiate
         if block_name == "segmental_lean":
-            anchor_hit = _find_anchor_with_x(hits, keywords, y_min, y_max, 0.0, 0.3, img_w, img_h)
+            anchor = _find_anchor_in_lines(
+                lines, keywords, y_min, y_max, img_h, 0.0, 0.35, img_w)
         elif block_name == "segmental_fat":
-            anchor_hit = _find_anchor_with_x(hits, keywords, y_min, y_max, 0.3, 0.8, img_w, img_h)
+            anchor = _find_anchor_in_lines(
+                lines, keywords, y_min, y_max, img_h, 0.25, 0.70, img_w)
         else:
-            anchor_hit = _find_anchor(hits, keywords, y_min, y_max, img_h)
+            anchor = _find_anchor_in_lines(
+                lines, keywords, y_min, y_max, img_h, 0.0, 1.0, img_w)
 
-        if anchor_hit is None:
-            # Fallback for header: Just take the very top region
-            if block_name == "header":
-                # Hard fallback: Fixed ROI at the top 10%
-                blocks["header"] = LocatedBlock(
-                    name="header",
-                    anchor_bbox=[[0,0],[0,0],[0,0],[0,0]],
-                    roi=(0, 0, img_w, int(0.12 * img_h))
-                )
+        if anchor is not None:
+            # Build ROI from anchor position
+            ax, ay = anchor['x'], anchor['y']
+            dx_f, dy_f, w_f, h_f = ROI_FROM_ANCHOR[block_name]
+            x1 = int(ax + dx_f * img_w)
+            y1 = int(ay + dy_f * img_h)
+            x2 = int(x1 + w_f * img_w)
+            y2 = int(y1 + h_f * img_h)
+            anchor_bbox = (anchor['hits'][0][0]
+                           if anchor['hits'] else [[0, 0]] * 4)
+        else:
+            # Fallback to template position
+            tmpl = TEMPLATE_ROIS.get(block_name)
+            if tmpl is None:
                 continue
-            
-        if anchor_hit is None:
-            continue
-            
-        bbox, text, conf = anchor_hit
-        ax, ay = _bbox_top_left(bbox)
+            x1 = int(tmpl[0] * img_w)
+            y1 = int(tmpl[1] * img_h)
+            x2 = int(tmpl[2] * img_w)
+            y2 = int(tmpl[3] * img_h)
+            anchor_bbox = [[0, 0]] * 4
 
-        spec = ROI_SPEC.get(block_name)
-        if spec is None:
-            continue
-        dx_f, dy_f, w_f, h_f = spec
-
-        x1 = int(ax + dx_f * img_w)
-        y1 = int(ay + dy_f * img_h)
-        x2 = int(x1 + w_f * img_w)
-        y2 = int(y1 + h_f * img_h)
-
-        # Clamp to image bounds.
+        # Clamp to image bounds
         x1 = max(0, x1)
         y1 = max(0, y1)
         x2 = min(img_w, x2)
@@ -176,7 +151,7 @@ def locate_blocks(hits: List[OCRHit],
 
         blocks[block_name] = LocatedBlock(
             name=block_name,
-            anchor_bbox=bbox,
+            anchor_bbox=anchor_bbox,
             roi=(x1, y1, x2, y2),
         )
 
@@ -189,7 +164,8 @@ def collect_hits_in_roi(all_hits: List[OCRHit],
     x1, y1, x2, y2 = roi
     result: List[OCRHit] = []
     for bbox, text, conf in all_hits:
-        cx, cy = _bbox_center(bbox)
+        cx = sum(p[0] for p in bbox) / 4
+        cy = sum(p[1] for p in bbox) / 4
         if x1 <= cx <= x2 and y1 <= cy <= y2:
             result.append((bbox, text, conf))
     return result

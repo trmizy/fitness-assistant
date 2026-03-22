@@ -6,7 +6,7 @@ Tai lieu nay mo ta cach chay du an fitness-assistant theo cau truc hien tai (`fr
 
 Project duoc to chuc theo monorepo PNPM workspace:
 
-- Frontend: React + Vite (`frontend/web`)
+- Frontend: React + Vite (`frontend/New`)
 - API Gateway: Express (`backend/gateway`)
 - Microservices:
   - Auth service (`backend/services/auth-service`)
@@ -18,7 +18,7 @@ Project duoc to chuc theo monorepo PNPM workspace:
 
 Port mapping tren may local:
 
-- Web: `5173`
+- Web: `5174`
 - Gateway: `3000`
 - Auth: `3001`
 - Fitness: `3002`
@@ -63,7 +63,7 @@ Invoke-RestMethod -Uri "http://localhost:3000/health" | ConvertTo-Json
 
 Mo trinh duyet:
 
-- Web UI: `http://localhost:5173`
+- Web UI: `http://localhost:5174`
 - Gateway health: `http://localhost:3000/health`
 
 ### 2.4 Dung he thong
@@ -141,23 +141,23 @@ Y nghia:
 - `tsconfig.base.json`
   - Cau hinh TypeScript dung chung cho backend packages
 
-## 5.2 Frontend (`frontend/web`)
+## 5.2 Frontend (`frontend/New`)
 
-- `frontend/web/src/main.tsx`
+- `frontend/New/src/main.tsx`
   - Entry point React, mount `App`
 
-- `frontend/web/src/App.tsx`
+- `frontend/New/src/app/App.tsx`
   - Router chinh, auth guard, provider (`AuthProvider`, `QueryClientProvider`)
 
-- `frontend/web/src/services/api.ts`
+- `frontend/New/src/app/services/api.ts`
   - Axios client va service methods cho auth/profile/workout/coach
   - Tu dong gan access token vao request header
 
-- `frontend/web/Dockerfile`
+- `frontend/New/Dockerfile`
   - Build static React app bang Node + pnpm
   - Chuyen sang nginx image de phuc vu production
 
-- `frontend/web/nginx.conf`
+- `frontend/New/nginx.conf`
   - SPA fallback (`try_files ... /index.html`)
   - Proxy `/api/*` sang `api-gateway:3000`
 

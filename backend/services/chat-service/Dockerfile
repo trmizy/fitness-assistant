@@ -10,6 +10,7 @@ RUN pnpm install --filter @gym-coach/chat-service --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
+RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/backend/shared/node_modules ./backend/shared/node_modules
 COPY --from=deps /app/backend/services/chat-service/node_modules ./backend/services/chat-service/node_modules

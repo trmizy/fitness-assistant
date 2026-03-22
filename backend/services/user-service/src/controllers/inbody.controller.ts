@@ -14,6 +14,19 @@ export const inbodyController = {
     }
   },
 
+  async getLatest(req: AuthRequest, res: Response) {
+    try {
+      const latest = await inbodyService.getLatest(req.user!.id);
+      if (!latest) {
+        return res.status(404).json({ error: 'No InBody entry found' });
+      }
+      return res.json(latest);
+    } catch (error) {
+      logger.error(error, 'Get latest InBody error');
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
   async create(req: AuthRequest, res: Response) {
     try {
       const entry = await inbodyService.createEntry(req.user!.id, req.body);

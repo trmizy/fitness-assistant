@@ -47,6 +47,10 @@ model UserProfile {
   // - ptCertificateUrl, ptBio, ptSpecialties, etc.
   isPT Boolean @default(false)
 
+  // Basic Info (duplicated from auth-service for discovery)
+  firstName String?
+  lastName  String?
+
   // Demographics
   age      Int?
   gender   Gender?
@@ -69,7 +73,111 @@ model UserProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  ptApplication PTApplication?
+
   @@map("user_profiles")
+}
+
+enum PTApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  NEEDS_MORE_INFO
+  APPROVED
+  REJECTED
+}
+
+enum ServiceMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum MediaGroupType {
+  IDENTITY
+  CERTIFICATE
+  PORTFOLIO
+}
+
+model PTApplication {
+  id            String              @id @default(uuid())
+  userProfileId String              @unique @map("user_profile_id")
+  status        PTApplicationStatus @default(DRAFT)
+
+  // Basic personal / verification info
+  phoneNumber      String? @map("phone_number")
+  nationalIdNumber String? @map("national_id_number")
+  currentAddress   String? @map("current_address")
+
+  // Identity verification images (shortcut fields for the 3 required documents)
+  idCardFrontUrl   String? @map("id_card_front_url")
+  idCardBackUrl    String? @map("id_card_back_url")
+  portraitPhotoUrl String? @map("portrait_photo_url")
+
+  // Professional background
+  yearsOfExperience   String?  @map("years_of_experience")
+  educationBackground String?  @map("education_background")
+  mainSpecialties     String[] @map("main_specialties")
+  targetClientGroups  String[] @map("target_client_groups")
+
+  // Portfolio / professional links
+  portfolioUrl String? @map("portfolio_url")
+  linkedinUrl  String? @map("linkedin_url")
+  websiteUrl   String? @map("website_url")
+  socialLinks  Json?   @map("social_links") // For Instagram, YouTube, etc.
+
+  // Service / work setup
+  availabilityNotes   String?      @map("availability_notes")
+  availableTimeSlots  Json?        @map("available_time_slots")
+  serviceMode         ServiceMode? @map("service_mode")
+  operatingAreas      String[]     @map("operating_areas")
+  desiredSessionPrice Float?       @map("desired_session_price")
+
+  // Admin interaction
+  adminNote       String? @map("admin_note")
+  rejectionReason String? @map("rejection_reason")
+
+  // Timestamps
+  submittedAt DateTime? @map("submitted_at")
+  reviewedAt  DateTime? @map("reviewed_at")
+  approvedAt  DateTime? @map("approved_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  certificates PTApplicationCertificate[]
+  media        PTApplicationMedia[]
+
+  userProfile UserProfile @relation(fields: [userProfileId], references: [id])
+
+  @@map("pt_applications")
+}
+
+model PTApplicationCertificate {
+  id                  String    @id @default(uuid())
+  applicationId       String    @map("application_id")
+  certificateName     String    @map("certificate_name")
+  issuingOrganization String    @map("issuing_organization")
+  isCurrentlyValid    Boolean   @map("is_currently_valid")
+  expirationDate      DateTime? @map("expiration_date")
+  certificateFileUrl  String?   @map("certificate_file_url")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  application PTApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("pt_application_certificates")
+}
+
+model PTApplicationMedia {
+  id            String         @id @default(uuid())
+  applicationId String         @map("application_id")
+  groupType     MediaGroupType @map("group_type")
+  fileUrl       String         @map("file_url")
+  label         String?        @map("label")
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  application PTApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("pt_application_media")
 }
 
 model InBodyEntry {

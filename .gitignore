@@ -62,6 +62,20 @@ Thumbs.db
 # Docker / compose local overrides
 docker-compose.override.yml
 
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+.venv/
+**/.venv/
+
+# InBody OCR debug output
+output_debug/
+**/output_debug/
+
+# Temp files
+tmp/
+
 # Misc backups
 *.bak
 *.old
