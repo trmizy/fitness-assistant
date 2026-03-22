@@ -47,7 +47,7 @@ Kien truc nay giai quyet 3 muc tieu:
 
 ## 2.2 Frontend
 
-- frontend/web
+- frontend/New
   - src/main.tsx: entrypoint React.
   - src/App.tsx: router va app shell.
   - src/pages/*: cac man hinh chuc nang.
@@ -104,7 +104,7 @@ Kien truc nay giai quyet 3 muc tieu:
 ## 3) Port map va ket noi
 
 Host ports:
-- Web: 5173
+- Web: 5174
 - Gateway: 3000
 - Auth: 3001
 - Fitness: 3002
@@ -440,7 +440,7 @@ Dieu nay giup team phat trien song song va scale theo domain.
 
 1. docs/setup/RUN_PROJECT_FLOW.md
 2. infra/compose/docker-compose.dev.yml
-3. frontend/web/src/services/api.ts
+3. frontend/New/src/app/services/api.ts
 4. backend/gateway/src/routes/proxy.routes.ts
 5. backend/services/auth-service/src/routes/auth.routes.ts
 6. backend/services/user-service/src/routes/profile.routes.ts
@@ -458,7 +458,7 @@ Dieu nay giup team phat trien song song va scale theo domain.
 3. Chay compose up --build -d
 4. Kiem tra compose ps tat ca service Up/healthy
 5. Kiem tra health endpoints
-6. Mo web http://localhost:5173
+6. Mo web http://localhost:5174
 
 Neu co loi token:
 - Dang xuat va dang nhap lai

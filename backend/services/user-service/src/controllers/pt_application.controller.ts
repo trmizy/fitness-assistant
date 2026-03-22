@@ -40,8 +40,11 @@ export const ptApplicationController = {
         return res.status(400).json({ error: 'No file uploaded' });
       }
       // Return the file path/URL to the frontend
-      // In a real app, this might be an S3 URL
-      return res.json({ url: `/uploads/${req.file.filename}`, filename: req.file.originalname });
+      // The file is stored in uploads/pt-applications/
+      return res.json({ 
+        url: `/uploads/pt-applications/${req.file.filename}`, 
+        filename: req.file.originalname 
+      });
     } catch (error: any) {
       logger.error(error, 'PT application upload error');
       return res.status(500).json({ error: 'Internal server error' });
@@ -52,7 +55,15 @@ export const ptApplicationController = {
   async listApplications(req: AuthRequest, res: Response) {
     try {
       const apps = await ptApplicationService.listApplications(req.query);
-      return res.json(apps);
+      const mapped = apps.map((app: any) => ({
+        ...app,
+        user: {
+          firstName: app.userProfile?.firstName,
+          lastName: app.userProfile?.lastName,
+          email: app.userProfile?.email || 'N/A' // Fallback if email not in profile
+        }
+      }));
+      return res.json(mapped);
     } catch (error: any) {
       logger.error(error, 'List PT applications error');
       return res.status(500).json({ error: 'Internal server error' });
@@ -61,9 +72,18 @@ export const ptApplicationController = {
 
   async getById(req: AuthRequest, res: Response) {
     try {
-      const app = await ptApplicationService.getById(req.params.id);
+      const app: any = await ptApplicationService.getById(req.params.id);
       if (!app) return res.status(404).json({ error: 'Application not found' });
-      return res.json(app);
+      
+      const mapped = {
+        ...app,
+        user: {
+          firstName: app.userProfile?.firstName,
+          lastName: app.userProfile?.lastName,
+          email: app.userProfile?.email || 'N/A'
+        }
+      };
+      return res.json(mapped);
     } catch (error: any) {
       logger.error(error, 'Get PT application by ID error');
       return res.status(500).json({ error: 'Internal server error' });

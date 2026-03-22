@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Optional, Tuple
 import cv2
 import numpy as np
-import os
 
 from .preprocess import preprocess_for_edge, resize_keep_ratio
 
@@ -33,8 +32,6 @@ def _find_document_contour(enhanced: np.ndarray) -> Optional[np.ndarray]:
     thresh = cv2.bitwise_not(thresh)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=3)
-    
-    cv2.imwrite("output_debug/debug_thresh.jpg", thresh)
 
     contours, _ = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     if not contours:
@@ -62,8 +59,6 @@ def _find_document_contour(enhanced: np.ndarray) -> Optional[np.ndarray]:
         h_approx = cv2.approxPolyDP(hull, 0.02 * h_peri, True)
         if len(h_approx) == 4:
             return h_approx.reshape(4, 2).astype("float32")
-
-    return None
 
     return None
 
@@ -97,21 +92,10 @@ def detect_and_warp(img: np.ndarray) -> Tuple[np.ndarray, bool]:
     resized = resize_keep_ratio(img)
     enhanced = preprocess_for_edge(img)
     
-    # DEBUG: save enhanced and edges images
-    if not os.path.exists("output_debug"):
-        os.makedirs("output_debug", exist_ok=True)
-    cv2.imwrite("output_debug/debug_enhanced.jpg", enhanced)
-    
-    median_val = int(np.median(enhanced))
-    lower = max(0, int(median_val * 0.5))
-    upper = min(255, int(median_val * 1.5))
-    edges = cv2.Canny(enhanced, lower, upper)
-    cv2.imwrite("output_debug/debug_edges.jpg", edges)
-
     corners = _find_document_contour(enhanced)
 
     if corners is not None:
-        print(f"DEBUG: Found document corners: {corners}")
+        # corners found — warp to canonical size
         # Scale corners back to the resized coordinate space
         # (preprocess_for_edge also calls resize_keep_ratio internally,
         #  so corners are already in resized-image coordinates).

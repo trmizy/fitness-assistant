@@ -4,10 +4,18 @@ import {
   Shield, Briefcase, Users, Calendar, Globe, AlertCircle,
   Clock, Eye, FileText, MessageSquare, CheckCircle, XCircle,
   ArrowLeft, Phone, MapPin, Instagram, Youtube, Linkedin,
-  RefreshCw, Image as ImageIcon, Loader2
+  RefreshCw, Image as ImageIcon, Loader2, ChevronLeft,
+  User, ShieldCheck, History as HistoryIcon,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ptApplicationService, PTApplication } from "../../services/ptApplicationService";
+const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000';
+
+const getFullUrl = (url?: string) => {
+  if (!url) return undefined;
+  if (url.startsWith('http')) return url;
+  return `${API_URL.replace(/\/$/, '')}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 /* ── Status config ──────────────────────────────────────── */
 const statusConfig: Record<string, { label: string; bg: string; text: string; border: string; dot: string }> = {
@@ -34,19 +42,21 @@ function InfoRow({ label, value, highlight }: { label: string; value: string; hi
 
 /* ── Document thumbnail ─────────────────────────────────── */
 function DocThumb({ label, url, tag }: { label: string; url?: string; tag?: string }) {
+  const fullUrl = getFullUrl(url);
   return (
     <div className={`rounded-xl overflow-hidden border-2 transition-all ${url ? "border-green-500/30" : "border-red-500/20"}`}>
-      <div className={`h-32 flex items-center justify-center relative ${url ? "bg-zinc-800/60" : "bg-red-500/5"}`}>
-        {url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-20" />
+      <div className={`h-40 flex items-center justify-center relative ${url ? "bg-zinc-800/60" : "bg-red-500/5"}`}>
+        {fullUrl ? (
+          <a href={fullUrl} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-20" />
         ) : null}
-        {url ? (
+        {fullUrl ? (
           <>
-            <div className="relative z-10 text-center">
-              <ImageIcon className="w-7 h-7 text-green-400 mx-auto mb-1 opacity-70" />
-              <p className="text-xs text-zinc-400">View File</p>
+            <img src={fullUrl} alt={label} className="absolute inset-0 w-full h-full object-cover opacity-50 hover:opacity-100 transition-opacity" />
+            <div className="relative z-10 text-center pointer-events-none bg-black/40 px-2 py-1 rounded-md backdrop-blur-xs">
+              <ImageIcon className="w-5 h-5 text-green-400 mx-auto mb-1 opacity-70" />
+              <p className="text-[10px] text-zinc-100 font-bold">Click to Expand</p>
             </div>
-            {tag && <span className="absolute top-2 right-2 text-xs bg-zinc-900/80 text-green-400 border border-green-500/30 px-1.5 py-0.5 rounded-md font-semibold">{tag}</span>}
+            {tag && <span className="absolute top-2 right-2 text-[10px] bg-zinc-900/90 text-green-400 border border-green-500/30 px-1.5 py-0.5 rounded-md font-bold z-30">{tag}</span>}
           </>
         ) : (
           <div className="text-center">
@@ -56,7 +66,7 @@ function DocThumb({ label, url, tag }: { label: string; url?: string; tag?: stri
         )}
       </div>
       <div className={`px-3 py-2 flex items-center justify-between ${url ? "bg-zinc-900" : "bg-red-500/5"}`}>
-        <span className="text-xs font-semibold text-zinc-300 truncate">{label}</span>
+        <span className="text-[10px] font-bold text-zinc-300 truncate uppercase tracking-tighter">{label}</span>
         {url ? <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />}
       </div>
     </div>
@@ -187,7 +197,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
 
   const actionMutation = useMutation({
     mutationFn: ({ action, note, feedback }: { action: string; note?: string; feedback?: string }) =>
-      ptApplicationService.adminReviewAction(app.id, action as any, note, feedback),
+      ptApplicationService.reviewAction(app.id, action as any, { adminNote: note, feedback }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-pt-applications'] });
       alert("Action completed successfully.");
@@ -227,29 +237,112 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
               </button>
             </div>
 
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-2 text-xs">
-              <p className="font-bold text-zinc-500 uppercase mb-3">Contact & Links</p>
-              <div className="flex items-center gap-2 text-zinc-400"><Phone className="w-3 h-3" /> {app.phoneNumber}</div>
-              <div className="flex items-center gap-2 text-zinc-400"><MapPin className="w-3 h-3" /> {app.currentAddress}</div>
-              <div className="flex items-center gap-2 text-zinc-400"><Globe className="w-3 h-3" /> <a href={app.portfolioUrl} className="truncate hover:text-green-400">{app.portfolioUrl}</a></div>
-              <div className="flex items-center gap-2 text-zinc-400"><Linkedin className="w-3 h-3" /> <a href={app.linkedinUrl} className="truncate hover:text-green-400">{app.linkedinUrl}</a></div>
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-5 space-y-6">
+              <div>
+                <p className="text-xs font-bold text-zinc-500 uppercase mb-3 flex items-center gap-2">
+                  <User className="w-3.5 h-3.5" /> Professional Bio & Approach
+                </p>
+                <p className="text-sm text-zinc-300 leading-relaxed italic bg-zinc-800/30 p-4 rounded-lg border border-zinc-700/30">
+                  "{app.professionalBio || "Applicant did not provide a bio."}"
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-xs font-bold text-zinc-500 uppercase mb-3 flex items-center gap-2">
+                    <Briefcase className="w-3.5 h-3.5" /> Background & Education
+                  </p>
+                  <p className="text-sm text-zinc-300">{app.educationBackground || "None provided"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-zinc-500 uppercase mb-3 flex items-center gap-2">
+                    <HistoryIcon className="w-3.5 h-3.5" /> Past Experience
+                  </p>
+                  <p className="text-sm text-zinc-300">{app.previousWorkExperience || "None provided"}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold text-zinc-500 uppercase mb-3">Main Specialties</p>
+                <div className="flex flex-wrap gap-2">
+                  {app.mainSpecialties?.length > 0 ? (
+                    app.mainSpecialties.map(s => (
+                      <span key={s} className="px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-[10px] font-bold border border-green-500/20 uppercase tracking-wider">
+                        {s}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-zinc-600 text-xs italic">No specialties selected</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-zinc-800/60 space-y-4">
+                <div className="flex items-center gap-4 p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/30">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0 shadow-inner">
+                    <Phone className="w-5 h-5 text-zinc-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-0.5">Contact Phone</p>
+                    <p className="text-sm text-zinc-200 font-semibold truncate">{app.phoneNumber || "Not provided"}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/30">
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-5">
+              <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5" /> Service & Availability
+              </p>
+              <div className="space-y-3">
+                <InfoRow label="Experience" value={app.yearsOfExperience ? `${app.yearsOfExperience} years` : "N/A"} />
+                <InfoRow label="Service Mode" value={app.serviceMode} highlight />
+                <InfoRow label="Operating Areas" value={app.operatingAreas?.join(", ") || "N/A"} />
+                <div className="pt-2 border-t border-zinc-800/40">
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">Available Schedule</p>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {app.availableDays?.map(d => (
+                      <span key={d} className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 text-[10px] border border-zinc-700">{d}</span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    <Clock className="w-3 h-3 inline mr-1 text-zinc-500" />
+                    {app.availableFrom && app.availableUntil ? `${app.availableFrom} - ${app.availableUntil}` : "No time set"}
+                  </p>
+                  {app.availabilityNotes && <p className="text-[10px] text-zinc-500 mt-2 italic">Note: {app.availabilityNotes}</p>}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-4">
+              <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+                <Users className="w-3.5 h-3.5" /> Coaching Focus
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Target Audience</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {app.targetClientGroups?.map(t => (
+                      <span key={t} className="px-2 py-0.5 rounded-md bg-blue-500/5 text-blue-400 text-[10px] border border-blue-500/10">{t}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Training Goals</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {app.primaryTrainingGoals?.map(g => (
+                      <span key={g} className="px-2 py-0.5 rounded-md bg-purple-500/5 text-purple-400 text-[10px] border border-purple-500/10">{g}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Approach & Methods</p>
+                  <p className="text-xs text-zinc-300 leading-relaxed">{app.trainingMethodsApproach || "Not specified"}</p>
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-              <p className="text-xs font-bold text-zinc-500 uppercase mb-3">Professional Bio</p>
-              <p className="text-sm text-zinc-300 leading-relaxed">{app.educationBackground}</p>
-            </div>
-
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-              <p className="text-xs font-bold text-zinc-500 uppercase mb-3">Service Details</p>
-              <InfoRow label="Experience" value={`${app.yearsOfExperience} years`} />
-              <InfoRow label="Service Mode" value={app.serviceMode} highlight />
-              <InfoRow label="Areas" value={app.operatingAreas?.join(", ") || "-"} />
-              <div className="mt-3">
-                <p className="text-[10px] text-zinc-500 mb-2">Specialties</p>
-                <div className="flex flex-wrap gap-1">
                   {app.mainSpecialties?.map(s => <span key={s} className="bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full text-[10px] border border-zinc-700">{s}</span>)}
                 </div>
               </div>
@@ -295,10 +388,14 @@ export function PTManagement() {
     return <DetailView app={selected} onBack={() => setSelected(null)} />;
   }
 
-  const filtered = applications.filter(a =>
-  (a.user?.firstName?.toLowerCase().includes(search.toLowerCase()) ||
-    a.user?.email?.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = applications.filter(a => {
+    const term = search.toLowerCase();
+    if (!term) return true;
+    const fName = a.user?.firstName?.toLowerCase() || "";
+    const lName = a.user?.lastName?.toLowerCase() || "";
+    const email = a.user?.email?.toLowerCase() || "";
+    return fName.includes(term) || lName.includes(term) || email.includes(term);
+  });
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">

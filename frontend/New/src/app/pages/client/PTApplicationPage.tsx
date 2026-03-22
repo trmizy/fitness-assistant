@@ -68,14 +68,23 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
 function UploadBox({ label: labelText, hint, value, onUpload }: { label: string; hint?: string; value?: string; onUpload: (url: string) => void }) {
   const [isUploading, setIsUploading] = useState(false);
 
+  const getFullUrl = (url: string) => {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    // @ts-ignore
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+    return `${baseUrl}${url}`;
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
     try {
-      const { url } = await ptApplicationService.uploadDocument(file);
-      onUpload(url);
+      const resp = await ptApplicationService.uploadDocument(file);
+      console.log("Upload response:", resp);
+      onUpload(resp.url);
     } catch (error) {
       console.error("Upload failed", error);
       alert("Upload failed. Please try again.");
@@ -87,21 +96,43 @@ function UploadBox({ label: labelText, hint, value, onUpload }: { label: string;
   return (
     <div>
       <p className={lbl}>{labelText}</p>
-      <label className={`block border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${value ? "border-green-500/40 bg-green-500/5"
-          : "border-zinc-700 hover:border-green-500/40 hover:bg-zinc-800/40"
+      <label className={`block border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${value ? "border-green-500/40 bg-zinc-800/40"
+        : "border-zinc-700 hover:border-green-500/40 hover:bg-zinc-800/40"
         }`}>
-        <input type="file" className="hidden" onChange={handleFileChange} disabled={isUploading} />
+        <input type="file" className="hidden" onChange={handleFileChange} disabled={isUploading} accept="image/*,.pdf" />
         {isUploading ? (
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="w-6 h-6 text-green-400 animate-spin" />
             <span className="text-xs text-zinc-500">Uploading...</span>
           </div>
         ) : value ? (
-          <div className="flex items-center justify-center gap-2 text-green-400">
-            <CheckCircle className="w-4 h-4" />
-            <span className="text-sm font-semibold text-wrap">File uploaded</span>
-            <button onClick={e => { e.preventDefault(); e.stopPropagation(); onUpload(""); }} className="ml-2 text-zinc-600 hover:text-red-400">
-              <X className="w-3.5 h-3.5" />
+          <div className="flex flex-col items-center gap-3">
+            {value.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/) || value.includes('image') ? (
+              <div className="relative group">
+                <img 
+                  src={getFullUrl(value)} 
+                  alt="Preview" 
+                  className="h-32 w-auto rounded-lg object-cover border border-zinc-700 shadow-lg"
+                  onError={(e) => {
+                    console.error("Image preview failed to load:", getFullUrl(value));
+                    (e.target as any).src = "https://placehold.co/200x200?text=Format+Error";
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                  <p className="text-[10px] text-white font-bold uppercase tracking-wider">Change photo</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2 text-green-400">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-sm font-semibold text-wrap">File uploaded</span>
+              </div>
+            )}
+            <button
+              onClick={e => { e.preventDefault(); e.stopPropagation(); onUpload(""); }}
+              className="px-3 py-1 rounded-full bg-zinc-900/80 border border-zinc-700 text-zinc-400 hover:text-red-400 text-[11px] font-medium transition-colors flex items-center gap-1.5"
+            >
+              <X className="w-3 h-3" /> Remove file
             </button>
           </div>
         ) : (

@@ -52,6 +52,13 @@ export interface PTApplication {
   approvedAt?: string;
   certificates: PTApplicationCertificate[];
   media: any[];
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
+  updatedAt: string;
+  createdAt: string;
 }
 
 export const ptApplicationService = {

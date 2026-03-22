@@ -17,6 +17,7 @@ const upload = multer({
 });
 
 router.get('/', authMiddleware, inbodyController.getHistory as any);
+router.get('/latest', authMiddleware, inbodyController.getLatest as any);
 router.post('/', authMiddleware, inbodyController.create as any);
 router.post('/upload', authMiddleware, upload.single('image'), inbodyController.upload as any);
 
