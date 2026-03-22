@@ -23,6 +23,13 @@ export const profileRepository = {
       create: { userId, isPT },
     }),
 
+  setIsPTByUserId: (userId: string, isPT: boolean) =>
+    prisma.userProfile.upsert({
+      where: { userId },
+      update: { isPT, updatedAt: new Date() },
+      create: { userId, isPT },
+    }),
+
   /** List users where isPT = true, for chat "find a PT" feature */
   findPTs: () =>
     prisma.userProfile.findMany({ where: { isPT: true } }),

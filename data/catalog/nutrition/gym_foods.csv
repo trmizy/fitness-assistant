@@ -1,0 +1,150 @@
+food_id,food_name_vi,category,serving_size,kcal,protein_g,carbs_g,fat_g,fiber_g,tags,notes,protein_ratio
+FD0001,Ức gà,animal_protein,100 g,165,31.0,0.0,3.6,0.0,protein cao|nạc,Nguồn protein nạc phổ biến cho plan tăng cơ/giảm mỡ.,0.18787878787878787
+FD0002,Đùi gà bỏ da,animal_protein,100 g,177,24.0,0.0,8.0,0.0,protein|thịt gà,Cân bằng giữa vị ngon và protein.,0.13559322033898305
+FD0003,Thịt bò nạc,animal_protein,100 g,170,26.0,0.0,7.0,0.0,protein|sắt,Giàu sắt và creatine tự nhiên.,0.15294117647058825
+FD0004,Thịt heo thăn,animal_protein,100 g,143,26.0,0.0,3.5,0.0,protein,Lựa chọn nạc dễ chế biến.,0.18181818181818182
+FD0005,Cá hồi,animal_protein,100 g,208,20.0,0.0,13.0,0.0,protein|omega3,Giàu omega-3; phù hợp tim mạch và hồi phục.,0.09615384615384616
+FD0006,Cá ngừ,animal_protein,100 g,132,29.0,0.0,1.0,0.0,protein cao,Rất giàu protein.,0.2196969696969697
+FD0007,Cá rô phi,animal_protein,100 g,128,26.0,0.0,2.7,0.0,protein nạc,"Protein cao, chất béo thấp.",0.203125
+FD0008,Tôm,animal_protein,100 g,99,24.0,0.2,0.3,0.0,protein|ít béo,Phù hợp giảm mỡ và tăng protein.,0.24242424242424243
+FD0009,Trứng gà nguyên quả,animal_protein,1 quả lớn,72,6.3,0.4,4.8,0.0,protein|fat,Giàu vi chất và chất béo tốt.,0.0875
+FD0010,Lòng trắng trứng,animal_protein,100 g,52,11.0,0.7,0.2,0.0,protein nạc,Dễ tăng protein mà ít năng lượng.,0.21153846153846154
+FD0011,Sữa chua Hy Lạp ít béo,dairy,170 g,100,17.0,6.0,0.0,0.0,protein|dairy,Bữa phụ tiện lợi giàu protein.,0.17
+FD0012,Phô mai cottage,dairy,100 g,98,11.0,3.4,4.3,0.0,protein|dairy,"Giàu casein, hợp bữa tối.",0.11224489795918367
+FD0013,Whey protein,supplement,1 muỗng 30 g,120,24.0,3.0,1.5,0.0,protein nhanh,Tiện cho bữa sau tập khi khó đủ protein.,0.2
+FD0014,Đậu hũ cứng,plant_protein,100 g,144,15.7,3.9,8.7,2.0,chay|protein,Nguồn protein thực vật dễ dùng.,0.10902777777777778
+FD0015,Tempeh,plant_protein,100 g,193,19.0,9.0,11.0,1.4,protein thực vật,"Lên men, giàu protein.",0.09844559585492228
+FD0016,Edamame,plant_protein,100 g,121,11.9,8.9,5.2,5.2,protein|fiber,Tốt cho bữa phụ no lâu.,0.09834710743801653
+FD0017,Đậu lăng nấu chín,plant_protein,100 g,116,9.0,20.0,0.4,8.0,protein|fiber,Nguồn carb và protein thực vật.,0.07758620689655173
+FD0018,Đậu chickpea nấu chín,plant_protein,100 g,164,9.0,27.0,2.6,7.6,protein|fiber,Hợp meal prep và salad.,0.054878048780487805
+FD0019,Cơm trắng,carb,100 g chín,130,2.4,28.7,0.3,0.4,carb nhanh,"Nguồn carb dễ tiêu, phù hợp quanh buổi tập.",0.01846153846153846
+FD0020,Cơm gạo lứt,carb,100 g chín,112,2.6,23.0,0.9,1.8,carb|fiber,No lâu hơn so với cơm trắng.,0.023214285714285715
+FD0021,Yến mạch,carb,40 g khô,156,6.0,27.0,3.0,4.0,carb|fiber,Rất phù hợp bữa sáng.,0.038461538461538464
+FD0022,Khoai lang,carb,100 g,86,1.6,20.1,0.1,3.0,carb|fiber,"Carb chất lượng, no lâu.",0.018604651162790697
+FD0023,Khoai tây,carb,100 g,87,1.9,20.1,0.1,1.8,carb,Linh hoạt cho tăng cơ hoặc giảm mỡ tuỳ khẩu phần.,0.021839080459770115
+FD0024,Bánh mì nguyên cám,carb,2 lát 60 g,148,7.0,25.0,2.3,4.0,carb|fiber,Tiện cho sandwich trước/sau tập.,0.0472972972972973
+FD0025,Mì pasta chín,carb,100 g,158,5.8,30.9,0.9,1.8,carb,Tốt cho plan tăng cơ nhờ dễ tăng lượng ăn.,0.03670886075949367
+FD0026,Bún gạo,carb,100 g chín,109,1.8,24.5,0.2,0.9,carb,Tiêu hoá khá nhanh.,0.01651376146788991
+FD0027,Quinoa chín,carb,100 g,120,4.4,21.3,1.9,2.8,carb|protein,Carb chất lượng tốt.,0.03666666666666667
+FD0028,Ngô luộc,carb,100 g,96,3.4,21.0,1.5,2.4,carb|fiber,Bổ sung carb và chất xơ.,0.035416666666666666
+FD0029,Chuối,fruit,1 quả vừa,105,1.3,27.0,0.3,3.1,fruit|preworkout,Rất tiện trước tập.,0.012380952380952381
+FD0030,Táo,fruit,1 quả vừa,95,0.5,25.0,0.3,4.4,fruit|fiber,"Bữa phụ nhẹ, no vừa.",0.005263157894736842
+FD0031,Cam,fruit,1 quả vừa,62,1.2,15.4,0.2,3.1,fruit|vitamin c,Bù nước và vitamin C.,0.01935483870967742
+FD0032,Dâu tây,fruit,100 g,32,0.7,7.7,0.3,2.0,fruit|low kcal,Hợp plan giảm mỡ.,0.021875
+FD0033,Việt quất,fruit,100 g,57,0.7,14.5,0.3,2.4,fruit,Thường dùng cùng sữa chua/yến mạch.,0.012280701754385965
+FD0034,Nho,fruit,100 g,69,0.7,18.0,0.2,0.9,fruit,Carb nhanh vừa phải.,0.010144927536231883
+FD0035,Bánh gạo,carb,3 cái,105,2.0,23.0,0.8,0.3,carb nhanh,Phù hợp pre-workout nhẹ.,0.01904761904761905
+FD0036,Mật ong,carb,15 g,46,0.0,12.4,0.0,0.0,carb nhanh,Dùng lượng nhỏ quanh tập.,0.0
+FD0037,Bơ quả,fat,100 g,160,2.0,8.5,14.7,6.7,fat tốt|fiber,Giàu chất béo không bão hòa.,0.0125
+FD0038,Hạnh nhân,fat,30 g,174,6.4,6.1,15.0,3.5,fat|snack,"Giàu năng lượng, dễ quá tay nếu không cân khẩu phần.",0.0367816091954023
+FD0039,Óc chó,fat,30 g,196,4.6,4.1,19.6,1.9,fat|omega3,Tăng calorie hiệu quả cho tăng cơ.,0.023469387755102038
+FD0040,Bơ đậu phộng,fat,16 g,94,3.5,3.2,8.0,1.0,fat|snack,Rất tiện nhưng dễ vượt calorie.,0.03723404255319149
+FD0041,Dầu ô liu,fat,10 g,90,0.0,0.0,10.0,0.0,fat tốt,Dùng kiểm soát lượng khi nấu.,0.0
+FD0042,Hạt chia,fat,15 g,73,2.5,6.3,4.7,5.2,fat|fiber,Tăng chất xơ cho yogurt/oatmeal.,0.03424657534246575
+FD0043,Hạt lanh,fat,15 g,80,2.7,4.3,6.3,4.0,fat|fiber,Bổ sung omega-3 thực vật.,0.03375
+FD0044,Bông cải xanh,vegetable,100 g,34,2.8,6.6,0.4,2.6,rau|fiber,Rau cơ bản cho meal prep.,0.08235294117647059
+FD0045,Cải bó xôi,vegetable,100 g,23,2.9,3.6,0.4,2.2,rau|sắt,Thêm vào omelet hoặc xào.,0.12608695652173912
+FD0046,Xà lách romaine,vegetable,100 g,17,1.2,3.3,0.3,2.1,rau,"Năng lượng thấp, tăng độ no.",0.07058823529411765
+FD0047,Dưa leo,vegetable,100 g,15,0.7,3.6,0.1,0.5,rau|hydration,Giúp tăng khối lượng bữa ăn.,0.04666666666666666
+FD0048,Cà chua,vegetable,100 g,18,0.9,3.9,0.2,1.2,rau,Phù hợp salad và món nóng.,0.05
+FD0049,Ớt chuông,vegetable,100 g,31,1.0,6.0,0.3,2.1,rau|vitamin c,Rau nhiều màu dễ meal prep.,0.03225806451612903
+FD0050,Cà rốt,vegetable,100 g,41,0.9,10.0,0.2,2.8,rau,"Thêm xào, luộc hoặc salad.",0.021951219512195124
+FD0051,Nấm,vegetable,100 g,22,3.1,3.3,0.3,1.0,rau,Tăng thể tích bữa ăn.,0.1409090909090909
+FD0052,Bí ngòi,vegetable,100 g,17,1.2,3.1,0.3,1.0,rau,Dễ xào hoặc nướng.,0.07058823529411765
+FD0053,Măng tây,vegetable,100 g,20,2.2,3.9,0.1,2.1,rau,Hợp plan giảm mỡ.,0.11000000000000001
+FD0054,Sữa tươi không đường,dairy,250 ml,103,8.0,12.0,2.4,0.0,dairy,Phù hợp smoothie hoặc uống kèm bữa.,0.07766990291262135
+FD0055,Sữa hạnh nhân không đường,beverage,250 ml,30,1.0,1.0,2.5,0.0,low kcal,Lựa chọn năng lượng thấp.,0.03333333333333333
+FD0056,Cà phê đen,beverage,240 ml,2,0.0,0.0,0.0,0.0,caffeine,Có thể hỗ trợ tỉnh táo trước tập.,0.0
+FD0057,Nước điện giải ít đường,beverage,500 ml,20,0.0,5.0,0.0,0.0,hydration,Hữu ích khi đổ mồ hôi nhiều.,0.0
+FD0058,Cơm ức gà rau củ,prepared_meal,1 hộp,420,35.0,45.0,8.0,6.0,meal prep|balanced,Bữa meal prep cơ bản cho tăng cơ sạch hoặc duy trì.,0.08333333333333333
+FD0059,Cơm bò xào rau,prepared_meal,1 hộp,500,32.0,48.0,14.0,5.0,meal prep|balanced,Bữa ăn giàu protein và sắt.,0.064
+FD0060,Yến mạch whey chuối,prepared_meal,1 tô,390,30.0,48.0,8.0,7.0,breakfast|preworkout,"Bữa sáng nhanh, hợp trước tập 60-90 phút.",0.07692307692307693
+FD0061,Greek yogurt berries granola,prepared_meal,1 cốc,320,22.0,35.0,9.0,5.0,snack|protein,Bữa phụ tiện lợi.,0.06875
+FD0062,Salad cá hồi quinoa,prepared_meal,1 tô,520,33.0,38.0,24.0,7.0,balanced|omega3,Bữa ăn giàu chất béo tốt và protein.,0.06346153846153846
+FD0063,Sandwich turkey nguyên cám,prepared_meal,1 phần,360,28.0,34.0,11.0,5.0,quick meal,Phù hợp bữa sáng hoặc bữa phụ lớn.,0.07777777777777778
+FD0064,Bún tôm rau xanh,prepared_meal,1 tô,410,27.0,52.0,8.0,4.0,balanced,"Bữa trưa nhẹ, tiêu hoá vừa phải.",0.06585365853658537
+FD0065,Đậu hũ sốt cà cơm gạo lứt,prepared_meal,1 hộp,430,22.0,55.0,12.0,8.0,vegetarian|balanced,Lựa chọn thuần chay tương đối cân bằng.,0.05116279069767442
+FD0066,Sườn heo nạc,animal_protein,100 g,210,24.0,0.0,12.0,0.0,protein,Nên kiểm soát khẩu phần khi giảm mỡ.,0.11428571428571428
+FD0067,Cá thu,animal_protein,100 g,205,19.0,0.0,14.0,0.0,omega3|protein,Giàu chất béo tốt.,0.09268292682926829
+FD0068,Cua,animal_protein,100 g,97,19.0,0.0,1.5,0.0,protein,Nguồn protein nạc.,0.1958762886597938
+FD0069,Thịt gà tây,animal_protein,100 g,135,29.0,0.0,1.0,0.0,protein nạc,Rất hợp plan cắt.,0.21481481481481482
+FD0070,Gan bò,animal_protein,100 g,135,20.0,4.0,3.6,0.0,protein|vi chất,Rất giàu sắt và vitamin A.,0.14814814814814814
+FD0071,Sữa chua uống protein,dairy,1 chai,150,20.0,12.0,2.0,0.0,protein,Tiện sau tập.,0.13333333333333333
+FD0072,Sữa chua không đường,dairy,100 g,61,3.5,4.7,3.3,0.0,dairy,Phù hợp món ăn nhẹ.,0.05737704918032787
+FD0073,Sữa ít béo,dairy,250 ml,102,8.2,12.0,2.4,0.0,dairy,Nguồn đạm và carb nhẹ.,0.08039215686274509
+FD0074,Pho mát lát ít béo,dairy,2 lát,80,10.0,2.0,3.0,0.0,protein,Dùng với sandwich.,0.125
+FD0075,Seitan,plant_protein,100 g,120,24.0,4.0,1.5,0.5,protein thực vật,Protein cao nếu ăn chay.,0.2
+FD0076,Đậu đen nấu chín,plant_protein,100 g,132,8.9,23.7,0.5,8.7,fiber|protein,Hợp món bowl hoặc salad.,0.06742424242424243
+FD0077,Đậu đỏ nấu chín,plant_protein,100 g,127,8.7,22.8,0.5,6.4,fiber|protein,"No lâu, giàu chất xơ.",0.06850393700787401
+FD0078,Mì soba chín,carb,100 g,99,5.1,21.4,0.1,2.1,carb,Lựa chọn carb đổi món.,0.051515151515151514
+FD0079,Bánh mì bagel,carb,1 cái,245,9.6,48.0,1.5,2.0,carb nhanh,Phù hợp trước tập dài.,0.03918367346938775
+FD0080,Ngũ cốc granola,carb,50 g,220,5.0,32.0,8.0,4.0,carb|fat,"Năng lượng cao, cần cân kỹ.",0.022727272727272728
+FD0081,Bánh tortilla nguyên cám,carb,1 cái 50 g,140,4.0,24.0,3.5,3.0,carb,Dùng wrap protein.,0.02857142857142857
+FD0082,Khoai lang tím,carb,100 g,90,1.6,21.0,0.1,3.3,carb|fiber,Đổi món cho khoai lang.,0.017777777777777778
+FD0083,Bí đỏ,carb,100 g,26,1.0,6.5,0.1,0.5,carb nhẹ,"Carb thấp hơn khoai, hợp giảm mỡ.",0.038461538461538464
+FD0084,Dứa,fruit,100 g,50,0.5,13.0,0.1,1.4,fruit,Dễ dùng sau ăn.,0.01
+FD0085,Kiwi,fruit,1 quả,42,0.8,10.0,0.4,2.1,fruit|vitamin c,Thêm chất xơ và vitamin C.,0.01904761904761905
+FD0086,Xoài,fruit,100 g,60,0.8,15.0,0.4,1.6,fruit,Carb cao hơn nhóm berry.,0.013333333333333334
+FD0087,Lê,fruit,1 quả vừa,101,0.6,27.0,0.2,5.5,fruit|fiber,No lâu nhờ chất xơ.,0.005940594059405941
+FD0088,Chà là,fruit,40 g,113,1.0,30.0,0.2,3.2,carb nhanh,Tiện trước tập cường độ cao.,0.008849557522123894
+FD0089,Hạt điều,fat,30 g,166,5.5,9.1,13.2,1.0,fat,Dễ tăng kcal.,0.03313253012048193
+FD0090,Hạt bí,fat,30 g,170,8.5,4.2,14.0,1.7,fat|protein,Giàu khoáng chất.,0.05
+FD0091,Mè đen,fat,15 g,86,2.6,3.4,7.5,1.8,fat,Thêm topping khẩu phần nhỏ.,0.030232558139534883
+FD0092,Dầu dừa,fat,10 g,90,0.0,0.0,10.0,0.0,fat,Chỉ nên dùng lượng kiểm soát.,0.0
+FD0093,Rau bina baby,vegetable,100 g,23,2.9,3.6,0.4,2.2,rau,Tương tự cải bó xôi.,0.12608695652173912
+FD0094,Cải thìa,vegetable,100 g,13,1.5,2.2,0.2,1.0,rau,Rau ít năng lượng.,0.11538461538461539
+FD0095,Cải ngọt,vegetable,100 g,19,1.5,3.2,0.2,1.2,rau,Dễ chế biến.,0.07894736842105263
+FD0096,Đậu que,vegetable,100 g,31,1.8,7.0,0.1,2.7,rau|fiber,Rau xanh no lâu.,0.05806451612903226
+FD0097,Súp lơ trắng,vegetable,100 g,25,1.9,5.0,0.3,2.0,rau,Có thể làm cơm súp lơ giảm carb.,0.076
+FD0098,Cải kale,vegetable,100 g,35,2.9,4.4,1.5,4.1,rau|fiber,Giàu vi chất.,0.08285714285714285
+FD0099,Bắp cải tím,vegetable,100 g,31,1.4,7.4,0.2,2.1,rau,Hợp salad hoặc xào.,0.04516129032258064
+FD0100,Nước dừa,beverage,330 ml,60,0.5,15.0,0.0,0.0,hydration,Hỗ trợ bù điện giải nhẹ.,0.008333333333333333
+FD0101,Trà xanh không đường,beverage,240 ml,2,0.0,0.0,0.0,0.0,beverage,Đồ uống rất thấp kcal.,0.0
+FD0102,Sườn heo nạc,animal_protein,100 g,210,24.0,0.0,12.0,0.0,protein,Nên kiểm soát khẩu phần khi giảm mỡ.,0.11428571428571428
+FD0103,Cá thu,animal_protein,100 g,205,19.0,0.0,14.0,0.0,omega3|protein,Giàu chất béo tốt.,0.09268292682926829
+FD0104,Cua,animal_protein,100 g,97,19.0,0.0,1.5,0.0,protein,Nguồn protein nạc.,0.1958762886597938
+FD0105,Thịt gà tây,animal_protein,100 g,135,29.0,0.0,1.0,0.0,protein nạc,Rất hợp plan cắt.,0.21481481481481482
+FD0106,Gan bò,animal_protein,100 g,135,20.0,4.0,3.6,0.0,protein|vi chất,Rất giàu sắt và vitamin A.,0.14814814814814814
+FD0107,Sữa chua uống protein,dairy,1 chai,150,20.0,12.0,2.0,0.0,protein,Tiện sau tập.,0.13333333333333333
+FD0108,Sữa chua không đường,dairy,100 g,61,3.5,4.7,3.3,0.0,dairy,Phù hợp món ăn nhẹ.,0.05737704918032787
+FD0109,Sữa ít béo,dairy,250 ml,102,8.2,12.0,2.4,0.0,dairy,Nguồn đạm và carb nhẹ.,0.08039215686274509
+FD0110,Pho mát lát ít béo,dairy,2 lát,80,10.0,2.0,3.0,0.0,protein,Dùng với sandwich.,0.125
+FD0111,Seitan,plant_protein,100 g,120,24.0,4.0,1.5,0.5,protein thực vật,Protein cao nếu ăn chay.,0.2
+FD0112,Đậu đen nấu chín,plant_protein,100 g,132,8.9,23.7,0.5,8.7,fiber|protein,Hợp món bowl hoặc salad.,0.06742424242424243
+FD0113,Đậu đỏ nấu chín,plant_protein,100 g,127,8.7,22.8,0.5,6.4,fiber|protein,"No lâu, giàu chất xơ.",0.06850393700787401
+FD0114,Mì soba chín,carb,100 g,99,5.1,21.4,0.1,2.1,carb,Lựa chọn carb đổi món.,0.051515151515151514
+FD0115,Bánh mì bagel,carb,1 cái,245,9.6,48.0,1.5,2.0,carb nhanh,Phù hợp trước tập dài.,0.03918367346938775
+FD0116,Ngũ cốc granola,carb,50 g,220,5.0,32.0,8.0,4.0,carb|fat,"Năng lượng cao, cần cân kỹ.",0.022727272727272728
+FD0117,Bánh tortilla nguyên cám,carb,1 cái 50 g,140,4.0,24.0,3.5,3.0,carb,Dùng wrap protein.,0.02857142857142857
+FD0118,Khoai lang tím,carb,100 g,90,1.6,21.0,0.1,3.3,carb|fiber,Đổi món cho khoai lang.,0.017777777777777778
+FD0119,Bí đỏ,carb,100 g,26,1.0,6.5,0.1,0.5,carb nhẹ,"Carb thấp hơn khoai, hợp giảm mỡ.",0.038461538461538464
+FD0120,Dứa,fruit,100 g,50,0.5,13.0,0.1,1.4,fruit,Dễ dùng sau ăn.,0.01
+FD0121,Kiwi,fruit,1 quả,42,0.8,10.0,0.4,2.1,fruit|vitamin c,Thêm chất xơ và vitamin C.,0.01904761904761905
+FD0122,Xoài,fruit,100 g,60,0.8,15.0,0.4,1.6,fruit,Carb cao hơn nhóm berry.,0.013333333333333334
+FD0123,Lê,fruit,1 quả vừa,101,0.6,27.0,0.2,5.5,fruit|fiber,No lâu nhờ chất xơ.,0.005940594059405941
+FD0124,Chà là,fruit,40 g,113,1.0,30.0,0.2,3.2,carb nhanh,Tiện trước tập cường độ cao.,0.008849557522123894
+FD0125,Hạt điều,fat,30 g,166,5.5,9.1,13.2,1.0,fat,Dễ tăng kcal.,0.03313253012048193
+FD0126,Hạt bí,fat,30 g,170,8.5,4.2,14.0,1.7,fat|protein,Giàu khoáng chất.,0.05
+FD0127,Mè đen,fat,15 g,86,2.6,3.4,7.5,1.8,fat,Thêm topping khẩu phần nhỏ.,0.030232558139534883
+FD0128,Dầu dừa,fat,10 g,90,0.0,0.0,10.0,0.0,fat,Chỉ nên dùng lượng kiểm soát.,0.0
+FD0129,Rau bina baby,vegetable,100 g,23,2.9,3.6,0.4,2.2,rau,Tương tự cải bó xôi.,0.12608695652173912
+FD0130,Cải thìa,vegetable,100 g,13,1.5,2.2,0.2,1.0,rau,Rau ít năng lượng.,0.11538461538461539
+FD0131,Cải ngọt,vegetable,100 g,19,1.5,3.2,0.2,1.2,rau,Dễ chế biến.,0.07894736842105263
+FD0132,Đậu que,vegetable,100 g,31,1.8,7.0,0.1,2.7,rau|fiber,Rau xanh no lâu.,0.05806451612903226
+FD0133,Súp lơ trắng,vegetable,100 g,25,1.9,5.0,0.3,2.0,rau,Có thể làm cơm súp lơ giảm carb.,0.076
+FD0134,Cải kale,vegetable,100 g,35,2.9,4.4,1.5,4.1,rau|fiber,Giàu vi chất.,0.08285714285714285
+FD0135,Bắp cải tím,vegetable,100 g,31,1.4,7.4,0.2,2.1,rau,Hợp salad hoặc xào.,0.04516129032258064
+FD0136,Nước dừa,beverage,330 ml,60,0.5,15.0,0.0,0.0,hydration,Hỗ trợ bù điện giải nhẹ.,0.008333333333333333
+FD0137,Trà xanh không đường,beverage,240 ml,2,0.0,0.0,0.0,0.0,beverage,Đồ uống rất thấp kcal.,0.0
+FD0138,Latte ít đường,beverage,250 ml,120,6.0,14.0,4.0,0.0,beverage,Nên tính vào tổng calorie.,0.05
+FD0139,Cơm cá hồi rau củ,prepared_meal,1 hộp,540,32.0,48.0,24.0,5.0,meal prep|omega3,Bữa meal prep giàu omega-3.,0.05925925925925926
+FD0140,Cơm gà teriyaki fit,prepared_meal,1 hộp,460,34.0,52.0,8.0,4.0,meal prep,Phiên bản kiểm soát sốt và dầu.,0.07391304347826087
+FD0141,Bò bít tết khoai tây,prepared_meal,1 phần,580,36.0,45.0,22.0,5.0,balanced,Hợp giai đoạn duy trì/tăng cơ.,0.06206896551724138
+FD0142,Overnight oats whey,prepared_meal,1 hũ,410,29.0,48.0,10.0,8.0,breakfast,Bữa sáng chuẩn bị từ tối.,0.07073170731707316
+FD0143,Smoothie whey chuối bơ đậu phộng,prepared_meal,1 ly,450,31.0,40.0,18.0,5.0,high kcal,Phù hợp tăng cơ hoặc bữa phụ lớn.,0.06888888888888889
+FD0144,Salad gà bơ,prepared_meal,1 tô,430,32.0,18.0,24.0,8.0,low carb|protein,Hợp giảm mỡ nếu kiểm soát dầu.,0.07441860465116279
+FD0145,Wrap đậu hũ rau củ,prepared_meal,1 cuốn lớn,390,21.0,42.0,14.0,7.0,vegetarian,Bữa nhanh cho người ăn chay.,0.05384615384615385
+FD0146,Bún bò fit,prepared_meal,1 tô,520,30.0,56.0,16.0,4.0,balanced,Cần kiểm soát lượng nước dùng và dầu.,0.057692307692307696
+FD0147,Phở gà fit,prepared_meal,1 tô,470,30.0,52.0,11.0,2.0,balanced,"Phiên bản nhiều thịt, ít da.",0.06382978723404255
+FD0148,Cháo yến mạch trứng,prepared_meal,1 tô,330,20.0,34.0,12.0,4.0,breakfast,"Ấm bụng, dễ tiêu hóa.",0.06060606060606061
+FD0149,Rice bowl đậu gà rau củ,prepared_meal,1 tô,460,18.0,68.0,10.0,11.0,vegan|fiber,No lâu nhờ chất xơ cao.,0.0391304347826087

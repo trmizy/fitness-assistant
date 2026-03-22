@@ -1,0 +1,1607 @@
+{
+  "databaseType": "postgresql",
+  "exportedAt": "2026-03-21T16:34:21.304Z",
+  "tables": [
+    {
+      "tableName": "_prisma_migrations",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "character varying",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "checksum",
+          "dataType": "character varying",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "finished_at",
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "migration_name",
+          "dataType": "character varying",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "logs",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "rolled_back_at",
+          "dataType": "timestamp with time zone",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "started_at",
+          "dataType": "timestamp with time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "applied_steps_count",
+          "dataType": "integer",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "sampleRows": [
+        {
+          "id": "97ca24d8-4f6d-48e8-ae52-ca69b2ec3746",
+          "checksum": "a472637e728a7789a4791bdb313af097f26ae75536067bcdaee82be0d6c76f69",
+          "finished_at": null,
+          "migration_name": "20260120005039_",
+          "logs": "A migration failed to apply. New migrations cannot be applied before the error is recovered from. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\n\nMigration name: 20260120005039_\n\nDatabase error code: 42710\n\nDatabase error:\nERROR: type \"ExerciseType\" already exists\n\nDbError { severity: \"ERROR\", parsed_severity: Some(Error), code: SqlState(E42710), message: \"type \\\"ExerciseType\\\" already exists\", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some(\"typecmds.c\"), line: Some(1167), routine: Some(\"DefineEnum\") }\n\n   0: sql_schema_connector::apply_migration::apply_script\n           with migration_name=\"20260120005039_\"\n             at schema-engine/connectors/sql-schema-connector/src/apply_migration.rs:106\n   1: schema_core::commands::apply_migrations::Applying migration\n           with migration_name=\"20260120005039_\"\n             at schema-engine/core/src/commands/apply_migrations.rs:91\n   2: schema_core::state::ApplyMigrations\n             at schema-engine/core/src/state.rs:226",
+          "rolled_back_at": "2026-03-21T14:36:25.731Z",
+          "started_at": "2026-03-21T14:35:46.871Z",
+          "applied_steps_count": 0
+        },
+        {
+          "id": "51b56362-81a3-42b4-8b5a-12afbbc047c6",
+          "checksum": "cd27146dfc9632888e92b82f1479c6b32c3c3789cd027f768034bb6173d99769",
+          "finished_at": null,
+          "migration_name": "20260120005105_",
+          "logs": "A migration failed to apply. New migrations cannot be applied before the error is recovered from. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\n\nMigration name: 20260120005105_\n\nDatabase error code: 42P07\n\nDatabase error:\nERROR: relation \"conversations\" already exists\n\nDbError { severity: \"ERROR\", parsed_severity: Some(Error), code: SqlState(E42P07), message: \"relation \\\"conversations\\\" already exists\", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some(\"heap.c\"), line: Some(1150), routine: Some(\"heap_create_with_catalog\") }\n\n   0: sql_schema_connector::apply_migration::apply_script\n           with migration_name=\"20260120005105_\"\n             at schema-engine/connectors/sql-schema-connector/src/apply_migration.rs:106\n   1: schema_core::commands::apply_migrations::Applying migration\n           with migration_name=\"20260120005105_\"\n             at schema-engine/core/src/commands/apply_migrations.rs:91\n   2: schema_core::state::ApplyMigrations\n             at schema-engine/core/src/state.rs:226",
+          "rolled_back_at": "2026-03-21T14:34:34.439Z",
+          "started_at": "2026-03-21T14:16:45.548Z",
+          "applied_steps_count": 0
+        },
+        {
+          "id": "e9f59681-13e3-4df5-a9cc-74d57bd788f5",
+          "checksum": "cd27146dfc9632888e92b82f1479c6b32c3c3789cd027f768034bb6173d99769",
+          "finished_at": "2026-03-21T14:34:34.445Z",
+          "migration_name": "20260120005105_",
+          "logs": "",
+          "rolled_back_at": null,
+          "started_at": "2026-03-21T14:34:34.445Z",
+          "applied_steps_count": 0
+        },
+        {
+          "id": "fc3f4618-9b23-4b38-ab50-4a9b4fb4890e",
+          "checksum": "a472637e728a7789a4791bdb313af097f26ae75536067bcdaee82be0d6c76f69",
+          "finished_at": "2026-03-21T14:36:25.737Z",
+          "migration_name": "20260120005039_",
+          "logs": "",
+          "rolled_back_at": null,
+          "started_at": "2026-03-21T14:36:25.737Z",
+          "applied_steps_count": 0
+        },
+        {
+          "id": "2cf4ecff-0c3e-4ef6-9d45-31ce8a6a13dc",
+          "checksum": "0b898565c377840a3d8ee20a1241ed3d456f6a87eed9e7100eac1ea63387b5d8",
+          "finished_at": null,
+          "migration_name": "20260120003322_",
+          "logs": "A migration failed to apply. New migrations cannot be applied before the error is recovered from. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\n\nMigration name: 20260120003322_\n\nDatabase error code: 42710\n\nDatabase error:\nERROR: type \"Role\" already exists\n\nDbError { severity: \"ERROR\", parsed_severity: Some(Error), code: SqlState(E42710), message: \"type \\\"Role\\\" already exists\", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some(\"typecmds.c\"), line: Some(1167), routine: Some(\"DefineEnum\") }\n\n   0: sql_schema_connector::apply_migration::apply_script\n           with migration_name=\"20260120003322_\"\n             at schema-engine/connectors/sql-schema-connector/src/apply_migration.rs:106\n   1: schema_core::commands::apply_migrations::Applying migration\n           with migration_name=\"20260120003322_\"\n             at schema-engine/core/src/commands/apply_migrations.rs:91\n   2: schema_core::state::ApplyMigrations\n             at schema-engine/core/src/state.rs:226",
+          "rolled_back_at": "2026-03-21T14:35:43.427Z",
+          "started_at": "2026-03-21T14:35:08.199Z",
+          "applied_steps_count": 0
+        },
+        {
+          "id": "db9ba782-4a4e-4ed9-9122-6a62704667cf",
+          "checksum": "0b898565c377840a3d8ee20a1241ed3d456f6a87eed9e7100eac1ea63387b5d8",
+          "finished_at": "2026-03-21T14:35:43.432Z",
+          "migration_name": "20260120003322_",
+          "logs": "",
+          "rolled_back_at": null,
+          "started_at": "2026-03-21T14:35:43.432Z",
+          "applied_steps_count": 0
+        },
+        {
+          "id": "6cff8122-2e9c-401c-9734-c8cf866ce7f9",
+          "checksum": "198ec35be181a928ef0b7ca58b26b5e494c6980e4d27c5c394044bd30cb47233",
+          "finished_at": null,
+          "migration_name": "20260316000000_add_email_verifications",
+          "logs": "A migration failed to apply. New migrations cannot be applied before the error is recovered from. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\n\nMigration name: 20260316000000_add_email_verifications\n\nDatabase error code: 42P07\n\nDatabase error:\nERROR: relation \"email_verifications\" already exists\n\nDbError { severity: \"ERROR\", parsed_severity: Some(Error), code: SqlState(E42P07), message: \"relation \\\"email_verifications\\\" already exists\", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some(\"heap.c\"), line: Some(1150), routine: Some(\"heap_create_with_catalog\") }\n\n   0: sql_schema_connector::apply_migration::apply_script\n           with migration_name=\"20260316000000_add_email_verifications\"\n             at schema-engine/connectors/sql-schema-connector/src/apply_migration.rs:106\n   1: schema_core::commands::apply_migrations::Applying migration\n           with migration_name=\"20260316000000_add_email_verifications\"\n             at schema-engine/core/src/commands/apply_migrations.rs:91\n   2: schema_core::state::ApplyMigrations\n             at schema-engine/core/src/state.rs:226",
+          "rolled_back_at": "2026-03-21T14:37:11.086Z",
+          "started_at": "2026-03-21T14:36:31.045Z",
+          "applied_steps_count": 0
+        },
+        {
+          "id": "8697859a-69a2-47c6-8eac-3b34db66e693",
+          "checksum": "198ec35be181a928ef0b7ca58b26b5e494c6980e4d27c5c394044bd30cb47233",
+          "finished_at": "2026-03-21T14:37:11.092Z",
+          "migration_name": "20260316000000_add_email_verifications",
+          "logs": "",
+          "rolled_back_at": null,
+          "started_at": "2026-03-21T14:37:11.092Z",
+          "applied_steps_count": 0
+        },
+        {
+          "id": "f40035dc-0db5-4f8f-a989-8df644d1a86a",
+          "checksum": "9439029d741deb24f265c5538f59c67d2e33834fbe504028f8f2f854b2ace8f3",
+          "finished_at": "2026-03-21T14:37:11.230Z",
+          "migration_name": "20260320000100_role_customer_pt",
+          "logs": null,
+          "rolled_back_at": null,
+          "started_at": "2026-03-21T14:37:11.148Z",
+          "applied_steps_count": 1
+        }
+      ]
+    },
+    {
+      "tableName": "audit_logs",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "userId",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": {
+            "referencedTable": "users",
+            "referencedColumn": "id"
+          }
+        },
+        {
+          "columnName": "action",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "ipAddress",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "userAgent",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "metadata",
+          "dataType": "jsonb",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "createdAt",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [
+        {
+          "columnName": "userId",
+          "referencedTable": "users",
+          "referencedColumn": "id"
+        }
+      ],
+      "sampleRows": [
+        {
+          "id": "87c6fdef-3604-4790-ba75-c3f0b56ab559",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "node",
+          "metadata": null,
+          "createdAt": "2026-03-19T22:47:08.374Z"
+        },
+        {
+          "id": "c43629a5-4986-49ec-aa66-786df5b7563a",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "node",
+          "metadata": null,
+          "createdAt": "2026-03-19T22:47:09.036Z"
+        },
+        {
+          "id": "3c655886-9269-43fb-a398-32e5e75aed66",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "node",
+          "metadata": null,
+          "createdAt": "2026-03-19T23:29:56.938Z"
+        },
+        {
+          "id": "61e4cfa2-8384-43f5-8300-812e2faac867",
+          "userId": "c48d8c84-6601-457f-98ca-5f2547eb4803",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "node",
+          "metadata": null,
+          "createdAt": "2026-03-19T23:29:57.043Z"
+        },
+        {
+          "id": "560db81a-8149-4ef1-babc-933754344450",
+          "userId": "d365f581-b0df-41f8-9cce-457fc5e8079d",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "node",
+          "metadata": null,
+          "createdAt": "2026-03-19T23:37:44.169Z"
+        },
+        {
+          "id": "62843b4b-4c26-4283-8a90-c0846d93414c",
+          "userId": "5879f01c-0cf2-4acb-8f8c-8bda9ec43fd6",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "node",
+          "metadata": null,
+          "createdAt": "2026-03-19T23:37:44.211Z"
+        },
+        {
+          "id": "269a4323-0336-49c0-9877-aaef0f097f21",
+          "userId": "17568715-a7b6-49f0-b88e-1f08a120dd55",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "node",
+          "metadata": null,
+          "createdAt": "2026-03-19T23:37:44.249Z"
+        },
+        {
+          "id": "e817f706-e6ae-4e3d-a386-3db633f0f8a2",
+          "userId": "5879f01c-0cf2-4acb-8f8c-8bda9ec43fd6",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0",
+          "metadata": null,
+          "createdAt": "2026-03-19T23:39:36.793Z"
+        },
+        {
+          "id": "42ab1387-7714-4c10-b26f-3040eede1caa",
+          "userId": "5879f01c-0cf2-4acb-8f8c-8bda9ec43fd6",
+          "action": "REFRESH_TOKEN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36 Edg/146.0.0.0",
+          "metadata": null,
+          "createdAt": "2026-03-19T23:59:31.075Z"
+        },
+        {
+          "id": "233e25f3-33c1-41d7-8e2d-227881cfc1b5",
+          "userId": "5879f01c-0cf2-4acb-8f8c-8bda9ec43fd6",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
+          "metadata": null,
+          "createdAt": "2026-03-21T08:09:43.222Z"
+        },
+        {
+          "id": "b8a8fc92-c030-4910-873f-e24e7233703d",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.26100.8068",
+          "metadata": null,
+          "createdAt": "2026-03-21T08:49:25.241Z"
+        },
+        {
+          "id": "59375a58-d551-477c-909f-51efc7d5e7a2",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.26100.8068",
+          "metadata": null,
+          "createdAt": "2026-03-21T08:49:37.169Z"
+        },
+        {
+          "id": "ebd992b7-3d68-4184-8cba-79180022995b",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.26100.8068",
+          "metadata": null,
+          "createdAt": "2026-03-21T08:49:43.469Z"
+        },
+        {
+          "id": "eb89a127-5258-4798-b91f-70fdb7e7090b",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.26100.8068",
+          "metadata": null,
+          "createdAt": "2026-03-21T08:52:46.451Z"
+        },
+        {
+          "id": "e2bfad85-8a27-4593-b7fc-87aae98938d7",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.26100.8068",
+          "metadata": null,
+          "createdAt": "2026-03-21T08:54:07.351Z"
+        },
+        {
+          "id": "531d01e2-6603-4d05-8b90-b12dbfa33ad4",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.26100.8068",
+          "metadata": null,
+          "createdAt": "2026-03-21T08:54:29.361Z"
+        },
+        {
+          "id": "b160a0fb-9e90-4c00-be4a-5b74b526a701",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.26100.8068",
+          "metadata": null,
+          "createdAt": "2026-03-21T08:54:41.540Z"
+        },
+        {
+          "id": "65fe1e23-5461-4c8b-8238-4fed2f8f3025",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.26100.8068",
+          "metadata": null,
+          "createdAt": "2026-03-21T08:56:11.856Z"
+        },
+        {
+          "id": "d01df4bc-32e8-4a2b-a159-3be7c59e0624",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "action": "LOGIN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.26100.8068",
+          "metadata": null,
+          "createdAt": "2026-03-21T09:11:47.709Z"
+        },
+        {
+          "id": "d3871e5e-ae59-406e-a5ae-c26d57f500a1",
+          "userId": "5879f01c-0cf2-4acb-8f8c-8bda9ec43fd6",
+          "action": "REFRESH_TOKEN",
+          "ipAddress": "::ffff:172.21.0.10",
+          "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
+          "metadata": null,
+          "createdAt": "2026-03-21T09:25:43.296Z"
+        }
+      ]
+    },
+    {
+      "tableName": "conversations",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "user_id",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "question",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "answer",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "model_used",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "response_time",
+          "dataType": "double precision",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "relevance",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "relevance_explanation",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "prompt_tokens",
+          "dataType": "integer",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "completion_tokens",
+          "dataType": "integer",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "total_tokens",
+          "dataType": "integer",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "cost",
+          "dataType": "double precision",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "feedback",
+          "dataType": "integer",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "feedback_timestamp",
+          "dataType": "timestamp without time zone",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "created_at",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "sampleRows": [
+        {
+          "id": "53d5a0b6-f24a-4389-a734-0d11ba2ce518",
+          "user_id": "1164e62d-bc12-4540-828a-016508c64862",
+          "question": "Bai tap bung 15 phut",
+          "answer": "I can't help with that. Is there anything else I can help you with?",
+          "model_used": "llama3.2:3b",
+          "response_time": 6.666,
+          "relevance": "UNKNOWN",
+          "relevance_explanation": "Failed to parse evaluation",
+          "prompt_tokens": "***MASKED***",
+          "completion_tokens": "***MASKED***",
+          "total_tokens": "***MASKED***",
+          "cost": 0,
+          "feedback": null,
+          "feedback_timestamp": null,
+          "created_at": "2026-03-19T22:47:15.899Z"
+        },
+        {
+          "id": "a5f5185a-0432-4f86-bea1-ed42be0a4253",
+          "user_id": "1164e62d-bc12-4540-828a-016508c64862",
+          "question": "John private question",
+          "answer": "I can't answer that question. Is there anything else I can help you with?",
+          "model_used": "llama3.2:3b",
+          "response_time": 6.559,
+          "relevance": "NON_RELEVANT",
+          "relevance_explanation": "The generated answer is 'I can't answer that question. Is there anything else I can help you with?' which implies that the original private question cannot be answered, but does not provide any relevant information or solution to the query. The response shifts focus to offering alternative assistance, rather than addressing the specific query.",
+          "prompt_tokens": "***MASKED***",
+          "completion_tokens": "***MASKED***",
+          "total_tokens": "***MASKED***",
+          "cost": 0,
+          "feedback": null,
+          "feedback_timestamp": null,
+          "created_at": "2026-03-19T23:30:03.666Z"
+        },
+        {
+          "id": "aed122d1-24fa-4feb-98be-226686f86daa",
+          "user_id": "5879f01c-0cf2-4acb-8f8c-8bda9ec43fd6",
+          "question": "Suggest a 45-minute upper body workout",
+          "answer": "I'd be happy to suggest a 45-minute upper body workout! Here's a routine that you can follow:\n\nWarm-up (5 minutes):\n- Jumping jacks: 30 seconds\n- Dynamic arm circles: 30 seconds (forward and backward)\n- Shoulder rolls: 30 seconds\n- Wrist extensions: 30 seconds\n\nUpper Body Circuit (25 minutes):\n\n1. Push-ups: 3 sets of 12 reps, rest for 30 seconds between sets\n2. Incline dumbbell press: 3 sets of 10 reps, rest for 30 seconds between sets\n3. Bent-over dumbbell rows: 3 sets of 12 reps, rest for 30 seconds between sets\n4. Tricep dips (using a chair or bench): 3 sets of 12 reps, rest for 30 seconds between sets\n5. Bicep curls (using dumbbells): 3 sets of 10 reps, rest for 30 seconds between sets\n\nCool-down (15 minutes):\n- Static stretches for chest, shoulders, triceps, and biceps: hold each stretch for 20-30 seconds",
+          "model_used": "llama3.2:3b",
+          "response_time": 11.602,
+          "relevance": "UNKNOWN",
+          "relevance_explanation": "Failed to parse evaluation",
+          "prompt_tokens": "***MASKED***",
+          "completion_tokens": "***MASKED***",
+          "total_tokens": "***MASKED***",
+          "cost": 0,
+          "feedback": null,
+          "feedback_timestamp": null,
+          "created_at": "2026-03-19T23:40:29.541Z"
+        }
+      ]
+    },
+    {
+      "tableName": "email_verifications",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "email",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "passwordHash",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "firstName",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "lastName",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "otpHash",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "attempts",
+          "dataType": "integer",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "expiresAt",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "sentAt",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "createdAt",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "updatedAt",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "sampleRows": [
+        {
+          "id": "2cbd0d4b-a30d-4e1f-bd56-2e7bc158b213",
+          "email": "john.doe@example.com",
+          "passwordHash": "***MASKED***",
+          "firstName": "John",
+          "lastName": "Doe",
+          "otpHash": "***MASKED***",
+          "attempts": 0,
+          "expiresAt": "2026-03-19T22:56:08.481Z",
+          "sentAt": "2026-03-19T22:46:08.481Z",
+          "createdAt": "2026-03-19T22:46:08.483Z",
+          "updatedAt": "2026-03-19T22:46:08.483Z"
+        },
+        {
+          "id": "a57d8f9e-5f50-4b26-a81b-08470f46df7f",
+          "email": "admin.fitassistant@example.com",
+          "passwordHash": "***MASKED***",
+          "firstName": "Admin",
+          "lastName": "Owner",
+          "otpHash": "***MASKED***",
+          "attempts": 0,
+          "expiresAt": "2026-03-19T23:46:22.534Z",
+          "sentAt": "2026-03-19T23:36:22.534Z",
+          "createdAt": "2026-03-19T23:36:22.536Z",
+          "updatedAt": "2026-03-19T23:36:22.536Z"
+        },
+        {
+          "id": "5c4c0adc-391b-4678-9e70-74eb6b1188d4",
+          "email": "user1.fitassistant@example.com",
+          "passwordHash": "***MASKED***",
+          "firstName": "User",
+          "lastName": "One",
+          "otpHash": "***MASKED***",
+          "attempts": 0,
+          "expiresAt": "2026-03-19T23:46:22.660Z",
+          "sentAt": "2026-03-19T23:36:22.660Z",
+          "createdAt": "2026-03-19T23:36:22.661Z",
+          "updatedAt": "2026-03-19T23:36:22.661Z"
+        },
+        {
+          "id": "72214975-4cfc-4106-9f47-0f001375cbb5",
+          "email": "user2.fitassistant@example.com",
+          "passwordHash": "***MASKED***",
+          "firstName": "User",
+          "lastName": "Two",
+          "otpHash": "***MASKED***",
+          "attempts": 0,
+          "expiresAt": "2026-03-19T23:46:22.745Z",
+          "sentAt": "2026-03-19T23:36:22.745Z",
+          "createdAt": "2026-03-19T23:36:22.746Z",
+          "updatedAt": "2026-03-19T23:36:22.746Z"
+        }
+      ]
+    },
+    {
+      "tableName": "exercises",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "exercise_name",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "type_of_activity",
+          "dataType": "USER-DEFINED",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "type_of_equipment",
+          "dataType": "USER-DEFINED",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "body_part",
+          "dataType": "USER-DEFINED",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "type",
+          "dataType": "USER-DEFINED",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "muscle_groups_activated",
+          "dataType": "ARRAY",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "instructions",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "video_url",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "created_at",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "updated_at",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "sampleRows": []
+    },
+    {
+      "tableName": "nutrition_logs",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "user_id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "date",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "meal_type",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "food_name",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "calories",
+          "dataType": "integer",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "protein",
+          "dataType": "double precision",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "carbs",
+          "dataType": "double precision",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "fats",
+          "dataType": "double precision",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "notes",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "created_at",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "updated_at",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "sampleRows": []
+    },
+    {
+      "tableName": "refresh_tokens",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "token",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "userId",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": {
+            "referencedTable": "users",
+            "referencedColumn": "id"
+          }
+        },
+        {
+          "columnName": "expiresAt",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "createdAt",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [
+        {
+          "columnName": "userId",
+          "referencedTable": "users",
+          "referencedColumn": "id"
+        }
+      ],
+      "sampleRows": [
+        {
+          "id": "9309f966-fc0d-401c-8b56-f59f69c60e38",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-26T22:47:08.367Z",
+          "createdAt": "2026-03-19T22:47:08.368Z"
+        },
+        {
+          "id": "e7a50dbb-06ab-4ace-8c9c-673d8bcdfad4",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-26T22:47:09.031Z",
+          "createdAt": "2026-03-19T22:47:09.032Z"
+        },
+        {
+          "id": "a46b2d4b-e27b-45fc-a72e-31712bca58e6",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-26T23:29:56.929Z",
+          "createdAt": "2026-03-19T23:29:56.930Z"
+        },
+        {
+          "id": "aa71279b-888a-4bd9-9cf1-25fd40c8f0d1",
+          "token": "***MASKED***",
+          "userId": "c48d8c84-6601-457f-98ca-5f2547eb4803",
+          "expiresAt": "2026-03-26T23:29:57.038Z",
+          "createdAt": "2026-03-19T23:29:57.039Z"
+        },
+        {
+          "id": "a3258c99-a8a4-4ec6-9f6f-44927dd2a779",
+          "token": "***MASKED***",
+          "userId": "d365f581-b0df-41f8-9cce-457fc5e8079d",
+          "expiresAt": "2026-03-26T23:37:44.162Z",
+          "createdAt": "2026-03-19T23:37:44.163Z"
+        },
+        {
+          "id": "8fed8116-b056-415a-ab03-2a04de06c47e",
+          "token": "***MASKED***",
+          "userId": "5879f01c-0cf2-4acb-8f8c-8bda9ec43fd6",
+          "expiresAt": "2026-03-26T23:37:44.206Z",
+          "createdAt": "2026-03-19T23:37:44.208Z"
+        },
+        {
+          "id": "97266435-5736-4fa7-bd19-d3387daafb1c",
+          "token": "***MASKED***",
+          "userId": "17568715-a7b6-49f0-b88e-1f08a120dd55",
+          "expiresAt": "2026-03-26T23:37:44.243Z",
+          "createdAt": "2026-03-19T23:37:44.244Z"
+        },
+        {
+          "id": "d9e8178e-b51a-449a-af6c-2af1f22c9115",
+          "token": "***MASKED***",
+          "userId": "5879f01c-0cf2-4acb-8f8c-8bda9ec43fd6",
+          "expiresAt": "2026-03-26T23:59:31.069Z",
+          "createdAt": "2026-03-19T23:59:31.070Z"
+        },
+        {
+          "id": "95f99a9a-0738-4c32-907e-e7e03b26e00f",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-28T08:49:25.221Z",
+          "createdAt": "2026-03-21T08:49:25.223Z"
+        },
+        {
+          "id": "47d30786-3069-4728-94b9-8daa4da315d5",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-28T08:49:37.163Z",
+          "createdAt": "2026-03-21T08:49:37.165Z"
+        },
+        {
+          "id": "227bb2bf-a1db-4be2-8688-7350576c20c5",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-28T08:49:43.458Z",
+          "createdAt": "2026-03-21T08:49:43.460Z"
+        },
+        {
+          "id": "86a4f356-7ee9-46c4-922d-ca8e8f607f88",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-28T08:52:46.444Z",
+          "createdAt": "2026-03-21T08:52:46.445Z"
+        },
+        {
+          "id": "afa90ac5-14b4-4579-936b-f34d6850f7cd",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-28T08:54:07.341Z",
+          "createdAt": "2026-03-21T08:54:07.343Z"
+        },
+        {
+          "id": "6d02f450-8b60-4f4e-8a3e-812123e53fff",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-28T08:54:29.356Z",
+          "createdAt": "2026-03-21T08:54:29.357Z"
+        },
+        {
+          "id": "ebe932ee-bb16-4757-a68e-b2a95eaaf411",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-28T08:54:41.535Z",
+          "createdAt": "2026-03-21T08:54:41.536Z"
+        },
+        {
+          "id": "ecacd524-e0b4-4973-bf16-cf62e145eaf6",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-28T08:56:11.850Z",
+          "createdAt": "2026-03-21T08:56:11.851Z"
+        },
+        {
+          "id": "2571a897-70e4-4c53-b649-06209a19d02b",
+          "token": "***MASKED***",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "expiresAt": "2026-03-28T09:11:47.694Z",
+          "createdAt": "2026-03-21T09:11:47.696Z"
+        },
+        {
+          "id": "e8c22d83-3a37-417e-8b1b-ea9a7c4e9ddb",
+          "token": "***MASKED***",
+          "userId": "5879f01c-0cf2-4acb-8f8c-8bda9ec43fd6",
+          "expiresAt": "2026-03-28T09:25:43.287Z",
+          "createdAt": "2026-03-21T09:25:43.288Z"
+        }
+      ]
+    },
+    {
+      "tableName": "user_profiles",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "userId",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "age",
+          "dataType": "integer",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "gender",
+          "dataType": "USER-DEFINED",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "heightCm",
+          "dataType": "double precision",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "goal",
+          "dataType": "USER-DEFINED",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "activityLevel",
+          "dataType": "USER-DEFINED",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "experienceLevel",
+          "dataType": "USER-DEFINED",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "preferredTrainingDays",
+          "dataType": "ARRAY",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "availableEquipment",
+          "dataType": "ARRAY",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "injuries",
+          "dataType": "ARRAY",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "currentWeight",
+          "dataType": "double precision",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "targetWeight",
+          "dataType": "double precision",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "createdAt",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "updatedAt",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "isPT",
+          "dataType": "boolean",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "sampleRows": [
+        {
+          "id": "dfd43fcc-3290-4053-ab40-2852672354f6",
+          "userId": "1164e62d-bc12-4540-828a-016508c64862",
+          "age": 29,
+          "gender": null,
+          "heightCm": 176,
+          "goal": "MUSCLE_GAIN",
+          "activityLevel": null,
+          "experienceLevel": "INTERMEDIATE",
+          "preferredTrainingDays": null,
+          "availableEquipment": null,
+          "injuries": null,
+          "currentWeight": 74,
+          "targetWeight": null,
+          "createdAt": "2026-03-19T22:47:09.207Z",
+          "updatedAt": "2026-03-21T09:11:48.135Z",
+          "isPT": false
+        },
+        {
+          "id": "de6dbd4a-11e5-4f96-9785-321aa9c1c605",
+          "userId": "5879f01c-0cf2-4acb-8f8c-8bda9ec43fd6",
+          "age": 21,
+          "gender": null,
+          "heightCm": 173,
+          "goal": "WEIGHT_LOSS",
+          "activityLevel": "MODERATELY_ACTIVE",
+          "experienceLevel": "INTERMEDIATE",
+          "preferredTrainingDays": null,
+          "availableEquipment": null,
+          "injuries": null,
+          "currentWeight": 80,
+          "targetWeight": null,
+          "createdAt": "2026-03-19T23:40:01.256Z",
+          "updatedAt": "2026-03-21T09:26:00.766Z",
+          "isPT": false
+        }
+      ]
+    },
+    {
+      "tableName": "users",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "email",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "password",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "firstName",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "lastName",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "role",
+          "dataType": "USER-DEFINED",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "createdAt",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "updatedAt",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "sampleRows": [
+        {
+          "id": "1164e62d-bc12-4540-828a-016508c64862",
+          "email": "john.doe@example.com",
+          "password": "***MASKED***",
+          "firstName": null,
+          "lastName": null,
+          "role": "CUSTOMER",
+          "createdAt": "2026-03-19T22:47:07.796Z",
+          "updatedAt": "2026-03-19T22:47:07.796Z"
+        },
+        {
+          "id": "c48d8c84-6601-457f-98ca-5f2547eb4803",
+          "email": "jane.smith@example.com",
+          "password": "***MASKED***",
+          "firstName": null,
+          "lastName": null,
+          "role": "CUSTOMER",
+          "createdAt": "2026-03-19T23:29:56.161Z",
+          "updatedAt": "2026-03-19T23:29:56.161Z"
+        },
+        {
+          "id": "d365f581-b0df-41f8-9cce-457fc5e8079d",
+          "email": "admin.fitassistant@example.com",
+          "password": "***MASKED***",
+          "firstName": "Admin",
+          "lastName": "Owner",
+          "role": "ADMIN",
+          "createdAt": "2026-03-19T23:37:40.072Z",
+          "updatedAt": "2026-03-19T23:37:40.072Z"
+        },
+        {
+          "id": "17568715-a7b6-49f0-b88e-1f08a120dd55",
+          "email": "user2.fitassistant@example.com",
+          "password": "***MASKED***",
+          "firstName": "User",
+          "lastName": "Two",
+          "role": "CUSTOMER",
+          "createdAt": "2026-03-19T23:37:40.072Z",
+          "updatedAt": "2026-03-19T23:37:40.072Z"
+        },
+        {
+          "id": "5879f01c-0cf2-4acb-8f8c-8bda9ec43fd6",
+          "email": "user1.fitassistant@example.com",
+          "password": "***MASKED***",
+          "firstName": "duy",
+          "lastName": "tran",
+          "role": "CUSTOMER",
+          "createdAt": "2026-03-19T23:37:40.072Z",
+          "updatedAt": "2026-03-19T23:40:01.220Z"
+        }
+      ]
+    },
+    {
+      "tableName": "workout_exercises",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "workout_id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": {
+            "referencedTable": "workouts",
+            "referencedColumn": "id"
+          }
+        },
+        {
+          "columnName": "exercise_id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": {
+            "referencedTable": "exercises",
+            "referencedColumn": "id"
+          }
+        },
+        {
+          "columnName": "sets",
+          "dataType": "integer",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "reps",
+          "dataType": "integer",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "duration",
+          "dataType": "integer",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "weight",
+          "dataType": "double precision",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "notes",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "order",
+          "dataType": "integer",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "created_at",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [
+        {
+          "columnName": "exercise_id",
+          "referencedTable": "exercises",
+          "referencedColumn": "id"
+        },
+        {
+          "columnName": "workout_id",
+          "referencedTable": "workouts",
+          "referencedColumn": "id"
+        }
+      ],
+      "sampleRows": []
+    },
+    {
+      "tableName": "workout_plans",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "user_id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "name",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "description",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "goal",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "duration",
+          "dataType": "integer",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "days_per_week",
+          "dataType": "integer",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "plan",
+          "dataType": "jsonb",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "created_at",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "updated_at",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "sampleRows": []
+    },
+    {
+      "tableName": "workouts",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": true,
+          "foreignKey": null
+        },
+        {
+          "columnName": "user_id",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "name",
+          "dataType": "text",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "description",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "date",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "duration",
+          "dataType": "integer",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "notes",
+          "dataType": "text",
+          "isNullable": true,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "created_at",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        },
+        {
+          "columnName": "updated_at",
+          "dataType": "timestamp without time zone",
+          "isNullable": false,
+          "isPrimaryKey": false,
+          "foreignKey": null
+        }
+      ],
+      "primaryKeys": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "sampleRows": []
+    }
+  ]
+}

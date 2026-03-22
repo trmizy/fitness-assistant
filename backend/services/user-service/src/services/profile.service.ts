@@ -17,6 +17,17 @@ async function syncRoleToPT(userId: string): Promise<void> {
   );
 }
 
+async function syncRole(userId: string, role: 'PT' | 'CUSTOMER'): Promise<void> {
+  await axios.patch(
+    `${AUTH_SERVICE_URL}/auth/internal/users/${userId}/role`,
+    { role },
+    {
+      headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET },
+      timeout: 5000,
+    },
+  );
+}
+
 /**
  * TODO (Phase 2): Replace with real checks — e.g. certificate uploaded,
  * admin approval, ptApplicationStatus === 'APPROVED', etc.
@@ -57,5 +68,12 @@ export const profileService = {
   async deleteProfile(userId: string) {
     await profileRepository.deleteByUserId(userId);
     return { message: 'Profile deleted successfully' };
+  },
+
+  async adminSetPTStatus(userId: string, isPT: boolean) {
+    const targetRole: 'PT' | 'CUSTOMER' = isPT ? 'PT' : 'CUSTOMER';
+    await syncRole(userId, targetRole);
+    const profile = await profileRepository.setIsPTByUserId(userId, isPT);
+    return { profile };
   },
 };

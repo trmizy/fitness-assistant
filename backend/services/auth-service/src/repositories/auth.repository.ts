@@ -3,6 +3,21 @@ import { PrismaClient, Role } from '../generated/prisma';
 export const prisma = new PrismaClient();
 
 export const authRepository = {
+  listUsers: () =>
+    prisma.user.findMany({
+      where: { role: { not: 'ADMIN' } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+
   findUserByEmail: (email: string) =>
     prisma.user.findUnique({ where: { email } }),
 

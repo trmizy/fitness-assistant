@@ -10,6 +10,7 @@ router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
 router.post('/verify', authController.verify);
 router.patch('/me', authController.updateMe);
+router.get('/users', authController.listUsers);
 router.patch('/users/:userId/role', authController.updateUserRole);
 router.patch('/internal/users/:userId/role', authController.updateUserRoleInternal);
 

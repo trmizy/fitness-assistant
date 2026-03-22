@@ -1,0 +1,1319 @@
+meal_item_id,meal_plan_id,meal_number,meal_name_vi,food_id,portion_factor,estimated_kcal,estimated_protein_g,estimated_carbs_g,estimated_fat_g,estimated_fiber_g,note
+MPI000001,MP0001,1,Bữa sáng,FD0075,1.0,120.0,24.0,4.0,1.5,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000002,MP0001,1,Bữa sáng,FD0023,1.0,87.0,1.9,20.1,0.1,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000003,MP0001,2,Bữa phụ 1,FD0067,0.8,164.0,15.2,0.0,11.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000004,MP0001,2,Bữa phụ 1,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000005,MP0001,3,Bữa trưa,FD0005,1.2,249.6,24.0,0.0,15.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000006,MP0001,3,Bữa trưa,FD0027,1.2,144.0,5.3,25.6,2.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000007,MP0001,3,Bữa trưa,FD0052,1.5,25.5,1.8,4.7,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000008,MP0001,3,Bữa trưa,FD0091,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000009,MP0001,4,Bữa phụ 2,FD0106,0.8,108.0,16.0,3.2,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000010,MP0001,4,Bữa phụ 2,FD0088,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000011,MP0001,5,Bữa tối,FD0071,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000012,MP0001,5,Bữa tối,FD0123,1.2,121.2,0.7,32.4,0.2,6.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000013,MP0001,5,Bữa tối,FD0099,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000014,MP0001,5,Bữa tối,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000015,MP0002,1,Bữa sáng,FD0074,1.0,80.0,10.0,2.0,3.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000016,MP0002,1,Bữa sáng,FD0025,1.0,158.0,5.8,30.9,0.9,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000017,MP0002,2,Bữa phụ 1,FD0008,0.8,79.2,19.2,0.2,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000018,MP0002,2,Bữa phụ 1,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000019,MP0002,3,Bữa trưa,FD0074,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000020,MP0002,3,Bữa trưa,FD0088,1.2,135.6,1.2,36.0,0.2,3.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000021,MP0002,3,Bữa trưa,FD0051,1.5,33.0,4.7,4.9,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000022,MP0002,3,Bữa trưa,FD0127,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000023,MP0002,4,Bữa phụ 2,FD0076,0.8,105.6,7.1,19.0,0.4,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000024,MP0002,4,Bữa phụ 2,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000025,MP0002,5,Bữa tối,FD0073,1.2,122.4,9.8,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000026,MP0002,5,Bữa tối,FD0025,1.2,189.6,7.0,37.1,1.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000027,MP0002,5,Bữa tối,FD0093,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000028,MP0002,5,Bữa tối,FD0092,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000029,MP0003,1,Bữa sáng,FD0070,1.0,135.0,20.0,4.0,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000030,MP0003,1,Bữa sáng,FD0028,1.0,96.0,3.4,21.0,1.5,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000031,MP0003,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000032,MP0003,2,Bữa trưa,FD0005,1.2,249.6,24.0,0.0,15.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000033,MP0003,2,Bữa trưa,FD0024,1.2,177.6,8.4,30.0,2.8,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000034,MP0003,2,Bữa trưa,FD0046,1.5,25.5,1.8,4.9,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000035,MP0003,2,Bữa trưa,FD0038,0.5,87.0,3.2,3.0,7.5,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000036,MP0003,3,Bữa phụ,FD0106,1.0,135.0,20.0,4.0,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000037,MP0003,4,Bữa tối,FD0009,1.2,86.4,7.6,0.5,5.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000038,MP0003,4,Bữa tối,FD0120,1.2,60.0,0.6,15.6,0.1,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000039,MP0003,4,Bữa tối,FD0045,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000040,MP0003,4,Bữa tối,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000041,MP0004,1,Bữa sáng,FD0068,1.0,97.0,19.0,0.0,1.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000042,MP0004,1,Bữa sáng,FD0026,1.0,109.0,1.8,24.5,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000043,MP0004,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000044,MP0004,2,Bữa phụ 1,FD0106,1.0,135.0,20.0,4.0,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000045,MP0004,2,Bữa phụ 1,FD0078,0.7,69.3,3.6,15.0,0.1,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000046,MP0004,3,Bữa trưa,FD0109,1.2,122.4,9.8,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000047,MP0004,3,Bữa trưa,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000048,MP0004,3,Bữa trưa,FD0094,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000049,MP0004,3,Bữa trưa,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000050,MP0004,4,Bữa phụ 2,FD0007,1.0,128.0,26.0,0.0,2.7,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000051,MP0004,4,Bữa phụ 2,FD0115,0.7,171.5,6.7,33.6,1.0,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000052,MP0004,5,Bữa tối,FD0015,1.2,231.6,22.8,10.8,13.2,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000053,MP0004,5,Bữa tối,FD0025,1.2,189.6,7.0,37.1,1.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000054,MP0004,5,Bữa tối,FD0094,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000055,MP0005,1,Bữa sáng,FD0015,1.0,193.0,19.0,9.0,11.0,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000056,MP0005,1,Bữa sáng,FD0036,1.0,46.0,0.0,12.4,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000057,MP0005,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000058,MP0005,2,Bữa trưa,FD0109,1.2,122.4,9.8,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000059,MP0005,2,Bữa trưa,FD0124,1.2,135.6,1.2,36.0,0.2,3.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000060,MP0005,2,Bữa trưa,FD0131,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000061,MP0005,2,Bữa trưa,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000062,MP0005,3,Bữa phụ,FD0002,0.8,141.6,19.2,0.0,6.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000063,MP0005,3,Bữa phụ,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000064,MP0005,4,Bữa tối,FD0011,1.2,120.0,20.4,7.2,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000065,MP0005,4,Bữa tối,FD0030,1.2,114.0,0.6,30.0,0.4,5.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000066,MP0005,4,Bữa tối,FD0052,1.5,25.5,1.8,4.7,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000067,MP0006,1,Bữa sáng,FD0073,1.0,102.0,8.2,12.0,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000068,MP0006,1,Bữa sáng,FD0082,1.0,90.0,1.6,21.0,0.1,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000069,MP0006,1,Bữa sáng,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000070,MP0006,2,Bữa trưa,FD0110,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000071,MP0006,2,Bữa trưa,FD0085,1.2,50.4,1.0,12.0,0.5,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000072,MP0006,2,Bữa trưa,FD0046,1.5,25.5,1.8,4.9,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000073,MP0006,2,Bữa trưa,FD0092,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000074,MP0006,3,Bữa phụ,FD0002,0.8,141.6,19.2,0.0,6.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000075,MP0006,3,Bữa phụ,FD0031,1.0,62.0,1.2,15.4,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000076,MP0006,4,Bữa tối,FD0108,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000077,MP0006,4,Bữa tối,FD0032,1.2,38.4,0.8,9.2,0.4,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000078,MP0006,4,Bữa tối,FD0095,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000079,MP0006,4,Bữa tối,FD0042,0.5,36.5,1.2,3.1,2.4,2.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000080,MP0007,1,Bữa sáng,FD0070,1.0,135.0,20.0,4.0,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000081,MP0007,1,Bữa sáng,FD0079,1.0,245.0,9.6,48.0,1.5,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000082,MP0007,2,Bữa trưa,FD0149,1.0,460.0,18.0,68.0,10.0,11.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000083,MP0007,3,Bữa tối,FD0059,1.0,500.0,32.0,48.0,14.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000084,MP0007,3,Bữa tối,FD0131,1.0,19.0,1.5,3.2,0.2,1.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000085,MP0008,1,Bữa sáng,FD0006,1.0,132.0,29.0,0.0,1.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000086,MP0008,1,Bữa sáng,FD0036,1.0,46.0,0.0,12.4,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000087,MP0008,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000088,MP0008,2,Bữa trưa,FD0146,1.0,520.0,30.0,56.0,16.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000089,MP0008,3,Bữa tối,FD0144,1.0,430.0,32.0,18.0,24.0,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000090,MP0008,3,Bữa tối,FD0099,1.0,31.0,1.4,7.4,0.2,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000091,MP0009,1,Bữa sáng,FD0069,1.0,135.0,29.0,0.0,1.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000092,MP0009,1,Bữa sáng,FD0087,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000093,MP0009,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000094,MP0009,2,Bữa trưa,FD0104,1.2,116.4,22.8,0.0,1.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000095,MP0009,2,Bữa trưa,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000096,MP0009,2,Bữa trưa,FD0045,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000097,MP0009,2,Bữa trưa,FD0091,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000098,MP0009,3,Bữa tối,FD0004,1.2,171.6,31.2,0.0,4.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000099,MP0009,3,Bữa tối,FD0019,1.2,156.0,2.9,34.4,0.4,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000100,MP0009,3,Bữa tối,FD0050,1.5,61.5,1.4,15.0,0.3,4.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000101,MP0009,3,Bữa tối,FD0040,0.5,47.0,1.8,1.6,4.0,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000102,MP0010,1,Bữa sáng,FD0017,1.0,116.0,9.0,20.0,0.4,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000103,MP0010,1,Bữa sáng,FD0078,1.0,99.0,5.1,21.4,0.1,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000104,MP0010,1,Bữa sáng,FD0029,1.0,105.0,1.3,27.0,0.3,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000105,MP0010,2,Bữa trưa,FD0102,1.2,252.0,28.8,0.0,14.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000106,MP0010,2,Bữa trưa,FD0087,1.2,121.2,0.7,32.4,0.2,6.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000107,MP0010,2,Bữa trưa,FD0049,1.5,46.5,1.5,9.0,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000108,MP0010,2,Bữa trưa,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000109,MP0010,3,Bữa tối,FD0015,1.2,231.6,22.8,10.8,13.2,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000110,MP0010,3,Bữa tối,FD0117,1.2,168.0,4.8,28.8,4.2,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000111,MP0010,3,Bữa tối,FD0129,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000112,MP0011,1,Bữa sáng,FD0005,1.0,208.0,20.0,0.0,13.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000113,MP0011,1,Bữa sáng,FD0085,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000114,MP0011,2,Bữa trưa,FD0003,1.2,204.0,31.2,0.0,8.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000115,MP0011,2,Bữa trưa,FD0087,1.2,121.2,0.7,32.4,0.2,6.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000116,MP0011,2,Bữa trưa,FD0044,1.5,51.0,4.2,9.9,0.6,3.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000117,MP0011,2,Bữa trưa,FD0038,0.5,87.0,3.2,3.0,7.5,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000118,MP0011,3,Bữa phụ,FD0014,1.0,144.0,15.7,3.9,8.7,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000119,MP0011,3,Bữa phụ,FD0121,0.7,29.4,0.6,7.0,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000120,MP0011,4,Bữa tối,FD0072,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000121,MP0011,4,Bữa tối,FD0086,1.2,72.0,1.0,18.0,0.5,1.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000122,MP0011,4,Bữa tối,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000123,MP0011,4,Bữa tối,FD0037,0.5,80.0,1.0,4.2,7.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000124,MP0012,1,Bữa sáng,FD0011,1.0,100.0,17.0,6.0,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000125,MP0012,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000126,MP0012,1,Bữa sáng,FD0120,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000127,MP0012,2,Bữa trưa,FD0006,1.2,158.4,34.8,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000128,MP0012,2,Bữa trưa,FD0087,1.2,121.2,0.7,32.4,0.2,6.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000129,MP0012,2,Bữa trưa,FD0047,1.5,22.5,1.0,5.4,0.2,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000130,MP0012,2,Bữa trưa,FD0091,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000131,MP0012,3,Bữa phụ,FD0066,1.0,210.0,24.0,0.0,12.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000132,MP0012,3,Bữa phụ,FD0085,0.7,29.4,0.6,7.0,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000133,MP0012,4,Bữa tối,FD0066,1.2,252.0,28.8,0.0,14.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000134,MP0012,4,Bữa tối,FD0081,1.2,168.0,4.8,28.8,4.2,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000135,MP0012,4,Bữa tối,FD0051,1.5,33.0,4.7,4.9,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000136,MP0012,4,Bữa tối,FD0039,0.5,98.0,2.3,2.0,9.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000137,MP0013,1,Bữa sáng,FD0108,1.0,61.0,3.5,4.7,3.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000138,MP0013,1,Bữa sáng,FD0026,1.0,109.0,1.8,24.5,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000139,MP0013,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000140,MP0013,2,Bữa trưa,FD0074,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000141,MP0013,2,Bữa trưa,FD0082,1.2,108.0,1.9,25.2,0.1,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000142,MP0013,2,Bữa trưa,FD0135,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000143,MP0013,3,Bữa tối,FD0112,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000144,MP0013,3,Bữa tối,FD0028,1.2,115.2,4.1,25.2,1.8,2.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000145,MP0013,3,Bữa tối,FD0051,1.5,33.0,4.7,4.9,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000146,MP0013,3,Bữa tối,FD0041,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000147,MP0014,1,Bữa sáng,FD0017,1.0,116.0,9.0,20.0,0.4,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000148,MP0014,1,Bữa sáng,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000149,MP0014,1,Bữa sáng,FD0031,1.0,62.0,1.2,15.4,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000150,MP0014,2,Bữa trưa,FD0017,1.2,139.2,10.8,24.0,0.5,9.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000151,MP0014,2,Bữa trưa,FD0116,1.2,264.0,6.0,38.4,9.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000152,MP0014,2,Bữa trưa,FD0097,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000153,MP0014,3,Bữa tối,FD0110,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000154,MP0014,3,Bữa tối,FD0088,1.2,135.6,1.2,36.0,0.2,3.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000155,MP0014,3,Bữa tối,FD0133,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000156,MP0015,1,Bữa sáng,FD0112,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000157,MP0015,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000158,MP0015,1,Bữa sáng,FD0088,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000159,MP0015,2,Bữa phụ 1,FD0010,0.8,41.6,8.8,0.6,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000160,MP0015,2,Bữa phụ 1,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000161,MP0015,3,Bữa trưa,FD0060,1.0,390.0,30.0,48.0,8.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000162,MP0015,3,Bữa trưa,FD0132,1.0,31.0,1.8,7.0,0.1,2.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000163,MP0015,4,Bữa phụ 2,FD0066,0.8,168.0,19.2,0.0,9.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000164,MP0015,4,Bữa phụ 2,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000165,MP0015,5,Bữa tối,FD0149,1.0,460.0,18.0,68.0,10.0,11.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000166,MP0015,5,Bữa tối,FD0099,1.0,31.0,1.4,7.4,0.2,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000167,MP0016,1,Bữa sáng,FD0066,1.0,210.0,24.0,0.0,12.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000168,MP0016,1,Bữa sáng,FD0114,1.0,99.0,5.1,21.4,0.1,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000169,MP0016,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000170,MP0016,2,Bữa trưa,FD0142,1.0,410.0,29.0,48.0,10.0,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000171,MP0016,3,Bữa tối,FD0060,1.0,390.0,30.0,48.0,8.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000172,MP0017,1,Bữa sáng,FD0110,1.0,80.0,10.0,2.0,3.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000173,MP0017,1,Bữa sáng,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000174,MP0017,1,Bữa sáng,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000175,MP0017,2,Bữa trưa,FD0108,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000176,MP0017,2,Bữa trưa,FD0120,1.2,60.0,0.6,15.6,0.1,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000177,MP0017,2,Bữa trưa,FD0135,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000178,MP0017,3,Bữa tối,FD0075,1.2,144.0,28.8,4.8,1.8,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000179,MP0017,3,Bữa tối,FD0121,1.2,50.4,1.0,12.0,0.5,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000180,MP0017,3,Bữa tối,FD0132,1.5,46.5,2.7,10.5,0.2,4.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000181,MP0017,3,Bữa tối,FD0091,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000182,MP0018,1,Bữa sáng,FD0103,1.0,205.0,19.0,0.0,14.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000183,MP0018,1,Bữa sáng,FD0028,1.0,96.0,3.4,21.0,1.5,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000184,MP0018,2,Bữa trưa,FD0075,1.2,144.0,28.8,4.8,1.8,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000185,MP0018,2,Bữa trưa,FD0025,1.2,189.6,7.0,37.1,1.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000186,MP0018,2,Bữa trưa,FD0093,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000187,MP0018,3,Bữa phụ,FD0006,0.8,105.6,23.2,0.0,0.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000188,MP0018,3,Bữa phụ,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000189,MP0018,4,Bữa tối,FD0003,1.2,204.0,31.2,0.0,8.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000190,MP0018,4,Bữa tối,FD0034,1.2,82.8,0.8,21.6,0.2,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000191,MP0018,4,Bữa tối,FD0134,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000192,MP0018,4,Bữa tối,FD0089,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000193,MP0019,1,Bữa sáng,FD0104,1.0,97.0,19.0,0.0,1.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000194,MP0019,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000195,MP0019,1,Bữa sáng,FD0120,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000196,MP0019,2,Bữa phụ 1,FD0013,1.0,120.0,24.0,3.0,1.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000197,MP0019,2,Bữa phụ 1,FD0081,0.7,98.0,2.8,16.8,2.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000198,MP0019,3,Bữa trưa,FD0109,1.2,122.4,9.8,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000199,MP0019,3,Bữa trưa,FD0022,1.2,103.2,1.9,24.1,0.1,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000200,MP0019,3,Bữa trưa,FD0132,1.5,46.5,2.7,10.5,0.2,4.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000201,MP0019,3,Bữa trưa,FD0038,0.5,87.0,3.2,3.0,7.5,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000202,MP0019,4,Bữa phụ 2,FD0014,1.0,144.0,15.7,3.9,8.7,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000203,MP0019,4,Bữa phụ 2,FD0084,0.7,35.0,0.3,9.1,0.1,1.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000204,MP0019,5,Bữa tối,FD0054,1.2,123.6,9.6,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000205,MP0019,5,Bữa tối,FD0035,1.2,126.0,2.4,27.6,1.0,0.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000206,MP0019,5,Bữa tối,FD0135,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000207,MP0020,1,Bữa sáng,FD0010,1.0,52.0,11.0,0.7,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000208,MP0020,1,Bữa sáng,FD0081,1.0,140.0,4.0,24.0,3.5,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000209,MP0020,1,Bữa sáng,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000210,MP0020,2,Bữa phụ 1,FD0015,1.0,193.0,19.0,9.0,11.0,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000211,MP0020,2,Bữa phụ 1,FD0085,0.7,29.4,0.6,7.0,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000212,MP0020,3,Bữa trưa,FD0009,1.2,86.4,7.6,0.5,5.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000213,MP0020,3,Bữa trưa,FD0123,1.2,121.2,0.7,32.4,0.2,6.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000214,MP0020,3,Bữa trưa,FD0134,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000215,MP0020,4,Bữa phụ 2,FD0013,1.0,120.0,24.0,3.0,1.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000216,MP0020,4,Bữa phụ 2,FD0081,0.7,98.0,2.8,16.8,2.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000217,MP0020,5,Bữa tối,FD0009,1.2,86.4,7.6,0.5,5.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000218,MP0020,5,Bữa tối,FD0118,1.2,108.0,1.9,25.2,0.1,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000219,MP0020,5,Bữa tối,FD0046,1.5,25.5,1.8,4.9,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000220,MP0020,5,Bữa tối,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000221,MP0021,1,Bữa sáng,FD0074,1.0,80.0,10.0,2.0,3.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000222,MP0021,1,Bữa sáng,FD0020,1.0,112.0,2.6,23.0,0.9,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000223,MP0021,1,Bữa sáng,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000224,MP0021,2,Bữa phụ 1,FD0014,0.8,115.2,12.6,3.1,7.0,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000225,MP0021,2,Bữa phụ 1,FD0088,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000226,MP0021,3,Bữa trưa,FD0107,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000227,MP0021,3,Bữa trưa,FD0031,1.2,74.4,1.4,18.5,0.2,3.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000228,MP0021,3,Bữa trưa,FD0051,1.5,33.0,4.7,4.9,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000229,MP0021,4,Bữa phụ 2,FD0010,0.8,41.6,8.8,0.6,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000230,MP0021,4,Bữa phụ 2,FD0031,1.0,62.0,1.2,15.4,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000231,MP0021,5,Bữa tối,FD0072,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000232,MP0021,5,Bữa tối,FD0025,1.2,189.6,7.0,37.1,1.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000233,MP0021,5,Bữa tối,FD0099,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000234,MP0022,1,Bữa sáng,FD0108,1.0,61.0,3.5,4.7,3.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000235,MP0022,1,Bữa sáng,FD0021,1.0,156.0,6.0,27.0,3.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000236,MP0022,1,Bữa sáng,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000237,MP0022,2,Bữa phụ 1,FD0109,0.8,81.6,6.6,9.6,1.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000238,MP0022,2,Bữa phụ 1,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000239,MP0022,3,Bữa trưa,FD0016,1.2,145.2,14.3,10.7,6.2,6.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000240,MP0022,3,Bữa trưa,FD0029,1.2,126.0,1.6,32.4,0.4,3.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000241,MP0022,3,Bữa trưa,FD0049,1.5,46.5,1.5,9.0,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000242,MP0022,4,Bữa phụ 2,FD0110,0.8,64.0,8.0,1.6,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000243,MP0022,4,Bữa phụ 2,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000244,MP0022,5,Bữa tối,FD0077,1.2,152.4,10.4,27.4,0.6,7.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000245,MP0022,5,Bữa tối,FD0021,1.2,187.2,7.2,32.4,3.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000246,MP0022,5,Bữa tối,FD0096,1.5,46.5,2.7,10.5,0.2,4.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000247,MP0022,5,Bữa tối,FD0125,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000248,MP0023,1,Bữa sáng,FD0075,1.0,120.0,24.0,4.0,1.5,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000249,MP0023,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000250,MP0023,1,Bữa sáng,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000251,MP0023,2,Bữa trưa,FD0065,1.0,430.0,22.0,55.0,12.0,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000252,MP0023,3,Bữa tối,FD0140,1.0,460.0,34.0,52.0,8.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000253,MP0024,1,Bữa sáng,FD0013,1.0,120.0,24.0,3.0,1.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000254,MP0024,1,Bữa sáng,FD0083,1.0,26.0,1.0,6.5,0.1,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000255,MP0024,1,Bữa sáng,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000256,MP0024,2,Bữa trưa,FD0145,1.0,390.0,21.0,42.0,14.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000257,MP0024,3,Bữa phụ,FD0071,0.8,120.0,16.0,9.6,1.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000258,MP0024,3,Bữa phụ,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000259,MP0024,4,Bữa tối,FD0063,1.0,360.0,28.0,34.0,11.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000260,MP0025,1,Bữa sáng,FD0009,1.0,72.0,6.3,0.4,4.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000261,MP0025,1,Bữa sáng,FD0035,1.0,105.0,2.0,23.0,0.8,0.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000262,MP0025,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000263,MP0025,2,Bữa phụ 1,FD0070,0.8,108.0,16.0,3.2,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000264,MP0025,2,Bữa phụ 1,FD0032,1.0,32.0,0.7,7.7,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000265,MP0025,3,Bữa trưa,FD0104,1.2,116.4,22.8,0.0,1.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000266,MP0025,3,Bữa trưa,FD0026,1.2,130.8,2.2,29.4,0.2,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000267,MP0025,3,Bữa trưa,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000268,MP0025,3,Bữa trưa,FD0039,0.5,98.0,2.3,2.0,9.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000269,MP0025,4,Bữa phụ 2,FD0018,0.8,131.2,7.2,21.6,2.1,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000270,MP0025,4,Bữa phụ 2,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000271,MP0025,5,Bữa tối,FD0103,1.2,246.0,22.8,0.0,16.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000272,MP0025,5,Bữa tối,FD0028,1.2,115.2,4.1,25.2,1.8,2.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000273,MP0025,5,Bữa tối,FD0096,1.5,46.5,2.7,10.5,0.2,4.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000274,MP0025,5,Bữa tối,FD0128,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000275,MP0026,1,Bữa sáng,FD0075,1.0,120.0,24.0,4.0,1.5,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000276,MP0026,1,Bữa sáng,FD0082,1.0,90.0,1.6,21.0,0.1,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000277,MP0026,2,Bữa trưa,FD0073,1.2,122.4,9.8,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000278,MP0026,2,Bữa trưa,FD0022,1.2,103.2,1.9,24.1,0.1,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000279,MP0026,2,Bữa trưa,FD0095,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000280,MP0026,2,Bữa trưa,FD0040,0.5,47.0,1.8,1.6,4.0,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000281,MP0026,3,Bữa tối,FD0071,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000282,MP0026,3,Bữa tối,FD0024,1.2,177.6,8.4,30.0,2.8,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000283,MP0026,3,Bữa tối,FD0094,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000284,MP0026,3,Bữa tối,FD0042,0.5,36.5,1.2,3.1,2.4,2.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000285,MP0027,1,Bữa sáng,FD0112,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000286,MP0027,1,Bữa sáng,FD0081,1.0,140.0,4.0,24.0,3.5,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000287,MP0027,2,Bữa trưa,FD0009,1.2,86.4,7.6,0.5,5.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000288,MP0027,2,Bữa trưa,FD0021,1.2,187.2,7.2,32.4,3.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000289,MP0027,2,Bữa trưa,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000290,MP0027,3,Bữa tối,FD0077,1.2,152.4,10.4,27.4,0.6,7.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000291,MP0027,3,Bữa tối,FD0027,1.2,144.0,5.3,25.6,2.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000292,MP0027,3,Bữa tối,FD0134,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000293,MP0027,3,Bữa tối,FD0091,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000294,MP0028,1,Bữa sáng,FD0006,1.0,132.0,29.0,0.0,1.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000295,MP0028,1,Bữa sáng,FD0020,1.0,112.0,2.6,23.0,0.9,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000296,MP0028,1,Bữa sáng,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000297,MP0028,2,Bữa trưa,FD0106,1.2,162.0,24.0,4.8,4.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000298,MP0028,2,Bữa trưa,FD0123,1.2,121.2,0.7,32.4,0.2,6.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000299,MP0028,2,Bữa trưa,FD0099,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000300,MP0028,2,Bữa trưa,FD0126,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000301,MP0028,3,Bữa tối,FD0054,1.2,123.6,9.6,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000302,MP0028,3,Bữa tối,FD0034,1.2,82.8,0.8,21.6,0.2,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000303,MP0028,3,Bữa tối,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000304,MP0028,3,Bữa tối,FD0040,0.5,47.0,1.8,1.6,4.0,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000305,MP0029,1,Bữa sáng,FD0112,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000306,MP0029,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000307,MP0029,1,Bữa sáng,FD0032,1.0,32.0,0.7,7.7,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000308,MP0029,2,Bữa trưa,FD0107,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000309,MP0029,2,Bữa trưa,FD0123,1.2,121.2,0.7,32.4,0.2,6.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000310,MP0029,2,Bữa trưa,FD0129,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000311,MP0029,2,Bữa trưa,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000312,MP0029,3,Bữa phụ,FD0107,0.8,120.0,16.0,9.6,1.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000313,MP0029,3,Bữa phụ,FD0085,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000314,MP0029,4,Bữa tối,FD0016,1.2,145.2,14.3,10.7,6.2,6.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000315,MP0029,4,Bữa tối,FD0078,1.2,118.8,6.1,25.7,0.1,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000316,MP0029,4,Bữa tối,FD0096,1.5,46.5,2.7,10.5,0.2,4.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000317,MP0029,4,Bữa tối,FD0042,0.5,36.5,1.2,3.1,2.4,2.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000318,MP0030,1,Bữa sáng,FD0110,1.0,80.0,10.0,2.0,3.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000319,MP0030,1,Bữa sáng,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000320,MP0030,1,Bữa sáng,FD0031,1.0,62.0,1.2,15.4,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000321,MP0030,2,Bữa trưa,FD0108,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000322,MP0030,2,Bữa trưa,FD0083,1.2,31.2,1.2,7.8,0.1,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000323,MP0030,2,Bữa trưa,FD0046,1.5,25.5,1.8,4.9,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000324,MP0030,3,Bữa tối,FD0109,1.2,122.4,9.8,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000325,MP0030,3,Bữa tối,FD0117,1.2,168.0,4.8,28.8,4.2,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000326,MP0030,3,Bữa tối,FD0099,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000327,MP0030,3,Bữa tối,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000328,MP0031,1,Bữa sáng,FD0003,1.0,170.0,26.0,0.0,7.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000329,MP0031,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000330,MP0031,2,Bữa trưa,FD0139,1.0,540.0,32.0,48.0,24.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000331,MP0031,3,Bữa phụ,FD0069,0.8,108.0,23.2,0.0,0.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000332,MP0031,3,Bữa phụ,FD0031,1.0,62.0,1.2,15.4,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000333,MP0031,4,Bữa tối,FD0142,1.0,410.0,29.0,48.0,10.0,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000334,MP0031,4,Bữa tối,FD0133,1.0,25.0,1.9,5.0,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000335,MP0032,1,Bữa sáng,FD0007,1.0,128.0,26.0,0.0,2.7,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000336,MP0032,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000337,MP0032,2,Bữa phụ 1,FD0068,0.8,77.6,15.2,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000338,MP0032,2,Bữa phụ 1,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000339,MP0032,3,Bữa trưa,FD0059,1.0,500.0,32.0,48.0,14.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000340,MP0032,3,Bữa trưa,FD0093,1.0,23.0,2.9,3.6,0.4,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000341,MP0032,4,Bữa phụ 2,FD0112,0.8,105.6,7.1,19.0,0.4,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000342,MP0032,4,Bữa phụ 2,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000343,MP0032,5,Bữa tối,FD0145,1.0,390.0,21.0,42.0,14.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000344,MP0033,1,Bữa sáng,FD0111,1.0,120.0,24.0,4.0,1.5,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000345,MP0033,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000346,MP0033,2,Bữa trưa,FD0005,1.2,249.6,24.0,0.0,15.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000347,MP0033,2,Bữa trưa,FD0114,1.2,118.8,6.1,25.7,0.1,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000348,MP0033,2,Bữa trưa,FD0045,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000349,MP0033,2,Bữa trưa,FD0037,0.5,80.0,1.0,4.2,7.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000350,MP0033,3,Bữa phụ,FD0013,0.8,96.0,19.2,2.4,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000351,MP0033,3,Bữa phụ,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000352,MP0033,4,Bữa tối,FD0067,1.2,246.0,22.8,0.0,16.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000353,MP0033,4,Bữa tối,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000354,MP0033,4,Bữa tối,FD0099,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000355,MP0033,4,Bữa tối,FD0127,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000356,MP0034,1,Bữa sáng,FD0077,1.0,127.0,8.7,22.8,0.5,6.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000357,MP0034,1,Bữa sáng,FD0035,1.0,105.0,2.0,23.0,0.8,0.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000358,MP0034,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000359,MP0034,2,Bữa phụ 1,FD0054,0.8,82.4,6.4,9.6,1.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000360,MP0034,2,Bữa phụ 1,FD0120,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000361,MP0034,3,Bữa trưa,FD0004,1.2,171.6,31.2,0.0,4.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000362,MP0034,3,Bữa trưa,FD0081,1.2,168.0,4.8,28.8,4.2,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000363,MP0034,3,Bữa trưa,FD0052,1.5,25.5,1.8,4.7,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000364,MP0034,3,Bữa trưa,FD0042,0.5,36.5,1.2,3.1,2.4,2.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000365,MP0034,4,Bữa phụ 2,FD0074,0.8,64.0,8.0,1.6,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000366,MP0034,4,Bữa phụ 2,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000367,MP0034,5,Bữa tối,FD0075,1.2,144.0,28.8,4.8,1.8,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000368,MP0034,5,Bữa tối,FD0084,1.2,60.0,0.6,15.6,0.1,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000369,MP0034,5,Bữa tối,FD0093,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000370,MP0035,1,Bữa sáng,FD0102,1.0,210.0,24.0,0.0,12.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000371,MP0035,1,Bữa sáng,FD0083,1.0,26.0,1.0,6.5,0.1,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000372,MP0035,2,Bữa trưa,FD0104,1.2,116.4,22.8,0.0,1.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000373,MP0035,2,Bữa trưa,FD0036,1.2,55.2,0.0,14.9,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000374,MP0035,2,Bữa trưa,FD0046,1.5,25.5,1.8,4.9,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000375,MP0035,3,Bữa phụ,FD0003,1.0,170.0,26.0,0.0,7.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000376,MP0035,3,Bữa phụ,FD0030,0.7,66.5,0.3,17.5,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000377,MP0035,4,Bữa tối,FD0105,1.2,162.0,34.8,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000378,MP0035,4,Bữa tối,FD0078,1.2,118.8,6.1,25.7,0.1,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000379,MP0035,4,Bữa tối,FD0093,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000380,MP0035,4,Bữa tối,FD0042,0.5,36.5,1.2,3.1,2.4,2.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000381,MP0036,1,Bữa sáng,FD0054,1.0,103.0,8.0,12.0,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000382,MP0036,1,Bữa sáng,FD0079,1.0,245.0,9.6,48.0,1.5,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000383,MP0036,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000384,MP0036,2,Bữa phụ 1,FD0006,1.0,132.0,29.0,0.0,1.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000385,MP0036,3,Bữa trưa,FD0069,1.2,162.0,34.8,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000386,MP0036,3,Bữa trưa,FD0088,1.2,135.6,1.2,36.0,0.2,3.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000387,MP0036,3,Bữa trưa,FD0045,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000388,MP0036,4,Bữa phụ 2,FD0015,1.0,193.0,19.0,9.0,11.0,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000389,MP0036,5,Bữa tối,FD0074,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000390,MP0036,5,Bữa tối,FD0036,1.2,55.2,0.0,14.9,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000391,MP0036,5,Bữa tối,FD0132,1.5,46.5,2.7,10.5,0.2,4.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000392,MP0037,1,Bữa sáng,FD0014,1.0,144.0,15.7,3.9,8.7,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000393,MP0037,1,Bữa sáng,FD0085,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000394,MP0037,1,Bữa sáng,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000395,MP0037,2,Bữa trưa,FD0011,1.2,120.0,20.4,7.2,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000396,MP0037,2,Bữa trưa,FD0028,1.2,115.2,4.1,25.2,1.8,2.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000397,MP0037,2,Bữa trưa,FD0131,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000398,MP0037,2,Bữa trưa,FD0089,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000399,MP0037,3,Bữa tối,FD0012,1.2,117.6,13.2,4.1,5.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000400,MP0037,3,Bữa tối,FD0027,1.2,144.0,5.3,25.6,2.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000401,MP0037,3,Bữa tối,FD0046,1.5,25.5,1.8,4.9,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000402,MP0037,3,Bữa tối,FD0092,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000403,MP0038,1,Bữa sáng,FD0074,1.0,80.0,10.0,2.0,3.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000404,MP0038,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000405,MP0038,2,Bữa trưa,FD0012,1.2,117.6,13.2,4.1,5.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000406,MP0038,2,Bữa trưa,FD0123,1.2,121.2,0.7,32.4,0.2,6.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000407,MP0038,2,Bữa trưa,FD0048,1.5,27.0,1.4,5.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000408,MP0038,2,Bữa trưa,FD0042,0.5,36.5,1.2,3.1,2.4,2.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000409,MP0038,3,Bữa phụ,FD0070,0.8,108.0,16.0,3.2,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000410,MP0038,3,Bữa phụ,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000411,MP0038,4,Bữa tối,FD0014,1.2,172.8,18.8,4.7,10.4,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000412,MP0038,4,Bữa tối,FD0121,1.2,50.4,1.0,12.0,0.5,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000413,MP0038,4,Bữa tối,FD0048,1.5,27.0,1.4,5.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000414,MP0038,4,Bữa tối,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000415,MP0039,1,Bữa sáng,FD0112,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000416,MP0039,1,Bữa sáng,FD0036,1.0,46.0,0.0,12.4,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000417,MP0039,1,Bữa sáng,FD0032,1.0,32.0,0.7,7.7,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000418,MP0039,2,Bữa trưa,FD0058,1.0,420.0,35.0,45.0,8.0,6.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000419,MP0039,3,Bữa phụ,FD0102,0.8,168.0,19.2,0.0,9.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000420,MP0039,3,Bữa phụ,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000421,MP0039,4,Bữa tối,FD0148,1.0,330.0,20.0,34.0,12.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000422,MP0039,4,Bữa tối,FD0052,1.0,17.0,1.2,3.1,0.3,1.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000423,MP0040,1,Bữa sáng,FD0075,1.0,120.0,24.0,4.0,1.5,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000424,MP0040,1,Bữa sáng,FD0032,1.0,32.0,0.7,7.7,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000425,MP0040,2,Bữa phụ 1,FD0054,0.8,82.4,6.4,9.6,1.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000426,MP0040,2,Bữa phụ 1,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000427,MP0040,3,Bữa trưa,FD0064,1.0,410.0,27.0,52.0,8.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000428,MP0040,3,Bữa trưa,FD0046,1.0,17.0,1.2,3.3,0.3,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000429,MP0040,4,Bữa phụ 2,FD0075,0.8,96.0,19.2,3.2,1.2,0.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000430,MP0040,4,Bữa phụ 2,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000431,MP0040,5,Bữa tối,FD0145,1.0,390.0,21.0,42.0,14.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000432,MP0041,1,Bữa sáng,FD0067,1.0,205.0,19.0,0.0,14.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000433,MP0041,1,Bữa sáng,FD0082,1.0,90.0,1.6,21.0,0.1,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000434,MP0041,2,Bữa phụ 1,FD0106,0.8,108.0,16.0,3.2,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000435,MP0041,2,Bữa phụ 1,FD0087,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000436,MP0041,3,Bữa trưa,FD0066,1.2,252.0,28.8,0.0,14.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000437,MP0041,3,Bữa trưa,FD0029,1.2,126.0,1.6,32.4,0.4,3.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000438,MP0041,3,Bữa trưa,FD0134,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000439,MP0041,4,Bữa phụ 2,FD0111,0.8,96.0,19.2,3.2,1.2,0.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000440,MP0041,4,Bữa phụ 2,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000441,MP0041,5,Bữa tối,FD0070,1.2,162.0,24.0,4.8,4.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000442,MP0041,5,Bữa tối,FD0117,1.2,168.0,4.8,28.8,4.2,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000443,MP0041,5,Bữa tối,FD0051,1.5,33.0,4.7,4.9,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000444,MP0041,5,Bữa tối,FD0040,0.5,47.0,1.8,1.6,4.0,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000445,MP0042,1,Bữa sáng,FD0016,1.0,121.0,11.9,8.9,5.2,5.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000446,MP0042,1,Bữa sáng,FD0116,1.0,220.0,5.0,32.0,8.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000447,MP0042,1,Bữa sáng,FD0120,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000448,MP0042,2,Bữa trưa,FD0076,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000449,MP0042,2,Bữa trưa,FD0120,1.2,60.0,0.6,15.6,0.1,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000450,MP0042,2,Bữa trưa,FD0048,1.5,27.0,1.4,5.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000451,MP0042,2,Bữa trưa,FD0038,0.5,87.0,3.2,3.0,7.5,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000452,MP0042,3,Bữa tối,FD0005,1.2,249.6,24.0,0.0,15.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000453,MP0042,3,Bữa tối,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000454,MP0042,3,Bữa tối,FD0095,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000455,MP0043,1,Bữa sáng,FD0077,1.0,127.0,8.7,22.8,0.5,6.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000456,MP0043,1,Bữa sáng,FD0118,1.0,90.0,1.6,21.0,0.1,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000457,MP0043,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000458,MP0043,2,Bữa phụ 1,FD0075,1.0,120.0,24.0,4.0,1.5,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000459,MP0043,2,Bữa phụ 1,FD0080,0.7,154.0,3.5,22.4,5.6,2.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000460,MP0043,3,Bữa trưa,FD0112,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000461,MP0043,3,Bữa trưa,FD0023,1.2,104.4,2.3,24.1,0.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000462,MP0043,3,Bữa trưa,FD0097,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000463,MP0043,3,Bữa trưa,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000464,MP0043,4,Bữa phụ 2,FD0015,1.0,193.0,19.0,9.0,11.0,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000465,MP0043,4,Bữa phụ 2,FD0120,0.7,35.0,0.3,9.1,0.1,1.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000466,MP0043,5,Bữa tối,FD0111,1.2,144.0,28.8,4.8,1.8,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000467,MP0043,5,Bữa tối,FD0122,1.2,72.0,1.0,18.0,0.5,1.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000468,MP0043,5,Bữa tối,FD0049,1.5,46.5,1.5,9.0,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000469,MP0044,1,Bữa sáng,FD0074,1.0,80.0,10.0,2.0,3.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000470,MP0044,1,Bữa sáng,FD0117,1.0,140.0,4.0,24.0,3.5,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000471,MP0044,2,Bữa trưa,FD0004,1.2,171.6,31.2,0.0,4.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000472,MP0044,2,Bữa trưa,FD0026,1.2,130.8,2.2,29.4,0.2,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000473,MP0044,2,Bữa trưa,FD0099,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000474,MP0044,2,Bữa trưa,FD0039,0.5,98.0,2.3,2.0,9.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000475,MP0044,3,Bữa tối,FD0011,1.2,120.0,20.4,7.2,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000476,MP0044,3,Bữa tối,FD0080,1.2,264.0,6.0,38.4,9.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000477,MP0044,3,Bữa tối,FD0134,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000478,MP0044,3,Bữa tối,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000479,MP0045,1,Bữa sáng,FD0014,1.0,144.0,15.7,3.9,8.7,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000480,MP0045,1,Bữa sáng,FD0035,1.0,105.0,2.0,23.0,0.8,0.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000481,MP0045,1,Bữa sáng,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000482,MP0045,2,Bữa trưa,FD0016,1.2,145.2,14.3,10.7,6.2,6.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000483,MP0045,2,Bữa trưa,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000484,MP0045,2,Bữa trưa,FD0131,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000485,MP0045,2,Bữa trưa,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000486,MP0045,3,Bữa phụ,FD0112,0.8,105.6,7.1,19.0,0.4,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000487,MP0045,3,Bữa phụ,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000488,MP0045,4,Bữa tối,FD0110,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000489,MP0045,4,Bữa tối,FD0122,1.2,72.0,1.0,18.0,0.5,1.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000490,MP0045,4,Bữa tối,FD0048,1.5,27.0,1.4,5.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000491,MP0045,4,Bữa tối,FD0091,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000492,MP0046,1,Bữa sáng,FD0111,1.0,120.0,24.0,4.0,1.5,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000493,MP0046,1,Bữa sáng,FD0081,1.0,140.0,4.0,24.0,3.5,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000494,MP0046,2,Bữa phụ 1,FD0107,0.8,120.0,16.0,9.6,1.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000495,MP0046,2,Bữa phụ 1,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000496,MP0046,3,Bữa trưa,FD0011,1.2,120.0,20.4,7.2,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000497,MP0046,3,Bữa trưa,FD0024,1.2,177.6,8.4,30.0,2.8,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000498,MP0046,3,Bữa trưa,FD0045,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000499,MP0046,4,Bữa phụ 2,FD0107,0.8,120.0,16.0,9.6,1.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000500,MP0046,4,Bữa phụ 2,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000501,MP0046,5,Bữa tối,FD0112,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000502,MP0046,5,Bữa tối,FD0032,1.2,38.4,0.8,9.2,0.4,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000503,MP0046,5,Bữa tối,FD0130,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000504,MP0046,5,Bữa tối,FD0092,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000505,MP0047,1,Bữa sáng,FD0102,1.0,210.0,24.0,0.0,12.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000506,MP0047,1,Bữa sáng,FD0119,1.0,26.0,1.0,6.5,0.1,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000507,MP0047,1,Bữa sáng,FD0087,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000508,MP0047,2,Bữa trưa,FD0146,1.0,520.0,30.0,56.0,16.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000509,MP0047,2,Bữa trưa,FD0133,1.0,25.0,1.9,5.0,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000510,MP0047,3,Bữa tối,FD0143,1.0,450.0,31.0,40.0,18.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000511,MP0047,3,Bữa tối,FD0046,1.0,17.0,1.2,3.3,0.3,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000512,MP0048,1,Bữa sáng,FD0004,1.0,143.0,26.0,0.0,3.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000513,MP0048,1,Bữa sáng,FD0029,1.0,105.0,1.3,27.0,0.3,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000514,MP0048,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000515,MP0048,2,Bữa phụ 1,FD0076,0.8,105.6,7.1,19.0,0.4,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000516,MP0048,2,Bữa phụ 1,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000517,MP0048,3,Bữa trưa,FD0141,1.0,580.0,36.0,45.0,22.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000518,MP0048,4,Bữa phụ 2,FD0067,0.8,164.0,15.2,0.0,11.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000519,MP0048,4,Bữa phụ 2,FD0088,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000520,MP0048,5,Bữa tối,FD0142,1.0,410.0,29.0,48.0,10.0,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000521,MP0049,1,Bữa sáng,FD0070,1.0,135.0,20.0,4.0,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000522,MP0049,1,Bữa sáng,FD0117,1.0,140.0,4.0,24.0,3.5,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000523,MP0049,1,Bữa sáng,FD0088,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000524,MP0049,2,Bữa trưa,FD0016,1.2,145.2,14.3,10.7,6.2,6.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000525,MP0049,2,Bữa trưa,FD0114,1.2,118.8,6.1,25.7,0.1,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000526,MP0049,2,Bữa trưa,FD0047,1.5,22.5,1.0,5.4,0.2,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000527,MP0049,2,Bữa trưa,FD0040,0.5,47.0,1.8,1.6,4.0,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000528,MP0049,3,Bữa tối,FD0010,1.2,62.4,13.2,0.8,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000529,MP0049,3,Bữa tối,FD0025,1.2,189.6,7.0,37.1,1.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000530,MP0049,3,Bữa tối,FD0045,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000531,MP0049,3,Bữa tối,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000532,MP0050,1,Bữa sáng,FD0073,1.0,102.0,8.2,12.0,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000533,MP0050,1,Bữa sáng,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000534,MP0050,2,Bữa phụ 1,FD0011,0.8,80.0,13.6,4.8,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000535,MP0050,2,Bữa phụ 1,FD0088,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000536,MP0050,3,Bữa trưa,FD0107,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000537,MP0050,3,Bữa trưa,FD0080,1.2,264.0,6.0,38.4,9.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000538,MP0050,3,Bữa trưa,FD0050,1.5,61.5,1.4,15.0,0.3,4.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000539,MP0050,4,Bữa phụ 2,FD0102,0.8,168.0,19.2,0.0,9.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000540,MP0050,4,Bữa phụ 2,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000541,MP0050,5,Bữa tối,FD0102,1.2,252.0,28.8,0.0,14.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000542,MP0050,5,Bữa tối,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000543,MP0050,5,Bữa tối,FD0098,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000544,MP0050,5,Bữa tối,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000545,MP0051,1,Bữa sáng,FD0076,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000546,MP0051,1,Bữa sáng,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000547,MP0051,1,Bữa sáng,FD0120,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000548,MP0051,2,Bữa phụ 1,FD0002,1.0,177.0,24.0,0.0,8.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000549,MP0051,2,Bữa phụ 1,FD0116,0.7,154.0,3.5,22.4,5.6,2.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000550,MP0051,3,Bữa trưa,FD0109,1.2,122.4,9.8,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000551,MP0051,3,Bữa trưa,FD0115,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000552,MP0051,3,Bữa trưa,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000553,MP0051,3,Bữa trưa,FD0127,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000554,MP0051,4,Bữa phụ 2,FD0004,1.0,143.0,26.0,0.0,3.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000555,MP0051,4,Bữa phụ 2,FD0035,0.7,73.5,1.4,16.1,0.6,0.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000556,MP0051,5,Bữa tối,FD0070,1.2,162.0,24.0,4.8,4.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000557,MP0051,5,Bữa tối,FD0085,1.2,50.4,1.0,12.0,0.5,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000558,MP0051,5,Bữa tối,FD0094,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000559,MP0051,5,Bữa tối,FD0037,0.5,80.0,1.0,4.2,7.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000560,MP0052,1,Bữa sáng,FD0106,1.0,135.0,20.0,4.0,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000561,MP0052,1,Bữa sáng,FD0031,1.0,62.0,1.2,15.4,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000562,MP0052,1,Bữa sáng,FD0087,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000563,MP0052,2,Bữa phụ 1,FD0003,1.0,170.0,26.0,0.0,7.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000564,MP0052,2,Bữa phụ 1,FD0088,0.7,79.1,0.7,21.0,0.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000565,MP0052,3,Bữa trưa,FD0106,1.2,162.0,24.0,4.8,4.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000566,MP0052,3,Bữa trưa,FD0036,1.2,55.2,0.0,14.9,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000567,MP0052,3,Bữa trưa,FD0131,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000568,MP0052,3,Bữa trưa,FD0038,0.5,87.0,3.2,3.0,7.5,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000569,MP0052,4,Bữa phụ 2,FD0005,1.0,208.0,20.0,0.0,13.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000570,MP0052,5,Bữa tối,FD0072,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000571,MP0052,5,Bữa tối,FD0083,1.2,31.2,1.2,7.8,0.1,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000572,MP0052,5,Bữa tối,FD0093,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000573,MP0052,5,Bữa tối,FD0042,0.5,36.5,1.2,3.1,2.4,2.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000574,MP0053,1,Bữa sáng,FD0018,1.0,164.0,9.0,27.0,2.6,7.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000575,MP0053,1,Bữa sáng,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000576,MP0053,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000577,MP0053,2,Bữa trưa,FD0012,1.2,117.6,13.2,4.1,5.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000578,MP0053,2,Bữa trưa,FD0021,1.2,187.2,7.2,32.4,3.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000579,MP0053,2,Bữa trưa,FD0048,1.5,27.0,1.4,5.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000580,MP0053,3,Bữa tối,FD0107,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000581,MP0053,3,Bữa tối,FD0118,1.2,108.0,1.9,25.2,0.1,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000582,MP0053,3,Bữa tối,FD0097,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000583,MP0053,3,Bữa tối,FD0128,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000584,MP0054,1,Bữa sáng,FD0016,1.0,121.0,11.9,8.9,5.2,5.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000585,MP0054,1,Bữa sáng,FD0080,1.0,220.0,5.0,32.0,8.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000586,MP0054,2,Bữa phụ 1,FD0067,0.8,164.0,15.2,0.0,11.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000587,MP0054,2,Bữa phụ 1,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000588,MP0054,3,Bữa trưa,FD0075,1.2,144.0,28.8,4.8,1.8,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000589,MP0054,3,Bữa trưa,FD0124,1.2,135.6,1.2,36.0,0.2,3.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000590,MP0054,3,Bữa trưa,FD0135,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000591,MP0054,4,Bữa phụ 2,FD0108,0.8,48.8,2.8,3.8,2.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000592,MP0054,4,Bữa phụ 2,FD0088,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000593,MP0054,5,Bữa tối,FD0108,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000594,MP0054,5,Bữa tối,FD0117,1.2,168.0,4.8,28.8,4.2,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000595,MP0054,5,Bữa tối,FD0129,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000596,MP0054,5,Bữa tối,FD0091,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000597,MP0055,1,Bữa sáng,FD0077,1.0,127.0,8.7,22.8,0.5,6.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000598,MP0055,1,Bữa sáng,FD0020,1.0,112.0,2.6,23.0,0.9,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000599,MP0055,1,Bữa sáng,FD0032,1.0,32.0,0.7,7.7,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000600,MP0055,2,Bữa trưa,FD0144,1.0,430.0,32.0,18.0,24.0,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000601,MP0055,3,Bữa phụ,FD0111,0.8,96.0,19.2,3.2,1.2,0.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000602,MP0055,3,Bữa phụ,FD0029,1.0,105.0,1.3,27.0,0.3,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000603,MP0055,4,Bữa tối,FD0146,1.0,520.0,30.0,56.0,16.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000604,MP0055,4,Bữa tối,FD0132,1.0,31.0,1.8,7.0,0.1,2.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000605,MP0056,1,Bữa sáng,FD0107,1.0,150.0,20.0,12.0,2.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000606,MP0056,1,Bữa sáng,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000607,MP0056,2,Bữa phụ 1,FD0108,0.8,48.8,2.8,3.8,2.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000608,MP0056,2,Bữa phụ 1,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000609,MP0056,3,Bữa trưa,FD0063,1.0,360.0,28.0,34.0,11.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000610,MP0056,4,Bữa phụ 2,FD0110,0.8,64.0,8.0,1.6,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000611,MP0056,4,Bữa phụ 2,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000612,MP0056,5,Bữa tối,FD0062,1.0,520.0,33.0,38.0,24.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000613,MP0057,1,Bữa sáng,FD0003,1.0,170.0,26.0,0.0,7.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000614,MP0057,1,Bữa sáng,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000615,MP0057,2,Bữa trưa,FD0008,1.2,118.8,28.8,0.2,0.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000616,MP0057,2,Bữa trưa,FD0031,1.2,74.4,1.4,18.5,0.2,3.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000617,MP0057,2,Bữa trưa,FD0044,1.5,51.0,4.2,9.9,0.6,3.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000618,MP0057,2,Bữa trưa,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000619,MP0057,3,Bữa tối,FD0010,1.2,62.4,13.2,0.8,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000620,MP0057,3,Bữa tối,FD0086,1.2,72.0,1.0,18.0,0.5,1.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000621,MP0057,3,Bữa tối,FD0134,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000622,MP0057,3,Bữa tối,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000623,MP0058,1,Bữa sáng,FD0077,1.0,127.0,8.7,22.8,0.5,6.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000624,MP0058,1,Bữa sáng,FD0022,1.0,86.0,1.6,20.1,0.1,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000625,MP0058,2,Bữa phụ 1,FD0104,0.8,77.6,15.2,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000626,MP0058,2,Bữa phụ 1,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000627,MP0058,3,Bữa trưa,FD0106,1.2,162.0,24.0,4.8,4.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000628,MP0058,3,Bữa trưa,FD0080,1.2,264.0,6.0,38.4,9.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000629,MP0058,3,Bữa trưa,FD0133,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000630,MP0058,3,Bữa trưa,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000631,MP0058,4,Bữa phụ 2,FD0067,0.8,164.0,15.2,0.0,11.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000632,MP0058,4,Bữa phụ 2,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000633,MP0058,5,Bữa tối,FD0076,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000634,MP0058,5,Bữa tối,FD0119,1.2,31.2,1.2,7.8,0.1,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000635,MP0058,5,Bữa tối,FD0093,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000636,MP0058,5,Bữa tối,FD0092,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000637,MP0059,1,Bữa sáng,FD0112,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000638,MP0059,1,Bữa sáng,FD0035,1.0,105.0,2.0,23.0,0.8,0.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000639,MP0059,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000640,MP0059,2,Bữa phụ 1,FD0008,1.0,99.0,24.0,0.2,0.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000641,MP0059,2,Bữa phụ 1,FD0079,0.7,171.5,6.7,33.6,1.0,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000642,MP0059,3,Bữa trưa,FD0015,1.2,231.6,22.8,10.8,13.2,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000643,MP0059,3,Bữa trưa,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000644,MP0059,3,Bữa trưa,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000645,MP0059,4,Bữa phụ 2,FD0105,1.0,135.0,29.0,0.0,1.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000646,MP0059,5,Bữa tối,FD0067,1.2,246.0,22.8,0.0,16.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000647,MP0059,5,Bữa tối,FD0115,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000648,MP0059,5,Bữa tối,FD0094,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000649,MP0059,5,Bữa tối,FD0128,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000650,MP0060,1,Bữa sáng,FD0018,1.0,164.0,9.0,27.0,2.6,7.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000651,MP0060,1,Bữa sáng,FD0078,1.0,99.0,5.1,21.4,0.1,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000652,MP0060,1,Bữa sáng,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000653,MP0060,2,Bữa phụ 1,FD0066,1.0,210.0,24.0,0.0,12.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000654,MP0060,3,Bữa trưa,FD0010,1.2,62.4,13.2,0.8,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000655,MP0060,3,Bữa trưa,FD0078,1.2,118.8,6.1,25.7,0.1,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000656,MP0060,3,Bữa trưa,FD0045,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000657,MP0060,3,Bữa trưa,FD0125,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000658,MP0060,4,Bữa phụ 2,FD0003,1.0,170.0,26.0,0.0,7.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000659,MP0060,4,Bữa phụ 2,FD0088,0.7,79.1,0.7,21.0,0.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000660,MP0060,5,Bữa tối,FD0112,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000661,MP0060,5,Bữa tối,FD0035,1.2,126.0,2.4,27.6,1.0,0.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000662,MP0060,5,Bữa tối,FD0135,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000663,MP0060,5,Bữa tối,FD0040,0.5,47.0,1.8,1.6,4.0,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000664,MP0061,1,Bữa sáng,FD0071,1.0,150.0,20.0,12.0,2.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000665,MP0061,1,Bữa sáng,FD0120,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000666,MP0061,1,Bữa sáng,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000667,MP0061,2,Bữa phụ 1,FD0007,0.8,102.4,20.8,0.0,2.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000668,MP0061,2,Bữa phụ 1,FD0085,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000669,MP0061,3,Bữa trưa,FD0054,1.2,123.6,9.6,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000670,MP0061,3,Bữa trưa,FD0022,1.2,103.2,1.9,24.1,0.1,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000671,MP0061,3,Bữa trưa,FD0133,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000672,MP0061,4,Bữa phụ 2,FD0015,0.8,154.4,15.2,7.2,8.8,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000673,MP0061,4,Bữa phụ 2,FD0085,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000674,MP0061,5,Bữa tối,FD0012,1.2,117.6,13.2,4.1,5.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000675,MP0061,5,Bữa tối,FD0025,1.2,189.6,7.0,37.1,1.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000676,MP0061,5,Bữa tối,FD0096,1.5,46.5,2.7,10.5,0.2,4.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000677,MP0061,5,Bữa tối,FD0089,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000678,MP0062,1,Bữa sáng,FD0113,1.0,127.0,8.7,22.8,0.5,6.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000679,MP0062,1,Bữa sáng,FD0027,1.0,120.0,4.4,21.3,1.9,2.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000680,MP0062,1,Bữa sáng,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000681,MP0062,2,Bữa trưa,FD0076,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000682,MP0062,2,Bữa trưa,FD0115,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000683,MP0062,2,Bữa trưa,FD0098,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000684,MP0062,2,Bữa trưa,FD0126,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000685,MP0062,3,Bữa tối,FD0072,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000686,MP0062,3,Bữa tối,FD0080,1.2,264.0,6.0,38.4,9.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000687,MP0062,3,Bữa tối,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000688,MP0062,3,Bữa tối,FD0128,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000689,MP0063,1,Bữa sáng,FD0112,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000690,MP0063,1,Bữa sáng,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000691,MP0063,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000692,MP0063,2,Bữa trưa,FD0063,1.0,360.0,28.0,34.0,11.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000693,MP0063,2,Bữa trưa,FD0049,1.0,31.0,1.0,6.0,0.3,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000694,MP0063,3,Bữa tối,FD0059,1.0,500.0,32.0,48.0,14.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000695,MP0064,1,Bữa sáng,FD0102,1.0,210.0,24.0,0.0,12.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000696,MP0064,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000697,MP0064,2,Bữa trưa,FD0140,1.0,460.0,34.0,52.0,8.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000698,MP0064,3,Bữa phụ,FD0001,0.8,132.0,24.8,0.0,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000699,MP0064,3,Bữa phụ,FD0087,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000700,MP0064,4,Bữa tối,FD0149,1.0,460.0,18.0,68.0,10.0,11.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000701,MP0065,1,Bữa sáng,FD0054,1.0,103.0,8.0,12.0,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000702,MP0065,1,Bữa sáng,FD0114,1.0,99.0,5.1,21.4,0.1,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000703,MP0065,2,Bữa trưa,FD0105,1.2,162.0,34.8,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000704,MP0065,2,Bữa trưa,FD0118,1.2,108.0,1.9,25.2,0.1,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000705,MP0065,2,Bữa trưa,FD0098,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000706,MP0065,3,Bữa phụ,FD0009,0.8,57.6,5.0,0.3,3.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000707,MP0065,3,Bữa phụ,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000708,MP0065,4,Bữa tối,FD0018,1.2,196.8,10.8,32.4,3.1,9.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000709,MP0065,4,Bữa tối,FD0031,1.2,74.4,1.4,18.5,0.2,3.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000710,MP0065,4,Bữa tối,FD0047,1.5,22.5,1.0,5.4,0.2,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000711,MP0065,4,Bữa tối,FD0125,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000712,MP0066,1,Bữa sáng,FD0112,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000713,MP0066,1,Bữa sáng,FD0035,1.0,105.0,2.0,23.0,0.8,0.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000714,MP0066,2,Bữa trưa,FD0001,1.2,198.0,37.2,0.0,4.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000715,MP0066,2,Bữa trưa,FD0081,1.2,168.0,4.8,28.8,4.2,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000716,MP0066,2,Bữa trưa,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000717,MP0066,2,Bữa trưa,FD0126,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000718,MP0066,3,Bữa phụ,FD0013,0.8,96.0,19.2,2.4,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000719,MP0066,3,Bữa phụ,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000720,MP0066,4,Bữa tối,FD0110,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000721,MP0066,4,Bữa tối,FD0085,1.2,50.4,1.0,12.0,0.5,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000722,MP0066,4,Bữa tối,FD0096,1.5,46.5,2.7,10.5,0.2,4.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000723,MP0066,4,Bữa tối,FD0038,0.5,87.0,3.2,3.0,7.5,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000724,MP0067,1,Bữa sáng,FD0113,1.0,127.0,8.7,22.8,0.5,6.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000725,MP0067,1,Bữa sáng,FD0025,1.0,158.0,5.8,30.9,0.9,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000726,MP0067,1,Bữa sáng,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000727,MP0067,2,Bữa trưa,FD0077,1.2,152.4,10.4,27.4,0.6,7.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000728,MP0067,2,Bữa trưa,FD0080,1.2,264.0,6.0,38.4,9.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000729,MP0067,2,Bữa trưa,FD0051,1.5,33.0,4.7,4.9,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000730,MP0067,2,Bữa trưa,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000731,MP0067,3,Bữa phụ,FD0008,1.0,99.0,24.0,0.2,0.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000732,MP0067,3,Bữa phụ,FD0036,0.7,32.2,0.0,8.7,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000733,MP0067,4,Bữa tối,FD0068,1.2,116.4,22.8,0.0,1.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000734,MP0067,4,Bữa tối,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000735,MP0067,4,Bữa tối,FD0130,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000736,MP0068,1,Bữa sáng,FD0017,1.0,116.0,9.0,20.0,0.4,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000737,MP0068,1,Bữa sáng,FD0083,1.0,26.0,1.0,6.5,0.1,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000738,MP0068,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000739,MP0068,2,Bữa trưa,FD0113,1.2,152.4,10.4,27.4,0.6,7.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000740,MP0068,2,Bữa trưa,FD0026,1.2,130.8,2.2,29.4,0.2,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000741,MP0068,2,Bữa trưa,FD0097,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000742,MP0068,2,Bữa trưa,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000743,MP0068,3,Bữa tối,FD0103,1.2,246.0,22.8,0.0,16.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000744,MP0068,3,Bữa tối,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000745,MP0068,3,Bữa tối,FD0134,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000746,MP0068,3,Bữa tối,FD0128,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000747,MP0069,1,Bữa sáng,FD0074,1.0,80.0,10.0,2.0,3.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000748,MP0069,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000749,MP0069,1,Bữa sáng,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000750,MP0069,2,Bữa trưa,FD0107,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000751,MP0069,2,Bữa trưa,FD0028,1.2,115.2,4.1,25.2,1.8,2.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000752,MP0069,2,Bữa trưa,FD0097,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000753,MP0069,3,Bữa phụ,FD0109,0.8,81.6,6.6,9.6,1.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000754,MP0069,3,Bữa phụ,FD0120,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000755,MP0069,4,Bữa tối,FD0076,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000756,MP0069,4,Bữa tối,FD0120,1.2,60.0,0.6,15.6,0.1,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000757,MP0069,4,Bữa tối,FD0098,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000758,MP0070,1,Bữa sáng,FD0018,1.0,164.0,9.0,27.0,2.6,7.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000759,MP0070,1,Bữa sáng,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000760,MP0070,1,Bữa sáng,FD0031,1.0,62.0,1.2,15.4,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000761,MP0070,2,Bữa phụ 1,FD0104,0.8,77.6,15.2,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000762,MP0070,2,Bữa phụ 1,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000763,MP0070,3,Bữa trưa,FD0108,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000764,MP0070,3,Bữa trưa,FD0083,1.2,31.2,1.2,7.8,0.1,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000765,MP0070,3,Bữa trưa,FD0046,1.5,25.5,1.8,4.9,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000766,MP0070,4,Bữa phụ 2,FD0008,0.8,79.2,19.2,0.2,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000767,MP0070,4,Bữa phụ 2,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000768,MP0070,5,Bữa tối,FD0109,1.2,122.4,9.8,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000769,MP0070,5,Bữa tối,FD0117,1.2,168.0,4.8,28.8,4.2,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000770,MP0070,5,Bữa tối,FD0050,1.5,61.5,1.4,15.0,0.3,4.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000771,MP0070,5,Bữa tối,FD0039,0.5,98.0,2.3,2.0,9.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000772,MP0071,1,Bữa sáng,FD0067,1.0,205.0,19.0,0.0,14.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000773,MP0071,1,Bữa sáng,FD0118,1.0,90.0,1.6,21.0,0.1,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000774,MP0071,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000775,MP0071,2,Bữa trưa,FD0149,1.0,460.0,18.0,68.0,10.0,11.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000776,MP0071,2,Bữa trưa,FD0099,1.0,31.0,1.4,7.4,0.2,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000777,MP0071,3,Bữa tối,FD0145,1.0,390.0,21.0,42.0,14.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000778,MP0072,1,Bữa sáng,FD0009,1.0,72.0,6.3,0.4,4.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000779,MP0072,1,Bữa sáng,FD0117,1.0,140.0,4.0,24.0,3.5,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000780,MP0072,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000781,MP0072,2,Bữa trưa,FD0148,1.0,330.0,20.0,34.0,12.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000782,MP0072,2,Bữa trưa,FD0053,1.0,20.0,2.2,3.9,0.1,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000783,MP0072,3,Bữa phụ,FD0002,0.8,141.6,19.2,0.0,6.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000784,MP0072,3,Bữa phụ,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000785,MP0072,4,Bữa tối,FD0139,1.0,540.0,32.0,48.0,24.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000786,MP0073,1,Bữa sáng,FD0014,1.0,144.0,15.7,3.9,8.7,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000787,MP0073,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000788,MP0073,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000789,MP0073,2,Bữa phụ 1,FD0069,0.8,108.0,23.2,0.0,0.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000790,MP0073,2,Bữa phụ 1,FD0031,1.0,62.0,1.2,15.4,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000791,MP0073,3,Bữa trưa,FD0105,1.2,162.0,34.8,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000792,MP0073,3,Bữa trưa,FD0022,1.2,103.2,1.9,24.1,0.1,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000793,MP0073,3,Bữa trưa,FD0046,1.5,25.5,1.8,4.9,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000794,MP0073,4,Bữa phụ 2,FD0077,0.8,101.6,7.0,18.2,0.4,5.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000795,MP0073,4,Bữa phụ 2,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000796,MP0073,5,Bữa tối,FD0054,1.2,123.6,9.6,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000797,MP0073,5,Bữa tối,FD0086,1.2,72.0,1.0,18.0,0.5,1.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000798,MP0073,5,Bữa tối,FD0049,1.5,46.5,1.5,9.0,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000799,MP0074,1,Bữa sáng,FD0112,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000800,MP0074,1,Bữa sáng,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000801,MP0074,1,Bữa sáng,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000802,MP0074,2,Bữa phụ 1,FD0075,0.8,96.0,19.2,3.2,1.2,0.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000803,MP0074,2,Bữa phụ 1,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000804,MP0074,3,Bữa trưa,FD0071,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000805,MP0074,3,Bữa trưa,FD0024,1.2,177.6,8.4,30.0,2.8,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000806,MP0074,3,Bữa trưa,FD0133,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000807,MP0074,4,Bữa phụ 2,FD0105,0.8,108.0,23.2,0.0,0.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000808,MP0074,4,Bữa phụ 2,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000809,MP0074,5,Bữa tối,FD0112,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000810,MP0074,5,Bữa tối,FD0082,1.2,108.0,1.9,25.2,0.1,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000811,MP0074,5,Bữa tối,FD0047,1.5,22.5,1.0,5.4,0.2,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000812,MP0074,5,Bữa tối,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000813,MP0075,1,Bữa sáng,FD0104,1.0,97.0,19.0,0.0,1.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000814,MP0075,1,Bữa sáng,FD0027,1.0,120.0,4.4,21.3,1.9,2.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000815,MP0075,2,Bữa trưa,FD0015,1.2,231.6,22.8,10.8,13.2,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000816,MP0075,2,Bữa trưa,FD0019,1.2,156.0,2.9,34.4,0.4,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000817,MP0075,2,Bữa trưa,FD0044,1.5,51.0,4.2,9.9,0.6,3.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000818,MP0075,3,Bữa phụ,FD0068,1.0,97.0,19.0,0.0,1.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000819,MP0075,4,Bữa tối,FD0105,1.2,162.0,34.8,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000820,MP0075,4,Bữa tối,FD0087,1.2,121.2,0.7,32.4,0.2,6.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000821,MP0075,4,Bữa tối,FD0129,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000822,MP0075,4,Bữa tối,FD0040,0.5,47.0,1.8,1.6,4.0,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000823,MP0076,1,Bữa sáng,FD0076,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000824,MP0076,1,Bữa sáng,FD0082,1.0,90.0,1.6,21.0,0.1,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000825,MP0076,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000826,MP0076,2,Bữa trưa,FD0008,1.2,118.8,28.8,0.2,0.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000827,MP0076,2,Bữa trưa,FD0021,1.2,187.2,7.2,32.4,3.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000828,MP0076,2,Bữa trưa,FD0133,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000829,MP0076,2,Bữa trưa,FD0126,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000830,MP0076,3,Bữa tối,FD0002,1.2,212.4,28.8,0.0,9.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000831,MP0076,3,Bữa tối,FD0034,1.2,82.8,0.8,21.6,0.2,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000832,MP0076,3,Bữa tối,FD0050,1.5,61.5,1.4,15.0,0.3,4.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000833,MP0076,3,Bữa tối,FD0091,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000834,MP0077,1,Bữa sáng,FD0077,1.0,127.0,8.7,22.8,0.5,6.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000835,MP0077,1,Bữa sáng,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000836,MP0077,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000837,MP0077,2,Bữa trưa,FD0054,1.2,123.6,9.6,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000838,MP0077,2,Bữa trưa,FD0021,1.2,187.2,7.2,32.4,3.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000839,MP0077,2,Bữa trưa,FD0095,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000840,MP0077,2,Bữa trưa,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000841,MP0077,3,Bữa tối,FD0018,1.2,196.8,10.8,32.4,3.1,9.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000842,MP0077,3,Bữa tối,FD0022,1.2,103.2,1.9,24.1,0.1,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000843,MP0077,3,Bữa tối,FD0048,1.5,27.0,1.4,5.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000844,MP0077,3,Bữa tối,FD0041,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000845,MP0078,1,Bữa sáng,FD0110,1.0,80.0,10.0,2.0,3.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000846,MP0078,1,Bữa sáng,FD0080,1.0,220.0,5.0,32.0,8.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000847,MP0078,1,Bữa sáng,FD0088,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000848,MP0078,2,Bữa trưa,FD0054,1.2,123.6,9.6,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000849,MP0078,2,Bữa trưa,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000850,MP0078,2,Bữa trưa,FD0048,1.5,27.0,1.4,5.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000851,MP0078,3,Bữa tối,FD0108,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000852,MP0078,3,Bữa tối,FD0033,1.2,68.4,0.8,17.4,0.4,2.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000853,MP0078,3,Bữa tối,FD0096,1.5,46.5,2.7,10.5,0.2,4.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000854,MP0078,3,Bữa tối,FD0037,0.5,80.0,1.0,4.2,7.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000855,MP0079,1,Bữa sáng,FD0108,1.0,61.0,3.5,4.7,3.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000856,MP0079,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000857,MP0079,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000858,MP0079,2,Bữa phụ 1,FD0106,0.8,108.0,16.0,3.2,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000859,MP0079,2,Bữa phụ 1,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000860,MP0079,3,Bữa trưa,FD0059,1.0,500.0,32.0,48.0,14.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000861,MP0079,4,Bữa phụ 2,FD0112,0.8,105.6,7.1,19.0,0.4,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000862,MP0079,4,Bữa phụ 2,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000863,MP0079,5,Bữa tối,FD0147,1.0,470.0,30.0,52.0,11.0,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000864,MP0079,5,Bữa tối,FD0096,1.0,31.0,1.8,7.0,0.1,2.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000865,MP0080,1,Bữa sáng,FD0010,1.0,52.0,11.0,0.7,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000866,MP0080,1,Bữa sáng,FD0079,1.0,245.0,9.6,48.0,1.5,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000867,MP0080,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000868,MP0080,2,Bữa trưa,FD0065,1.0,430.0,22.0,55.0,12.0,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000869,MP0080,3,Bữa phụ,FD0066,0.8,168.0,19.2,0.0,9.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000870,MP0080,3,Bữa phụ,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000871,MP0080,4,Bữa tối,FD0145,1.0,390.0,21.0,42.0,14.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000872,MP0081,1,Bữa sáng,FD0073,1.0,102.0,8.2,12.0,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000873,MP0081,1,Bữa sáng,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000874,MP0081,1,Bữa sáng,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000875,MP0081,2,Bữa phụ 1,FD0071,0.8,120.0,16.0,9.6,1.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000876,MP0081,2,Bữa phụ 1,FD0085,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000877,MP0081,3,Bữa trưa,FD0017,1.2,139.2,10.8,24.0,0.5,9.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000878,MP0081,3,Bữa trưa,FD0032,1.2,38.4,0.8,9.2,0.4,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000879,MP0081,3,Bữa trưa,FD0093,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000880,MP0081,3,Bữa trưa,FD0128,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000881,MP0081,4,Bữa phụ 2,FD0075,0.8,96.0,19.2,3.2,1.2,0.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000882,MP0081,4,Bữa phụ 2,FD0120,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000883,MP0081,5,Bữa tối,FD0006,1.2,158.4,34.8,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000884,MP0081,5,Bữa tối,FD0119,1.2,31.2,1.2,7.8,0.1,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000885,MP0081,5,Bữa tối,FD0135,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000886,MP0082,1,Bữa sáng,FD0018,1.0,164.0,9.0,27.0,2.6,7.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000887,MP0082,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000888,MP0082,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000889,MP0082,2,Bữa trưa,FD0005,1.2,249.6,24.0,0.0,15.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000890,MP0082,2,Bữa trưa,FD0031,1.2,74.4,1.4,18.5,0.2,3.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000891,MP0082,2,Bữa trưa,FD0130,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000892,MP0082,3,Bữa tối,FD0106,1.2,162.0,24.0,4.8,4.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000893,MP0082,3,Bữa tối,FD0032,1.2,38.4,0.8,9.2,0.4,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000894,MP0082,3,Bữa tối,FD0098,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000895,MP0082,3,Bữa tối,FD0128,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000896,MP0083,1,Bữa sáng,FD0066,1.0,210.0,24.0,0.0,12.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000897,MP0083,1,Bữa sáng,FD0019,1.0,130.0,2.4,28.7,0.3,0.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000898,MP0083,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000899,MP0083,2,Bữa trưa,FD0008,1.2,118.8,28.8,0.2,0.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000900,MP0083,2,Bữa trưa,FD0115,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000901,MP0083,2,Bữa trưa,FD0051,1.5,33.0,4.7,4.9,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000902,MP0083,2,Bữa trưa,FD0125,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000903,MP0083,3,Bữa phụ,FD0007,1.0,128.0,26.0,0.0,2.7,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000904,MP0083,3,Bữa phụ,FD0034,0.7,48.3,0.5,12.6,0.1,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000905,MP0083,4,Bữa tối,FD0106,1.2,162.0,24.0,4.8,4.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000906,MP0083,4,Bữa tối,FD0080,1.2,264.0,6.0,38.4,9.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000907,MP0083,4,Bữa tối,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000908,MP0083,4,Bữa tối,FD0090,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000909,MP0084,1,Bữa sáng,FD0069,1.0,135.0,29.0,0.0,1.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000910,MP0084,1,Bữa sáng,FD0079,1.0,245.0,9.6,48.0,1.5,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000911,MP0084,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000912,MP0084,2,Bữa phụ 1,FD0068,1.0,97.0,19.0,0.0,1.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000913,MP0084,2,Bữa phụ 1,FD0115,0.7,171.5,6.7,33.6,1.0,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000914,MP0084,3,Bữa trưa,FD0067,1.2,246.0,22.8,0.0,16.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000915,MP0084,3,Bữa trưa,FD0032,1.2,38.4,0.8,9.2,0.4,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000916,MP0084,3,Bữa trưa,FD0094,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000917,MP0084,3,Bữa trưa,FD0037,0.5,80.0,1.0,4.2,7.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000918,MP0084,4,Bữa phụ 2,FD0075,1.0,120.0,24.0,4.0,1.5,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000919,MP0084,5,Bữa tối,FD0010,1.2,62.4,13.2,0.8,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000920,MP0084,5,Bữa tối,FD0020,1.2,134.4,3.1,27.6,1.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000921,MP0084,5,Bữa tối,FD0052,1.5,25.5,1.8,4.7,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000922,MP0084,5,Bữa tối,FD0091,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000923,MP0085,1,Bữa sáng,FD0076,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000924,MP0085,1,Bữa sáng,FD0078,1.0,99.0,5.1,21.4,0.1,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000925,MP0085,1,Bữa sáng,FD0088,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000926,MP0085,2,Bữa phụ 1,FD0015,0.8,154.4,15.2,7.2,8.8,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000927,MP0085,2,Bữa phụ 1,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000928,MP0085,3,Bữa trưa,FD0110,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000929,MP0085,3,Bữa trưa,FD0034,1.2,82.8,0.8,21.6,0.2,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000930,MP0085,3,Bữa trưa,FD0098,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000931,MP0085,3,Bữa trưa,FD0092,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000932,MP0085,4,Bữa phụ 2,FD0068,0.8,77.6,15.2,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000933,MP0085,4,Bữa phụ 2,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000934,MP0085,5,Bữa tối,FD0107,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000935,MP0085,5,Bữa tối,FD0116,1.2,264.0,6.0,38.4,9.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000936,MP0085,5,Bữa tối,FD0097,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000937,MP0085,5,Bữa tối,FD0126,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000938,MP0086,1,Bữa sáng,FD0017,1.0,116.0,9.0,20.0,0.4,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000939,MP0086,1,Bữa sáng,FD0027,1.0,120.0,4.4,21.3,1.9,2.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000940,MP0086,2,Bữa trưa,FD0107,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000941,MP0086,2,Bữa trưa,FD0030,1.2,114.0,0.6,30.0,0.4,5.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000942,MP0086,2,Bữa trưa,FD0129,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000943,MP0086,3,Bữa phụ,FD0004,0.8,114.4,20.8,0.0,2.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000944,MP0086,3,Bữa phụ,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000945,MP0086,4,Bữa tối,FD0014,1.2,172.8,18.8,4.7,10.4,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000946,MP0086,4,Bữa tối,FD0022,1.2,103.2,1.9,24.1,0.1,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000947,MP0086,4,Bữa tối,FD0044,1.5,51.0,4.2,9.9,0.6,3.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000948,MP0086,4,Bữa tối,FD0127,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000949,MP0087,1,Bữa sáng,FD0015,1.0,193.0,19.0,9.0,11.0,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000950,MP0087,1,Bữa sáng,FD0023,1.0,87.0,1.9,20.1,0.1,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000951,MP0087,2,Bữa phụ 1,FD0001,0.8,132.0,24.8,0.0,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000952,MP0087,2,Bữa phụ 1,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000953,MP0087,3,Bữa trưa,FD0147,1.0,470.0,30.0,52.0,11.0,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000954,MP0087,3,Bữa trưa,FD0045,1.0,23.0,2.9,3.6,0.4,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000955,MP0087,4,Bữa phụ 2,FD0110,0.8,64.0,8.0,1.6,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000956,MP0087,4,Bữa phụ 2,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000957,MP0087,5,Bữa tối,FD0146,1.0,520.0,30.0,56.0,16.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000958,MP0087,5,Bữa tối,FD0129,1.0,23.0,2.9,3.6,0.4,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000959,MP0088,1,Bữa sáng,FD0073,1.0,102.0,8.2,12.0,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000960,MP0088,1,Bữa sáng,FD0019,1.0,130.0,2.4,28.7,0.3,0.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000961,MP0088,1,Bữa sáng,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000962,MP0088,2,Bữa phụ 1,FD0105,0.8,108.0,23.2,0.0,0.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000963,MP0088,2,Bữa phụ 1,FD0087,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000964,MP0088,3,Bữa trưa,FD0058,1.0,420.0,35.0,45.0,8.0,6.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000965,MP0088,4,Bữa phụ 2,FD0074,0.8,64.0,8.0,1.6,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000966,MP0088,4,Bữa phụ 2,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000967,MP0088,5,Bữa tối,FD0061,1.0,320.0,22.0,35.0,9.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000968,MP0089,1,Bữa sáng,FD0010,1.0,52.0,11.0,0.7,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000969,MP0089,1,Bữa sáng,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000970,MP0089,1,Bữa sáng,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000971,MP0089,2,Bữa phụ 1,FD0069,0.8,108.0,23.2,0.0,0.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000972,MP0089,2,Bữa phụ 1,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000973,MP0089,3,Bữa trưa,FD0072,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000974,MP0089,3,Bữa trưa,FD0024,1.2,177.6,8.4,30.0,2.8,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000975,MP0089,3,Bữa trưa,FD0094,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000976,MP0089,4,Bữa phụ 2,FD0076,0.8,105.6,7.1,19.0,0.4,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000977,MP0089,4,Bữa phụ 2,FD0085,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000978,MP0089,5,Bữa tối,FD0015,1.2,231.6,22.8,10.8,13.2,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000979,MP0089,5,Bữa tối,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000980,MP0089,5,Bữa tối,FD0133,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000981,MP0090,1,Bữa sáng,FD0112,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000982,MP0090,1,Bữa sáng,FD0021,1.0,156.0,6.0,27.0,3.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000983,MP0090,1,Bữa sáng,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000984,MP0090,2,Bữa trưa,FD0071,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000985,MP0090,2,Bữa trưa,FD0120,1.2,60.0,0.6,15.6,0.1,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000986,MP0090,2,Bữa trưa,FD0098,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000987,MP0090,2,Bữa trưa,FD0037,0.5,80.0,1.0,4.2,7.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000988,MP0090,3,Bữa tối,FD0011,1.2,120.0,20.4,7.2,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000989,MP0090,3,Bữa tối,FD0024,1.2,177.6,8.4,30.0,2.8,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000990,MP0090,3,Bữa tối,FD0098,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000991,MP0091,1,Bữa sáng,FD0068,1.0,97.0,19.0,0.0,1.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000992,MP0091,1,Bữa sáng,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000993,MP0091,2,Bữa phụ 1,FD0004,1.0,143.0,26.0,0.0,3.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000994,MP0091,3,Bữa trưa,FD0003,1.2,204.0,31.2,0.0,8.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000995,MP0091,3,Bữa trưa,FD0033,1.2,68.4,0.8,17.4,0.4,2.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000996,MP0091,3,Bữa trưa,FD0050,1.5,61.5,1.4,15.0,0.3,4.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000997,MP0091,4,Bữa phụ 2,FD0105,1.0,135.0,29.0,0.0,1.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000998,MP0091,5,Bữa tối,FD0077,1.2,152.4,10.4,27.4,0.6,7.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI000999,MP0091,5,Bữa tối,FD0036,1.2,55.2,0.0,14.9,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001000,MP0091,5,Bữa tối,FD0045,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001001,MP0092,1,Bữa sáng,FD0018,1.0,164.0,9.0,27.0,2.6,7.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001002,MP0092,1,Bữa sáng,FD0119,1.0,26.0,1.0,6.5,0.1,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001003,MP0092,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001004,MP0092,2,Bữa phụ 1,FD0006,1.0,132.0,29.0,0.0,1.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001005,MP0092,3,Bữa trưa,FD0067,1.2,246.0,22.8,0.0,16.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001006,MP0092,3,Bữa trưa,FD0020,1.2,134.4,3.1,27.6,1.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001007,MP0092,3,Bữa trưa,FD0050,1.5,61.5,1.4,15.0,0.3,4.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001008,MP0092,3,Bữa trưa,FD0126,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001009,MP0092,4,Bữa phụ 2,FD0105,1.0,135.0,29.0,0.0,1.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001010,MP0092,5,Bữa tối,FD0005,1.2,249.6,24.0,0.0,15.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001011,MP0092,5,Bữa tối,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001012,MP0092,5,Bữa tối,FD0049,1.5,46.5,1.5,9.0,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001013,MP0092,5,Bữa tối,FD0091,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001014,MP0093,1,Bữa sáng,FD0113,1.0,127.0,8.7,22.8,0.5,6.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001015,MP0093,1,Bữa sáng,FD0119,1.0,26.0,1.0,6.5,0.1,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001016,MP0093,1,Bữa sáng,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001017,MP0093,2,Bữa trưa,FD0014,1.2,172.8,18.8,4.7,10.4,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001018,MP0093,2,Bữa trưa,FD0117,1.2,168.0,4.8,28.8,4.2,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001019,MP0093,2,Bữa trưa,FD0135,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001020,MP0093,3,Bữa phụ,FD0004,0.8,114.4,20.8,0.0,2.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001021,MP0093,3,Bữa phụ,FD0032,1.0,32.0,0.7,7.7,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001022,MP0093,4,Bữa tối,FD0076,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001023,MP0093,4,Bữa tối,FD0033,1.2,68.4,0.8,17.4,0.4,2.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001024,MP0093,4,Bữa tối,FD0046,1.5,25.5,1.8,4.9,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001025,MP0093,4,Bữa tối,FD0126,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001026,MP0094,1,Bữa sáng,FD0111,1.0,120.0,24.0,4.0,1.5,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001027,MP0094,1,Bữa sáng,FD0085,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001028,MP0094,2,Bữa phụ 1,FD0067,0.8,164.0,15.2,0.0,11.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001029,MP0094,2,Bữa phụ 1,FD0029,1.0,105.0,1.3,27.0,0.3,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001030,MP0094,3,Bữa trưa,FD0112,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001031,MP0094,3,Bữa trưa,FD0036,1.2,55.2,0.0,14.9,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001032,MP0094,3,Bữa trưa,FD0097,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001033,MP0094,3,Bữa trưa,FD0042,0.5,36.5,1.2,3.1,2.4,2.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001034,MP0094,4,Bữa phụ 2,FD0106,0.8,108.0,16.0,3.2,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001035,MP0094,4,Bữa phụ 2,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001036,MP0094,5,Bữa tối,FD0076,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001037,MP0094,5,Bữa tối,FD0030,1.2,114.0,0.6,30.0,0.4,5.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001038,MP0094,5,Bữa tối,FD0133,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001039,MP0094,5,Bữa tối,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001040,MP0095,1,Bữa sáng,FD0110,1.0,80.0,10.0,2.0,3.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001041,MP0095,1,Bữa sáng,FD0078,1.0,99.0,5.1,21.4,0.1,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001042,MP0095,2,Bữa trưa,FD0060,1.0,390.0,30.0,48.0,8.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001043,MP0095,2,Bữa trưa,FD0048,1.0,18.0,0.9,3.9,0.2,1.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001044,MP0095,3,Bữa tối,FD0143,1.0,450.0,31.0,40.0,18.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001045,MP0096,1,Bữa sáng,FD0010,1.0,52.0,11.0,0.7,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001046,MP0096,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001047,MP0096,1,Bữa sáng,FD0032,1.0,32.0,0.7,7.7,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001048,MP0096,2,Bữa phụ 1,FD0006,0.8,105.6,23.2,0.0,0.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001049,MP0096,2,Bữa phụ 1,FD0029,1.0,105.0,1.3,27.0,0.3,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001050,MP0096,3,Bữa trưa,FD0140,1.0,460.0,34.0,52.0,8.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001051,MP0096,3,Bữa trưa,FD0052,1.0,17.0,1.2,3.1,0.3,1.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001052,MP0096,4,Bữa phụ 2,FD0007,0.8,102.4,20.8,0.0,2.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001053,MP0096,4,Bữa phụ 2,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001054,MP0096,5,Bữa tối,FD0060,1.0,390.0,30.0,48.0,8.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001055,MP0096,5,Bữa tối,FD0097,1.0,25.0,1.9,5.0,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001056,MP0097,1,Bữa sáng,FD0106,1.0,135.0,20.0,4.0,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001057,MP0097,1,Bữa sáng,FD0117,1.0,140.0,4.0,24.0,3.5,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001058,MP0097,1,Bữa sáng,FD0029,1.0,105.0,1.3,27.0,0.3,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001059,MP0097,2,Bữa phụ 1,FD0006,0.8,105.6,23.2,0.0,0.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001060,MP0097,2,Bữa phụ 1,FD0120,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001061,MP0097,3,Bữa trưa,FD0106,1.2,162.0,24.0,4.8,4.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001062,MP0097,3,Bữa trưa,FD0024,1.2,177.6,8.4,30.0,2.8,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001063,MP0097,3,Bữa trưa,FD0131,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001064,MP0097,3,Bữa trưa,FD0042,0.5,36.5,1.2,3.1,2.4,2.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001065,MP0097,4,Bữa phụ 2,FD0071,0.8,120.0,16.0,9.6,1.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001066,MP0097,4,Bữa phụ 2,FD0029,1.0,105.0,1.3,27.0,0.3,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001067,MP0097,5,Bữa tối,FD0054,1.2,123.6,9.6,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001068,MP0097,5,Bữa tối,FD0086,1.2,72.0,1.0,18.0,0.5,1.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001069,MP0097,5,Bữa tối,FD0095,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001070,MP0098,1,Bữa sáng,FD0106,1.0,135.0,20.0,4.0,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001071,MP0098,1,Bữa sáng,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001072,MP0098,1,Bữa sáng,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001073,MP0098,2,Bữa phụ 1,FD0071,0.8,120.0,16.0,9.6,1.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001074,MP0098,2,Bữa phụ 1,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001075,MP0098,3,Bữa trưa,FD0009,1.2,86.4,7.6,0.5,5.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001076,MP0098,3,Bữa trưa,FD0036,1.2,55.2,0.0,14.9,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001077,MP0098,3,Bữa trưa,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001078,MP0098,3,Bữa trưa,FD0039,0.5,98.0,2.3,2.0,9.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001079,MP0098,4,Bữa phụ 2,FD0005,0.8,166.4,16.0,0.0,10.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001080,MP0098,4,Bữa phụ 2,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001081,MP0098,5,Bữa tối,FD0074,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001082,MP0098,5,Bữa tối,FD0036,1.2,55.2,0.0,14.9,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001083,MP0098,5,Bữa tối,FD0096,1.5,46.5,2.7,10.5,0.2,4.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001084,MP0098,5,Bữa tối,FD0126,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001085,MP0099,1,Bữa sáng,FD0070,1.0,135.0,20.0,4.0,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001086,MP0099,1,Bữa sáng,FD0035,1.0,105.0,2.0,23.0,0.8,0.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001087,MP0099,2,Bữa trưa,FD0111,1.2,144.0,28.8,4.8,1.8,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001088,MP0099,2,Bữa trưa,FD0116,1.2,264.0,6.0,38.4,9.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001089,MP0099,2,Bữa trưa,FD0131,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001090,MP0099,2,Bữa trưa,FD0089,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001091,MP0099,3,Bữa tối,FD0007,1.2,153.6,31.2,0.0,3.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001092,MP0099,3,Bữa tối,FD0027,1.2,144.0,5.3,25.6,2.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001093,MP0099,3,Bữa tối,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001094,MP0099,3,Bữa tối,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001095,MP0100,1,Bữa sáng,FD0110,1.0,80.0,10.0,2.0,3.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001096,MP0100,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001097,MP0100,2,Bữa trưa,FD0068,1.2,116.4,22.8,0.0,1.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001098,MP0100,2,Bữa trưa,FD0088,1.2,135.6,1.2,36.0,0.2,3.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001099,MP0100,2,Bữa trưa,FD0093,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001100,MP0100,2,Bữa trưa,FD0127,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001101,MP0100,3,Bữa phụ,FD0103,1.0,205.0,19.0,0.0,14.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001102,MP0100,4,Bữa tối,FD0009,1.2,86.4,7.6,0.5,5.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001103,MP0100,4,Bữa tối,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001104,MP0100,4,Bữa tối,FD0093,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001105,MP0100,4,Bữa tối,FD0125,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001106,MP0101,1,Bữa sáng,FD0107,1.0,150.0,20.0,12.0,2.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001107,MP0101,1,Bữa sáng,FD0080,1.0,220.0,5.0,32.0,8.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001108,MP0101,1,Bữa sáng,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001109,MP0101,2,Bữa trưa,FD0073,1.2,122.4,9.8,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001110,MP0101,2,Bữa trưa,FD0078,1.2,118.8,6.1,25.7,0.1,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001111,MP0101,2,Bữa trưa,FD0135,1.5,46.5,2.1,11.1,0.3,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001112,MP0101,2,Bữa trưa,FD0089,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001113,MP0101,3,Bữa tối,FD0110,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001114,MP0101,3,Bữa tối,FD0034,1.2,82.8,0.8,21.6,0.2,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001115,MP0101,3,Bữa tối,FD0093,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001116,MP0101,3,Bữa tối,FD0127,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001117,MP0102,1,Bữa sáng,FD0074,1.0,80.0,10.0,2.0,3.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001118,MP0102,1,Bữa sáng,FD0026,1.0,109.0,1.8,24.5,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001119,MP0102,2,Bữa trưa,FD0018,1.2,196.8,10.8,32.4,3.1,9.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001120,MP0102,2,Bữa trưa,FD0122,1.2,72.0,1.0,18.0,0.5,1.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001121,MP0102,2,Bữa trưa,FD0129,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001122,MP0102,2,Bữa trưa,FD0126,0.5,85.0,4.2,2.1,7.0,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001123,MP0102,3,Bữa phụ,FD0106,0.8,108.0,16.0,3.2,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001124,MP0102,3,Bữa phụ,FD0029,1.0,105.0,1.3,27.0,0.3,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001125,MP0102,4,Bữa tối,FD0077,1.2,152.4,10.4,27.4,0.6,7.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001126,MP0102,4,Bữa tối,FD0032,1.2,38.4,0.8,9.2,0.4,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001127,MP0102,4,Bữa tối,FD0097,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001128,MP0103,1,Bữa sáng,FD0005,1.0,208.0,20.0,0.0,13.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001129,MP0103,1,Bữa sáng,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001130,MP0103,1,Bữa sáng,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001131,MP0103,2,Bữa phụ 1,FD0111,0.8,96.0,19.2,3.2,1.2,0.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001132,MP0103,2,Bữa phụ 1,FD0087,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001133,MP0103,3,Bữa trưa,FD0065,1.0,430.0,22.0,55.0,12.0,8.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001134,MP0103,3,Bữa trưa,FD0048,1.0,18.0,0.9,3.9,0.2,1.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001135,MP0103,4,Bữa phụ 2,FD0074,0.8,64.0,8.0,1.6,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001136,MP0103,4,Bữa phụ 2,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001137,MP0103,5,Bữa tối,FD0060,1.0,390.0,30.0,48.0,8.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001138,MP0103,5,Bữa tối,FD0131,1.0,19.0,1.5,3.2,0.2,1.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001139,MP0104,1,Bữa sáng,FD0108,1.0,61.0,3.5,4.7,3.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001140,MP0104,1,Bữa sáng,FD0085,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001141,MP0104,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001142,MP0104,2,Bữa trưa,FD0148,1.0,330.0,20.0,34.0,12.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001143,MP0104,2,Bữa trưa,FD0094,1.0,13.0,1.5,2.2,0.2,1.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001144,MP0104,3,Bữa phụ,FD0105,0.8,108.0,23.2,0.0,0.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001145,MP0104,3,Bữa phụ,FD0031,1.0,62.0,1.2,15.4,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001146,MP0104,4,Bữa tối,FD0061,1.0,320.0,22.0,35.0,9.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001147,MP0105,1,Bữa sáng,FD0113,1.0,127.0,8.7,22.8,0.5,6.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001148,MP0105,1,Bữa sáng,FD0082,1.0,90.0,1.6,21.0,0.1,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001149,MP0105,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001150,MP0105,2,Bữa phụ 1,FD0107,0.8,120.0,16.0,9.6,1.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001151,MP0105,2,Bữa phụ 1,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001152,MP0105,3,Bữa trưa,FD0068,1.2,116.4,22.8,0.0,1.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001153,MP0105,3,Bữa trưa,FD0087,1.2,121.2,0.7,32.4,0.2,6.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001154,MP0105,3,Bữa trưa,FD0047,1.5,22.5,1.0,5.4,0.2,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001155,MP0105,3,Bữa trưa,FD0041,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001156,MP0105,4,Bữa phụ 2,FD0015,0.8,154.4,15.2,7.2,8.8,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001157,MP0105,4,Bữa phụ 2,FD0085,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001158,MP0105,5,Bữa tối,FD0075,1.2,144.0,28.8,4.8,1.8,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001159,MP0105,5,Bữa tối,FD0083,1.2,31.2,1.2,7.8,0.1,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001160,MP0105,5,Bữa tối,FD0095,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001161,MP0105,5,Bữa tối,FD0092,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001162,MP0106,1,Bữa sáng,FD0103,1.0,205.0,19.0,0.0,14.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001163,MP0106,1,Bữa sáng,FD0028,1.0,96.0,3.4,21.0,1.5,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001164,MP0106,1,Bữa sáng,FD0029,1.0,105.0,1.3,27.0,0.3,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001165,MP0106,2,Bữa phụ 1,FD0077,0.8,101.6,7.0,18.2,0.4,5.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001166,MP0106,2,Bữa phụ 1,FD0032,1.0,32.0,0.7,7.7,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001167,MP0106,3,Bữa trưa,FD0054,1.2,123.6,9.6,14.4,2.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001168,MP0106,3,Bữa trưa,FD0086,1.2,72.0,1.0,18.0,0.5,1.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001169,MP0106,3,Bữa trưa,FD0046,1.5,25.5,1.8,4.9,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001170,MP0106,3,Bữa trưa,FD0125,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001171,MP0106,4,Bữa phụ 2,FD0010,0.8,41.6,8.8,0.6,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001172,MP0106,4,Bữa phụ 2,FD0120,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001173,MP0106,5,Bữa tối,FD0066,1.2,252.0,28.8,0.0,14.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001174,MP0106,5,Bữa tối,FD0081,1.2,168.0,4.8,28.8,4.2,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001175,MP0106,5,Bữa tối,FD0097,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001176,MP0107,1,Bữa sáng,FD0077,1.0,127.0,8.7,22.8,0.5,6.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001177,MP0107,1,Bữa sáng,FD0082,1.0,90.0,1.6,21.0,0.1,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001178,MP0107,1,Bữa sáng,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001179,MP0107,2,Bữa phụ 1,FD0106,1.0,135.0,20.0,4.0,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001180,MP0107,3,Bữa trưa,FD0067,1.2,246.0,22.8,0.0,16.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001181,MP0107,3,Bữa trưa,FD0023,1.2,104.4,2.3,24.1,0.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001182,MP0107,3,Bữa trưa,FD0053,1.5,30.0,3.3,5.8,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001183,MP0107,3,Bữa trưa,FD0125,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001184,MP0107,4,Bữa phụ 2,FD0004,1.0,143.0,26.0,0.0,3.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001185,MP0107,4,Bữa phụ 2,FD0081,0.7,98.0,2.8,16.8,2.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001186,MP0107,5,Bữa tối,FD0112,1.2,158.4,10.7,28.4,0.6,10.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001187,MP0107,5,Bữa tối,FD0025,1.2,189.6,7.0,37.1,1.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001188,MP0107,5,Bữa tối,FD0133,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001189,MP0108,1,Bữa sáng,FD0016,1.0,121.0,11.9,8.9,5.2,5.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001190,MP0108,1,Bữa sáng,FD0118,1.0,90.0,1.6,21.0,0.1,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001191,MP0108,1,Bữa sáng,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001192,MP0108,2,Bữa phụ 1,FD0014,1.0,144.0,15.7,3.9,8.7,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001193,MP0108,2,Bữa phụ 1,FD0114,0.7,69.3,3.6,15.0,0.1,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001194,MP0108,3,Bữa trưa,FD0015,1.2,231.6,22.8,10.8,13.2,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001195,MP0108,3,Bữa trưa,FD0085,1.2,50.4,1.0,12.0,0.5,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001196,MP0108,3,Bữa trưa,FD0132,1.5,46.5,2.7,10.5,0.2,4.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001197,MP0108,3,Bữa trưa,FD0092,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001198,MP0108,4,Bữa phụ 2,FD0104,1.0,97.0,19.0,0.0,1.5,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001199,MP0108,4,Bữa phụ 2,FD0020,0.7,78.4,1.8,16.1,0.6,1.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001200,MP0108,5,Bữa tối,FD0110,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001201,MP0108,5,Bữa tối,FD0031,1.2,74.4,1.4,18.5,0.2,3.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001202,MP0108,5,Bữa tối,FD0097,1.5,37.5,2.8,7.5,0.4,3.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001203,MP0108,5,Bữa tối,FD0043,0.5,40.0,1.4,2.1,3.1,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001204,MP0109,1,Bữa sáng,FD0018,1.0,164.0,9.0,27.0,2.6,7.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001205,MP0109,1,Bữa sáng,FD0032,1.0,32.0,0.7,7.7,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001206,MP0109,1,Bữa sáng,FD0031,1.0,62.0,1.2,15.4,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001207,MP0109,2,Bữa trưa,FD0110,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001208,MP0109,2,Bữa trưa,FD0025,1.2,189.6,7.0,37.1,1.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001209,MP0109,2,Bữa trưa,FD0129,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001210,MP0109,2,Bữa trưa,FD0042,0.5,36.5,1.2,3.1,2.4,2.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001211,MP0109,3,Bữa tối,FD0018,1.2,196.8,10.8,32.4,3.1,9.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001212,MP0109,3,Bữa tối,FD0114,1.2,118.8,6.1,25.7,0.1,2.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001213,MP0109,3,Bữa tối,FD0047,1.5,22.5,1.0,5.4,0.2,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001214,MP0109,3,Bữa tối,FD0127,0.5,43.0,1.3,1.7,3.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001215,MP0110,1,Bữa sáng,FD0108,1.0,61.0,3.5,4.7,3.3,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001216,MP0110,1,Bữa sáng,FD0080,1.0,220.0,5.0,32.0,8.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001217,MP0110,1,Bữa sáng,FD0121,1.0,42.0,0.8,10.0,0.4,2.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001218,MP0110,2,Bữa trưa,FD0110,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001219,MP0110,2,Bữa trưa,FD0026,1.2,130.8,2.2,29.4,0.2,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001220,MP0110,2,Bữa trưa,FD0094,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001221,MP0110,2,Bữa trưa,FD0089,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001222,MP0110,3,Bữa phụ,FD0110,0.8,64.0,8.0,1.6,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001223,MP0110,3,Bữa phụ,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001224,MP0110,4,Bữa tối,FD0113,1.2,152.4,10.4,27.4,0.6,7.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001225,MP0110,4,Bữa tối,FD0079,1.2,294.0,11.5,57.6,1.8,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001226,MP0110,4,Bữa tối,FD0131,1.5,28.5,2.2,4.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001227,MP0110,4,Bữa tối,FD0092,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001228,MP0111,1,Bữa sáng,FD0067,1.0,205.0,19.0,0.0,14.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001229,MP0111,1,Bữa sáng,FD0026,1.0,109.0,1.8,24.5,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001230,MP0111,1,Bữa sáng,FD0032,1.0,32.0,0.7,7.7,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001231,MP0111,2,Bữa trưa,FD0063,1.0,360.0,28.0,34.0,11.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001232,MP0111,2,Bữa trưa,FD0048,1.0,18.0,0.9,3.9,0.2,1.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001233,MP0111,3,Bữa tối,FD0147,1.0,470.0,30.0,52.0,11.0,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001234,MP0111,3,Bữa tối,FD0131,1.0,19.0,1.5,3.2,0.2,1.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001235,MP0112,1,Bữa sáng,FD0107,1.0,150.0,20.0,12.0,2.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001236,MP0112,1,Bữa sáng,FD0084,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001237,MP0112,1,Bữa sáng,FD0124,1.0,113.0,1.0,30.0,0.2,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001238,MP0112,2,Bữa trưa,FD0148,1.0,330.0,20.0,34.0,12.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001239,MP0112,3,Bữa tối,FD0063,1.0,360.0,28.0,34.0,11.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001240,MP0113,1,Bữa sáng,FD0054,1.0,103.0,8.0,12.0,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001241,MP0113,1,Bữa sáng,FD0027,1.0,120.0,4.4,21.3,1.9,2.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001242,MP0113,1,Bữa sáng,FD0123,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001243,MP0113,2,Bữa trưa,FD0110,1.2,96.0,12.0,2.4,3.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001244,MP0113,2,Bữa trưa,FD0022,1.2,103.2,1.9,24.1,0.1,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001245,MP0113,2,Bữa trưa,FD0094,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001246,MP0113,3,Bữa phụ,FD0102,0.8,168.0,19.2,0.0,9.6,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001247,MP0113,3,Bữa phụ,FD0033,1.0,57.0,0.7,14.5,0.3,2.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001248,MP0113,4,Bữa tối,FD0013,1.2,144.0,28.8,3.6,1.8,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001249,MP0113,4,Bữa tối,FD0084,1.2,60.0,0.6,15.6,0.1,1.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001250,MP0113,4,Bữa tối,FD0129,1.5,34.5,4.3,5.4,0.6,3.3,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001251,MP0113,4,Bữa tối,FD0089,0.5,83.0,2.8,4.5,6.6,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001252,MP0114,1,Bữa sáng,FD0102,1.0,210.0,24.0,0.0,12.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001253,MP0114,1,Bữa sáng,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001254,MP0114,2,Bữa trưa,FD0075,1.2,144.0,28.8,4.8,1.8,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001255,MP0114,2,Bữa trưa,FD0116,1.2,264.0,6.0,38.4,9.6,4.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001256,MP0114,2,Bữa trưa,FD0049,1.5,46.5,1.5,9.0,0.4,3.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001257,MP0114,2,Bữa trưa,FD0037,0.5,80.0,1.0,4.2,7.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001258,MP0114,3,Bữa phụ,FD0015,0.8,154.4,15.2,7.2,8.8,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001259,MP0114,3,Bữa phụ,FD0087,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001260,MP0114,4,Bữa tối,FD0003,1.2,204.0,31.2,0.0,8.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001261,MP0114,4,Bữa tối,FD0036,1.2,55.2,0.0,14.9,0.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001262,MP0114,4,Bữa tối,FD0051,1.5,33.0,4.7,4.9,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001263,MP0114,4,Bữa tối,FD0039,0.5,98.0,2.3,2.0,9.8,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001264,MP0115,1,Bữa sáng,FD0107,1.0,150.0,20.0,12.0,2.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001265,MP0115,1,Bữa sáng,FD0116,1.0,220.0,5.0,32.0,8.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001266,MP0115,1,Bữa sáng,FD0032,1.0,32.0,0.7,7.7,0.3,2.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001267,MP0115,2,Bữa trưa,FD0107,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001268,MP0115,2,Bữa trưa,FD0026,1.2,130.8,2.2,29.4,0.2,1.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001269,MP0115,2,Bữa trưa,FD0052,1.5,25.5,1.8,4.7,0.4,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001270,MP0115,3,Bữa phụ,FD0015,1.0,193.0,19.0,9.0,11.0,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001271,MP0115,3,Bữa phụ,FD0021,0.7,109.2,4.2,18.9,2.1,2.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001272,MP0115,4,Bữa tối,FD0075,1.2,144.0,28.8,4.8,1.8,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001273,MP0115,4,Bữa tối,FD0119,1.2,31.2,1.2,7.8,0.1,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001274,MP0115,4,Bữa tối,FD0050,1.5,61.5,1.4,15.0,0.3,4.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001275,MP0116,1,Bữa sáng,FD0112,1.0,132.0,8.9,23.7,0.5,8.7,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001276,MP0116,1,Bữa sáng,FD0034,1.0,69.0,0.7,18.0,0.2,0.9,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001277,MP0116,1,Bữa sáng,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001278,MP0116,2,Bữa trưa,FD0075,1.2,144.0,28.8,4.8,1.8,0.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001279,MP0116,2,Bữa trưa,FD0035,1.2,126.0,2.4,27.6,1.0,0.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001280,MP0116,2,Bữa trưa,FD0094,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001281,MP0116,3,Bữa tối,FD0006,1.2,158.4,34.8,0.0,1.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001282,MP0116,3,Bữa tối,FD0088,1.2,135.6,1.2,36.0,0.2,3.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001283,MP0116,3,Bữa tối,FD0047,1.5,22.5,1.0,5.4,0.2,0.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001284,MP0117,1,Bữa sáng,FD0018,1.0,164.0,9.0,27.0,2.6,7.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001285,MP0117,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001286,MP0117,1,Bữa sáng,FD0122,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001287,MP0117,2,Bữa trưa,FD0017,1.2,139.2,10.8,24.0,0.5,9.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001288,MP0117,2,Bữa trưa,FD0124,1.2,135.6,1.2,36.0,0.2,3.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001289,MP0117,2,Bữa trưa,FD0048,1.5,27.0,1.4,5.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001290,MP0117,3,Bữa tối,FD0018,1.2,196.8,10.8,32.4,3.1,9.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001291,MP0117,3,Bữa tối,FD0022,1.2,103.2,1.9,24.1,0.1,3.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001292,MP0117,3,Bữa tối,FD0130,1.5,19.5,2.2,3.3,0.3,1.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001293,MP0117,3,Bữa tối,FD0041,0.5,45.0,0.0,0.0,5.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001294,MP0118,1,Bữa sáng,FD0109,1.0,102.0,8.2,12.0,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001295,MP0118,1,Bữa sáng,FD0029,1.0,105.0,1.3,27.0,0.3,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001296,MP0118,1,Bữa sáng,FD0087,1.0,101.0,0.6,27.0,0.2,5.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001297,MP0118,2,Bữa phụ 1,FD0054,0.8,82.4,6.4,9.6,1.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001298,MP0118,2,Bữa phụ 1,FD0086,1.0,60.0,0.8,15.0,0.4,1.6,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001299,MP0118,3,Bữa trưa,FD0108,1.2,73.2,4.2,5.6,4.0,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001300,MP0118,3,Bữa trưa,FD0025,1.2,189.6,7.0,37.1,1.1,2.2,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001301,MP0118,3,Bữa trưa,FD0048,1.5,27.0,1.4,5.8,0.3,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001302,MP0118,4,Bữa phụ 2,FD0073,0.8,81.6,6.6,9.6,1.9,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001303,MP0118,4,Bữa phụ 2,FD0030,1.0,95.0,0.5,25.0,0.3,4.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001304,MP0118,5,Bữa tối,FD0071,1.2,180.0,24.0,14.4,2.4,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001305,MP0118,5,Bữa tối,FD0027,1.2,144.0,5.3,25.6,2.3,3.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001306,MP0118,5,Bữa tối,FD0134,1.5,52.5,4.3,6.6,2.2,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001307,MP0119,1,Bữa sáng,FD0010,1.0,52.0,11.0,0.7,0.2,0.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001308,MP0119,1,Bữa sáng,FD0080,1.0,220.0,5.0,32.0,8.0,4.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001309,MP0119,2,Bữa trưa,FD0143,1.0,450.0,31.0,40.0,18.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001310,MP0119,2,Bữa trưa,FD0130,1.0,13.0,1.5,2.2,0.2,1.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001311,MP0119,3,Bữa tối,FD0139,1.0,540.0,32.0,48.0,24.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001312,MP0120,1,Bữa sáng,FD0075,1.0,120.0,24.0,4.0,1.5,0.5,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001313,MP0120,1,Bữa sáng,FD0023,1.0,87.0,1.9,20.1,0.1,1.8,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001314,MP0120,1,Bữa sáng,FD0031,1.0,62.0,1.2,15.4,0.2,3.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001315,MP0120,2,Bữa trưa,FD0143,1.0,450.0,31.0,40.0,18.0,5.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001316,MP0120,3,Bữa phụ,FD0018,0.8,131.2,7.2,21.6,2.1,6.1,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001317,MP0120,3,Bữa phụ,FD0120,1.0,50.0,0.5,13.0,0.1,1.4,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.
+MPI001318,MP0120,4,Bữa tối,FD0145,1.0,390.0,21.0,42.0,14.0,7.0,Có thể thay bằng thực phẩm tương đương macro nếu cần đổi món.

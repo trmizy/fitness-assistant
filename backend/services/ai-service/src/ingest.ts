@@ -26,11 +26,31 @@ async function generateEmbedding(text: string): Promise<number[]> {
   }
 }
 
+function resolveCsvPath(): string {
+  const envPath = process.env.RAG_INGEST_CSV_PATH;
+  const candidates = [
+    envPath ? path.resolve(process.cwd(), envPath) : null,
+    path.resolve(process.cwd(), '../../../data/processed/rag/exercises.csv'),
+    path.resolve(__dirname, '../../../../data/processed/rag/exercises.csv'),
+  ].filter((p): p is string => Boolean(p));
+
+  const existing = candidates.find((candidate) => fs.existsSync(candidate));
+  if (existing) {
+    return existing;
+  }
+
+  throw new Error(
+    `Cannot find ingest CSV. Checked: ${candidates.join(', ')}. ` +
+      'Set RAG_INGEST_CSV_PATH to the correct dataset file path if your workspace layout is different.'
+  );
+}
+
 async function main() {
   console.log('Starting ingestion to Qdrant...');
 
   // Read CSV
-  const csvPath = path.join(__dirname, '../../../../data/processed/data.csv');
+  const csvPath = resolveCsvPath();
+  console.log(`Using CSV: ${csvPath}`);
   const csvContent = fs.readFileSync(csvPath, 'utf-8');
   const lines = csvContent.split('\n').slice(1); // Skip header
 

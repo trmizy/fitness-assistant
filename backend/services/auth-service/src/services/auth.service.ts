@@ -56,6 +56,10 @@ function generateOtp(): string {
 }
 
 export const authService = {
+  async listUsers() {
+    return authRepository.listUsers();
+  },
+
   async register(data: RegisterStartDto) {
     const existing = await authRepository.findUserByEmail(data.email);
     if (existing) throw { status: 400, message: 'Email already registered' };

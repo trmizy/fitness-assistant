@@ -46,10 +46,6 @@ model UserProfile {
   // - ptApplicationStatus: NONE | PENDING | APPROVED | REJECTED (enum)
   // - ptCertificateUrl, ptBio, ptSpecialties, etc.
   isPT      Boolean  @default(false)
-  
-  // Basic Info (duplicated from auth-service for discovery)
-  firstName String?
-  lastName  String?
 
   // Demographics
   age       Int?

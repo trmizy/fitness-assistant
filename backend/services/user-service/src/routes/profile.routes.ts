@@ -11,5 +11,6 @@ router.delete('/me', authMiddleware, profileController.deleteProfile as any);
 
 // Listing PT users — used by the chat-service to validate PT-client conversations
 router.get('/pts', authMiddleware, profileController.listPTs as any);
+router.patch('/admin/users/:userId/pt-status', authMiddleware, profileController.adminSetPTStatus as any);
 
 export default router;

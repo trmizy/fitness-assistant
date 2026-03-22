@@ -14,6 +14,7 @@ export const aiController = {
     try {
       const { question } = req.body;
       const userId = getAuthenticatedUserId(req);
+      const authorizationHeader = req.headers.authorization;
       if (!question) {
         res.status(400).json({ error: 'No question provided' });
         return;
@@ -22,7 +23,7 @@ export const aiController = {
         res.status(401).json({ error: 'User not authenticated' });
         return;
       }
-      const result = await ragService.rag(question, userId);
+      const result = await ragService.rag(question, userId, authorizationHeader);
       res.json(result);
     } catch (error) {
       logger.error('Error in /ai/ask:', error);

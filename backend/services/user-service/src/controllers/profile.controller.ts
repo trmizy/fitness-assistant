@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { profileService } from '../services/profile.service';
 import { profileRepository } from '../repositories/profile.repository';
-import { profileSchema } from '../models/profile.models';
+import { adminPTStatusSchema, profileSchema } from '../models/profile.models';
 import type { AuthRequest } from '../middleware/auth.middleware';
 
 export const profileController = {
@@ -60,6 +60,26 @@ export const profileController = {
       res.json(result);
     } catch (error) {
       logger.error(error, 'Delete profile error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async adminSetPTStatus(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (req.user?.role !== 'ADMIN') {
+        res.status(403).json({ error: 'Forbidden: admin role required' });
+        return;
+      }
+
+      const body = adminPTStatusSchema.parse(req.body);
+      const result = await profileService.adminSetPTStatus(req.params.userId, body.isPT);
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        return;
+      }
+      logger.error(error, 'Admin set PT status error');
       res.status(500).json({ error: 'Internal server error' });
     }
   },

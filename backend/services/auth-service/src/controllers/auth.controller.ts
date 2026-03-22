@@ -28,6 +28,32 @@ function auditMeta(req: Request) {
 }
 
 export const authController = {
+  async listUsers(req: Request, res: Response): Promise<void> {
+    try {
+      const token = getBearerToken(req);
+      if (!token) {
+        res.status(401).json({ error: 'No token provided' });
+        return;
+      }
+
+      const actor = await authService.verifyToken(token);
+      if (actor.role !== 'ADMIN') {
+        res.status(403).json({ error: 'Forbidden: admin role required' });
+        return;
+      }
+
+      const users = await authService.listUsers();
+      res.json({ users });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, 'List users error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
   async register(req: Request, res: Response): Promise<void> {
     try {
       const body = registerStartSchema.parse(req.body);
@@ -196,6 +222,10 @@ export const authController = {
       }
 
       const body = updateUserRoleSchema.parse(req.body);
+      if (body.role === 'ADMIN') {
+        res.status(403).json({ error: 'Forbidden: assigning ADMIN role is not allowed' });
+        return;
+      }
       const result = await authService.updateUserRole(req.params.userId, body);
       res.json(result);
     } catch (error: any) {
@@ -225,6 +255,10 @@ export const authController = {
       }
 
       const body = updateUserRoleSchema.parse(req.body);
+      if (body.role === 'ADMIN') {
+        res.status(403).json({ error: 'Forbidden: assigning ADMIN role is not allowed' });
+        return;
+      }
       const result = await authService.updateUserRole(req.params.userId, body);
       res.json(result);
     } catch (error: any) {

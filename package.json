@@ -33,6 +33,9 @@
     "pnpm": ">=8.0.0"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.3.1",
+    "pg": "^8.20.0",
     "prom-client": "^15.1.3"
   }
 }

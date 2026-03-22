@@ -1,5 +1,6 @@
 packages:
   - 'frontend/*'
+  - '!frontend/web_backup_*'
   - 'backend/gateway'
   - 'backend/services/*'
   - 'backend/shared'

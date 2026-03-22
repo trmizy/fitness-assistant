@@ -1,19 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import axios from 'axios';
 import { logger } from '@gym-coach/shared';
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || 'dev_jwt_secret_change_in_production';
+const AUTH_SERVICE_URL =
+  process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
 
 type UserRole = 'ADMIN' | 'CUSTOMER' | 'PT';
 
 interface JwtPayload {
-  userId: string;
+  id: string;
   email?: string;
   role?: UserRole;
 }
 
-export function authMiddleware(
+export async function authMiddleware(
   req: Request,
   res: Response,
   next: NextFunction,
@@ -29,10 +29,28 @@ export function authMiddleware(
     }
 
     const token = authHeader.substring(7);
-    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const verifyResponse = await axios.post<{ user: JwtPayload }>(
+      `${AUTH_SERVICE_URL}/auth/verify`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        timeout: 5000,
+      },
+    );
+
+    const payload = verifyResponse.data.user;
+
+    if (!payload?.id) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'Invalid token payload' },
+      });
+    }
 
     // Forward user info to downstream services via headers
-    req.headers['x-user-id'] = payload.userId;
+    req.headers['x-user-id'] = payload.id;
     req.headers['x-user-email'] = payload.email || '';
     req.headers['x-user-role'] = payload.role || 'CUSTOMER';
 

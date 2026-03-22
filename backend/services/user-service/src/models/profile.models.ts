@@ -24,4 +24,9 @@ export const profileSchema = z.object({
   targetWeight: z.number().positive().optional(),
 });
 
+export const adminPTStatusSchema = z.object({
+  isPT: z.boolean(),
+});
+
 export type ProfileDto = z.infer<typeof profileSchema>;
+export type AdminPTStatusDto = z.infer<typeof adminPTStatusSchema>;
