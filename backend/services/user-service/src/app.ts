@@ -5,6 +5,7 @@ import pinoHttp from 'pino-http';
 import { logger, register, metricsMiddleware } from '@gym-coach/shared';
 import profileRoutes from './routes/profile.routes';
 import inbodyRoutes from './routes/inbody.routes';
+import ptApplicationRoutes from './routes/pt_application.routes';
 
 const app = express();
 
@@ -25,5 +26,6 @@ app.get('/metrics', async (_req, res) => {
 
 app.use('/profile', profileRoutes);
 app.use('/inbody', inbodyRoutes);
+app.use('/pt-applications', ptApplicationRoutes);
 
 export default app;
