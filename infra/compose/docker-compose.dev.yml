@@ -34,7 +34,7 @@ services:
       AI_SERVICE_URL: http://ai-service:3003
       CHAT_SERVICE_URL: http://chat-service:3005
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173,http://localhost:5174}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
     env_file:
       - ../../.env
     depends_on:
