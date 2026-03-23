@@ -18,7 +18,7 @@ Project duoc to chuc theo monorepo PNPM workspace:
 
 Port mapping tren may local:
 
-- Web: `5174`
+- Web: `5173`
 - Gateway: `3000`
 - Auth: `3001`
 - Fitness: `3002`
@@ -63,7 +63,7 @@ Invoke-RestMethod -Uri "http://localhost:3000/health" | ConvertTo-Json
 
 Mo trinh duyet:
 
-- Web UI: `http://localhost:5174`
+- Web UI: `http://localhost:5173`
 - Gateway health: `http://localhost:3000/health`
 
 ### 2.4 Dung he thong

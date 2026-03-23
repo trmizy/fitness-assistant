@@ -104,7 +104,7 @@ Kien truc nay giai quyet 3 muc tieu:
 ## 3) Port map va ket noi
 
 Host ports:
-- Web: 5174
+- Web: 5173
 - Gateway: 3000
 - Auth: 3001
 - Fitness: 3002
@@ -458,7 +458,7 @@ Dieu nay giup team phat trien song song va scale theo domain.
 3. Chay compose up --build -d
 4. Kiem tra compose ps tat ca service Up/healthy
 5. Kiem tra health endpoints
-6. Mo web http://localhost:5174
+6. Mo web http://localhost:5173
 
 Neu co loi token:
 - Dang xuat va dang nhap lai

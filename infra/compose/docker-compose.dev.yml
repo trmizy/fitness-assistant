@@ -9,7 +9,7 @@ services:
         VITE_CHAT_WS_URL: http://localhost:3005
     container_name: gymcoach-web
     ports:
-      - "5174:80"
+      - "5173:80"
     depends_on:
       - api-gateway
     restart: unless-stopped

@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(python -m inbody_extractor --image \"../../test/real_pic.jpg\" --debug --output output_debug)",
+      "Bash(python -m inbody_extractor --image \"d:/FitnessAssistant/test/real_pic.jpg\" --debug --output output_debug)",
+      "Bash(python -m inbody_extractor --image \"d:/FitnessAssistant/test/test2.jpg\" --debug --output output_debug)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.items\\(\\) if k not in \\(''''raw_ocr'''',''''debug'''',''''confidence''''\\)}, indent=2\\)\\)\")",
+      "Bash(python -m inbody_extractor.cli test/real_pic.jpg --debug)",
+      "Bash(python -m inbody_extractor.cli --image test/real_pic.jpg --debug)",
+      "Bash(find d:/FitnessAssistant/backend/services/user-service -maxdepth 2 -name *.jpg -o -name *.png -o -name *.jpeg)",
+      "Bash(python -m inbody_extractor.cli --image d:/FitnessAssistant/test/real_pic.jpg --debug)",
+      "Bash(python -c \":*)",
+      "Bash(pip install:*)"
     ]
   }
 }
