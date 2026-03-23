@@ -2,8 +2,16 @@ import axios from 'axios';
 import { logger } from '@gym-coach/shared';
 import type { InBodyMetrics, TrainingConstraints, UserProfile } from './types';
 
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
-const FITNESS_SERVICE_URL = process.env.FITNESS_SERVICE_URL || 'http://localhost:3002';
+const USER_SERVICE_URL =
+  process.env.USER_SERVICE_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'http://user-service:3004'
+    : 'http://localhost:3004');
+const FITNESS_SERVICE_URL =
+  process.env.FITNESS_SERVICE_URL ||
+  (process.env.NODE_ENV === 'production'
+    ? 'http://fitness-service:3002'
+    : 'http://localhost:3002');
 
 type ProfileResponse = {
   profile?: {

@@ -73,6 +73,7 @@ export const ragService = {
       completionTokens: orchestrated.completionTokens,
       totalTokens: orchestrated.totalTokens,
       traceId: orchestrated.traceId,
+      responseLanguage: orchestrated.responseLanguage,
       usedFallback: orchestrated.usedFallback,
       missingFields: orchestrated.missingFields,
       validationNotes: orchestrated.validationNotes,

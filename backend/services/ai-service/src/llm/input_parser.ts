@@ -1,4 +1,5 @@
 import type { InputIntent, UserProfile } from './types';
+import { intentRouter } from './intent_router';
 
 function normalize(text: string): string {
   return text
@@ -84,6 +85,7 @@ function computeMissingFields(profile?: UserProfile, intent?: InputIntent['inten
 export const inputParser = {
   parse(question: string, profile?: UserProfile): InputIntent {
     const normalizedQuestion = normalize(question);
+    const routed = intentRouter.route(normalizedQuestion, profile);
     const intent = inferIntent(normalizedQuestion);
     const goalHint = inferGoal(normalizedQuestion, profile);
     const parsedTrainingDays = parseTrainingDays(normalizedQuestion);
@@ -94,12 +96,13 @@ export const inputParser = {
     return {
       normalizedQuestion,
       intent,
+      routeIntent: routed.intent,
       goalHint,
       mealPreferenceHint,
-      parsedTrainingDays,
+      parsedTrainingDays: routed.parsedTrainingDays ?? parsedTrainingDays,
       mentionsInjury,
       needsPersonalization: intent === 'personalized_plan' || intent === 'workout_plan' || intent === 'meal_plan',
-      missingFields,
+      missingFields: Array.from(new Set([...missingFields, ...routed.missingFields])),
     };
   },
 };

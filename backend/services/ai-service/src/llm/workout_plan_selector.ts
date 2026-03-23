@@ -12,10 +12,10 @@ function chooseSplit(daysPerWeek: number, goal: string, level: string): string {
 }
 
 function inferFocus(goal: string): string[] {
-  if (goal === 'fat_loss') return ['compound_strength', 'moderate_cardio', 'step_count'];
-  if (goal === 'muscle_gain') return ['progressive_overload', 'hypertrophy_volume', 'recovery'];
-  if (goal === 'recomposition') return ['strength_retention', 'moderate_volume', 'nutrition_adherence'];
-  return ['balanced_fitness'];
+  if (goal === 'fat_loss') return ['compound training', 'cardio support', 'daily movement'];
+  if (goal === 'muscle_gain') return ['progressive overload', 'hypertrophy volume', 'recovery'];
+  if (goal === 'recomposition') return ['strength maintenance', 'moderate training volume', 'nutrition adherence'];
+  return ['balanced fitness'];
 }
 
 function resolveGoal(profileGoal?: UserProfile['goal'], hint?: InputIntent['goalHint']): string {

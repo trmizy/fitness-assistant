@@ -68,7 +68,10 @@ export const answerValidator = {
     warnings.push(...validateSafetyLanguage(answer));
 
     if (recommendation.missingFields.length > 0) {
-      const asksFollowup = /follow-up|follow up|can you share|please provide|could you tell/i.test(answer);
+      const asksFollowup =
+        /follow-up|follow up|can you share|please provide|could you tell|ban co the cho minh biet|ban vui long cung cap|cho minh xin them thong tin|cau hoi de ca nhan hoa/i.test(
+          answer,
+        );
       if (!asksFollowup) {
         warnings.push('Answer does not ask follow-up questions despite missing user fields.');
       }
