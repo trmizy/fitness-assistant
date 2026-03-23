@@ -35,7 +35,8 @@ RUN python3 -m venv /opt/inbody-venv \
     && /opt/inbody-venv/bin/pip install --no-cache-dir \
        torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu \
     && /opt/inbody-venv/bin/pip install --no-cache-dir \
-       pydantic pytesseract opencv-python-headless numpy Pillow easyocr
+       pydantic pytesseract opencv-python-headless numpy Pillow easyocr \
+    && /opt/inbody-venv/bin/python -c "import easyocr; easyocr.Reader(['en'], gpu=False, verbose=True)"
 
 FROM base AS runner
 WORKDIR /app
@@ -45,9 +46,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     tesseract-ocr \
     libgl1 libglib2.0-0 \
+    ca-certificates \
+    wget \
     && rm -rf /var/lib/apt/lists/*
-# Copy pre-built Python virtualenv from python-deps stage
+# Copy pre-built Python virtualenv and pre-downloaded EasyOCR models
 COPY --from=python-deps /opt/inbody-venv /opt/inbody-venv
+COPY --from=python-deps /root/.EasyOCR /root/.EasyOCR
 ENV PATH="/opt/inbody-venv/bin:$PATH"
 # Root node_modules includes .pnpm virtual store AND generated Prisma client
 COPY --from=builder /app/node_modules ./node_modules

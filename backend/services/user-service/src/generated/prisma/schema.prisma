@@ -40,16 +40,17 @@ model UserProfile {
   id     String @id @default(uuid())
   userId String @unique // References auth-service User.id
 
+  // Basic info (cached from auth-service or direct)
+  firstName String?
+  lastName  String?
+  email     String?
+
   // PT Status
   // Currently a simple boolean flag. Future expansion:
   // - role: CLIENT | PT | ADMIN (enum)
   // - ptApplicationStatus: NONE | PENDING | APPROVED | REJECTED (enum)
   // - ptCertificateUrl, ptBio, ptSpecialties, etc.
   isPT Boolean @default(false)
-
-  // Basic Info (duplicated from auth-service for discovery)
-  firstName String?
-  lastName  String?
 
   // Demographics
   age      Int?
@@ -115,10 +116,14 @@ model PTApplication {
   portraitPhotoUrl String? @map("portrait_photo_url")
 
   // Professional background
-  yearsOfExperience   String?  @map("years_of_experience")
-  educationBackground String?  @map("education_background")
-  mainSpecialties     String[] @map("main_specialties")
-  targetClientGroups  String[] @map("target_client_groups")
+  yearsOfExperience       String?  @map("years_of_experience")
+  educationBackground     String?  @map("education_background")
+  previousWorkExperience  String?  @map("previous_work_experience")
+  professionalBio         String?  @map("professional_bio")
+  mainSpecialties         String[] @map("main_specialties")
+  targetClientGroups      String[] @map("target_client_groups")
+  primaryTrainingGoals    String[] @map("primary_training_goals")
+  trainingMethodsApproach String?  @map("training_methods_approach")
 
   // Portfolio / professional links
   portfolioUrl String? @map("portfolio_url")
@@ -127,11 +132,19 @@ model PTApplication {
   socialLinks  Json?   @map("social_links") // For Instagram, YouTube, etc.
 
   // Service / work setup
-  availabilityNotes   String?      @map("availability_notes")
-  availableTimeSlots  Json?        @map("available_time_slots")
-  serviceMode         ServiceMode? @map("service_mode")
-  operatingAreas      String[]     @map("operating_areas")
-  desiredSessionPrice Float?       @map("desired_session_price")
+  availabilityNotes      String?      @map("availability_notes")
+  availableTimeSlots     Json?        @map("available_time_slots")
+  serviceMode            ServiceMode? @map("service_mode")
+  operatingAreas         String[]     @map("operating_areas")
+  desiredSessionPrice    Float?       @map("desired_session_price")
+  availableDays          String[]     @map("available_days")
+  availableFrom          String?      @map("available_from")
+  availableUntil         String?      @map("available_until")
+  gymAffiliation         String?      @map("gym_affiliation")
+  packagePrice           Float?       @map("package_price")
+  monthlyProgramPrice    Float?       @map("monthly_program_price")
+  additionalPricingNotes String?      @map("additional_pricing_notes")
+  otherReferences        String?      @map("other_references")
 
   // Admin interaction
   adminNote       String? @map("admin_note")
@@ -158,6 +171,8 @@ model PTApplicationCertificate {
   certificateName     String    @map("certificate_name")
   issuingOrganization String    @map("issuing_organization")
   isCurrentlyValid    Boolean   @map("is_currently_valid")
+  certificationStatus String?   @map("certification_status") // Valid, Expired, Lifetime
+  issueDate           DateTime? @map("issue_date")
   expirationDate      DateTime? @map("expiration_date")
   certificateFileUrl  String?   @map("certificate_file_url")
   createdAt           DateTime  @default(now()) @map("created_at")

@@ -68,9 +68,17 @@ export const ptApplicationService = {
     });
   },
 
-  async adminReviewAction(id: string, action: 'UNDER_REVIEW' | 'NEEDS_MORE_INFO' | 'APPROVED' | 'REJECTED', payload: any) {
+  async adminReviewAction(id: string, action: string, payload: any) {
     const app = await ptApplicationRepository.findById(id);
     if (!app) throw new Error('Application not found');
+
+    // Normalize action names (frontend may send short forms)
+    const actionAliases: Record<string, string> = {
+      APPROVE: 'APPROVED',
+      REJECT: 'REJECTED',
+      REQUEST_INFO: 'NEEDS_MORE_INFO',
+    };
+    const normalizedAction = actionAliases[action] || action;
 
     const statusMap: Record<string, PTApplicationStatus> = {
       UNDER_REVIEW: PTApplicationStatus.UNDER_REVIEW,
@@ -79,22 +87,24 @@ export const ptApplicationService = {
       REJECTED: PTApplicationStatus.REJECTED,
     };
 
-    const status = statusMap[action];
+    const status = statusMap[normalizedAction];
+    if (!status) throw new Error(`Invalid action: ${action}`);
+
     const extra: any = { reviewedAt: new Date() };
 
-    if (action === 'REJECTED') {
+    if (normalizedAction === 'REJECTED') {
       if (!payload.rejectionReason) throw new Error('Rejection reason is required');
       extra.rejectionReason = payload.rejectionReason;
     }
 
-    if (action === 'NEEDS_MORE_INFO') {
+    if (normalizedAction === 'NEEDS_MORE_INFO') {
       if (!payload.adminNote) throw new Error('Admin feedback is required for NEEDS_MORE_INFO');
       extra.adminNote = payload.adminNote;
     }
 
-    if (action === 'APPROVED') {
+    if (normalizedAction === 'APPROVED') {
       extra.approvedAt = new Date();
-      
+
       // Perform role sync and profile update
       await syncRoleToPT(app.userProfile.userId);
       await profileRepository.setIsPT(app.userProfile.userId, true);

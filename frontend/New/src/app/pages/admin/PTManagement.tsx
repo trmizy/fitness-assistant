@@ -40,6 +40,33 @@ function InfoRow({ label, value, highlight }: { label: string; value: string; hi
   );
 }
 
+function SocialLink({ icon, label, url }: { icon: React.ReactNode; label: string; url: string }) {
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" 
+       className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-800/30 border border-zinc-700/30 hover:border-green-500/30 hover:bg-zinc-800/50 transition-all group">
+      <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-green-400 transition-colors">
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider leading-none mb-1">{label}</p>
+        <p className="text-xs text-zinc-300 truncate">{url.replace(/^https?:\/\//, '')}</p>
+      </div>
+      <ChevronRight className="w-3.5 h-3.5 text-zinc-700 group-hover:text-green-400 transition-all" />
+    </a>
+  );
+}
+
+function PriceItem({ label, value }: { label: string; value?: number | null }) {
+  return (
+    <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/30">
+      <span className="text-xs text-zinc-500 font-medium">{label}</span>
+      <span className="text-sm text-zinc-100 font-bold">
+        {value ? `${value.toLocaleString()} THB` : <span className="text-zinc-600 font-normal">Contact for price</span>}
+      </span>
+    </div>
+  );
+}
+
 /* ── Document thumbnail ─────────────────────────────────── */
 function DocThumb({ label, url, tag }: { label: string; url?: string; tag?: string }) {
   const fullUrl = getFullUrl(url);
@@ -107,8 +134,8 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
           ]).map(t => (
             <button key={t.key} onClick={() => setSection(t.key)}
               className={`flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 text-[10px] font-bold border-b-2 transition-all min-w-0 ${section === t.key
-                  ? "border-green-500 text-green-400 bg-green-500/8"
-                  : "border-transparent text-zinc-500 hover:text-zinc-300"
+                ? "border-green-500 text-green-400 bg-green-500/8"
+                : "border-transparent text-zinc-500 hover:text-zinc-300"
                 }`}>
               <t.icon className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="truncate">{t.label}</span>
@@ -209,159 +236,221 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
   return (
     <>
       {showDocs && <DocumentViewer app={app} onClose={() => setShowDocs(false)} />}
-      <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-5">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-all">
-            <ArrowLeft className="w-4 h-4" />
+      <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
+        {/* Top Header */}
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="p-2.5 rounded-xl text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 border border-transparent hover:border-zinc-700 transition-all">
+            <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-zinc-100 font-bold">Review: {app.user?.firstName} {app.user?.lastName}</h1>
-          <div className="ml-auto">
-            <span className={`inline-flex items-center gap-1.5 text-[10px] px-3 py-1.5 rounded-full font-bold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-              {cfg.label}
-            </span>
+          <div>
+            <h1 className="text-xl font-bold text-zinc-100 flex items-center gap-3">
+              Review: {app.user?.firstName} {app.user?.lastName}
+              <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${cfg.bg} ${cfg.text} ${cfg.border} uppercase tracking-wider`}>
+                {cfg.label}
+              </span>
+            </h1>
+            <p className="text-xs text-zinc-500 mt-0.5">Application ID: {app.id}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="space-y-4">
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-5 text-center">
-              <div className="w-20 h-20 bg-green-500/15 border border-green-500/20 rounded-2xl flex items-center justify-center text-xl font-bold text-green-400 mx-auto mb-3">
-                {app.user?.firstName?.[0]}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Sidebar (1/3) */}
+          <div className="space-y-6">
+            <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 text-center shadow-xl">
+              <div className="w-24 h-24 bg-zinc-800 border-2 border-zinc-700/50 rounded-3xl overflow-hidden flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-black/40">
+                {app.portraitPhotoUrl ? (
+                  <img 
+                    src={app.portraitPhotoUrl.startsWith('http') ? app.portraitPhotoUrl : `${import.meta.env.VITE_API_URL}${app.portraitPhotoUrl}`} 
+                    className="w-full h-full object-cover"
+                    alt="Profile"
+                  />
+                ) : (
+                  <div className="text-3xl font-bold text-zinc-600">
+                    {app.user?.firstName?.[0] || "?"}
+                  </div>
+                )}
               </div>
-              <h3 className="text-zinc-100 font-bold">{app.user?.firstName} {app.user?.lastName}</h3>
-              <p className="text-xs text-zinc-500 mt-0.5">{app.user?.email}</p>
-
-              <button onClick={() => setShowDocs(true)} className="mt-5 w-full flex items-center justify-center gap-2 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded-xl transition-colors">
-                <Eye className="w-3.5 h-3.5" /> View Documents
-              </button>
+              <h3 className="text-lg font-bold text-zinc-100">{app.user?.firstName} {app.user?.lastName}</h3>
+              <p className="text-sm text-zinc-500">{app.user?.email || "No email provided"}</p>
+              
+              <div className="mt-6 pt-6 border-t border-zinc-800/60 space-y-3">
+                <button onClick={() => setShowDocs(true)} className="w-full flex items-center justify-center gap-2.5 py-3 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded-xl transition-all shadow-lg shadow-green-500/5">
+                  <Eye className="w-4 h-4" /> View Documents
+                </button>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/30">
+                  <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0 shadow-inner">
+                    <Phone className="w-5 h-5 text-zinc-500" />
+                  </div>
+                  <div className="text-left min-w-0">
+                    <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider leading-none mb-1">Phone</p>
+                    <p className="text-xs text-zinc-200 font-semibold truncate">{app.phoneNumber || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-5 space-y-6">
-              <div>
-                <p className="text-xs font-bold text-zinc-500 uppercase mb-3 flex items-center gap-2">
-                  <User className="w-3.5 h-3.5" /> Professional Bio & Approach
-                </p>
-                <p className="text-sm text-zinc-300 leading-relaxed italic bg-zinc-800/30 p-4 rounded-lg border border-zinc-700/30">
-                  "{app.professionalBio || "Applicant did not provide a bio."}"
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-4 shadow-xl">
+              <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-green-500" /> Admin Review
+              </p>
+              <div className="space-y-4">
                 <div>
-                  <p className="text-xs font-bold text-zinc-500 uppercase mb-3 flex items-center gap-2">
-                    <Briefcase className="w-3.5 h-3.5" /> Background & Education
-                  </p>
-                  <p className="text-sm text-zinc-300">{app.educationBackground || "None provided"}</p>
+                  <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Internal Note</p>
+                  <textarea value={adminNote} onChange={e => setAdminNote(e.target.value)} rows={2} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 resize-none outline-none focus:border-green-500 transition-colors" placeholder="Visible only to admins..." />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-zinc-500 uppercase mb-3 flex items-center gap-2">
-                    <HistoryIcon className="w-3.5 h-3.5" /> Past Experience
+                  <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Feedback to User</p>
+                  <textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={2} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 resize-none outline-none focus:border-amber-500 transition-colors" placeholder="Message sent to user..." />
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <button onClick={() => actionMutation.mutate({ action: 'APPROVE', note: adminNote, feedback })} className="bg-green-500 hover:bg-green-400 text-black py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-green-500/20">Approve</button>
+                  <button onClick={() => actionMutation.mutate({ action: 'REJECT', note: adminNote, feedback })} className="bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-zinc-400 hover:text-red-400 py-2.5 rounded-xl font-bold text-xs transition-all">Reject</button>
+                  <button onClick={() => actionMutation.mutate({ action: 'REQUEST_INFO', note: adminNote, feedback })} className="col-span-1 bg-zinc-800 hover:bg-amber-500/10 border border-zinc-700 hover:border-amber-500/30 text-zinc-400 hover:text-amber-400 py-2.5 rounded-xl font-bold text-xs transition-all">Need Info</button>
+                  <button onClick={() => actionMutation.mutate({ action: 'UNDER_REVIEW', note: adminNote, feedback })} className="col-span-1 bg-zinc-800 hover:bg-blue-500/10 border border-zinc-700 hover:border-blue-500/30 text-zinc-400 hover:text-blue-400 py-2.5 rounded-xl font-bold text-xs transition-all">Investigate</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Body (2/3) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Bio & Background */}
+            <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-6 shadow-xl">
+              <div>
+                <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2 mb-4">
+                  <User className="w-4 h-4 text-green-500" /> Professional Bio & Approach
+                </p>
+                <div className="relative p-5 rounded-2xl bg-zinc-800/20 border border-zinc-700/20">
+                  <p className="text-sm text-zinc-300 leading-relaxed italic">
+                    "{app.professionalBio || "Applicant did not provide a bio."}"
                   </p>
-                  <p className="text-sm text-zinc-300">{app.previousWorkExperience || "None provided"}</p>
                 </div>
               </div>
 
-              <div>
-                <p className="text-xs font-bold text-zinc-500 uppercase mb-3">Main Specialties</p>
-                <div className="flex flex-wrap gap-2">
-                  {app.mainSpecialties?.length > 0 ? (
-                    app.mainSpecialties.map(s => (
-                      <span key={s} className="px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-[10px] font-bold border border-green-500/20 uppercase tracking-wider">
-                        {s}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-zinc-600 text-xs italic">No specialties selected</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-zinc-800/40">
+                <div>
+                  <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Education & Background</p>
+                  <p className="text-sm text-zinc-100 font-medium">{app.educationBackground || "None provided"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Specialties</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {app.mainSpecialties?.length > 0 ? app.mainSpecialties.map(s => (
+                      <span key={s} className="px-2.5 py-1 rounded-lg bg-green-500/10 text-green-400 text-[10px] font-bold border border-green-500/20 uppercase tracking-tight">{s}</span>
+                    )) : <span className="text-xs text-zinc-600 italic">None selected</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Service & Availability + Coaching Focus */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-5 shadow-xl">
+                <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-400" /> Service & Availability
+                </p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/40">
+                      <p className="text-[10px] text-zinc-600 font-bold uppercase mb-1">Exp.</p>
+                      <p className="text-xs text-zinc-100 font-bold">{app.yearsOfExperience ? `${app.yearsOfExperience} years` : "N/A"}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/40">
+                      <p className="text-[10px] text-zinc-600 font-bold uppercase mb-1">Mode</p>
+                      <p className="text-xs text-green-400 font-bold">{app.serviceMode || "HYBRID"}</p>
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Schedule</p>
+                    <div className="flex flex-wrap gap-1.5 overflow-hidden">
+                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+                        <span key={d} className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors ${
+                          app.availableDays?.includes(d) ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-zinc-950 text-zinc-700 border-zinc-800/40"
+                        }`}>{d}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/40">
+                    <Clock className="w-4 h-4 text-zinc-600" />
+                    <div className="text-xs text-zinc-300">
+                      {app.availableFrom || app.availableUntil ? (
+                        `${app.availableFrom || "??:??"} — ${app.availableUntil || "??:??"}`
+                      ) : (
+                        "Variable schedule"
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-zinc-500 italic flex items-start gap-2 px-1">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{app.operatingAreas?.join(", ") || "Client address / Online"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-5 shadow-xl">
+                <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+                  <Users className="w-4 h-4 text-purple-400" /> Coaching Focus
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Target Clients</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {app.targetClientGroups?.length > 0 ? app.targetClientGroups.map(t => (
+                        <span key={t} className="px-2 py-0.5 rounded-md bg-blue-500/5 text-blue-400 text-[10px] border border-blue-500/10 font-medium">{t}</span>
+                      )) : <span className="text-xs text-zinc-700 italic">Not set</span>}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Training Goals</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {app.primaryTrainingGoals?.length > 0 ? app.primaryTrainingGoals.map(g => (
+                        <span key={g} className="px-2 py-0.5 rounded-md bg-purple-500/5 text-purple-400 text-[10px] border border-purple-500/10 font-medium">{g}</span>
+                      )) : <span className="text-xs text-zinc-700 italic">Not set</span>}
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-zinc-800/40">
+                    <p className="text-[10px] text-zinc-600 font-bold uppercase mb-1.5">Methods</p>
+                    <p className="text-xs text-zinc-400 leading-relaxed max-h-16 overflow-hidden line-clamp-3 italic">
+                      {app.trainingMethodsApproach || "No specific methods mentioned."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Social & Portfolio + Pricing */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-5 shadow-xl">
+                <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-pink-400" /> Online Presence
+                </p>
+                <div className="space-y-2.5">
+                  {app.portfolioUrl && <SocialLink icon={<Globe className="w-4 h-4"/>} label="Personal Website" url={app.portfolioUrl} />}
+                  {app.linkedinUrl && <SocialLink icon={<Linkedin className="w-4 h-4"/>} label="LinkedIn" url={app.linkedinUrl} />}
+                  {app.socialLinks?.instagram && <SocialLink icon={<Instagram className="w-4 h-4"/>} label="Instagram" url={`https://instagram.com/${app.socialLinks.instagram}`} />}
+                  {app.socialLinks?.tiktok && <SocialLink icon={<span className="text-xs font-bold">Tk</span>} label="TikTok" url={`https://tiktok.com/@${app.socialLinks.tiktok}`} />}
+                  {!app.portfolioUrl && !app.linkedinUrl && !app.socialLinks?.instagram && (
+                    <div className="text-center py-8 bg-zinc-950/40 rounded-xl border border-dashed border-zinc-800/60">
+                      <Globe className="w-8 h-8 text-zinc-800 mx-auto mb-2" />
+                      <p className="text-[10px] text-zinc-700 font-bold uppercase">No links provided</p>
+                    </div>
                   )}
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-zinc-800/60 space-y-4">
-                <div className="flex items-center gap-4 p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/30">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0 shadow-inner">
-                    <Phone className="w-5 h-5 text-zinc-500" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider mb-0.5">Contact Phone</p>
-                    <p className="text-sm text-zinc-200 font-semibold truncate">{app.phoneNumber || "Not provided"}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/30">
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-5">
-              <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-                <Calendar className="w-3.5 h-3.5" /> Service & Availability
-              </p>
-              <div className="space-y-3">
-                <InfoRow label="Experience" value={app.yearsOfExperience ? `${app.yearsOfExperience} years` : "N/A"} />
-                <InfoRow label="Service Mode" value={app.serviceMode} highlight />
-                <InfoRow label="Operating Areas" value={app.operatingAreas?.join(", ") || "N/A"} />
-                <div className="pt-2 border-t border-zinc-800/40">
-                  <p className="text-[10px] text-zinc-500 font-bold uppercase mb-2">Available Schedule</p>
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {app.availableDays?.map(d => (
-                      <span key={d} className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 text-[10px] border border-zinc-700">{d}</span>
-                    ))}
-                  </div>
-                  <p className="text-xs text-zinc-400">
-                    <Clock className="w-3 h-3 inline mr-1 text-zinc-500" />
-                    {app.availableFrom && app.availableUntil ? `${app.availableFrom} - ${app.availableUntil}` : "No time set"}
-                  </p>
-                  {app.availabilityNotes && <p className="text-[10px] text-zinc-500 mt-2 italic">Note: {app.availabilityNotes}</p>}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-4">
-              <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
-                <Users className="w-3.5 h-3.5" /> Coaching Focus
-              </p>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Target Audience</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {app.targetClientGroups?.map(t => (
-                      <span key={t} className="px-2 py-0.5 rounded-md bg-blue-500/5 text-blue-400 text-[10px] border border-blue-500/10">{t}</span>
-                    ))}
+              <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-5 shadow-xl">
+                <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-amber-500" /> Service Pricing
+                </p>
+                <div className="space-y-3">
+                  <PriceItem label="Session (1h)" value={app.desiredSessionPrice} />
+                  <PriceItem label="10-Session Pack" value={app.packagePrice} />
+                  <PriceItem label="Monthly Plan" value={app.monthlyProgramPrice} />
+                  <div className="pt-2 flex items-center justify-between px-1 border-t border-zinc-800/40">
+                    <span className="text-[10px] text-zinc-600 font-bold uppercase">Gym / Facility</span>
+                    <span className="text-xs text-zinc-300 font-bold">{app.gymAffiliation || "Freelance"}</span>
                   </div>
                 </div>
-                <div>
-                  <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Training Goals</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {app.primaryTrainingGoals?.map(g => (
-                      <span key={g} className="px-2 py-0.5 rounded-md bg-purple-500/5 text-purple-400 text-[10px] border border-purple-500/10">{g}</span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Approach & Methods</p>
-                  <p className="text-xs text-zinc-300 leading-relaxed">{app.trainingMethodsApproach || "Not specified"}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-2 space-y-4">
-                  {app.mainSpecialties?.map(s => <span key={s} className="bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full text-[10px] border border-zinc-700">{s}</span>)}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-4">
-              <div>
-                <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Admin Internal Note</p>
-                <textarea value={adminNote} onChange={e => setAdminNote(e.target.value)} rows={2} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-xs text-zinc-200 resize-none outline-none focus:border-green-500" placeholder="Internal notes..." />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Feedback to Applicant</p>
-                <textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={2} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3 text-xs text-zinc-200 resize-none outline-none focus:border-orange-500" placeholder="Message to applicant..." />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => actionMutation.mutate({ action: 'APPROVE', note: adminNote, feedback })} className="bg-green-500 text-black py-2.5 rounded-xl font-bold text-xs hover:bg-green-400">Approve</button>
-                <button onClick={() => actionMutation.mutate({ action: 'REQUEST_INFO', note: adminNote, feedback })} className="bg-zinc-800 text-orange-400 border border-orange-400/20 py-2.5 rounded-xl font-bold text-xs hover:bg-zinc-700">Needs Info</button>
-                <button onClick={() => actionMutation.mutate({ action: 'REJECT', note: adminNote, feedback })} className="bg-zinc-800 text-red-500 border border-red-500/20 py-2.5 rounded-xl font-bold text-xs hover:bg-zinc-700">Reject</button>
-                <button onClick={() => actionMutation.mutate({ action: 'UNDER_REVIEW', note: adminNote, feedback })} className="bg-zinc-800 text-zinc-400 border border-zinc-700 py-2.5 rounded-xl font-bold text-xs hover:bg-zinc-700">Under Review</button>
               </div>
             </div>
           </div>
@@ -381,8 +470,9 @@ export function PTManagement() {
 
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ['admin-pt-applications', filter],
-    queryFn: () => ptApplicationService.listApplications(filter === "all" ? undefined : filter as any)
+    queryFn: () => ptApplicationService.listApplications(filter === "all" ? {} : { status: filter })
   });
+
 
   if (selected) {
     return <DetailView app={selected} onBack={() => setSelected(null)} />;

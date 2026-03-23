@@ -33,12 +33,25 @@ export const inbodyService = {
 
       const result = JSON.parse(stdout.trim());
 
+      // Compute BMI and body fat % from extracted values
+      const weight = result.weight || 0;
+      const heightCm = result.height;
+      const bodyFat = result.body_fat_mass || 0;
+      const bmi = (heightCm && heightCm > 0)
+        ? Math.round((weight / ((heightCm / 100) ** 2)) * 10) / 10
+        : undefined;
+      const bodyFatPct = (weight > 0 && bodyFat > 0)
+        ? Math.round((bodyFat / weight) * 1000) / 10
+        : undefined;
+
       // Map OCR result to Database model (fields match InBodyResult in models.py)
       const entryData = {
-        weight: result.weight || 0,
-        height: result.height,
+        weight,
+        height: heightCm,
         muscleMass: result.skeletal_muscle_mass || 0,
-        bodyFat: result.body_fat_mass || 0,
+        bodyFat,
+        bmi,
+        bodyFatPct,
 
         // Segmental Lean Analysis
         rightArmMuscle: result.segmental_lean_analysis?.right_arm_muscle,

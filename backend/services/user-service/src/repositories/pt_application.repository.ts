@@ -142,12 +142,10 @@ export const ptApplicationRepository = {
       where: {
         ...(status && { status }),
         ...(search && {
-          userProfile: {
-            OR: [
-              { firstName: { contains: search, mode: 'insensitive' } },
-              { lastName: { contains: search, mode: 'insensitive' } },
-            ],
-          },
+          OR: [
+            { phoneNumber: { contains: search } },
+            { professionalBio: { contains: search, mode: 'insensitive' as const } },
+          ],
         }),
       },
       include: {

@@ -1359,9 +1359,10 @@ export namespace Prisma {
   export type UserProfileMinAggregateOutputType = {
     id: string | null
     userId: string | null
-    isPT: boolean | null
     firstName: string | null
     lastName: string | null
+    email: string | null
+    isPT: boolean | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -1377,9 +1378,10 @@ export namespace Prisma {
   export type UserProfileMaxAggregateOutputType = {
     id: string | null
     userId: string | null
-    isPT: boolean | null
     firstName: string | null
     lastName: string | null
+    email: string | null
+    isPT: boolean | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -1395,9 +1397,10 @@ export namespace Prisma {
   export type UserProfileCountAggregateOutputType = {
     id: number
     userId: number
-    isPT: number
     firstName: number
     lastName: number
+    email: number
+    isPT: number
     age: number
     gender: number
     heightCm: number
@@ -1434,9 +1437,10 @@ export namespace Prisma {
   export type UserProfileMinAggregateInputType = {
     id?: true
     userId?: true
-    isPT?: true
     firstName?: true
     lastName?: true
+    email?: true
+    isPT?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -1452,9 +1456,10 @@ export namespace Prisma {
   export type UserProfileMaxAggregateInputType = {
     id?: true
     userId?: true
-    isPT?: true
     firstName?: true
     lastName?: true
+    email?: true
+    isPT?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -1470,9 +1475,10 @@ export namespace Prisma {
   export type UserProfileCountAggregateInputType = {
     id?: true
     userId?: true
-    isPT?: true
     firstName?: true
     lastName?: true
+    email?: true
+    isPT?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -1578,9 +1584,10 @@ export namespace Prisma {
   export type UserProfileGroupByOutputType = {
     id: string
     userId: string
-    isPT: boolean
     firstName: string | null
     lastName: string | null
+    email: string | null
+    isPT: boolean
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -1618,9 +1625,10 @@ export namespace Prisma {
   export type UserProfileSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
-    isPT?: boolean
     firstName?: boolean
     lastName?: boolean
+    email?: boolean
+    isPT?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -1640,9 +1648,10 @@ export namespace Prisma {
   export type UserProfileSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
-    isPT?: boolean
     firstName?: boolean
     lastName?: boolean
+    email?: boolean
+    isPT?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -1661,9 +1670,10 @@ export namespace Prisma {
   export type UserProfileSelectScalar = {
     id?: boolean
     userId?: boolean
-    isPT?: boolean
     firstName?: boolean
     lastName?: boolean
+    email?: boolean
+    isPT?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -1692,9 +1702,10 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       userId: string
-      isPT: boolean
       firstName: string | null
       lastName: string | null
+      email: string | null
+      isPT: boolean
       age: number | null
       gender: $Enums.Gender | null
       heightCm: number | null
@@ -2104,9 +2115,10 @@ export namespace Prisma {
   interface UserProfileFieldRefs {
     readonly id: FieldRef<"UserProfile", 'String'>
     readonly userId: FieldRef<"UserProfile", 'String'>
-    readonly isPT: FieldRef<"UserProfile", 'Boolean'>
     readonly firstName: FieldRef<"UserProfile", 'String'>
     readonly lastName: FieldRef<"UserProfile", 'String'>
+    readonly email: FieldRef<"UserProfile", 'String'>
+    readonly isPT: FieldRef<"UserProfile", 'Boolean'>
     readonly age: FieldRef<"UserProfile", 'Int'>
     readonly gender: FieldRef<"UserProfile", 'Gender'>
     readonly heightCm: FieldRef<"UserProfile", 'Float'>
@@ -2477,10 +2489,14 @@ export namespace Prisma {
 
   export type PTApplicationAvgAggregateOutputType = {
     desiredSessionPrice: number | null
+    packagePrice: number | null
+    monthlyProgramPrice: number | null
   }
 
   export type PTApplicationSumAggregateOutputType = {
     desiredSessionPrice: number | null
+    packagePrice: number | null
+    monthlyProgramPrice: number | null
   }
 
   export type PTApplicationMinAggregateOutputType = {
@@ -2495,12 +2511,22 @@ export namespace Prisma {
     portraitPhotoUrl: string | null
     yearsOfExperience: string | null
     educationBackground: string | null
+    previousWorkExperience: string | null
+    professionalBio: string | null
+    trainingMethodsApproach: string | null
     portfolioUrl: string | null
     linkedinUrl: string | null
     websiteUrl: string | null
     availabilityNotes: string | null
     serviceMode: $Enums.ServiceMode | null
     desiredSessionPrice: number | null
+    availableFrom: string | null
+    availableUntil: string | null
+    gymAffiliation: string | null
+    packagePrice: number | null
+    monthlyProgramPrice: number | null
+    additionalPricingNotes: string | null
+    otherReferences: string | null
     adminNote: string | null
     rejectionReason: string | null
     submittedAt: Date | null
@@ -2522,12 +2548,22 @@ export namespace Prisma {
     portraitPhotoUrl: string | null
     yearsOfExperience: string | null
     educationBackground: string | null
+    previousWorkExperience: string | null
+    professionalBio: string | null
+    trainingMethodsApproach: string | null
     portfolioUrl: string | null
     linkedinUrl: string | null
     websiteUrl: string | null
     availabilityNotes: string | null
     serviceMode: $Enums.ServiceMode | null
     desiredSessionPrice: number | null
+    availableFrom: string | null
+    availableUntil: string | null
+    gymAffiliation: string | null
+    packagePrice: number | null
+    monthlyProgramPrice: number | null
+    additionalPricingNotes: string | null
+    otherReferences: string | null
     adminNote: string | null
     rejectionReason: string | null
     submittedAt: Date | null
@@ -2549,8 +2585,12 @@ export namespace Prisma {
     portraitPhotoUrl: number
     yearsOfExperience: number
     educationBackground: number
+    previousWorkExperience: number
+    professionalBio: number
     mainSpecialties: number
     targetClientGroups: number
+    primaryTrainingGoals: number
+    trainingMethodsApproach: number
     portfolioUrl: number
     linkedinUrl: number
     websiteUrl: number
@@ -2560,6 +2600,14 @@ export namespace Prisma {
     serviceMode: number
     operatingAreas: number
     desiredSessionPrice: number
+    availableDays: number
+    availableFrom: number
+    availableUntil: number
+    gymAffiliation: number
+    packagePrice: number
+    monthlyProgramPrice: number
+    additionalPricingNotes: number
+    otherReferences: number
     adminNote: number
     rejectionReason: number
     submittedAt: number
@@ -2573,10 +2621,14 @@ export namespace Prisma {
 
   export type PTApplicationAvgAggregateInputType = {
     desiredSessionPrice?: true
+    packagePrice?: true
+    monthlyProgramPrice?: true
   }
 
   export type PTApplicationSumAggregateInputType = {
     desiredSessionPrice?: true
+    packagePrice?: true
+    monthlyProgramPrice?: true
   }
 
   export type PTApplicationMinAggregateInputType = {
@@ -2591,12 +2643,22 @@ export namespace Prisma {
     portraitPhotoUrl?: true
     yearsOfExperience?: true
     educationBackground?: true
+    previousWorkExperience?: true
+    professionalBio?: true
+    trainingMethodsApproach?: true
     portfolioUrl?: true
     linkedinUrl?: true
     websiteUrl?: true
     availabilityNotes?: true
     serviceMode?: true
     desiredSessionPrice?: true
+    availableFrom?: true
+    availableUntil?: true
+    gymAffiliation?: true
+    packagePrice?: true
+    monthlyProgramPrice?: true
+    additionalPricingNotes?: true
+    otherReferences?: true
     adminNote?: true
     rejectionReason?: true
     submittedAt?: true
@@ -2618,12 +2680,22 @@ export namespace Prisma {
     portraitPhotoUrl?: true
     yearsOfExperience?: true
     educationBackground?: true
+    previousWorkExperience?: true
+    professionalBio?: true
+    trainingMethodsApproach?: true
     portfolioUrl?: true
     linkedinUrl?: true
     websiteUrl?: true
     availabilityNotes?: true
     serviceMode?: true
     desiredSessionPrice?: true
+    availableFrom?: true
+    availableUntil?: true
+    gymAffiliation?: true
+    packagePrice?: true
+    monthlyProgramPrice?: true
+    additionalPricingNotes?: true
+    otherReferences?: true
     adminNote?: true
     rejectionReason?: true
     submittedAt?: true
@@ -2645,8 +2717,12 @@ export namespace Prisma {
     portraitPhotoUrl?: true
     yearsOfExperience?: true
     educationBackground?: true
+    previousWorkExperience?: true
+    professionalBio?: true
     mainSpecialties?: true
     targetClientGroups?: true
+    primaryTrainingGoals?: true
+    trainingMethodsApproach?: true
     portfolioUrl?: true
     linkedinUrl?: true
     websiteUrl?: true
@@ -2656,6 +2732,14 @@ export namespace Prisma {
     serviceMode?: true
     operatingAreas?: true
     desiredSessionPrice?: true
+    availableDays?: true
+    availableFrom?: true
+    availableUntil?: true
+    gymAffiliation?: true
+    packagePrice?: true
+    monthlyProgramPrice?: true
+    additionalPricingNotes?: true
+    otherReferences?: true
     adminNote?: true
     rejectionReason?: true
     submittedAt?: true
@@ -2764,8 +2848,12 @@ export namespace Prisma {
     portraitPhotoUrl: string | null
     yearsOfExperience: string | null
     educationBackground: string | null
+    previousWorkExperience: string | null
+    professionalBio: string | null
     mainSpecialties: string[]
     targetClientGroups: string[]
+    primaryTrainingGoals: string[]
+    trainingMethodsApproach: string | null
     portfolioUrl: string | null
     linkedinUrl: string | null
     websiteUrl: string | null
@@ -2775,6 +2863,14 @@ export namespace Prisma {
     serviceMode: $Enums.ServiceMode | null
     operatingAreas: string[]
     desiredSessionPrice: number | null
+    availableDays: string[]
+    availableFrom: string | null
+    availableUntil: string | null
+    gymAffiliation: string | null
+    packagePrice: number | null
+    monthlyProgramPrice: number | null
+    additionalPricingNotes: string | null
+    otherReferences: string | null
     adminNote: string | null
     rejectionReason: string | null
     submittedAt: Date | null
@@ -2815,8 +2911,12 @@ export namespace Prisma {
     portraitPhotoUrl?: boolean
     yearsOfExperience?: boolean
     educationBackground?: boolean
+    previousWorkExperience?: boolean
+    professionalBio?: boolean
     mainSpecialties?: boolean
     targetClientGroups?: boolean
+    primaryTrainingGoals?: boolean
+    trainingMethodsApproach?: boolean
     portfolioUrl?: boolean
     linkedinUrl?: boolean
     websiteUrl?: boolean
@@ -2826,6 +2926,14 @@ export namespace Prisma {
     serviceMode?: boolean
     operatingAreas?: boolean
     desiredSessionPrice?: boolean
+    availableDays?: boolean
+    availableFrom?: boolean
+    availableUntil?: boolean
+    gymAffiliation?: boolean
+    packagePrice?: boolean
+    monthlyProgramPrice?: boolean
+    additionalPricingNotes?: boolean
+    otherReferences?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
     submittedAt?: boolean
@@ -2851,8 +2959,12 @@ export namespace Prisma {
     portraitPhotoUrl?: boolean
     yearsOfExperience?: boolean
     educationBackground?: boolean
+    previousWorkExperience?: boolean
+    professionalBio?: boolean
     mainSpecialties?: boolean
     targetClientGroups?: boolean
+    primaryTrainingGoals?: boolean
+    trainingMethodsApproach?: boolean
     portfolioUrl?: boolean
     linkedinUrl?: boolean
     websiteUrl?: boolean
@@ -2862,6 +2974,14 @@ export namespace Prisma {
     serviceMode?: boolean
     operatingAreas?: boolean
     desiredSessionPrice?: boolean
+    availableDays?: boolean
+    availableFrom?: boolean
+    availableUntil?: boolean
+    gymAffiliation?: boolean
+    packagePrice?: boolean
+    monthlyProgramPrice?: boolean
+    additionalPricingNotes?: boolean
+    otherReferences?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
     submittedAt?: boolean
@@ -2884,8 +3004,12 @@ export namespace Prisma {
     portraitPhotoUrl?: boolean
     yearsOfExperience?: boolean
     educationBackground?: boolean
+    previousWorkExperience?: boolean
+    professionalBio?: boolean
     mainSpecialties?: boolean
     targetClientGroups?: boolean
+    primaryTrainingGoals?: boolean
+    trainingMethodsApproach?: boolean
     portfolioUrl?: boolean
     linkedinUrl?: boolean
     websiteUrl?: boolean
@@ -2895,6 +3019,14 @@ export namespace Prisma {
     serviceMode?: boolean
     operatingAreas?: boolean
     desiredSessionPrice?: boolean
+    availableDays?: boolean
+    availableFrom?: boolean
+    availableUntil?: boolean
+    gymAffiliation?: boolean
+    packagePrice?: boolean
+    monthlyProgramPrice?: boolean
+    additionalPricingNotes?: boolean
+    otherReferences?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
     submittedAt?: boolean
@@ -2933,8 +3065,12 @@ export namespace Prisma {
       portraitPhotoUrl: string | null
       yearsOfExperience: string | null
       educationBackground: string | null
+      previousWorkExperience: string | null
+      professionalBio: string | null
       mainSpecialties: string[]
       targetClientGroups: string[]
+      primaryTrainingGoals: string[]
+      trainingMethodsApproach: string | null
       portfolioUrl: string | null
       linkedinUrl: string | null
       websiteUrl: string | null
@@ -2944,6 +3080,14 @@ export namespace Prisma {
       serviceMode: $Enums.ServiceMode | null
       operatingAreas: string[]
       desiredSessionPrice: number | null
+      availableDays: string[]
+      availableFrom: string | null
+      availableUntil: string | null
+      gymAffiliation: string | null
+      packagePrice: number | null
+      monthlyProgramPrice: number | null
+      additionalPricingNotes: string | null
+      otherReferences: string | null
       adminNote: string | null
       rejectionReason: string | null
       submittedAt: Date | null
@@ -3358,8 +3502,12 @@ export namespace Prisma {
     readonly portraitPhotoUrl: FieldRef<"PTApplication", 'String'>
     readonly yearsOfExperience: FieldRef<"PTApplication", 'String'>
     readonly educationBackground: FieldRef<"PTApplication", 'String'>
+    readonly previousWorkExperience: FieldRef<"PTApplication", 'String'>
+    readonly professionalBio: FieldRef<"PTApplication", 'String'>
     readonly mainSpecialties: FieldRef<"PTApplication", 'String[]'>
     readonly targetClientGroups: FieldRef<"PTApplication", 'String[]'>
+    readonly primaryTrainingGoals: FieldRef<"PTApplication", 'String[]'>
+    readonly trainingMethodsApproach: FieldRef<"PTApplication", 'String'>
     readonly portfolioUrl: FieldRef<"PTApplication", 'String'>
     readonly linkedinUrl: FieldRef<"PTApplication", 'String'>
     readonly websiteUrl: FieldRef<"PTApplication", 'String'>
@@ -3369,6 +3517,14 @@ export namespace Prisma {
     readonly serviceMode: FieldRef<"PTApplication", 'ServiceMode'>
     readonly operatingAreas: FieldRef<"PTApplication", 'String[]'>
     readonly desiredSessionPrice: FieldRef<"PTApplication", 'Float'>
+    readonly availableDays: FieldRef<"PTApplication", 'String[]'>
+    readonly availableFrom: FieldRef<"PTApplication", 'String'>
+    readonly availableUntil: FieldRef<"PTApplication", 'String'>
+    readonly gymAffiliation: FieldRef<"PTApplication", 'String'>
+    readonly packagePrice: FieldRef<"PTApplication", 'Float'>
+    readonly monthlyProgramPrice: FieldRef<"PTApplication", 'Float'>
+    readonly additionalPricingNotes: FieldRef<"PTApplication", 'String'>
+    readonly otherReferences: FieldRef<"PTApplication", 'String'>
     readonly adminNote: FieldRef<"PTApplication", 'String'>
     readonly rejectionReason: FieldRef<"PTApplication", 'String'>
     readonly submittedAt: FieldRef<"PTApplication", 'DateTime'>
@@ -3764,6 +3920,8 @@ export namespace Prisma {
     certificateName: string | null
     issuingOrganization: string | null
     isCurrentlyValid: boolean | null
+    certificationStatus: string | null
+    issueDate: Date | null
     expirationDate: Date | null
     certificateFileUrl: string | null
     createdAt: Date | null
@@ -3775,6 +3933,8 @@ export namespace Prisma {
     certificateName: string | null
     issuingOrganization: string | null
     isCurrentlyValid: boolean | null
+    certificationStatus: string | null
+    issueDate: Date | null
     expirationDate: Date | null
     certificateFileUrl: string | null
     createdAt: Date | null
@@ -3786,6 +3946,8 @@ export namespace Prisma {
     certificateName: number
     issuingOrganization: number
     isCurrentlyValid: number
+    certificationStatus: number
+    issueDate: number
     expirationDate: number
     certificateFileUrl: number
     createdAt: number
@@ -3799,6 +3961,8 @@ export namespace Prisma {
     certificateName?: true
     issuingOrganization?: true
     isCurrentlyValid?: true
+    certificationStatus?: true
+    issueDate?: true
     expirationDate?: true
     certificateFileUrl?: true
     createdAt?: true
@@ -3810,6 +3974,8 @@ export namespace Prisma {
     certificateName?: true
     issuingOrganization?: true
     isCurrentlyValid?: true
+    certificationStatus?: true
+    issueDate?: true
     expirationDate?: true
     certificateFileUrl?: true
     createdAt?: true
@@ -3821,6 +3987,8 @@ export namespace Prisma {
     certificateName?: true
     issuingOrganization?: true
     isCurrentlyValid?: true
+    certificationStatus?: true
+    issueDate?: true
     expirationDate?: true
     certificateFileUrl?: true
     createdAt?: true
@@ -3905,6 +4073,8 @@ export namespace Prisma {
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
+    certificationStatus: string | null
+    issueDate: Date | null
     expirationDate: Date | null
     certificateFileUrl: string | null
     createdAt: Date
@@ -3933,6 +4103,8 @@ export namespace Prisma {
     certificateName?: boolean
     issuingOrganization?: boolean
     isCurrentlyValid?: boolean
+    certificationStatus?: boolean
+    issueDate?: boolean
     expirationDate?: boolean
     certificateFileUrl?: boolean
     createdAt?: boolean
@@ -3945,6 +4117,8 @@ export namespace Prisma {
     certificateName?: boolean
     issuingOrganization?: boolean
     isCurrentlyValid?: boolean
+    certificationStatus?: boolean
+    issueDate?: boolean
     expirationDate?: boolean
     certificateFileUrl?: boolean
     createdAt?: boolean
@@ -3957,6 +4131,8 @@ export namespace Prisma {
     certificateName?: boolean
     issuingOrganization?: boolean
     isCurrentlyValid?: boolean
+    certificationStatus?: boolean
+    issueDate?: boolean
     expirationDate?: boolean
     certificateFileUrl?: boolean
     createdAt?: boolean
@@ -3980,6 +4156,8 @@ export namespace Prisma {
       certificateName: string
       issuingOrganization: string
       isCurrentlyValid: boolean
+      certificationStatus: string | null
+      issueDate: Date | null
       expirationDate: Date | null
       certificateFileUrl: string | null
       createdAt: Date
@@ -4382,6 +4560,8 @@ export namespace Prisma {
     readonly certificateName: FieldRef<"PTApplicationCertificate", 'String'>
     readonly issuingOrganization: FieldRef<"PTApplicationCertificate", 'String'>
     readonly isCurrentlyValid: FieldRef<"PTApplicationCertificate", 'Boolean'>
+    readonly certificationStatus: FieldRef<"PTApplicationCertificate", 'String'>
+    readonly issueDate: FieldRef<"PTApplicationCertificate", 'DateTime'>
     readonly expirationDate: FieldRef<"PTApplicationCertificate", 'DateTime'>
     readonly certificateFileUrl: FieldRef<"PTApplicationCertificate", 'String'>
     readonly createdAt: FieldRef<"PTApplicationCertificate", 'DateTime'>
@@ -6883,9 +7063,10 @@ export namespace Prisma {
   export const UserProfileScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
-    isPT: 'isPT',
     firstName: 'firstName',
     lastName: 'lastName',
+    email: 'email',
+    isPT: 'isPT',
     age: 'age',
     gender: 'gender',
     heightCm: 'heightCm',
@@ -6916,8 +7097,12 @@ export namespace Prisma {
     portraitPhotoUrl: 'portraitPhotoUrl',
     yearsOfExperience: 'yearsOfExperience',
     educationBackground: 'educationBackground',
+    previousWorkExperience: 'previousWorkExperience',
+    professionalBio: 'professionalBio',
     mainSpecialties: 'mainSpecialties',
     targetClientGroups: 'targetClientGroups',
+    primaryTrainingGoals: 'primaryTrainingGoals',
+    trainingMethodsApproach: 'trainingMethodsApproach',
     portfolioUrl: 'portfolioUrl',
     linkedinUrl: 'linkedinUrl',
     websiteUrl: 'websiteUrl',
@@ -6927,6 +7112,14 @@ export namespace Prisma {
     serviceMode: 'serviceMode',
     operatingAreas: 'operatingAreas',
     desiredSessionPrice: 'desiredSessionPrice',
+    availableDays: 'availableDays',
+    availableFrom: 'availableFrom',
+    availableUntil: 'availableUntil',
+    gymAffiliation: 'gymAffiliation',
+    packagePrice: 'packagePrice',
+    monthlyProgramPrice: 'monthlyProgramPrice',
+    additionalPricingNotes: 'additionalPricingNotes',
+    otherReferences: 'otherReferences',
     adminNote: 'adminNote',
     rejectionReason: 'rejectionReason',
     submittedAt: 'submittedAt',
@@ -6945,6 +7138,8 @@ export namespace Prisma {
     certificateName: 'certificateName',
     issuingOrganization: 'issuingOrganization',
     isCurrentlyValid: 'isCurrentlyValid',
+    certificationStatus: 'certificationStatus',
+    issueDate: 'issueDate',
     expirationDate: 'expirationDate',
     certificateFileUrl: 'certificateFileUrl',
     createdAt: 'createdAt'
@@ -7218,9 +7413,10 @@ export namespace Prisma {
     NOT?: UserProfileWhereInput | UserProfileWhereInput[]
     id?: StringFilter<"UserProfile"> | string
     userId?: StringFilter<"UserProfile"> | string
-    isPT?: BoolFilter<"UserProfile"> | boolean
     firstName?: StringNullableFilter<"UserProfile"> | string | null
     lastName?: StringNullableFilter<"UserProfile"> | string | null
+    email?: StringNullableFilter<"UserProfile"> | string | null
+    isPT?: BoolFilter<"UserProfile"> | boolean
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableFilter<"UserProfile"> | number | null
@@ -7240,9 +7436,10 @@ export namespace Prisma {
   export type UserProfileOrderByWithRelationInput = {
     id?: SortOrder
     userId?: SortOrder
-    isPT?: SortOrder
     firstName?: SortOrderInput | SortOrder
     lastName?: SortOrderInput | SortOrder
+    email?: SortOrderInput | SortOrder
+    isPT?: SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     heightCm?: SortOrderInput | SortOrder
@@ -7265,9 +7462,10 @@ export namespace Prisma {
     AND?: UserProfileWhereInput | UserProfileWhereInput[]
     OR?: UserProfileWhereInput[]
     NOT?: UserProfileWhereInput | UserProfileWhereInput[]
-    isPT?: BoolFilter<"UserProfile"> | boolean
     firstName?: StringNullableFilter<"UserProfile"> | string | null
     lastName?: StringNullableFilter<"UserProfile"> | string | null
+    email?: StringNullableFilter<"UserProfile"> | string | null
+    isPT?: BoolFilter<"UserProfile"> | boolean
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableFilter<"UserProfile"> | number | null
@@ -7287,9 +7485,10 @@ export namespace Prisma {
   export type UserProfileOrderByWithAggregationInput = {
     id?: SortOrder
     userId?: SortOrder
-    isPT?: SortOrder
     firstName?: SortOrderInput | SortOrder
     lastName?: SortOrderInput | SortOrder
+    email?: SortOrderInput | SortOrder
+    isPT?: SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     heightCm?: SortOrderInput | SortOrder
@@ -7316,9 +7515,10 @@ export namespace Prisma {
     NOT?: UserProfileScalarWhereWithAggregatesInput | UserProfileScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"UserProfile"> | string
     userId?: StringWithAggregatesFilter<"UserProfile"> | string
-    isPT?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     firstName?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     lastName?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    email?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    isPT?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     age?: IntNullableWithAggregatesFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableWithAggregatesFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
@@ -7349,8 +7549,12 @@ export namespace Prisma {
     portraitPhotoUrl?: StringNullableFilter<"PTApplication"> | string | null
     yearsOfExperience?: StringNullableFilter<"PTApplication"> | string | null
     educationBackground?: StringNullableFilter<"PTApplication"> | string | null
+    previousWorkExperience?: StringNullableFilter<"PTApplication"> | string | null
+    professionalBio?: StringNullableFilter<"PTApplication"> | string | null
     mainSpecialties?: StringNullableListFilter<"PTApplication">
     targetClientGroups?: StringNullableListFilter<"PTApplication">
+    primaryTrainingGoals?: StringNullableListFilter<"PTApplication">
+    trainingMethodsApproach?: StringNullableFilter<"PTApplication"> | string | null
     portfolioUrl?: StringNullableFilter<"PTApplication"> | string | null
     linkedinUrl?: StringNullableFilter<"PTApplication"> | string | null
     websiteUrl?: StringNullableFilter<"PTApplication"> | string | null
@@ -7360,6 +7564,14 @@ export namespace Prisma {
     serviceMode?: EnumServiceModeNullableFilter<"PTApplication"> | $Enums.ServiceMode | null
     operatingAreas?: StringNullableListFilter<"PTApplication">
     desiredSessionPrice?: FloatNullableFilter<"PTApplication"> | number | null
+    availableDays?: StringNullableListFilter<"PTApplication">
+    availableFrom?: StringNullableFilter<"PTApplication"> | string | null
+    availableUntil?: StringNullableFilter<"PTApplication"> | string | null
+    gymAffiliation?: StringNullableFilter<"PTApplication"> | string | null
+    packagePrice?: FloatNullableFilter<"PTApplication"> | number | null
+    monthlyProgramPrice?: FloatNullableFilter<"PTApplication"> | number | null
+    additionalPricingNotes?: StringNullableFilter<"PTApplication"> | string | null
+    otherReferences?: StringNullableFilter<"PTApplication"> | string | null
     adminNote?: StringNullableFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableFilter<"PTApplication"> | string | null
     submittedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
@@ -7384,8 +7596,12 @@ export namespace Prisma {
     portraitPhotoUrl?: SortOrderInput | SortOrder
     yearsOfExperience?: SortOrderInput | SortOrder
     educationBackground?: SortOrderInput | SortOrder
+    previousWorkExperience?: SortOrderInput | SortOrder
+    professionalBio?: SortOrderInput | SortOrder
     mainSpecialties?: SortOrder
     targetClientGroups?: SortOrder
+    primaryTrainingGoals?: SortOrder
+    trainingMethodsApproach?: SortOrderInput | SortOrder
     portfolioUrl?: SortOrderInput | SortOrder
     linkedinUrl?: SortOrderInput | SortOrder
     websiteUrl?: SortOrderInput | SortOrder
@@ -7395,6 +7611,14 @@ export namespace Prisma {
     serviceMode?: SortOrderInput | SortOrder
     operatingAreas?: SortOrder
     desiredSessionPrice?: SortOrderInput | SortOrder
+    availableDays?: SortOrder
+    availableFrom?: SortOrderInput | SortOrder
+    availableUntil?: SortOrderInput | SortOrder
+    gymAffiliation?: SortOrderInput | SortOrder
+    packagePrice?: SortOrderInput | SortOrder
+    monthlyProgramPrice?: SortOrderInput | SortOrder
+    additionalPricingNotes?: SortOrderInput | SortOrder
+    otherReferences?: SortOrderInput | SortOrder
     adminNote?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
     submittedAt?: SortOrderInput | SortOrder
@@ -7422,8 +7646,12 @@ export namespace Prisma {
     portraitPhotoUrl?: StringNullableFilter<"PTApplication"> | string | null
     yearsOfExperience?: StringNullableFilter<"PTApplication"> | string | null
     educationBackground?: StringNullableFilter<"PTApplication"> | string | null
+    previousWorkExperience?: StringNullableFilter<"PTApplication"> | string | null
+    professionalBio?: StringNullableFilter<"PTApplication"> | string | null
     mainSpecialties?: StringNullableListFilter<"PTApplication">
     targetClientGroups?: StringNullableListFilter<"PTApplication">
+    primaryTrainingGoals?: StringNullableListFilter<"PTApplication">
+    trainingMethodsApproach?: StringNullableFilter<"PTApplication"> | string | null
     portfolioUrl?: StringNullableFilter<"PTApplication"> | string | null
     linkedinUrl?: StringNullableFilter<"PTApplication"> | string | null
     websiteUrl?: StringNullableFilter<"PTApplication"> | string | null
@@ -7433,6 +7661,14 @@ export namespace Prisma {
     serviceMode?: EnumServiceModeNullableFilter<"PTApplication"> | $Enums.ServiceMode | null
     operatingAreas?: StringNullableListFilter<"PTApplication">
     desiredSessionPrice?: FloatNullableFilter<"PTApplication"> | number | null
+    availableDays?: StringNullableListFilter<"PTApplication">
+    availableFrom?: StringNullableFilter<"PTApplication"> | string | null
+    availableUntil?: StringNullableFilter<"PTApplication"> | string | null
+    gymAffiliation?: StringNullableFilter<"PTApplication"> | string | null
+    packagePrice?: FloatNullableFilter<"PTApplication"> | number | null
+    monthlyProgramPrice?: FloatNullableFilter<"PTApplication"> | number | null
+    additionalPricingNotes?: StringNullableFilter<"PTApplication"> | string | null
+    otherReferences?: StringNullableFilter<"PTApplication"> | string | null
     adminNote?: StringNullableFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableFilter<"PTApplication"> | string | null
     submittedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
@@ -7457,8 +7693,12 @@ export namespace Prisma {
     portraitPhotoUrl?: SortOrderInput | SortOrder
     yearsOfExperience?: SortOrderInput | SortOrder
     educationBackground?: SortOrderInput | SortOrder
+    previousWorkExperience?: SortOrderInput | SortOrder
+    professionalBio?: SortOrderInput | SortOrder
     mainSpecialties?: SortOrder
     targetClientGroups?: SortOrder
+    primaryTrainingGoals?: SortOrder
+    trainingMethodsApproach?: SortOrderInput | SortOrder
     portfolioUrl?: SortOrderInput | SortOrder
     linkedinUrl?: SortOrderInput | SortOrder
     websiteUrl?: SortOrderInput | SortOrder
@@ -7468,6 +7708,14 @@ export namespace Prisma {
     serviceMode?: SortOrderInput | SortOrder
     operatingAreas?: SortOrder
     desiredSessionPrice?: SortOrderInput | SortOrder
+    availableDays?: SortOrder
+    availableFrom?: SortOrderInput | SortOrder
+    availableUntil?: SortOrderInput | SortOrder
+    gymAffiliation?: SortOrderInput | SortOrder
+    packagePrice?: SortOrderInput | SortOrder
+    monthlyProgramPrice?: SortOrderInput | SortOrder
+    additionalPricingNotes?: SortOrderInput | SortOrder
+    otherReferences?: SortOrderInput | SortOrder
     adminNote?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
     submittedAt?: SortOrderInput | SortOrder
@@ -7497,8 +7745,12 @@ export namespace Prisma {
     portraitPhotoUrl?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     yearsOfExperience?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     educationBackground?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
+    previousWorkExperience?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
+    professionalBio?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     mainSpecialties?: StringNullableListFilter<"PTApplication">
     targetClientGroups?: StringNullableListFilter<"PTApplication">
+    primaryTrainingGoals?: StringNullableListFilter<"PTApplication">
+    trainingMethodsApproach?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     portfolioUrl?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     linkedinUrl?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     websiteUrl?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
@@ -7508,6 +7760,14 @@ export namespace Prisma {
     serviceMode?: EnumServiceModeNullableWithAggregatesFilter<"PTApplication"> | $Enums.ServiceMode | null
     operatingAreas?: StringNullableListFilter<"PTApplication">
     desiredSessionPrice?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
+    availableDays?: StringNullableListFilter<"PTApplication">
+    availableFrom?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
+    availableUntil?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
+    gymAffiliation?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
+    packagePrice?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
+    monthlyProgramPrice?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
+    additionalPricingNotes?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
+    otherReferences?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     adminNote?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     submittedAt?: DateTimeNullableWithAggregatesFilter<"PTApplication"> | Date | string | null
@@ -7526,6 +7786,8 @@ export namespace Prisma {
     certificateName?: StringFilter<"PTApplicationCertificate"> | string
     issuingOrganization?: StringFilter<"PTApplicationCertificate"> | string
     isCurrentlyValid?: BoolFilter<"PTApplicationCertificate"> | boolean
+    certificationStatus?: StringNullableFilter<"PTApplicationCertificate"> | string | null
+    issueDate?: DateTimeNullableFilter<"PTApplicationCertificate"> | Date | string | null
     expirationDate?: DateTimeNullableFilter<"PTApplicationCertificate"> | Date | string | null
     certificateFileUrl?: StringNullableFilter<"PTApplicationCertificate"> | string | null
     createdAt?: DateTimeFilter<"PTApplicationCertificate"> | Date | string
@@ -7538,6 +7800,8 @@ export namespace Prisma {
     certificateName?: SortOrder
     issuingOrganization?: SortOrder
     isCurrentlyValid?: SortOrder
+    certificationStatus?: SortOrderInput | SortOrder
+    issueDate?: SortOrderInput | SortOrder
     expirationDate?: SortOrderInput | SortOrder
     certificateFileUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -7553,6 +7817,8 @@ export namespace Prisma {
     certificateName?: StringFilter<"PTApplicationCertificate"> | string
     issuingOrganization?: StringFilter<"PTApplicationCertificate"> | string
     isCurrentlyValid?: BoolFilter<"PTApplicationCertificate"> | boolean
+    certificationStatus?: StringNullableFilter<"PTApplicationCertificate"> | string | null
+    issueDate?: DateTimeNullableFilter<"PTApplicationCertificate"> | Date | string | null
     expirationDate?: DateTimeNullableFilter<"PTApplicationCertificate"> | Date | string | null
     certificateFileUrl?: StringNullableFilter<"PTApplicationCertificate"> | string | null
     createdAt?: DateTimeFilter<"PTApplicationCertificate"> | Date | string
@@ -7565,6 +7831,8 @@ export namespace Prisma {
     certificateName?: SortOrder
     issuingOrganization?: SortOrder
     isCurrentlyValid?: SortOrder
+    certificationStatus?: SortOrderInput | SortOrder
+    issueDate?: SortOrderInput | SortOrder
     expirationDate?: SortOrderInput | SortOrder
     certificateFileUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -7582,6 +7850,8 @@ export namespace Prisma {
     certificateName?: StringWithAggregatesFilter<"PTApplicationCertificate"> | string
     issuingOrganization?: StringWithAggregatesFilter<"PTApplicationCertificate"> | string
     isCurrentlyValid?: BoolWithAggregatesFilter<"PTApplicationCertificate"> | boolean
+    certificationStatus?: StringNullableWithAggregatesFilter<"PTApplicationCertificate"> | string | null
+    issueDate?: DateTimeNullableWithAggregatesFilter<"PTApplicationCertificate"> | Date | string | null
     expirationDate?: DateTimeNullableWithAggregatesFilter<"PTApplicationCertificate"> | Date | string | null
     certificateFileUrl?: StringNullableWithAggregatesFilter<"PTApplicationCertificate"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"PTApplicationCertificate"> | Date | string
@@ -7799,9 +8069,10 @@ export namespace Prisma {
   export type UserProfileCreateInput = {
     id?: string
     userId: string
-    isPT?: boolean
     firstName?: string | null
     lastName?: string | null
+    email?: string | null
+    isPT?: boolean
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -7821,9 +8092,10 @@ export namespace Prisma {
   export type UserProfileUncheckedCreateInput = {
     id?: string
     userId: string
-    isPT?: boolean
     firstName?: string | null
     lastName?: string | null
+    email?: string | null
+    isPT?: boolean
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -7843,9 +8115,10 @@ export namespace Prisma {
   export type UserProfileUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    isPT?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -7865,9 +8138,10 @@ export namespace Prisma {
   export type UserProfileUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    isPT?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -7887,9 +8161,10 @@ export namespace Prisma {
   export type UserProfileCreateManyInput = {
     id?: string
     userId: string
-    isPT?: boolean
     firstName?: string | null
     lastName?: string | null
+    email?: string | null
+    isPT?: boolean
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -7908,9 +8183,10 @@ export namespace Prisma {
   export type UserProfileUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    isPT?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -7929,9 +8205,10 @@ export namespace Prisma {
   export type UserProfileUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    isPT?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -7958,8 +8235,12 @@ export namespace Prisma {
     portraitPhotoUrl?: string | null
     yearsOfExperience?: string | null
     educationBackground?: string | null
+    previousWorkExperience?: string | null
+    professionalBio?: string | null
     mainSpecialties?: PTApplicationCreatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationCreatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationCreateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: string | null
     portfolioUrl?: string | null
     linkedinUrl?: string | null
     websiteUrl?: string | null
@@ -7969,6 +8250,14 @@ export namespace Prisma {
     serviceMode?: $Enums.ServiceMode | null
     operatingAreas?: PTApplicationCreateoperatingAreasInput | string[]
     desiredSessionPrice?: number | null
+    availableDays?: PTApplicationCreateavailableDaysInput | string[]
+    availableFrom?: string | null
+    availableUntil?: string | null
+    gymAffiliation?: string | null
+    packagePrice?: number | null
+    monthlyProgramPrice?: number | null
+    additionalPricingNotes?: string | null
+    otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -7993,8 +8282,12 @@ export namespace Prisma {
     portraitPhotoUrl?: string | null
     yearsOfExperience?: string | null
     educationBackground?: string | null
+    previousWorkExperience?: string | null
+    professionalBio?: string | null
     mainSpecialties?: PTApplicationCreatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationCreatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationCreateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: string | null
     portfolioUrl?: string | null
     linkedinUrl?: string | null
     websiteUrl?: string | null
@@ -8004,6 +8297,14 @@ export namespace Prisma {
     serviceMode?: $Enums.ServiceMode | null
     operatingAreas?: PTApplicationCreateoperatingAreasInput | string[]
     desiredSessionPrice?: number | null
+    availableDays?: PTApplicationCreateavailableDaysInput | string[]
+    availableFrom?: string | null
+    availableUntil?: string | null
+    gymAffiliation?: string | null
+    packagePrice?: number | null
+    monthlyProgramPrice?: number | null
+    additionalPricingNotes?: string | null
+    otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -8026,8 +8327,12 @@ export namespace Prisma {
     portraitPhotoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     yearsOfExperience?: NullableStringFieldUpdateOperationsInput | string | null
     educationBackground?: NullableStringFieldUpdateOperationsInput | string | null
+    previousWorkExperience?: NullableStringFieldUpdateOperationsInput | string | null
+    professionalBio?: NullableStringFieldUpdateOperationsInput | string | null
     mainSpecialties?: PTApplicationUpdatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationUpdatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationUpdateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: NullableStringFieldUpdateOperationsInput | string | null
     portfolioUrl?: NullableStringFieldUpdateOperationsInput | string | null
     linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
     websiteUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -8037,6 +8342,14 @@ export namespace Prisma {
     serviceMode?: NullableEnumServiceModeFieldUpdateOperationsInput | $Enums.ServiceMode | null
     operatingAreas?: PTApplicationUpdateoperatingAreasInput | string[]
     desiredSessionPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    availableDays?: PTApplicationUpdateavailableDaysInput | string[]
+    availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
+    availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -8061,8 +8374,12 @@ export namespace Prisma {
     portraitPhotoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     yearsOfExperience?: NullableStringFieldUpdateOperationsInput | string | null
     educationBackground?: NullableStringFieldUpdateOperationsInput | string | null
+    previousWorkExperience?: NullableStringFieldUpdateOperationsInput | string | null
+    professionalBio?: NullableStringFieldUpdateOperationsInput | string | null
     mainSpecialties?: PTApplicationUpdatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationUpdatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationUpdateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: NullableStringFieldUpdateOperationsInput | string | null
     portfolioUrl?: NullableStringFieldUpdateOperationsInput | string | null
     linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
     websiteUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -8072,6 +8389,14 @@ export namespace Prisma {
     serviceMode?: NullableEnumServiceModeFieldUpdateOperationsInput | $Enums.ServiceMode | null
     operatingAreas?: PTApplicationUpdateoperatingAreasInput | string[]
     desiredSessionPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    availableDays?: PTApplicationUpdateavailableDaysInput | string[]
+    availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
+    availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -8095,8 +8420,12 @@ export namespace Prisma {
     portraitPhotoUrl?: string | null
     yearsOfExperience?: string | null
     educationBackground?: string | null
+    previousWorkExperience?: string | null
+    professionalBio?: string | null
     mainSpecialties?: PTApplicationCreatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationCreatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationCreateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: string | null
     portfolioUrl?: string | null
     linkedinUrl?: string | null
     websiteUrl?: string | null
@@ -8106,6 +8435,14 @@ export namespace Prisma {
     serviceMode?: $Enums.ServiceMode | null
     operatingAreas?: PTApplicationCreateoperatingAreasInput | string[]
     desiredSessionPrice?: number | null
+    availableDays?: PTApplicationCreateavailableDaysInput | string[]
+    availableFrom?: string | null
+    availableUntil?: string | null
+    gymAffiliation?: string | null
+    packagePrice?: number | null
+    monthlyProgramPrice?: number | null
+    additionalPricingNotes?: string | null
+    otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -8126,8 +8463,12 @@ export namespace Prisma {
     portraitPhotoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     yearsOfExperience?: NullableStringFieldUpdateOperationsInput | string | null
     educationBackground?: NullableStringFieldUpdateOperationsInput | string | null
+    previousWorkExperience?: NullableStringFieldUpdateOperationsInput | string | null
+    professionalBio?: NullableStringFieldUpdateOperationsInput | string | null
     mainSpecialties?: PTApplicationUpdatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationUpdatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationUpdateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: NullableStringFieldUpdateOperationsInput | string | null
     portfolioUrl?: NullableStringFieldUpdateOperationsInput | string | null
     linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
     websiteUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -8137,6 +8478,14 @@ export namespace Prisma {
     serviceMode?: NullableEnumServiceModeFieldUpdateOperationsInput | $Enums.ServiceMode | null
     operatingAreas?: PTApplicationUpdateoperatingAreasInput | string[]
     desiredSessionPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    availableDays?: PTApplicationUpdateavailableDaysInput | string[]
+    availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
+    availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -8158,8 +8507,12 @@ export namespace Prisma {
     portraitPhotoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     yearsOfExperience?: NullableStringFieldUpdateOperationsInput | string | null
     educationBackground?: NullableStringFieldUpdateOperationsInput | string | null
+    previousWorkExperience?: NullableStringFieldUpdateOperationsInput | string | null
+    professionalBio?: NullableStringFieldUpdateOperationsInput | string | null
     mainSpecialties?: PTApplicationUpdatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationUpdatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationUpdateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: NullableStringFieldUpdateOperationsInput | string | null
     portfolioUrl?: NullableStringFieldUpdateOperationsInput | string | null
     linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
     websiteUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -8169,6 +8522,14 @@ export namespace Prisma {
     serviceMode?: NullableEnumServiceModeFieldUpdateOperationsInput | $Enums.ServiceMode | null
     operatingAreas?: PTApplicationUpdateoperatingAreasInput | string[]
     desiredSessionPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    availableDays?: PTApplicationUpdateavailableDaysInput | string[]
+    availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
+    availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -8183,6 +8544,8 @@ export namespace Prisma {
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
+    certificationStatus?: string | null
+    issueDate?: Date | string | null
     expirationDate?: Date | string | null
     certificateFileUrl?: string | null
     createdAt?: Date | string
@@ -8195,6 +8558,8 @@ export namespace Prisma {
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
+    certificationStatus?: string | null
+    issueDate?: Date | string | null
     expirationDate?: Date | string | null
     certificateFileUrl?: string | null
     createdAt?: Date | string
@@ -8205,6 +8570,8 @@ export namespace Prisma {
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
+    certificationStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    issueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expirationDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     certificateFileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -8217,6 +8584,8 @@ export namespace Prisma {
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
+    certificationStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    issueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expirationDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     certificateFileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -8228,6 +8597,8 @@ export namespace Prisma {
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
+    certificationStatus?: string | null
+    issueDate?: Date | string | null
     expirationDate?: Date | string | null
     certificateFileUrl?: string | null
     createdAt?: Date | string
@@ -8238,6 +8609,8 @@ export namespace Prisma {
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
+    certificationStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    issueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expirationDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     certificateFileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -8249,6 +8622,8 @@ export namespace Prisma {
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
+    certificationStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    issueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expirationDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     certificateFileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -8520,11 +8895,6 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
-  export type BoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
   export type StringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -8538,6 +8908,11 @@ export namespace Prisma {
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     mode?: QueryMode
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -8630,9 +9005,10 @@ export namespace Prisma {
   export type UserProfileCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
-    isPT?: SortOrder
     firstName?: SortOrder
     lastName?: SortOrder
+    email?: SortOrder
+    isPT?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -8659,9 +9035,10 @@ export namespace Prisma {
   export type UserProfileMaxOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
-    isPT?: SortOrder
     firstName?: SortOrder
     lastName?: SortOrder
+    email?: SortOrder
+    isPT?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -8677,9 +9054,10 @@ export namespace Prisma {
   export type UserProfileMinOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
-    isPT?: SortOrder
     firstName?: SortOrder
     lastName?: SortOrder
+    email?: SortOrder
+    isPT?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -8718,14 +9096,6 @@ export namespace Prisma {
     _max?: NestedStringFilter<$PrismaModel>
   }
 
-  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
-  }
-
   export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -8742,6 +9112,14 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedStringNullableFilter<$PrismaModel>
     _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -8914,8 +9292,12 @@ export namespace Prisma {
     portraitPhotoUrl?: SortOrder
     yearsOfExperience?: SortOrder
     educationBackground?: SortOrder
+    previousWorkExperience?: SortOrder
+    professionalBio?: SortOrder
     mainSpecialties?: SortOrder
     targetClientGroups?: SortOrder
+    primaryTrainingGoals?: SortOrder
+    trainingMethodsApproach?: SortOrder
     portfolioUrl?: SortOrder
     linkedinUrl?: SortOrder
     websiteUrl?: SortOrder
@@ -8925,6 +9307,14 @@ export namespace Prisma {
     serviceMode?: SortOrder
     operatingAreas?: SortOrder
     desiredSessionPrice?: SortOrder
+    availableDays?: SortOrder
+    availableFrom?: SortOrder
+    availableUntil?: SortOrder
+    gymAffiliation?: SortOrder
+    packagePrice?: SortOrder
+    monthlyProgramPrice?: SortOrder
+    additionalPricingNotes?: SortOrder
+    otherReferences?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
     submittedAt?: SortOrder
@@ -8936,6 +9326,8 @@ export namespace Prisma {
 
   export type PTApplicationAvgOrderByAggregateInput = {
     desiredSessionPrice?: SortOrder
+    packagePrice?: SortOrder
+    monthlyProgramPrice?: SortOrder
   }
 
   export type PTApplicationMaxOrderByAggregateInput = {
@@ -8950,12 +9342,22 @@ export namespace Prisma {
     portraitPhotoUrl?: SortOrder
     yearsOfExperience?: SortOrder
     educationBackground?: SortOrder
+    previousWorkExperience?: SortOrder
+    professionalBio?: SortOrder
+    trainingMethodsApproach?: SortOrder
     portfolioUrl?: SortOrder
     linkedinUrl?: SortOrder
     websiteUrl?: SortOrder
     availabilityNotes?: SortOrder
     serviceMode?: SortOrder
     desiredSessionPrice?: SortOrder
+    availableFrom?: SortOrder
+    availableUntil?: SortOrder
+    gymAffiliation?: SortOrder
+    packagePrice?: SortOrder
+    monthlyProgramPrice?: SortOrder
+    additionalPricingNotes?: SortOrder
+    otherReferences?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
     submittedAt?: SortOrder
@@ -8977,12 +9379,22 @@ export namespace Prisma {
     portraitPhotoUrl?: SortOrder
     yearsOfExperience?: SortOrder
     educationBackground?: SortOrder
+    previousWorkExperience?: SortOrder
+    professionalBio?: SortOrder
+    trainingMethodsApproach?: SortOrder
     portfolioUrl?: SortOrder
     linkedinUrl?: SortOrder
     websiteUrl?: SortOrder
     availabilityNotes?: SortOrder
     serviceMode?: SortOrder
     desiredSessionPrice?: SortOrder
+    availableFrom?: SortOrder
+    availableUntil?: SortOrder
+    gymAffiliation?: SortOrder
+    packagePrice?: SortOrder
+    monthlyProgramPrice?: SortOrder
+    additionalPricingNotes?: SortOrder
+    otherReferences?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
     submittedAt?: SortOrder
@@ -8994,6 +9406,8 @@ export namespace Prisma {
 
   export type PTApplicationSumOrderByAggregateInput = {
     desiredSessionPrice?: SortOrder
+    packagePrice?: SortOrder
+    monthlyProgramPrice?: SortOrder
   }
 
   export type EnumPTApplicationStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -9066,6 +9480,8 @@ export namespace Prisma {
     certificateName?: SortOrder
     issuingOrganization?: SortOrder
     isCurrentlyValid?: SortOrder
+    certificationStatus?: SortOrder
+    issueDate?: SortOrder
     expirationDate?: SortOrder
     certificateFileUrl?: SortOrder
     createdAt?: SortOrder
@@ -9077,6 +9493,8 @@ export namespace Prisma {
     certificateName?: SortOrder
     issuingOrganization?: SortOrder
     isCurrentlyValid?: SortOrder
+    certificationStatus?: SortOrder
+    issueDate?: SortOrder
     expirationDate?: SortOrder
     certificateFileUrl?: SortOrder
     createdAt?: SortOrder
@@ -9088,6 +9506,8 @@ export namespace Prisma {
     certificateName?: SortOrder
     issuingOrganization?: SortOrder
     isCurrentlyValid?: SortOrder
+    certificationStatus?: SortOrder
+    issueDate?: SortOrder
     expirationDate?: SortOrder
     certificateFileUrl?: SortOrder
     createdAt?: SortOrder
@@ -9313,12 +9733,12 @@ export namespace Prisma {
     set?: string
   }
 
-  export type BoolFieldUpdateOperationsInput = {
-    set?: boolean
-  }
-
   export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null
+  }
+
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
   }
 
   export type NullableIntFieldUpdateOperationsInput = {
@@ -9400,7 +9820,15 @@ export namespace Prisma {
     set: string[]
   }
 
+  export type PTApplicationCreateprimaryTrainingGoalsInput = {
+    set: string[]
+  }
+
   export type PTApplicationCreateoperatingAreasInput = {
+    set: string[]
+  }
+
+  export type PTApplicationCreateavailableDaysInput = {
     set: string[]
   }
 
@@ -9452,11 +9880,21 @@ export namespace Prisma {
     push?: string | string[]
   }
 
+  export type PTApplicationUpdateprimaryTrainingGoalsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
   export type NullableEnumServiceModeFieldUpdateOperationsInput = {
     set?: $Enums.ServiceMode | null
   }
 
   export type PTApplicationUpdateoperatingAreasInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type PTApplicationUpdateavailableDaysInput = {
     set?: string[]
     push?: string | string[]
   }
@@ -9583,11 +10021,6 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
   export type NestedStringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -9600,6 +10033,11 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type NestedIntNullableFilter<$PrismaModel = never> = {
@@ -9691,14 +10129,6 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
-  }
-
   export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -9714,6 +10144,14 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedStringNullableFilter<$PrismaModel>
     _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -9938,8 +10376,12 @@ export namespace Prisma {
     portraitPhotoUrl?: string | null
     yearsOfExperience?: string | null
     educationBackground?: string | null
+    previousWorkExperience?: string | null
+    professionalBio?: string | null
     mainSpecialties?: PTApplicationCreatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationCreatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationCreateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: string | null
     portfolioUrl?: string | null
     linkedinUrl?: string | null
     websiteUrl?: string | null
@@ -9949,6 +10391,14 @@ export namespace Prisma {
     serviceMode?: $Enums.ServiceMode | null
     operatingAreas?: PTApplicationCreateoperatingAreasInput | string[]
     desiredSessionPrice?: number | null
+    availableDays?: PTApplicationCreateavailableDaysInput | string[]
+    availableFrom?: string | null
+    availableUntil?: string | null
+    gymAffiliation?: string | null
+    packagePrice?: number | null
+    monthlyProgramPrice?: number | null
+    additionalPricingNotes?: string | null
+    otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -9971,8 +10421,12 @@ export namespace Prisma {
     portraitPhotoUrl?: string | null
     yearsOfExperience?: string | null
     educationBackground?: string | null
+    previousWorkExperience?: string | null
+    professionalBio?: string | null
     mainSpecialties?: PTApplicationCreatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationCreatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationCreateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: string | null
     portfolioUrl?: string | null
     linkedinUrl?: string | null
     websiteUrl?: string | null
@@ -9982,6 +10436,14 @@ export namespace Prisma {
     serviceMode?: $Enums.ServiceMode | null
     operatingAreas?: PTApplicationCreateoperatingAreasInput | string[]
     desiredSessionPrice?: number | null
+    availableDays?: PTApplicationCreateavailableDaysInput | string[]
+    availableFrom?: string | null
+    availableUntil?: string | null
+    gymAffiliation?: string | null
+    packagePrice?: number | null
+    monthlyProgramPrice?: number | null
+    additionalPricingNotes?: string | null
+    otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -10020,8 +10482,12 @@ export namespace Prisma {
     portraitPhotoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     yearsOfExperience?: NullableStringFieldUpdateOperationsInput | string | null
     educationBackground?: NullableStringFieldUpdateOperationsInput | string | null
+    previousWorkExperience?: NullableStringFieldUpdateOperationsInput | string | null
+    professionalBio?: NullableStringFieldUpdateOperationsInput | string | null
     mainSpecialties?: PTApplicationUpdatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationUpdatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationUpdateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: NullableStringFieldUpdateOperationsInput | string | null
     portfolioUrl?: NullableStringFieldUpdateOperationsInput | string | null
     linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
     websiteUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10031,6 +10497,14 @@ export namespace Prisma {
     serviceMode?: NullableEnumServiceModeFieldUpdateOperationsInput | $Enums.ServiceMode | null
     operatingAreas?: PTApplicationUpdateoperatingAreasInput | string[]
     desiredSessionPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    availableDays?: PTApplicationUpdateavailableDaysInput | string[]
+    availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
+    availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -10053,8 +10527,12 @@ export namespace Prisma {
     portraitPhotoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     yearsOfExperience?: NullableStringFieldUpdateOperationsInput | string | null
     educationBackground?: NullableStringFieldUpdateOperationsInput | string | null
+    previousWorkExperience?: NullableStringFieldUpdateOperationsInput | string | null
+    professionalBio?: NullableStringFieldUpdateOperationsInput | string | null
     mainSpecialties?: PTApplicationUpdatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationUpdatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationUpdateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: NullableStringFieldUpdateOperationsInput | string | null
     portfolioUrl?: NullableStringFieldUpdateOperationsInput | string | null
     linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
     websiteUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10064,6 +10542,14 @@ export namespace Prisma {
     serviceMode?: NullableEnumServiceModeFieldUpdateOperationsInput | $Enums.ServiceMode | null
     operatingAreas?: PTApplicationUpdateoperatingAreasInput | string[]
     desiredSessionPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    availableDays?: PTApplicationUpdateavailableDaysInput | string[]
+    availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
+    availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -10080,6 +10566,8 @@ export namespace Prisma {
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
+    certificationStatus?: string | null
+    issueDate?: Date | string | null
     expirationDate?: Date | string | null
     certificateFileUrl?: string | null
     createdAt?: Date | string
@@ -10090,6 +10578,8 @@ export namespace Prisma {
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
+    certificationStatus?: string | null
+    issueDate?: Date | string | null
     expirationDate?: Date | string | null
     certificateFileUrl?: string | null
     createdAt?: Date | string
@@ -10134,9 +10624,10 @@ export namespace Prisma {
   export type UserProfileCreateWithoutPtApplicationInput = {
     id?: string
     userId: string
-    isPT?: boolean
     firstName?: string | null
     lastName?: string | null
+    email?: string | null
+    isPT?: boolean
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -10155,9 +10646,10 @@ export namespace Prisma {
   export type UserProfileUncheckedCreateWithoutPtApplicationInput = {
     id?: string
     userId: string
-    isPT?: boolean
     firstName?: string | null
     lastName?: string | null
+    email?: string | null
+    isPT?: boolean
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -10203,6 +10695,8 @@ export namespace Prisma {
     certificateName?: StringFilter<"PTApplicationCertificate"> | string
     issuingOrganization?: StringFilter<"PTApplicationCertificate"> | string
     isCurrentlyValid?: BoolFilter<"PTApplicationCertificate"> | boolean
+    certificationStatus?: StringNullableFilter<"PTApplicationCertificate"> | string | null
+    issueDate?: DateTimeNullableFilter<"PTApplicationCertificate"> | Date | string | null
     expirationDate?: DateTimeNullableFilter<"PTApplicationCertificate"> | Date | string | null
     certificateFileUrl?: StringNullableFilter<"PTApplicationCertificate"> | string | null
     createdAt?: DateTimeFilter<"PTApplicationCertificate"> | Date | string
@@ -10250,9 +10744,10 @@ export namespace Prisma {
   export type UserProfileUpdateWithoutPtApplicationInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    isPT?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -10271,9 +10766,10 @@ export namespace Prisma {
   export type UserProfileUncheckedUpdateWithoutPtApplicationInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    isPT?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -10300,8 +10796,12 @@ export namespace Prisma {
     portraitPhotoUrl?: string | null
     yearsOfExperience?: string | null
     educationBackground?: string | null
+    previousWorkExperience?: string | null
+    professionalBio?: string | null
     mainSpecialties?: PTApplicationCreatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationCreatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationCreateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: string | null
     portfolioUrl?: string | null
     linkedinUrl?: string | null
     websiteUrl?: string | null
@@ -10311,6 +10811,14 @@ export namespace Prisma {
     serviceMode?: $Enums.ServiceMode | null
     operatingAreas?: PTApplicationCreateoperatingAreasInput | string[]
     desiredSessionPrice?: number | null
+    availableDays?: PTApplicationCreateavailableDaysInput | string[]
+    availableFrom?: string | null
+    availableUntil?: string | null
+    gymAffiliation?: string | null
+    packagePrice?: number | null
+    monthlyProgramPrice?: number | null
+    additionalPricingNotes?: string | null
+    otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -10334,8 +10842,12 @@ export namespace Prisma {
     portraitPhotoUrl?: string | null
     yearsOfExperience?: string | null
     educationBackground?: string | null
+    previousWorkExperience?: string | null
+    professionalBio?: string | null
     mainSpecialties?: PTApplicationCreatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationCreatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationCreateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: string | null
     portfolioUrl?: string | null
     linkedinUrl?: string | null
     websiteUrl?: string | null
@@ -10345,6 +10857,14 @@ export namespace Prisma {
     serviceMode?: $Enums.ServiceMode | null
     operatingAreas?: PTApplicationCreateoperatingAreasInput | string[]
     desiredSessionPrice?: number | null
+    availableDays?: PTApplicationCreateavailableDaysInput | string[]
+    availableFrom?: string | null
+    availableUntil?: string | null
+    gymAffiliation?: string | null
+    packagePrice?: number | null
+    monthlyProgramPrice?: number | null
+    additionalPricingNotes?: string | null
+    otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -10382,8 +10902,12 @@ export namespace Prisma {
     portraitPhotoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     yearsOfExperience?: NullableStringFieldUpdateOperationsInput | string | null
     educationBackground?: NullableStringFieldUpdateOperationsInput | string | null
+    previousWorkExperience?: NullableStringFieldUpdateOperationsInput | string | null
+    professionalBio?: NullableStringFieldUpdateOperationsInput | string | null
     mainSpecialties?: PTApplicationUpdatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationUpdatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationUpdateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: NullableStringFieldUpdateOperationsInput | string | null
     portfolioUrl?: NullableStringFieldUpdateOperationsInput | string | null
     linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
     websiteUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10393,6 +10917,14 @@ export namespace Prisma {
     serviceMode?: NullableEnumServiceModeFieldUpdateOperationsInput | $Enums.ServiceMode | null
     operatingAreas?: PTApplicationUpdateoperatingAreasInput | string[]
     desiredSessionPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    availableDays?: PTApplicationUpdateavailableDaysInput | string[]
+    availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
+    availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -10416,8 +10948,12 @@ export namespace Prisma {
     portraitPhotoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     yearsOfExperience?: NullableStringFieldUpdateOperationsInput | string | null
     educationBackground?: NullableStringFieldUpdateOperationsInput | string | null
+    previousWorkExperience?: NullableStringFieldUpdateOperationsInput | string | null
+    professionalBio?: NullableStringFieldUpdateOperationsInput | string | null
     mainSpecialties?: PTApplicationUpdatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationUpdatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationUpdateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: NullableStringFieldUpdateOperationsInput | string | null
     portfolioUrl?: NullableStringFieldUpdateOperationsInput | string | null
     linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
     websiteUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10427,6 +10963,14 @@ export namespace Prisma {
     serviceMode?: NullableEnumServiceModeFieldUpdateOperationsInput | $Enums.ServiceMode | null
     operatingAreas?: PTApplicationUpdateoperatingAreasInput | string[]
     desiredSessionPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    availableDays?: PTApplicationUpdateavailableDaysInput | string[]
+    availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
+    availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -10448,8 +10992,12 @@ export namespace Prisma {
     portraitPhotoUrl?: string | null
     yearsOfExperience?: string | null
     educationBackground?: string | null
+    previousWorkExperience?: string | null
+    professionalBio?: string | null
     mainSpecialties?: PTApplicationCreatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationCreatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationCreateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: string | null
     portfolioUrl?: string | null
     linkedinUrl?: string | null
     websiteUrl?: string | null
@@ -10459,6 +11007,14 @@ export namespace Prisma {
     serviceMode?: $Enums.ServiceMode | null
     operatingAreas?: PTApplicationCreateoperatingAreasInput | string[]
     desiredSessionPrice?: number | null
+    availableDays?: PTApplicationCreateavailableDaysInput | string[]
+    availableFrom?: string | null
+    availableUntil?: string | null
+    gymAffiliation?: string | null
+    packagePrice?: number | null
+    monthlyProgramPrice?: number | null
+    additionalPricingNotes?: string | null
+    otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -10482,8 +11038,12 @@ export namespace Prisma {
     portraitPhotoUrl?: string | null
     yearsOfExperience?: string | null
     educationBackground?: string | null
+    previousWorkExperience?: string | null
+    professionalBio?: string | null
     mainSpecialties?: PTApplicationCreatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationCreatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationCreateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: string | null
     portfolioUrl?: string | null
     linkedinUrl?: string | null
     websiteUrl?: string | null
@@ -10493,6 +11053,14 @@ export namespace Prisma {
     serviceMode?: $Enums.ServiceMode | null
     operatingAreas?: PTApplicationCreateoperatingAreasInput | string[]
     desiredSessionPrice?: number | null
+    availableDays?: PTApplicationCreateavailableDaysInput | string[]
+    availableFrom?: string | null
+    availableUntil?: string | null
+    gymAffiliation?: string | null
+    packagePrice?: number | null
+    monthlyProgramPrice?: number | null
+    additionalPricingNotes?: string | null
+    otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -10530,8 +11098,12 @@ export namespace Prisma {
     portraitPhotoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     yearsOfExperience?: NullableStringFieldUpdateOperationsInput | string | null
     educationBackground?: NullableStringFieldUpdateOperationsInput | string | null
+    previousWorkExperience?: NullableStringFieldUpdateOperationsInput | string | null
+    professionalBio?: NullableStringFieldUpdateOperationsInput | string | null
     mainSpecialties?: PTApplicationUpdatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationUpdatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationUpdateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: NullableStringFieldUpdateOperationsInput | string | null
     portfolioUrl?: NullableStringFieldUpdateOperationsInput | string | null
     linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
     websiteUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10541,6 +11113,14 @@ export namespace Prisma {
     serviceMode?: NullableEnumServiceModeFieldUpdateOperationsInput | $Enums.ServiceMode | null
     operatingAreas?: PTApplicationUpdateoperatingAreasInput | string[]
     desiredSessionPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    availableDays?: PTApplicationUpdateavailableDaysInput | string[]
+    availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
+    availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -10564,8 +11144,12 @@ export namespace Prisma {
     portraitPhotoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     yearsOfExperience?: NullableStringFieldUpdateOperationsInput | string | null
     educationBackground?: NullableStringFieldUpdateOperationsInput | string | null
+    previousWorkExperience?: NullableStringFieldUpdateOperationsInput | string | null
+    professionalBio?: NullableStringFieldUpdateOperationsInput | string | null
     mainSpecialties?: PTApplicationUpdatemainSpecialtiesInput | string[]
     targetClientGroups?: PTApplicationUpdatetargetClientGroupsInput | string[]
+    primaryTrainingGoals?: PTApplicationUpdateprimaryTrainingGoalsInput | string[]
+    trainingMethodsApproach?: NullableStringFieldUpdateOperationsInput | string | null
     portfolioUrl?: NullableStringFieldUpdateOperationsInput | string | null
     linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
     websiteUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10575,6 +11159,14 @@ export namespace Prisma {
     serviceMode?: NullableEnumServiceModeFieldUpdateOperationsInput | $Enums.ServiceMode | null
     operatingAreas?: PTApplicationUpdateoperatingAreasInput | string[]
     desiredSessionPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    availableDays?: PTApplicationUpdateavailableDaysInput | string[]
+    availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
+    availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
+    gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -10590,6 +11182,8 @@ export namespace Prisma {
     certificateName: string
     issuingOrganization: string
     isCurrentlyValid: boolean
+    certificationStatus?: string | null
+    issueDate?: Date | string | null
     expirationDate?: Date | string | null
     certificateFileUrl?: string | null
     createdAt?: Date | string
@@ -10608,6 +11202,8 @@ export namespace Prisma {
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
+    certificationStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    issueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expirationDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     certificateFileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10618,6 +11214,8 @@ export namespace Prisma {
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
+    certificationStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    issueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expirationDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     certificateFileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10628,6 +11226,8 @@ export namespace Prisma {
     certificateName?: StringFieldUpdateOperationsInput | string
     issuingOrganization?: StringFieldUpdateOperationsInput | string
     isCurrentlyValid?: BoolFieldUpdateOperationsInput | boolean
+    certificationStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    issueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expirationDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     certificateFileUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string

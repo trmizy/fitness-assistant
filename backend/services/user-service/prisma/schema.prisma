@@ -40,6 +40,11 @@ model UserProfile {
   id        String   @id @default(uuid())
   userId    String   @unique // References auth-service User.id
   
+  // Basic info (cached from auth-service or direct)
+  firstName String?
+  lastName  String?
+  email     String?
+  
   // PT Status
   // Currently a simple boolean flag. Future expansion:
   // - role: CLIENT | PT | ADMIN (enum)
