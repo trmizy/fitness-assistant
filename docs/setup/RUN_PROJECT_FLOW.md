@@ -306,3 +306,7 @@ Invoke-RestMethod -Uri "http://localhost:3003/health" | ConvertTo-Json
 - Cac service Prisma dang chay `prisma migrate deploy` luc startup container.
 - Qdrant co the start cham hon; AI service van start duoc va se canh bao neu Qdrant chua san sang.
 - Frontend trong Docker duoc serve boi nginx; route app-side van hoat dong nho SPA fallback.
+- Trong Docker, `ai-service` can dung URL noi bo de lay profile/lich su:
+  - `USER_SERVICE_URL=http://user-service:3004`
+  - `FITNESS_SERVICE_URL=http://fitness-service:3002`
+  Neu de mac dinh `localhost` thi AI se khong doc duoc profile da co san va se hoi lai thong tin co ban.

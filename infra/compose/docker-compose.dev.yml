@@ -167,6 +167,8 @@ services:
       REDIS_PORT: 6379
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
+      USER_SERVICE_URL: http://user-service:3004
+      FITNESS_SERVICE_URL: http://fitness-service:3002
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
       LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}

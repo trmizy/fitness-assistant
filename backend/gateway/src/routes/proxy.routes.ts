@@ -402,12 +402,16 @@ router.use(
       const userId = req.headers['x-user-id'];
       const userEmail = req.headers['x-user-email'];
       const userRole = req.headers['x-user-role'];
+      const authorization = req.headers.authorization;
 
       if (typeof userId === 'string') proxyReq.setHeader('x-user-id', userId);
       if (typeof userEmail === 'string')
         proxyReq.setHeader('x-user-email', userEmail);
       if (typeof userRole === 'string')
         proxyReq.setHeader('x-user-role', userRole);
+      if (typeof authorization === 'string') {
+        proxyReq.setHeader('Authorization', authorization);
+      }
     },
     onError: serviceUnavailable('AI service'),
   }),

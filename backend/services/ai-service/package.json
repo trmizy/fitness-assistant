@@ -9,7 +9,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "ingest": "tsx src/ingest.ts",
-    "test:evaluation": "tsx src/evaluation/run_evaluation_tests.ts"
+    "test:evaluation": "tsx src/evaluation/run_evaluation_tests.ts",
+    "test:policy": "tsx src/evaluation/run_policy_behavior_tests.ts"
   },
   "dependencies": {
     "@gym-coach/shared": "workspace:*",

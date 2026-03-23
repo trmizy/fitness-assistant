@@ -1,4 +1,4 @@
-import type { InputIntent, RecommendationResult, RetrievalResult, UserProfile } from './types';
+import type { InputIntent, RecommendationResult, ResponseLanguage, RetrievalResult, UserProfile } from './types';
 
 function compactProfile(profile: UserProfile): string {
   const lines: string[] = [
@@ -73,12 +73,22 @@ function compactRecommendations(recommendation: RecommendationResult): string {
 }
 
 export const promptBuilder = {
-  build(inputQuestion: string, intent: InputIntent, profile: UserProfile, retrieval: RetrievalResult, recommendation: RecommendationResult): string {
+  build(
+    inputQuestion: string,
+    intent: InputIntent,
+    profile: UserProfile,
+    retrieval: RetrievalResult,
+    recommendation: RecommendationResult,
+    responseLanguage: ResponseLanguage,
+  ): string {
     return [
       'You are a professional fitness and nutrition coach. Prioritize deterministic recommendation results over creative generation.',
       'Rules:',
+      '- Answer the user question directly first. Do not ask clarifying questions before giving a useful answer.',
+      '- If key data is missing, still provide a safe default template first, then ask follow-up questions at the end.',
+      '- Do not expose internal labels like recomposition, confidence, strength_retention, moderate_volume, omnivorous.',
+      `- Response language must be ${responseLanguage}. Do not mix languages.`,
       '- Do not invent exercises or medical claims unsupported by context.',
-      '- If key data is missing, clearly say assumptions and ask follow-up questions.',
       '- Keep answer practical, concise, and actionable.',
       '- Keep nutrition numbers consistent with provided deterministic targets.',
       '',
