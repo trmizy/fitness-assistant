@@ -1,21 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, Lightbulb, AlertCircle, RefreshCw, User, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { coachService } from "../../services/api";
-import axios from 'axios';
+import { inbodyService } from "../../services/api";
 
 interface ChatMessage { id: number; from: "user" | "ai"; text: string; time: string; }
-
-function safeText(value: unknown, fallback = ""): string {
-  if (value == null) return fallback;
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (typeof value === "object") {
-    const maybeMessage = (value as any)?.message;
-    if (typeof maybeMessage === "string") return maybeMessage;
-  }
-  return fallback;
-}
 
 const suggestions = [
   "Why is my body fat not decreasing?",
@@ -26,18 +14,46 @@ const suggestions = [
   "What's the best time to do cardio?",
 ];
 
-const initialMessage: ChatMessage = {
-  id: 1,
-  from: "ai",
-  text: "Hi! I am your AI Fitness Coach. Ask me anything about workout, nutrition, recovery, or your current progress.",
-  time: "Now"
+const initialMessage = (latest: any, prev: any) => {
+  const weightStr = latest ? `${latest.weight} kg` : "---";
+  const weightDiff = (latest && prev) ? (latest.weight - prev.weight).toFixed(1) : "0.0";
+  const muscleStr = latest ? `${latest.muscleMass} kg` : "---";
+  const muscleDiff = (latest && prev) ? (latest.muscleMass - prev.muscleMass).toFixed(1) : "0.0";
+  const fatStr = latest ? `${latest.bodyFatPct}%` : "---";
+
+  return {
+    id: 1,
+    from: "ai" as const,
+    text: `Hi! I'm your AI Fitness Coach. I've analyzed your fitness data. How can I help you today?\n\n📊 **Latest Stats:**\n- Weight: ${weightStr} (${weightDiff.startsWith("-") ? "↓" : "↑"} ${Math.abs(Number(weightDiff))} kg)\n- Muscle: ${muscleStr} (${muscleDiff.startsWith("-") ? "↓" : "↑"} ${Math.abs(Number(muscleDiff))} kg)\n- Body Fat: ${fatStr}\n\nAsk me anything about your progress!`,
+    time: "Now"
+  };
+};
+
+const getAiReply = (text: string, latest: any) => {
+  const lower = text.toLowerCase();
+  const weight = latest?.weight || "---";
+  
+  if (lower.includes("protein")) {
+    const proteinFactor = 2.0;
+    const proteinTarget = latest?.weight ? Math.round(latest.weight * proteinFactor) : 150;
+    return `Based on your weight of ${weight} kg, I recommend **${proteinTarget}g of protein per day**.\n\n📌 **Tips:**\n• Scale: ${proteinFactor}g per kg\n• Sources: Chicken, Eggs, Whey, Greek Yogurt.`;
+  }
+  
+  if (lower.includes("fat")) {
+    return `Your latest body fat is ${latest?.bodyFatPct || "---"}%.\n\n💡 **Focus:**\n1. Maintain a slight caloric deficit\n2. Keep protein high\n3. Consistency with your training sessions.`;
+  }
+
+  return "That's a great question! Based on your data, the best strategy is consistent training and proper recovery. Do you have a specific goal in mind?";
 };
 
 export function AICoachPage() {
-  const { data: conversationsData, isLoading } = useQuery({
-    queryKey: ["ai-conversations"],
-    queryFn: coachService.getConversations
+  const { data: history = [], isLoading } = useQuery({
+    queryKey: ["inbody-history"],
+    queryFn: inbodyService.getHistory
   });
+
+  const latest = history[0];
+  const prev = history[1];
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -45,50 +61,24 @@ export function AICoachPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isLoading) return;
-    const conversations = conversationsData?.conversations || [];
-    if (conversations.length === 0) {
-      setMessages([initialMessage]);
-      return;
+    if (!isLoading && messages.length === 0) {
+      setMessages([initialMessage(latest, prev)]);
     }
-
-    const mapped = conversations
-      .slice()
-      .reverse()
-      .flatMap((c: any, idx: number) => {
-        const at = c.createdAt ? new Date(c.createdAt) : new Date();
-        const t = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-        return [
-          { id: idx * 2 + 1, from: "user" as const, text: safeText(c.question, ""), time: t },
-          { id: idx * 2 + 2, from: "ai" as const, text: safeText(c.answer, ""), time: t },
-        ];
-      });
-    setMessages(mapped.length > 0 ? mapped : [initialMessage]);
-  }, [isLoading, conversationsData]);
+  }, [isLoading, latest, prev]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  const send = async (text: string) => {
+  const send = (text: string) => {
     if (!text.trim()) return;
     const userMsg: ChatMessage = { id: Date.now(), from: "user", text: text.trim(), time: "Now" };
     setMessages(prevMsgs => [...prevMsgs, userMsg]);
     setInput("");
     setAiLoading(true);
-    try {
-      const res = await coachService.chat(text.trim());
-      const replyText = safeText(res?.answer, "No response from AI service.");
+    setTimeout(() => {
+      const replyText = getAiReply(text, latest);
       setMessages(prevMsgs => [...prevMsgs, { id: Date.now() + 1, from: "ai", text: replyText, time: "Now" }]);
-    } catch (error) {
-      const fallbackMessage = 'AI service is unavailable right now. Please try again.';
-      const backendMessage =
-        axios.isAxiosError(error)
-          ? safeText(error.response?.data?.error, fallbackMessage)
-          : fallbackMessage;
-
-      setMessages(prevMsgs => [...prevMsgs, { id: Date.now() + 1, from: "ai", text: backendMessage, time: "Now" }]);
-    } finally {
       setAiLoading(false);
-    }
+    }, 1200);
   };
 
   if (isLoading) {
