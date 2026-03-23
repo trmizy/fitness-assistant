@@ -60,7 +60,7 @@ export const inbodyService = {
         rightLegMuscle: result.segmental_lean_analysis?.right_leg_muscle,
         leftLegMuscle: result.segmental_lean_analysis?.left_leg_muscle,
 
-        // Segmental Fat Analysis
+        // Segmental Fat Analysis (Python SegmentalAnalysis reuses *_muscle field names)
         rightArmFat: result.segmental_fat_analysis?.right_arm_muscle,
         leftArmFat: result.segmental_fat_analysis?.left_arm_muscle,
         trunkFat: result.segmental_fat_analysis?.trunk_muscle,

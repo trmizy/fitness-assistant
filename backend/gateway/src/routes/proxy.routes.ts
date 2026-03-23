@@ -391,6 +391,17 @@ router.use(
   }),
 );
 
+// Protected — Plans (AI Service)
+router.use(
+  '/plans',
+  authMiddleware,
+  createProxyMiddleware({
+    target: AI_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('AI service'),
+  }),
+);
+
 // Protected — AI Service
 router.use(
   '/ai',
