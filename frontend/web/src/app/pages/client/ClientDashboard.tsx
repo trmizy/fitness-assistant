@@ -27,12 +27,11 @@ export function ClientDashboard() {
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: ["profile", user?.id],
+    queryKey: ["profile"],
     queryFn: async () => {
       const res = await profileService.getProfile();
       return res.profile;
-    },
-    enabled: !!user?.id,
+    }
   });
 
   const { data: inbodyHistory = [], isLoading: inbodyLoading } = useQuery({
@@ -305,9 +304,9 @@ export function ClientDashboard() {
             <tbody>
               {workoutHistory.length > 0 ? workoutHistory.map((w: any, i: number) => (
                 <tr key={i} className="border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/40 transition-colors">
-                  <td className="px-4 py-2.5 text-sm font-semibold text-zinc-200">{w.name || "Workout"}</td>
+                  <td className="px-4 py-2.5 text-sm font-semibold text-zinc-200">{w.title || "Workout"}</td>
                   <td className="px-4 py-2.5 text-sm text-zinc-500">{new Date(w.date).toLocaleDateString()}</td>
-                  <td className="px-4 py-2.5 text-sm text-zinc-500">{w.duration || "--"} min</td>
+                  <td className="px-4 py-2.5 text-sm text-zinc-500">{w.durationMinutes || "--"} min</td>
                   <td className="px-4 py-2.5">
                     <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-500/10 text-green-400 border border-green-500/20">
                       Completed

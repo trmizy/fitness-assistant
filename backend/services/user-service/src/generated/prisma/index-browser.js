@@ -125,6 +125,9 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.UserProfileScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  firstName: 'firstName',
+  lastName: 'lastName',
+  email: 'email',
   isPT: 'isPT',
   age: 'age',
   gender: 'gender',
@@ -139,6 +142,72 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   targetWeight: 'targetWeight',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTApplicationScalarFieldEnum = {
+  id: 'id',
+  userProfileId: 'userProfileId',
+  status: 'status',
+  phoneNumber: 'phoneNumber',
+  nationalIdNumber: 'nationalIdNumber',
+  currentAddress: 'currentAddress',
+  idCardFrontUrl: 'idCardFrontUrl',
+  idCardBackUrl: 'idCardBackUrl',
+  portraitPhotoUrl: 'portraitPhotoUrl',
+  yearsOfExperience: 'yearsOfExperience',
+  educationBackground: 'educationBackground',
+  previousWorkExperience: 'previousWorkExperience',
+  professionalBio: 'professionalBio',
+  mainSpecialties: 'mainSpecialties',
+  targetClientGroups: 'targetClientGroups',
+  primaryTrainingGoals: 'primaryTrainingGoals',
+  trainingMethodsApproach: 'trainingMethodsApproach',
+  portfolioUrl: 'portfolioUrl',
+  linkedinUrl: 'linkedinUrl',
+  websiteUrl: 'websiteUrl',
+  socialLinks: 'socialLinks',
+  availabilityNotes: 'availabilityNotes',
+  availableTimeSlots: 'availableTimeSlots',
+  serviceMode: 'serviceMode',
+  operatingAreas: 'operatingAreas',
+  desiredSessionPrice: 'desiredSessionPrice',
+  availableDays: 'availableDays',
+  availableFrom: 'availableFrom',
+  availableUntil: 'availableUntil',
+  gymAffiliation: 'gymAffiliation',
+  packagePrice: 'packagePrice',
+  monthlyProgramPrice: 'monthlyProgramPrice',
+  additionalPricingNotes: 'additionalPricingNotes',
+  otherReferences: 'otherReferences',
+  adminNote: 'adminNote',
+  rejectionReason: 'rejectionReason',
+  submittedAt: 'submittedAt',
+  reviewedAt: 'reviewedAt',
+  approvedAt: 'approvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTApplicationCertificateScalarFieldEnum = {
+  id: 'id',
+  applicationId: 'applicationId',
+  certificateName: 'certificateName',
+  issuingOrganization: 'issuingOrganization',
+  isCurrentlyValid: 'isCurrentlyValid',
+  certificationStatus: 'certificationStatus',
+  issueDate: 'issueDate',
+  expirationDate: 'expirationDate',
+  certificateFileUrl: 'certificateFileUrl',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PTApplicationMediaScalarFieldEnum = {
+  id: 'id',
+  applicationId: 'applicationId',
+  groupType: 'groupType',
+  fileUrl: 'fileUrl',
+  label: 'label',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.InBodyEntryScalarFieldEnum = {
@@ -173,6 +242,11 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -181,6 +255,12 @@ exports.Prisma.QueryMode = {
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
 };
 exports.Gender = exports.$Enums.Gender = {
   MALE: 'MALE',
@@ -209,8 +289,32 @@ exports.ExperienceLevel = exports.$Enums.ExperienceLevel = {
   ADVANCED: 'ADVANCED'
 };
 
+exports.PTApplicationStatus = exports.$Enums.PTApplicationStatus = {
+  DRAFT: 'DRAFT',
+  SUBMITTED: 'SUBMITTED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  NEEDS_MORE_INFO: 'NEEDS_MORE_INFO',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+exports.ServiceMode = exports.$Enums.ServiceMode = {
+  ONLINE: 'ONLINE',
+  OFFLINE: 'OFFLINE',
+  HYBRID: 'HYBRID'
+};
+
+exports.MediaGroupType = exports.$Enums.MediaGroupType = {
+  IDENTITY: 'IDENTITY',
+  CERTIFICATE: 'CERTIFICATE',
+  PORTFOLIO: 'PORTFOLIO'
+};
+
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
+  PTApplication: 'PTApplication',
+  PTApplicationCertificate: 'PTApplicationCertificate',
+  PTApplicationMedia: 'PTApplicationMedia',
   InBodyEntry: 'InBodyEntry'
 };
 

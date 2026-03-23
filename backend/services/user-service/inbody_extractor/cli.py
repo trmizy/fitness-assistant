@@ -20,21 +20,25 @@ import sys
 import time
 
 
-def _process_one(image_path: str, debug: bool, debug_dir: str) -> dict:
+def _process_one(image_path: str, debug: bool, debug_dir: str, json_only: bool = False) -> dict:
     """Process a single image and return the result dict."""
     from .extractor import extract_inbody_metrics
 
-    print(f"\n{'=' * 60}")
-    print(f"Processing: {image_path}")
-    print(f"{'=' * 60}")
+    if not json_only:
+        print(f"\n{'=' * 60}")
+        print(f"Processing: {image_path}")
+        print(f"{'=' * 60}")
 
     t0 = time.time()
     result = extract_inbody_metrics(image_path, debug=debug, debug_dir=debug_dir)
     elapsed = time.time() - t0
 
     result_dict = result.model_dump()
-    print(json.dumps(result_dict, indent=2, ensure_ascii=False))
-    print(f"\n[Done] Completed in {elapsed:.2f}s")
+    if json_only:
+        print(json.dumps(result_dict, ensure_ascii=False), flush=True)
+    else:
+        print(json.dumps(result_dict, indent=2, ensure_ascii=False))
+        print(f"\n[Done] Completed in {elapsed:.2f}s")
     return result_dict
 
 
@@ -49,6 +53,8 @@ def main():
                         help="Save debug images and raw OCR text.")
     parser.add_argument("--output", "-o", default="output_debug",
                         help="Debug output directory (default: output_debug).")
+    parser.add_argument("--json", action="store_true",
+                        help="Output only raw JSON to stdout (for machine consumption).")
 
     args = parser.parse_args()
 
@@ -56,7 +62,7 @@ def main():
         if not os.path.isfile(args.image):
             print(f"Error: file not found: {args.image}", file=sys.stderr)
             sys.exit(1)
-        _process_one(args.image, args.debug, args.output)
+        _process_one(args.image, args.debug, args.output, json_only=args.json)
     else:
         if not os.path.isdir(args.dir):
             print(f"Error: directory not found: {args.dir}", file=sys.stderr)

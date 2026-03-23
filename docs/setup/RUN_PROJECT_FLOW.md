@@ -146,10 +146,10 @@ Y nghia:
 - `frontend/web/src/main.tsx`
   - Entry point React, mount `App`
 
-- `frontend/web/src/App.tsx`
+- `frontend/web/src/app/App.tsx`
   - Router chinh, auth guard, provider (`AuthProvider`, `QueryClientProvider`)
 
-- `frontend/web/src/services/api.ts`
+- `frontend/web/src/app/services/api.ts`
   - Axios client va service methods cho auth/profile/workout/coach
   - Tu dong gan access token vao request header
 

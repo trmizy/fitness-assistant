@@ -1,6 +1,7 @@
 import express from 'express';
 import { metricsMiddleware, register } from '@gym-coach/shared';
 import aiRoutes from './routes/ai.routes';
+import planRoutes from './routes/plan.routes';
 
 const app = express();
 
@@ -17,5 +18,6 @@ app.get('/metrics', async (_req, res) => {
 });
 
 app.use('/ai', aiRoutes);
+app.use('/plans', planRoutes);
 
 export default app;

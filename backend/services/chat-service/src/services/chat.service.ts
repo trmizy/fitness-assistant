@@ -1,5 +1,22 @@
+import axios from 'axios';
+import { logger } from '@gym-coach/shared';
 import { chatRepository } from '../repositories/chat.repository';
 import { canCreateDirectChat } from './chat.policy';
+
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
+
+async function fetchUserInfo(userId: string): Promise<{ id: string; firstName: string; lastName: string; role: string }> {
+  try {
+    const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/users`, { timeout: 3000 });
+    const user = (data.users ?? []).find((u: any) => u.id === userId);
+    if (user) {
+      return { id: user.id, firstName: user.firstName || '', lastName: user.lastName || '', role: user.role || 'CUSTOMER' };
+    }
+  } catch (err) {
+    logger.warn({ userId }, 'Failed to fetch user info for chat');
+  }
+  return { id: userId, firstName: 'User', lastName: '', role: 'CUSTOMER' };
+}
 
 export const chatService = {
   async createOrGetDirectConversation(
@@ -23,18 +40,41 @@ export const chatService = {
       requestingUserId,
       targetUserId,
     );
-    if (existing) return { conversation: existing, created: false };
+    if (existing) return { id: existing.id, conversation: existing, created: false };
 
     const conversation = await chatRepository.createDirectConversation(
       requestingUserId,
       targetUserId,
     );
-    return { conversation, created: true };
+    return { id: conversation.id, conversation, created: true };
   },
 
   async listConversations(userId: string) {
-    const conversations = await chatRepository.findConversationsByUserId(userId);
-    return { conversations };
+    const rawConversations = await chatRepository.findConversationsByUserId(userId);
+
+    // Enrich with user info for the "other" participant
+    const conversations = await Promise.all(
+      rawConversations.map(async (conv) => {
+        const otherParticipant = conv.participants.find((p) => p.userId !== userId);
+        const otherUser = otherParticipant
+          ? await fetchUserInfo(otherParticipant.userId)
+          : { id: '', firstName: 'Unknown', lastName: '', role: 'CUSTOMER' };
+
+        const lastMsg = conv.messages?.[0];
+        return {
+          id: conv.id,
+          type: conv.type,
+          otherUser,
+          lastMessage: lastMsg
+            ? { content: lastMsg.content, createdAt: lastMsg.createdAt }
+            : null,
+          lastMessageAt: conv.lastMessageAt,
+          createdAt: conv.createdAt,
+        };
+      }),
+    );
+
+    return conversations;
   },
 
   async getMessages(
@@ -53,7 +93,14 @@ export const chatService = {
       skip,
       take: limit,
     });
-    return { messages, page, limit };
+    // Map senderId → authorId for frontend compatibility
+    return messages.map((m) => ({
+      id: m.id,
+      authorId: m.senderId,
+      content: m.content,
+      createdAt: m.createdAt,
+      conversationId: m.conversationId,
+    }));
   },
 
   async sendMessage(conversationId: string, senderId: string, content: string) {
@@ -63,6 +110,11 @@ export const chatService = {
     }
 
     const message = await chatRepository.createMessage(conversationId, senderId, content);
-    return { message };
+    return {
+      id: message.id,
+      authorId: message.senderId,
+      content: message.content,
+      createdAt: message.createdAt,
+    };
   },
 };

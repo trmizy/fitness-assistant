@@ -440,7 +440,7 @@ Dieu nay giup team phat trien song song va scale theo domain.
 
 1. docs/setup/RUN_PROJECT_FLOW.md
 2. infra/compose/docker-compose.dev.yml
-3. frontend/web/src/services/api.ts
+3. frontend/web/src/app/services/api.ts
 4. backend/gateway/src/routes/proxy.routes.ts
 5. backend/services/auth-service/src/routes/auth.routes.ts
 6. backend/services/user-service/src/routes/profile.routes.ts

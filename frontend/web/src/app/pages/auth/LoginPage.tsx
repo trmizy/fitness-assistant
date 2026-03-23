@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router";
 import { useApp, UserRole } from "../../context/AppContext";
 import { Eye, EyeOff, Dumbbell, User, Zap, Shield, ArrowRight, Activity, Brain } from "lucide-react";
 
+// Demo account tiles — clicking one fills the form
 const features = [
   { icon: Activity, text: "InBody body composition analysis" },
   { icon: Brain,    text: "AI-generated workout & nutrition plans" },

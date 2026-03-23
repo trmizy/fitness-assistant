@@ -5,14 +5,6 @@ import { Dumbbell, User, Zap, ArrowRight, ArrowLeft, Check, Mail, Lock, UserCirc
 import { authService, profileService } from "../../services/api";
 import { toast } from "sonner";
 
-function getErrorMessage(error: any, fallback: string) {
-  const maybe = error?.response?.data?.error;
-  if (typeof maybe === "string") return maybe;
-  if (maybe && typeof maybe === "object" && typeof maybe.message === "string") return maybe.message;
-  if (typeof error?.message === "string") return error.message;
-  return fallback;
-}
-
 const steps = ["Account", "Verify", "Profile", "Goals", "Done"];
 
 export function RegisterPage() {
@@ -60,7 +52,7 @@ export function RegisterPage() {
       toast.success("Verification code sent to your email");
       setStep(1); // Move to Verify step
     } catch (error: any) {
-      toast.error(getErrorMessage(error, "Registration failed"));
+      toast.error(error.response?.data?.error || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -81,7 +73,7 @@ export function RegisterPage() {
         setStep(2); // Move to Profile step
       }
     } catch (error: any) {
-      toast.error(getErrorMessage(error, "Verification failed"));
+      toast.error(error.response?.data?.error || "Verification failed");
     } finally {
       setLoading(false);
     }
@@ -119,7 +111,7 @@ export function RegisterPage() {
       setStep(4); // Move to Done
     } catch (error: any) {
       console.error("Profile update error:", error);
-      toast.error(getErrorMessage(error, "Failed to update profile features"));
+      toast.error(error.response?.data?.error || "Failed to update profile features");
     } finally {
       setLoading(false);
     }

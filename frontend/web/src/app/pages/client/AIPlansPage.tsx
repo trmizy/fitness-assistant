@@ -16,17 +16,6 @@ const statusConfig: Record<PlanStatus, { label: string; color: string; dot: stri
 
 type PlanTab = "workout" | "nutrition";
 
-function safeText(value: unknown, fallback = ""): string {
-  if (value == null) return fallback;
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (typeof value === "object") {
-    const maybeMessage = (value as any)?.message;
-    if (typeof maybeMessage === "string") return maybeMessage;
-  }
-  return fallback;
-}
-
 export function AIPlansPage() {
   const [planTab, setPlanTab] = useState<PlanTab>("workout");
   const [expandedWeek, setExpandedWeek] = useState<number | null>(1);
@@ -57,8 +46,8 @@ export function AIPlansPage() {
             <Sparkles className="w-8 h-8 text-green-400" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-zinc-100">No {safeText(planTab)} plan yet</h2>
-            <p className="text-zinc-500 mt-1 max-w-xs mx-auto">Upload your InBody data or talk to our AI Coach to generate a personalized {safeText(planTab)} plan.</p>
+            <h2 className="text-xl font-bold text-zinc-100">No {planTab} plan yet</h2>
+            <p className="text-zinc-500 mt-1 max-w-xs mx-auto">Upload your InBody data or talk to our AI Coach to generate a personalized {planTab} plan.</p>
           </div>
           <div className="flex gap-3">
              <button onClick={() => setPlanTab(planTab === "workout" ? "nutrition" : "workout")} className="px-5 py-2.5 bg-zinc-800 text-zinc-300 rounded-xl text-sm font-bold border border-zinc-700 hover:bg-zinc-700 transition-all">
@@ -106,7 +95,7 @@ export function AIPlansPage() {
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h2 className="text-zinc-100">{safeText(currentPlan.title, "AI Plan")}</h2>
+              <h2 className="text-zinc-100">{currentPlan.title}</h2>
               <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-semibold border ${cfg.color}`}>
                 <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                 {cfg.label}
@@ -130,7 +119,7 @@ export function AIPlansPage() {
             <Edit3 className="w-3.5 h-3.5 text-blue-400" />
             <span className="text-xs font-semibold text-blue-300">Coach Note</span>
           </div>
-            <p className="text-xs text-blue-400/80">{safeText(currentPlan.ptNote, "No coach note")}</p>
+          <p className="text-xs text-blue-400/80">{currentPlan.ptNote}</p>
         </div>
 
         {/* Rationale */}
@@ -139,7 +128,7 @@ export function AIPlansPage() {
             <Brain className="w-3.5 h-3.5 text-green-400" />
             <span className="text-xs font-semibold text-green-400">AI Rationale</span>
           </div>
-          <p className="text-xs text-zinc-400">{safeText(currentPlan.rationale, "No rationale available")}</p>
+          <p className="text-xs text-zinc-400">{currentPlan.rationale}</p>
         </div>
       </div>
 
@@ -197,7 +186,7 @@ export function AIPlansPage() {
                             {day.exercises?.map((ex: any, i: number) => (
                               <div key={i} className="flex items-center gap-2 text-sm text-zinc-400">
                                 <div className="w-5 h-5 bg-green-500/10 text-green-400 border border-green-500/20 rounded text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</div>
-                                {safeText(ex, "Invalid exercise")}
+                                {ex}
                               </div>
                             ))}
                           </div>
@@ -218,7 +207,7 @@ export function AIPlansPage() {
           {mealPlan.days?.map((day: any) => (
             <div key={day.day} className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
               <div className="px-4 py-3 border-b border-zinc-800/60">
-                <h4 className="text-sm font-bold text-zinc-200">{safeText(day.day, "Day")}</h4>
+                <h4 className="text-sm font-bold text-zinc-200">{day.day}</h4>
               </div>
               <div className="divide-y divide-zinc-800/40">
                 {day.meals?.map((meal: any) => (
@@ -226,8 +215,8 @@ export function AIPlansPage() {
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-zinc-600">{safeText(meal.time, "")}</span>
-                          <span className="text-sm font-semibold text-zinc-200">{safeText(meal.name, "Meal")}</span>
+                          <span className="text-xs text-zinc-600">{meal.time}</span>
+                          <span className="text-sm font-semibold text-zinc-200">{meal.name}</span>
                         </div>
                       </div>
                       <div className="text-right">
@@ -236,8 +225,8 @@ export function AIPlansPage() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {meal.items?.map((item: any, idx: number) => (
-                        <span key={`${safeText(item, "item")}-${idx}`} className="px-2 py-0.5 bg-zinc-800/60 border border-zinc-700/40 text-zinc-400 text-xs rounded-full">{safeText(item, "Invalid item")}</span>
+                      {meal.items?.map((item: any) => (
+                        <span key={item} className="px-2 py-0.5 bg-zinc-800/60 border border-zinc-700/40 text-zinc-400 text-xs rounded-full">{item}</span>
                       ))}
                     </div>
                   </div>

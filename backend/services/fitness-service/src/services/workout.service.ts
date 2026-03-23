@@ -46,6 +46,14 @@ export const workoutService = {
     return { message: 'Workout deleted' };
   },
 
+  async getPRs(userId: string, exerciseId?: string) {
+    const where: any = { workout: { userId } };
+    if (exerciseId) where.exerciseId = exerciseId;
+
+    const exercises = await workoutRepository.findExercisePRs(userId, exerciseId);
+    return exercises;
+  },
+
   async queueWorkoutGeneration(userId: string, params: any) {
     const job = await workoutQueue.add('generate-workout', { userId, ...params });
     return { message: 'Workout generation started', jobId: job.id };

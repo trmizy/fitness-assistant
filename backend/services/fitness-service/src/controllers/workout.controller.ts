@@ -93,6 +93,17 @@ export const workoutController = {
     }
   },
 
+  async getPRs(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { exerciseId } = req.query as Record<string, string>;
+      const prs = await workoutService.getPRs(req.user!.id, exerciseId);
+      res.json(prs);
+    } catch (error) {
+      logger.error('Error fetching PRs:', error);
+      res.status(500).json({ error: 'Failed to fetch PRs' });
+    }
+  },
+
   async generateWorkout(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { goal, duration, equipment, bodyParts } = req.body;

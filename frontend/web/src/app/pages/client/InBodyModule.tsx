@@ -633,28 +633,70 @@ export function InBodyModule() {
                 <AlertCircle className="w-4 h-4 text-amber-400" />
                 <span className="text-sm text-amber-300 font-semibold">Review extracted values — correct any errors before saving</span>
               </div>
-              <div className="p-4 space-y-3">
-                {[
-                  { label: "Weight (kg)",                    field: "weight",     value: extractedData?.weight },
-                  { label: "Height (cm)",                    field: "height",     value: extractedData?.height },
-                  { label: "Muscle Mass (kg)",               field: "muscleMass", value: extractedData?.muscleMass },
-                  { label: "Body Fat (kg)",                 field: "bodyFat",    value: extractedData?.bodyFat },
-                  { label: "Body Fat %",                    field: "bodyFatPct", value: extractedData?.bodyFatPct },
-                  { label: "BMI",                            field: "bmi",        value: extractedData?.bmi },
-                ].map((f: { label: string; field: string; value: number | undefined; }) => (
-                  <div key={f.field} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <label className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
-                      <input 
-                        type="number"
-                        step="0.1"
-                        defaultValue={f.value} 
-                        onChange={(e) => setExtractedData({ ...extractedData, [f.field]: parseFloat(e.target.value) })}
-                        className={inp} 
-                      />
-                    </div>
+              <div className="p-4 space-y-4">
+                {/* Basic Metrics */}
+                <div>
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Basic Metrics</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Weight (kg)",      field: "weight",     value: extractedData?.weight },
+                      { label: "Height (cm)",      field: "height",     value: extractedData?.height },
+                      { label: "Muscle Mass (kg)", field: "muscleMass", value: extractedData?.muscleMass },
+                      { label: "Body Fat (kg)",    field: "bodyFat",    value: extractedData?.bodyFat },
+                      { label: "Body Fat %",       field: "bodyFatPct", value: extractedData?.bodyFatPct },
+                      { label: "BMI",              field: "bmi",        value: extractedData?.bmi },
+                    ].map((f: { label: string; field: string; value: number | undefined }) => (
+                      <div key={f.field}>
+                        <label className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
+                        <input type="number" step="0.1" defaultValue={f.value}
+                          onChange={(e) => setExtractedData({ ...extractedData, [f.field]: parseFloat(e.target.value) })}
+                          className={inp} />
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                {/* Segmental Lean Analysis */}
+                <div>
+                  <h4 className="text-xs font-bold text-green-400/80 uppercase tracking-wider mb-2">Segmental Lean (kg)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Right Arm",  field: "rightArmMuscle", value: extractedData?.rightArmMuscle },
+                      { label: "Left Arm",   field: "leftArmMuscle",  value: extractedData?.leftArmMuscle },
+                      { label: "Right Leg",  field: "rightLegMuscle", value: extractedData?.rightLegMuscle },
+                      { label: "Left Leg",   field: "leftLegMuscle",  value: extractedData?.leftLegMuscle },
+                      { label: "Trunk",      field: "trunkMuscle",    value: extractedData?.trunkMuscle },
+                    ].map((f: { label: string; field: string; value: number | undefined }) => (
+                      <div key={f.field}>
+                        <label className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
+                        <input type="number" step="0.01" defaultValue={f.value}
+                          onChange={(e) => setExtractedData({ ...extractedData, [f.field]: parseFloat(e.target.value) })}
+                          className={inp} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Segmental Fat Analysis */}
+                <div>
+                  <h4 className="text-xs font-bold text-amber-400/80 uppercase tracking-wider mb-2">Segmental Fat (kg)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Right Arm",  field: "rightArmFat", value: extractedData?.rightArmFat },
+                      { label: "Left Arm",   field: "leftArmFat",  value: extractedData?.leftArmFat },
+                      { label: "Right Leg",  field: "rightLegFat", value: extractedData?.rightLegFat },
+                      { label: "Left Leg",   field: "leftLegFat",  value: extractedData?.leftLegFat },
+                      { label: "Trunk",      field: "trunkFat",    value: extractedData?.trunkFat },
+                    ].map((f: { label: string; field: string; value: number | undefined }) => (
+                      <div key={f.field}>
+                        <label className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
+                        <input type="number" step="0.01" defaultValue={f.value}
+                          onChange={(e) => setExtractedData({ ...extractedData, [f.field]: parseFloat(e.target.value) })}
+                          className={inp} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="flex gap-2 p-4 border-t border-zinc-800/60">
                 <button onClick={() => setUploadStep("drop")} className="flex-1 py-2 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800/60 transition-colors">
@@ -798,6 +840,12 @@ export function InBodyModule() {
       ══════════════════════════════════════ */}
       {tab === "compare" && (
         <div className="space-y-4">
+          {history.length < 2 ? (
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-10 text-center">
+              <div className="text-zinc-400 font-semibold mb-1">Not enough data</div>
+              <p className="text-zinc-600 text-sm">You need at least 2 InBody records to compare.</p>
+            </div>
+          ) : (<>
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
             <div>
               <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Record A</label>
@@ -815,25 +863,30 @@ export function InBodyModule() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {(["weight", "muscle", "fat", "bfp"] as const).map(key => {
-              const labelMap: Record<string, string> = { weight: "Weight (kg)", muscle: "Muscle (kg)", fat: "Body Fat (kg)", bfp: "Body Fat %" };
-              const aVal   = history[compareA][key as keyof typeof history[0]] as number;
-              const bVal   = history[compareB][key as keyof typeof history[0]] as number;
+            {([
+              { key: "weight",     label: "Weight (kg)" },
+              { key: "muscleMass", label: "Muscle (kg)" },
+              { key: "bodyFat",    label: "Body Fat (kg)" },
+              { key: "bodyFatPct", label: "Body Fat %" },
+            ] as const).map(({ key, label }) => {
+              const aVal   = (history[compareA]?.[key] as number) || 0;
+              const bVal   = (history[compareB]?.[key] as number) || 0;
               const diff   = aVal - bVal;
-              const isGood = key === "muscle" ? diff > 0 : diff < 0;
+              const isGood = key === "muscleMass" ? diff > 0 : diff < 0;
+              const isPct  = key === "bodyFatPct";
               return (
                 <div key={key} className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
-                  <div className="text-xs text-zinc-500 mb-2 uppercase tracking-wider">{labelMap[key]}</div>
+                  <div className="text-xs text-zinc-500 mb-2 uppercase tracking-wider">{label}</div>
                   <div className="flex items-end justify-between">
                     <div>
-                      <div className="text-lg font-bold text-zinc-100">{aVal}{key === "bfp" ? "%" : ""}</div>
-                      <div className="text-xs text-zinc-600">{history[compareA].date.slice(0, 6)}</div>
+                      <div className="text-lg font-bold text-zinc-100">{aVal}{isPct ? "%" : ""}</div>
+                      <div className="text-xs text-zinc-600">{new Date(history[compareA]?.date).toLocaleDateString()}</div>
                     </div>
                     <div className="text-right">
                       <div className={`text-sm font-bold ${isGood ? "text-green-400" : "text-red-400"}`}>
-                        {diff > 0 ? "+" : ""}{diff.toFixed(1)}{key === "bfp" ? "%" : ""}
+                        {diff > 0 ? "+" : ""}{diff.toFixed(1)}{isPct ? "%" : ""}
                       </div>
-                      <div className="text-xs text-zinc-600">{history[compareB].date.slice(0, 6)}</div>
+                      <div className="text-xs text-zinc-600">{new Date(history[compareB]?.date).toLocaleDateString()}</div>
                     </div>
                   </div>
                 </div>
@@ -844,19 +897,20 @@ export function InBodyModule() {
           <SectionCard title="Comparison Chart">
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={[
-                { metric: "Weight", A: history[compareA].weight, B: history[compareB].weight },
-                { metric: "Muscle", A: history[compareA].muscle, B: history[compareB].muscle },
-                { metric: "Fat",    A: history[compareA].fat,    B: history[compareB].fat    },
+                { metric: "Weight", A: history[compareA]?.weight || 0, B: history[compareB]?.weight || 0 },
+                { metric: "Muscle", A: history[compareA]?.muscleMass || 0, B: history[compareB]?.muscleMass || 0 },
+                { metric: "Fat",    A: history[compareA]?.bodyFat || 0,    B: history[compareB]?.bodyFat || 0    },
               ]}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                 <XAxis dataKey="metric" tick={{ fontSize: 11, fill: "#71717a" }} />
                 <YAxis tick={{ fontSize: 10, fill: "#71717a" }} />
                 <Tooltip {...tooltipStyle} />
-                <Bar dataKey="A" fill="#22c55e" radius={[4, 4, 0, 0]} name={history[compareA].date.slice(0, 6)} />
-                <Bar dataKey="B" fill="#3f3f46" radius={[4, 4, 0, 0]} name={history[compareB].date.slice(0, 6)} />
+                <Bar dataKey="A" fill="#22c55e" radius={[4, 4, 0, 0]} name={new Date(history[compareA]?.date).toLocaleDateString()} />
+                <Bar dataKey="B" fill="#3f3f46" radius={[4, 4, 0, 0]} name={new Date(history[compareB]?.date).toLocaleDateString()} />
               </BarChart>
             </ResponsiveContainer>
           </SectionCard>
+          </>)}
         </div>
       )}
     </div>

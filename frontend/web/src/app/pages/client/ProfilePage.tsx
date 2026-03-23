@@ -6,14 +6,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { profileService } from "../../services/api";
 import { toast } from "sonner";
 
-function getErrorMessage(error: any, fallback: string) {
-  const maybe = error?.response?.data?.error;
-  if (typeof maybe === "string") return maybe;
-  if (maybe && typeof maybe === "object" && typeof maybe.message === "string") return maybe.message;
-  if (typeof error?.message === "string") return error.message;
-  return fallback;
-}
-
 const goals = [
   { key: "lose_fat",       label: "Lose Fat",       emoji: "🔥" },
   { key: "gain_muscle",    label: "Gain Muscle",     emoji: "💪" },
@@ -92,7 +84,7 @@ export function ProfilePage() {
       setEditing(false);
     },
     onError: (error: any) => {
-      toast.error(getErrorMessage(error, "Failed to update profile"));
+      toast.error(error.response?.data?.error || "Failed to update profile");
     }
   });
 

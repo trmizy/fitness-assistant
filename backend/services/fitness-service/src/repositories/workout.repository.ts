@@ -74,6 +74,36 @@ export const workoutRepository = {
 
   delete: (id: string) => prisma.workout.delete({ where: { id } }),
 
+  async findExercisePRs(userId: string, exerciseId?: string) {
+    const where: any = { workout: { userId } };
+    if (exerciseId) where.exerciseId = exerciseId;
+
+    const records = await prisma.workoutExercise.findMany({
+      where,
+      include: { exercise: true, workout: { select: { date: true } } },
+      orderBy: { weight: 'desc' },
+    });
+
+    // Group by exercise, keep max weight per exercise
+    const prMap = new Map<string, any>();
+    for (const r of records) {
+      if (!r.weight) continue;
+      const key = r.exerciseId;
+      if (!prMap.has(key) || r.weight > prMap.get(key).weight) {
+        prMap.set(key, {
+          exerciseId: r.exerciseId,
+          exerciseName: r.exercise?.exerciseName,
+          weight: r.weight,
+          reps: r.reps,
+          sets: r.sets,
+          date: r.workout?.date,
+        });
+      }
+    }
+
+    return Array.from(prMap.values());
+  },
+
   findForStats: (userId: string, startDate: Date) =>
     prisma.workout.findMany({
       where: { userId, date: { gte: startDate } },

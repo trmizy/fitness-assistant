@@ -391,6 +391,17 @@ router.use(
   }),
 );
 
+// Protected — Plans (AI Service)
+router.use(
+  '/plans',
+  authMiddleware,
+  createProxyMiddleware({
+    target: AI_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('AI service'),
+  }),
+);
+
 // Protected — AI Service
 router.use(
   '/ai',
@@ -437,6 +448,28 @@ router.use(
     changeOrigin: true,
     pathRewrite: { '^/inbody': '/inbody' },
     onError: serviceUnavailable('User service'),
+  }),
+);
+
+// Protected — PT Applications (User Service)
+router.use(
+  '/pt-applications',
+  authMiddleware,
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/pt-applications': '/pt-applications' },
+    onError: serviceUnavailable('User service'),
+  }),
+);
+
+// Public — Uploads (User Service)
+router.use(
+  '/uploads',
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('User service (Uploads)'),
   }),
 );
 

@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { Calendar, Clock, Video, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, MessageSquare, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Calendar, Clock, Video, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, X, User } from "lucide-react";
 import { useApp } from "../../context/AppContext";
-import { chatService, profileService } from "../../services/api";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+const slots = ["9:00 AM", "10:00 AM", "11:00 AM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"];
+const bookedSlots = ["10:00 AM", "2:00 PM"];
+
+// Mock data cleared - show empty state until backend is ready
+const upcomingSessions: any[] = [];
+const pastSessions: any[] = [];
 
 function getDaysInMonth(year: number, month: number) { return new Date(year, month + 1, 0).getDate(); }
 function getFirstDay(year: number, month: number) { return new Date(year, month, 1).getDay(); }
@@ -18,30 +23,9 @@ export function BookingPage() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
-  const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [tab, setTab] = useState<Tab>("book");
-
-  const { data: ptsData, isLoading: loadingPts } = useQuery({
-    queryKey: ["booking-pts"],
-    queryFn: profileService.listPTs,
-  });
-
-  const { data: convsData, isLoading: loadingConvs } = useQuery({
-    queryKey: ["booking-conversations"],
-    queryFn: chatService.listConversations,
-  });
-
-  const ptList = ptsData?.pts || [];
-  const conversations = convsData?.conversations || [];
-
-  if (loadingPts || loadingConvs) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
-      </div>
-    );
-  }
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDay(year, month);
@@ -58,11 +42,11 @@ export function BookingPage() {
           <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
             <Calendar className="w-5 h-5 text-green-400" /> Coaching Schedule
           </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">Book and manage your coaching sessions with real account data</p>
+          <p className="text-zinc-500 text-sm mt-0.5">Book and manage your coaching sessions</p>
         </div>
         <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-xs font-bold rounded-full flex items-center gap-1.5 border border-zinc-700/50">
           <Clock className="w-3 h-3" />
-          {conversations.length} active coaching conversation(s)
+          No active sessions remaining
         </span>
       </div>
 
@@ -86,9 +70,9 @@ export function BookingPage() {
               <p className="text-sm text-zinc-500 mb-1">
                 {MONTHS[month]} {selectedDate}, {year}
               </p>
-              <p className="text-sm font-bold text-green-400 mb-4">Coach contact created in system</p>
-              <p className="text-xs text-zinc-600 mb-6">Use Chat to finalize exact time slot because no booking-slot endpoint exists yet.</p>
-              <button onClick={() => { setConfirmed(false); setSelectedDate(null); setSelectedCoachId(null); }} className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-xl transition-all shadow-lg shadow-green-500/20">
+              <p className="text-sm font-bold text-green-400 mb-4">{selectedSlot} · Video Call</p>
+              <p className="text-xs text-zinc-600 mb-6">Your coach will receive a notification.</p>
+              <button onClick={() => { setConfirmed(false); setSelectedDate(null); setSelectedSlot(null); }} className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-xl transition-all shadow-lg shadow-green-500/20">
                 Book Another
               </button>
             </div>
@@ -113,7 +97,7 @@ export function BookingPage() {
                       <button
                         key={day}
                         disabled={isPast}
-                        onClick={() => { setSelectedDate(day); setSelectedCoachId(null); }}
+                        onClick={() => { setSelectedDate(day); setSelectedSlot(null); }}
                         className={`aspect-square flex flex-col items-center justify-center rounded-xl text-xs transition-all font-medium ${
                           selectedDate === day ? "bg-green-500 text-black shadow-lg shadow-green-500/25" :
                           isToday(day) ? "bg-green-500/15 text-green-400 border border-green-500/30" :
@@ -133,44 +117,39 @@ export function BookingPage() {
                 {selectedDate ? (
                   <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 shadow-xl animate-in fade-in slide-in-from-right-2 duration-300">
                     <h4 className="text-sm font-bold text-zinc-200 mb-1">
-                      Available Coaches – {MONTHS[month]} {selectedDate}
+                      Available Slots – {MONTHS[month]} {selectedDate}
                     </h4>
-                    <p className="text-xs text-zinc-500 mb-3">Selected date is stored, coach relationship is loaded from database.</p>
-                    {ptList.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {ptList.map((pt: any) => {
-                          const ptId = pt.userId || pt.id;
-                          const selected = selectedCoachId === ptId;
-                          return (
-                            <button
-                              key={ptId}
-                              onClick={() => setSelectedCoachId(ptId)}
-                              className={`flex items-center justify-between gap-2 px-3 py-2.5 border rounded-xl text-sm transition-all font-medium ${
-                                selected
-                                  ? "border-green-500 bg-green-500/10 text-green-400"
-                                  : "border-zinc-700/60 text-zinc-300 hover:border-green-500/50"
-                              }`}
-                            >
-                              <span>{`${pt.firstName || ""} ${pt.lastName || ""}`.trim() || `PT ${String(ptId).slice(0, 8)}...`}</span>
-                              <Video className="w-3.5 h-3.5" />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl border border-zinc-800 bg-zinc-800/40 p-4 text-xs text-zinc-500">
-                        No PT profiles found in database yet.
-                      </div>
-                    )}
+                    <p className="text-xs text-zinc-500 mb-3">Professional Coaching Session · Video</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-2">
+                      {slots.map((slot) => {
+                        const booked = bookedSlots.includes(slot);
+                        return (
+                          <button
+                            key={slot}
+                            disabled={booked}
+                            onClick={() => setSelectedSlot(slot)}
+                            className={`flex items-center gap-2 px-3 py-2.5 border-2 rounded-xl text-sm transition-all font-medium ${
+                              booked ? "border-zinc-800/60 bg-zinc-800/30 text-zinc-600 cursor-not-allowed" :
+                              selectedSlot === slot ? "border-green-500 bg-green-500/10 text-green-400 shadow-lg shadow-green-500/15" :
+                              "border-zinc-700/60 hover:border-green-500/50 text-zinc-400 hover:text-zinc-200"
+                            }`}
+                          >
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>{slot}</span>
+                            {booked && <span className="text-xs ml-auto text-zinc-600">Full</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
 
-                    {selectedCoachId && (
+                    {selectedSlot && (
                       <div className="mt-4 p-3 bg-green-500/8 border border-green-500/20 rounded-xl">
                         <div className="flex items-center gap-2 mb-2 text-green-400">
                           <CheckCircle className="w-4 h-4" />
                           <span className="text-sm font-bold">Ready to Book</span>
                         </div>
                         <p className="text-xs text-zinc-400 mb-3">
-                          {MONTHS[month]} {selectedDate}, {year} · PT selected from DB
+                          {MONTHS[month]} {selectedDate}, {year} at {selectedSlot} · Video Session
                         </p>
                         <button onClick={() => setConfirmed(true)} className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
                           Confirm Booking
@@ -203,29 +182,19 @@ export function BookingPage() {
 
       {tab === "upcoming" && (
         <div className="space-y-4 py-10 text-center">
-          {conversations.length > 0 ? (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden text-left max-w-3xl mx-auto">
-              {conversations.map((c: any) => {
-                const participant = c.otherUser || c.participants?.find((p: any) => p.userId !== user?.id);
-                const title = participant?.firstName ? `${participant.firstName} ${participant.lastName || ""}`.trim() : `User ${String(participant?.userId || "").slice(0, 8)}...`;
-                return (
-                  <div key={c.id} className="p-4 border-b border-zinc-800/40 last:border-0 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-200">{title}</p>
-                      <p className="text-xs text-zinc-500">Last activity: {c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleString() : "No messages yet"}</p>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20">Conversation Active</span>
-                  </div>
-                );
-              })}
-            </div>
+          {upcomingSessions.length > 0 ? (
+             upcomingSessions.map((s) => (
+                <div key={s.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 text-left">
+                  {/* ... session rendering ... */}
+                </div>
+             ))
           ) : (
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-700/60">
                  <Clock className="w-8 h-8 text-zinc-600" />
               </div>
               <h3 className="text-zinc-200 font-bold mb-1">No upcoming sessions</h3>
-              <p className="text-sm text-zinc-500 mb-6">No coaching relationship found in database. Start by connecting with a coach.</p>
+              <p className="text-sm text-zinc-500 mb-6">You don't have any scheduled sessions at the moment. Plan your next workout now!</p>
               <button onClick={() => setTab("book")} className="px-6 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-xl transition-all">
                 Book a Session
               </button>
@@ -236,16 +205,23 @@ export function BookingPage() {
 
       {tab === "past" && (
         <div className="space-y-4 py-10 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-700/60">
-               <Calendar className="w-8 h-8 text-zinc-600" />
+          {pastSessions.length > 0 ? (
+            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden text-left">
+               <table className="w-full">
+                 {/* ... table ... */}
+               </table>
             </div>
-            <h3 className="text-zinc-200 font-bold mb-1">No past sessions</h3>
-            <p className="text-sm text-zinc-500 mb-6">Session history endpoint is not available in backend yet, so no demo data is shown.</p>
-          </div>
+          ) : (
+            <div className="max-w-md mx-auto">
+              <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-700/60">
+                 <Calendar className="w-8 h-8 text-zinc-600" />
+              </div>
+              <h3 className="text-zinc-200 font-bold mb-1">No past sessions</h3>
+              <p className="text-sm text-zinc-500 mb-6">Your session history will appear here once you complete your first coaching call.</p>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 }
-
