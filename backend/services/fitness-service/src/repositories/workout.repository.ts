@@ -92,7 +92,7 @@ export const workoutRepository = {
       if (!prMap.has(key) || r.weight > prMap.get(key).weight) {
         prMap.set(key, {
           exerciseId: r.exerciseId,
-          exerciseName: r.exercise?.name,
+          exerciseName: r.exercise?.exerciseName,
           weight: r.weight,
           reps: r.reps,
           sets: r.sets,
