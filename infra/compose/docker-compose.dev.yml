@@ -3,7 +3,7 @@ services:
   web:
     build:
       context: ../..          # repo root (so pnpm workspace files are accessible)
-      dockerfile: frontend/New/Dockerfile
+      dockerfile: frontend/web/Dockerfile
       args:
         VITE_API_URL: http://localhost:3000
         VITE_CHAT_WS_URL: http://localhost:3005

@@ -6,7 +6,7 @@ Tai lieu nay mo ta cach chay du an fitness-assistant theo cau truc hien tai (`fr
 
 Project duoc to chuc theo monorepo PNPM workspace:
 
-- Frontend: React + Vite (`frontend/New`)
+- Frontend: React + Vite (`frontend/web`)
 - API Gateway: Express (`backend/gateway`)
 - Microservices:
   - Auth service (`backend/services/auth-service`)
@@ -141,23 +141,23 @@ Y nghia:
 - `tsconfig.base.json`
   - Cau hinh TypeScript dung chung cho backend packages
 
-## 5.2 Frontend (`frontend/New`)
+## 5.2 Frontend (`frontend/web`)
 
-- `frontend/New/src/main.tsx`
+- `frontend/web/src/main.tsx`
   - Entry point React, mount `App`
 
-- `frontend/New/src/app/App.tsx`
+- `frontend/web/src/app/App.tsx`
   - Router chinh, auth guard, provider (`AuthProvider`, `QueryClientProvider`)
 
-- `frontend/New/src/app/services/api.ts`
+- `frontend/web/src/app/services/api.ts`
   - Axios client va service methods cho auth/profile/workout/coach
   - Tu dong gan access token vao request header
 
-- `frontend/New/Dockerfile`
+- `frontend/web/Dockerfile`
   - Build static React app bang Node + pnpm
   - Chuyen sang nginx image de phuc vu production
 
-- `frontend/New/nginx.conf`
+- `frontend/web/nginx.conf`
   - SPA fallback (`try_files ... /index.html`)
   - Proxy `/api/*` sang `api-gateway:3000`
 
