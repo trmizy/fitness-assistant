@@ -4,8 +4,10 @@ const userLanguageLock = new Map<string, ResponseLanguage>();
 
 function detectLanguage(message: string): ResponseLanguage {
   const text = message.toLowerCase();
-  const hasVietnameseDiacritics = /[\u00C0-\u1EF9]/.test(message);
-  const viSignals = /(lich tap|bai tap|giam mo|tang co|thuc don|tra loi bang tieng viet|tieng viet)/i;
+  // Vietnamese-specific diacritics (tone marks + vowel modifiers outside basic Latin)
+  const hasVietnameseDiacritics = /[\u00C0-\u024F\u1E00-\u1EFF]/.test(message);
+  // Common Vietnamese words without diacritics as fallback
+  const viSignals = /(lich tap|bai tap|giam mo|tang co|thuc don|tieng viet|tap gym|buoi tap|tuan nay|hom nay|cho toi|minh nen|lam sao|nhu the nao)/i;
   if (hasVietnameseDiacritics || viSignals.test(text)) return 'vi';
   return 'en';
 }

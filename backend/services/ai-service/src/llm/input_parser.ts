@@ -26,10 +26,10 @@ function inferIntent(question: string): InputIntent['intent'] {
 
 function inferGoal(question: string, profile?: UserProfile): InputIntent['goalHint'] {
   const q = question.toLowerCase();
-  if (/(fat loss|giam mo|siet mo|cut|giam can)/i.test(q)) return 'fat_loss';
-  if (/(muscle gain|tang co|bulk|hypertrophy)/i.test(q)) return 'muscle_gain';
-  if (/(recomp|recomposition|tai cau truc co the)/i.test(q)) return 'recomposition';
-  if (/(maintain|duy tri)/i.test(q)) return 'maintenance';
+  if (/(fat loss|gi[aả]m m[oỡ]|giam mo|si[eế]t m[oỡ]|siet mo|cut|gi[aả]m c[aâ]n|giam can)/i.test(q)) return 'fat_loss';
+  if (/(muscle gain|t[aă]ng c[oơ]|tang co|bulk|hypertrophy)/i.test(q)) return 'muscle_gain';
+  if (/(recomp|recomposition|t[aá]i c[aấ]u tr[uú]c c[oơ] th[eể]|tai cau truc co the|v[uừ]a gi[aả]m m[oỡ] v[uừ]a t[aă]ng c[oơ]|vua giam mo vua tang co)/i.test(q)) return 'recomposition';
+  if (/(maintain|duy tr[iì]|duy tri)/i.test(q)) return 'maintenance';
 
   switch (profile?.goal) {
     case 'WEIGHT_LOSS':
@@ -43,12 +43,45 @@ function inferGoal(question: string, profile?: UserProfile): InputIntent['goalHi
   }
 }
 
+// Strip Vietnamese diacritics from common gym scheduling words for easier regex matching
+function stripGymDiacritics(text: string): string {
+  return text
+    .replace(/bu[oổồộỗô][iị]/gi, 'buoi')
+    .replace(/tu[aầ]n/gi, 'tuan')
+    .replace(/ng[aà]y/gi, 'ngay')
+    .replace(/[íì]t\s*nh[aấ]t/gi, 'it nhat')
+    .replace(/m[oỗô]i/gi, 'moi')
+    .replace(/b[aà]i\s*t[aậ]p/gi, 'bai tap')
+    .replace(/b[aà]i/gi, 'bai');
+}
+
 function parseTrainingDays(question: string): number | undefined {
-  const match = question.match(/(\d)\s*(buoi|sessions|days)/i);
+  const q = stripGymDiacritics(question);
+  const match = q.match(/(\d+)\s*(?:buoi|sessions?|days?)\s*(?:\d+\s*)?(?:tuan|week|per week)/i)
+    || q.match(/(\d+)\s*(?:buoi|sessions?|days?)(?:\s*(?:moi|per)\s*(?:tuan|week))?/i);
   if (!match) return undefined;
   const parsed = Number(match[1]);
   if (Number.isNaN(parsed) || parsed < 1 || parsed > 7) return undefined;
   return parsed;
+}
+
+function parseMinimumExercisesPerDay(question: string): number | undefined {
+  const q = stripGymDiacritics(question);
+  // "ít nhất 5 bài tập", "at least 5 exercises", "mỗi buổi 5 bài", "5 bài mỗi buổi"
+  const patterns = [
+    /(?:it nhat|at least|toi thieu|minimum)\s*(\d+)\s*(?:bai tap|bai|exercises?)/i,
+    /(\d+)\s*(?:bai tap|bai|exercises?)\s*(?:moi buoi|per session|each session)/i,
+    /moi buoi\s*(?:it nhat|at least)?\s*(\d+)\s*(?:bai tap|bai|exercises?)?/i,
+    /(\d+)\s*(?:bai tap|exercises?)\s*(?:cho moi|for each)\s*buoi/i,
+  ];
+  for (const p of patterns) {
+    const m = q.match(p);
+    if (m) {
+      const val = Number(m[1]);
+      if (!Number.isNaN(val) && val >= 1 && val <= 15) return val;
+    }
+  }
+  return undefined;
 }
 
 function inferMealPreference(question: string): string | undefined {
@@ -89,8 +122,9 @@ export const inputParser = {
     const intent = inferIntent(normalizedQuestion);
     const goalHint = inferGoal(normalizedQuestion, profile);
     const parsedTrainingDays = parseTrainingDays(normalizedQuestion);
+    const minimumExercisesPerDay = parseMinimumExercisesPerDay(normalizedQuestion);
     const mealPreferenceHint = inferMealPreference(normalizedQuestion);
-    const mentionsInjury = /(injury|pain|chan thuong|dau goi|dau lung)/i.test(normalizedQuestion);
+    const mentionsInjury = /(injury|pain|ch[aấ]n th[uươ][oơ]ng|chan thuong|[dđ]au g[oố]i|dau goi|[dđ]au l[uư]ng|dau lung|[dđ]au vai|dau vai|[dđ]au kh[oớ]p|knee pain|shoulder pain|back pain)/i.test(normalizedQuestion);
     const missingFields = computeMissingFields(profile, intent);
 
     return {
@@ -100,6 +134,7 @@ export const inputParser = {
       goalHint,
       mealPreferenceHint,
       parsedTrainingDays: routed.parsedTrainingDays ?? parsedTrainingDays,
+      minimumExercisesPerDay,
       mentionsInjury,
       needsPersonalization: intent === 'personalized_plan' || intent === 'workout_plan' || intent === 'meal_plan',
       missingFields: Array.from(new Set([...missingFields, ...routed.missingFields])),

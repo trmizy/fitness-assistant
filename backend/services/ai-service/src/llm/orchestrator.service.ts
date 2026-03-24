@@ -40,7 +40,22 @@ export const llmOrchestrator = {
     let completionTokens = 0;
     let totalTokens = 0;
 
-    if (routedIntent.intent === 'general_fitness_knowledge' && !unsafe?.blocked) {
+    // Intents that go through LLM for richer narrative and context-aware responses.
+    // Workout plan + frequency change remain deterministic to enforce hard constraints
+    // (day count, min exercises). Recomp and meal requests go through LLM because they
+    // often carry strategic/contextual nuance (e.g., "theo hướng nào", "6 tháng điều chỉnh")
+    // that the static formatter cannot address. Injury mentions also force LLM path so
+    // the model can adapt the plan narrative around the user's pain points.
+    const llmIntents = new Set([
+      'general_fitness_knowledge',
+      'schedule_specific_day_request',
+      'body_recomposition_request',
+      'meal_plan_request',
+    ]);
+
+    const needsLlm = llmIntents.has(routedIntent.intent) || parsedInput.mentionsInjury;
+
+    if (needsLlm && !unsafe?.blocked) {
       prompt = promptBuilder.build(question, parsedInput, context.profile, retrieval, recommendation, language.responseLanguage);
       const llmResponse = await llmService.callLLM(prompt);
       llmAnswer = labelLocalizer.localize(llmResponse.answer, language.responseLanguage);

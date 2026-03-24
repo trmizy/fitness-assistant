@@ -13,7 +13,9 @@ export type RoutedIntentType =
   | 'meal_plan_request'
   | 'body_recomposition_request'
   | 'unsafe_weight_loss_request'
-  | 'profile_completion_request';
+  | 'profile_completion_request'
+  | 'frequency_change_request'
+  | 'schedule_specific_day_request';
 
 export type ResponseLanguage = 'vi' | 'en';
 
@@ -61,6 +63,7 @@ export interface InputIntent {
   goalHint?: 'fat_loss' | 'muscle_gain' | 'maintenance' | 'recomposition';
   mealPreferenceHint?: string;
   parsedTrainingDays?: number;
+  minimumExercisesPerDay?: number;
   mentionsInjury?: boolean;
   needsPersonalization: boolean;
   missingFields: string[];
@@ -134,6 +137,7 @@ export interface ExercisePrescription {
   sets: number;
   reps: string;
   restSeconds: number;
+  note?: string;
 }
 
 export interface DayPlan {

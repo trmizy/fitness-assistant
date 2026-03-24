@@ -1,0 +1,21 @@
+field_name,field_type,importance,usage_vi
+age,integer,medium,"Dùng để ước lượng recovery, volume tolerance và BMR."
+sex,categorical,medium,Hỗ trợ ước lượng calories và bối cảnh sinh lý.
+height_cm,float,high,Cần để tính BMR/TDEE chuẩn hơn.
+weight_kg,float,high,"Cần để tính calories, protein, tốc độ giảm cân."
+body_fat_percent,float,medium,Giúp chọn cut/recomp/bulk phù hợp.
+skeletal_muscle_mass_kg,float,medium,Giúp đánh giá nền tảng cơ bắp.
+fat_mass_kg,float,medium,
+lean_mass_kg,float,medium,
+bmr,float,medium,Nếu có từ InBody thì dùng như tham chiếu.
+goal,categorical,high,"fat_loss, muscle_gain, recomposition, strength."
+training_days_per_week,integer,high,Quyết định split.
+session_duration_min,integer,medium,Quyết định số bài hợp lý.
+cardio_minutes_per_session,integer,low,Dùng cho phần cardio.
+equipment_access,categorical,high,"gym_full, dumbbells_only, bodyweight, machines."
+experience_level,categorical,high,"beginner, novice, intermediate, advanced."
+injury_notes,text,high,Chọn exercise substitution.
+diet_preference,categorical,medium,"omnivorous, vegetarian, vegan, halal..."
+food_allergies,text,medium,Loại món nguy cơ.
+daily_steps,integer,low,Ước lượng activity.
+sleep_hours,float,low,Hỗ trợ volume tolerance.

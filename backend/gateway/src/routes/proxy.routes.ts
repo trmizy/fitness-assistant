@@ -447,6 +447,9 @@ router.use(
     target: USER_SERVICE_URL,
     changeOrigin: true,
     pathRewrite: { '^/inbody': '/inbody' },
+    // OCR image extraction can run for tens of seconds.
+    timeout: 180000,
+    proxyTimeout: 180000,
     onError: serviceUnavailable('User service'),
   }),
 );

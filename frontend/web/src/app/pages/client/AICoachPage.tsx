@@ -1,9 +1,42 @@
 import { useState, useRef, useEffect } from "react";
 import { Bot, Send, Lightbulb, AlertCircle, RefreshCw, User, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { inbodyService } from "../../services/api";
+import { inbodyService, coachService } from "../../services/api";
 
 interface ChatMessage { id: number; from: "user" | "ai"; text: string; time: string; }
+
+const AI_COACH_STORAGE_PREFIX = "ai_coach_messages_v1";
+
+function getAICoachStorageKey(): string {
+  try {
+    const rawUser = localStorage.getItem("user");
+    const parsedUser = rawUser ? JSON.parse(rawUser) : null;
+    const userId = parsedUser?.id || parsedUser?.userId || "guest";
+    return `${AI_COACH_STORAGE_PREFIX}:${String(userId)}`;
+  } catch {
+    return `${AI_COACH_STORAGE_PREFIX}:guest`;
+  }
+}
+
+function loadStoredMessages(): ChatMessage[] {
+  try {
+    const storageKey = getAICoachStorageKey();
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.filter((msg: any) =>
+      msg &&
+      typeof msg.id === "number" &&
+      (msg.from === "user" || msg.from === "ai") &&
+      typeof msg.text === "string" &&
+      typeof msg.time === "string"
+    );
+  } catch {
+    return [];
+  }
+}
 
 const suggestions = [
   "Why is my body fat not decreasing?",
@@ -29,22 +62,6 @@ const initialMessage = (latest: any, prev: any) => {
   };
 };
 
-const getAiReply = (text: string, latest: any) => {
-  const lower = text.toLowerCase();
-  const weight = latest?.weight || "---";
-  
-  if (lower.includes("protein")) {
-    const proteinFactor = 2.0;
-    const proteinTarget = latest?.weight ? Math.round(latest.weight * proteinFactor) : 150;
-    return `Based on your weight of ${weight} kg, I recommend **${proteinTarget}g of protein per day**.\n\n📌 **Tips:**\n• Scale: ${proteinFactor}g per kg\n• Sources: Chicken, Eggs, Whey, Greek Yogurt.`;
-  }
-  
-  if (lower.includes("fat")) {
-    return `Your latest body fat is ${latest?.bodyFatPct || "---"}%.\n\n💡 **Focus:**\n1. Maintain a slight caloric deficit\n2. Keep protein high\n3. Consistency with your training sessions.`;
-  }
-
-  return "That's a great question! Based on your data, the best strategy is consistent training and proper recovery. Do you have a specific goal in mind?";
-};
 
 export function AICoachPage() {
   const { data: history = [], isLoading } = useQuery({
@@ -55,7 +72,7 @@ export function AICoachPage() {
   const latest = history[0];
   const prev = history[1];
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadStoredMessages());
   const [input, setInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -66,19 +83,32 @@ export function AICoachPage() {
     }
   }, [isLoading, latest, prev]);
 
+  useEffect(() => {
+    if (messages.length === 0) return;
+    try {
+      localStorage.setItem(getAICoachStorageKey(), JSON.stringify(messages));
+    } catch {
+      // Ignore storage errors and keep chat functional.
+    }
+  }, [messages]);
+
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     if (!text.trim()) return;
     const userMsg: ChatMessage = { id: Date.now(), from: "user", text: text.trim(), time: "Now" };
     setMessages(prevMsgs => [...prevMsgs, userMsg]);
     setInput("");
     setAiLoading(true);
-    setTimeout(() => {
-      const replyText = getAiReply(text, latest);
+    try {
+      const result = await coachService.chat(text.trim());
+      const replyText = result?.answer || "Sorry, I couldn't get a response. Please try again.";
       setMessages(prevMsgs => [...prevMsgs, { id: Date.now() + 1, from: "ai", text: replyText, time: "Now" }]);
+    } catch {
+      setMessages(prevMsgs => [...prevMsgs, { id: Date.now() + 1, from: "ai", text: "⚠️ Could not connect to AI service. Please try again later.", time: "Now" }]);
+    } finally {
       setAiLoading(false);
-    }, 1200);
+    }
   };
 
   if (isLoading) {
@@ -89,20 +119,101 @@ export function AICoachPage() {
     );
   }
 
+  const renderInline = (text: string, key: number) => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return (
+      <span key={key}>
+        {parts.map((part, j) =>
+          part.startsWith("**") && part.endsWith("**")
+            ? <strong key={j} className="font-semibold text-zinc-100">{part.slice(2, -2)}</strong>
+            : <span key={j}>{part}</span>
+        )}
+      </span>
+    );
+  };
+
+  const renderTable = (lines: string[], startIdx: number): { el: React.ReactNode; consumed: number } => {
+    const tableLines = [];
+    let i = startIdx;
+    while (i < lines.length && lines[i].trim().startsWith("|")) {
+      tableLines.push(lines[i]);
+      i++;
+    }
+    if (tableLines.length < 2) return { el: null, consumed: 0 };
+
+    const isHeaderSep = (l: string) => {
+      const cells = l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+      return cells.length > 0 && cells.every(c => /^[\-:]*$/.test(c));
+    };
+    const parseRow = (l: string) =>
+      l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+
+    const headers = parseRow(tableLines[0]);
+    const dataRows = tableLines.filter((l, idx) => idx > 0 && !isHeaderSep(l)).map(parseRow);
+
+    return {
+      consumed: tableLines.length,
+      el: (
+        <div key={startIdx} className="overflow-x-auto my-2 rounded-lg border border-zinc-700/60">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="bg-zinc-800/80">
+                {headers.map((h, j) => (
+                  <th key={j} className="px-2 py-1.5 text-left font-semibold text-zinc-200 border-b border-zinc-700/60 whitespace-nowrap">
+                    {renderInline(h, j)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {dataRows.map((row, ri) => (
+                <tr key={ri} className={ri % 2 === 0 ? "bg-zinc-900/40" : "bg-zinc-800/20"}>
+                  {row.map((cell, ci) => (
+                    <td key={ci} className="px-2 py-1.5 text-zinc-300 border-b border-zinc-800/40 whitespace-nowrap">
+                      {renderInline(cell, ci)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ),
+    };
+  };
+
   const renderText = (text: string) => {
-    return text.split("\n").map((line, i) => {
-      if (line.startsWith("**") && line.endsWith("**")) {
-        return <p key={i} className="font-semibold text-zinc-100">{line.replace(/\*\*/g, "")}</p>;
+    const lines = text.split("\n");
+    const result: React.ReactNode[] = [];
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+
+      // Markdown table
+      if (line.trim().startsWith("|")) {
+        const { el, consumed } = renderTable(lines, i);
+        if (consumed > 0) { result.push(el); i += consumed; continue; }
       }
-      if (line.startsWith("• ") || line.startsWith("• ")) {
-        return <p key={i} className="ml-2">• {line.slice(2)}</p>;
+
+      if (line.startsWith("## ")) {
+        result.push(<p key={i} className="font-bold text-zinc-100 text-base mt-3 mb-0.5">{renderInline(line.slice(3), i)}</p>);
+      } else if (line.startsWith("### ")) {
+        result.push(<p key={i} className="font-semibold text-zinc-200 text-sm mt-2">{renderInline(line.slice(4), i)}</p>);
+      } else if (line.startsWith("> ")) {
+        result.push(<p key={i} className="text-xs text-zinc-500 border-l-2 border-zinc-700 pl-2 italic my-0.5">{line.slice(2)}</p>);
+      } else if (line.startsWith("- ")) {
+        result.push(<p key={i} className="ml-2 flex gap-1.5"><span className="text-green-500 mt-0.5 shrink-0">•</span><span>{renderInline(line.slice(2), i)}</span></p>);
+      } else if (line.match(/^\d+\. /)) {
+        const m = line.match(/^(\d+)\. (.*)$/);
+        if (m) result.push(<p key={i} className="ml-2 flex gap-1.5"><span className="text-green-400 font-medium min-w-[16px] shrink-0">{m[1]}.</span><span>{renderInline(m[2], i)}</span></p>);
+      } else if (!line.trim()) {
+        result.push(<div key={i} className="h-1" />);
+      } else {
+        result.push(<p key={i}>{renderInline(line, i)}</p>);
       }
-      if (line.match(/^\d+\. /)) return <p key={i} className="ml-2">{line}</p>;
-      if (line.startsWith("📊") || line.startsWith("📌") || line.startsWith("💡") || line.startsWith("⚠️")) {
-        return <p key={i} className="font-semibold">{line}</p>;
-      }
-      return line ? <p key={i}>{line}</p> : <br key={i} />;
-    });
+      i++;
+    }
+    return result;
   };
 
   return (

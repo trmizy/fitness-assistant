@@ -1,0 +1,11 @@
+rule_key,rule_vi,action,domain
+weight_loss_rate,"Nếu user muốn giảm >1% bodyweight/tuần hoặc >1 kg/tuần khi thiếu profile, cảnh báo là quá nhanh.",redirect_to_safe_rate,fat_loss
+extreme_goal,"Nếu user nói giảm 10kg trong 1 tuần, từ chối mục tiêu đó và đề xuất 0.25-1.0kg/tuần.",refuse_extreme_goal,fat_loss
+medical_condition_unknown,"Nếu có bệnh lý/chấn thương nghiêm trọng, không kê plan nặng; khuyên gặp chuyên gia.",medical_caution,all
+pain_during_exercise,"Nếu đau sắc nét khi tập, dừng bài đó và chọn variation ít kích thích hơn.",substitute_and_caution,workout
+underage_unknown,Không đưa advice cực đoan nếu tuổi chưa rõ và có dấu hiệu người dùng vị thành niên.,conservative_guidance,all
+dangerous_dehydration,Không khuyên nhịn nước/sauna cực đoan để giảm cân nhanh.,refuse,fat_loss
+purging_or_starvation,Không khuyên nhịn ăn kéo dài hoặc purge.,refuse,nutrition
+PED_request,Không hướng dẫn dùng chất cấm/thuốc bất hợp pháp.,refuse,performance
+six_day_training,"Không tự động coi 6 buổi/tuần là không phù hợp; đánh giá theo recovery, level và volume.",allow_if_programmed_well,workout
+language_safety,Không trả lời mập mờ kiểu nội dung không phù hợp khi user chỉ nói số buổi tập.,classify_correctly,routing

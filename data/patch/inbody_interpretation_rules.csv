@@ -1,0 +1,25 @@
+rule_type,sex,condition,recommendation_vi,action_key
+body_fat_band,male,<10,"Mỡ thấp, ưu tiên maintenance hoặc lean gain nếu hiệu năng tốt.",goal_direction
+body_fat_band,male,10-18,Có thể recomposition nếu mới tập; hoặc cut nhẹ nếu muốn nét hơn.,goal_direction
+body_fat_band,male,18-25,Ưu tiên fat loss hoặc recomposition.,goal_direction
+body_fat_band,male,>25,"Ưu tiên fat loss có kiểm soát, protein cao.",goal_direction
+body_fat_band,female,<18,"Mỡ thấp, tránh deficit quá mạnh.",goal_direction
+body_fat_band,female,18-28,Có thể recomposition hoặc cut nhẹ.,goal_direction
+body_fat_band,female,28-35,Ưu tiên fat loss hoặc recomposition.,goal_direction
+body_fat_band,female,>35,"Ưu tiên fat loss có kiểm soát, theo dõi recovery.",goal_direction
+experience_goal_volume,any,beginner+fat_loss,"Với level beginner, dùng volume low_to_moderate, giữ 8-14 hard sets/tuần cho nhóm cơ lớn và cardio vừa phải.",volume_target
+experience_goal_volume,any,beginner+muscle_gain,"Với level beginner, dùng volume moderate, ưu tiên progressive overload và recovery.",volume_target
+experience_goal_volume,any,beginner+recomposition,"Với level beginner, recomposition nên giữ protein cao và volume moderate.",volume_target
+experience_goal_volume,any,novice+fat_loss,"Với level novice, dùng volume moderate, giữ 8-14 hard sets/tuần cho nhóm cơ lớn và cardio vừa phải.",volume_target
+experience_goal_volume,any,novice+muscle_gain,"Với level novice, dùng volume moderate, ưu tiên progressive overload và recovery.",volume_target
+experience_goal_volume,any,novice+recomposition,"Với level novice, recomposition nên giữ protein cao và volume moderate.",volume_target
+experience_goal_volume,any,intermediate+fat_loss,"Với level intermediate, dùng volume moderate, giữ 8-14 hard sets/tuần cho nhóm cơ lớn và cardio vừa phải.",volume_target
+experience_goal_volume,any,intermediate+muscle_gain,"Với level intermediate, dùng volume moderate_to_high, ưu tiên progressive overload và recovery.",volume_target
+experience_goal_volume,any,intermediate+recomposition,"Với level intermediate, recomposition nên giữ protein cao và volume moderate.",volume_target
+experience_goal_volume,any,advanced+fat_loss,"Với level advanced, dùng volume moderate, giữ 8-14 hard sets/tuần cho nhóm cơ lớn và cardio vừa phải.",volume_target
+experience_goal_volume,any,advanced+muscle_gain,"Với level advanced, dùng volume high, ưu tiên progressive overload và recovery.",volume_target
+experience_goal_volume,any,advanced+recomposition,"Với level advanced, recomposition nên giữ protein cao và volume careful.",volume_target
+frequency_to_split,any,training_days_per_week=3,"Nếu tập 3 buổi/tuần, split mặc định hợp lý là full_body_or_upper_lower_full.",split_recommendation
+frequency_to_split,any,training_days_per_week=4,"Nếu tập 4 buổi/tuần, split mặc định hợp lý là upper_lower.",split_recommendation
+frequency_to_split,any,training_days_per_week=5,"Nếu tập 5 buổi/tuần, split mặc định hợp lý là push_pull_legs_upper_lower.",split_recommendation
+frequency_to_split,any,training_days_per_week=6,"Nếu tập 6 buổi/tuần, split mặc định hợp lý là push_pull_legs_x2.",split_recommendation

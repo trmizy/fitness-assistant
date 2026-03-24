@@ -16,7 +16,7 @@ function sanitizeVietnameseOutput(text: string): string {
   }
 
   sanitized = sanitized.replace(/missing profile/gi, 'thieu thong tin ho so');
-  sanitized = sanitized.replace(/\s{2,}/g, ' ').trim();
+  sanitized = sanitized.replace(/ {2,}/g, ' ').trim();
   return sanitized;
 }
 
