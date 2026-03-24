@@ -24,17 +24,18 @@ const clientNavFull = [
   { label: "Profile",        icon: User,            to: "/client/profile"   },
 ];
 
-/** Client nav for PT users — same as above but WITHOUT Find a Coach */
-const ptClientNav = clientNavFull.filter((n) => n.to !== "/client/coaches");
+/** Client nav for PT users — no Find a Coach, no Chat (PT chats from Trainer workspace) */
+const ptClientNav = clientNavFull.filter((n) => n.to !== "/client/coaches" && n.to !== "/client/chat");
 
 /** PT professional workspace nav */
 const ptWorkspaceNav = [
-  { label: "PT Dashboard",   icon: LayoutDashboard, to: "/pt/dashboard" },
-  { label: "My Clients",     icon: Users,           to: "/pt/clients"   },
-  { label: "Plan Review",    icon: ClipboardList,   to: "/pt/plans"     },
-  { label: "Schedule",       icon: Calendar,        to: "/pt/schedule"  },
-  { label: "Chat",           icon: MessageSquare,   to: "/pt/chat"      },
-  { label: "PT Profile",     icon: User,            to: "/pt/profile"   },
+  { label: "PT Dashboard",   icon: LayoutDashboard, to: "/pt/dashboard"  },
+  { label: "My Clients",     icon: Users,           to: "/pt/clients"    },
+  { label: "Contracts",      icon: FileText,        to: "/pt/contracts"  },
+  { label: "Plan Review",    icon: ClipboardList,   to: "/pt/plans"      },
+  { label: "Schedule",       icon: Calendar,        to: "/pt/schedule"   },
+  { label: "Chat",           icon: MessageSquare,   to: "/pt/chat"       },
+  { label: "PT Profile",     icon: User,            to: "/pt/profile"    },
 ];
 
 /** Admin nav */

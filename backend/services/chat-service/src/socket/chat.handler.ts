@@ -54,6 +54,17 @@ export function registerChatHandlers(
 
       // Emit to ALL sockets in the conversation room (including sender for confirmation)
       io.to(conversationId).emit('chat:new_message', message);
+
+      // Also notify all participants via their personal rooms (so conversation list updates)
+      const conversation = await chatRepository.findConversationById(conversationId);
+      if (conversation) {
+        for (const p of conversation.participants) {
+          io.to(`user:${p.userId}`).emit('chat:conversation_updated', {
+            conversationId,
+            lastMessage: { content: message.content, createdAt: message.createdAt },
+          });
+        }
+      }
     } catch (error) {
       logger.error(error, 'chat:send_message error');
       socket.emit('chat:error', { message: 'Failed to send message' });

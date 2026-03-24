@@ -44,6 +44,10 @@ export function initSocket(httpServer: http.Server) {
     // Track online presence
     if (!onlineUsers.has(user.id)) onlineUsers.set(user.id, new Set());
     onlineUsers.get(user.id)!.add(socket.id);
+
+    // Auto-join personal room so user receives notifications for all their conversations
+    socket.join(`user:${user.id}`);
+
     socket.broadcast.emit('user:online', { userId: user.id });
 
     // Register event handlers, passing io so handlers can emit to rooms

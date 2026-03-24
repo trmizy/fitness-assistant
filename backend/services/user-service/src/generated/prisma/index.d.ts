@@ -34,6 +34,36 @@ export type PTApplicationCertificate = $Result.DefaultSelection<Prisma.$PTApplic
  */
 export type PTApplicationMedia = $Result.DefaultSelection<Prisma.$PTApplicationMediaPayload>
 /**
+ * Model Contract
+ * 
+ */
+export type Contract = $Result.DefaultSelection<Prisma.$ContractPayload>
+/**
+ * Model Session
+ * 
+ */
+export type Session = $Result.DefaultSelection<Prisma.$SessionPayload>
+/**
+ * Model SessionReview
+ * 
+ */
+export type SessionReview = $Result.DefaultSelection<Prisma.$SessionReviewPayload>
+/**
+ * Model Notification
+ * 
+ */
+export type Notification = $Result.DefaultSelection<Prisma.$NotificationPayload>
+/**
+ * Model PTAvailability
+ * 
+ */
+export type PTAvailability = $Result.DefaultSelection<Prisma.$PTAvailabilityPayload>
+/**
+ * Model PTScheduleException
+ * 
+ */
+export type PTScheduleException = $Result.DefaultSelection<Prisma.$PTScheduleExceptionPayload>
+/**
  * Model InBodyEntry
  * 
  */
@@ -111,6 +141,83 @@ export const MediaGroupType: {
 
 export type MediaGroupType = (typeof MediaGroupType)[keyof typeof MediaGroupType]
 
+
+export const ContractStatus: {
+  PENDING_REVIEW: 'PENDING_REVIEW',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  EXPIRED: 'EXPIRED',
+  CANCELLED: 'CANCELLED',
+  REJECTED: 'REJECTED'
+};
+
+export type ContractStatus = (typeof ContractStatus)[keyof typeof ContractStatus]
+
+
+export const PackageType: {
+  PER_SESSION: 'PER_SESSION',
+  PACKAGE: 'PACKAGE'
+};
+
+export type PackageType = (typeof PackageType)[keyof typeof PackageType]
+
+
+export const SessionStatus: {
+  REQUESTED: 'REQUESTED',
+  CONFIRMED: 'CONFIRMED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  NO_SHOW: 'NO_SHOW'
+};
+
+export type SessionStatus = (typeof SessionStatus)[keyof typeof SessionStatus]
+
+
+export const SessionMode: {
+  ONLINE: 'ONLINE',
+  OFFLINE: 'OFFLINE',
+  HYBRID: 'HYBRID'
+};
+
+export type SessionMode = (typeof SessionMode)[keyof typeof SessionMode]
+
+
+export const NotificationEventType: {
+  CONTRACT_REQUESTED: 'CONTRACT_REQUESTED',
+  CONTRACT_ACCEPTED: 'CONTRACT_ACCEPTED',
+  CONTRACT_REJECTED: 'CONTRACT_REJECTED',
+  CONTRACT_CANCELLED: 'CONTRACT_CANCELLED',
+  SESSION_BOOKED: 'SESSION_BOOKED',
+  SESSION_CONFIRMED: 'SESSION_CONFIRMED',
+  SESSION_COMPLETED: 'SESSION_COMPLETED',
+  SESSION_CANCELLED: 'SESSION_CANCELLED',
+  SESSION_NO_SHOW_CLIENT: 'SESSION_NO_SHOW_CLIENT',
+  SESSION_NO_SHOW_PT: 'SESSION_NO_SHOW_PT'
+};
+
+export type NotificationEventType = (typeof NotificationEventType)[keyof typeof NotificationEventType]
+
+
+export const NotificationEntityType: {
+  CONTRACT: 'CONTRACT',
+  SESSION: 'SESSION'
+};
+
+export type NotificationEntityType = (typeof NotificationEntityType)[keyof typeof NotificationEntityType]
+
+
+export const DayOfWeek: {
+  MONDAY: 'MONDAY',
+  TUESDAY: 'TUESDAY',
+  WEDNESDAY: 'WEDNESDAY',
+  THURSDAY: 'THURSDAY',
+  FRIDAY: 'FRIDAY',
+  SATURDAY: 'SATURDAY',
+  SUNDAY: 'SUNDAY'
+};
+
+export type DayOfWeek = (typeof DayOfWeek)[keyof typeof DayOfWeek]
+
 }
 
 export type Gender = $Enums.Gender
@@ -140,6 +247,34 @@ export const ServiceMode: typeof $Enums.ServiceMode
 export type MediaGroupType = $Enums.MediaGroupType
 
 export const MediaGroupType: typeof $Enums.MediaGroupType
+
+export type ContractStatus = $Enums.ContractStatus
+
+export const ContractStatus: typeof $Enums.ContractStatus
+
+export type PackageType = $Enums.PackageType
+
+export const PackageType: typeof $Enums.PackageType
+
+export type SessionStatus = $Enums.SessionStatus
+
+export const SessionStatus: typeof $Enums.SessionStatus
+
+export type SessionMode = $Enums.SessionMode
+
+export const SessionMode: typeof $Enums.SessionMode
+
+export type NotificationEventType = $Enums.NotificationEventType
+
+export const NotificationEventType: typeof $Enums.NotificationEventType
+
+export type NotificationEntityType = $Enums.NotificationEntityType
+
+export const NotificationEntityType: typeof $Enums.NotificationEntityType
+
+export type DayOfWeek = $Enums.DayOfWeek
+
+export const DayOfWeek: typeof $Enums.DayOfWeek
 
 /**
  * ##  Prisma Client ʲˢ
@@ -303,6 +438,66 @@ export class PrismaClient<
     * ```
     */
   get pTApplicationMedia(): Prisma.PTApplicationMediaDelegate<ExtArgs>;
+
+  /**
+   * `prisma.contract`: Exposes CRUD operations for the **Contract** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Contracts
+    * const contracts = await prisma.contract.findMany()
+    * ```
+    */
+  get contract(): Prisma.ContractDelegate<ExtArgs>;
+
+  /**
+   * `prisma.session`: Exposes CRUD operations for the **Session** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Sessions
+    * const sessions = await prisma.session.findMany()
+    * ```
+    */
+  get session(): Prisma.SessionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.sessionReview`: Exposes CRUD operations for the **SessionReview** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SessionReviews
+    * const sessionReviews = await prisma.sessionReview.findMany()
+    * ```
+    */
+  get sessionReview(): Prisma.SessionReviewDelegate<ExtArgs>;
+
+  /**
+   * `prisma.notification`: Exposes CRUD operations for the **Notification** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Notifications
+    * const notifications = await prisma.notification.findMany()
+    * ```
+    */
+  get notification(): Prisma.NotificationDelegate<ExtArgs>;
+
+  /**
+   * `prisma.pTAvailability`: Exposes CRUD operations for the **PTAvailability** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PTAvailabilities
+    * const pTAvailabilities = await prisma.pTAvailability.findMany()
+    * ```
+    */
+  get pTAvailability(): Prisma.PTAvailabilityDelegate<ExtArgs>;
+
+  /**
+   * `prisma.pTScheduleException`: Exposes CRUD operations for the **PTScheduleException** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PTScheduleExceptions
+    * const pTScheduleExceptions = await prisma.pTScheduleException.findMany()
+    * ```
+    */
+  get pTScheduleException(): Prisma.PTScheduleExceptionDelegate<ExtArgs>;
 
   /**
    * `prisma.inBodyEntry`: Exposes CRUD operations for the **InBodyEntry** model.
@@ -758,6 +953,12 @@ export namespace Prisma {
     PTApplication: 'PTApplication',
     PTApplicationCertificate: 'PTApplicationCertificate',
     PTApplicationMedia: 'PTApplicationMedia',
+    Contract: 'Contract',
+    Session: 'Session',
+    SessionReview: 'SessionReview',
+    Notification: 'Notification',
+    PTAvailability: 'PTAvailability',
+    PTScheduleException: 'PTScheduleException',
     InBodyEntry: 'InBodyEntry'
   };
 
@@ -774,7 +975,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "inBodyEntry"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "notification" | "pTAvailability" | "pTScheduleException" | "inBodyEntry"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1058,6 +1259,426 @@ export namespace Prisma {
           }
         }
       }
+      Contract: {
+        payload: Prisma.$ContractPayload<ExtArgs>
+        fields: Prisma.ContractFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ContractFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ContractFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractPayload>
+          }
+          findFirst: {
+            args: Prisma.ContractFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ContractFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractPayload>
+          }
+          findMany: {
+            args: Prisma.ContractFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractPayload>[]
+          }
+          create: {
+            args: Prisma.ContractCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractPayload>
+          }
+          createMany: {
+            args: Prisma.ContractCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ContractCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractPayload>[]
+          }
+          delete: {
+            args: Prisma.ContractDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractPayload>
+          }
+          update: {
+            args: Prisma.ContractUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractPayload>
+          }
+          deleteMany: {
+            args: Prisma.ContractDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ContractUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ContractUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ContractPayload>
+          }
+          aggregate: {
+            args: Prisma.ContractAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateContract>
+          }
+          groupBy: {
+            args: Prisma.ContractGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ContractGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ContractCountArgs<ExtArgs>
+            result: $Utils.Optional<ContractCountAggregateOutputType> | number
+          }
+        }
+      }
+      Session: {
+        payload: Prisma.$SessionPayload<ExtArgs>
+        fields: Prisma.SessionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SessionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SessionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionPayload>
+          }
+          findFirst: {
+            args: Prisma.SessionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SessionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionPayload>
+          }
+          findMany: {
+            args: Prisma.SessionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionPayload>[]
+          }
+          create: {
+            args: Prisma.SessionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionPayload>
+          }
+          createMany: {
+            args: Prisma.SessionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SessionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionPayload>[]
+          }
+          delete: {
+            args: Prisma.SessionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionPayload>
+          }
+          update: {
+            args: Prisma.SessionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionPayload>
+          }
+          deleteMany: {
+            args: Prisma.SessionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SessionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.SessionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionPayload>
+          }
+          aggregate: {
+            args: Prisma.SessionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSession>
+          }
+          groupBy: {
+            args: Prisma.SessionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SessionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SessionCountArgs<ExtArgs>
+            result: $Utils.Optional<SessionCountAggregateOutputType> | number
+          }
+        }
+      }
+      SessionReview: {
+        payload: Prisma.$SessionReviewPayload<ExtArgs>
+        fields: Prisma.SessionReviewFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SessionReviewFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionReviewPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SessionReviewFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionReviewPayload>
+          }
+          findFirst: {
+            args: Prisma.SessionReviewFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionReviewPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SessionReviewFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionReviewPayload>
+          }
+          findMany: {
+            args: Prisma.SessionReviewFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionReviewPayload>[]
+          }
+          create: {
+            args: Prisma.SessionReviewCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionReviewPayload>
+          }
+          createMany: {
+            args: Prisma.SessionReviewCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SessionReviewCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionReviewPayload>[]
+          }
+          delete: {
+            args: Prisma.SessionReviewDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionReviewPayload>
+          }
+          update: {
+            args: Prisma.SessionReviewUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionReviewPayload>
+          }
+          deleteMany: {
+            args: Prisma.SessionReviewDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SessionReviewUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.SessionReviewUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SessionReviewPayload>
+          }
+          aggregate: {
+            args: Prisma.SessionReviewAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSessionReview>
+          }
+          groupBy: {
+            args: Prisma.SessionReviewGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SessionReviewGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SessionReviewCountArgs<ExtArgs>
+            result: $Utils.Optional<SessionReviewCountAggregateOutputType> | number
+          }
+        }
+      }
+      Notification: {
+        payload: Prisma.$NotificationPayload<ExtArgs>
+        fields: Prisma.NotificationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.NotificationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.NotificationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPayload>
+          }
+          findFirst: {
+            args: Prisma.NotificationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.NotificationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPayload>
+          }
+          findMany: {
+            args: Prisma.NotificationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPayload>[]
+          }
+          create: {
+            args: Prisma.NotificationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPayload>
+          }
+          createMany: {
+            args: Prisma.NotificationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.NotificationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPayload>[]
+          }
+          delete: {
+            args: Prisma.NotificationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPayload>
+          }
+          update: {
+            args: Prisma.NotificationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPayload>
+          }
+          deleteMany: {
+            args: Prisma.NotificationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.NotificationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.NotificationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPayload>
+          }
+          aggregate: {
+            args: Prisma.NotificationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateNotification>
+          }
+          groupBy: {
+            args: Prisma.NotificationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<NotificationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.NotificationCountArgs<ExtArgs>
+            result: $Utils.Optional<NotificationCountAggregateOutputType> | number
+          }
+        }
+      }
+      PTAvailability: {
+        payload: Prisma.$PTAvailabilityPayload<ExtArgs>
+        fields: Prisma.PTAvailabilityFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PTAvailabilityFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTAvailabilityPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PTAvailabilityFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTAvailabilityPayload>
+          }
+          findFirst: {
+            args: Prisma.PTAvailabilityFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTAvailabilityPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PTAvailabilityFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTAvailabilityPayload>
+          }
+          findMany: {
+            args: Prisma.PTAvailabilityFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTAvailabilityPayload>[]
+          }
+          create: {
+            args: Prisma.PTAvailabilityCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTAvailabilityPayload>
+          }
+          createMany: {
+            args: Prisma.PTAvailabilityCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PTAvailabilityCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTAvailabilityPayload>[]
+          }
+          delete: {
+            args: Prisma.PTAvailabilityDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTAvailabilityPayload>
+          }
+          update: {
+            args: Prisma.PTAvailabilityUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTAvailabilityPayload>
+          }
+          deleteMany: {
+            args: Prisma.PTAvailabilityDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PTAvailabilityUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PTAvailabilityUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTAvailabilityPayload>
+          }
+          aggregate: {
+            args: Prisma.PTAvailabilityAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePTAvailability>
+          }
+          groupBy: {
+            args: Prisma.PTAvailabilityGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PTAvailabilityGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PTAvailabilityCountArgs<ExtArgs>
+            result: $Utils.Optional<PTAvailabilityCountAggregateOutputType> | number
+          }
+        }
+      }
+      PTScheduleException: {
+        payload: Prisma.$PTScheduleExceptionPayload<ExtArgs>
+        fields: Prisma.PTScheduleExceptionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PTScheduleExceptionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTScheduleExceptionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PTScheduleExceptionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTScheduleExceptionPayload>
+          }
+          findFirst: {
+            args: Prisma.PTScheduleExceptionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTScheduleExceptionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PTScheduleExceptionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTScheduleExceptionPayload>
+          }
+          findMany: {
+            args: Prisma.PTScheduleExceptionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTScheduleExceptionPayload>[]
+          }
+          create: {
+            args: Prisma.PTScheduleExceptionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTScheduleExceptionPayload>
+          }
+          createMany: {
+            args: Prisma.PTScheduleExceptionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PTScheduleExceptionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTScheduleExceptionPayload>[]
+          }
+          delete: {
+            args: Prisma.PTScheduleExceptionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTScheduleExceptionPayload>
+          }
+          update: {
+            args: Prisma.PTScheduleExceptionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTScheduleExceptionPayload>
+          }
+          deleteMany: {
+            args: Prisma.PTScheduleExceptionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PTScheduleExceptionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PTScheduleExceptionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTScheduleExceptionPayload>
+          }
+          aggregate: {
+            args: Prisma.PTScheduleExceptionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePTScheduleException>
+          }
+          groupBy: {
+            args: Prisma.PTScheduleExceptionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PTScheduleExceptionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PTScheduleExceptionCountArgs<ExtArgs>
+            result: $Utils.Optional<PTScheduleExceptionCountAggregateOutputType> | number
+          }
+        }
+      }
       InBodyEntry: {
         payload: Prisma.$InBodyEntryPayload<ExtArgs>
         fields: Prisma.InBodyEntryFieldRefs
@@ -1321,6 +1942,46 @@ export namespace Prisma {
    */
   export type PTApplicationCountOutputTypeCountMediaArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PTApplicationMediaWhereInput
+  }
+
+
+  /**
+   * Count Type ContractCountOutputType
+   */
+
+  export type ContractCountOutputType = {
+    sessions: number
+    reviews: number
+  }
+
+  export type ContractCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sessions?: boolean | ContractCountOutputTypeCountSessionsArgs
+    reviews?: boolean | ContractCountOutputTypeCountReviewsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ContractCountOutputType without action
+   */
+  export type ContractCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ContractCountOutputType
+     */
+    select?: ContractCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ContractCountOutputType without action
+   */
+  export type ContractCountOutputTypeCountSessionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SessionWhereInput
+  }
+
+  /**
+   * ContractCountOutputType without action
+   */
+  export type ContractCountOutputTypeCountReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SessionReviewWhereInput
   }
 
 
@@ -5843,6 +6504,6051 @@ export namespace Prisma {
 
 
   /**
+   * Model Contract
+   */
+
+  export type AggregateContract = {
+    _count: ContractCountAggregateOutputType | null
+    _avg: ContractAvgAggregateOutputType | null
+    _sum: ContractSumAggregateOutputType | null
+    _min: ContractMinAggregateOutputType | null
+    _max: ContractMaxAggregateOutputType | null
+  }
+
+  export type ContractAvgAggregateOutputType = {
+    totalSessions: number | null
+    usedSessions: number | null
+    price: number | null
+    pricePerSession: number | null
+  }
+
+  export type ContractSumAggregateOutputType = {
+    totalSessions: number | null
+    usedSessions: number | null
+    price: number | null
+    pricePerSession: number | null
+  }
+
+  export type ContractMinAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    clientUserId: string | null
+    status: $Enums.ContractStatus | null
+    packageType: $Enums.PackageType | null
+    packageName: string | null
+    description: string | null
+    totalSessions: number | null
+    usedSessions: number | null
+    price: number | null
+    pricePerSession: number | null
+    startDate: Date | null
+    endDate: Date | null
+    completedAt: Date | null
+    clientMessage: string | null
+    rejectionReason: string | null
+    cancelledBy: string | null
+    cancellationReason: string | null
+    terms: string | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ContractMaxAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    clientUserId: string | null
+    status: $Enums.ContractStatus | null
+    packageType: $Enums.PackageType | null
+    packageName: string | null
+    description: string | null
+    totalSessions: number | null
+    usedSessions: number | null
+    price: number | null
+    pricePerSession: number | null
+    startDate: Date | null
+    endDate: Date | null
+    completedAt: Date | null
+    clientMessage: string | null
+    rejectionReason: string | null
+    cancelledBy: string | null
+    cancellationReason: string | null
+    terms: string | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ContractCountAggregateOutputType = {
+    id: number
+    ptUserId: number
+    clientUserId: number
+    status: number
+    packageType: number
+    packageName: number
+    description: number
+    totalSessions: number
+    usedSessions: number
+    price: number
+    pricePerSession: number
+    startDate: number
+    endDate: number
+    completedAt: number
+    clientMessage: number
+    rejectionReason: number
+    cancelledBy: number
+    cancellationReason: number
+    terms: number
+    notes: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ContractAvgAggregateInputType = {
+    totalSessions?: true
+    usedSessions?: true
+    price?: true
+    pricePerSession?: true
+  }
+
+  export type ContractSumAggregateInputType = {
+    totalSessions?: true
+    usedSessions?: true
+    price?: true
+    pricePerSession?: true
+  }
+
+  export type ContractMinAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    clientUserId?: true
+    status?: true
+    packageType?: true
+    packageName?: true
+    description?: true
+    totalSessions?: true
+    usedSessions?: true
+    price?: true
+    pricePerSession?: true
+    startDate?: true
+    endDate?: true
+    completedAt?: true
+    clientMessage?: true
+    rejectionReason?: true
+    cancelledBy?: true
+    cancellationReason?: true
+    terms?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ContractMaxAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    clientUserId?: true
+    status?: true
+    packageType?: true
+    packageName?: true
+    description?: true
+    totalSessions?: true
+    usedSessions?: true
+    price?: true
+    pricePerSession?: true
+    startDate?: true
+    endDate?: true
+    completedAt?: true
+    clientMessage?: true
+    rejectionReason?: true
+    cancelledBy?: true
+    cancellationReason?: true
+    terms?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ContractCountAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    clientUserId?: true
+    status?: true
+    packageType?: true
+    packageName?: true
+    description?: true
+    totalSessions?: true
+    usedSessions?: true
+    price?: true
+    pricePerSession?: true
+    startDate?: true
+    endDate?: true
+    completedAt?: true
+    clientMessage?: true
+    rejectionReason?: true
+    cancelledBy?: true
+    cancellationReason?: true
+    terms?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ContractAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Contract to aggregate.
+     */
+    where?: ContractWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Contracts to fetch.
+     */
+    orderBy?: ContractOrderByWithRelationInput | ContractOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ContractWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Contracts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Contracts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Contracts
+    **/
+    _count?: true | ContractCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ContractAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ContractSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ContractMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ContractMaxAggregateInputType
+  }
+
+  export type GetContractAggregateType<T extends ContractAggregateArgs> = {
+        [P in keyof T & keyof AggregateContract]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateContract[P]>
+      : GetScalarType<T[P], AggregateContract[P]>
+  }
+
+
+
+
+  export type ContractGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ContractWhereInput
+    orderBy?: ContractOrderByWithAggregationInput | ContractOrderByWithAggregationInput[]
+    by: ContractScalarFieldEnum[] | ContractScalarFieldEnum
+    having?: ContractScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ContractCountAggregateInputType | true
+    _avg?: ContractAvgAggregateInputType
+    _sum?: ContractSumAggregateInputType
+    _min?: ContractMinAggregateInputType
+    _max?: ContractMaxAggregateInputType
+  }
+
+  export type ContractGroupByOutputType = {
+    id: string
+    ptUserId: string
+    clientUserId: string
+    status: $Enums.ContractStatus
+    packageType: $Enums.PackageType
+    packageName: string
+    description: string | null
+    totalSessions: number
+    usedSessions: number
+    price: number | null
+    pricePerSession: number | null
+    startDate: Date | null
+    endDate: Date | null
+    completedAt: Date | null
+    clientMessage: string | null
+    rejectionReason: string | null
+    cancelledBy: string | null
+    cancellationReason: string | null
+    terms: string | null
+    notes: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ContractCountAggregateOutputType | null
+    _avg: ContractAvgAggregateOutputType | null
+    _sum: ContractSumAggregateOutputType | null
+    _min: ContractMinAggregateOutputType | null
+    _max: ContractMaxAggregateOutputType | null
+  }
+
+  type GetContractGroupByPayload<T extends ContractGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ContractGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ContractGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ContractGroupByOutputType[P]>
+            : GetScalarType<T[P], ContractGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ContractSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    clientUserId?: boolean
+    status?: boolean
+    packageType?: boolean
+    packageName?: boolean
+    description?: boolean
+    totalSessions?: boolean
+    usedSessions?: boolean
+    price?: boolean
+    pricePerSession?: boolean
+    startDate?: boolean
+    endDate?: boolean
+    completedAt?: boolean
+    clientMessage?: boolean
+    rejectionReason?: boolean
+    cancelledBy?: boolean
+    cancellationReason?: boolean
+    terms?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    sessions?: boolean | Contract$sessionsArgs<ExtArgs>
+    reviews?: boolean | Contract$reviewsArgs<ExtArgs>
+    _count?: boolean | ContractCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["contract"]>
+
+  export type ContractSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    clientUserId?: boolean
+    status?: boolean
+    packageType?: boolean
+    packageName?: boolean
+    description?: boolean
+    totalSessions?: boolean
+    usedSessions?: boolean
+    price?: boolean
+    pricePerSession?: boolean
+    startDate?: boolean
+    endDate?: boolean
+    completedAt?: boolean
+    clientMessage?: boolean
+    rejectionReason?: boolean
+    cancelledBy?: boolean
+    cancellationReason?: boolean
+    terms?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["contract"]>
+
+  export type ContractSelectScalar = {
+    id?: boolean
+    ptUserId?: boolean
+    clientUserId?: boolean
+    status?: boolean
+    packageType?: boolean
+    packageName?: boolean
+    description?: boolean
+    totalSessions?: boolean
+    usedSessions?: boolean
+    price?: boolean
+    pricePerSession?: boolean
+    startDate?: boolean
+    endDate?: boolean
+    completedAt?: boolean
+    clientMessage?: boolean
+    rejectionReason?: boolean
+    cancelledBy?: boolean
+    cancellationReason?: boolean
+    terms?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ContractInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sessions?: boolean | Contract$sessionsArgs<ExtArgs>
+    reviews?: boolean | Contract$reviewsArgs<ExtArgs>
+    _count?: boolean | ContractCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ContractIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $ContractPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Contract"
+    objects: {
+      sessions: Prisma.$SessionPayload<ExtArgs>[]
+      reviews: Prisma.$SessionReviewPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ptUserId: string
+      clientUserId: string
+      status: $Enums.ContractStatus
+      packageType: $Enums.PackageType
+      packageName: string
+      description: string | null
+      totalSessions: number
+      usedSessions: number
+      price: number | null
+      pricePerSession: number | null
+      startDate: Date | null
+      endDate: Date | null
+      completedAt: Date | null
+      clientMessage: string | null
+      rejectionReason: string | null
+      cancelledBy: string | null
+      cancellationReason: string | null
+      terms: string | null
+      notes: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["contract"]>
+    composites: {}
+  }
+
+  type ContractGetPayload<S extends boolean | null | undefined | ContractDefaultArgs> = $Result.GetResult<Prisma.$ContractPayload, S>
+
+  type ContractCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ContractFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ContractCountAggregateInputType | true
+    }
+
+  export interface ContractDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Contract'], meta: { name: 'Contract' } }
+    /**
+     * Find zero or one Contract that matches the filter.
+     * @param {ContractFindUniqueArgs} args - Arguments to find a Contract
+     * @example
+     * // Get one Contract
+     * const contract = await prisma.contract.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ContractFindUniqueArgs>(args: SelectSubset<T, ContractFindUniqueArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one Contract that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ContractFindUniqueOrThrowArgs} args - Arguments to find a Contract
+     * @example
+     * // Get one Contract
+     * const contract = await prisma.contract.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ContractFindUniqueOrThrowArgs>(args: SelectSubset<T, ContractFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first Contract that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractFindFirstArgs} args - Arguments to find a Contract
+     * @example
+     * // Get one Contract
+     * const contract = await prisma.contract.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ContractFindFirstArgs>(args?: SelectSubset<T, ContractFindFirstArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first Contract that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractFindFirstOrThrowArgs} args - Arguments to find a Contract
+     * @example
+     * // Get one Contract
+     * const contract = await prisma.contract.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ContractFindFirstOrThrowArgs>(args?: SelectSubset<T, ContractFindFirstOrThrowArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more Contracts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Contracts
+     * const contracts = await prisma.contract.findMany()
+     * 
+     * // Get first 10 Contracts
+     * const contracts = await prisma.contract.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const contractWithIdOnly = await prisma.contract.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ContractFindManyArgs>(args?: SelectSubset<T, ContractFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a Contract.
+     * @param {ContractCreateArgs} args - Arguments to create a Contract.
+     * @example
+     * // Create one Contract
+     * const Contract = await prisma.contract.create({
+     *   data: {
+     *     // ... data to create a Contract
+     *   }
+     * })
+     * 
+     */
+    create<T extends ContractCreateArgs>(args: SelectSubset<T, ContractCreateArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many Contracts.
+     * @param {ContractCreateManyArgs} args - Arguments to create many Contracts.
+     * @example
+     * // Create many Contracts
+     * const contract = await prisma.contract.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ContractCreateManyArgs>(args?: SelectSubset<T, ContractCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Contracts and returns the data saved in the database.
+     * @param {ContractCreateManyAndReturnArgs} args - Arguments to create many Contracts.
+     * @example
+     * // Create many Contracts
+     * const contract = await prisma.contract.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Contracts and only return the `id`
+     * const contractWithIdOnly = await prisma.contract.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ContractCreateManyAndReturnArgs>(args?: SelectSubset<T, ContractCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a Contract.
+     * @param {ContractDeleteArgs} args - Arguments to delete one Contract.
+     * @example
+     * // Delete one Contract
+     * const Contract = await prisma.contract.delete({
+     *   where: {
+     *     // ... filter to delete one Contract
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ContractDeleteArgs>(args: SelectSubset<T, ContractDeleteArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one Contract.
+     * @param {ContractUpdateArgs} args - Arguments to update one Contract.
+     * @example
+     * // Update one Contract
+     * const contract = await prisma.contract.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ContractUpdateArgs>(args: SelectSubset<T, ContractUpdateArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more Contracts.
+     * @param {ContractDeleteManyArgs} args - Arguments to filter Contracts to delete.
+     * @example
+     * // Delete a few Contracts
+     * const { count } = await prisma.contract.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ContractDeleteManyArgs>(args?: SelectSubset<T, ContractDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Contracts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Contracts
+     * const contract = await prisma.contract.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ContractUpdateManyArgs>(args: SelectSubset<T, ContractUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one Contract.
+     * @param {ContractUpsertArgs} args - Arguments to update or create a Contract.
+     * @example
+     * // Update or create a Contract
+     * const contract = await prisma.contract.upsert({
+     *   create: {
+     *     // ... data to create a Contract
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Contract we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ContractUpsertArgs>(args: SelectSubset<T, ContractUpsertArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of Contracts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractCountArgs} args - Arguments to filter Contracts to count.
+     * @example
+     * // Count the number of Contracts
+     * const count = await prisma.contract.count({
+     *   where: {
+     *     // ... the filter for the Contracts we want to count
+     *   }
+     * })
+    **/
+    count<T extends ContractCountArgs>(
+      args?: Subset<T, ContractCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ContractCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Contract.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ContractAggregateArgs>(args: Subset<T, ContractAggregateArgs>): Prisma.PrismaPromise<GetContractAggregateType<T>>
+
+    /**
+     * Group by Contract.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ContractGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ContractGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ContractGroupByArgs['orderBy'] }
+        : { orderBy?: ContractGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ContractGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetContractGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Contract model
+   */
+  readonly fields: ContractFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Contract.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ContractClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    sessions<T extends Contract$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany"> | Null>
+    reviews<T extends Contract$reviewsArgs<ExtArgs> = {}>(args?: Subset<T, Contract$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Contract model
+   */ 
+  interface ContractFieldRefs {
+    readonly id: FieldRef<"Contract", 'String'>
+    readonly ptUserId: FieldRef<"Contract", 'String'>
+    readonly clientUserId: FieldRef<"Contract", 'String'>
+    readonly status: FieldRef<"Contract", 'ContractStatus'>
+    readonly packageType: FieldRef<"Contract", 'PackageType'>
+    readonly packageName: FieldRef<"Contract", 'String'>
+    readonly description: FieldRef<"Contract", 'String'>
+    readonly totalSessions: FieldRef<"Contract", 'Int'>
+    readonly usedSessions: FieldRef<"Contract", 'Int'>
+    readonly price: FieldRef<"Contract", 'Float'>
+    readonly pricePerSession: FieldRef<"Contract", 'Float'>
+    readonly startDate: FieldRef<"Contract", 'DateTime'>
+    readonly endDate: FieldRef<"Contract", 'DateTime'>
+    readonly completedAt: FieldRef<"Contract", 'DateTime'>
+    readonly clientMessage: FieldRef<"Contract", 'String'>
+    readonly rejectionReason: FieldRef<"Contract", 'String'>
+    readonly cancelledBy: FieldRef<"Contract", 'String'>
+    readonly cancellationReason: FieldRef<"Contract", 'String'>
+    readonly terms: FieldRef<"Contract", 'String'>
+    readonly notes: FieldRef<"Contract", 'String'>
+    readonly createdAt: FieldRef<"Contract", 'DateTime'>
+    readonly updatedAt: FieldRef<"Contract", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Contract findUnique
+   */
+  export type ContractFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+    /**
+     * Filter, which Contract to fetch.
+     */
+    where: ContractWhereUniqueInput
+  }
+
+  /**
+   * Contract findUniqueOrThrow
+   */
+  export type ContractFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+    /**
+     * Filter, which Contract to fetch.
+     */
+    where: ContractWhereUniqueInput
+  }
+
+  /**
+   * Contract findFirst
+   */
+  export type ContractFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+    /**
+     * Filter, which Contract to fetch.
+     */
+    where?: ContractWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Contracts to fetch.
+     */
+    orderBy?: ContractOrderByWithRelationInput | ContractOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Contracts.
+     */
+    cursor?: ContractWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Contracts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Contracts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Contracts.
+     */
+    distinct?: ContractScalarFieldEnum | ContractScalarFieldEnum[]
+  }
+
+  /**
+   * Contract findFirstOrThrow
+   */
+  export type ContractFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+    /**
+     * Filter, which Contract to fetch.
+     */
+    where?: ContractWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Contracts to fetch.
+     */
+    orderBy?: ContractOrderByWithRelationInput | ContractOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Contracts.
+     */
+    cursor?: ContractWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Contracts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Contracts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Contracts.
+     */
+    distinct?: ContractScalarFieldEnum | ContractScalarFieldEnum[]
+  }
+
+  /**
+   * Contract findMany
+   */
+  export type ContractFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+    /**
+     * Filter, which Contracts to fetch.
+     */
+    where?: ContractWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Contracts to fetch.
+     */
+    orderBy?: ContractOrderByWithRelationInput | ContractOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Contracts.
+     */
+    cursor?: ContractWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Contracts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Contracts.
+     */
+    skip?: number
+    distinct?: ContractScalarFieldEnum | ContractScalarFieldEnum[]
+  }
+
+  /**
+   * Contract create
+   */
+  export type ContractCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Contract.
+     */
+    data: XOR<ContractCreateInput, ContractUncheckedCreateInput>
+  }
+
+  /**
+   * Contract createMany
+   */
+  export type ContractCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Contracts.
+     */
+    data: ContractCreateManyInput | ContractCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Contract createManyAndReturn
+   */
+  export type ContractCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many Contracts.
+     */
+    data: ContractCreateManyInput | ContractCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Contract update
+   */
+  export type ContractUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Contract.
+     */
+    data: XOR<ContractUpdateInput, ContractUncheckedUpdateInput>
+    /**
+     * Choose, which Contract to update.
+     */
+    where: ContractWhereUniqueInput
+  }
+
+  /**
+   * Contract updateMany
+   */
+  export type ContractUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Contracts.
+     */
+    data: XOR<ContractUpdateManyMutationInput, ContractUncheckedUpdateManyInput>
+    /**
+     * Filter which Contracts to update
+     */
+    where?: ContractWhereInput
+  }
+
+  /**
+   * Contract upsert
+   */
+  export type ContractUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Contract to update in case it exists.
+     */
+    where: ContractWhereUniqueInput
+    /**
+     * In case the Contract found by the `where` argument doesn't exist, create a new Contract with this data.
+     */
+    create: XOR<ContractCreateInput, ContractUncheckedCreateInput>
+    /**
+     * In case the Contract was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ContractUpdateInput, ContractUncheckedUpdateInput>
+  }
+
+  /**
+   * Contract delete
+   */
+  export type ContractDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+    /**
+     * Filter which Contract to delete.
+     */
+    where: ContractWhereUniqueInput
+  }
+
+  /**
+   * Contract deleteMany
+   */
+  export type ContractDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Contracts to delete
+     */
+    where?: ContractWhereInput
+  }
+
+  /**
+   * Contract.sessions
+   */
+  export type Contract$sessionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionInclude<ExtArgs> | null
+    where?: SessionWhereInput
+    orderBy?: SessionOrderByWithRelationInput | SessionOrderByWithRelationInput[]
+    cursor?: SessionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: SessionScalarFieldEnum | SessionScalarFieldEnum[]
+  }
+
+  /**
+   * Contract.reviews
+   */
+  export type Contract$reviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+    where?: SessionReviewWhereInput
+    orderBy?: SessionReviewOrderByWithRelationInput | SessionReviewOrderByWithRelationInput[]
+    cursor?: SessionReviewWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: SessionReviewScalarFieldEnum | SessionReviewScalarFieldEnum[]
+  }
+
+  /**
+   * Contract without action
+   */
+  export type ContractDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Contract
+     */
+    select?: ContractSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ContractInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model Session
+   */
+
+  export type AggregateSession = {
+    _count: SessionCountAggregateOutputType | null
+    _min: SessionMinAggregateOutputType | null
+    _max: SessionMaxAggregateOutputType | null
+  }
+
+  export type SessionMinAggregateOutputType = {
+    id: string | null
+    contractId: string | null
+    clientUserId: string | null
+    ptUserId: string | null
+    status: $Enums.SessionStatus | null
+    sessionMode: $Enums.SessionMode | null
+    scheduledStartAt: Date | null
+    scheduledEndAt: Date | null
+    location: string | null
+    notes: string | null
+    ptNotes: string | null
+    cancelledBy: string | null
+    cancellationReason: string | null
+    sessionDeducted: boolean | null
+    completedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type SessionMaxAggregateOutputType = {
+    id: string | null
+    contractId: string | null
+    clientUserId: string | null
+    ptUserId: string | null
+    status: $Enums.SessionStatus | null
+    sessionMode: $Enums.SessionMode | null
+    scheduledStartAt: Date | null
+    scheduledEndAt: Date | null
+    location: string | null
+    notes: string | null
+    ptNotes: string | null
+    cancelledBy: string | null
+    cancellationReason: string | null
+    sessionDeducted: boolean | null
+    completedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type SessionCountAggregateOutputType = {
+    id: number
+    contractId: number
+    clientUserId: number
+    ptUserId: number
+    status: number
+    sessionMode: number
+    scheduledStartAt: number
+    scheduledEndAt: number
+    location: number
+    notes: number
+    ptNotes: number
+    cancelledBy: number
+    cancellationReason: number
+    sessionDeducted: number
+    completedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type SessionMinAggregateInputType = {
+    id?: true
+    contractId?: true
+    clientUserId?: true
+    ptUserId?: true
+    status?: true
+    sessionMode?: true
+    scheduledStartAt?: true
+    scheduledEndAt?: true
+    location?: true
+    notes?: true
+    ptNotes?: true
+    cancelledBy?: true
+    cancellationReason?: true
+    sessionDeducted?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type SessionMaxAggregateInputType = {
+    id?: true
+    contractId?: true
+    clientUserId?: true
+    ptUserId?: true
+    status?: true
+    sessionMode?: true
+    scheduledStartAt?: true
+    scheduledEndAt?: true
+    location?: true
+    notes?: true
+    ptNotes?: true
+    cancelledBy?: true
+    cancellationReason?: true
+    sessionDeducted?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type SessionCountAggregateInputType = {
+    id?: true
+    contractId?: true
+    clientUserId?: true
+    ptUserId?: true
+    status?: true
+    sessionMode?: true
+    scheduledStartAt?: true
+    scheduledEndAt?: true
+    location?: true
+    notes?: true
+    ptNotes?: true
+    cancelledBy?: true
+    cancellationReason?: true
+    sessionDeducted?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type SessionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Session to aggregate.
+     */
+    where?: SessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Sessions to fetch.
+     */
+    orderBy?: SessionOrderByWithRelationInput | SessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Sessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Sessions
+    **/
+    _count?: true | SessionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SessionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SessionMaxAggregateInputType
+  }
+
+  export type GetSessionAggregateType<T extends SessionAggregateArgs> = {
+        [P in keyof T & keyof AggregateSession]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSession[P]>
+      : GetScalarType<T[P], AggregateSession[P]>
+  }
+
+
+
+
+  export type SessionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SessionWhereInput
+    orderBy?: SessionOrderByWithAggregationInput | SessionOrderByWithAggregationInput[]
+    by: SessionScalarFieldEnum[] | SessionScalarFieldEnum
+    having?: SessionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SessionCountAggregateInputType | true
+    _min?: SessionMinAggregateInputType
+    _max?: SessionMaxAggregateInputType
+  }
+
+  export type SessionGroupByOutputType = {
+    id: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    status: $Enums.SessionStatus
+    sessionMode: $Enums.SessionMode
+    scheduledStartAt: Date
+    scheduledEndAt: Date
+    location: string | null
+    notes: string | null
+    ptNotes: string | null
+    cancelledBy: string | null
+    cancellationReason: string | null
+    sessionDeducted: boolean
+    completedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: SessionCountAggregateOutputType | null
+    _min: SessionMinAggregateOutputType | null
+    _max: SessionMaxAggregateOutputType | null
+  }
+
+  type GetSessionGroupByPayload<T extends SessionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SessionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SessionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SessionGroupByOutputType[P]>
+            : GetScalarType<T[P], SessionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SessionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    contractId?: boolean
+    clientUserId?: boolean
+    ptUserId?: boolean
+    status?: boolean
+    sessionMode?: boolean
+    scheduledStartAt?: boolean
+    scheduledEndAt?: boolean
+    location?: boolean
+    notes?: boolean
+    ptNotes?: boolean
+    cancelledBy?: boolean
+    cancellationReason?: boolean
+    sessionDeducted?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+    review?: boolean | Session$reviewArgs<ExtArgs>
+  }, ExtArgs["result"]["session"]>
+
+  export type SessionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    contractId?: boolean
+    clientUserId?: boolean
+    ptUserId?: boolean
+    status?: boolean
+    sessionMode?: boolean
+    scheduledStartAt?: boolean
+    scheduledEndAt?: boolean
+    location?: boolean
+    notes?: boolean
+    ptNotes?: boolean
+    cancelledBy?: boolean
+    cancellationReason?: boolean
+    sessionDeducted?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["session"]>
+
+  export type SessionSelectScalar = {
+    id?: boolean
+    contractId?: boolean
+    clientUserId?: boolean
+    ptUserId?: boolean
+    status?: boolean
+    sessionMode?: boolean
+    scheduledStartAt?: boolean
+    scheduledEndAt?: boolean
+    location?: boolean
+    notes?: boolean
+    ptNotes?: boolean
+    cancelledBy?: boolean
+    cancellationReason?: boolean
+    sessionDeducted?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type SessionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+    review?: boolean | Session$reviewArgs<ExtArgs>
+  }
+  export type SessionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+  }
+
+  export type $SessionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Session"
+    objects: {
+      contract: Prisma.$ContractPayload<ExtArgs>
+      review: Prisma.$SessionReviewPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      contractId: string
+      clientUserId: string
+      ptUserId: string
+      status: $Enums.SessionStatus
+      sessionMode: $Enums.SessionMode
+      scheduledStartAt: Date
+      scheduledEndAt: Date
+      location: string | null
+      notes: string | null
+      ptNotes: string | null
+      cancelledBy: string | null
+      cancellationReason: string | null
+      sessionDeducted: boolean
+      completedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["session"]>
+    composites: {}
+  }
+
+  type SessionGetPayload<S extends boolean | null | undefined | SessionDefaultArgs> = $Result.GetResult<Prisma.$SessionPayload, S>
+
+  type SessionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<SessionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: SessionCountAggregateInputType | true
+    }
+
+  export interface SessionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Session'], meta: { name: 'Session' } }
+    /**
+     * Find zero or one Session that matches the filter.
+     * @param {SessionFindUniqueArgs} args - Arguments to find a Session
+     * @example
+     * // Get one Session
+     * const session = await prisma.session.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SessionFindUniqueArgs>(args: SelectSubset<T, SessionFindUniqueArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one Session that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {SessionFindUniqueOrThrowArgs} args - Arguments to find a Session
+     * @example
+     * // Get one Session
+     * const session = await prisma.session.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SessionFindUniqueOrThrowArgs>(args: SelectSubset<T, SessionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first Session that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionFindFirstArgs} args - Arguments to find a Session
+     * @example
+     * // Get one Session
+     * const session = await prisma.session.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SessionFindFirstArgs>(args?: SelectSubset<T, SessionFindFirstArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first Session that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionFindFirstOrThrowArgs} args - Arguments to find a Session
+     * @example
+     * // Get one Session
+     * const session = await prisma.session.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SessionFindFirstOrThrowArgs>(args?: SelectSubset<T, SessionFindFirstOrThrowArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more Sessions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Sessions
+     * const sessions = await prisma.session.findMany()
+     * 
+     * // Get first 10 Sessions
+     * const sessions = await prisma.session.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const sessionWithIdOnly = await prisma.session.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SessionFindManyArgs>(args?: SelectSubset<T, SessionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a Session.
+     * @param {SessionCreateArgs} args - Arguments to create a Session.
+     * @example
+     * // Create one Session
+     * const Session = await prisma.session.create({
+     *   data: {
+     *     // ... data to create a Session
+     *   }
+     * })
+     * 
+     */
+    create<T extends SessionCreateArgs>(args: SelectSubset<T, SessionCreateArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many Sessions.
+     * @param {SessionCreateManyArgs} args - Arguments to create many Sessions.
+     * @example
+     * // Create many Sessions
+     * const session = await prisma.session.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SessionCreateManyArgs>(args?: SelectSubset<T, SessionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Sessions and returns the data saved in the database.
+     * @param {SessionCreateManyAndReturnArgs} args - Arguments to create many Sessions.
+     * @example
+     * // Create many Sessions
+     * const session = await prisma.session.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Sessions and only return the `id`
+     * const sessionWithIdOnly = await prisma.session.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SessionCreateManyAndReturnArgs>(args?: SelectSubset<T, SessionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a Session.
+     * @param {SessionDeleteArgs} args - Arguments to delete one Session.
+     * @example
+     * // Delete one Session
+     * const Session = await prisma.session.delete({
+     *   where: {
+     *     // ... filter to delete one Session
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SessionDeleteArgs>(args: SelectSubset<T, SessionDeleteArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one Session.
+     * @param {SessionUpdateArgs} args - Arguments to update one Session.
+     * @example
+     * // Update one Session
+     * const session = await prisma.session.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SessionUpdateArgs>(args: SelectSubset<T, SessionUpdateArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more Sessions.
+     * @param {SessionDeleteManyArgs} args - Arguments to filter Sessions to delete.
+     * @example
+     * // Delete a few Sessions
+     * const { count } = await prisma.session.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SessionDeleteManyArgs>(args?: SelectSubset<T, SessionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Sessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Sessions
+     * const session = await prisma.session.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SessionUpdateManyArgs>(args: SelectSubset<T, SessionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one Session.
+     * @param {SessionUpsertArgs} args - Arguments to update or create a Session.
+     * @example
+     * // Update or create a Session
+     * const session = await prisma.session.upsert({
+     *   create: {
+     *     // ... data to create a Session
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Session we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SessionUpsertArgs>(args: SelectSubset<T, SessionUpsertArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of Sessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionCountArgs} args - Arguments to filter Sessions to count.
+     * @example
+     * // Count the number of Sessions
+     * const count = await prisma.session.count({
+     *   where: {
+     *     // ... the filter for the Sessions we want to count
+     *   }
+     * })
+    **/
+    count<T extends SessionCountArgs>(
+      args?: Subset<T, SessionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SessionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Session.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SessionAggregateArgs>(args: Subset<T, SessionAggregateArgs>): Prisma.PrismaPromise<GetSessionAggregateType<T>>
+
+    /**
+     * Group by Session.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SessionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SessionGroupByArgs['orderBy'] }
+        : { orderBy?: SessionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SessionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSessionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Session model
+   */
+  readonly fields: SessionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Session.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SessionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    contract<T extends ContractDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ContractDefaultArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    review<T extends Session$reviewArgs<ExtArgs> = {}>(args?: Subset<T, Session$reviewArgs<ExtArgs>>): Prisma__SessionReviewClient<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Session model
+   */ 
+  interface SessionFieldRefs {
+    readonly id: FieldRef<"Session", 'String'>
+    readonly contractId: FieldRef<"Session", 'String'>
+    readonly clientUserId: FieldRef<"Session", 'String'>
+    readonly ptUserId: FieldRef<"Session", 'String'>
+    readonly status: FieldRef<"Session", 'SessionStatus'>
+    readonly sessionMode: FieldRef<"Session", 'SessionMode'>
+    readonly scheduledStartAt: FieldRef<"Session", 'DateTime'>
+    readonly scheduledEndAt: FieldRef<"Session", 'DateTime'>
+    readonly location: FieldRef<"Session", 'String'>
+    readonly notes: FieldRef<"Session", 'String'>
+    readonly ptNotes: FieldRef<"Session", 'String'>
+    readonly cancelledBy: FieldRef<"Session", 'String'>
+    readonly cancellationReason: FieldRef<"Session", 'String'>
+    readonly sessionDeducted: FieldRef<"Session", 'Boolean'>
+    readonly completedAt: FieldRef<"Session", 'DateTime'>
+    readonly createdAt: FieldRef<"Session", 'DateTime'>
+    readonly updatedAt: FieldRef<"Session", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Session findUnique
+   */
+  export type SessionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionInclude<ExtArgs> | null
+    /**
+     * Filter, which Session to fetch.
+     */
+    where: SessionWhereUniqueInput
+  }
+
+  /**
+   * Session findUniqueOrThrow
+   */
+  export type SessionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionInclude<ExtArgs> | null
+    /**
+     * Filter, which Session to fetch.
+     */
+    where: SessionWhereUniqueInput
+  }
+
+  /**
+   * Session findFirst
+   */
+  export type SessionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionInclude<ExtArgs> | null
+    /**
+     * Filter, which Session to fetch.
+     */
+    where?: SessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Sessions to fetch.
+     */
+    orderBy?: SessionOrderByWithRelationInput | SessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Sessions.
+     */
+    cursor?: SessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Sessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Sessions.
+     */
+    distinct?: SessionScalarFieldEnum | SessionScalarFieldEnum[]
+  }
+
+  /**
+   * Session findFirstOrThrow
+   */
+  export type SessionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionInclude<ExtArgs> | null
+    /**
+     * Filter, which Session to fetch.
+     */
+    where?: SessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Sessions to fetch.
+     */
+    orderBy?: SessionOrderByWithRelationInput | SessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Sessions.
+     */
+    cursor?: SessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Sessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Sessions.
+     */
+    distinct?: SessionScalarFieldEnum | SessionScalarFieldEnum[]
+  }
+
+  /**
+   * Session findMany
+   */
+  export type SessionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionInclude<ExtArgs> | null
+    /**
+     * Filter, which Sessions to fetch.
+     */
+    where?: SessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Sessions to fetch.
+     */
+    orderBy?: SessionOrderByWithRelationInput | SessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Sessions.
+     */
+    cursor?: SessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Sessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Sessions.
+     */
+    skip?: number
+    distinct?: SessionScalarFieldEnum | SessionScalarFieldEnum[]
+  }
+
+  /**
+   * Session create
+   */
+  export type SessionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Session.
+     */
+    data: XOR<SessionCreateInput, SessionUncheckedCreateInput>
+  }
+
+  /**
+   * Session createMany
+   */
+  export type SessionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Sessions.
+     */
+    data: SessionCreateManyInput | SessionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Session createManyAndReturn
+   */
+  export type SessionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many Sessions.
+     */
+    data: SessionCreateManyInput | SessionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Session update
+   */
+  export type SessionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Session.
+     */
+    data: XOR<SessionUpdateInput, SessionUncheckedUpdateInput>
+    /**
+     * Choose, which Session to update.
+     */
+    where: SessionWhereUniqueInput
+  }
+
+  /**
+   * Session updateMany
+   */
+  export type SessionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Sessions.
+     */
+    data: XOR<SessionUpdateManyMutationInput, SessionUncheckedUpdateManyInput>
+    /**
+     * Filter which Sessions to update
+     */
+    where?: SessionWhereInput
+  }
+
+  /**
+   * Session upsert
+   */
+  export type SessionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Session to update in case it exists.
+     */
+    where: SessionWhereUniqueInput
+    /**
+     * In case the Session found by the `where` argument doesn't exist, create a new Session with this data.
+     */
+    create: XOR<SessionCreateInput, SessionUncheckedCreateInput>
+    /**
+     * In case the Session was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SessionUpdateInput, SessionUncheckedUpdateInput>
+  }
+
+  /**
+   * Session delete
+   */
+  export type SessionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionInclude<ExtArgs> | null
+    /**
+     * Filter which Session to delete.
+     */
+    where: SessionWhereUniqueInput
+  }
+
+  /**
+   * Session deleteMany
+   */
+  export type SessionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Sessions to delete
+     */
+    where?: SessionWhereInput
+  }
+
+  /**
+   * Session.review
+   */
+  export type Session$reviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+    where?: SessionReviewWhereInput
+  }
+
+  /**
+   * Session without action
+   */
+  export type SessionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Session
+     */
+    select?: SessionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model SessionReview
+   */
+
+  export type AggregateSessionReview = {
+    _count: SessionReviewCountAggregateOutputType | null
+    _avg: SessionReviewAvgAggregateOutputType | null
+    _sum: SessionReviewSumAggregateOutputType | null
+    _min: SessionReviewMinAggregateOutputType | null
+    _max: SessionReviewMaxAggregateOutputType | null
+  }
+
+  export type SessionReviewAvgAggregateOutputType = {
+    rating: number | null
+  }
+
+  export type SessionReviewSumAggregateOutputType = {
+    rating: number | null
+  }
+
+  export type SessionReviewMinAggregateOutputType = {
+    id: string | null
+    sessionId: string | null
+    contractId: string | null
+    clientUserId: string | null
+    rating: number | null
+    comment: string | null
+    createdAt: Date | null
+  }
+
+  export type SessionReviewMaxAggregateOutputType = {
+    id: string | null
+    sessionId: string | null
+    contractId: string | null
+    clientUserId: string | null
+    rating: number | null
+    comment: string | null
+    createdAt: Date | null
+  }
+
+  export type SessionReviewCountAggregateOutputType = {
+    id: number
+    sessionId: number
+    contractId: number
+    clientUserId: number
+    rating: number
+    comment: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type SessionReviewAvgAggregateInputType = {
+    rating?: true
+  }
+
+  export type SessionReviewSumAggregateInputType = {
+    rating?: true
+  }
+
+  export type SessionReviewMinAggregateInputType = {
+    id?: true
+    sessionId?: true
+    contractId?: true
+    clientUserId?: true
+    rating?: true
+    comment?: true
+    createdAt?: true
+  }
+
+  export type SessionReviewMaxAggregateInputType = {
+    id?: true
+    sessionId?: true
+    contractId?: true
+    clientUserId?: true
+    rating?: true
+    comment?: true
+    createdAt?: true
+  }
+
+  export type SessionReviewCountAggregateInputType = {
+    id?: true
+    sessionId?: true
+    contractId?: true
+    clientUserId?: true
+    rating?: true
+    comment?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type SessionReviewAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SessionReview to aggregate.
+     */
+    where?: SessionReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionReviews to fetch.
+     */
+    orderBy?: SessionReviewOrderByWithRelationInput | SessionReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SessionReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned SessionReviews
+    **/
+    _count?: true | SessionReviewCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: SessionReviewAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: SessionReviewSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SessionReviewMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SessionReviewMaxAggregateInputType
+  }
+
+  export type GetSessionReviewAggregateType<T extends SessionReviewAggregateArgs> = {
+        [P in keyof T & keyof AggregateSessionReview]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSessionReview[P]>
+      : GetScalarType<T[P], AggregateSessionReview[P]>
+  }
+
+
+
+
+  export type SessionReviewGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SessionReviewWhereInput
+    orderBy?: SessionReviewOrderByWithAggregationInput | SessionReviewOrderByWithAggregationInput[]
+    by: SessionReviewScalarFieldEnum[] | SessionReviewScalarFieldEnum
+    having?: SessionReviewScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SessionReviewCountAggregateInputType | true
+    _avg?: SessionReviewAvgAggregateInputType
+    _sum?: SessionReviewSumAggregateInputType
+    _min?: SessionReviewMinAggregateInputType
+    _max?: SessionReviewMaxAggregateInputType
+  }
+
+  export type SessionReviewGroupByOutputType = {
+    id: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    rating: number
+    comment: string | null
+    createdAt: Date
+    _count: SessionReviewCountAggregateOutputType | null
+    _avg: SessionReviewAvgAggregateOutputType | null
+    _sum: SessionReviewSumAggregateOutputType | null
+    _min: SessionReviewMinAggregateOutputType | null
+    _max: SessionReviewMaxAggregateOutputType | null
+  }
+
+  type GetSessionReviewGroupByPayload<T extends SessionReviewGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SessionReviewGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SessionReviewGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SessionReviewGroupByOutputType[P]>
+            : GetScalarType<T[P], SessionReviewGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SessionReviewSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    clientUserId?: boolean
+    rating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["sessionReview"]>
+
+  export type SessionReviewSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    clientUserId?: boolean
+    rating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["sessionReview"]>
+
+  export type SessionReviewSelectScalar = {
+    id?: boolean
+    sessionId?: boolean
+    contractId?: boolean
+    clientUserId?: boolean
+    rating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+  }
+
+  export type SessionReviewInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+  }
+  export type SessionReviewIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    session?: boolean | SessionDefaultArgs<ExtArgs>
+    contract?: boolean | ContractDefaultArgs<ExtArgs>
+  }
+
+  export type $SessionReviewPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SessionReview"
+    objects: {
+      session: Prisma.$SessionPayload<ExtArgs>
+      contract: Prisma.$ContractPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      sessionId: string
+      contractId: string
+      clientUserId: string
+      rating: number
+      comment: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["sessionReview"]>
+    composites: {}
+  }
+
+  type SessionReviewGetPayload<S extends boolean | null | undefined | SessionReviewDefaultArgs> = $Result.GetResult<Prisma.$SessionReviewPayload, S>
+
+  type SessionReviewCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<SessionReviewFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: SessionReviewCountAggregateInputType | true
+    }
+
+  export interface SessionReviewDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SessionReview'], meta: { name: 'SessionReview' } }
+    /**
+     * Find zero or one SessionReview that matches the filter.
+     * @param {SessionReviewFindUniqueArgs} args - Arguments to find a SessionReview
+     * @example
+     * // Get one SessionReview
+     * const sessionReview = await prisma.sessionReview.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SessionReviewFindUniqueArgs>(args: SelectSubset<T, SessionReviewFindUniqueArgs<ExtArgs>>): Prisma__SessionReviewClient<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one SessionReview that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {SessionReviewFindUniqueOrThrowArgs} args - Arguments to find a SessionReview
+     * @example
+     * // Get one SessionReview
+     * const sessionReview = await prisma.sessionReview.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SessionReviewFindUniqueOrThrowArgs>(args: SelectSubset<T, SessionReviewFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SessionReviewClient<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first SessionReview that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionReviewFindFirstArgs} args - Arguments to find a SessionReview
+     * @example
+     * // Get one SessionReview
+     * const sessionReview = await prisma.sessionReview.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SessionReviewFindFirstArgs>(args?: SelectSubset<T, SessionReviewFindFirstArgs<ExtArgs>>): Prisma__SessionReviewClient<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first SessionReview that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionReviewFindFirstOrThrowArgs} args - Arguments to find a SessionReview
+     * @example
+     * // Get one SessionReview
+     * const sessionReview = await prisma.sessionReview.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SessionReviewFindFirstOrThrowArgs>(args?: SelectSubset<T, SessionReviewFindFirstOrThrowArgs<ExtArgs>>): Prisma__SessionReviewClient<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more SessionReviews that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionReviewFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all SessionReviews
+     * const sessionReviews = await prisma.sessionReview.findMany()
+     * 
+     * // Get first 10 SessionReviews
+     * const sessionReviews = await prisma.sessionReview.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const sessionReviewWithIdOnly = await prisma.sessionReview.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SessionReviewFindManyArgs>(args?: SelectSubset<T, SessionReviewFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a SessionReview.
+     * @param {SessionReviewCreateArgs} args - Arguments to create a SessionReview.
+     * @example
+     * // Create one SessionReview
+     * const SessionReview = await prisma.sessionReview.create({
+     *   data: {
+     *     // ... data to create a SessionReview
+     *   }
+     * })
+     * 
+     */
+    create<T extends SessionReviewCreateArgs>(args: SelectSubset<T, SessionReviewCreateArgs<ExtArgs>>): Prisma__SessionReviewClient<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many SessionReviews.
+     * @param {SessionReviewCreateManyArgs} args - Arguments to create many SessionReviews.
+     * @example
+     * // Create many SessionReviews
+     * const sessionReview = await prisma.sessionReview.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SessionReviewCreateManyArgs>(args?: SelectSubset<T, SessionReviewCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many SessionReviews and returns the data saved in the database.
+     * @param {SessionReviewCreateManyAndReturnArgs} args - Arguments to create many SessionReviews.
+     * @example
+     * // Create many SessionReviews
+     * const sessionReview = await prisma.sessionReview.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many SessionReviews and only return the `id`
+     * const sessionReviewWithIdOnly = await prisma.sessionReview.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SessionReviewCreateManyAndReturnArgs>(args?: SelectSubset<T, SessionReviewCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a SessionReview.
+     * @param {SessionReviewDeleteArgs} args - Arguments to delete one SessionReview.
+     * @example
+     * // Delete one SessionReview
+     * const SessionReview = await prisma.sessionReview.delete({
+     *   where: {
+     *     // ... filter to delete one SessionReview
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SessionReviewDeleteArgs>(args: SelectSubset<T, SessionReviewDeleteArgs<ExtArgs>>): Prisma__SessionReviewClient<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one SessionReview.
+     * @param {SessionReviewUpdateArgs} args - Arguments to update one SessionReview.
+     * @example
+     * // Update one SessionReview
+     * const sessionReview = await prisma.sessionReview.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SessionReviewUpdateArgs>(args: SelectSubset<T, SessionReviewUpdateArgs<ExtArgs>>): Prisma__SessionReviewClient<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more SessionReviews.
+     * @param {SessionReviewDeleteManyArgs} args - Arguments to filter SessionReviews to delete.
+     * @example
+     * // Delete a few SessionReviews
+     * const { count } = await prisma.sessionReview.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SessionReviewDeleteManyArgs>(args?: SelectSubset<T, SessionReviewDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SessionReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionReviewUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many SessionReviews
+     * const sessionReview = await prisma.sessionReview.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SessionReviewUpdateManyArgs>(args: SelectSubset<T, SessionReviewUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one SessionReview.
+     * @param {SessionReviewUpsertArgs} args - Arguments to update or create a SessionReview.
+     * @example
+     * // Update or create a SessionReview
+     * const sessionReview = await prisma.sessionReview.upsert({
+     *   create: {
+     *     // ... data to create a SessionReview
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the SessionReview we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SessionReviewUpsertArgs>(args: SelectSubset<T, SessionReviewUpsertArgs<ExtArgs>>): Prisma__SessionReviewClient<$Result.GetResult<Prisma.$SessionReviewPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of SessionReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionReviewCountArgs} args - Arguments to filter SessionReviews to count.
+     * @example
+     * // Count the number of SessionReviews
+     * const count = await prisma.sessionReview.count({
+     *   where: {
+     *     // ... the filter for the SessionReviews we want to count
+     *   }
+     * })
+    **/
+    count<T extends SessionReviewCountArgs>(
+      args?: Subset<T, SessionReviewCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SessionReviewCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a SessionReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionReviewAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SessionReviewAggregateArgs>(args: Subset<T, SessionReviewAggregateArgs>): Prisma.PrismaPromise<GetSessionReviewAggregateType<T>>
+
+    /**
+     * Group by SessionReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SessionReviewGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SessionReviewGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SessionReviewGroupByArgs['orderBy'] }
+        : { orderBy?: SessionReviewGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SessionReviewGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSessionReviewGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the SessionReview model
+   */
+  readonly fields: SessionReviewFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for SessionReview.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SessionReviewClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    session<T extends SessionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, SessionDefaultArgs<ExtArgs>>): Prisma__SessionClient<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    contract<T extends ContractDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ContractDefaultArgs<ExtArgs>>): Prisma__ContractClient<$Result.GetResult<Prisma.$ContractPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the SessionReview model
+   */ 
+  interface SessionReviewFieldRefs {
+    readonly id: FieldRef<"SessionReview", 'String'>
+    readonly sessionId: FieldRef<"SessionReview", 'String'>
+    readonly contractId: FieldRef<"SessionReview", 'String'>
+    readonly clientUserId: FieldRef<"SessionReview", 'String'>
+    readonly rating: FieldRef<"SessionReview", 'Int'>
+    readonly comment: FieldRef<"SessionReview", 'String'>
+    readonly createdAt: FieldRef<"SessionReview", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * SessionReview findUnique
+   */
+  export type SessionReviewFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which SessionReview to fetch.
+     */
+    where: SessionReviewWhereUniqueInput
+  }
+
+  /**
+   * SessionReview findUniqueOrThrow
+   */
+  export type SessionReviewFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which SessionReview to fetch.
+     */
+    where: SessionReviewWhereUniqueInput
+  }
+
+  /**
+   * SessionReview findFirst
+   */
+  export type SessionReviewFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which SessionReview to fetch.
+     */
+    where?: SessionReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionReviews to fetch.
+     */
+    orderBy?: SessionReviewOrderByWithRelationInput | SessionReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SessionReviews.
+     */
+    cursor?: SessionReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SessionReviews.
+     */
+    distinct?: SessionReviewScalarFieldEnum | SessionReviewScalarFieldEnum[]
+  }
+
+  /**
+   * SessionReview findFirstOrThrow
+   */
+  export type SessionReviewFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which SessionReview to fetch.
+     */
+    where?: SessionReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionReviews to fetch.
+     */
+    orderBy?: SessionReviewOrderByWithRelationInput | SessionReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SessionReviews.
+     */
+    cursor?: SessionReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SessionReviews.
+     */
+    distinct?: SessionReviewScalarFieldEnum | SessionReviewScalarFieldEnum[]
+  }
+
+  /**
+   * SessionReview findMany
+   */
+  export type SessionReviewFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which SessionReviews to fetch.
+     */
+    where?: SessionReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SessionReviews to fetch.
+     */
+    orderBy?: SessionReviewOrderByWithRelationInput | SessionReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing SessionReviews.
+     */
+    cursor?: SessionReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SessionReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SessionReviews.
+     */
+    skip?: number
+    distinct?: SessionReviewScalarFieldEnum | SessionReviewScalarFieldEnum[]
+  }
+
+  /**
+   * SessionReview create
+   */
+  export type SessionReviewCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to create a SessionReview.
+     */
+    data: XOR<SessionReviewCreateInput, SessionReviewUncheckedCreateInput>
+  }
+
+  /**
+   * SessionReview createMany
+   */
+  export type SessionReviewCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many SessionReviews.
+     */
+    data: SessionReviewCreateManyInput | SessionReviewCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SessionReview createManyAndReturn
+   */
+  export type SessionReviewCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many SessionReviews.
+     */
+    data: SessionReviewCreateManyInput | SessionReviewCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * SessionReview update
+   */
+  export type SessionReviewUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to update a SessionReview.
+     */
+    data: XOR<SessionReviewUpdateInput, SessionReviewUncheckedUpdateInput>
+    /**
+     * Choose, which SessionReview to update.
+     */
+    where: SessionReviewWhereUniqueInput
+  }
+
+  /**
+   * SessionReview updateMany
+   */
+  export type SessionReviewUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update SessionReviews.
+     */
+    data: XOR<SessionReviewUpdateManyMutationInput, SessionReviewUncheckedUpdateManyInput>
+    /**
+     * Filter which SessionReviews to update
+     */
+    where?: SessionReviewWhereInput
+  }
+
+  /**
+   * SessionReview upsert
+   */
+  export type SessionReviewUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+    /**
+     * The filter to search for the SessionReview to update in case it exists.
+     */
+    where: SessionReviewWhereUniqueInput
+    /**
+     * In case the SessionReview found by the `where` argument doesn't exist, create a new SessionReview with this data.
+     */
+    create: XOR<SessionReviewCreateInput, SessionReviewUncheckedCreateInput>
+    /**
+     * In case the SessionReview was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SessionReviewUpdateInput, SessionReviewUncheckedUpdateInput>
+  }
+
+  /**
+   * SessionReview delete
+   */
+  export type SessionReviewDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+    /**
+     * Filter which SessionReview to delete.
+     */
+    where: SessionReviewWhereUniqueInput
+  }
+
+  /**
+   * SessionReview deleteMany
+   */
+  export type SessionReviewDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SessionReviews to delete
+     */
+    where?: SessionReviewWhereInput
+  }
+
+  /**
+   * SessionReview without action
+   */
+  export type SessionReviewDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SessionReview
+     */
+    select?: SessionReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SessionReviewInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model Notification
+   */
+
+  export type AggregateNotification = {
+    _count: NotificationCountAggregateOutputType | null
+    _min: NotificationMinAggregateOutputType | null
+    _max: NotificationMaxAggregateOutputType | null
+  }
+
+  export type NotificationMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    text: string | null
+    eventType: $Enums.NotificationEventType | null
+    entityType: $Enums.NotificationEntityType | null
+    entityId: string | null
+    link: string | null
+    unread: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NotificationMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    text: string | null
+    eventType: $Enums.NotificationEventType | null
+    entityType: $Enums.NotificationEntityType | null
+    entityId: string | null
+    link: string | null
+    unread: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NotificationCountAggregateOutputType = {
+    id: number
+    userId: number
+    text: number
+    eventType: number
+    entityType: number
+    entityId: number
+    link: number
+    unread: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type NotificationMinAggregateInputType = {
+    id?: true
+    userId?: true
+    text?: true
+    eventType?: true
+    entityType?: true
+    entityId?: true
+    link?: true
+    unread?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NotificationMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    text?: true
+    eventType?: true
+    entityType?: true
+    entityId?: true
+    link?: true
+    unread?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NotificationCountAggregateInputType = {
+    id?: true
+    userId?: true
+    text?: true
+    eventType?: true
+    entityType?: true
+    entityId?: true
+    link?: true
+    unread?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type NotificationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Notification to aggregate.
+     */
+    where?: NotificationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Notifications to fetch.
+     */
+    orderBy?: NotificationOrderByWithRelationInput | NotificationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: NotificationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Notifications from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Notifications.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Notifications
+    **/
+    _count?: true | NotificationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: NotificationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: NotificationMaxAggregateInputType
+  }
+
+  export type GetNotificationAggregateType<T extends NotificationAggregateArgs> = {
+        [P in keyof T & keyof AggregateNotification]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateNotification[P]>
+      : GetScalarType<T[P], AggregateNotification[P]>
+  }
+
+
+
+
+  export type NotificationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NotificationWhereInput
+    orderBy?: NotificationOrderByWithAggregationInput | NotificationOrderByWithAggregationInput[]
+    by: NotificationScalarFieldEnum[] | NotificationScalarFieldEnum
+    having?: NotificationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: NotificationCountAggregateInputType | true
+    _min?: NotificationMinAggregateInputType
+    _max?: NotificationMaxAggregateInputType
+  }
+
+  export type NotificationGroupByOutputType = {
+    id: string
+    userId: string
+    text: string
+    eventType: $Enums.NotificationEventType
+    entityType: $Enums.NotificationEntityType
+    entityId: string
+    link: string | null
+    unread: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: NotificationCountAggregateOutputType | null
+    _min: NotificationMinAggregateOutputType | null
+    _max: NotificationMaxAggregateOutputType | null
+  }
+
+  type GetNotificationGroupByPayload<T extends NotificationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<NotificationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof NotificationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], NotificationGroupByOutputType[P]>
+            : GetScalarType<T[P], NotificationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type NotificationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    text?: boolean
+    eventType?: boolean
+    entityType?: boolean
+    entityId?: boolean
+    link?: boolean
+    unread?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["notification"]>
+
+  export type NotificationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    text?: boolean
+    eventType?: boolean
+    entityType?: boolean
+    entityId?: boolean
+    link?: boolean
+    unread?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["notification"]>
+
+  export type NotificationSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    text?: boolean
+    eventType?: boolean
+    entityType?: boolean
+    entityId?: boolean
+    link?: boolean
+    unread?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $NotificationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Notification"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      text: string
+      eventType: $Enums.NotificationEventType
+      entityType: $Enums.NotificationEntityType
+      entityId: string
+      link: string | null
+      unread: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["notification"]>
+    composites: {}
+  }
+
+  type NotificationGetPayload<S extends boolean | null | undefined | NotificationDefaultArgs> = $Result.GetResult<Prisma.$NotificationPayload, S>
+
+  type NotificationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<NotificationFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: NotificationCountAggregateInputType | true
+    }
+
+  export interface NotificationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Notification'], meta: { name: 'Notification' } }
+    /**
+     * Find zero or one Notification that matches the filter.
+     * @param {NotificationFindUniqueArgs} args - Arguments to find a Notification
+     * @example
+     * // Get one Notification
+     * const notification = await prisma.notification.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends NotificationFindUniqueArgs>(args: SelectSubset<T, NotificationFindUniqueArgs<ExtArgs>>): Prisma__NotificationClient<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one Notification that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {NotificationFindUniqueOrThrowArgs} args - Arguments to find a Notification
+     * @example
+     * // Get one Notification
+     * const notification = await prisma.notification.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends NotificationFindUniqueOrThrowArgs>(args: SelectSubset<T, NotificationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__NotificationClient<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first Notification that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationFindFirstArgs} args - Arguments to find a Notification
+     * @example
+     * // Get one Notification
+     * const notification = await prisma.notification.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends NotificationFindFirstArgs>(args?: SelectSubset<T, NotificationFindFirstArgs<ExtArgs>>): Prisma__NotificationClient<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first Notification that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationFindFirstOrThrowArgs} args - Arguments to find a Notification
+     * @example
+     * // Get one Notification
+     * const notification = await prisma.notification.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends NotificationFindFirstOrThrowArgs>(args?: SelectSubset<T, NotificationFindFirstOrThrowArgs<ExtArgs>>): Prisma__NotificationClient<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more Notifications that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Notifications
+     * const notifications = await prisma.notification.findMany()
+     * 
+     * // Get first 10 Notifications
+     * const notifications = await prisma.notification.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const notificationWithIdOnly = await prisma.notification.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends NotificationFindManyArgs>(args?: SelectSubset<T, NotificationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a Notification.
+     * @param {NotificationCreateArgs} args - Arguments to create a Notification.
+     * @example
+     * // Create one Notification
+     * const Notification = await prisma.notification.create({
+     *   data: {
+     *     // ... data to create a Notification
+     *   }
+     * })
+     * 
+     */
+    create<T extends NotificationCreateArgs>(args: SelectSubset<T, NotificationCreateArgs<ExtArgs>>): Prisma__NotificationClient<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many Notifications.
+     * @param {NotificationCreateManyArgs} args - Arguments to create many Notifications.
+     * @example
+     * // Create many Notifications
+     * const notification = await prisma.notification.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends NotificationCreateManyArgs>(args?: SelectSubset<T, NotificationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Notifications and returns the data saved in the database.
+     * @param {NotificationCreateManyAndReturnArgs} args - Arguments to create many Notifications.
+     * @example
+     * // Create many Notifications
+     * const notification = await prisma.notification.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Notifications and only return the `id`
+     * const notificationWithIdOnly = await prisma.notification.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends NotificationCreateManyAndReturnArgs>(args?: SelectSubset<T, NotificationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a Notification.
+     * @param {NotificationDeleteArgs} args - Arguments to delete one Notification.
+     * @example
+     * // Delete one Notification
+     * const Notification = await prisma.notification.delete({
+     *   where: {
+     *     // ... filter to delete one Notification
+     *   }
+     * })
+     * 
+     */
+    delete<T extends NotificationDeleteArgs>(args: SelectSubset<T, NotificationDeleteArgs<ExtArgs>>): Prisma__NotificationClient<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one Notification.
+     * @param {NotificationUpdateArgs} args - Arguments to update one Notification.
+     * @example
+     * // Update one Notification
+     * const notification = await prisma.notification.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends NotificationUpdateArgs>(args: SelectSubset<T, NotificationUpdateArgs<ExtArgs>>): Prisma__NotificationClient<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more Notifications.
+     * @param {NotificationDeleteManyArgs} args - Arguments to filter Notifications to delete.
+     * @example
+     * // Delete a few Notifications
+     * const { count } = await prisma.notification.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends NotificationDeleteManyArgs>(args?: SelectSubset<T, NotificationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Notifications.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Notifications
+     * const notification = await prisma.notification.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends NotificationUpdateManyArgs>(args: SelectSubset<T, NotificationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one Notification.
+     * @param {NotificationUpsertArgs} args - Arguments to update or create a Notification.
+     * @example
+     * // Update or create a Notification
+     * const notification = await prisma.notification.upsert({
+     *   create: {
+     *     // ... data to create a Notification
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Notification we want to update
+     *   }
+     * })
+     */
+    upsert<T extends NotificationUpsertArgs>(args: SelectSubset<T, NotificationUpsertArgs<ExtArgs>>): Prisma__NotificationClient<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of Notifications.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationCountArgs} args - Arguments to filter Notifications to count.
+     * @example
+     * // Count the number of Notifications
+     * const count = await prisma.notification.count({
+     *   where: {
+     *     // ... the filter for the Notifications we want to count
+     *   }
+     * })
+    **/
+    count<T extends NotificationCountArgs>(
+      args?: Subset<T, NotificationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], NotificationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Notification.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends NotificationAggregateArgs>(args: Subset<T, NotificationAggregateArgs>): Prisma.PrismaPromise<GetNotificationAggregateType<T>>
+
+    /**
+     * Group by Notification.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends NotificationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: NotificationGroupByArgs['orderBy'] }
+        : { orderBy?: NotificationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, NotificationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetNotificationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Notification model
+   */
+  readonly fields: NotificationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Notification.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__NotificationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Notification model
+   */ 
+  interface NotificationFieldRefs {
+    readonly id: FieldRef<"Notification", 'String'>
+    readonly userId: FieldRef<"Notification", 'String'>
+    readonly text: FieldRef<"Notification", 'String'>
+    readonly eventType: FieldRef<"Notification", 'NotificationEventType'>
+    readonly entityType: FieldRef<"Notification", 'NotificationEntityType'>
+    readonly entityId: FieldRef<"Notification", 'String'>
+    readonly link: FieldRef<"Notification", 'String'>
+    readonly unread: FieldRef<"Notification", 'Boolean'>
+    readonly createdAt: FieldRef<"Notification", 'DateTime'>
+    readonly updatedAt: FieldRef<"Notification", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Notification findUnique
+   */
+  export type NotificationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Notification
+     */
+    select?: NotificationSelect<ExtArgs> | null
+    /**
+     * Filter, which Notification to fetch.
+     */
+    where: NotificationWhereUniqueInput
+  }
+
+  /**
+   * Notification findUniqueOrThrow
+   */
+  export type NotificationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Notification
+     */
+    select?: NotificationSelect<ExtArgs> | null
+    /**
+     * Filter, which Notification to fetch.
+     */
+    where: NotificationWhereUniqueInput
+  }
+
+  /**
+   * Notification findFirst
+   */
+  export type NotificationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Notification
+     */
+    select?: NotificationSelect<ExtArgs> | null
+    /**
+     * Filter, which Notification to fetch.
+     */
+    where?: NotificationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Notifications to fetch.
+     */
+    orderBy?: NotificationOrderByWithRelationInput | NotificationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Notifications.
+     */
+    cursor?: NotificationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Notifications from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Notifications.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Notifications.
+     */
+    distinct?: NotificationScalarFieldEnum | NotificationScalarFieldEnum[]
+  }
+
+  /**
+   * Notification findFirstOrThrow
+   */
+  export type NotificationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Notification
+     */
+    select?: NotificationSelect<ExtArgs> | null
+    /**
+     * Filter, which Notification to fetch.
+     */
+    where?: NotificationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Notifications to fetch.
+     */
+    orderBy?: NotificationOrderByWithRelationInput | NotificationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Notifications.
+     */
+    cursor?: NotificationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Notifications from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Notifications.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Notifications.
+     */
+    distinct?: NotificationScalarFieldEnum | NotificationScalarFieldEnum[]
+  }
+
+  /**
+   * Notification findMany
+   */
+  export type NotificationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Notification
+     */
+    select?: NotificationSelect<ExtArgs> | null
+    /**
+     * Filter, which Notifications to fetch.
+     */
+    where?: NotificationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Notifications to fetch.
+     */
+    orderBy?: NotificationOrderByWithRelationInput | NotificationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Notifications.
+     */
+    cursor?: NotificationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Notifications from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Notifications.
+     */
+    skip?: number
+    distinct?: NotificationScalarFieldEnum | NotificationScalarFieldEnum[]
+  }
+
+  /**
+   * Notification create
+   */
+  export type NotificationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Notification
+     */
+    select?: NotificationSelect<ExtArgs> | null
+    /**
+     * The data needed to create a Notification.
+     */
+    data: XOR<NotificationCreateInput, NotificationUncheckedCreateInput>
+  }
+
+  /**
+   * Notification createMany
+   */
+  export type NotificationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Notifications.
+     */
+    data: NotificationCreateManyInput | NotificationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Notification createManyAndReturn
+   */
+  export type NotificationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Notification
+     */
+    select?: NotificationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many Notifications.
+     */
+    data: NotificationCreateManyInput | NotificationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Notification update
+   */
+  export type NotificationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Notification
+     */
+    select?: NotificationSelect<ExtArgs> | null
+    /**
+     * The data needed to update a Notification.
+     */
+    data: XOR<NotificationUpdateInput, NotificationUncheckedUpdateInput>
+    /**
+     * Choose, which Notification to update.
+     */
+    where: NotificationWhereUniqueInput
+  }
+
+  /**
+   * Notification updateMany
+   */
+  export type NotificationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Notifications.
+     */
+    data: XOR<NotificationUpdateManyMutationInput, NotificationUncheckedUpdateManyInput>
+    /**
+     * Filter which Notifications to update
+     */
+    where?: NotificationWhereInput
+  }
+
+  /**
+   * Notification upsert
+   */
+  export type NotificationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Notification
+     */
+    select?: NotificationSelect<ExtArgs> | null
+    /**
+     * The filter to search for the Notification to update in case it exists.
+     */
+    where: NotificationWhereUniqueInput
+    /**
+     * In case the Notification found by the `where` argument doesn't exist, create a new Notification with this data.
+     */
+    create: XOR<NotificationCreateInput, NotificationUncheckedCreateInput>
+    /**
+     * In case the Notification was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<NotificationUpdateInput, NotificationUncheckedUpdateInput>
+  }
+
+  /**
+   * Notification delete
+   */
+  export type NotificationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Notification
+     */
+    select?: NotificationSelect<ExtArgs> | null
+    /**
+     * Filter which Notification to delete.
+     */
+    where: NotificationWhereUniqueInput
+  }
+
+  /**
+   * Notification deleteMany
+   */
+  export type NotificationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Notifications to delete
+     */
+    where?: NotificationWhereInput
+  }
+
+  /**
+   * Notification without action
+   */
+  export type NotificationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Notification
+     */
+    select?: NotificationSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PTAvailability
+   */
+
+  export type AggregatePTAvailability = {
+    _count: PTAvailabilityCountAggregateOutputType | null
+    _min: PTAvailabilityMinAggregateOutputType | null
+    _max: PTAvailabilityMaxAggregateOutputType | null
+  }
+
+  export type PTAvailabilityMinAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    dayOfWeek: $Enums.DayOfWeek | null
+    startTime: string | null
+    endTime: string | null
+    isActive: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PTAvailabilityMaxAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    dayOfWeek: $Enums.DayOfWeek | null
+    startTime: string | null
+    endTime: string | null
+    isActive: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PTAvailabilityCountAggregateOutputType = {
+    id: number
+    ptUserId: number
+    dayOfWeek: number
+    startTime: number
+    endTime: number
+    isActive: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PTAvailabilityMinAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    dayOfWeek?: true
+    startTime?: true
+    endTime?: true
+    isActive?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PTAvailabilityMaxAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    dayOfWeek?: true
+    startTime?: true
+    endTime?: true
+    isActive?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PTAvailabilityCountAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    dayOfWeek?: true
+    startTime?: true
+    endTime?: true
+    isActive?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PTAvailabilityAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PTAvailability to aggregate.
+     */
+    where?: PTAvailabilityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTAvailabilities to fetch.
+     */
+    orderBy?: PTAvailabilityOrderByWithRelationInput | PTAvailabilityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PTAvailabilityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTAvailabilities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTAvailabilities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PTAvailabilities
+    **/
+    _count?: true | PTAvailabilityCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PTAvailabilityMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PTAvailabilityMaxAggregateInputType
+  }
+
+  export type GetPTAvailabilityAggregateType<T extends PTAvailabilityAggregateArgs> = {
+        [P in keyof T & keyof AggregatePTAvailability]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePTAvailability[P]>
+      : GetScalarType<T[P], AggregatePTAvailability[P]>
+  }
+
+
+
+
+  export type PTAvailabilityGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PTAvailabilityWhereInput
+    orderBy?: PTAvailabilityOrderByWithAggregationInput | PTAvailabilityOrderByWithAggregationInput[]
+    by: PTAvailabilityScalarFieldEnum[] | PTAvailabilityScalarFieldEnum
+    having?: PTAvailabilityScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PTAvailabilityCountAggregateInputType | true
+    _min?: PTAvailabilityMinAggregateInputType
+    _max?: PTAvailabilityMaxAggregateInputType
+  }
+
+  export type PTAvailabilityGroupByOutputType = {
+    id: string
+    ptUserId: string
+    dayOfWeek: $Enums.DayOfWeek
+    startTime: string
+    endTime: string
+    isActive: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: PTAvailabilityCountAggregateOutputType | null
+    _min: PTAvailabilityMinAggregateOutputType | null
+    _max: PTAvailabilityMaxAggregateOutputType | null
+  }
+
+  type GetPTAvailabilityGroupByPayload<T extends PTAvailabilityGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PTAvailabilityGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PTAvailabilityGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PTAvailabilityGroupByOutputType[P]>
+            : GetScalarType<T[P], PTAvailabilityGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PTAvailabilitySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    dayOfWeek?: boolean
+    startTime?: boolean
+    endTime?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["pTAvailability"]>
+
+  export type PTAvailabilitySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    dayOfWeek?: boolean
+    startTime?: boolean
+    endTime?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["pTAvailability"]>
+
+  export type PTAvailabilitySelectScalar = {
+    id?: boolean
+    ptUserId?: boolean
+    dayOfWeek?: boolean
+    startTime?: boolean
+    endTime?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $PTAvailabilityPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PTAvailability"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ptUserId: string
+      dayOfWeek: $Enums.DayOfWeek
+      startTime: string
+      endTime: string
+      isActive: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["pTAvailability"]>
+    composites: {}
+  }
+
+  type PTAvailabilityGetPayload<S extends boolean | null | undefined | PTAvailabilityDefaultArgs> = $Result.GetResult<Prisma.$PTAvailabilityPayload, S>
+
+  type PTAvailabilityCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PTAvailabilityFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PTAvailabilityCountAggregateInputType | true
+    }
+
+  export interface PTAvailabilityDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PTAvailability'], meta: { name: 'PTAvailability' } }
+    /**
+     * Find zero or one PTAvailability that matches the filter.
+     * @param {PTAvailabilityFindUniqueArgs} args - Arguments to find a PTAvailability
+     * @example
+     * // Get one PTAvailability
+     * const pTAvailability = await prisma.pTAvailability.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PTAvailabilityFindUniqueArgs>(args: SelectSubset<T, PTAvailabilityFindUniqueArgs<ExtArgs>>): Prisma__PTAvailabilityClient<$Result.GetResult<Prisma.$PTAvailabilityPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PTAvailability that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PTAvailabilityFindUniqueOrThrowArgs} args - Arguments to find a PTAvailability
+     * @example
+     * // Get one PTAvailability
+     * const pTAvailability = await prisma.pTAvailability.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PTAvailabilityFindUniqueOrThrowArgs>(args: SelectSubset<T, PTAvailabilityFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PTAvailabilityClient<$Result.GetResult<Prisma.$PTAvailabilityPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PTAvailability that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTAvailabilityFindFirstArgs} args - Arguments to find a PTAvailability
+     * @example
+     * // Get one PTAvailability
+     * const pTAvailability = await prisma.pTAvailability.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PTAvailabilityFindFirstArgs>(args?: SelectSubset<T, PTAvailabilityFindFirstArgs<ExtArgs>>): Prisma__PTAvailabilityClient<$Result.GetResult<Prisma.$PTAvailabilityPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PTAvailability that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTAvailabilityFindFirstOrThrowArgs} args - Arguments to find a PTAvailability
+     * @example
+     * // Get one PTAvailability
+     * const pTAvailability = await prisma.pTAvailability.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PTAvailabilityFindFirstOrThrowArgs>(args?: SelectSubset<T, PTAvailabilityFindFirstOrThrowArgs<ExtArgs>>): Prisma__PTAvailabilityClient<$Result.GetResult<Prisma.$PTAvailabilityPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PTAvailabilities that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTAvailabilityFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PTAvailabilities
+     * const pTAvailabilities = await prisma.pTAvailability.findMany()
+     * 
+     * // Get first 10 PTAvailabilities
+     * const pTAvailabilities = await prisma.pTAvailability.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const pTAvailabilityWithIdOnly = await prisma.pTAvailability.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PTAvailabilityFindManyArgs>(args?: SelectSubset<T, PTAvailabilityFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTAvailabilityPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PTAvailability.
+     * @param {PTAvailabilityCreateArgs} args - Arguments to create a PTAvailability.
+     * @example
+     * // Create one PTAvailability
+     * const PTAvailability = await prisma.pTAvailability.create({
+     *   data: {
+     *     // ... data to create a PTAvailability
+     *   }
+     * })
+     * 
+     */
+    create<T extends PTAvailabilityCreateArgs>(args: SelectSubset<T, PTAvailabilityCreateArgs<ExtArgs>>): Prisma__PTAvailabilityClient<$Result.GetResult<Prisma.$PTAvailabilityPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PTAvailabilities.
+     * @param {PTAvailabilityCreateManyArgs} args - Arguments to create many PTAvailabilities.
+     * @example
+     * // Create many PTAvailabilities
+     * const pTAvailability = await prisma.pTAvailability.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PTAvailabilityCreateManyArgs>(args?: SelectSubset<T, PTAvailabilityCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PTAvailabilities and returns the data saved in the database.
+     * @param {PTAvailabilityCreateManyAndReturnArgs} args - Arguments to create many PTAvailabilities.
+     * @example
+     * // Create many PTAvailabilities
+     * const pTAvailability = await prisma.pTAvailability.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PTAvailabilities and only return the `id`
+     * const pTAvailabilityWithIdOnly = await prisma.pTAvailability.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PTAvailabilityCreateManyAndReturnArgs>(args?: SelectSubset<T, PTAvailabilityCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTAvailabilityPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PTAvailability.
+     * @param {PTAvailabilityDeleteArgs} args - Arguments to delete one PTAvailability.
+     * @example
+     * // Delete one PTAvailability
+     * const PTAvailability = await prisma.pTAvailability.delete({
+     *   where: {
+     *     // ... filter to delete one PTAvailability
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PTAvailabilityDeleteArgs>(args: SelectSubset<T, PTAvailabilityDeleteArgs<ExtArgs>>): Prisma__PTAvailabilityClient<$Result.GetResult<Prisma.$PTAvailabilityPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PTAvailability.
+     * @param {PTAvailabilityUpdateArgs} args - Arguments to update one PTAvailability.
+     * @example
+     * // Update one PTAvailability
+     * const pTAvailability = await prisma.pTAvailability.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PTAvailabilityUpdateArgs>(args: SelectSubset<T, PTAvailabilityUpdateArgs<ExtArgs>>): Prisma__PTAvailabilityClient<$Result.GetResult<Prisma.$PTAvailabilityPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PTAvailabilities.
+     * @param {PTAvailabilityDeleteManyArgs} args - Arguments to filter PTAvailabilities to delete.
+     * @example
+     * // Delete a few PTAvailabilities
+     * const { count } = await prisma.pTAvailability.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PTAvailabilityDeleteManyArgs>(args?: SelectSubset<T, PTAvailabilityDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PTAvailabilities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTAvailabilityUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PTAvailabilities
+     * const pTAvailability = await prisma.pTAvailability.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PTAvailabilityUpdateManyArgs>(args: SelectSubset<T, PTAvailabilityUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PTAvailability.
+     * @param {PTAvailabilityUpsertArgs} args - Arguments to update or create a PTAvailability.
+     * @example
+     * // Update or create a PTAvailability
+     * const pTAvailability = await prisma.pTAvailability.upsert({
+     *   create: {
+     *     // ... data to create a PTAvailability
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PTAvailability we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PTAvailabilityUpsertArgs>(args: SelectSubset<T, PTAvailabilityUpsertArgs<ExtArgs>>): Prisma__PTAvailabilityClient<$Result.GetResult<Prisma.$PTAvailabilityPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PTAvailabilities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTAvailabilityCountArgs} args - Arguments to filter PTAvailabilities to count.
+     * @example
+     * // Count the number of PTAvailabilities
+     * const count = await prisma.pTAvailability.count({
+     *   where: {
+     *     // ... the filter for the PTAvailabilities we want to count
+     *   }
+     * })
+    **/
+    count<T extends PTAvailabilityCountArgs>(
+      args?: Subset<T, PTAvailabilityCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PTAvailabilityCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PTAvailability.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTAvailabilityAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PTAvailabilityAggregateArgs>(args: Subset<T, PTAvailabilityAggregateArgs>): Prisma.PrismaPromise<GetPTAvailabilityAggregateType<T>>
+
+    /**
+     * Group by PTAvailability.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTAvailabilityGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PTAvailabilityGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PTAvailabilityGroupByArgs['orderBy'] }
+        : { orderBy?: PTAvailabilityGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PTAvailabilityGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPTAvailabilityGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PTAvailability model
+   */
+  readonly fields: PTAvailabilityFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PTAvailability.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PTAvailabilityClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PTAvailability model
+   */ 
+  interface PTAvailabilityFieldRefs {
+    readonly id: FieldRef<"PTAvailability", 'String'>
+    readonly ptUserId: FieldRef<"PTAvailability", 'String'>
+    readonly dayOfWeek: FieldRef<"PTAvailability", 'DayOfWeek'>
+    readonly startTime: FieldRef<"PTAvailability", 'String'>
+    readonly endTime: FieldRef<"PTAvailability", 'String'>
+    readonly isActive: FieldRef<"PTAvailability", 'Boolean'>
+    readonly createdAt: FieldRef<"PTAvailability", 'DateTime'>
+    readonly updatedAt: FieldRef<"PTAvailability", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PTAvailability findUnique
+   */
+  export type PTAvailabilityFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTAvailability
+     */
+    select?: PTAvailabilitySelect<ExtArgs> | null
+    /**
+     * Filter, which PTAvailability to fetch.
+     */
+    where: PTAvailabilityWhereUniqueInput
+  }
+
+  /**
+   * PTAvailability findUniqueOrThrow
+   */
+  export type PTAvailabilityFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTAvailability
+     */
+    select?: PTAvailabilitySelect<ExtArgs> | null
+    /**
+     * Filter, which PTAvailability to fetch.
+     */
+    where: PTAvailabilityWhereUniqueInput
+  }
+
+  /**
+   * PTAvailability findFirst
+   */
+  export type PTAvailabilityFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTAvailability
+     */
+    select?: PTAvailabilitySelect<ExtArgs> | null
+    /**
+     * Filter, which PTAvailability to fetch.
+     */
+    where?: PTAvailabilityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTAvailabilities to fetch.
+     */
+    orderBy?: PTAvailabilityOrderByWithRelationInput | PTAvailabilityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PTAvailabilities.
+     */
+    cursor?: PTAvailabilityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTAvailabilities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTAvailabilities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PTAvailabilities.
+     */
+    distinct?: PTAvailabilityScalarFieldEnum | PTAvailabilityScalarFieldEnum[]
+  }
+
+  /**
+   * PTAvailability findFirstOrThrow
+   */
+  export type PTAvailabilityFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTAvailability
+     */
+    select?: PTAvailabilitySelect<ExtArgs> | null
+    /**
+     * Filter, which PTAvailability to fetch.
+     */
+    where?: PTAvailabilityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTAvailabilities to fetch.
+     */
+    orderBy?: PTAvailabilityOrderByWithRelationInput | PTAvailabilityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PTAvailabilities.
+     */
+    cursor?: PTAvailabilityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTAvailabilities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTAvailabilities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PTAvailabilities.
+     */
+    distinct?: PTAvailabilityScalarFieldEnum | PTAvailabilityScalarFieldEnum[]
+  }
+
+  /**
+   * PTAvailability findMany
+   */
+  export type PTAvailabilityFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTAvailability
+     */
+    select?: PTAvailabilitySelect<ExtArgs> | null
+    /**
+     * Filter, which PTAvailabilities to fetch.
+     */
+    where?: PTAvailabilityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTAvailabilities to fetch.
+     */
+    orderBy?: PTAvailabilityOrderByWithRelationInput | PTAvailabilityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PTAvailabilities.
+     */
+    cursor?: PTAvailabilityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTAvailabilities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTAvailabilities.
+     */
+    skip?: number
+    distinct?: PTAvailabilityScalarFieldEnum | PTAvailabilityScalarFieldEnum[]
+  }
+
+  /**
+   * PTAvailability create
+   */
+  export type PTAvailabilityCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTAvailability
+     */
+    select?: PTAvailabilitySelect<ExtArgs> | null
+    /**
+     * The data needed to create a PTAvailability.
+     */
+    data: XOR<PTAvailabilityCreateInput, PTAvailabilityUncheckedCreateInput>
+  }
+
+  /**
+   * PTAvailability createMany
+   */
+  export type PTAvailabilityCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PTAvailabilities.
+     */
+    data: PTAvailabilityCreateManyInput | PTAvailabilityCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PTAvailability createManyAndReturn
+   */
+  export type PTAvailabilityCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTAvailability
+     */
+    select?: PTAvailabilitySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PTAvailabilities.
+     */
+    data: PTAvailabilityCreateManyInput | PTAvailabilityCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PTAvailability update
+   */
+  export type PTAvailabilityUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTAvailability
+     */
+    select?: PTAvailabilitySelect<ExtArgs> | null
+    /**
+     * The data needed to update a PTAvailability.
+     */
+    data: XOR<PTAvailabilityUpdateInput, PTAvailabilityUncheckedUpdateInput>
+    /**
+     * Choose, which PTAvailability to update.
+     */
+    where: PTAvailabilityWhereUniqueInput
+  }
+
+  /**
+   * PTAvailability updateMany
+   */
+  export type PTAvailabilityUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PTAvailabilities.
+     */
+    data: XOR<PTAvailabilityUpdateManyMutationInput, PTAvailabilityUncheckedUpdateManyInput>
+    /**
+     * Filter which PTAvailabilities to update
+     */
+    where?: PTAvailabilityWhereInput
+  }
+
+  /**
+   * PTAvailability upsert
+   */
+  export type PTAvailabilityUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTAvailability
+     */
+    select?: PTAvailabilitySelect<ExtArgs> | null
+    /**
+     * The filter to search for the PTAvailability to update in case it exists.
+     */
+    where: PTAvailabilityWhereUniqueInput
+    /**
+     * In case the PTAvailability found by the `where` argument doesn't exist, create a new PTAvailability with this data.
+     */
+    create: XOR<PTAvailabilityCreateInput, PTAvailabilityUncheckedCreateInput>
+    /**
+     * In case the PTAvailability was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PTAvailabilityUpdateInput, PTAvailabilityUncheckedUpdateInput>
+  }
+
+  /**
+   * PTAvailability delete
+   */
+  export type PTAvailabilityDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTAvailability
+     */
+    select?: PTAvailabilitySelect<ExtArgs> | null
+    /**
+     * Filter which PTAvailability to delete.
+     */
+    where: PTAvailabilityWhereUniqueInput
+  }
+
+  /**
+   * PTAvailability deleteMany
+   */
+  export type PTAvailabilityDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PTAvailabilities to delete
+     */
+    where?: PTAvailabilityWhereInput
+  }
+
+  /**
+   * PTAvailability without action
+   */
+  export type PTAvailabilityDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTAvailability
+     */
+    select?: PTAvailabilitySelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PTScheduleException
+   */
+
+  export type AggregatePTScheduleException = {
+    _count: PTScheduleExceptionCountAggregateOutputType | null
+    _min: PTScheduleExceptionMinAggregateOutputType | null
+    _max: PTScheduleExceptionMaxAggregateOutputType | null
+  }
+
+  export type PTScheduleExceptionMinAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    date: Date | null
+    reason: string | null
+    createdAt: Date | null
+  }
+
+  export type PTScheduleExceptionMaxAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    date: Date | null
+    reason: string | null
+    createdAt: Date | null
+  }
+
+  export type PTScheduleExceptionCountAggregateOutputType = {
+    id: number
+    ptUserId: number
+    date: number
+    reason: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PTScheduleExceptionMinAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    date?: true
+    reason?: true
+    createdAt?: true
+  }
+
+  export type PTScheduleExceptionMaxAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    date?: true
+    reason?: true
+    createdAt?: true
+  }
+
+  export type PTScheduleExceptionCountAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    date?: true
+    reason?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PTScheduleExceptionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PTScheduleException to aggregate.
+     */
+    where?: PTScheduleExceptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTScheduleExceptions to fetch.
+     */
+    orderBy?: PTScheduleExceptionOrderByWithRelationInput | PTScheduleExceptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PTScheduleExceptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTScheduleExceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTScheduleExceptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PTScheduleExceptions
+    **/
+    _count?: true | PTScheduleExceptionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PTScheduleExceptionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PTScheduleExceptionMaxAggregateInputType
+  }
+
+  export type GetPTScheduleExceptionAggregateType<T extends PTScheduleExceptionAggregateArgs> = {
+        [P in keyof T & keyof AggregatePTScheduleException]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePTScheduleException[P]>
+      : GetScalarType<T[P], AggregatePTScheduleException[P]>
+  }
+
+
+
+
+  export type PTScheduleExceptionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PTScheduleExceptionWhereInput
+    orderBy?: PTScheduleExceptionOrderByWithAggregationInput | PTScheduleExceptionOrderByWithAggregationInput[]
+    by: PTScheduleExceptionScalarFieldEnum[] | PTScheduleExceptionScalarFieldEnum
+    having?: PTScheduleExceptionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PTScheduleExceptionCountAggregateInputType | true
+    _min?: PTScheduleExceptionMinAggregateInputType
+    _max?: PTScheduleExceptionMaxAggregateInputType
+  }
+
+  export type PTScheduleExceptionGroupByOutputType = {
+    id: string
+    ptUserId: string
+    date: Date
+    reason: string | null
+    createdAt: Date
+    _count: PTScheduleExceptionCountAggregateOutputType | null
+    _min: PTScheduleExceptionMinAggregateOutputType | null
+    _max: PTScheduleExceptionMaxAggregateOutputType | null
+  }
+
+  type GetPTScheduleExceptionGroupByPayload<T extends PTScheduleExceptionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PTScheduleExceptionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PTScheduleExceptionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PTScheduleExceptionGroupByOutputType[P]>
+            : GetScalarType<T[P], PTScheduleExceptionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PTScheduleExceptionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    date?: boolean
+    reason?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["pTScheduleException"]>
+
+  export type PTScheduleExceptionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    date?: boolean
+    reason?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["pTScheduleException"]>
+
+  export type PTScheduleExceptionSelectScalar = {
+    id?: boolean
+    ptUserId?: boolean
+    date?: boolean
+    reason?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $PTScheduleExceptionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PTScheduleException"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ptUserId: string
+      date: Date
+      reason: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["pTScheduleException"]>
+    composites: {}
+  }
+
+  type PTScheduleExceptionGetPayload<S extends boolean | null | undefined | PTScheduleExceptionDefaultArgs> = $Result.GetResult<Prisma.$PTScheduleExceptionPayload, S>
+
+  type PTScheduleExceptionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PTScheduleExceptionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PTScheduleExceptionCountAggregateInputType | true
+    }
+
+  export interface PTScheduleExceptionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PTScheduleException'], meta: { name: 'PTScheduleException' } }
+    /**
+     * Find zero or one PTScheduleException that matches the filter.
+     * @param {PTScheduleExceptionFindUniqueArgs} args - Arguments to find a PTScheduleException
+     * @example
+     * // Get one PTScheduleException
+     * const pTScheduleException = await prisma.pTScheduleException.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PTScheduleExceptionFindUniqueArgs>(args: SelectSubset<T, PTScheduleExceptionFindUniqueArgs<ExtArgs>>): Prisma__PTScheduleExceptionClient<$Result.GetResult<Prisma.$PTScheduleExceptionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PTScheduleException that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PTScheduleExceptionFindUniqueOrThrowArgs} args - Arguments to find a PTScheduleException
+     * @example
+     * // Get one PTScheduleException
+     * const pTScheduleException = await prisma.pTScheduleException.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PTScheduleExceptionFindUniqueOrThrowArgs>(args: SelectSubset<T, PTScheduleExceptionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PTScheduleExceptionClient<$Result.GetResult<Prisma.$PTScheduleExceptionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PTScheduleException that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTScheduleExceptionFindFirstArgs} args - Arguments to find a PTScheduleException
+     * @example
+     * // Get one PTScheduleException
+     * const pTScheduleException = await prisma.pTScheduleException.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PTScheduleExceptionFindFirstArgs>(args?: SelectSubset<T, PTScheduleExceptionFindFirstArgs<ExtArgs>>): Prisma__PTScheduleExceptionClient<$Result.GetResult<Prisma.$PTScheduleExceptionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PTScheduleException that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTScheduleExceptionFindFirstOrThrowArgs} args - Arguments to find a PTScheduleException
+     * @example
+     * // Get one PTScheduleException
+     * const pTScheduleException = await prisma.pTScheduleException.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PTScheduleExceptionFindFirstOrThrowArgs>(args?: SelectSubset<T, PTScheduleExceptionFindFirstOrThrowArgs<ExtArgs>>): Prisma__PTScheduleExceptionClient<$Result.GetResult<Prisma.$PTScheduleExceptionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PTScheduleExceptions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTScheduleExceptionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PTScheduleExceptions
+     * const pTScheduleExceptions = await prisma.pTScheduleException.findMany()
+     * 
+     * // Get first 10 PTScheduleExceptions
+     * const pTScheduleExceptions = await prisma.pTScheduleException.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const pTScheduleExceptionWithIdOnly = await prisma.pTScheduleException.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PTScheduleExceptionFindManyArgs>(args?: SelectSubset<T, PTScheduleExceptionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTScheduleExceptionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PTScheduleException.
+     * @param {PTScheduleExceptionCreateArgs} args - Arguments to create a PTScheduleException.
+     * @example
+     * // Create one PTScheduleException
+     * const PTScheduleException = await prisma.pTScheduleException.create({
+     *   data: {
+     *     // ... data to create a PTScheduleException
+     *   }
+     * })
+     * 
+     */
+    create<T extends PTScheduleExceptionCreateArgs>(args: SelectSubset<T, PTScheduleExceptionCreateArgs<ExtArgs>>): Prisma__PTScheduleExceptionClient<$Result.GetResult<Prisma.$PTScheduleExceptionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PTScheduleExceptions.
+     * @param {PTScheduleExceptionCreateManyArgs} args - Arguments to create many PTScheduleExceptions.
+     * @example
+     * // Create many PTScheduleExceptions
+     * const pTScheduleException = await prisma.pTScheduleException.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PTScheduleExceptionCreateManyArgs>(args?: SelectSubset<T, PTScheduleExceptionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PTScheduleExceptions and returns the data saved in the database.
+     * @param {PTScheduleExceptionCreateManyAndReturnArgs} args - Arguments to create many PTScheduleExceptions.
+     * @example
+     * // Create many PTScheduleExceptions
+     * const pTScheduleException = await prisma.pTScheduleException.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PTScheduleExceptions and only return the `id`
+     * const pTScheduleExceptionWithIdOnly = await prisma.pTScheduleException.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PTScheduleExceptionCreateManyAndReturnArgs>(args?: SelectSubset<T, PTScheduleExceptionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTScheduleExceptionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PTScheduleException.
+     * @param {PTScheduleExceptionDeleteArgs} args - Arguments to delete one PTScheduleException.
+     * @example
+     * // Delete one PTScheduleException
+     * const PTScheduleException = await prisma.pTScheduleException.delete({
+     *   where: {
+     *     // ... filter to delete one PTScheduleException
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PTScheduleExceptionDeleteArgs>(args: SelectSubset<T, PTScheduleExceptionDeleteArgs<ExtArgs>>): Prisma__PTScheduleExceptionClient<$Result.GetResult<Prisma.$PTScheduleExceptionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PTScheduleException.
+     * @param {PTScheduleExceptionUpdateArgs} args - Arguments to update one PTScheduleException.
+     * @example
+     * // Update one PTScheduleException
+     * const pTScheduleException = await prisma.pTScheduleException.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PTScheduleExceptionUpdateArgs>(args: SelectSubset<T, PTScheduleExceptionUpdateArgs<ExtArgs>>): Prisma__PTScheduleExceptionClient<$Result.GetResult<Prisma.$PTScheduleExceptionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PTScheduleExceptions.
+     * @param {PTScheduleExceptionDeleteManyArgs} args - Arguments to filter PTScheduleExceptions to delete.
+     * @example
+     * // Delete a few PTScheduleExceptions
+     * const { count } = await prisma.pTScheduleException.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PTScheduleExceptionDeleteManyArgs>(args?: SelectSubset<T, PTScheduleExceptionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PTScheduleExceptions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTScheduleExceptionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PTScheduleExceptions
+     * const pTScheduleException = await prisma.pTScheduleException.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PTScheduleExceptionUpdateManyArgs>(args: SelectSubset<T, PTScheduleExceptionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PTScheduleException.
+     * @param {PTScheduleExceptionUpsertArgs} args - Arguments to update or create a PTScheduleException.
+     * @example
+     * // Update or create a PTScheduleException
+     * const pTScheduleException = await prisma.pTScheduleException.upsert({
+     *   create: {
+     *     // ... data to create a PTScheduleException
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PTScheduleException we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PTScheduleExceptionUpsertArgs>(args: SelectSubset<T, PTScheduleExceptionUpsertArgs<ExtArgs>>): Prisma__PTScheduleExceptionClient<$Result.GetResult<Prisma.$PTScheduleExceptionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PTScheduleExceptions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTScheduleExceptionCountArgs} args - Arguments to filter PTScheduleExceptions to count.
+     * @example
+     * // Count the number of PTScheduleExceptions
+     * const count = await prisma.pTScheduleException.count({
+     *   where: {
+     *     // ... the filter for the PTScheduleExceptions we want to count
+     *   }
+     * })
+    **/
+    count<T extends PTScheduleExceptionCountArgs>(
+      args?: Subset<T, PTScheduleExceptionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PTScheduleExceptionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PTScheduleException.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTScheduleExceptionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PTScheduleExceptionAggregateArgs>(args: Subset<T, PTScheduleExceptionAggregateArgs>): Prisma.PrismaPromise<GetPTScheduleExceptionAggregateType<T>>
+
+    /**
+     * Group by PTScheduleException.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTScheduleExceptionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PTScheduleExceptionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PTScheduleExceptionGroupByArgs['orderBy'] }
+        : { orderBy?: PTScheduleExceptionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PTScheduleExceptionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPTScheduleExceptionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PTScheduleException model
+   */
+  readonly fields: PTScheduleExceptionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PTScheduleException.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PTScheduleExceptionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PTScheduleException model
+   */ 
+  interface PTScheduleExceptionFieldRefs {
+    readonly id: FieldRef<"PTScheduleException", 'String'>
+    readonly ptUserId: FieldRef<"PTScheduleException", 'String'>
+    readonly date: FieldRef<"PTScheduleException", 'DateTime'>
+    readonly reason: FieldRef<"PTScheduleException", 'String'>
+    readonly createdAt: FieldRef<"PTScheduleException", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PTScheduleException findUnique
+   */
+  export type PTScheduleExceptionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTScheduleException
+     */
+    select?: PTScheduleExceptionSelect<ExtArgs> | null
+    /**
+     * Filter, which PTScheduleException to fetch.
+     */
+    where: PTScheduleExceptionWhereUniqueInput
+  }
+
+  /**
+   * PTScheduleException findUniqueOrThrow
+   */
+  export type PTScheduleExceptionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTScheduleException
+     */
+    select?: PTScheduleExceptionSelect<ExtArgs> | null
+    /**
+     * Filter, which PTScheduleException to fetch.
+     */
+    where: PTScheduleExceptionWhereUniqueInput
+  }
+
+  /**
+   * PTScheduleException findFirst
+   */
+  export type PTScheduleExceptionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTScheduleException
+     */
+    select?: PTScheduleExceptionSelect<ExtArgs> | null
+    /**
+     * Filter, which PTScheduleException to fetch.
+     */
+    where?: PTScheduleExceptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTScheduleExceptions to fetch.
+     */
+    orderBy?: PTScheduleExceptionOrderByWithRelationInput | PTScheduleExceptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PTScheduleExceptions.
+     */
+    cursor?: PTScheduleExceptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTScheduleExceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTScheduleExceptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PTScheduleExceptions.
+     */
+    distinct?: PTScheduleExceptionScalarFieldEnum | PTScheduleExceptionScalarFieldEnum[]
+  }
+
+  /**
+   * PTScheduleException findFirstOrThrow
+   */
+  export type PTScheduleExceptionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTScheduleException
+     */
+    select?: PTScheduleExceptionSelect<ExtArgs> | null
+    /**
+     * Filter, which PTScheduleException to fetch.
+     */
+    where?: PTScheduleExceptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTScheduleExceptions to fetch.
+     */
+    orderBy?: PTScheduleExceptionOrderByWithRelationInput | PTScheduleExceptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PTScheduleExceptions.
+     */
+    cursor?: PTScheduleExceptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTScheduleExceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTScheduleExceptions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PTScheduleExceptions.
+     */
+    distinct?: PTScheduleExceptionScalarFieldEnum | PTScheduleExceptionScalarFieldEnum[]
+  }
+
+  /**
+   * PTScheduleException findMany
+   */
+  export type PTScheduleExceptionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTScheduleException
+     */
+    select?: PTScheduleExceptionSelect<ExtArgs> | null
+    /**
+     * Filter, which PTScheduleExceptions to fetch.
+     */
+    where?: PTScheduleExceptionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTScheduleExceptions to fetch.
+     */
+    orderBy?: PTScheduleExceptionOrderByWithRelationInput | PTScheduleExceptionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PTScheduleExceptions.
+     */
+    cursor?: PTScheduleExceptionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTScheduleExceptions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTScheduleExceptions.
+     */
+    skip?: number
+    distinct?: PTScheduleExceptionScalarFieldEnum | PTScheduleExceptionScalarFieldEnum[]
+  }
+
+  /**
+   * PTScheduleException create
+   */
+  export type PTScheduleExceptionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTScheduleException
+     */
+    select?: PTScheduleExceptionSelect<ExtArgs> | null
+    /**
+     * The data needed to create a PTScheduleException.
+     */
+    data: XOR<PTScheduleExceptionCreateInput, PTScheduleExceptionUncheckedCreateInput>
+  }
+
+  /**
+   * PTScheduleException createMany
+   */
+  export type PTScheduleExceptionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PTScheduleExceptions.
+     */
+    data: PTScheduleExceptionCreateManyInput | PTScheduleExceptionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PTScheduleException createManyAndReturn
+   */
+  export type PTScheduleExceptionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTScheduleException
+     */
+    select?: PTScheduleExceptionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PTScheduleExceptions.
+     */
+    data: PTScheduleExceptionCreateManyInput | PTScheduleExceptionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PTScheduleException update
+   */
+  export type PTScheduleExceptionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTScheduleException
+     */
+    select?: PTScheduleExceptionSelect<ExtArgs> | null
+    /**
+     * The data needed to update a PTScheduleException.
+     */
+    data: XOR<PTScheduleExceptionUpdateInput, PTScheduleExceptionUncheckedUpdateInput>
+    /**
+     * Choose, which PTScheduleException to update.
+     */
+    where: PTScheduleExceptionWhereUniqueInput
+  }
+
+  /**
+   * PTScheduleException updateMany
+   */
+  export type PTScheduleExceptionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PTScheduleExceptions.
+     */
+    data: XOR<PTScheduleExceptionUpdateManyMutationInput, PTScheduleExceptionUncheckedUpdateManyInput>
+    /**
+     * Filter which PTScheduleExceptions to update
+     */
+    where?: PTScheduleExceptionWhereInput
+  }
+
+  /**
+   * PTScheduleException upsert
+   */
+  export type PTScheduleExceptionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTScheduleException
+     */
+    select?: PTScheduleExceptionSelect<ExtArgs> | null
+    /**
+     * The filter to search for the PTScheduleException to update in case it exists.
+     */
+    where: PTScheduleExceptionWhereUniqueInput
+    /**
+     * In case the PTScheduleException found by the `where` argument doesn't exist, create a new PTScheduleException with this data.
+     */
+    create: XOR<PTScheduleExceptionCreateInput, PTScheduleExceptionUncheckedCreateInput>
+    /**
+     * In case the PTScheduleException was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PTScheduleExceptionUpdateInput, PTScheduleExceptionUncheckedUpdateInput>
+  }
+
+  /**
+   * PTScheduleException delete
+   */
+  export type PTScheduleExceptionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTScheduleException
+     */
+    select?: PTScheduleExceptionSelect<ExtArgs> | null
+    /**
+     * Filter which PTScheduleException to delete.
+     */
+    where: PTScheduleExceptionWhereUniqueInput
+  }
+
+  /**
+   * PTScheduleException deleteMany
+   */
+  export type PTScheduleExceptionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PTScheduleExceptions to delete
+     */
+    where?: PTScheduleExceptionWhereInput
+  }
+
+  /**
+   * PTScheduleException without action
+   */
+  export type PTScheduleExceptionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTScheduleException
+     */
+    select?: PTScheduleExceptionSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Model InBodyEntry
    */
 
@@ -7160,6 +13866,111 @@ export namespace Prisma {
   export type PTApplicationMediaScalarFieldEnum = (typeof PTApplicationMediaScalarFieldEnum)[keyof typeof PTApplicationMediaScalarFieldEnum]
 
 
+  export const ContractScalarFieldEnum: {
+    id: 'id',
+    ptUserId: 'ptUserId',
+    clientUserId: 'clientUserId',
+    status: 'status',
+    packageType: 'packageType',
+    packageName: 'packageName',
+    description: 'description',
+    totalSessions: 'totalSessions',
+    usedSessions: 'usedSessions',
+    price: 'price',
+    pricePerSession: 'pricePerSession',
+    startDate: 'startDate',
+    endDate: 'endDate',
+    completedAt: 'completedAt',
+    clientMessage: 'clientMessage',
+    rejectionReason: 'rejectionReason',
+    cancelledBy: 'cancelledBy',
+    cancellationReason: 'cancellationReason',
+    terms: 'terms',
+    notes: 'notes',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ContractScalarFieldEnum = (typeof ContractScalarFieldEnum)[keyof typeof ContractScalarFieldEnum]
+
+
+  export const SessionScalarFieldEnum: {
+    id: 'id',
+    contractId: 'contractId',
+    clientUserId: 'clientUserId',
+    ptUserId: 'ptUserId',
+    status: 'status',
+    sessionMode: 'sessionMode',
+    scheduledStartAt: 'scheduledStartAt',
+    scheduledEndAt: 'scheduledEndAt',
+    location: 'location',
+    notes: 'notes',
+    ptNotes: 'ptNotes',
+    cancelledBy: 'cancelledBy',
+    cancellationReason: 'cancellationReason',
+    sessionDeducted: 'sessionDeducted',
+    completedAt: 'completedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
+
+
+  export const SessionReviewScalarFieldEnum: {
+    id: 'id',
+    sessionId: 'sessionId',
+    contractId: 'contractId',
+    clientUserId: 'clientUserId',
+    rating: 'rating',
+    comment: 'comment',
+    createdAt: 'createdAt'
+  };
+
+  export type SessionReviewScalarFieldEnum = (typeof SessionReviewScalarFieldEnum)[keyof typeof SessionReviewScalarFieldEnum]
+
+
+  export const NotificationScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    text: 'text',
+    eventType: 'eventType',
+    entityType: 'entityType',
+    entityId: 'entityId',
+    link: 'link',
+    unread: 'unread',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+  export const PTAvailabilityScalarFieldEnum: {
+    id: 'id',
+    ptUserId: 'ptUserId',
+    dayOfWeek: 'dayOfWeek',
+    startTime: 'startTime',
+    endTime: 'endTime',
+    isActive: 'isActive',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PTAvailabilityScalarFieldEnum = (typeof PTAvailabilityScalarFieldEnum)[keyof typeof PTAvailabilityScalarFieldEnum]
+
+
+  export const PTScheduleExceptionScalarFieldEnum: {
+    id: 'id',
+    ptUserId: 'ptUserId',
+    date: 'date',
+    reason: 'reason',
+    createdAt: 'createdAt'
+  };
+
+  export type PTScheduleExceptionScalarFieldEnum = (typeof PTScheduleExceptionScalarFieldEnum)[keyof typeof PTScheduleExceptionScalarFieldEnum]
+
+
   export const InBodyEntryScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -7401,6 +14212,104 @@ export namespace Prisma {
    * Reference to a field of type 'MediaGroupType[]'
    */
   export type ListEnumMediaGroupTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MediaGroupType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'ContractStatus'
+   */
+  export type EnumContractStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContractStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'ContractStatus[]'
+   */
+  export type ListEnumContractStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContractStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PackageType'
+   */
+  export type EnumPackageTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PackageType'>
+    
+
+
+  /**
+   * Reference to a field of type 'PackageType[]'
+   */
+  export type ListEnumPackageTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PackageType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'SessionStatus'
+   */
+  export type EnumSessionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'SessionStatus[]'
+   */
+  export type ListEnumSessionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'SessionMode'
+   */
+  export type EnumSessionModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionMode'>
+    
+
+
+  /**
+   * Reference to a field of type 'SessionMode[]'
+   */
+  export type ListEnumSessionModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionMode[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'NotificationEventType'
+   */
+  export type EnumNotificationEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationEventType'>
+    
+
+
+  /**
+   * Reference to a field of type 'NotificationEventType[]'
+   */
+  export type ListEnumNotificationEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationEventType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'NotificationEntityType'
+   */
+  export type EnumNotificationEntityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationEntityType'>
+    
+
+
+  /**
+   * Reference to a field of type 'NotificationEntityType[]'
+   */
+  export type ListEnumNotificationEntityTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationEntityType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'DayOfWeek'
+   */
+  export type EnumDayOfWeekFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DayOfWeek'>
+    
+
+
+  /**
+   * Reference to a field of type 'DayOfWeek[]'
+   */
+  export type ListEnumDayOfWeekFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DayOfWeek[]'>
     
   /**
    * Deep Input Types
@@ -7915,6 +14824,535 @@ export namespace Prisma {
     fileUrl?: StringWithAggregatesFilter<"PTApplicationMedia"> | string
     label?: StringNullableWithAggregatesFilter<"PTApplicationMedia"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"PTApplicationMedia"> | Date | string
+  }
+
+  export type ContractWhereInput = {
+    AND?: ContractWhereInput | ContractWhereInput[]
+    OR?: ContractWhereInput[]
+    NOT?: ContractWhereInput | ContractWhereInput[]
+    id?: StringFilter<"Contract"> | string
+    ptUserId?: StringFilter<"Contract"> | string
+    clientUserId?: StringFilter<"Contract"> | string
+    status?: EnumContractStatusFilter<"Contract"> | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFilter<"Contract"> | $Enums.PackageType
+    packageName?: StringFilter<"Contract"> | string
+    description?: StringNullableFilter<"Contract"> | string | null
+    totalSessions?: IntFilter<"Contract"> | number
+    usedSessions?: IntFilter<"Contract"> | number
+    price?: FloatNullableFilter<"Contract"> | number | null
+    pricePerSession?: FloatNullableFilter<"Contract"> | number | null
+    startDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    endDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    completedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    clientMessage?: StringNullableFilter<"Contract"> | string | null
+    rejectionReason?: StringNullableFilter<"Contract"> | string | null
+    cancelledBy?: StringNullableFilter<"Contract"> | string | null
+    cancellationReason?: StringNullableFilter<"Contract"> | string | null
+    terms?: StringNullableFilter<"Contract"> | string | null
+    notes?: StringNullableFilter<"Contract"> | string | null
+    createdAt?: DateTimeFilter<"Contract"> | Date | string
+    updatedAt?: DateTimeFilter<"Contract"> | Date | string
+    sessions?: SessionListRelationFilter
+    reviews?: SessionReviewListRelationFilter
+  }
+
+  export type ContractOrderByWithRelationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    clientUserId?: SortOrder
+    status?: SortOrder
+    packageType?: SortOrder
+    packageName?: SortOrder
+    description?: SortOrderInput | SortOrder
+    totalSessions?: SortOrder
+    usedSessions?: SortOrder
+    price?: SortOrderInput | SortOrder
+    pricePerSession?: SortOrderInput | SortOrder
+    startDate?: SortOrderInput | SortOrder
+    endDate?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    clientMessage?: SortOrderInput | SortOrder
+    rejectionReason?: SortOrderInput | SortOrder
+    cancelledBy?: SortOrderInput | SortOrder
+    cancellationReason?: SortOrderInput | SortOrder
+    terms?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    sessions?: SessionOrderByRelationAggregateInput
+    reviews?: SessionReviewOrderByRelationAggregateInput
+  }
+
+  export type ContractWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ContractWhereInput | ContractWhereInput[]
+    OR?: ContractWhereInput[]
+    NOT?: ContractWhereInput | ContractWhereInput[]
+    ptUserId?: StringFilter<"Contract"> | string
+    clientUserId?: StringFilter<"Contract"> | string
+    status?: EnumContractStatusFilter<"Contract"> | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFilter<"Contract"> | $Enums.PackageType
+    packageName?: StringFilter<"Contract"> | string
+    description?: StringNullableFilter<"Contract"> | string | null
+    totalSessions?: IntFilter<"Contract"> | number
+    usedSessions?: IntFilter<"Contract"> | number
+    price?: FloatNullableFilter<"Contract"> | number | null
+    pricePerSession?: FloatNullableFilter<"Contract"> | number | null
+    startDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    endDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    completedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    clientMessage?: StringNullableFilter<"Contract"> | string | null
+    rejectionReason?: StringNullableFilter<"Contract"> | string | null
+    cancelledBy?: StringNullableFilter<"Contract"> | string | null
+    cancellationReason?: StringNullableFilter<"Contract"> | string | null
+    terms?: StringNullableFilter<"Contract"> | string | null
+    notes?: StringNullableFilter<"Contract"> | string | null
+    createdAt?: DateTimeFilter<"Contract"> | Date | string
+    updatedAt?: DateTimeFilter<"Contract"> | Date | string
+    sessions?: SessionListRelationFilter
+    reviews?: SessionReviewListRelationFilter
+  }, "id">
+
+  export type ContractOrderByWithAggregationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    clientUserId?: SortOrder
+    status?: SortOrder
+    packageType?: SortOrder
+    packageName?: SortOrder
+    description?: SortOrderInput | SortOrder
+    totalSessions?: SortOrder
+    usedSessions?: SortOrder
+    price?: SortOrderInput | SortOrder
+    pricePerSession?: SortOrderInput | SortOrder
+    startDate?: SortOrderInput | SortOrder
+    endDate?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    clientMessage?: SortOrderInput | SortOrder
+    rejectionReason?: SortOrderInput | SortOrder
+    cancelledBy?: SortOrderInput | SortOrder
+    cancellationReason?: SortOrderInput | SortOrder
+    terms?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ContractCountOrderByAggregateInput
+    _avg?: ContractAvgOrderByAggregateInput
+    _max?: ContractMaxOrderByAggregateInput
+    _min?: ContractMinOrderByAggregateInput
+    _sum?: ContractSumOrderByAggregateInput
+  }
+
+  export type ContractScalarWhereWithAggregatesInput = {
+    AND?: ContractScalarWhereWithAggregatesInput | ContractScalarWhereWithAggregatesInput[]
+    OR?: ContractScalarWhereWithAggregatesInput[]
+    NOT?: ContractScalarWhereWithAggregatesInput | ContractScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Contract"> | string
+    ptUserId?: StringWithAggregatesFilter<"Contract"> | string
+    clientUserId?: StringWithAggregatesFilter<"Contract"> | string
+    status?: EnumContractStatusWithAggregatesFilter<"Contract"> | $Enums.ContractStatus
+    packageType?: EnumPackageTypeWithAggregatesFilter<"Contract"> | $Enums.PackageType
+    packageName?: StringWithAggregatesFilter<"Contract"> | string
+    description?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    totalSessions?: IntWithAggregatesFilter<"Contract"> | number
+    usedSessions?: IntWithAggregatesFilter<"Contract"> | number
+    price?: FloatNullableWithAggregatesFilter<"Contract"> | number | null
+    pricePerSession?: FloatNullableWithAggregatesFilter<"Contract"> | number | null
+    startDate?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    endDate?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    completedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    clientMessage?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    rejectionReason?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    cancelledBy?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    cancellationReason?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    terms?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    notes?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"Contract"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Contract"> | Date | string
+  }
+
+  export type SessionWhereInput = {
+    AND?: SessionWhereInput | SessionWhereInput[]
+    OR?: SessionWhereInput[]
+    NOT?: SessionWhereInput | SessionWhereInput[]
+    id?: StringFilter<"Session"> | string
+    contractId?: StringFilter<"Session"> | string
+    clientUserId?: StringFilter<"Session"> | string
+    ptUserId?: StringFilter<"Session"> | string
+    status?: EnumSessionStatusFilter<"Session"> | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFilter<"Session"> | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFilter<"Session"> | Date | string
+    scheduledEndAt?: DateTimeFilter<"Session"> | Date | string
+    location?: StringNullableFilter<"Session"> | string | null
+    notes?: StringNullableFilter<"Session"> | string | null
+    ptNotes?: StringNullableFilter<"Session"> | string | null
+    cancelledBy?: StringNullableFilter<"Session"> | string | null
+    cancellationReason?: StringNullableFilter<"Session"> | string | null
+    sessionDeducted?: BoolFilter<"Session"> | boolean
+    completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    createdAt?: DateTimeFilter<"Session"> | Date | string
+    updatedAt?: DateTimeFilter<"Session"> | Date | string
+    contract?: XOR<ContractRelationFilter, ContractWhereInput>
+    review?: XOR<SessionReviewNullableRelationFilter, SessionReviewWhereInput> | null
+  }
+
+  export type SessionOrderByWithRelationInput = {
+    id?: SortOrder
+    contractId?: SortOrder
+    clientUserId?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    sessionMode?: SortOrder
+    scheduledStartAt?: SortOrder
+    scheduledEndAt?: SortOrder
+    location?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    ptNotes?: SortOrderInput | SortOrder
+    cancelledBy?: SortOrderInput | SortOrder
+    cancellationReason?: SortOrderInput | SortOrder
+    sessionDeducted?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    contract?: ContractOrderByWithRelationInput
+    review?: SessionReviewOrderByWithRelationInput
+  }
+
+  export type SessionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: SessionWhereInput | SessionWhereInput[]
+    OR?: SessionWhereInput[]
+    NOT?: SessionWhereInput | SessionWhereInput[]
+    contractId?: StringFilter<"Session"> | string
+    clientUserId?: StringFilter<"Session"> | string
+    ptUserId?: StringFilter<"Session"> | string
+    status?: EnumSessionStatusFilter<"Session"> | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFilter<"Session"> | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFilter<"Session"> | Date | string
+    scheduledEndAt?: DateTimeFilter<"Session"> | Date | string
+    location?: StringNullableFilter<"Session"> | string | null
+    notes?: StringNullableFilter<"Session"> | string | null
+    ptNotes?: StringNullableFilter<"Session"> | string | null
+    cancelledBy?: StringNullableFilter<"Session"> | string | null
+    cancellationReason?: StringNullableFilter<"Session"> | string | null
+    sessionDeducted?: BoolFilter<"Session"> | boolean
+    completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    createdAt?: DateTimeFilter<"Session"> | Date | string
+    updatedAt?: DateTimeFilter<"Session"> | Date | string
+    contract?: XOR<ContractRelationFilter, ContractWhereInput>
+    review?: XOR<SessionReviewNullableRelationFilter, SessionReviewWhereInput> | null
+  }, "id">
+
+  export type SessionOrderByWithAggregationInput = {
+    id?: SortOrder
+    contractId?: SortOrder
+    clientUserId?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    sessionMode?: SortOrder
+    scheduledStartAt?: SortOrder
+    scheduledEndAt?: SortOrder
+    location?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    ptNotes?: SortOrderInput | SortOrder
+    cancelledBy?: SortOrderInput | SortOrder
+    cancellationReason?: SortOrderInput | SortOrder
+    sessionDeducted?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: SessionCountOrderByAggregateInput
+    _max?: SessionMaxOrderByAggregateInput
+    _min?: SessionMinOrderByAggregateInput
+  }
+
+  export type SessionScalarWhereWithAggregatesInput = {
+    AND?: SessionScalarWhereWithAggregatesInput | SessionScalarWhereWithAggregatesInput[]
+    OR?: SessionScalarWhereWithAggregatesInput[]
+    NOT?: SessionScalarWhereWithAggregatesInput | SessionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Session"> | string
+    contractId?: StringWithAggregatesFilter<"Session"> | string
+    clientUserId?: StringWithAggregatesFilter<"Session"> | string
+    ptUserId?: StringWithAggregatesFilter<"Session"> | string
+    status?: EnumSessionStatusWithAggregatesFilter<"Session"> | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeWithAggregatesFilter<"Session"> | $Enums.SessionMode
+    scheduledStartAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
+    scheduledEndAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
+    location?: StringNullableWithAggregatesFilter<"Session"> | string | null
+    notes?: StringNullableWithAggregatesFilter<"Session"> | string | null
+    ptNotes?: StringNullableWithAggregatesFilter<"Session"> | string | null
+    cancelledBy?: StringNullableWithAggregatesFilter<"Session"> | string | null
+    cancellationReason?: StringNullableWithAggregatesFilter<"Session"> | string | null
+    sessionDeducted?: BoolWithAggregatesFilter<"Session"> | boolean
+    completedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
+  }
+
+  export type SessionReviewWhereInput = {
+    AND?: SessionReviewWhereInput | SessionReviewWhereInput[]
+    OR?: SessionReviewWhereInput[]
+    NOT?: SessionReviewWhereInput | SessionReviewWhereInput[]
+    id?: StringFilter<"SessionReview"> | string
+    sessionId?: StringFilter<"SessionReview"> | string
+    contractId?: StringFilter<"SessionReview"> | string
+    clientUserId?: StringFilter<"SessionReview"> | string
+    rating?: IntFilter<"SessionReview"> | number
+    comment?: StringNullableFilter<"SessionReview"> | string | null
+    createdAt?: DateTimeFilter<"SessionReview"> | Date | string
+    session?: XOR<SessionRelationFilter, SessionWhereInput>
+    contract?: XOR<ContractRelationFilter, ContractWhereInput>
+  }
+
+  export type SessionReviewOrderByWithRelationInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    clientUserId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    session?: SessionOrderByWithRelationInput
+    contract?: ContractOrderByWithRelationInput
+  }
+
+  export type SessionReviewWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    sessionId?: string
+    AND?: SessionReviewWhereInput | SessionReviewWhereInput[]
+    OR?: SessionReviewWhereInput[]
+    NOT?: SessionReviewWhereInput | SessionReviewWhereInput[]
+    contractId?: StringFilter<"SessionReview"> | string
+    clientUserId?: StringFilter<"SessionReview"> | string
+    rating?: IntFilter<"SessionReview"> | number
+    comment?: StringNullableFilter<"SessionReview"> | string | null
+    createdAt?: DateTimeFilter<"SessionReview"> | Date | string
+    session?: XOR<SessionRelationFilter, SessionWhereInput>
+    contract?: XOR<ContractRelationFilter, ContractWhereInput>
+  }, "id" | "sessionId">
+
+  export type SessionReviewOrderByWithAggregationInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    clientUserId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: SessionReviewCountOrderByAggregateInput
+    _avg?: SessionReviewAvgOrderByAggregateInput
+    _max?: SessionReviewMaxOrderByAggregateInput
+    _min?: SessionReviewMinOrderByAggregateInput
+    _sum?: SessionReviewSumOrderByAggregateInput
+  }
+
+  export type SessionReviewScalarWhereWithAggregatesInput = {
+    AND?: SessionReviewScalarWhereWithAggregatesInput | SessionReviewScalarWhereWithAggregatesInput[]
+    OR?: SessionReviewScalarWhereWithAggregatesInput[]
+    NOT?: SessionReviewScalarWhereWithAggregatesInput | SessionReviewScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"SessionReview"> | string
+    sessionId?: StringWithAggregatesFilter<"SessionReview"> | string
+    contractId?: StringWithAggregatesFilter<"SessionReview"> | string
+    clientUserId?: StringWithAggregatesFilter<"SessionReview"> | string
+    rating?: IntWithAggregatesFilter<"SessionReview"> | number
+    comment?: StringNullableWithAggregatesFilter<"SessionReview"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"SessionReview"> | Date | string
+  }
+
+  export type NotificationWhereInput = {
+    AND?: NotificationWhereInput | NotificationWhereInput[]
+    OR?: NotificationWhereInput[]
+    NOT?: NotificationWhereInput | NotificationWhereInput[]
+    id?: StringFilter<"Notification"> | string
+    userId?: StringFilter<"Notification"> | string
+    text?: StringFilter<"Notification"> | string
+    eventType?: EnumNotificationEventTypeFilter<"Notification"> | $Enums.NotificationEventType
+    entityType?: EnumNotificationEntityTypeFilter<"Notification"> | $Enums.NotificationEntityType
+    entityId?: StringFilter<"Notification"> | string
+    link?: StringNullableFilter<"Notification"> | string | null
+    unread?: BoolFilter<"Notification"> | boolean
+    createdAt?: DateTimeFilter<"Notification"> | Date | string
+    updatedAt?: DateTimeFilter<"Notification"> | Date | string
+  }
+
+  export type NotificationOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    text?: SortOrder
+    eventType?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    link?: SortOrderInput | SortOrder
+    unread?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NotificationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: NotificationWhereInput | NotificationWhereInput[]
+    OR?: NotificationWhereInput[]
+    NOT?: NotificationWhereInput | NotificationWhereInput[]
+    userId?: StringFilter<"Notification"> | string
+    text?: StringFilter<"Notification"> | string
+    eventType?: EnumNotificationEventTypeFilter<"Notification"> | $Enums.NotificationEventType
+    entityType?: EnumNotificationEntityTypeFilter<"Notification"> | $Enums.NotificationEntityType
+    entityId?: StringFilter<"Notification"> | string
+    link?: StringNullableFilter<"Notification"> | string | null
+    unread?: BoolFilter<"Notification"> | boolean
+    createdAt?: DateTimeFilter<"Notification"> | Date | string
+    updatedAt?: DateTimeFilter<"Notification"> | Date | string
+  }, "id">
+
+  export type NotificationOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    text?: SortOrder
+    eventType?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    link?: SortOrderInput | SortOrder
+    unread?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: NotificationCountOrderByAggregateInput
+    _max?: NotificationMaxOrderByAggregateInput
+    _min?: NotificationMinOrderByAggregateInput
+  }
+
+  export type NotificationScalarWhereWithAggregatesInput = {
+    AND?: NotificationScalarWhereWithAggregatesInput | NotificationScalarWhereWithAggregatesInput[]
+    OR?: NotificationScalarWhereWithAggregatesInput[]
+    NOT?: NotificationScalarWhereWithAggregatesInput | NotificationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Notification"> | string
+    userId?: StringWithAggregatesFilter<"Notification"> | string
+    text?: StringWithAggregatesFilter<"Notification"> | string
+    eventType?: EnumNotificationEventTypeWithAggregatesFilter<"Notification"> | $Enums.NotificationEventType
+    entityType?: EnumNotificationEntityTypeWithAggregatesFilter<"Notification"> | $Enums.NotificationEntityType
+    entityId?: StringWithAggregatesFilter<"Notification"> | string
+    link?: StringNullableWithAggregatesFilter<"Notification"> | string | null
+    unread?: BoolWithAggregatesFilter<"Notification"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"Notification"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Notification"> | Date | string
+  }
+
+  export type PTAvailabilityWhereInput = {
+    AND?: PTAvailabilityWhereInput | PTAvailabilityWhereInput[]
+    OR?: PTAvailabilityWhereInput[]
+    NOT?: PTAvailabilityWhereInput | PTAvailabilityWhereInput[]
+    id?: StringFilter<"PTAvailability"> | string
+    ptUserId?: StringFilter<"PTAvailability"> | string
+    dayOfWeek?: EnumDayOfWeekFilter<"PTAvailability"> | $Enums.DayOfWeek
+    startTime?: StringFilter<"PTAvailability"> | string
+    endTime?: StringFilter<"PTAvailability"> | string
+    isActive?: BoolFilter<"PTAvailability"> | boolean
+    createdAt?: DateTimeFilter<"PTAvailability"> | Date | string
+    updatedAt?: DateTimeFilter<"PTAvailability"> | Date | string
+  }
+
+  export type PTAvailabilityOrderByWithRelationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    dayOfWeek?: SortOrder
+    startTime?: SortOrder
+    endTime?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PTAvailabilityWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PTAvailabilityWhereInput | PTAvailabilityWhereInput[]
+    OR?: PTAvailabilityWhereInput[]
+    NOT?: PTAvailabilityWhereInput | PTAvailabilityWhereInput[]
+    ptUserId?: StringFilter<"PTAvailability"> | string
+    dayOfWeek?: EnumDayOfWeekFilter<"PTAvailability"> | $Enums.DayOfWeek
+    startTime?: StringFilter<"PTAvailability"> | string
+    endTime?: StringFilter<"PTAvailability"> | string
+    isActive?: BoolFilter<"PTAvailability"> | boolean
+    createdAt?: DateTimeFilter<"PTAvailability"> | Date | string
+    updatedAt?: DateTimeFilter<"PTAvailability"> | Date | string
+  }, "id">
+
+  export type PTAvailabilityOrderByWithAggregationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    dayOfWeek?: SortOrder
+    startTime?: SortOrder
+    endTime?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PTAvailabilityCountOrderByAggregateInput
+    _max?: PTAvailabilityMaxOrderByAggregateInput
+    _min?: PTAvailabilityMinOrderByAggregateInput
+  }
+
+  export type PTAvailabilityScalarWhereWithAggregatesInput = {
+    AND?: PTAvailabilityScalarWhereWithAggregatesInput | PTAvailabilityScalarWhereWithAggregatesInput[]
+    OR?: PTAvailabilityScalarWhereWithAggregatesInput[]
+    NOT?: PTAvailabilityScalarWhereWithAggregatesInput | PTAvailabilityScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PTAvailability"> | string
+    ptUserId?: StringWithAggregatesFilter<"PTAvailability"> | string
+    dayOfWeek?: EnumDayOfWeekWithAggregatesFilter<"PTAvailability"> | $Enums.DayOfWeek
+    startTime?: StringWithAggregatesFilter<"PTAvailability"> | string
+    endTime?: StringWithAggregatesFilter<"PTAvailability"> | string
+    isActive?: BoolWithAggregatesFilter<"PTAvailability"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"PTAvailability"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PTAvailability"> | Date | string
+  }
+
+  export type PTScheduleExceptionWhereInput = {
+    AND?: PTScheduleExceptionWhereInput | PTScheduleExceptionWhereInput[]
+    OR?: PTScheduleExceptionWhereInput[]
+    NOT?: PTScheduleExceptionWhereInput | PTScheduleExceptionWhereInput[]
+    id?: StringFilter<"PTScheduleException"> | string
+    ptUserId?: StringFilter<"PTScheduleException"> | string
+    date?: DateTimeFilter<"PTScheduleException"> | Date | string
+    reason?: StringNullableFilter<"PTScheduleException"> | string | null
+    createdAt?: DateTimeFilter<"PTScheduleException"> | Date | string
+  }
+
+  export type PTScheduleExceptionOrderByWithRelationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    date?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PTScheduleExceptionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PTScheduleExceptionWhereInput | PTScheduleExceptionWhereInput[]
+    OR?: PTScheduleExceptionWhereInput[]
+    NOT?: PTScheduleExceptionWhereInput | PTScheduleExceptionWhereInput[]
+    ptUserId?: StringFilter<"PTScheduleException"> | string
+    date?: DateTimeFilter<"PTScheduleException"> | Date | string
+    reason?: StringNullableFilter<"PTScheduleException"> | string | null
+    createdAt?: DateTimeFilter<"PTScheduleException"> | Date | string
+  }, "id">
+
+  export type PTScheduleExceptionOrderByWithAggregationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    date?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: PTScheduleExceptionCountOrderByAggregateInput
+    _max?: PTScheduleExceptionMaxOrderByAggregateInput
+    _min?: PTScheduleExceptionMinOrderByAggregateInput
+  }
+
+  export type PTScheduleExceptionScalarWhereWithAggregatesInput = {
+    AND?: PTScheduleExceptionScalarWhereWithAggregatesInput | PTScheduleExceptionScalarWhereWithAggregatesInput[]
+    OR?: PTScheduleExceptionScalarWhereWithAggregatesInput[]
+    NOT?: PTScheduleExceptionScalarWhereWithAggregatesInput | PTScheduleExceptionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PTScheduleException"> | string
+    ptUserId?: StringWithAggregatesFilter<"PTScheduleException"> | string
+    date?: DateTimeWithAggregatesFilter<"PTScheduleException"> | Date | string
+    reason?: StringNullableWithAggregatesFilter<"PTScheduleException"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PTScheduleException"> | Date | string
   }
 
   export type InBodyEntryWhereInput = {
@@ -8688,6 +16126,624 @@ export namespace Prisma {
     groupType?: EnumMediaGroupTypeFieldUpdateOperationsInput | $Enums.MediaGroupType
     fileUrl?: StringFieldUpdateOperationsInput | string
     label?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ContractCreateInput = {
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    description?: string | null
+    totalSessions: number
+    usedSessions?: number
+    price?: number | null
+    pricePerSession?: number | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionCreateNestedManyWithoutContractInput
+    reviews?: SessionReviewCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractUncheckedCreateInput = {
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    description?: string | null
+    totalSessions: number
+    usedSessions?: number
+    price?: number | null
+    pricePerSession?: number | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
+    reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableFloatFieldUpdateOperationsInput | number | null
+    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUpdateManyWithoutContractNestedInput
+    reviews?: SessionReviewUpdateManyWithoutContractNestedInput
+  }
+
+  export type ContractUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableFloatFieldUpdateOperationsInput | number | null
+    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
+    reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
+  }
+
+  export type ContractCreateManyInput = {
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    description?: string | null
+    totalSessions: number
+    usedSessions?: number
+    price?: number | null
+    pricePerSession?: number | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ContractUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableFloatFieldUpdateOperationsInput | number | null
+    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ContractUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableFloatFieldUpdateOperationsInput | number | null
+    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionCreateInput = {
+    id?: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    contract: ContractCreateNestedOneWithoutSessionsInput
+    review?: SessionReviewCreateNestedOneWithoutSessionInput
+  }
+
+  export type SessionUncheckedCreateInput = {
+    id?: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    review?: SessionReviewUncheckedCreateNestedOneWithoutSessionInput
+  }
+
+  export type SessionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    contract?: ContractUpdateOneRequiredWithoutSessionsNestedInput
+    review?: SessionReviewUpdateOneWithoutSessionNestedInput
+  }
+
+  export type SessionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    review?: SessionReviewUncheckedUpdateOneWithoutSessionNestedInput
+  }
+
+  export type SessionCreateManyInput = {
+    id?: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SessionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionReviewCreateInput = {
+    id?: string
+    clientUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+    session: SessionCreateNestedOneWithoutReviewInput
+    contract: ContractCreateNestedOneWithoutReviewsInput
+  }
+
+  export type SessionReviewUncheckedCreateInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SessionReviewUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    session?: SessionUpdateOneRequiredWithoutReviewNestedInput
+    contract?: ContractUpdateOneRequiredWithoutReviewsNestedInput
+  }
+
+  export type SessionReviewUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionReviewCreateManyInput = {
+    id?: string
+    sessionId: string
+    contractId: string
+    clientUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SessionReviewUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionReviewUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotificationCreateInput = {
+    id?: string
+    userId: string
+    text: string
+    eventType: $Enums.NotificationEventType
+    entityType: $Enums.NotificationEntityType
+    entityId: string
+    link?: string | null
+    unread?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NotificationUncheckedCreateInput = {
+    id?: string
+    userId: string
+    text: string
+    eventType: $Enums.NotificationEventType
+    entityType: $Enums.NotificationEntityType
+    entityId: string
+    link?: string | null
+    unread?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NotificationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    text?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumNotificationEventTypeFieldUpdateOperationsInput | $Enums.NotificationEventType
+    entityType?: EnumNotificationEntityTypeFieldUpdateOperationsInput | $Enums.NotificationEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    link?: NullableStringFieldUpdateOperationsInput | string | null
+    unread?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotificationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    text?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumNotificationEventTypeFieldUpdateOperationsInput | $Enums.NotificationEventType
+    entityType?: EnumNotificationEntityTypeFieldUpdateOperationsInput | $Enums.NotificationEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    link?: NullableStringFieldUpdateOperationsInput | string | null
+    unread?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotificationCreateManyInput = {
+    id?: string
+    userId: string
+    text: string
+    eventType: $Enums.NotificationEventType
+    entityType: $Enums.NotificationEntityType
+    entityId: string
+    link?: string | null
+    unread?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NotificationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    text?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumNotificationEventTypeFieldUpdateOperationsInput | $Enums.NotificationEventType
+    entityType?: EnumNotificationEntityTypeFieldUpdateOperationsInput | $Enums.NotificationEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    link?: NullableStringFieldUpdateOperationsInput | string | null
+    unread?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotificationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    text?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumNotificationEventTypeFieldUpdateOperationsInput | $Enums.NotificationEventType
+    entityType?: EnumNotificationEntityTypeFieldUpdateOperationsInput | $Enums.NotificationEntityType
+    entityId?: StringFieldUpdateOperationsInput | string
+    link?: NullableStringFieldUpdateOperationsInput | string | null
+    unread?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTAvailabilityCreateInput = {
+    id?: string
+    ptUserId: string
+    dayOfWeek: $Enums.DayOfWeek
+    startTime: string
+    endTime: string
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTAvailabilityUncheckedCreateInput = {
+    id?: string
+    ptUserId: string
+    dayOfWeek: $Enums.DayOfWeek
+    startTime: string
+    endTime: string
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTAvailabilityUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    dayOfWeek?: EnumDayOfWeekFieldUpdateOperationsInput | $Enums.DayOfWeek
+    startTime?: StringFieldUpdateOperationsInput | string
+    endTime?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTAvailabilityUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    dayOfWeek?: EnumDayOfWeekFieldUpdateOperationsInput | $Enums.DayOfWeek
+    startTime?: StringFieldUpdateOperationsInput | string
+    endTime?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTAvailabilityCreateManyInput = {
+    id?: string
+    ptUserId: string
+    dayOfWeek: $Enums.DayOfWeek
+    startTime: string
+    endTime: string
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTAvailabilityUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    dayOfWeek?: EnumDayOfWeekFieldUpdateOperationsInput | $Enums.DayOfWeek
+    startTime?: StringFieldUpdateOperationsInput | string
+    endTime?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTAvailabilityUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    dayOfWeek?: EnumDayOfWeekFieldUpdateOperationsInput | $Enums.DayOfWeek
+    startTime?: StringFieldUpdateOperationsInput | string
+    endTime?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTScheduleExceptionCreateInput = {
+    id?: string
+    ptUserId: string
+    date: Date | string
+    reason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PTScheduleExceptionUncheckedCreateInput = {
+    id?: string
+    ptUserId: string
+    date: Date | string
+    reason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PTScheduleExceptionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTScheduleExceptionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTScheduleExceptionCreateManyInput = {
+    id?: string
+    ptUserId: string
+    date: Date | string
+    reason?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PTScheduleExceptionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTScheduleExceptionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -9557,6 +17613,470 @@ export namespace Prisma {
     _max?: NestedEnumMediaGroupTypeFilter<$PrismaModel>
   }
 
+  export type EnumContractStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractStatus | EnumContractStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractStatus[] | ListEnumContractStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractStatus[] | ListEnumContractStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractStatusFilter<$PrismaModel> | $Enums.ContractStatus
+  }
+
+  export type EnumPackageTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.PackageType | EnumPackageTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PackageType[] | ListEnumPackageTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PackageType[] | ListEnumPackageTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPackageTypeFilter<$PrismaModel> | $Enums.PackageType
+  }
+
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
+  export type SessionListRelationFilter = {
+    every?: SessionWhereInput
+    some?: SessionWhereInput
+    none?: SessionWhereInput
+  }
+
+  export type SessionReviewListRelationFilter = {
+    every?: SessionReviewWhereInput
+    some?: SessionReviewWhereInput
+    none?: SessionReviewWhereInput
+  }
+
+  export type SessionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type SessionReviewOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ContractCountOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    clientUserId?: SortOrder
+    status?: SortOrder
+    packageType?: SortOrder
+    packageName?: SortOrder
+    description?: SortOrder
+    totalSessions?: SortOrder
+    usedSessions?: SortOrder
+    price?: SortOrder
+    pricePerSession?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
+    completedAt?: SortOrder
+    clientMessage?: SortOrder
+    rejectionReason?: SortOrder
+    cancelledBy?: SortOrder
+    cancellationReason?: SortOrder
+    terms?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ContractAvgOrderByAggregateInput = {
+    totalSessions?: SortOrder
+    usedSessions?: SortOrder
+    price?: SortOrder
+    pricePerSession?: SortOrder
+  }
+
+  export type ContractMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    clientUserId?: SortOrder
+    status?: SortOrder
+    packageType?: SortOrder
+    packageName?: SortOrder
+    description?: SortOrder
+    totalSessions?: SortOrder
+    usedSessions?: SortOrder
+    price?: SortOrder
+    pricePerSession?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
+    completedAt?: SortOrder
+    clientMessage?: SortOrder
+    rejectionReason?: SortOrder
+    cancelledBy?: SortOrder
+    cancellationReason?: SortOrder
+    terms?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ContractMinOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    clientUserId?: SortOrder
+    status?: SortOrder
+    packageType?: SortOrder
+    packageName?: SortOrder
+    description?: SortOrder
+    totalSessions?: SortOrder
+    usedSessions?: SortOrder
+    price?: SortOrder
+    pricePerSession?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
+    completedAt?: SortOrder
+    clientMessage?: SortOrder
+    rejectionReason?: SortOrder
+    cancelledBy?: SortOrder
+    cancellationReason?: SortOrder
+    terms?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ContractSumOrderByAggregateInput = {
+    totalSessions?: SortOrder
+    usedSessions?: SortOrder
+    price?: SortOrder
+    pricePerSession?: SortOrder
+  }
+
+  export type EnumContractStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractStatus | EnumContractStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractStatus[] | ListEnumContractStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractStatus[] | ListEnumContractStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractStatusWithAggregatesFilter<$PrismaModel> | $Enums.ContractStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumContractStatusFilter<$PrismaModel>
+    _max?: NestedEnumContractStatusFilter<$PrismaModel>
+  }
+
+  export type EnumPackageTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PackageType | EnumPackageTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PackageType[] | ListEnumPackageTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PackageType[] | ListEnumPackageTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPackageTypeWithAggregatesFilter<$PrismaModel> | $Enums.PackageType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPackageTypeFilter<$PrismaModel>
+    _max?: NestedEnumPackageTypeFilter<$PrismaModel>
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type EnumSessionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionStatus | EnumSessionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionStatus[] | ListEnumSessionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionStatus[] | ListEnumSessionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionStatusFilter<$PrismaModel> | $Enums.SessionStatus
+  }
+
+  export type EnumSessionModeFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionMode | EnumSessionModeFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionModeFilter<$PrismaModel> | $Enums.SessionMode
+  }
+
+  export type ContractRelationFilter = {
+    is?: ContractWhereInput
+    isNot?: ContractWhereInput
+  }
+
+  export type SessionReviewNullableRelationFilter = {
+    is?: SessionReviewWhereInput | null
+    isNot?: SessionReviewWhereInput | null
+  }
+
+  export type SessionCountOrderByAggregateInput = {
+    id?: SortOrder
+    contractId?: SortOrder
+    clientUserId?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    sessionMode?: SortOrder
+    scheduledStartAt?: SortOrder
+    scheduledEndAt?: SortOrder
+    location?: SortOrder
+    notes?: SortOrder
+    ptNotes?: SortOrder
+    cancelledBy?: SortOrder
+    cancellationReason?: SortOrder
+    sessionDeducted?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SessionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    contractId?: SortOrder
+    clientUserId?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    sessionMode?: SortOrder
+    scheduledStartAt?: SortOrder
+    scheduledEndAt?: SortOrder
+    location?: SortOrder
+    notes?: SortOrder
+    ptNotes?: SortOrder
+    cancelledBy?: SortOrder
+    cancellationReason?: SortOrder
+    sessionDeducted?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SessionMinOrderByAggregateInput = {
+    id?: SortOrder
+    contractId?: SortOrder
+    clientUserId?: SortOrder
+    ptUserId?: SortOrder
+    status?: SortOrder
+    sessionMode?: SortOrder
+    scheduledStartAt?: SortOrder
+    scheduledEndAt?: SortOrder
+    location?: SortOrder
+    notes?: SortOrder
+    ptNotes?: SortOrder
+    cancelledBy?: SortOrder
+    cancellationReason?: SortOrder
+    sessionDeducted?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumSessionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionStatus | EnumSessionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionStatus[] | ListEnumSessionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionStatus[] | ListEnumSessionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionStatusWithAggregatesFilter<$PrismaModel> | $Enums.SessionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSessionStatusFilter<$PrismaModel>
+    _max?: NestedEnumSessionStatusFilter<$PrismaModel>
+  }
+
+  export type EnumSessionModeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionMode | EnumSessionModeFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionModeWithAggregatesFilter<$PrismaModel> | $Enums.SessionMode
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSessionModeFilter<$PrismaModel>
+    _max?: NestedEnumSessionModeFilter<$PrismaModel>
+  }
+
+  export type SessionRelationFilter = {
+    is?: SessionWhereInput
+    isNot?: SessionWhereInput
+  }
+
+  export type SessionReviewCountOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    clientUserId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SessionReviewAvgOrderByAggregateInput = {
+    rating?: SortOrder
+  }
+
+  export type SessionReviewMaxOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    clientUserId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SessionReviewMinOrderByAggregateInput = {
+    id?: SortOrder
+    sessionId?: SortOrder
+    contractId?: SortOrder
+    clientUserId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type SessionReviewSumOrderByAggregateInput = {
+    rating?: SortOrder
+  }
+
+  export type EnumNotificationEventTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.NotificationEventType | EnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.NotificationEventType[] | ListEnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.NotificationEventType[] | ListEnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumNotificationEventTypeFilter<$PrismaModel> | $Enums.NotificationEventType
+  }
+
+  export type EnumNotificationEntityTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.NotificationEntityType | EnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.NotificationEntityType[] | ListEnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.NotificationEntityType[] | ListEnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumNotificationEntityTypeFilter<$PrismaModel> | $Enums.NotificationEntityType
+  }
+
+  export type NotificationCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    text?: SortOrder
+    eventType?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    link?: SortOrder
+    unread?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NotificationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    text?: SortOrder
+    eventType?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    link?: SortOrder
+    unread?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NotificationMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    text?: SortOrder
+    eventType?: SortOrder
+    entityType?: SortOrder
+    entityId?: SortOrder
+    link?: SortOrder
+    unread?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumNotificationEventTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.NotificationEventType | EnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.NotificationEventType[] | ListEnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.NotificationEventType[] | ListEnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumNotificationEventTypeWithAggregatesFilter<$PrismaModel> | $Enums.NotificationEventType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumNotificationEventTypeFilter<$PrismaModel>
+    _max?: NestedEnumNotificationEventTypeFilter<$PrismaModel>
+  }
+
+  export type EnumNotificationEntityTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.NotificationEntityType | EnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.NotificationEntityType[] | ListEnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.NotificationEntityType[] | ListEnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumNotificationEntityTypeWithAggregatesFilter<$PrismaModel> | $Enums.NotificationEntityType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumNotificationEntityTypeFilter<$PrismaModel>
+    _max?: NestedEnumNotificationEntityTypeFilter<$PrismaModel>
+  }
+
+  export type EnumDayOfWeekFilter<$PrismaModel = never> = {
+    equals?: $Enums.DayOfWeek | EnumDayOfWeekFieldRefInput<$PrismaModel>
+    in?: $Enums.DayOfWeek[] | ListEnumDayOfWeekFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DayOfWeek[] | ListEnumDayOfWeekFieldRefInput<$PrismaModel>
+    not?: NestedEnumDayOfWeekFilter<$PrismaModel> | $Enums.DayOfWeek
+  }
+
+  export type PTAvailabilityCountOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    dayOfWeek?: SortOrder
+    startTime?: SortOrder
+    endTime?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PTAvailabilityMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    dayOfWeek?: SortOrder
+    startTime?: SortOrder
+    endTime?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PTAvailabilityMinOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    dayOfWeek?: SortOrder
+    startTime?: SortOrder
+    endTime?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumDayOfWeekWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DayOfWeek | EnumDayOfWeekFieldRefInput<$PrismaModel>
+    in?: $Enums.DayOfWeek[] | ListEnumDayOfWeekFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DayOfWeek[] | ListEnumDayOfWeekFieldRefInput<$PrismaModel>
+    not?: NestedEnumDayOfWeekWithAggregatesFilter<$PrismaModel> | $Enums.DayOfWeek
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDayOfWeekFilter<$PrismaModel>
+    _max?: NestedEnumDayOfWeekFilter<$PrismaModel>
+  }
+
+  export type PTScheduleExceptionCountOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    date?: SortOrder
+    reason?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PTScheduleExceptionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    date?: SortOrder
+    reason?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PTScheduleExceptionMinOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    date?: SortOrder
+    reason?: SortOrder
+    createdAt?: SortOrder
+  }
+
   export type FloatFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -9999,6 +18519,200 @@ export namespace Prisma {
     update?: XOR<XOR<PTApplicationUpdateToOneWithWhereWithoutMediaInput, PTApplicationUpdateWithoutMediaInput>, PTApplicationUncheckedUpdateWithoutMediaInput>
   }
 
+  export type SessionCreateNestedManyWithoutContractInput = {
+    create?: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput> | SessionCreateWithoutContractInput[] | SessionUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: SessionCreateOrConnectWithoutContractInput | SessionCreateOrConnectWithoutContractInput[]
+    createMany?: SessionCreateManyContractInputEnvelope
+    connect?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
+  }
+
+  export type SessionReviewCreateNestedManyWithoutContractInput = {
+    create?: XOR<SessionReviewCreateWithoutContractInput, SessionReviewUncheckedCreateWithoutContractInput> | SessionReviewCreateWithoutContractInput[] | SessionReviewUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: SessionReviewCreateOrConnectWithoutContractInput | SessionReviewCreateOrConnectWithoutContractInput[]
+    createMany?: SessionReviewCreateManyContractInputEnvelope
+    connect?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
+  }
+
+  export type SessionUncheckedCreateNestedManyWithoutContractInput = {
+    create?: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput> | SessionCreateWithoutContractInput[] | SessionUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: SessionCreateOrConnectWithoutContractInput | SessionCreateOrConnectWithoutContractInput[]
+    createMany?: SessionCreateManyContractInputEnvelope
+    connect?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
+  }
+
+  export type SessionReviewUncheckedCreateNestedManyWithoutContractInput = {
+    create?: XOR<SessionReviewCreateWithoutContractInput, SessionReviewUncheckedCreateWithoutContractInput> | SessionReviewCreateWithoutContractInput[] | SessionReviewUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: SessionReviewCreateOrConnectWithoutContractInput | SessionReviewCreateOrConnectWithoutContractInput[]
+    createMany?: SessionReviewCreateManyContractInputEnvelope
+    connect?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
+  }
+
+  export type EnumContractStatusFieldUpdateOperationsInput = {
+    set?: $Enums.ContractStatus
+  }
+
+  export type EnumPackageTypeFieldUpdateOperationsInput = {
+    set?: $Enums.PackageType
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type SessionUpdateManyWithoutContractNestedInput = {
+    create?: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput> | SessionCreateWithoutContractInput[] | SessionUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: SessionCreateOrConnectWithoutContractInput | SessionCreateOrConnectWithoutContractInput[]
+    upsert?: SessionUpsertWithWhereUniqueWithoutContractInput | SessionUpsertWithWhereUniqueWithoutContractInput[]
+    createMany?: SessionCreateManyContractInputEnvelope
+    set?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
+    disconnect?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
+    delete?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
+    connect?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
+    update?: SessionUpdateWithWhereUniqueWithoutContractInput | SessionUpdateWithWhereUniqueWithoutContractInput[]
+    updateMany?: SessionUpdateManyWithWhereWithoutContractInput | SessionUpdateManyWithWhereWithoutContractInput[]
+    deleteMany?: SessionScalarWhereInput | SessionScalarWhereInput[]
+  }
+
+  export type SessionReviewUpdateManyWithoutContractNestedInput = {
+    create?: XOR<SessionReviewCreateWithoutContractInput, SessionReviewUncheckedCreateWithoutContractInput> | SessionReviewCreateWithoutContractInput[] | SessionReviewUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: SessionReviewCreateOrConnectWithoutContractInput | SessionReviewCreateOrConnectWithoutContractInput[]
+    upsert?: SessionReviewUpsertWithWhereUniqueWithoutContractInput | SessionReviewUpsertWithWhereUniqueWithoutContractInput[]
+    createMany?: SessionReviewCreateManyContractInputEnvelope
+    set?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
+    disconnect?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
+    delete?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
+    connect?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
+    update?: SessionReviewUpdateWithWhereUniqueWithoutContractInput | SessionReviewUpdateWithWhereUniqueWithoutContractInput[]
+    updateMany?: SessionReviewUpdateManyWithWhereWithoutContractInput | SessionReviewUpdateManyWithWhereWithoutContractInput[]
+    deleteMany?: SessionReviewScalarWhereInput | SessionReviewScalarWhereInput[]
+  }
+
+  export type SessionUncheckedUpdateManyWithoutContractNestedInput = {
+    create?: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput> | SessionCreateWithoutContractInput[] | SessionUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: SessionCreateOrConnectWithoutContractInput | SessionCreateOrConnectWithoutContractInput[]
+    upsert?: SessionUpsertWithWhereUniqueWithoutContractInput | SessionUpsertWithWhereUniqueWithoutContractInput[]
+    createMany?: SessionCreateManyContractInputEnvelope
+    set?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
+    disconnect?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
+    delete?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
+    connect?: SessionWhereUniqueInput | SessionWhereUniqueInput[]
+    update?: SessionUpdateWithWhereUniqueWithoutContractInput | SessionUpdateWithWhereUniqueWithoutContractInput[]
+    updateMany?: SessionUpdateManyWithWhereWithoutContractInput | SessionUpdateManyWithWhereWithoutContractInput[]
+    deleteMany?: SessionScalarWhereInput | SessionScalarWhereInput[]
+  }
+
+  export type SessionReviewUncheckedUpdateManyWithoutContractNestedInput = {
+    create?: XOR<SessionReviewCreateWithoutContractInput, SessionReviewUncheckedCreateWithoutContractInput> | SessionReviewCreateWithoutContractInput[] | SessionReviewUncheckedCreateWithoutContractInput[]
+    connectOrCreate?: SessionReviewCreateOrConnectWithoutContractInput | SessionReviewCreateOrConnectWithoutContractInput[]
+    upsert?: SessionReviewUpsertWithWhereUniqueWithoutContractInput | SessionReviewUpsertWithWhereUniqueWithoutContractInput[]
+    createMany?: SessionReviewCreateManyContractInputEnvelope
+    set?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
+    disconnect?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
+    delete?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
+    connect?: SessionReviewWhereUniqueInput | SessionReviewWhereUniqueInput[]
+    update?: SessionReviewUpdateWithWhereUniqueWithoutContractInput | SessionReviewUpdateWithWhereUniqueWithoutContractInput[]
+    updateMany?: SessionReviewUpdateManyWithWhereWithoutContractInput | SessionReviewUpdateManyWithWhereWithoutContractInput[]
+    deleteMany?: SessionReviewScalarWhereInput | SessionReviewScalarWhereInput[]
+  }
+
+  export type ContractCreateNestedOneWithoutSessionsInput = {
+    create?: XOR<ContractCreateWithoutSessionsInput, ContractUncheckedCreateWithoutSessionsInput>
+    connectOrCreate?: ContractCreateOrConnectWithoutSessionsInput
+    connect?: ContractWhereUniqueInput
+  }
+
+  export type SessionReviewCreateNestedOneWithoutSessionInput = {
+    create?: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
+    connectOrCreate?: SessionReviewCreateOrConnectWithoutSessionInput
+    connect?: SessionReviewWhereUniqueInput
+  }
+
+  export type SessionReviewUncheckedCreateNestedOneWithoutSessionInput = {
+    create?: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
+    connectOrCreate?: SessionReviewCreateOrConnectWithoutSessionInput
+    connect?: SessionReviewWhereUniqueInput
+  }
+
+  export type EnumSessionStatusFieldUpdateOperationsInput = {
+    set?: $Enums.SessionStatus
+  }
+
+  export type EnumSessionModeFieldUpdateOperationsInput = {
+    set?: $Enums.SessionMode
+  }
+
+  export type ContractUpdateOneRequiredWithoutSessionsNestedInput = {
+    create?: XOR<ContractCreateWithoutSessionsInput, ContractUncheckedCreateWithoutSessionsInput>
+    connectOrCreate?: ContractCreateOrConnectWithoutSessionsInput
+    upsert?: ContractUpsertWithoutSessionsInput
+    connect?: ContractWhereUniqueInput
+    update?: XOR<XOR<ContractUpdateToOneWithWhereWithoutSessionsInput, ContractUpdateWithoutSessionsInput>, ContractUncheckedUpdateWithoutSessionsInput>
+  }
+
+  export type SessionReviewUpdateOneWithoutSessionNestedInput = {
+    create?: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
+    connectOrCreate?: SessionReviewCreateOrConnectWithoutSessionInput
+    upsert?: SessionReviewUpsertWithoutSessionInput
+    disconnect?: SessionReviewWhereInput | boolean
+    delete?: SessionReviewWhereInput | boolean
+    connect?: SessionReviewWhereUniqueInput
+    update?: XOR<XOR<SessionReviewUpdateToOneWithWhereWithoutSessionInput, SessionReviewUpdateWithoutSessionInput>, SessionReviewUncheckedUpdateWithoutSessionInput>
+  }
+
+  export type SessionReviewUncheckedUpdateOneWithoutSessionNestedInput = {
+    create?: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
+    connectOrCreate?: SessionReviewCreateOrConnectWithoutSessionInput
+    upsert?: SessionReviewUpsertWithoutSessionInput
+    disconnect?: SessionReviewWhereInput | boolean
+    delete?: SessionReviewWhereInput | boolean
+    connect?: SessionReviewWhereUniqueInput
+    update?: XOR<XOR<SessionReviewUpdateToOneWithWhereWithoutSessionInput, SessionReviewUpdateWithoutSessionInput>, SessionReviewUncheckedUpdateWithoutSessionInput>
+  }
+
+  export type SessionCreateNestedOneWithoutReviewInput = {
+    create?: XOR<SessionCreateWithoutReviewInput, SessionUncheckedCreateWithoutReviewInput>
+    connectOrCreate?: SessionCreateOrConnectWithoutReviewInput
+    connect?: SessionWhereUniqueInput
+  }
+
+  export type ContractCreateNestedOneWithoutReviewsInput = {
+    create?: XOR<ContractCreateWithoutReviewsInput, ContractUncheckedCreateWithoutReviewsInput>
+    connectOrCreate?: ContractCreateOrConnectWithoutReviewsInput
+    connect?: ContractWhereUniqueInput
+  }
+
+  export type SessionUpdateOneRequiredWithoutReviewNestedInput = {
+    create?: XOR<SessionCreateWithoutReviewInput, SessionUncheckedCreateWithoutReviewInput>
+    connectOrCreate?: SessionCreateOrConnectWithoutReviewInput
+    upsert?: SessionUpsertWithoutReviewInput
+    connect?: SessionWhereUniqueInput
+    update?: XOR<XOR<SessionUpdateToOneWithWhereWithoutReviewInput, SessionUpdateWithoutReviewInput>, SessionUncheckedUpdateWithoutReviewInput>
+  }
+
+  export type ContractUpdateOneRequiredWithoutReviewsNestedInput = {
+    create?: XOR<ContractCreateWithoutReviewsInput, ContractUncheckedCreateWithoutReviewsInput>
+    connectOrCreate?: ContractCreateOrConnectWithoutReviewsInput
+    upsert?: ContractUpsertWithoutReviewsInput
+    connect?: ContractWhereUniqueInput
+    update?: XOR<XOR<ContractUpdateToOneWithWhereWithoutReviewsInput, ContractUpdateWithoutReviewsInput>, ContractUncheckedUpdateWithoutReviewsInput>
+  }
+
+  export type EnumNotificationEventTypeFieldUpdateOperationsInput = {
+    set?: $Enums.NotificationEventType
+  }
+
+  export type EnumNotificationEntityTypeFieldUpdateOperationsInput = {
+    set?: $Enums.NotificationEntityType
+  }
+
+  export type EnumDayOfWeekFieldUpdateOperationsInput = {
+    set?: $Enums.DayOfWeek
+  }
+
   export type FloatFieldUpdateOperationsInput = {
     set?: number
     increment?: number
@@ -10338,6 +19052,56 @@ export namespace Prisma {
     _max?: NestedEnumMediaGroupTypeFilter<$PrismaModel>
   }
 
+  export type NestedEnumContractStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractStatus | EnumContractStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractStatus[] | ListEnumContractStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractStatus[] | ListEnumContractStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractStatusFilter<$PrismaModel> | $Enums.ContractStatus
+  }
+
+  export type NestedEnumPackageTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.PackageType | EnumPackageTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PackageType[] | ListEnumPackageTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PackageType[] | ListEnumPackageTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPackageTypeFilter<$PrismaModel> | $Enums.PackageType
+  }
+
+  export type NestedEnumContractStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractStatus | EnumContractStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractStatus[] | ListEnumContractStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractStatus[] | ListEnumContractStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractStatusWithAggregatesFilter<$PrismaModel> | $Enums.ContractStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumContractStatusFilter<$PrismaModel>
+    _max?: NestedEnumContractStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPackageTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PackageType | EnumPackageTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.PackageType[] | ListEnumPackageTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PackageType[] | ListEnumPackageTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumPackageTypeWithAggregatesFilter<$PrismaModel> | $Enums.PackageType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPackageTypeFilter<$PrismaModel>
+    _max?: NestedEnumPackageTypeFilter<$PrismaModel>
+  }
+
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
   export type NestedFloatFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -10347,6 +19111,91 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedEnumSessionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionStatus | EnumSessionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionStatus[] | ListEnumSessionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionStatus[] | ListEnumSessionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionStatusFilter<$PrismaModel> | $Enums.SessionStatus
+  }
+
+  export type NestedEnumSessionModeFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionMode | EnumSessionModeFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionModeFilter<$PrismaModel> | $Enums.SessionMode
+  }
+
+  export type NestedEnumSessionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionStatus | EnumSessionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionStatus[] | ListEnumSessionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionStatus[] | ListEnumSessionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionStatusWithAggregatesFilter<$PrismaModel> | $Enums.SessionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSessionStatusFilter<$PrismaModel>
+    _max?: NestedEnumSessionStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumSessionModeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionMode | EnumSessionModeFieldRefInput<$PrismaModel>
+    in?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumSessionModeWithAggregatesFilter<$PrismaModel> | $Enums.SessionMode
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumSessionModeFilter<$PrismaModel>
+    _max?: NestedEnumSessionModeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumNotificationEventTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.NotificationEventType | EnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.NotificationEventType[] | ListEnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.NotificationEventType[] | ListEnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumNotificationEventTypeFilter<$PrismaModel> | $Enums.NotificationEventType
+  }
+
+  export type NestedEnumNotificationEntityTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.NotificationEntityType | EnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.NotificationEntityType[] | ListEnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.NotificationEntityType[] | ListEnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumNotificationEntityTypeFilter<$PrismaModel> | $Enums.NotificationEntityType
+  }
+
+  export type NestedEnumNotificationEventTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.NotificationEventType | EnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.NotificationEventType[] | ListEnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.NotificationEventType[] | ListEnumNotificationEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumNotificationEventTypeWithAggregatesFilter<$PrismaModel> | $Enums.NotificationEventType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumNotificationEventTypeFilter<$PrismaModel>
+    _max?: NestedEnumNotificationEventTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumNotificationEntityTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.NotificationEntityType | EnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.NotificationEntityType[] | ListEnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.NotificationEntityType[] | ListEnumNotificationEntityTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumNotificationEntityTypeWithAggregatesFilter<$PrismaModel> | $Enums.NotificationEntityType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumNotificationEntityTypeFilter<$PrismaModel>
+    _max?: NestedEnumNotificationEntityTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumDayOfWeekFilter<$PrismaModel = never> = {
+    equals?: $Enums.DayOfWeek | EnumDayOfWeekFieldRefInput<$PrismaModel>
+    in?: $Enums.DayOfWeek[] | ListEnumDayOfWeekFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DayOfWeek[] | ListEnumDayOfWeekFieldRefInput<$PrismaModel>
+    not?: NestedEnumDayOfWeekFilter<$PrismaModel> | $Enums.DayOfWeek
+  }
+
+  export type NestedEnumDayOfWeekWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.DayOfWeek | EnumDayOfWeekFieldRefInput<$PrismaModel>
+    in?: $Enums.DayOfWeek[] | ListEnumDayOfWeekFieldRefInput<$PrismaModel>
+    notIn?: $Enums.DayOfWeek[] | ListEnumDayOfWeekFieldRefInput<$PrismaModel>
+    not?: NestedEnumDayOfWeekWithAggregatesFilter<$PrismaModel> | $Enums.DayOfWeek
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumDayOfWeekFilter<$PrismaModel>
+    _max?: NestedEnumDayOfWeekFilter<$PrismaModel>
   }
 
   export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
@@ -11177,6 +20026,540 @@ export namespace Prisma {
     certificates?: PTApplicationCertificateUncheckedUpdateManyWithoutApplicationNestedInput
   }
 
+  export type SessionCreateWithoutContractInput = {
+    id?: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    review?: SessionReviewCreateNestedOneWithoutSessionInput
+  }
+
+  export type SessionUncheckedCreateWithoutContractInput = {
+    id?: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    review?: SessionReviewUncheckedCreateNestedOneWithoutSessionInput
+  }
+
+  export type SessionCreateOrConnectWithoutContractInput = {
+    where: SessionWhereUniqueInput
+    create: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput>
+  }
+
+  export type SessionCreateManyContractInputEnvelope = {
+    data: SessionCreateManyContractInput | SessionCreateManyContractInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type SessionReviewCreateWithoutContractInput = {
+    id?: string
+    clientUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+    session: SessionCreateNestedOneWithoutReviewInput
+  }
+
+  export type SessionReviewUncheckedCreateWithoutContractInput = {
+    id?: string
+    sessionId: string
+    clientUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SessionReviewCreateOrConnectWithoutContractInput = {
+    where: SessionReviewWhereUniqueInput
+    create: XOR<SessionReviewCreateWithoutContractInput, SessionReviewUncheckedCreateWithoutContractInput>
+  }
+
+  export type SessionReviewCreateManyContractInputEnvelope = {
+    data: SessionReviewCreateManyContractInput | SessionReviewCreateManyContractInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type SessionUpsertWithWhereUniqueWithoutContractInput = {
+    where: SessionWhereUniqueInput
+    update: XOR<SessionUpdateWithoutContractInput, SessionUncheckedUpdateWithoutContractInput>
+    create: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput>
+  }
+
+  export type SessionUpdateWithWhereUniqueWithoutContractInput = {
+    where: SessionWhereUniqueInput
+    data: XOR<SessionUpdateWithoutContractInput, SessionUncheckedUpdateWithoutContractInput>
+  }
+
+  export type SessionUpdateManyWithWhereWithoutContractInput = {
+    where: SessionScalarWhereInput
+    data: XOR<SessionUpdateManyMutationInput, SessionUncheckedUpdateManyWithoutContractInput>
+  }
+
+  export type SessionScalarWhereInput = {
+    AND?: SessionScalarWhereInput | SessionScalarWhereInput[]
+    OR?: SessionScalarWhereInput[]
+    NOT?: SessionScalarWhereInput | SessionScalarWhereInput[]
+    id?: StringFilter<"Session"> | string
+    contractId?: StringFilter<"Session"> | string
+    clientUserId?: StringFilter<"Session"> | string
+    ptUserId?: StringFilter<"Session"> | string
+    status?: EnumSessionStatusFilter<"Session"> | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFilter<"Session"> | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFilter<"Session"> | Date | string
+    scheduledEndAt?: DateTimeFilter<"Session"> | Date | string
+    location?: StringNullableFilter<"Session"> | string | null
+    notes?: StringNullableFilter<"Session"> | string | null
+    ptNotes?: StringNullableFilter<"Session"> | string | null
+    cancelledBy?: StringNullableFilter<"Session"> | string | null
+    cancellationReason?: StringNullableFilter<"Session"> | string | null
+    sessionDeducted?: BoolFilter<"Session"> | boolean
+    completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    createdAt?: DateTimeFilter<"Session"> | Date | string
+    updatedAt?: DateTimeFilter<"Session"> | Date | string
+  }
+
+  export type SessionReviewUpsertWithWhereUniqueWithoutContractInput = {
+    where: SessionReviewWhereUniqueInput
+    update: XOR<SessionReviewUpdateWithoutContractInput, SessionReviewUncheckedUpdateWithoutContractInput>
+    create: XOR<SessionReviewCreateWithoutContractInput, SessionReviewUncheckedCreateWithoutContractInput>
+  }
+
+  export type SessionReviewUpdateWithWhereUniqueWithoutContractInput = {
+    where: SessionReviewWhereUniqueInput
+    data: XOR<SessionReviewUpdateWithoutContractInput, SessionReviewUncheckedUpdateWithoutContractInput>
+  }
+
+  export type SessionReviewUpdateManyWithWhereWithoutContractInput = {
+    where: SessionReviewScalarWhereInput
+    data: XOR<SessionReviewUpdateManyMutationInput, SessionReviewUncheckedUpdateManyWithoutContractInput>
+  }
+
+  export type SessionReviewScalarWhereInput = {
+    AND?: SessionReviewScalarWhereInput | SessionReviewScalarWhereInput[]
+    OR?: SessionReviewScalarWhereInput[]
+    NOT?: SessionReviewScalarWhereInput | SessionReviewScalarWhereInput[]
+    id?: StringFilter<"SessionReview"> | string
+    sessionId?: StringFilter<"SessionReview"> | string
+    contractId?: StringFilter<"SessionReview"> | string
+    clientUserId?: StringFilter<"SessionReview"> | string
+    rating?: IntFilter<"SessionReview"> | number
+    comment?: StringNullableFilter<"SessionReview"> | string | null
+    createdAt?: DateTimeFilter<"SessionReview"> | Date | string
+  }
+
+  export type ContractCreateWithoutSessionsInput = {
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    description?: string | null
+    totalSessions: number
+    usedSessions?: number
+    price?: number | null
+    pricePerSession?: number | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    reviews?: SessionReviewCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractUncheckedCreateWithoutSessionsInput = {
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    description?: string | null
+    totalSessions: number
+    usedSessions?: number
+    price?: number | null
+    pricePerSession?: number | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractCreateOrConnectWithoutSessionsInput = {
+    where: ContractWhereUniqueInput
+    create: XOR<ContractCreateWithoutSessionsInput, ContractUncheckedCreateWithoutSessionsInput>
+  }
+
+  export type SessionReviewCreateWithoutSessionInput = {
+    id?: string
+    clientUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+    contract: ContractCreateNestedOneWithoutReviewsInput
+  }
+
+  export type SessionReviewUncheckedCreateWithoutSessionInput = {
+    id?: string
+    contractId: string
+    clientUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SessionReviewCreateOrConnectWithoutSessionInput = {
+    where: SessionReviewWhereUniqueInput
+    create: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
+  }
+
+  export type ContractUpsertWithoutSessionsInput = {
+    update: XOR<ContractUpdateWithoutSessionsInput, ContractUncheckedUpdateWithoutSessionsInput>
+    create: XOR<ContractCreateWithoutSessionsInput, ContractUncheckedCreateWithoutSessionsInput>
+    where?: ContractWhereInput
+  }
+
+  export type ContractUpdateToOneWithWhereWithoutSessionsInput = {
+    where?: ContractWhereInput
+    data: XOR<ContractUpdateWithoutSessionsInput, ContractUncheckedUpdateWithoutSessionsInput>
+  }
+
+  export type ContractUpdateWithoutSessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableFloatFieldUpdateOperationsInput | number | null
+    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reviews?: SessionReviewUpdateManyWithoutContractNestedInput
+  }
+
+  export type ContractUncheckedUpdateWithoutSessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableFloatFieldUpdateOperationsInput | number | null
+    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
+  }
+
+  export type SessionReviewUpsertWithoutSessionInput = {
+    update: XOR<SessionReviewUpdateWithoutSessionInput, SessionReviewUncheckedUpdateWithoutSessionInput>
+    create: XOR<SessionReviewCreateWithoutSessionInput, SessionReviewUncheckedCreateWithoutSessionInput>
+    where?: SessionReviewWhereInput
+  }
+
+  export type SessionReviewUpdateToOneWithWhereWithoutSessionInput = {
+    where?: SessionReviewWhereInput
+    data: XOR<SessionReviewUpdateWithoutSessionInput, SessionReviewUncheckedUpdateWithoutSessionInput>
+  }
+
+  export type SessionReviewUpdateWithoutSessionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    contract?: ContractUpdateOneRequiredWithoutReviewsNestedInput
+  }
+
+  export type SessionReviewUncheckedUpdateWithoutSessionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionCreateWithoutReviewInput = {
+    id?: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    contract: ContractCreateNestedOneWithoutSessionsInput
+  }
+
+  export type SessionUncheckedCreateWithoutReviewInput = {
+    id?: string
+    contractId: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SessionCreateOrConnectWithoutReviewInput = {
+    where: SessionWhereUniqueInput
+    create: XOR<SessionCreateWithoutReviewInput, SessionUncheckedCreateWithoutReviewInput>
+  }
+
+  export type ContractCreateWithoutReviewsInput = {
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    description?: string | null
+    totalSessions: number
+    usedSessions?: number
+    price?: number | null
+    pricePerSession?: number | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractUncheckedCreateWithoutReviewsInput = {
+    id?: string
+    ptUserId: string
+    clientUserId: string
+    status?: $Enums.ContractStatus
+    packageType?: $Enums.PackageType
+    packageName: string
+    description?: string | null
+    totalSessions: number
+    usedSessions?: number
+    price?: number | null
+    pricePerSession?: number | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    completedAt?: Date | string | null
+    clientMessage?: string | null
+    rejectionReason?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    terms?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
+  }
+
+  export type ContractCreateOrConnectWithoutReviewsInput = {
+    where: ContractWhereUniqueInput
+    create: XOR<ContractCreateWithoutReviewsInput, ContractUncheckedCreateWithoutReviewsInput>
+  }
+
+  export type SessionUpsertWithoutReviewInput = {
+    update: XOR<SessionUpdateWithoutReviewInput, SessionUncheckedUpdateWithoutReviewInput>
+    create: XOR<SessionCreateWithoutReviewInput, SessionUncheckedCreateWithoutReviewInput>
+    where?: SessionWhereInput
+  }
+
+  export type SessionUpdateToOneWithWhereWithoutReviewInput = {
+    where?: SessionWhereInput
+    data: XOR<SessionUpdateWithoutReviewInput, SessionUncheckedUpdateWithoutReviewInput>
+  }
+
+  export type SessionUpdateWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    contract?: ContractUpdateOneRequiredWithoutSessionsNestedInput
+  }
+
+  export type SessionUncheckedUpdateWithoutReviewInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    contractId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ContractUpsertWithoutReviewsInput = {
+    update: XOR<ContractUpdateWithoutReviewsInput, ContractUncheckedUpdateWithoutReviewsInput>
+    create: XOR<ContractCreateWithoutReviewsInput, ContractUncheckedCreateWithoutReviewsInput>
+    where?: ContractWhereInput
+  }
+
+  export type ContractUpdateToOneWithWhereWithoutReviewsInput = {
+    where?: ContractWhereInput
+    data: XOR<ContractUpdateWithoutReviewsInput, ContractUncheckedUpdateWithoutReviewsInput>
+  }
+
+  export type ContractUpdateWithoutReviewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableFloatFieldUpdateOperationsInput | number | null
+    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUpdateManyWithoutContractNestedInput
+  }
+
+  export type ContractUncheckedUpdateWithoutReviewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
+    packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
+    packageName?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    totalSessions?: IntFieldUpdateOperationsInput | number
+    usedSessions?: IntFieldUpdateOperationsInput | number
+    price?: NullableFloatFieldUpdateOperationsInput | number | null
+    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
+  }
+
   export type PTApplicationCertificateCreateManyApplicationInput = {
     id?: string
     certificateName: string
@@ -11257,6 +20640,120 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type SessionCreateManyContractInput = {
+    id?: string
+    clientUserId: string
+    ptUserId: string
+    status?: $Enums.SessionStatus
+    sessionMode?: $Enums.SessionMode
+    scheduledStartAt: Date | string
+    scheduledEndAt: Date | string
+    location?: string | null
+    notes?: string | null
+    ptNotes?: string | null
+    cancelledBy?: string | null
+    cancellationReason?: string | null
+    sessionDeducted?: boolean
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SessionReviewCreateManyContractInput = {
+    id?: string
+    sessionId: string
+    clientUserId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type SessionUpdateWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    review?: SessionReviewUpdateOneWithoutSessionNestedInput
+  }
+
+  export type SessionUncheckedUpdateWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    review?: SessionReviewUncheckedUpdateOneWithoutSessionNestedInput
+  }
+
+  export type SessionUncheckedUpdateManyWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    status?: EnumSessionStatusFieldUpdateOperationsInput | $Enums.SessionStatus
+    sessionMode?: EnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode
+    scheduledStartAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scheduledEndAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    location?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    ptNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    cancelledBy?: NullableStringFieldUpdateOperationsInput | string | null
+    cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionReviewUpdateWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    session?: SessionUpdateOneRequiredWithoutReviewNestedInput
+  }
+
+  export type SessionReviewUncheckedUpdateWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SessionReviewUncheckedUpdateManyWithoutContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    clientUserId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -11266,6 +20763,10 @@ export namespace Prisma {
      * @deprecated Use PTApplicationCountOutputTypeDefaultArgs instead
      */
     export type PTApplicationCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PTApplicationCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ContractCountOutputTypeDefaultArgs instead
+     */
+    export type ContractCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ContractCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use UserProfileDefaultArgs instead
      */
@@ -11282,6 +20783,30 @@ export namespace Prisma {
      * @deprecated Use PTApplicationMediaDefaultArgs instead
      */
     export type PTApplicationMediaArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PTApplicationMediaDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ContractDefaultArgs instead
+     */
+    export type ContractArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ContractDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use SessionDefaultArgs instead
+     */
+    export type SessionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SessionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use SessionReviewDefaultArgs instead
+     */
+    export type SessionReviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SessionReviewDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use NotificationDefaultArgs instead
+     */
+    export type NotificationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NotificationDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PTAvailabilityDefaultArgs instead
+     */
+    export type PTAvailabilityArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PTAvailabilityDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PTScheduleExceptionDefaultArgs instead
+     */
+    export type PTScheduleExceptionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PTScheduleExceptionDefaultArgs<ExtArgs>
     /**
      * @deprecated Use InBodyEntryDefaultArgs instead
      */

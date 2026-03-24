@@ -1,75 +1,116 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Paperclip, Search, MoreVertical, Phone, Video, FileText, Calendar, ChevronLeft, AlertCircle, User, Loader2, Plus, MessageSquare } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { chatService, profileService } from "../../services/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { chatService } from "../../services/api";
+import { connectSocket, disconnectSocket } from "../../services/socket";
 import { useApp } from "../../context/AppContext";
-
-interface Message {
-  id: number;
-  from: "client" | "pt";
-  text: string;
-  time: string;
-  read?: boolean;
-}
-
-// Mock contract data to match original logic
-const MOCK_CONTRACTS = [
-  { ptUserId: "00000000-0000-0000-0000-000000000002", contractId: "CTR-2025-001", status: "Active" },
-  { ptUserId: "mike-torres-id", contractId: "CTR-2024-008", status: "Completed" },
-  { ptUserId: "sarah-mitchell-id", contractId: "CTR-2025-001", status: "Active" },
-];
 
 export function ChatPage() {
   const queryClient = useQueryClient();
   const { user } = useApp();
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const prevConvRef = useRef<string | null>(null);
 
+  // ── Socket.IO connection ──────────────────────────────────────
+  useEffect(() => {
+    const socket = connectSocket();
+
+    // Real-time: new message arrives
+    socket.on("chat:new_message", (msg: any) => {
+      const mapped = {
+        id: msg.id,
+        authorId: msg.senderId,
+        content: msg.content,
+        createdAt: msg.createdAt,
+        conversationId: msg.conversationId,
+      };
+
+      // Append to current messages cache
+      queryClient.setQueryData(
+        ["messages", msg.conversationId],
+        (old: any[] | undefined) => {
+          if (!old) return [mapped];
+          // Avoid duplicates
+          if (old.some((m: any) => m.id === mapped.id)) return old;
+          return [...old, mapped];
+        },
+      );
+
+      // Refresh conversation list (for lastMessage preview)
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    });
+
+    // Real-time: conversation list updated (new message in any conversation)
+    socket.on("chat:conversation_updated", () => {
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    });
+
+    socket.on("chat:error", (err: any) => {
+      console.error("Socket chat error:", err.message);
+    });
+
+    return () => {
+      socket.off("chat:new_message");
+      socket.off("chat:conversation_updated");
+      socket.off("chat:error");
+      disconnectSocket();
+    };
+  }, [queryClient]);
+
+  // ── Join / leave conversation rooms ───────────────────────────
+  useEffect(() => {
+    const socket = connectSocket();
+
+    if (prevConvRef.current && prevConvRef.current !== activeConvId) {
+      socket.emit("chat:leave_conversation", { conversationId: prevConvRef.current });
+    }
+
+    if (activeConvId) {
+      socket.emit("chat:join_conversation", { conversationId: activeConvId });
+    }
+
+    prevConvRef.current = activeConvId;
+  }, [activeConvId]);
+
+  // ── REST: initial conversation list ───────────────────────────
   const { data: conversations = [], isLoading: convsLoading } = useQuery({
     queryKey: ["conversations"],
-    queryFn: chatService.listConversations
+    queryFn: chatService.listConversations,
+    refetchInterval: 10000, // light polling as fallback
   });
 
-  const { data: messages = [], isLoading: msgsLoading } = useQuery({
+  // ── REST: initial messages for selected conversation ──────────
+  const { data: messages = [] } = useQuery({
     queryKey: ["messages", activeConvId],
     queryFn: () => activeConvId ? chatService.getMessages(activeConvId) : Promise.resolve([]),
-    enabled: !!activeConvId
+    enabled: !!activeConvId,
   });
 
-  // Available trainers section removed as requested - users find PTs via PTDiscoveryPage
-
-  const sendMutation = useMutation({
-    mutationFn: (text: string) => chatService.sendMessage(activeConvId!, text),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["messages", activeConvId] });
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-    }
-  });
-
-  const createConvMutation = useMutation({
-    mutationFn: (ptUserId: string) => chatService.createDirectConversation(ptUserId),
-    onSuccess: (newConv) => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      setActiveConvId(newConv.id);
-      setMobileView("chat");
-    }
-  });
-
+  // ── Auto-scroll on new messages ───────────────────────────────
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const activeConv = conversations.find((c: any) => c.id === activeConvId);
-  const activeContract = activeConv ? MOCK_CONTRACTS.find(m => m.ptUserId === activeConv.otherUser?.id) : null;
-  const isMessageDisabled = activeContract && activeContract.status !== 'Active';
 
-  const sendMessage = () => {
-    if (!input.trim() || !activeConvId) return;
-    sendMutation.mutate(input.trim());
+  // ── Send message via Socket.IO ────────────────────────────────
+  const sendMessage = useCallback(() => {
+    if (!input.trim() || !activeConvId || sending) return;
+
+    const socket = connectSocket();
+    setSending(true);
+    socket.emit("chat:send_message", {
+      conversationId: activeConvId,
+      content: input.trim(),
+    });
     setInput("");
-  };
+    // The server will emit chat:new_message back to us via the room
+    setSending(false);
+  }, [input, activeConvId, sending]);
 
   if (convsLoading) {
     return (
@@ -116,9 +157,7 @@ export function ChatPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-zinc-500 truncate">
-                      {MOCK_CONTRACTS.find(m => m.ptUserId === c.otherUser?.id)?.status === 'Completed' 
-                        ? "Contract completed. Great work!" 
-                        : (c.lastMessage?.content || "No messages yet")}
+                      {c.lastMessage?.content || "No messages yet"}
                     </p>
                   </div>
                 </div>
@@ -167,28 +206,6 @@ export function ChatPage() {
               </div>
             </div>
 
-        {/* Contract context banner */}
-        {activeConv && activeContract && (
-          <div className={`${activeContract.status === 'Active' ? 'bg-green-500/5 border-green-500/15' : 'bg-zinc-800/20 border-zinc-700/30'} border-b px-4 py-2 flex items-center gap-2 flex-shrink-0 animate-in slide-in-from-top duration-300`}>
-            <FileText className={`w-3.5 h-3.5 ${activeContract.status === 'Active' ? 'text-green-400' : 'text-zinc-500'} flex-shrink-0`} />
-            <span className="text-xs text-zinc-400 font-medium">Contract: <span className="font-mono">{activeContract.contractId}</span></span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ml-auto border ${
-              activeContract.status === 'Active' 
-                ? "bg-green-500/10 text-green-400 border-green-500/20 shadow-[0_0_8px_rgba(34,197,94,0.1)]" 
-                : "bg-zinc-800/50 text-zinc-500 border-zinc-700"
-            }`}>
-              {activeContract.status}
-            </span>
-          </div>
-        )}
-
-        {isMessageDisabled && (
-          <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 flex items-center gap-2 flex-shrink-0">
-             <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-             <span className="text-[11px] text-amber-500/80 font-medium">This contract has ended. Messaging is read-only.</span>
-          </div>
-        )}
-
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-950">
           {messages.length > 0 ? messages.map((msg: any) => (
@@ -222,32 +239,26 @@ export function ChatPage() {
 
         {/* Input */}
         <div className="bg-zinc-900 border-t border-zinc-800/60 p-3 flex-shrink-0">
-          {isMessageDisabled ? (
-            <div className="flex flex-col items-center justify-center py-2">
-              <p className="text-xs text-zinc-600 italic">Contract has ended — messaging disabled</p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button className="p-2 text-zinc-500 hover:text-zinc-300 flex-shrink-0 transition-colors">
-                <Paperclip className="w-4 h-4" />
-              </button>
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                placeholder="Type a message…"
-                className="flex-1 px-4 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-zinc-200 placeholder-zinc-600 transition-all"
-              />
-              <button
-                onClick={sendMessage}
-                disabled={!input.trim() || sendMutation.isPending}
-                className="w-9 h-9 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black rounded-xl flex items-center justify-center transition-all flex-shrink-0 shadow-lg shadow-green-500/20"
-              >
-                {sendMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <button className="p-2 text-zinc-500 hover:text-zinc-300 flex-shrink-0 transition-colors">
+              <Paperclip className="w-4 h-4" />
+            </button>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              placeholder="Type a message…"
+              className="flex-1 px-4 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-zinc-200 placeholder-zinc-600 transition-all"
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!input.trim() || sending}
+              className="w-9 h-9 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black rounded-xl flex items-center justify-center transition-all flex-shrink-0 shadow-lg shadow-green-500/20"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </>
     ) : (

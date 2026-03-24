@@ -242,6 +242,28 @@ export const authController = {
     }
   },
 
+  async getUserInternal(req: Request, res: Response): Promise<void> {
+    try {
+      const serviceSecret = req.headers['x-service-secret'];
+      const secret = Array.isArray(serviceSecret) ? serviceSecret[0] : serviceSecret;
+
+      if (!secret || secret !== INTERNAL_SERVICE_SECRET) {
+        res.status(403).json({ error: 'Forbidden: invalid service secret' });
+        return;
+      }
+
+      const user = await authRepository.findUserById(req.params.userId);
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+      res.json({ user });
+    } catch (error: any) {
+      logger.error(error, 'Internal get user error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
   async updateUserRoleInternal(req: Request, res: Response): Promise<void> {
     try {
       const serviceSecret = req.headers['x-service-secret'];

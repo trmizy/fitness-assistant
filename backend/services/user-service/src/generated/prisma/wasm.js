@@ -210,6 +210,93 @@ exports.Prisma.PTApplicationMediaScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.ContractScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  clientUserId: 'clientUserId',
+  status: 'status',
+  packageType: 'packageType',
+  packageName: 'packageName',
+  description: 'description',
+  totalSessions: 'totalSessions',
+  usedSessions: 'usedSessions',
+  price: 'price',
+  pricePerSession: 'pricePerSession',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  completedAt: 'completedAt',
+  clientMessage: 'clientMessage',
+  rejectionReason: 'rejectionReason',
+  cancelledBy: 'cancelledBy',
+  cancellationReason: 'cancellationReason',
+  terms: 'terms',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SessionScalarFieldEnum = {
+  id: 'id',
+  contractId: 'contractId',
+  clientUserId: 'clientUserId',
+  ptUserId: 'ptUserId',
+  status: 'status',
+  sessionMode: 'sessionMode',
+  scheduledStartAt: 'scheduledStartAt',
+  scheduledEndAt: 'scheduledEndAt',
+  location: 'location',
+  notes: 'notes',
+  ptNotes: 'ptNotes',
+  cancelledBy: 'cancelledBy',
+  cancellationReason: 'cancellationReason',
+  sessionDeducted: 'sessionDeducted',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SessionReviewScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  clientUserId: 'clientUserId',
+  rating: 'rating',
+  comment: 'comment',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  text: 'text',
+  eventType: 'eventType',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  link: 'link',
+  unread: 'unread',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTAvailabilityScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  dayOfWeek: 'dayOfWeek',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTScheduleExceptionScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  date: 'date',
+  reason: 'reason',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.InBodyEntryScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -310,11 +397,73 @@ exports.MediaGroupType = exports.$Enums.MediaGroupType = {
   PORTFOLIO: 'PORTFOLIO'
 };
 
+exports.ContractStatus = exports.$Enums.ContractStatus = {
+  PENDING_REVIEW: 'PENDING_REVIEW',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  EXPIRED: 'EXPIRED',
+  CANCELLED: 'CANCELLED',
+  REJECTED: 'REJECTED'
+};
+
+exports.PackageType = exports.$Enums.PackageType = {
+  PER_SESSION: 'PER_SESSION',
+  PACKAGE: 'PACKAGE'
+};
+
+exports.SessionStatus = exports.$Enums.SessionStatus = {
+  REQUESTED: 'REQUESTED',
+  CONFIRMED: 'CONFIRMED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  NO_SHOW: 'NO_SHOW'
+};
+
+exports.SessionMode = exports.$Enums.SessionMode = {
+  ONLINE: 'ONLINE',
+  OFFLINE: 'OFFLINE',
+  HYBRID: 'HYBRID'
+};
+
+exports.NotificationEventType = exports.$Enums.NotificationEventType = {
+  CONTRACT_REQUESTED: 'CONTRACT_REQUESTED',
+  CONTRACT_ACCEPTED: 'CONTRACT_ACCEPTED',
+  CONTRACT_REJECTED: 'CONTRACT_REJECTED',
+  CONTRACT_CANCELLED: 'CONTRACT_CANCELLED',
+  SESSION_BOOKED: 'SESSION_BOOKED',
+  SESSION_CONFIRMED: 'SESSION_CONFIRMED',
+  SESSION_COMPLETED: 'SESSION_COMPLETED',
+  SESSION_CANCELLED: 'SESSION_CANCELLED',
+  SESSION_NO_SHOW_CLIENT: 'SESSION_NO_SHOW_CLIENT',
+  SESSION_NO_SHOW_PT: 'SESSION_NO_SHOW_PT'
+};
+
+exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
+  CONTRACT: 'CONTRACT',
+  SESSION: 'SESSION'
+};
+
+exports.DayOfWeek = exports.$Enums.DayOfWeek = {
+  MONDAY: 'MONDAY',
+  TUESDAY: 'TUESDAY',
+  WEDNESDAY: 'WEDNESDAY',
+  THURSDAY: 'THURSDAY',
+  FRIDAY: 'FRIDAY',
+  SATURDAY: 'SATURDAY',
+  SUNDAY: 'SUNDAY'
+};
+
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
   PTApplication: 'PTApplication',
   PTApplicationCertificate: 'PTApplicationCertificate',
   PTApplicationMedia: 'PTApplicationMedia',
+  Contract: 'Contract',
+  Session: 'Session',
+  SessionReview: 'SessionReview',
+  Notification: 'Notification',
+  PTAvailability: 'PTAvailability',
+  PTScheduleException: 'PTScheduleException',
   InBodyEntry: 'InBodyEntry'
 };
 

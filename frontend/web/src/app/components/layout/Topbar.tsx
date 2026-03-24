@@ -2,28 +2,52 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Menu, Bell, Search, ChevronDown, User, Settings,
-  LogOut, Zap, Shield, ArrowLeftRight
+  LogOut, Zap, Shield, ArrowLeftRight, CheckCheck
 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApp } from "../../context/AppContext";
-
-type NotificationItem = {
-  id: string;
-  text: string;
-  time: string;
-  unread: boolean;
-};
+import { notificationService } from "../../services/api";
+import type { AppNotification } from "../../types";
 
 export function Topbar() {
   const { user, role, isPT, isAdmin, activeView, setActiveView, setSidebarOpen, logout } = useApp();
   const navigate = useNavigate();
-
-  const notifications: NotificationItem[] = [];
+  const queryClient = useQueryClient();
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  const { data: notifData } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => notificationService.list(1, 10),
+    refetchInterval: 15000,
+  });
+
+  const { data: unreadData } = useQuery({
+    queryKey: ["notifications-unread"],
+    queryFn: () => notificationService.getUnreadCount(),
+    refetchInterval: 15000,
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () => notificationService.markAllRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+    },
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) => notificationService.markRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications-unread"] });
+    },
+  });
+
+  const notifications: AppNotification[] = notifData?.notifications || [];
+  const unreadCount: number = unreadData?.count || 0;
 
   const handleLogout = () => {
     logout();
@@ -126,29 +150,44 @@ export function Topbar() {
               <div className="absolute right-0 top-full mt-1 w-80 bg-zinc-900 rounded-xl shadow-2xl shadow-black/50 border border-zinc-700/50 z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-zinc-100">Notifications</h3>
-                  {unreadCount > 0 && (
-                    <span className="text-xs bg-green-500/15 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full font-semibold">
-                      {unreadCount} new
-                    </span>
-                  )}
-                </div>
-                {notifications.map((n) => (
-                  <div
-                    key={n.id}
-                    className={`px-4 py-3 hover:bg-zinc-800 cursor-pointer border-b border-zinc-800/50 last:border-0 transition-colors ${n.unread ? "bg-green-500/5" : ""}`}
-                  >
-                    <p className="text-sm text-zinc-200">{n.text}</p>
-                    <p className="text-xs text-zinc-500 mt-0.5">{n.time}</p>
+                  <div className="flex items-center gap-2">
+                    {unreadCount > 0 && (
+                      <span className="text-xs bg-green-500/15 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full font-semibold">
+                        {unreadCount} new
+                      </span>
+                    )}
+                    {unreadCount > 0 && (
+                      <button onClick={() => markAllReadMutation.mutate()} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors" title="Mark all read">
+                        <CheckCheck className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                ))}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.map((n: AppNotification) => (
+                    <div
+                      key={n.id}
+                      onClick={() => {
+                        if (n.unread) markReadMutation.mutate(n.id);
+                        if (n.link) { navigate(n.link); setNotifOpen(false); }
+                      }}
+                      className={`px-4 py-3 hover:bg-zinc-800 cursor-pointer border-b border-zinc-800/50 last:border-0 transition-colors ${n.unread ? "bg-green-500/5" : ""}`}
+                    >
+                      <p className="text-sm text-zinc-200">{n.text}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-zinc-500">
+                          {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <span className="text-xs text-zinc-700">{n.eventType.replace(/_/g, ' ').toLowerCase()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
                 {notifications.length === 0 && (
                   <div className="px-4 py-8 text-center text-xs text-zinc-500">
                     No notifications yet.
                   </div>
                 )}
-                <div className="px-4 py-2 text-center">
-                  <button className="text-xs text-green-400 hover:text-green-300 hover:underline transition-colors">View all</button>
-                </div>
               </div>
             </>
           )}

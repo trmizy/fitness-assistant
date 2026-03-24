@@ -22,6 +22,7 @@ import { PTApplicationPage } from "./pages/client/PTApplicationPage";
 import { PTDashboard } from "./pages/pt/PTDashboard";
 import { PTClientList } from "./pages/pt/PTClientList";
 import { PTClientDetail } from "./pages/pt/PTClientDetail";
+import { PTContractsPage } from "./pages/pt/PTContractsPage";
 import { PlanReviewPage } from "./pages/pt/PlanReviewPage";
 import { PTSchedulePage } from "./pages/pt/PTSchedulePage";
 import { PTProfilePage } from "./pages/pt/PTProfilePage";
@@ -104,9 +105,10 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/pt/dashboard" replace /> },
           { path: "dashboard",   Component: PTDashboard    },
-          { path: "clients",     Component: PTClientList   },
-          { path: "clients/:id", Component: PTClientDetail },
-          { path: "plans",       Component: PlanReviewPage },
+          { path: "clients",     Component: PTClientList    },
+          { path: "clients/:id", Component: PTClientDetail  },
+          { path: "contracts",   Component: PTContractsPage },
+          { path: "plans",       Component: PlanReviewPage  },
           { path: "schedule",    Component: PTSchedulePage },
           { path: "profile",     Component: PTProfilePage  },
           { path: "chat",        Component: ChatPage       },
