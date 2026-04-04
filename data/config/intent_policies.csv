@@ -1,0 +1,13 @@
+intent_key,policy_vi,output_format,response_priority,followup_policy,question_policy
+general_fitness_knowledge,"Trả lời trực tiếp bằng tiếng Việt, giữ gym terms bằng tiếng Anh.",paragraph_plus_bullets,knowledge_first,allowed,none
+workout_plan_request,Phải đưa lịch tập mẫu hoàn chỉnh ngay ở lần đầu.,table_workout_plan,plan_first,allowed,ask_after_answer
+specific_exercise_request,Phải liệt kê bài tập cụ thể với sets/reps/rest.,table_exercises,specific_first,allowed,ask_after_answer
+muscle_group_routine_request,Phải map đúng nhóm cơ sang bài tập phù hợp.,table_exercises,specific_first,allowed,ask_after_answer
+meal_plan_request,Phải đưa calories/macros nếu có dữ liệu; nếu thiếu thì dùng template và nói rõ giả định.,table_meal_plan,nutrition_first,allowed,ask_after_answer
+inbody_personalization_request,"Ưu tiên rule engine, không được bịa số liệu khi thiếu metrics.",summary_plus_table,rule_first,allowed_with_assumptions,ask_for_missing_critical_fields
+long_term_plan_request,Phải cố định theo block tuần và lịch ngày rõ ràng.,periodized_table,plan_first,allowed,ask_after_answer
+frequency_change_request,"Khi user đổi số buổi/tuần, phải tái sinh plan theo tần suất mới.",updated_table,direct_update,allowed,minimal
+unsafe_weight_loss_request,"Từ chối mục tiêu nguy hiểm, điều hướng sang mục tiêu an toàn.",safety_response,safety_first,redirect,none
+language_change_request,Khóa ngôn ngữ đầu ra theo yêu cầu user.,short_confirmation,language_lock,allowed,none
+clarification_only,Chỉ hỏi lại khi thiếu dữ liệu khiến plan không thể tạo nổi.,question_list,clarify_first,allowed,required
+schedule_specific_day_request,"Phải trả riêng ngày user hỏi, không lặp cả plan vô ích.",table_day_plan,specific_day_first,allowed,optional

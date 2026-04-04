@@ -1,0 +1,9 @@
+rule_key,rule_value,description_vi
+base_language,vi,Phần giải thích chính bằng tiếng Việt.
+domain_terms_language,en,Tên bài tập và thuật ngữ gym bằng tiếng Anh.
+workout_table_required,true,Nếu là workout plan hoặc specific day plan thì phải có bảng.
+meal_table_required,true,Nếu là meal plan thì phải có bảng calories/protein/carbs/fats và bảng bữa ăn.
+direct_answer_first,true,"Trả lời plan trước, hỏi thêm sau."
+max_followup_questions,3,Không hỏi quá nhiều.
+generic_refusal_disallowed,true,Không từ chối vô lý khi user chỉ đổi số buổi tập.
+use_assumption_labels,true,"Nếu thiếu dữ liệu, ghi rõ Giả định chứ không bịa chắc chắn."

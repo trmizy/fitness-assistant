@@ -1,0 +1,8 @@
+template_id,goal,days_per_week,split_name,recommended_level,equipment,description_vi
+fat_loss_3day,fat_loss,3,full_body,beginner,gym_full,Template 3 buổi/tuần cho giảm mỡ.
+fat_loss_4day,fat_loss,4,upper_lower,novice,gym_full,Template 4 buổi/tuần cho giảm mỡ.
+fat_loss_5day,fat_loss,5,push_pull_legs_upper_lower,novice,gym_full,Template 5 buổi/tuần cho giảm mỡ.
+fat_loss_6day,fat_loss,6,push_pull_legs_x2,intermediate,gym_full,"Template 6 buổi/tuần cho giảm mỡ, volume kiểm soát."
+recomp_4day,recomposition,4,upper_lower,beginner,gym_full,Template 4 buổi/tuần cho recomposition.
+recomp_5day,recomposition,5,upper_lower_plus_arms,intermediate,gym_full,Template 5 buổi/tuần cho recomposition.
+muscle_gain_5day,muscle_gain,5,bro_split_modern,intermediate,gym_full,Template 5 buổi/tuần cho tăng cơ.

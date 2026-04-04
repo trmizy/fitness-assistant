@@ -201,6 +201,8 @@ export const inbodyService = {
     formData.append('image', file);
     const { data } = await api.post('/inbody/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      // OCR can take longer than normal API calls on larger or low-quality images.
+      timeout: 180000,
     });
     return data;
   },

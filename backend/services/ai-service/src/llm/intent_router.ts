@@ -9,7 +9,8 @@ function normalize(text: string): string {
 }
 
 function parseTrainingDays(question: string): number | undefined {
-  const match = question.match(/(\d)\s*(buoi|sessions|days|ngay)/i);
+  // Handles Vietnamese with/without diacritics: "5 buổi", "5 buoi", "5 sessions", "5 days"
+  const match = question.match(/(\d)\s*(?:bu[oô][i\u0300\u0301\u0303\u0309\u0323]?|sessions?|days?|ng[aà]y)/i);
   if (!match) return undefined;
   const parsed = Number(match[1]);
   if (Number.isNaN(parsed) || parsed < 1 || parsed > 7) return undefined;
@@ -18,10 +19,10 @@ function parseTrainingDays(question: string): number | undefined {
 
 function inferGoal(question: string, profile?: UserProfile): IntentRoute['goalHint'] {
   const q = question.toLowerCase();
-  if (/(fat loss|giam mo|siet mo|cut|giam can)/i.test(q)) return 'fat_loss';
-  if (/(muscle gain|tang co|bulk|hypertrophy)/i.test(q)) return 'muscle_gain';
-  if (/(recomp|recomposition|tai cau truc co the|vua giam mo vua tang co)/i.test(q)) return 'recomposition';
-  if (/(maintain|duy tri)/i.test(q)) return 'maintenance';
+  if (/(fat loss|gi[aả]m m[oỡ]|giam mo|si[eế]t m[oỡ]|siet mo|cut|gi[aả]m c[aâ]n|giam can)/i.test(q)) return 'fat_loss';
+  if (/(muscle gain|t[aă]ng c[oơ]|tang co|bulk|hypertrophy)/i.test(q)) return 'muscle_gain';
+  if (/(recomp|recomposition|t[aá]i c[aấ]u tr[uú]c c[oơ] th[eể]|tai cau truc co the|v[uừ]a gi[aả]m m[oỡ] v[uừ]a t[aă]ng c[oơ]|vua giam mo vua tang co)/i.test(q)) return 'recomposition';
+  if (/(maintain|duy tr[iì]|duy tri)/i.test(q)) return 'maintenance';
 
   switch (profile?.goal) {
     case 'WEIGHT_LOSS':
@@ -66,24 +67,46 @@ function inferIntent(question: string): RoutedIntentType {
     return 'profile_completion_request';
   }
 
-  if (/(vua giam mo vua tang co|recomposition|recomp|tai cau truc co the)/i.test(q)) {
+  // frequency_change_request: "N buổi 1 tuần", "N buổi/tuần", "N sessions per week"
+  // Check BEFORE schedule_specific_day to prevent misfire on "5 buổi 1 tuần"
+  if (/\d+\s*bu[oổ]i\s*[/]?\s*(?:\d+\s*)?(?:tu[aầ]n|week)/i.test(q) ||
+      /\d+\s*bu[oổ]i\s*m[oỗ]i\s*tu[aầ]n/i.test(q) ||
+      /\d+\s*(?:sessions?|days?)\s*(?:per\s*week|a\s*week|\/week)/i.test(q)) {
+    return 'frequency_change_request';
+  }
+
+  // schedule_specific_day_request: asking about a specific named day — NOT a frequency expression
+  // "Thứ 2", "ngày 1", "ngày thứ 1" — but NOT "5 buổi 1 tuần"
+  if (/(th[uứ]\s*(2|3|4|5|6|7|hai|ba|tứ?|tu|năm|nam|sáu|sau|bảy|bay))/i.test(q)) {
+    return 'schedule_specific_day_request';
+  }
+  if (/\bng[aà]y\s*(?:thứ?\s*)?(1|2|3|4|5|6|7)\b/i.test(q)) {
+    return 'schedule_specific_day_request';
+  }
+  // "buổi 1" only when not part of frequency expression like "5 buổi 1 tuần"
+  const hasFrequency = /\d+\s*bu[oổ]i\s*\d/i.test(q);
+  if (!hasFrequency && /\bbu[oổ]i\s*(1|2|3|4|5)\b/i.test(q)) {
+    return 'schedule_specific_day_request';
+  }
+
+  if (/(v[uừ]a gi[aả]m m[oỡ] v[uừ]a t[aă]ng c[oơ]|vua giam mo vua tang co|recomposition|recomp|t[aá]i c[aấ]u tr[uú]c c[oơ] th[eể]|tai cau truc co the)/i.test(q)) {
     return 'body_recomposition_request';
   }
 
-  if (/(thuc don|dinh duong|meal plan|calories|macro|protein|carb|fat|an gi)/i.test(q)) {
+  if (/(th[uứ]c [dđ][oơ]n|dinh d[uư][oơ]ng|meal plan|calories|macro|protein|carb|fat|[aă]n g[iì]|c[aá]ch [aă]n|meal prep|[aă]n u[oố]ng)/i.test(q)) {
     return 'meal_plan_request';
   }
 
-  if (/(tay truoc|tay sau|nguc|lung|chan|vai|bung|biceps|triceps|chest|back|legs|shoulders|core|forearm)/i.test(q) &&
-    /(lich tap|routine|buoi tap|bai tap)/i.test(q)) {
+  if (/(tay tr[uướ]c|tay sau|ng[uự]c|l[uư]ng|ch[aâ]n|vai|b[uụ]ng|biceps|triceps|chest|back|legs|shoulders|core|forearm)/i.test(q) &&
+    /(l[iị]ch t[aậ]p|routine|bu[oổ]i t[aậ]p|b[aà]i t[aậ]p)/i.test(q)) {
     return 'muscle_group_routine_request';
   }
 
-  if (/(lich tap cu the|tung bai|bai tap cu the la gi|cho toi bai tap cu the|specific exercise)/i.test(q)) {
+  if (/(l[iị]ch t[aậ]p c[uụ] th[eể]|t[uừ]ng b[aà]i|b[aà]i t[aậ]p c[uụ] th[eể] l[aà] g[iì]|specific exercise)/i.test(q)) {
     return 'specific_exercise_request';
   }
 
-  if (/(lich tap|chuong trinh tap|split|plan tap|workout plan|lich nhu the nao)/i.test(q)) {
+  if (/(l[iị]ch t[aậ]p|ch[uươ][oơ]ng tr[iì]nh t[aậ]p|split|plan t[aậ]p|workout plan)/i.test(q)) {
     return 'workout_plan_request';
   }
 
