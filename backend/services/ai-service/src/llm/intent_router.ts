@@ -93,7 +93,7 @@ function inferIntent(question: string): RoutedIntentType {
     return 'body_recomposition_request';
   }
 
-  if (/(th[uứ]c [dđ][oơ]n|dinh d[uư][oơ]ng|meal plan|calories|macro|protein|carb|fat|[aă]n g[iì]|c[aá]ch [aă]n|meal prep|[aă]n u[oố]ng)/i.test(q)) {
+  if (/(th[uứự]c [dđ][oơ]n|thực đơn|dinh d[uư][oơỡ]ng|dinh dưỡng|b[ưữ]a [aă]n|bua an|meal plan|calories|macro|protein|carb|fat|[aă]n g[iì]|c[aá]ch [aă]n|meal prep|[aă]n u[oố]ng)/i.test(q)) {
     return 'meal_plan_request';
   }
 

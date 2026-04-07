@@ -64,6 +64,8 @@ export interface InputIntent {
   mealPreferenceHint?: string;
   parsedTrainingDays?: number;
   minimumExercisesPerDay?: number;
+  parsedMealsPerDay?: number;
+  requestsCardio?: boolean;
   mentionsInjury?: boolean;
   needsPersonalization: boolean;
   missingFields: string[];

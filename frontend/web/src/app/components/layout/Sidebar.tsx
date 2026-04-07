@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Activity, Brain, FileText, MessageSquare,
   Calendar, Dumbbell, Utensils, Users, Search, Bot, User,
   Shield, UserCheck, Monitor, X, LogOut, ClipboardList,
-  Zap, ChevronRight, ArrowLeftRight
+  Zap, ChevronRight, ArrowLeftRight, Workflow
 } from "lucide-react";
 
 // ─── Navigation definitions ────────────────────────────────────────────────
@@ -43,6 +43,7 @@ const adminNav = [
   { label: "Users",          icon: Users,           to: "/admin/users"     },
   { label: "PT Management",  icon: UserCheck,       to: "/admin/pts"       },
   { label: "System Monitor", icon: Monitor,         to: "/admin/system"    },
+  { label: "Workflows",      icon: Workflow,        to: "/admin/workflows" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

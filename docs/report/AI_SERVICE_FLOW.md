@@ -1,43 +1,37 @@
 # AI Service Flow (Current Codebase)
 
-## 1. Tong quan kien truc
+## 1) Tong quan kien truc
 
-AI service trong project chay theo mo hinh:
+AI flow hien tai chay theo chuoi:
 
-- Frontend goi API den gateway
-- Gateway xac thuc token voi auth-service
-- Gateway proxy request sang ai-service va gan thong tin user vao headers
-- AI service xu ly RAG/LLM/Queue
-- Ket qua duoc luu vao Postgres, du lieu tri thuc tim kiem nam trong Qdrant
+1. Frontend goi API vao Gateway (`/ai/*`)
+2. Gateway verify token voi auth-service
+3. Gateway forward request sang ai-service kem `x-user-id`
+4. ai-service xu ly pipeline Orchestrator (profile + intent + safety + retrieve + recommend + format/LLM)
+5. rag.service danh gia relevance, luu conversation vao Postgres
+6. Ket qua tra lai frontend
 
-## 2. Duong di request tu Frontend -> Gateway -> AI Service
+Thanh phan chinh:
 
-### Frontend
+- Gateway auth/proxy: `backend/gateway/src/routes/proxy.routes.ts`, `backend/gateway/src/middleware/auth.middleware.ts`
+- AI app/routes/controller: `backend/services/ai-service/src/app.ts`, `backend/services/ai-service/src/routes/ai.routes.ts`, `backend/services/ai-service/src/controllers/ai.controller.ts`
+- Core RAG/LLM: `backend/services/ai-service/src/services/rag.service.ts`, `backend/services/ai-service/src/llm/orchestrator.service.ts`, `backend/services/ai-service/src/llm/retriever.ts`, `backend/services/ai-service/src/services/llm.service.ts`
+- Persistence: `backend/services/ai-service/src/repositories/conversation.repository.ts`
 
-- Frontend goi AI endpoints o app service layer:
-  - `POST /ai/ask`
-  - `GET /ai/conversations`
-- Vi tri: `frontend/web/src/app/services/api.ts`
+## 2) Entry points trong AI service
 
-### Gateway
+### App-level routes
 
-- Route `/ai` bat buoc qua `authMiddleware` truoc khi proxy:
-  - Vi tri: `backend/gateway/src/routes/proxy.routes.ts`
-- Sau khi auth thanh cong, gateway forward headers:
-  - `x-user-id`
-  - `x-user-email`
-  - `x-user-role`
+File: `backend/services/ai-service/src/app.ts`
 
-### Auth middleware o Gateway
+- `GET /health`
+- `GET /metrics`
+- `use('/ai', aiRoutes)`
+- `use('/plans', planRoutes)`
 
-- Kiem tra Bearer token
-- Goi `AUTH_SERVICE_URL/auth/verify` de verify token
-- Neu hop le thi set `x-user-*` vao request de service phia sau dung
-- Vi tri: `backend/gateway/src/middleware/auth.middleware.ts`
+### AI routes
 
-## 3. Cac endpoint trong AI Service
-
-Vi tri route: `backend/services/ai-service/src/routes/ai.routes.ts`
+File: `backend/services/ai-service/src/routes/ai.routes.ts`
 
 - `POST /ai/ask`
 - `GET /ai/conversations`
@@ -46,101 +40,258 @@ Vi tri route: `backend/services/ai-service/src/routes/ai.routes.ts`
 - `POST /ai/generate-workout`
 - `POST /ai/generate-plan`
 
-Controller: `backend/services/ai-service/src/controllers/ai.controller.ts`
+### Plans routes
 
-## 4. Luong chi tiet endpoint quan trong
+File: `backend/services/ai-service/src/routes/plan.routes.ts`
 
-### A) `POST /ai/ask` (RAG chat)
+- `POST /plans/workout/generate` (delegate sang `aiController.generatePlan`)
+- `POST /plans/explain` (stub)
+- `POST /plans/adjust` (stub)
+- `GET /plans/shopping-list` (stub)
+- `GET /plans/current` (stub)
 
-1. Controller doc `question` va `userId` tu header `x-user-id`
-2. Goi `ragService.rag(question, userId)`
-3. Trong `ragService`:
-   - Tao embedding cho query (qua `llmService.generateEmbedding`)
-   - Search vector trong Qdrant collection `exercises`
-   - Build prompt tu context exercise tim duoc
-   - Goi LLM de sinh cau tra loi
-   - Tu danh gia do lien quan (relevance)
-   - Luu conversation vao Postgres
-4. Tra response cho client (answer, token usage, relevance, conversationId)
+## 3) Luong chi tiet `POST /ai/ask`
 
-Vi tri code:
+### 3.1 Gateway -> Controller
 
-- `backend/services/ai-service/src/controllers/ai.controller.ts`
-- `backend/services/ai-service/src/services/rag.service.ts`
-- `backend/services/ai-service/src/services/llm.service.ts`
-- `backend/services/ai-service/src/repositories/conversation.repository.ts`
+1. Frontend goi `POST /ai/ask` qua gateway.
+2. Gateway auth middleware verify Bearer token voi auth-service.
+3. Gateway forward request sang ai-service, kem `x-user-id`.
+4. `aiController.ask()` doc:
+   - `question` tu body
+   - `userId` tu `x-user-id`
+   - `authorization` tu header de pass tiep cho profile extractor
+5. Controller goi: `ragService.rag(question, userId, authorizationHeader)`
 
-### B) `POST /ai/generate-plan` (bat dong bo)
+File chinh: `backend/services/ai-service/src/controllers/ai.controller.ts`
 
-1. Controller validate userId
-2. Goi `conversationService.queuePlanGeneration(...)`
-3. Service day job vao BullMQ queue `ai-tasks`
-4. Worker BullMQ nhan job, goi LLM tao plan
-5. Worker luu ket qua vao bang `workout_plans`
-6. API tra ngay HTTP 202 (Accepted), khong cho ket qua cuoi ngay lap tuc
+### 3.2 RAG service layer
 
-Vi tri code:
+Trong `ragService.rag(...)`:
 
-- `backend/services/ai-service/src/controllers/ai.controller.ts`
+1. Ghi nhan `startTime`
+2. Goi `llmOrchestrator.run(question, userId, authHeader)`
+3. Goi them 1 lan LLM de tu-danh-gia do lien quan cua answer (`NON_RELEVANT | PARTLY_RELEVANT | RELEVANT | UNKNOWN`)
+4. Luu conversation vao Postgres qua `conversationRepository.create(...)`
+5. Tra payload cuoi cung (answer + token usage + trace metadata + recommendation)
+
+File chinh: `backend/services/ai-service/src/services/rag.service.ts`
+
+## 4) Orchestrator pipeline ben trong
+
+File: `backend/services/ai-service/src/llm/orchestrator.service.ts`
+
+Thu tu thuc thi hien tai:
+
+1. `traceLogger.start(...)`
+2. `profileExtractor.extract(userId, authHeader)`
+   - Goi `user-service` (`/profile/me`, `/inbody`)
+   - Goi `fitness-service` (`/workouts`, `/nutrition`)
+   - Dung `Promise.allSettled` de khong fail toan bo neu 1 nguon loi
+3. `languageGuard.resolve(question, userId)`
+4. `intentRouter.route(...)` + `inputParser.parse(...)`
+5. `safetyGuard.evaluate(question)` de chan request giam can nguy hiem
+6. `retriever.retrieve(question)` lay context tu Qdrant
+7. `recommendationEngine.recommend(profile, parsedInput)` tao recommendation deterministic
+8. `responseFormatter.format(...)` tao deterministic answer co cau truc
+9. Quyet dinh co goi LLM khong:
+   - LLM intents: `general_fitness_knowledge`, `schedule_specific_day_request`, `body_recomposition_request`, `meal_plan_request`
+   - Hoac khi `mentionsInjury = true`
+   - Neu unsafe request bi block thi khong vao LLM path
+10. Neu can LLM:
+   - `promptBuilder.build(...)`
+   - `llmService.callLLM(prompt)`
+   - `labelLocalizer.localize(...)`
+11. `answerValidator.validate(...)`
+12. `traceLogger.end(...)`
+13. Tra ve `FinalAnswerPayload`
+
+Luu y quan trong:
+
+- `usedFallback` trong response hien tai map theo `retrieval.isEmpty` (khong phai fallback transport).
+- Chat co the van tra loi ngay ca khi retrieval rong nho deterministic formatting.
+
+## 5) VectorDB nam o dau va chay nhu the nao
+
+### 5.1 VectorDB nam o dau
+
+VectorDB dang dung la Qdrant, chay thanh mot container rieng trong Docker Compose:
+
+- Service: `qdrant`
+- Image: `qdrant/qdrant:latest`
+- HTTP port: `6333`
+- gRPC port: `6334`
+- Persistent volume: `qdrant_data:/qdrant/storage`
+
+File: `infra/compose/docker-compose.dev.yml`
+
+Trong ai-service, ket noi Qdrant duoc config boi env:
+
+- `QDRANT_HOST=qdrant`
+- `QDRANT_PORT=6333`
+
+Va client khoi tao tai:
+
+- `backend/services/ai-service/src/repositories/qdrant.ts`
+
+### 5.2 Collection va du lieu dang tim
+
+Retriever query den collection co ten co dinh:
+
+- `exercises`
+
+File: `backend/services/ai-service/src/llm/retriever.ts`
+
+Payload points duoc map thanh noi dung bai tap:
+
+- `exerciseName`, `typeOfActivity`, `typeOfEquipment`, `bodyPart`, `type`, `muscleGroupsActivated`, `instructions`
+
+Source metadata trong retriever ghi ro:
+
+- `source_file: data/processed/rag/exercises.csv`
+
+### 5.3 Ingestion path (CSV -> Embedding -> Qdrant)
+
+Script ingestion:
+
+- File: `backend/services/ai-service/src/ingest.ts`
+- Collection tao moi: `exercises`
+- Vector size: `768`
+- Distance metric: `Cosine`
+
+Flow ingest:
+
+1. Resolve CSV path (uu tien `RAG_INGEST_CSV_PATH`, fallback `data/processed/rag/exercises.csv`)
+2. Parse CSV thanh records exercise
+3. Goi embedding model qua `LLM_BASE_URL/api/embeddings` (mac dinh model `nomic-embed-text`)
+4. Upsert theo batch vao Qdrant
+
+### 5.4 Retrieval runtime (`/ai/ask`)
+
+Trong runtime retrieve:
+
+1. Expand query thanh nhieu variants (`expandQueries`) theo signal fat-loss/muscle-gain/injury/equipment
+2. Moi variant:
+   - Tao embedding qua `llmService.generateEmbedding(...)`
+   - Search Qdrant collection `exercises` voi `limit = TOP_K`
+3. Loc theo nguong score:
+   - `MIN_SCORE = RAG_MIN_SCORE` (default `0.35`)
+4. Dedupe theo point id, sort giam dan theo score, cat `TOP_K` (default `8`)
+5. Neu khong con doc nao dat nguong -> `isEmpty = true`
+
+Note resilience:
+
+- Neu 1 variant query fail (embedding hoac qdrant call loi), retriever log warning va tiep tuc variant khac.
+- Neu tat ca variants fail/khong dat threshold, orchestrator van co deterministic answer.
+
+## 6) LLM provider va token accounting
+
+File: `backend/services/ai-service/src/services/llm.service.ts`
+
+### Generation path
+
+- Primary: Ollama-style `POST {LLM_BASE_URL}/api/generate`
+- Fallback: OpenAI-compatible `POST {LLM_BASE_URL}/v1/chat/completions`
+
+### Embedding path
+
+- `POST {LLM_BASE_URL}/api/embeddings`
+- Model embedding qua `EMBEDDING_MODEL` (default `nomic-embed-text`)
+
+### Token usage
+
+`promptTokens`, `completionTokens`, `totalTokens` lay tu response neu provider tra ve, sau do duoc persist cung conversation.
+
+## 7) Persistence va async jobs
+
+### Postgres persistence
+
+Repository: `backend/services/ai-service/src/repositories/conversation.repository.ts`
+
+Du lieu duoc luu:
+
+- Conversation logs: question/answer/model/response_time/relevance/token usage/feedback
+- Workout plan generation output: bang `workoutPlan`
+
+### Queue + worker (`generate-plan`)
+
+Files:
+
 - `backend/services/ai-service/src/services/conversation.service.ts`
 - `backend/services/ai-service/src/workers/ai.worker.ts`
 
-## 5. AI Service lay du lieu tu dau
+Flow:
 
-### Nguon tri thuc cho RAG
+1. API add job vao BullMQ queue `ai-tasks`
+2. Worker lay job, goi LLM tao plan
+3. Worker persist plan vao Postgres
+4. API tra ve `202 Accepted` + `jobId`
 
-- Tu Qdrant collection: `exercises`
-- Du lieu ban dau ingest tu file CSV: `data/processed/rag/exercises.csv`
-- Script ingest:
-  - Doc CSV
-  - Tao embeddings qua Ollama `/api/embeddings`
-  - Upsert vectors vao Qdrant
-- Vi tri: `backend/services/ai-service/src/ingest.ts`
+Redis connection dung env `REDIS_HOST`/`REDIS_PORT`.
 
-### Nguon LLM
+## 8) Startup va health behavior
 
-- Mac dinh dung Ollama local:
-  - `LLM_PROVIDER=ollama`
-  - `LLM_BASE_URL=http://localhost:11434`
-  - `LLM_MODEL=llama3.2:3b`
-- Fallback ho tro OpenAI-compatible endpoint `/v1/chat/completions`
-- Vi tri: `backend/services/ai-service/src/services/llm.service.ts`
+File: `backend/services/ai-service/src/server.ts`
 
-### Nguon du lieu luu tru
+Khi boot:
 
-- Postgres qua Prisma:
-  - Bang `conversations`
-  - Bang `workout_plans`
-- Vi tri schema: `backend/services/ai-service/prisma/schema.prisma`
+1. Load env
+2. Thu ket noi Qdrant (`getCollections`)
+3. Neu fail: log warning "Qdrant not available, search functionality limited"
+4. Van start HTTP server (khong hard-fail vi Qdrant)
 
-## 6. Khoi dong va suc khoe service
+Health:
 
-- Entry point: `backend/services/ai-service/src/server.ts`
-- Khi start:
-  - Check ket noi Qdrant (`getCollections`)
-  - Start HTTP server
-- App mount routes o `/ai`: `backend/services/ai-service/src/app.ts`
+- `GET /health` -> `{ status: 'ok', service: 'ai-service' }`
+- `GET /metrics` -> Prometheus metrics
 
-Health/metrics:
+## 9) Cac bien moi truong quan trong
 
-- `GET /health`
-- `GET /metrics`
+AI service can nhat:
 
-## 7. Tong ket hanh vi runtime
+- `PORT` (default 3003)
+- `DATABASE_URL`
+- `REDIS_HOST`, `REDIS_PORT`
+- `QDRANT_HOST`, `QDRANT_PORT`
+- `USER_SERVICE_URL`, `FITNESS_SERVICE_URL`
+- `LLM_PROVIDER`
+- `LLM_BASE_URL`
+- `LLM_MODEL`
+- `EMBEDDING_MODEL`
+- `RAG_MIN_SCORE` (default 0.35)
+- `RAG_TOP_K` (default 8)
 
-- Gateway la diem vao duy nhat cho frontend
-- Auth duoc xu ly tap trung tai gateway + auth-service
-- AI service khong tu verify JWT truc tiep, ma dung `x-user-id` do gateway forward
-- RAG phu thuoc vao Qdrant + embeddings
-- Generate plan dai han chay qua queue/worker de tranh block request
-- Tat ca lich su hoi thoai va plan deu duoc persist vao Postgres
+## 10) Cac command van hanh huu ich
 
-## 8. Ghi chu van hanh
+### Kiem tra Qdrant trong docker
 
-- Neu Qdrant khong san sang, service van len nhung tim kiem RAG se bi han che
-- Neu Ollama khong chay, call LLM se fail va tra message loi tu `llmService`
-- Can ingest du lieu exercise vao Qdrant de chat RAG cho ket qua tot
+```bash
+docker compose -f infra/compose/docker-compose.dev.yml ps qdrant
+curl http://localhost:6333/collections
+```
+
+### Chay ingest du lieu exercise vao Qdrant
+
+```bash
+cd backend/services/ai-service
+pnpm tsx src/ingest.ts
+```
+
+### Smoke test AI ask endpoint qua gateway
+
+```bash
+curl -X POST http://localhost:3000/ai/ask \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"question":"Tao lich tap 5 buoi 1 tuan de tang co"}'
+```
+
+## 11) Tong ket nhanh
+
+- VectorDB khong nam trong code memory, ma nam trong container Qdrant (`qdrant_data` volume) va duoc ai-service query qua host `qdrant:6333`.
+- Runtime retrieve la embedding-based search tren collection `exercises`, co query expansion + score threshold.
+- `/ai/ask` la pipeline ket hop deterministic recommendation + LLM (co dieu kien) + persistence + relevance evaluation.
 
 ---
 
-Cap nhat lan cuoi: 2026-03-22
+Cap nhat lan cuoi: 2026-03-24

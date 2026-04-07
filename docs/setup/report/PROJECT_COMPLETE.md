@@ -38,6 +38,14 @@ A **production-ready microservices fitness platform** with:
 - **Health Checks**: All services monitored
 - **Volume Persistence**: Data survives restarts
 
+### 🔁 Workflow Automation (n8n)
+- **n8n Service** (Port 5678): workflow orchestration runtime for automations
+- **Gateway Integration**:
+  - `/admin/workflows/meta` for n8n health + integration status
+  - `/admin/workflows` for workflow listing via n8n Public API
+  - `/admin/workflows/studio` protected proxy for embedded n8n editor in admin UI
+- **Admin UI Integration**: dedicated `Workflows` page in Admin portal with workflow table + embedded studio
+
 ## 📊 System Capabilities
 
 ### 🔐 Authentication & Security

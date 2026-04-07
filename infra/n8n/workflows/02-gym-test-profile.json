@@ -1,0 +1,122 @@
+{
+  "name": "Gym Test - Profile",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gym-test-profile",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b0000002-0001-0001-0001-000000000002",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "gym-test-profile"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { startMs: Date.now(), startTime: new Date().toISOString() } }];"
+      },
+      "id": "b0000002-0002-0002-0002-000000000002",
+      "name": "Start Timer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://user-service:3004/health",
+        "options": {
+          "timeout": 5000,
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "id": "b0000002-0003-0003-0003-000000000002",
+      "name": "Check User Service",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 180],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://api-gateway:3000/profile/pts",
+        "options": {
+          "timeout": 5000,
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "id": "b0000002-0004-0004-0004-000000000002",
+      "name": "Check PT List Endpoint",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 420],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const startMs = $('Start Timer').first().json.startMs;\nconst checks = [];\nlet allPassed = true;\n\ntry {\n  const r = $('Check User Service').first().json;\n  const ok = !!(r?.status === 'ok' || r?.status === 'healthy' || r?.uptime);\n  if (!ok) allPassed = false;\n  checks.push({ name: 'user-service', ok, detail: r?.status ?? JSON.stringify(r).slice(0, 100) });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'user-service', ok: false, detail: e.message });\n}\n\ntry {\n  const r = $('Check PT List Endpoint').first().json;\n  // PT list may return [] (empty array) — that's still a valid 200\n  const ok = Array.isArray(r) || Array.isArray(r?.data) || typeof r === 'object';\n  if (!ok) allPassed = false;\n  checks.push({ name: 'profile/pts', ok, detail: Array.isArray(r) ? `${r.length} PTs` : (r?.error ?? 'unexpected shape') });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'profile/pts', ok: false, detail: e.message });\n}\n\nconst durationMs = Date.now() - startMs;\nreturn [{ json: {\n  passed: allPassed,\n  step: 'Profile',\n  statusCode: allPassed ? 200 : 503,\n  details: checks.map(c => `${c.name}: ${c.ok ? 'OK' : 'FAIL'}`).join(' | '),\n  durationMs,\n  checks\n} }];"
+      },
+      "id": "b0000002-0005-0005-0005-000000000002",
+      "name": "Build Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "b0000002-0006-0006-0006-000000000002",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Start Timer", "type": "main", "index": 0 }]]
+    },
+    "Start Timer": {
+      "main": [
+        [{ "node": "Check User Service", "type": "main", "index": 0 }],
+        [{ "node": "Check PT List Endpoint", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check User Service": {
+      "main": [[{ "node": "Build Result", "type": "main", "index": 0 }]]
+    },
+    "Check PT List Endpoint": {
+      "main": [[{ "node": "Build Result", "type": "main", "index": 0 }]]
+    },
+    "Build Result": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh"
+  },
+  "tags": [{ "name": "e2e-test" }, { "name": "profile" }, { "name": "sub-workflow" }],
+  "_meta": {
+    "description": "Sub-workflow: checks user-service /health and the /profile/pts public endpoint. Called by orchestrator via POST /webhook/gym-test-profile.",
+    "webhook_path": "gym-test-profile",
+    "checks": ["http://user-service:3004/health", "http://api-gateway:3000/profile/pts"],
+    "response_schema": {
+      "passed": "boolean",
+      "step": "Profile",
+      "statusCode": "200 | 503",
+      "details": "string",
+      "durationMs": "number",
+      "checks": "array"
+    }
+  }
+}

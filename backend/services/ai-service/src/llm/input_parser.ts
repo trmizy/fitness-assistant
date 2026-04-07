@@ -125,6 +125,10 @@ export const inputParser = {
     const minimumExercisesPerDay = parseMinimumExercisesPerDay(normalizedQuestion);
     const mealPreferenceHint = inferMealPreference(normalizedQuestion);
     const mentionsInjury = /(injury|pain|ch[aấ]n th[uươ][oơ]ng|chan thuong|[dđ]au g[oố]i|dau goi|[dđ]au l[uư]ng|dau lung|[dđ]au vai|dau vai|[dđ]au kh[oớ]p|knee pain|shoulder pain|back pain)/i.test(normalizedQuestion);
+    const requestsCardio = /(cardio|c[aà]o tim|aerobic|ch[aạ]y b[oộ]|chay bo|[dđ][aạ]p xe|dap xe|swimming|b[oơ]i l[oộ]i|rowing|b[uướ][oớ]c nhanh|buoc nhanh)/i.test(normalizedQuestion);
+    const mealsMatch = stripGymDiacritics(normalizedQuestion).match(/(\d)\s*bua(?:\s*an)?(?:\s*moi\s*ngay)?(?:\s*trong\s*(?:\d+\s*)?(?:ngay|tuan|week))?/i)
+      || stripGymDiacritics(normalizedQuestion).match(/(\d)\s*(?:meals?|bua)\s*(?:a\s*day|per\s*day)/i);
+    const parsedMealsPerDay = mealsMatch ? Math.min(6, Math.max(1, Number(mealsMatch[1]))) : undefined;
     const missingFields = computeMissingFields(profile, intent);
 
     return {
@@ -135,7 +139,9 @@ export const inputParser = {
       mealPreferenceHint,
       parsedTrainingDays: routed.parsedTrainingDays ?? parsedTrainingDays,
       minimumExercisesPerDay,
+      parsedMealsPerDay,
       mentionsInjury,
+      requestsCardio,
       needsPersonalization: intent === 'personalized_plan' || intent === 'workout_plan' || intent === 'meal_plan',
       missingFields: Array.from(new Set([...missingFields, ...routed.missingFields])),
     };

@@ -1,5 +1,6 @@
 import { nutritionCalculator } from './nutrition_calculator';
 import { workoutPlanSelector } from './workout_plan_selector';
+import { mealPlanLoader } from './meal_plan_loader';
 import type {
   DayPlan,
   ExercisePrescription,
@@ -300,6 +301,17 @@ function enforceMinExercises(days: DayPlan[], minPerDay: number): DayPlan[] {
   });
 }
 
+function cardioForDay(day: DayPlan): string {
+  const d = day.day.toLowerCase();
+  if (d.includes('legs') || d.includes('lower')) {
+    return '10 phút Cycling nhẹ hoặc Walking — warm-down';
+  }
+  if (d.includes('full body')) {
+    return '10–15 phút LISS Cardio (đi bộ nhanh hoặc xe đạp)';
+  }
+  return '10–15 phút Assault Bike hoặc Rowing — moderate pace';
+}
+
 function goalSummaryText(objective: string, days: number, level: string): string {
   const split = days <= 3 ? 'Full Body' : days === 4 ? 'Upper/Lower' : days <= 6 ? 'Push/Pull/Legs' : 'PPL x2';
   const goalVI = objective === 'fat_loss' ? 'Giảm mỡ' : objective === 'muscle_gain' ? 'Tăng cơ' : 'Tái cấu trúc';
@@ -319,7 +331,10 @@ function buildWorkoutPlanTemplate(profile: UserProfile, intent: InputIntent): Wo
   const level = profile.experienceLevel || 'INTERMEDIATE';
 
   const rawDays = selectDaysByCount(requestedDays);
-  const days = enforceMinExercises(rawDays, minExercises);
+  const withMinExercises = enforceMinExercises(rawDays, minExercises);
+  const days = intent.requestsCardio
+    ? withMinExercises.map((day) => ({ ...day, cardio: cardioForDay(day) }))
+    : withMinExercises;
 
   return {
     isDefaultTemplate: !profile.training.trainingDaysPerWeek && !intent.parsedTrainingDays,
@@ -383,23 +398,37 @@ function buildGeneralSpecificRoutine(): SpecificRoutineTemplate {
 
 function buildMealPlanTemplate(profile: UserProfile, intent: InputIntent): MealPlanTemplate {
   const nutrition = nutritionCalculator.calculate(profile, intent);
+  const objective = objectiveFromGoal(profile.goal, intent.goalHint);
+  const mealsPerDay = intent.parsedMealsPerDay ?? 3;
 
+  // Try to load a real plan from the dataset
+  const loaded = mealPlanLoader.load(
+    objective,
+    nutrition.targetCalories ?? 2000,
+    nutrition.proteinGrams ?? 150,
+    nutrition.carbsGrams ?? 220,
+    nutrition.fatGrams ?? 65,
+    mealsPerDay,
+    intent.mealPreferenceHint,
+  );
+  if (loaded) return loaded;
+
+  // Fallback when dataset unavailable
   return {
-    isDefaultTemplate: nutrition.confidence === 'low',
-    kcal: nutrition.targetCalories || 2100,
-    proteinGrams: nutrition.proteinGrams || 150,
-    carbsGrams: nutrition.carbsGrams || 220,
-    fatGrams: nutrition.fatGrams || 65,
+    isDefaultTemplate: true,
+    kcal: nutrition.targetCalories ?? 2100,
+    proteinGrams: nutrition.proteinGrams ?? 150,
+    carbsGrams: nutrition.carbsGrams ?? 220,
+    fatGrams: nutrition.fatGrams ?? 65,
     meals: [
-      { mealName: 'Meal 1', foods: ['Oats 60g', 'Greek yogurt 200g', 'Banana 1 fruit'] },
-      { mealName: 'Meal 2', foods: ['Chicken breast 150g', 'Rice 180g cooked', 'Vegetables 200g'] },
-      { mealName: 'Meal 3', foods: ['Salmon 150g', 'Sweet potato 250g', 'Salad 1 bowl'] },
-      { mealName: 'Meal 4', foods: ['Whey protein 1 scoop', 'Almonds 20g', 'Apple 1 fruit'] },
+      { mealName: 'Bữa sáng', foods: ['Yến mạch 60g', 'Sữa chua Hy Lạp 200g', 'Chuối 1 quả'] },
+      { mealName: 'Bữa trưa', foods: ['Ức gà 150g', 'Cơm trắng 180g', 'Rau xanh 200g'] },
+      { mealName: 'Bữa tối', foods: ['Cá hồi 150g', 'Khoai lang 250g', 'Salad 1 tô'] },
     ],
     substitutions: [
-      'Replace chicken with tofu or lean beef at equivalent protein.',
-      'Replace rice with potatoes or whole-grain bread at equivalent carbs.',
-      'Replace salmon with eggs plus olive oil to keep fats similar.',
+      'Đổi ức gà → đậu hũ hoặc bò nạc (giữ nguyên gram protein).',
+      'Đổi cơm trắng → khoai lang hoặc bánh mì nguyên cám (giữ nguyên gram carb).',
+      'Đổi cá hồi → trứng + dầu ô liu (giữ nguyên gram fat).',
     ],
   };
 }

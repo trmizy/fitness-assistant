@@ -15,7 +15,18 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
+      const envOrigins = (process.env.CORS_ORIGIN || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      const allowedOrigins = Array.from(
+        new Set([
+          'http://localhost:3000', // gateway itself — needed for n8n studio asset requests
+          'http://localhost:5173',
+          'http://localhost:5678',
+          ...envOrigins,
+        ]),
+      );
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -45,6 +56,16 @@ app.get('/health', (_req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });
+});
+
+// ── n8n Studio CSP bypass ────────────────────────────────────────────────────
+// Helmet adds a strict 'script-src self' CSP to ALL responses which blocks n8n's
+// inline scripts. We strip it here (before the proxy runs) for the studio route.
+// noSniff is also disabled so browsers accept JS/CSS with their correct MIME types.
+app.use('/admin/workflows/studio', (_req: Request, res: Response, next: NextFunction) => {
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('X-Content-Type-Options');
+  next();
 });
 
 app.use('/', proxyRoutes);

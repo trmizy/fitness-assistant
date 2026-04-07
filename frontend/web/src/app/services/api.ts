@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // @ts-ignore - ImportMeta.env is provided by Vite
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -322,6 +322,36 @@ export const adminService = {
     return data;
   },
 
+  getWorkflowMeta: async () => {
+    const { data } = await api.get('/admin/workflows/meta');
+    return data;
+  },
+
+  listWorkflows: async () => {
+    const { data } = await api.get('/admin/workflows');
+    return data;
+  },
+
+  getWorkflowExecutions: async (workflowId: string, limit = 20) => {
+    const { data } = await api.get(`/admin/workflows/${workflowId}/executions?limit=${limit}`);
+    return data;
+  },
+
+  getExecutionDetail: async (executionId: string) => {
+    const { data } = await api.get(`/admin/workflows/executions/${executionId}`);
+    return data;
+  },
+
+  runSmokeTest: async () => {
+    const { data } = await api.post('/admin/workflows/smoke-test', {});
+    return data;
+  },
+
+  setupSampleWorkflows: async () => {
+    const { data } = await api.post('/admin/workflows/setup-samples', {});
+    return data;
+  },
+
   listPTProfiles: async () => {
     const { data } = await api.get('/profile/pts');
     return data;
@@ -334,6 +364,15 @@ export const adminService = {
 
   setPTStatus: async (userId: string, isPT: boolean) => {
     const { data } = await api.patch(`/profile/admin/users/${userId}/pt-status`, { isPT });
+    return data;
+  },
+
+  runFullSystemTest: async () => {
+    const { data } = await api.post(
+      '/admin/workflows/full-system-test',
+      {},
+      { timeout: 120000 },
+    );
     return data;
   },
 };
