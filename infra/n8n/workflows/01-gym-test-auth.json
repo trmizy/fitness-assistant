@@ -86,13 +86,10 @@
       "main": [[{ "node": "Start Timer", "type": "main", "index": 0 }]]
     },
     "Start Timer": {
-      "main": [
-        [{ "node": "Check Gateway", "type": "main", "index": 0 }],
-        [{ "node": "Check Auth Service", "type": "main", "index": 0 }]
-      ]
+      "main": [[{ "node": "Check Gateway", "type": "main", "index": 0 }]]
     },
     "Check Gateway": {
-      "main": [[{ "node": "Build Result", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Check Auth Service", "type": "main", "index": 0 }]]
     },
     "Check Auth Service": {
       "main": [[{ "node": "Build Result", "type": "main", "index": 0 }]]

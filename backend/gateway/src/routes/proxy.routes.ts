@@ -18,6 +18,25 @@ const N8N_PUBLIC_API_KEY = process.env.N8N_PUBLIC_API_KEY;
 const N8N_BASIC_AUTH_USER = process.env.N8N_BASIC_AUTH_USER;
 const N8N_BASIC_AUTH_PASSWORD = process.env.N8N_BASIC_AUTH_PASSWORD;
 
+function normalizeSetCookiePath(headerValue: string | string[] | undefined): string[] | undefined {
+  if (!headerValue) return undefined;
+  const values = Array.isArray(headerValue) ? headerValue : [headerValue];
+  return values.map((cookie) => {
+    let normalized = cookie;
+    if (/;\s*Path=/i.test(normalized)) {
+      normalized = normalized.replace(/;\s*Path=[^;]*/i, '; Path=/');
+    } else {
+      normalized = `${normalized}; Path=/`;
+    }
+
+    // n8n may issue Secure cookies by default. Strip it for local HTTP gateway
+    // usage so browser can persist session on http://localhost.
+    normalized = normalized.replace(/;\s*Secure/gi, '');
+
+    return normalized;
+  });
+}
+
 type ProbeService = {
   key: 'api' | 'auth' | 'user' | 'fitness' | 'ai' | 'chat' | 'n8n';
   name: string;
@@ -140,31 +159,27 @@ function stripAccessTokenQuery(req: Request, _res: Response, next: NextFunction)
   return next();
 }
 
-// ── n8n Studio cookie-based session ──────────────────────────────────────────
-// When the initial page loads with ?access_token=JWT, we verify the JWT and set
-// a session cookie. Subsequent browser requests for JS/CSS/API automatically
-// include the cookie, allowing them to pass auth without the query param.
-const N8N_SESSION_COOKIE = 'n8n_session';
-
-function n8nStudioAuth(req: Request, res: Response, next: NextFunction) {
-  const queryToken = typeof req.query.access_token === 'string' ? req.query.access_token : undefined;
-
-  // Parse session cookie from header
-  const cookieHeader = req.headers.cookie || '';
-  const cookieMatch = cookieHeader.match(/(?:^|;\s*)n8n_session=([^;]+)/);
-  const cookieToken = cookieMatch?.[1];
-
-  const token = queryToken || cookieToken;
-  if (token && !req.headers.authorization) {
-    req.headers.authorization = `Bearer ${token}`;
+// ── n8n Studio entry auth ─────────────────────────────────────────────────────
+// Only the INITIAL page load (URL carries ?access_token=JWT) is gated by the
+// gateway JWT + admin-role check. All subsequent sub-resource requests
+// (JS/CSS/images/WebSocket and /rest/* API calls) pass straight through to n8n.
+// n8n v1.97.1 manages its own session: the browser completes n8n's login flow,
+// n8n sets its own session cookie, then the editor loads normally.
+//
+// Why not protect every sub-request with the gateway JWT?
+// 1. The JWT is a one-time entry token — it's NOT a persistent session credential.
+// 2. n8n v1.97.1 dropped Basic-auth; it requires its own user-management login.
+// 3. Requiring JWT on assets/REST caused 401s that prevented the login page JS
+//    from loading at all, creating an unbreakable chicken-and-egg loop.
+function n8nEntryAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.query.access_token) {
+    // Sub-resource request (asset, API call, WS) — let n8n handle auth
+    return next();
   }
-
-  // Tag the request so onProxyRes can set the cookie
-  if (queryToken) {
-    (req as any)._n8nSessionToken = queryToken;
+  // Initial page load carries ?access_token=JWT: verify JWT + admin role
+  if (req.headers.authorization === undefined) {
+    req.headers.authorization = `Bearer ${req.query.access_token as string}`;
   }
-
-  // Chain: authMiddleware → requireRoles('ADMIN')
   return authMiddleware(req, res, () => {
     requireRoles('ADMIN')(req, res, next);
   });
@@ -798,76 +813,144 @@ router.post('/admin/workflows/setup-samples', authMiddleware, requireRoles('ADMI
 
 // Protected — n8n Studio embed (admin only, cookie-based session)
 // The initial page load carries ?access_token=JWT. After verification a session
-// cookie is set so that subsequent sub-resource requests (JS, CSS, REST API)
-// can authenticate without the query param.
+// Only the initial page load (carries ?access_token=JWT) is gated.
+// Sub-resource requests pass straight through — n8n handles its own session.
+router.get('/admin/workflows/studio/login', (req, res) => {
+  const queryIndex = req.originalUrl.indexOf('?');
+  const query = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : '';
+  res.redirect(302, `/admin/workflows/studio${query}`);
+});
+
+router.get('/admin/workflows/studio/register', (req, res) => {
+  const queryIndex = req.originalUrl.indexOf('?');
+  const query = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : '';
+  res.redirect(302, `/admin/workflows/studio${query}`);
+});
+
 router.use(
   '/admin/workflows/studio',
-  n8nStudioAuth,
+  n8nEntryAuth,
   stripAccessTokenQuery,
   createProxyMiddleware({
     target: N8N_BASE_URL,
     changeOrigin: true,
     ws: true,
-    auth:
-      N8N_BASIC_AUTH_USER && N8N_BASIC_AUTH_PASSWORD
-        ? `${N8N_BASIC_AUTH_USER}:${N8N_BASIC_AUTH_PASSWORD}`
-        : undefined,
-    // n8n serves its editor HTML at N8N_PATH but static assets at root /assets/*.
-    // Express strips the mount path, so we only re-add the prefix for the initial
-    // HTML page request (path "/" or ""), not for asset/sub-resource requests.
+    // Express strips the /admin/workflows/studio mount point before the proxy sees
+    // the path. Re-add the full base path so n8n (built with N8N_PATH matching
+    // this prefix) can locate every asset: HTML, JS, CSS, images.
     pathRewrite: (path) => {
-      if (path === '/' || path === '') {
-        const base = N8N_EDITOR_BASE_PATH.endsWith('/')
-          ? N8N_EDITOR_BASE_PATH
-          : `${N8N_EDITOR_BASE_PATH}/`;
-        return base;
+      const base = N8N_EDITOR_BASE_PATH.endsWith('/')
+        ? N8N_EDITOR_BASE_PATH.slice(0, -1)
+        : N8N_EDITOR_BASE_PATH;
+
+      let rewritten = path || '/';
+      if (rewritten.startsWith(base)) {
+        rewritten = rewritten.slice(base.length) || '/';
       }
-      // Assets, REST API, etc. — keep as-is (root-relative)
-      return path;
+
+      if (!rewritten.startsWith('/')) {
+        rewritten = `/${rewritten}`;
+      }
+
+      // n8n latest serves auth screens from SPA shell at '/'.
+      // Keep compatibility for links like '/signin', '/login', '/signup', '/register'.
+      if (
+        rewritten.startsWith('/signin')
+        || rewritten.startsWith('/login')
+        || rewritten.startsWith('/signup')
+        || rewritten.startsWith('/register')
+      ) {
+        const queryIndex = rewritten.indexOf('?');
+        rewritten = queryIndex >= 0 ? `/${rewritten.slice(queryIndex)}` : '/';
+      }
+
+      return rewritten;
     },
-    onProxyRes: (proxyRes, req) => {
-      // Remove frame / CSP guards so admin UI can embed n8n in an iframe
-      // and n8n's inline scripts are not blocked.
+    onProxyRes: (proxyRes) => {
+      // Remove frame / CSP guards so the admin UI can host n8n and
+      // n8n's inline scripts are not blocked by Helmet defaults.
       delete proxyRes.headers['x-frame-options'];
       delete proxyRes.headers['content-security-policy'];
       delete proxyRes.headers['x-content-type-options'];
 
-      // Set session cookie on initial authenticated page load
-      const sessionToken = (req as any)._n8nSessionToken;
-      if (sessionToken) {
-        const cookie = `${N8N_SESSION_COOKIE}=${sessionToken}; Path=/admin/workflows/studio; HttpOnly; SameSite=Lax; Max-Age=900`;
-        const existing = proxyRes.headers['set-cookie'];
-        if (Array.isArray(existing)) {
-          existing.push(cookie);
-        } else if (existing) {
-          proxyRes.headers['set-cookie'] = [existing as string, cookie];
-        } else {
-          proxyRes.headers['set-cookie'] = [cookie];
-        }
-      }
-
-      // Rewrite absolute Location headers so browser stays on the gateway origin
+      // Rewrite absolute Location headers so browser stays on the gateway origin.
       const location = proxyRes.headers['location'];
       if (typeof location === 'string' && location.startsWith(N8N_BASE_URL)) {
         proxyRes.headers['location'] = location.replace(N8N_BASE_URL, '');
       }
+
+      proxyRes.headers['set-cookie'] = normalizeSetCookiePath(proxyRes.headers['set-cookie']);
     },
     onError: serviceUnavailable('n8n studio'),
   }),
 );
 
-// n8n REST sub-resources (sentry.js etc.) — referenced by studio HTML at root /rest/*
+// n8n REST sub-resources (/rest/settings, /rest/workflows, /rest/sentry.js …)
+// No gateway auth here — n8n v1.97.1 uses its own user-management session.
+// Express strips the '/rest' mount point, so pathRewrite adds it back.
 router.use(
   '/rest',
-  n8nStudioAuth,
   createProxyMiddleware({
     target: N8N_BASE_URL,
     changeOrigin: true,
-    auth:
-      N8N_BASIC_AUTH_USER && N8N_BASIC_AUTH_PASSWORD
-        ? `${N8N_BASIC_AUTH_USER}:${N8N_BASIC_AUTH_PASSWORD}`
-        : undefined,
+    pathRewrite: (path) => (path.startsWith('/rest') ? path : `/rest${path}`),
+    onProxyRes: (proxyRes) => {
+      proxyRes.headers['set-cookie'] = normalizeSetCookiePath(proxyRes.headers['set-cookie']);
+    },
     onError: serviceUnavailable('n8n rest'),
+  }),
+);
+
+// n8n static assets used by studio (e.g. /assets/index-*.js, /assets/polyfills-*.js)
+router.use(
+  '/assets',
+  createProxyMiddleware({
+    target: N8N_BASE_URL,
+    changeOrigin: true,
+    onProxyRes: (proxyRes) => {
+      proxyRes.headers['set-cookie'] = normalizeSetCookiePath(proxyRes.headers['set-cookie']);
+    },
+    onError: serviceUnavailable('n8n assets'),
+  }),
+);
+
+// n8n signin page and related auth entrypoint
+router.use(
+  '/signin',
+  createProxyMiddleware({
+    target: N8N_BASE_URL,
+    changeOrigin: true,
+    pathRewrite: () => '/',
+    onProxyRes: (proxyRes) => {
+      proxyRes.headers['set-cookie'] = normalizeSetCookiePath(proxyRes.headers['set-cookie']);
+    },
+    onError: serviceUnavailable('n8n signin'),
+  }),
+);
+
+router.use(
+  '/login',
+  createProxyMiddleware({
+    target: N8N_BASE_URL,
+    changeOrigin: true,
+    pathRewrite: () => '/',
+    onProxyRes: (proxyRes) => {
+      proxyRes.headers['set-cookie'] = normalizeSetCookiePath(proxyRes.headers['set-cookie']);
+    },
+    onError: serviceUnavailable('n8n login'),
+  }),
+);
+
+// n8n static resources used by signin and shell boot scripts
+router.use(
+  '/static',
+  createProxyMiddleware({
+    target: N8N_BASE_URL,
+    changeOrigin: true,
+    onProxyRes: (proxyRes) => {
+      proxyRes.headers['set-cookie'] = normalizeSetCookiePath(proxyRes.headers['set-cookie']);
+    },
+    onError: serviceUnavailable('n8n static'),
   }),
 );
 

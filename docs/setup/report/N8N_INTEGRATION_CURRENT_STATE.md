@@ -1,244 +1,251 @@
-# n8n Integration - Current State in fitness-assistant
+# n8n Integration - Detailed Current State (fitness-assistant)
 
-## 1. Overview
+## 1. Purpose and scope
 
-This document describes the real current n8n integration that is already wired in this repository.
-It is based on the running implementation in Docker Compose, API Gateway, and Admin UI.
+This document is the detailed operational reference for n8n integration in this repository.
+It reflects the current implementation in Docker, gateway proxy layer, and admin UI.
 
-Main goals of the current integration:
+Current objectives:
 
-- Run n8n as an internal orchestration service in the same Docker network.
-- Expose n8n capabilities to admins via gateway-protected endpoints.
-- Embed n8n Studio into Admin UI.
-- Support workflow listing, execution inspection, smoke test, and sample workflow bootstrap.
+- Run n8n as an internal workflow runtime in the same Docker network.
+- Expose workflow operations only to admin users via gateway APIs.
+- Open n8n Studio from Admin portal without cross-origin/frame breakage.
+- Provide smoke test and end-to-end test hooks for integration validation.
 
-## 2. Where n8n lives in the architecture
+## 2. Source of truth (code locations)
 
-n8n is integrated in three layers:
-
-- Infrastructure:
-  - [infra/compose/docker-compose.dev.yml](../../../infra/compose/docker-compose.dev.yml)
-- Backend (Gateway):
-  - [backend/gateway/src/routes/proxy.routes.ts](../../../backend/gateway/src/routes/proxy.routes.ts)
-- Frontend (Admin):
-  - [frontend/web/src/app/pages/admin/AdminWorkflowStudio.tsx](../../../frontend/web/src/app/pages/admin/AdminWorkflowStudio.tsx)
-  - [frontend/web/src/app/services/api.ts](../../../frontend/web/src/app/services/api.ts)
-  - [frontend/web/src/app/routes.tsx](../../../frontend/web/src/app/routes.tsx)
-  - [frontend/web/src/app/components/layout/Sidebar.tsx](../../../frontend/web/src/app/components/layout/Sidebar.tsx)
-
-## 3. Docker runtime details
-
-Defined service: n8n
-
-- Image: n8nio/n8n:1.97.1
-- Container name: gymcoach-n8n
-- Port mapping: 5678:5678
-- Data volume: n8n_data -> /home/node/.n8n
-- Health check: GET /healthz (inside container)
-
-n8n service is configured in:
+Infrastructure:
 
 - [infra/compose/docker-compose.dev.yml](../../../infra/compose/docker-compose.dev.yml)
 
-Gateway also receives n8n-related env vars in the same compose file so it can call n8n internally as http://n8n:5678.
-
-## 4. Environment variables used for n8n
-
-Canonical template is in:
-
-- [.env.example](../../../.env.example)
-
-Important variables:
-
-Core n8n runtime:
-
-- N8N_HOST
-- N8N_PATH
-- N8N_WEBHOOK_URL
-- GENERIC_TIMEZONE
-- N8N_BASIC_AUTH_ACTIVE
-- N8N_BASIC_AUTH_USER
-- N8N_BASIC_AUTH_PASSWORD
-- N8N_PUBLIC_API_DISABLED
-
-Gateway-to-n8n integration:
-
-- N8N_BASE_URL
-- N8N_EDITOR_BASE_PATH
-- N8N_PUBLIC_API_KEY
-- N8N_SMOKE_TEST_WEBHOOK_URL
-
-Notes:
-
-- N8N_PUBLIC_API_KEY is required for workflow/execution APIs via gateway.
-- Without N8N_PUBLIC_API_KEY, /admin/workflows returns N8N_API_KEY_MISSING.
-- N8N_SMOKE_TEST_WEBHOOK_URL is required for smoke-test endpoint.
-
-## 5. Gateway API surface for n8n
-
-All routes are implemented in:
+Gateway (proxy + admin APIs):
 
 - [backend/gateway/src/routes/proxy.routes.ts](../../../backend/gateway/src/routes/proxy.routes.ts)
+- [backend/gateway/src/app.ts](../../../backend/gateway/src/app.ts)
+- [backend/gateway/src/middleware/rateLimit.middleware.ts](../../../backend/gateway/src/middleware/rateLimit.middleware.ts)
 
-All n8n admin routes are protected by:
+Admin UI:
 
-- authMiddleware
-- requireRoles('ADMIN')
+- [frontend/web/src/app/pages/admin/AdminWorkflowStudio.tsx](../../../frontend/web/src/app/pages/admin/AdminWorkflowStudio.tsx)
+- [frontend/web/src/app/services/api.ts](../../../frontend/web/src/app/services/api.ts)
+- [frontend/web/src/app/routes.tsx](../../../frontend/web/src/app/routes.tsx)
+- [frontend/web/src/app/components/layout/Sidebar.tsx](../../../frontend/web/src/app/components/layout/Sidebar.tsx)
 
-### 5.1 Health and metadata
+## 3. Runtime topology
 
-- GET /admin/workflows/meta
-  - Checks n8n health endpoint (/healthz)
-  - Returns studioPath, apiEnabled, status, healthStatusCode
+Container/service:
 
-### 5.2 Workflows
+- Service: `n8n`
+- Image: `n8nio/n8n:latest`
+- Container name: `gymcoach-n8n`
+- Port: `5678:5678`
+- Persistent volume: `n8n_data:/home/node/.n8n`
+- Health endpoint: `GET /healthz`
 
-- GET /admin/workflows
-  - Requires N8N_PUBLIC_API_KEY
-  - Calls n8n /api/v1/workflows
-  - Returns total, active, inactive, workflows[]
+Gateway integration:
 
-### 5.3 Executions
+- Gateway talks to n8n internally via `http://n8n:5678`.
+- Admin users access n8n through gateway routes under `/admin/workflows/*`.
 
-- GET /admin/workflows/:workflowId/executions?limit=20
-  - Requires N8N_PUBLIC_API_KEY
-  - Calls n8n /api/v1/executions
+## 4. Environment variables
 
-- GET /admin/workflows/executions/:executionId
-  - Requires N8N_PUBLIC_API_KEY
-  - Calls n8n /api/v1/executions/:id
+Primary env files:
 
-### 5.4 Smoke test
+- [.env](../../../.env)
+- [.env.example](../../../.env.example)
 
-- POST /admin/workflows/smoke-test
-  - Requires N8N_SMOKE_TEST_WEBHOOK_URL
-  - Sends payload to configured webhook URL
-  - Returns passed/statusCode/durationMs/responseBody/testedAt
+### 4.1 n8n runtime env
 
-### 5.5 Sample workflow setup
+- `N8N_HOST`
+- `N8N_PATH` (current local setup uses `/`)
+- `N8N_WEBHOOK_URL`
+- `GENERIC_TIMEZONE`
+- `N8N_BASIC_AUTH_ACTIVE` (current recommended local setup: `false` to avoid UI login conflicts)
+- `N8N_BASIC_AUTH_USER`
+- `N8N_BASIC_AUTH_PASSWORD`
+- `N8N_PUBLIC_API_DISABLED`
 
-- POST /admin/workflows/setup-samples
-  - Requires N8N_PUBLIC_API_KEY
-  - Idempotently creates workflow named Gym Coach - Smoke Test
-  - Activates the created workflow
+### 4.2 gateway to n8n env
 
-### 5.6 Embedded Studio proxy
+- `N8N_BASE_URL`
+- `N8N_EDITOR_BASE_PATH`
+- `N8N_PUBLIC_API_KEY`
+- `N8N_SMOKE_TEST_WEBHOOK_URL`
+- `N8N_E2E_WEBHOOK_URL`
 
-- /admin/workflows/studio/*
-  - Proxied to n8n service
-  - Supports websocket upgrade
-  - Removes x-frame-options and content-security-policy headers for iframe embedding
-  - Supports access token from query string (access_token) then strips it before proxying upstream
+Important:
 
-## 6. Admin UI integration
+- `N8N_PUBLIC_API_KEY` is required for `/admin/workflows*` listing/execution APIs.
+- smoke/e2e endpoints depend on webhook URLs and activated workflows.
+
+## 5. Gateway API and proxy surface
+
+All n8n admin APIs are protected by `authMiddleware` + `requireRoles('ADMIN')`.
+
+### 5.1 admin n8n APIs
+
+- `GET /admin/workflows/meta`
+  - checks `n8n /healthz`
+  - returns connectivity and studio path metadata
+
+- `GET /admin/workflows`
+  - calls `n8n /api/v1/workflows`
+  - requires `N8N_PUBLIC_API_KEY`
+
+- `GET /admin/workflows/:workflowId/executions?limit=...`
+- `GET /admin/workflows/executions/:executionId`
+
+- `POST /admin/workflows/smoke-test`
+- `POST /admin/workflows/full-system-test`
+- `POST /admin/workflows/setup-samples`
+
+### 5.2 studio and auth-related proxy routes
+
+Main studio route:
+
+- `/admin/workflows/studio`
+
+Supported aliases normalized to canonical studio route:
+
+- `/admin/workflows/studio/`
+- `/admin/workflows/studio/login`
+- `/admin/workflows/studio/register`
+
+Also proxied:
+
+- `/rest`
+- `/assets`
+- `/static`
+- `/signin`
+- `/login`
+
+### 5.3 hardening applied
+
+To avoid iframe and browser security breakage in admin embedding:
+
+- remove response headers for n8n routes:
+  - `X-Frame-Options`
+  - `Content-Security-Policy`
+  - `X-Content-Type-Options`
+
+To avoid local HTTP cookie/session issues:
+
+- proxy rewrites `Set-Cookie` path to `/`
+- strips `Secure` flag in local gateway flow
+
+To avoid asset flooding 429:
+
+- rate limit bypass for n8n-heavy paths (`/admin/workflows/studio`, `/rest`, `/assets`, `/static`, `/signin`)
+
+## 6. Admin UI behavior
 
 Main page:
 
 - [frontend/web/src/app/pages/admin/AdminWorkflowStudio.tsx](../../../frontend/web/src/app/pages/admin/AdminWorkflowStudio.tsx)
 
-Features currently present in UI:
+Buttons currently available:
 
-- n8n connection status and API key status card
-- workflow counts (active/inactive)
-- workflow list
-- execution list per workflow
-- execution detail drawer/expand view
-- smoke test trigger
-- sample workflow setup trigger
-- open embedded studio and open in new tab
+- `Mở Studio`
+- `Đăng nhập n8n`
+- `Đăng ký n8n`
 
-Routing and navigation:
+Note on login/register buttons:
 
-- Route: /admin/workflows in [frontend/web/src/app/routes.tsx](../../../frontend/web/src/app/routes.tsx)
-- Sidebar item: Workflows in [frontend/web/src/app/components/layout/Sidebar.tsx](../../../frontend/web/src/app/components/layout/Sidebar.tsx)
+- Both are convenience entry links via gateway aliases.
+- Alias routes are redirected to canonical `/admin/workflows/studio?...` to prevent n8n SPA 404.
 
-Frontend API client methods are in:
+## 7. Current auth model and owner account flow
 
-- [frontend/web/src/app/services/api.ts](../../../frontend/web/src/app/services/api.ts)
+Current stable model:
 
-Methods:
+- Gateway admin JWT controls entry to studio URL.
+- n8n user-management handles in-studio account/session.
+- Basic Auth should remain disabled for local studio login flow unless there is a strict requirement.
 
-- getWorkflowMeta
-- listWorkflows
-- getWorkflowExecutions
-- getExecutionDetail
-- runSmokeTest
-- setupSampleWorkflows
+Owner lifecycle commands used in operations:
 
-## 7. Monitoring behavior
+- reset user state:
+  - `echo y | docker exec -i gymcoach-n8n n8n user-management:reset`
 
-System monitor includes n8n as optional dependency.
+- create owner via API:
+  - `POST http://localhost:5678/rest/owner/setup`
 
-Implementation details:
+## 8. Validation checklist
 
-- Probe key includes n8n in monitor services list
-- n8n probe uses /healthz
-- n8n is marked optional, so n8n downtime does not reduce core health score
-
-Source:
-
-- [backend/gateway/src/routes/proxy.routes.ts](../../../backend/gateway/src/routes/proxy.routes.ts)
-
-## 8. Existing e2e helper script
-
-There is an admin e2e script that also checks n8n workflow endpoint:
-
-- [scripts/test-admin-e2e.mjs](../../../scripts/test-admin-e2e.mjs)
-
-Current n8n coverage in script:
-
-- Login admin
-- Call /admin/workflows
-- Report status and payload shape
-
-## 9. How to run and validate now
-
-### 9.1 Rebuild and run Docker stack
+### 8.1 rebuild
 
 From repo root:
 
-- docker-compose --env-file .env -f infra/compose/docker-compose.dev.yml build --no-cache
-- docker-compose --env-file .env -f infra/compose/docker-compose.dev.yml up -d --force-recreate
-- docker-compose --env-file .env -f infra/compose/docker-compose.dev.yml ps
+- `docker-compose --env-file .env -f infra/compose/docker-compose.dev.yml up -d --build --force-recreate`
 
-### 9.2 Basic runtime checks
+### 8.2 health and studio
 
-- Gateway health: GET http://localhost:3000/health
-- n8n health: GET http://localhost:5678/healthz
-- Admin studio proxy: GET http://localhost:3000/admin/workflows/studio/ (requires admin auth)
+- `GET http://localhost:3000/health`
+- `GET http://localhost:5678/healthz`
+- open admin workflow page and click studio buttons
 
-### 9.3 Gateway n8n API checks
+Expected:
 
-Use admin JWT and call:
+- studio opens without `Oops, couldn't find that (404)` page
+- no iframe blocking due to `X-Frame-Options`
 
-- GET /admin/workflows/meta
-- GET /admin/workflows
-- GET /admin/workflows/:workflowId/executions
-- GET /admin/workflows/executions/:executionId
-- POST /admin/workflows/smoke-test
-- POST /admin/workflows/setup-samples
+### 8.3 n8n login API quick check
+
+- `POST http://localhost:3000/rest/login`
+
+Expected:
+
+- `200` with user payload when owner credentials are correct
+
+## 9. Common failure patterns and fixes
+
+### 9.1 `404 Oops, couldn't find that` in studio
+
+Likely causes:
+
+- stale URL path (`/studio/login`, `/studio/register`, trailing slash) without canonical redirect
+- stale frontend bundle/browser cache
+
+Fix:
+
+- keep alias redirects in gateway
+- hard refresh or open incognito after deploy
+
+### 9.2 `401 /rest/login`
+
+Likely causes:
+
+- owner user not initialized/reset mismatch
+- Basic Auth conflict with user-management flow
+
+Fix:
+
+- disable Basic Auth for local UI flow
+- reset and recreate owner account
+
+### 9.3 iframe/chromewebdata unsafe load error
+
+Likely cause:
+
+- iframe blocked by security headers, then frame URL becomes `chrome-error://chromewebdata`
+
+Fix:
+
+- strip `X-Frame-Options` and restrictive CSP headers for n8n proxy routes
 
 ## 10. Security notes
 
-- n8n Studio is behind gateway admin auth plus n8n basic auth.
-- N8N_PUBLIC_API_KEY is sensitive and must not be committed.
-- Keep N8N_BASIC_AUTH_PASSWORD strong and rotate regularly.
-- iframe embedding requires header relaxations at gateway proxy; keep route admin-only.
+- Keep all `/admin/workflows*` routes admin-only.
+- Never commit real `N8N_PUBLIC_API_KEY` to VCS.
+- If Basic Auth is re-enabled in production, review login UX and cookie behavior carefully.
+- Restrict header relaxations only to n8n proxy paths.
 
-## 11. Known operational caveats
+## 11. Operational summary
 
-- If N8N_PUBLIC_API_KEY is empty, workflow/execution API endpoints fail by design.
-- Smoke test endpoint fails if N8N_SMOKE_TEST_WEBHOOK_URL is not set or workflow is inactive.
-- Docker Compose may warn about existing external network name gymcoach-network; this is not necessarily fatal if containers still start and pass health checks.
+The n8n module is now a complete admin-operated subsystem with:
 
-## 12. Current status summary
-
-At this point, n8n integration in this project is not just an added container.
-It is a full admin-operated workflow module with:
-
-- runtime service in compose
-- protected gateway API layer
-- embedded admin interface
-- smoke-test and bootstrap workflow automation hooks
-
-This is the effective baseline for future enhancements.
+- dockerized runtime
+- gateway-protected API operations
+- embedded studio access with alias normalization
+- smoke/e2e integration hooks
+- documented reset/recovery flow for login incidents

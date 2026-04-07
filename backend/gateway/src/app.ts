@@ -58,15 +58,21 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// ── n8n Studio CSP bypass ────────────────────────────────────────────────────
-// Helmet adds a strict 'script-src self' CSP to ALL responses which blocks n8n's
-// inline scripts. We strip it here (before the proxy runs) for the studio route.
-// noSniff is also disabled so browsers accept JS/CSS with their correct MIME types.
-app.use('/admin/workflows/studio', (_req: Request, res: Response, next: NextFunction) => {
+// ── n8n CSP bypass ───────────────────────────────────────────────────────────
+// Helmet adds strict CSP / noSniff headers to ALL responses. Strip them for
+// every path that proxies to n8n so the editor and its assets load cleanly.
+function removeN8nHelmetHeaders(_req: Request, res: Response, next: NextFunction) {
+  res.removeHeader('X-Frame-Options');
   res.removeHeader('Content-Security-Policy');
   res.removeHeader('X-Content-Type-Options');
   next();
-});
+}
+app.use('/admin/workflows/studio', removeN8nHelmetHeaders);
+app.use('/rest', removeN8nHelmetHeaders);
+app.use('/assets', removeN8nHelmetHeaders);
+app.use('/static', removeN8nHelmetHeaders);
+app.use('/signin', removeN8nHelmetHeaders);
+app.use('/login', removeN8nHelmetHeaders);
 
 app.use('/', proxyRoutes);
 

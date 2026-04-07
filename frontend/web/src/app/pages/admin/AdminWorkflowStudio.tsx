@@ -3,7 +3,7 @@ import { API_URL, adminService } from "../../services/api";
 import {
   RefreshCw, Workflow, ExternalLink, CircleCheck, CircleX,
   KeyRound, Play, ChevronRight, ChevronDown, Clock, Zap,
-  AlertTriangle, CheckCircle2, XCircle, Loader2, Info,
+  AlertTriangle, CheckCircle2, XCircle, Loader2, Info, LogIn, UserPlus,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -265,9 +265,12 @@ export function AdminWorkflowStudio() {
 
   const activeCount   = workflows.filter((w) => w.active).length;
   const inactiveCount = workflows.length - activeCount;
-  const studioBasePath = meta?.studioPath ?? "/admin/workflows/studio/";
-  const accessToken    = localStorage.getItem("accessToken");
-  const studioHref     = `${API_URL}${studioBasePath}${accessToken ? `?access_token=${encodeURIComponent(accessToken)}` : ""}`;
+  const studioBasePath = (meta?.studioPath ?? "/admin/workflows/studio").replace(/\/+$/, "");
+  const accessToken = localStorage.getItem("accessToken");
+  const studioQuery = accessToken ? `?access_token=${encodeURIComponent(accessToken)}` : "";
+  const studioHref = `${API_URL}${studioBasePath}${studioQuery}`;
+  const studioLoginHref = `${API_URL}${studioBasePath}/login${studioQuery}`;
+  const studioRegisterHref = `${API_URL}${studioBasePath}/register${studioQuery}`;
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -286,6 +289,24 @@ export function AdminWorkflowStudio() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href={studioLoginHref}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-200 hover:bg-zinc-700 border border-zinc-700 transition-colors"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            Đăng nhập n8n
+          </a>
+          <a
+            href={studioRegisterHref}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-200 hover:bg-zinc-700 border border-zinc-700 transition-colors"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            Đăng ký n8n
+          </a>
           <a
             href={studioHref}
             target="_blank"

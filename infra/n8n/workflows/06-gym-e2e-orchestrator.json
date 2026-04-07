@@ -165,25 +165,19 @@
       "main": [[{ "node": "Set Start Time", "type": "main", "index": 0 }]]
     },
     "Set Start Time": {
-      "main": [
-        [{ "node": "Call Auth Test", "type": "main", "index": 0 }],
-        [{ "node": "Call Profile Test", "type": "main", "index": 0 }],
-        [{ "node": "Call Fitness Test", "type": "main", "index": 0 }],
-        [{ "node": "Call AI Test", "type": "main", "index": 0 }],
-        [{ "node": "Call PT Review Test", "type": "main", "index": 0 }]
-      ]
+      "main": [[{ "node": "Call Auth Test", "type": "main", "index": 0 }]]
     },
     "Call Auth Test": {
-      "main": [[{ "node": "Aggregate Results", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Call Profile Test", "type": "main", "index": 0 }]]
     },
     "Call Profile Test": {
-      "main": [[{ "node": "Aggregate Results", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Call Fitness Test", "type": "main", "index": 0 }]]
     },
     "Call Fitness Test": {
-      "main": [[{ "node": "Aggregate Results", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Call AI Test", "type": "main", "index": 0 }]]
     },
     "Call AI Test": {
-      "main": [[{ "node": "Aggregate Results", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Call PT Review Test", "type": "main", "index": 0 }]]
     },
     "Call PT Review Test": {
       "main": [[{ "node": "Aggregate Results", "type": "main", "index": 0 }]]

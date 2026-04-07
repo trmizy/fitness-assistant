@@ -86,13 +86,10 @@
       "main": [[{ "node": "Start Timer", "type": "main", "index": 0 }]]
     },
     "Start Timer": {
-      "main": [
-        [{ "node": "Check AI Service", "type": "main", "index": 0 }],
-        [{ "node": "Check Qdrant", "type": "main", "index": 0 }]
-      ]
+      "main": [[{ "node": "Check AI Service", "type": "main", "index": 0 }]]
     },
     "Check AI Service": {
-      "main": [[{ "node": "Build Result", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Check Qdrant", "type": "main", "index": 0 }]]
     },
     "Check Qdrant": {
       "main": [[{ "node": "Build Result", "type": "main", "index": 0 }]]

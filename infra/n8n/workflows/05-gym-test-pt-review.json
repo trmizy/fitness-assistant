@@ -86,13 +86,10 @@
       "main": [[{ "node": "Start Timer", "type": "main", "index": 0 }]]
     },
     "Start Timer": {
-      "main": [
-        [{ "node": "Check User Service", "type": "main", "index": 0 }],
-        [{ "node": "Check PT Listing", "type": "main", "index": 0 }]
-      ]
+      "main": [[{ "node": "Check User Service", "type": "main", "index": 0 }]]
     },
     "Check User Service": {
-      "main": [[{ "node": "Build Result", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Check PT Listing", "type": "main", "index": 0 }]]
     },
     "Check PT Listing": {
       "main": [[{ "node": "Build Result", "type": "main", "index": 0 }]]
