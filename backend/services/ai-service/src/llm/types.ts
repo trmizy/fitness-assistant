@@ -11,11 +11,20 @@ export type RoutedIntentType =
   | 'specific_exercise_request'
   | 'muscle_group_routine_request'
   | 'meal_plan_request'
+  | 'combined_plan_request'
   | 'body_recomposition_request'
   | 'unsafe_weight_loss_request'
   | 'profile_completion_request'
   | 'frequency_change_request'
   | 'schedule_specific_day_request';
+
+export type RouteCategory =
+  | 'exercise_request'
+  | 'workout_session_request'
+  | 'training_schedule_request'
+  | 'nutrition_macro_request'
+  | 'meal_plan_request'
+  | 'combined_plan_request';
 
 export type ResponseLanguage = 'vi' | 'en';
 
@@ -60,7 +69,10 @@ export interface InputIntent {
   normalizedQuestion: string;
   intent: IntentType;
   routeIntent?: RoutedIntentType;
+  routeCategory?: RouteCategory;
+  detailMode?: boolean;
   goalHint?: 'fat_loss' | 'muscle_gain' | 'maintenance' | 'recomposition';
+  muscleGroupHint?: 'biceps' | 'triceps' | 'chest' | 'back' | 'legs' | 'shoulders' | 'core' | 'forearms';
   mealPreferenceHint?: string;
   parsedTrainingDays?: number;
   minimumExercisesPerDay?: number;
@@ -196,6 +208,8 @@ export interface MealRecommendation {
 export interface RecommendationResult {
   objective: string;
   responseIntent?: RoutedIntentType;
+  detailMode?: boolean;
+  personalizationSummary?: string[];
   nutrition: NutritionTargets;
   workout: WorkoutRecommendation;
   meal: MealRecommendation;
@@ -221,6 +235,9 @@ export interface FinalAnswerPayload {
   answer: string;
   responseLanguage?: ResponseLanguage;
   usedFallback: boolean;
+  /** True when the LLM answer was discarded because the validator detected a
+   *  critical nutrition number mismatch and the deterministic answer was used. */
+  usedDeterministicFallbackBecauseOfValidation: boolean;
   missingFields: string[];
   retrieval: RetrievalResult;
   recommendation: RecommendationResult;
@@ -229,6 +246,10 @@ export interface FinalAnswerPayload {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
+  /** Tracing fields for observability */
+  routeIntent: string;
+  warningCount: number;
+  explicitLanguageLock: boolean;
 }
 
 export interface OrchestrationInput {

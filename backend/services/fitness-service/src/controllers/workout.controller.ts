@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { workoutService } from '../services/workout.service';
-import { createWorkoutSchema } from '../models/fitness.models';
+import { createWorkoutSchema, updateWorkoutSetSchema } from '../models/fitness.models';
 import type { AuthRequest } from '../middleware/auth.middleware';
 
 export const workoutController = {
@@ -101,6 +101,25 @@ export const workoutController = {
     } catch (error) {
       logger.error('Error fetching PRs:', error);
       res.status(500).json({ error: 'Failed to fetch PRs' });
+    }
+  },
+
+  async updateSet(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const data = updateWorkoutSetSchema.parse(req.body);
+      const result = await workoutService.updateSet(req.params.setId, req.user!.id, data);
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error('Error updating set:', error);
+      res.status(500).json({ error: 'Failed to update set' });
     }
   },
 

@@ -1,6 +1,56 @@
 import { labelLocalizer } from './label_localizer';
 import type { RecommendationResult, ResponseLanguage, UnsafeGuidance } from './types';
 
+function formatNutritionSummary(rec: RecommendationResult, language: ResponseLanguage): string[] {
+  const n = rec.nutrition;
+  if (language === 'vi') {
+    return [
+      '## 🥗 Dinh Dưỡng',
+      '| Chỉ số | Giá trị |',
+      '|--------|---------|',
+      `| Calo | ${n.targetCalories ?? 0} kcal |`,
+      `| Đạm | ${n.proteinGrams ?? 0}g |`,
+      `| Carb | ${n.carbsGrams ?? 0}g |`,
+      `| Béo | ${n.fatGrams ?? 0}g |`,
+    ];
+  }
+
+  return [
+    '## 🥗 Nutrition',
+    '| Metric | Value |',
+    '|--------|-------|',
+    `| Calories | ${n.targetCalories ?? 0} kcal |`,
+    `| Protein | ${n.proteinGrams ?? 0}g |`,
+    `| Carbs | ${n.carbsGrams ?? 0}g |`,
+    `| Fats | ${n.fatGrams ?? 0}g |`,
+  ];
+}
+
+function buildActionSteps(rec: RecommendationResult, language: ResponseLanguage): string[] {
+  const steps = language === 'vi'
+    ? [
+      `Ưu tiên hoàn thành **${rec.workout.sessionsPerWeek} buổi/tuần** theo lịch đã gợi ý.`,
+      `Theo dõi macro trong 7 ngày: **Đạm ${rec.nutrition.proteinGrams ?? 0}g | Carb ${rec.nutrition.carbsGrams ?? 0}g | Béo ${rec.nutrition.fatGrams ?? 0}g**.`,
+      'Ghi lại mức năng lượng, chất lượng ngủ và hiệu suất tập để điều chỉnh vào tuần sau.',
+    ]
+    : [
+      `Complete **${rec.workout.sessionsPerWeek} sessions/week** from the plan.`,
+      `Track macros for 7 days: **Protein ${rec.nutrition.proteinGrams ?? 0}g | Carbs ${rec.nutrition.carbsGrams ?? 0}g | Fats ${rec.nutrition.fatGrams ?? 0}g**.`,
+      'Log energy, sleep quality, and training performance to adjust next week.',
+    ];
+
+  return [
+    language === 'vi' ? '## ⚡ Hành Động Tuần Này' : '## ⚡ Action Steps This Week',
+    ...steps.map((s, idx) => `${idx + 1}. ${s}`),
+  ];
+}
+
+function assumptionsBlock(rec: RecommendationResult, language: ResponseLanguage): string[] {
+  if (rec.assumptions.length === 0) return [];
+  const title = language === 'vi' ? '**Giả định:**' : '**Assumptions:**';
+  return [title, ...rec.assumptions.slice(0, 3).map((item) => `- ${item}`)];
+}
+
 function restLabel(restSeconds: number): string {
   if (restSeconds >= 60) {
     const m = Math.floor(restSeconds / 60);
@@ -66,6 +116,11 @@ function formatWorkoutPlan(rec: RecommendationResult, language: ResponseLanguage
   if (language === 'vi') {
     lines.push('## 💪 Lịch Tập Của Bạn');
     lines.push('');
+    if ((rec.personalizationSummary || []).length > 0) {
+      lines.push('**Cá nhân hóa theo dữ liệu của bạn:**');
+      rec.personalizationSummary!.slice(0, 4).forEach((item) => lines.push(`- ${item}`));
+      lines.push('');
+    }
     lines.push(`🎯 **Mục tiêu:** ${plan.goalSummary}`);
     if (plan.isDefaultTemplate) {
       lines.push('> Lịch mẫu — cập nhật hồ sơ để cá nhân hóa thêm.');
@@ -82,7 +137,7 @@ function formatWorkoutPlan(rec: RecommendationResult, language: ResponseLanguage
   // Single unified table with "Ngày" column — day name on first row of each group
   lines.push('');
   if (language === 'vi') {
-    lines.push('| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |');
+    lines.push('| Ngày | Nhóm cơ | Bài tập | Hiệp | Lần lặp | Nghỉ |');
     lines.push('|------|---------|---------|:----:|:----:|:----:|');
     for (const day of plan.days) {
       day.exercises.forEach((ex, idx) => {
@@ -113,6 +168,18 @@ function formatWorkoutPlan(rec: RecommendationResult, language: ResponseLanguage
   lines.push(language === 'vi' ? '### 📈 Ghi Chú Tăng Tiến' : '### 📈 Progression Notes');
   plan.progressionNotes.forEach((note, idx) => lines.push(`${idx + 1}. ${note}`));
 
+  lines.push('');
+  lines.push(...formatNutritionSummary(rec, language));
+
+  lines.push('');
+  lines.push(...buildActionSteps(rec, language));
+
+  const assumptions = assumptionsBlock(rec, language);
+  if (assumptions.length > 0) {
+    lines.push('');
+    lines.push(...assumptions);
+  }
+
   const followups = joinFollowUps(rec.followUpQuestions, language);
   if (followups) {
     lines.push('');
@@ -135,6 +202,11 @@ function formatSpecificRoutine(rec: RecommendationResult, language: ResponseLang
   if (language === 'vi') {
     lines.push('## 💪 Buổi Tập Theo Yêu Cầu');
     lines.push('');
+    if ((rec.personalizationSummary || []).length > 0) {
+      lines.push('**Cá nhân hóa theo dữ liệu của bạn:**');
+      rec.personalizationSummary!.slice(0, 4).forEach((item) => lines.push(`- ${item}`));
+      lines.push('');
+    }
     lines.push(`🎯 **Mục tiêu buổi tập:** ${routine.sessionGoal}`);
     if (routine.isDefaultTemplate) {
       lines.push('> Lịch mặc định — bắt đầu ngay được.');
@@ -164,6 +236,26 @@ function formatSpecificRoutine(rec: RecommendationResult, language: ResponseLang
   lines.push(language === 'vi' ? '### 📈 Tăng Tải Tiến Bộ' : '### 📈 Progressive Overload');
   routine.overloadGuide.forEach((note, idx) => lines.push(`${idx + 1}. ${note}`));
 
+  lines.push('');
+  lines.push(language === 'vi' ? '### ⚠️ An Toàn Khi Tập' : '### ⚠️ Safety Notes');
+  if (rec.workout.avoidedPatterns.length > 0) {
+    rec.workout.avoidedPatterns.slice(0, 3).forEach((pattern, idx) => lines.push(`${idx + 1}. ${pattern}`));
+  } else {
+    lines.push(language === 'vi' ? '1. Giữ kỹ thuật chuẩn, dừng buổi tập khi đau nhói bất thường.' : '1. Maintain strict technique and stop if sharp pain appears.');
+  }
+
+  lines.push('');
+  lines.push(...formatNutritionSummary(rec, language));
+
+  lines.push('');
+  lines.push(...buildActionSteps(rec, language));
+
+  const assumptions = assumptionsBlock(rec, language);
+  if (assumptions.length > 0) {
+    lines.push('');
+    lines.push(...assumptions);
+  }
+
   const followups = joinFollowUps(rec.followUpQuestions, language);
   if (followups) {
     lines.push('');
@@ -186,11 +278,18 @@ function formatMealPlan(rec: RecommendationResult, language: ResponseLanguage): 
   if (language === 'vi') {
     lines.push('## 🥗 Thực Đơn Của Bạn');
     lines.push('');
+    if ((rec.personalizationSummary || []).length > 0) {
+      lines.push('**Cá nhân hóa theo dữ liệu của bạn:**');
+      rec.personalizationSummary!.slice(0, 5).forEach((item) => lines.push(`- ${item}`));
+      lines.push('');
+    }
     if (mealPlan.isDefaultTemplate) {
       lines.push('> Thực đơn mẫu — cập nhật thông số cơ thể để tính chính xác hơn.');
       lines.push('');
     }
     lines.push(`📊 **Mục tiêu ngày:** ${mealPlan.kcal} kcal | Đạm: **${mealPlan.proteinGrams}g** | Carb: **${mealPlan.carbsGrams}g** | Béo: **${mealPlan.fatGrams}g**`);
+    lines.push('');
+    lines.push(...formatNutritionSummary(rec, language));
     lines.push('');
     lines.push('### 🍽️ Gợi Ý Bữa Ăn');
   } else {
@@ -202,6 +301,8 @@ function formatMealPlan(rec: RecommendationResult, language: ResponseLanguage): 
     }
     lines.push(`📊 **Daily targets:** ${mealPlan.kcal} kcal | Protein: **${mealPlan.proteinGrams}g** | Carbs: **${mealPlan.carbsGrams}g** | Fats: **${mealPlan.fatGrams}g**`);
     lines.push('');
+    lines.push(...formatNutritionSummary(rec, language));
+    lines.push('');
     lines.push('### 🍽️ Meal Examples');
   }
 
@@ -212,6 +313,23 @@ function formatMealPlan(rec: RecommendationResult, language: ResponseLanguage): 
   lines.push('');
   lines.push(language === 'vi' ? '### 🔄 Thực Phẩm Thay Thế' : '### 🔄 Food Substitutions');
   mealPlan.substitutions.forEach((item, idx) => lines.push(`${idx + 1}. ${item}`));
+
+  lines.push('');
+  lines.push(language === 'vi' ? '## 🔄 Cách Điều Chỉnh Theo Thời Gian' : '## 🔄 How To Adjust Over Time');
+  lines.push(
+    language === 'vi'
+      ? 'Nếu cân nặng đứng yên 2 tuần, giảm thêm 100-150 kcal/ngày hoặc tăng nhẹ hoạt động NEAT.'
+      : 'If progress stalls for 2 weeks, reduce 100-150 kcal/day or increase NEAT slightly.',
+  );
+
+  lines.push('');
+  lines.push(...buildActionSteps(rec, language));
+
+  const assumptions = assumptionsBlock(rec, language);
+  if (assumptions.length > 0) {
+    lines.push('');
+    lines.push(...assumptions);
+  }
 
   const followups = joinFollowUps(rec.followUpQuestions, language);
   if (followups) {
@@ -230,6 +348,11 @@ function formatGeneral(rec: RecommendationResult, language: ResponseLanguage): s
   if (language === 'vi') {
     lines.push('## 📊 Tổng Quan Của Bạn');
     lines.push('');
+    if ((rec.personalizationSummary || []).length > 0) {
+      lines.push('**Cá nhân hóa theo dữ liệu của bạn:**');
+      rec.personalizationSummary!.slice(0, 4).forEach((item) => lines.push(`- ${item}`));
+      lines.push('');
+    }
     if ((n.targetCalories ?? 0) > 0) {
       lines.push(`**Mục tiêu calo:** ${n.targetCalories} kcal/ngày`);
       lines.push(`**Macro:** Đạm **${n.proteinGrams}g** | Carb **${n.carbsGrams}g** | Béo **${n.fatGrams}g**`);
@@ -241,6 +364,9 @@ function formatGeneral(rec: RecommendationResult, language: ResponseLanguage): s
         lines.push(`**Trọng tâm:** ${w.focus.join(', ')}`);
       }
     }
+
+    lines.push('');
+    lines.push(...formatNutritionSummary(rec, language));
   } else {
     lines.push('## 📊 Your Overview');
     lines.push('');
@@ -255,6 +381,18 @@ function formatGeneral(rec: RecommendationResult, language: ResponseLanguage): s
         lines.push(`**Focus:** ${w.focus.join(', ')}`);
       }
     }
+
+    lines.push('');
+    lines.push(...formatNutritionSummary(rec, language));
+  }
+
+  lines.push('');
+  lines.push(...buildActionSteps(rec, language));
+
+  const assumptions = assumptionsBlock(rec, language);
+  if (assumptions.length > 0) {
+    lines.push('');
+    lines.push(...assumptions);
   }
 
   const followups = joinFollowUps(rec.followUpQuestions, language);
@@ -264,6 +402,13 @@ function formatGeneral(rec: RecommendationResult, language: ResponseLanguage): s
   }
 
   return lines.join('\n');
+}
+
+function formatCombinedPlan(rec: RecommendationResult, language: ResponseLanguage): string {
+  const workout = formatWorkoutPlan(rec, language);
+  const meal = formatMealPlan(rec, language);
+  const title = language === 'vi' ? '## 🎯 Kế Hoạch Tập + Ăn Kết Hợp' : '## 🎯 Combined Training + Nutrition Plan';
+  return [title, '', workout, '', meal].join('\n');
 }
 
 export const responseFormatter = {
@@ -283,6 +428,8 @@ export const responseFormatter = {
       recommendation.responseIntent === 'frequency_change_request'
     ) {
       text = formatWorkoutPlan(recommendation, language);
+    } else if (recommendation.responseIntent === 'combined_plan_request') {
+      text = formatCombinedPlan(recommendation, language);
     } else if (recommendation.responseIntent === 'meal_plan_request') {
       text = formatMealPlan(recommendation, language);
     } else {

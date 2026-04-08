@@ -8,7 +8,8 @@ export const createWorkoutSchema = z.object({
   notes: z.string().optional(),
   exercises: z.array(
     z.object({
-      exerciseId: z.string().uuid(),
+      // Existing datasets include non-UUID ids such as seed_ex_001.
+      exerciseId: z.string().min(1),
       sets: z.number().int().positive(),
       reps: z.number().int().positive().optional(),
       duration: z.number().int().positive().optional(),
@@ -16,6 +17,13 @@ export const createWorkoutSchema = z.object({
       notes: z.string().optional(),
     }),
   ),
+});
+
+export const updateWorkoutSetSchema = z.object({
+  reps: z.number().int().positive().optional(),
+  weight: z.number().nonnegative().optional(),
+  rpe: z.number().min(1).max(10).optional(),
+  completed: z.boolean().optional(),
 });
 
 export const createNutritionSchema = z.object({
@@ -30,4 +38,5 @@ export const createNutritionSchema = z.object({
 });
 
 export type CreateWorkoutDto = z.infer<typeof createWorkoutSchema>;
+export type UpdateWorkoutSetDto = z.infer<typeof updateWorkoutSetSchema>;
 export type CreateNutritionDto = z.infer<typeof createNutritionSchema>;

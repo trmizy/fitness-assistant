@@ -229,9 +229,14 @@ export const workoutService = {
     return data;
   },
 
-  getPRs: async (exerciseId?: number) => {
+  getPRs: async (exerciseId?: string) => {
     const url = exerciseId ? `/workouts/prs?exerciseId=${exerciseId}` : '/workouts/prs';
     const { data } = await api.get(url);
+    return data;
+  },
+
+  updateSet: async (setId: string, patch: { reps?: number; weight?: number; rpe?: number; completed?: boolean }) => {
+    const { data } = await api.patch(`/workouts/sets/${setId}`, patch);
     return data;
   },
 };

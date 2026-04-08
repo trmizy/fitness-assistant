@@ -71,7 +71,8 @@ function inferIntent(question: string): RoutedIntentType {
   // Check BEFORE schedule_specific_day to prevent misfire on "5 buổi 1 tuần"
   if (/\d+\s*bu[oổ]i\s*[/]?\s*(?:\d+\s*)?(?:tu[aầ]n|week)/i.test(q) ||
       /\d+\s*bu[oổ]i\s*m[oỗ]i\s*tu[aầ]n/i.test(q) ||
-      /\d+\s*(?:sessions?|days?)\s*(?:per\s*week|a\s*week|\/week)/i.test(q)) {
+      /\d+\s*(?:sessions?|days?)\s*(?:per\s*week|a\s*week|\/week)/i.test(q) ||
+      /(l[iị]ch t[aậ]p|workout plan|plan t[aậ]p).{0,20}\d+\s*bu[oổ]i/i.test(q)) {
     return 'frequency_change_request';
   }
 
@@ -93,8 +94,17 @@ function inferIntent(question: string): RoutedIntentType {
     return 'body_recomposition_request';
   }
 
+  if (/(l[iị]ch t[aậ]p|workout|plan t[aậ]p|ch[uươ]ng tr[iì]nh t[aậ]p).*(dinh d[uư][oơ]ng|th[uự]c [dđ][oơ]n|meal plan|[aă]n u[oố]ng)/i.test(q) ||
+      /(dinh d[uư][oơ]ng|th[uự]c [dđ][oơ]n|meal plan|[aă]n u[oố]ng).*(l[iị]ch t[aậ]p|workout|plan t[aậ]p|ch[uươ]ng tr[iì]nh t[aậ]p)/i.test(q)) {
+    return 'combined_plan_request';
+  }
+
   if (/(th[uứự]c [dđ][oơ]n|thực đơn|dinh d[uư][oơỡ]ng|dinh dưỡng|b[ưữ]a [aă]n|bua an|meal plan|calories|macro|protein|carb|fat|[aă]n g[iì]|c[aá]ch [aă]n|meal prep|[aă]n u[oố]ng)/i.test(q)) {
     return 'meal_plan_request';
+  }
+
+  if (/(push|pull|legs|ppl|upper|lower)/i.test(q) && /(bu[oổ]i|session|routine|l[iị]ch t[aậ]p)/i.test(q)) {
+    return 'muscle_group_routine_request';
   }
 
   if (/(tay tr[uướ]c|tay sau|ng[uự]c|l[uư]ng|ch[aâ]n|vai|b[uụ]ng|biceps|triceps|chest|back|legs|shoulders|core|forearm)/i.test(q) &&

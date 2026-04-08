@@ -7,7 +7,7 @@ import { profileExtractor } from './profile_extractor';
 import { retriever } from './retriever';
 import { recommendationEngine } from './recommendation_engine';
 import { promptBuilder } from './prompt_builder';
-import { answerValidator } from './answer_validator';
+import { answerValidator, hasCriticalNutritionMismatch, hasCriticalStructureMismatch } from './answer_validator';
 import { responseFormatter } from './response_formatter';
 import { labelLocalizer } from './label_localizer';
 import { traceLogger } from './trace_logger';
@@ -25,7 +25,8 @@ export const llmOrchestrator = {
 
     const unsafe = safetyGuard.evaluate(question);
     const retrieval = await retriever.retrieve(question);
-    const recommendation = recommendationEngine.recommend(context.profile, parsedInput);
+    // Pass detected language so follow-up questions are generated in the right locale.
+    const recommendation = recommendationEngine.recommend(context.profile, parsedInput, language.responseLanguage);
 
     if (unsafe?.blocked) {
       recommendation.unsafeGuidance = unsafe;
@@ -51,6 +52,7 @@ export const llmOrchestrator = {
       'schedule_specific_day_request',
       'body_recomposition_request',
       'meal_plan_request',
+      'combined_plan_request',
     ]);
 
     const needsLlm = llmIntents.has(routedIntent.intent) || parsedInput.mentionsInjury;
@@ -64,7 +66,20 @@ export const llmOrchestrator = {
       totalTokens = llmResponse.totalTokens;
     }
 
-    const validation = answerValidator.validate(llmAnswer, recommendation);
+    const validation = answerValidator.validate(llmAnswer, recommendation, language.responseLanguage, context.profile);
+
+    // If the LLM answer contains nutrition numbers that differ materially from the
+    // deterministic targets, discard it and use the deterministic answer instead.
+    // This prevents the "185g protein in headline / 133g in targets" drift.
+    let usedDeterministicFallbackBecauseOfValidation = false;
+    if (
+      needsLlm &&
+      !unsafe?.blocked &&
+      (hasCriticalNutritionMismatch(validation.warnings) || hasCriticalStructureMismatch(validation.warnings))
+    ) {
+      llmAnswer = deterministicAnswer;
+      usedDeterministicFallbackBecauseOfValidation = true;
+    }
 
     traceLogger.end(trace, {
       retrievalEmpty: retrieval.isEmpty,
@@ -78,6 +93,7 @@ export const llmOrchestrator = {
       answer: llmAnswer,
       responseLanguage: language.responseLanguage,
       usedFallback: retrieval.isEmpty,
+      usedDeterministicFallbackBecauseOfValidation,
       missingFields: recommendation.missingFields,
       recommendation,
       retrieval,
@@ -86,6 +102,9 @@ export const llmOrchestrator = {
       promptTokens,
       completionTokens,
       totalTokens,
+      routeIntent: routedIntent.intent,
+      warningCount: validation.warnings.length,
+      explicitLanguageLock: language.locked,
     };
   },
 };
