@@ -327,6 +327,13 @@ export const adminService = {
     return data;
   },
 
+  getStudioAuthState: async () => {
+    const { data } = await api.get('/admin/workflows/studio-auth-state', {
+      withCredentials: true,
+    });
+    return data;
+  },
+
   listWorkflows: async () => {
     const { data } = await api.get('/admin/workflows');
     return data;

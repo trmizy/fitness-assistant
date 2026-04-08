@@ -1,5 +1,6 @@
 {
   "name": "Gym Test - AI",
+  "id": "aHrZWEeq6t17LVfW",
   "active": true,
   "nodes": [
     {
@@ -45,7 +46,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "http://qdrant:6333/health",
+        "url": "http://qdrant:6333/collections",
         "options": {
           "timeout": 5000,
           "response": { "response": { "neverError": true } }
@@ -60,7 +61,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const startMs = $('Start Timer').first().json.startMs;\nconst checks = [];\nlet allPassed = true;\n\ntry {\n  const r = $('Check AI Service').first().json;\n  const ok = !!(r?.status === 'ok' || r?.status === 'healthy' || r?.uptime);\n  if (!ok) allPassed = false;\n  checks.push({ name: 'ai-service', ok, detail: r?.status ?? JSON.stringify(r).slice(0, 100) });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'ai-service', ok: false, detail: e.message });\n}\n\ntry {\n  const r = $('Check Qdrant').first().json;\n  // Qdrant returns { title: 'qdrant - vector search engine', version: '...' } or { result: 'ok' }\n  const ok = !!(r?.title || r?.result === 'ok' || r?.status === 'ok');\n  if (!ok) allPassed = false;\n  checks.push({ name: 'qdrant', ok, detail: r?.title ?? r?.result ?? JSON.stringify(r).slice(0, 100) });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'qdrant', ok: false, detail: e.message });\n}\n\nconst durationMs = Date.now() - startMs;\nreturn [{ json: {\n  passed: allPassed,\n  step: 'AI',\n  statusCode: allPassed ? 200 : 503,\n  details: checks.map(c => `${c.name}: ${c.ok ? 'OK' : 'FAIL'}`).join(' | '),\n  durationMs,\n  checks\n} }];"
+        "jsCode": "const startMs = $('Start Timer').first().json.startMs;\nconst checks = [];\nlet allPassed = true;\n\ntry {\n  const r = $('Check AI Service').first().json;\n  const ok = !!(r?.status === 'ok' || r?.status === 'healthy' || r?.uptime);\n  if (!ok) allPassed = false;\n  checks.push({ name: 'ai-service', ok, detail: r?.status ?? JSON.stringify(r).slice(0, 100) });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'ai-service', ok: false, detail: e.message });\n}\n\ntry {\n  const r = $('Check Qdrant').first().json;\n  const hasCollections = Array.isArray(r?.result?.collections) || Array.isArray(r?.collections);\n  const ok = !!(hasCollections || r?.title || r?.result === 'ok' || r?.status === 'ok');\n  if (!ok) allPassed = false;\n  const detail = hasCollections\n    ? `collections: ${(r?.result?.collections || r?.collections || []).length}`\n    : (r?.title ?? r?.result ?? JSON.stringify(r).slice(0, 100));\n  checks.push({ name: 'qdrant', ok, detail });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'qdrant', ok: false, detail: e.message });\n}\n\nconst durationMs = Date.now() - startMs;\nreturn [{ json: {\n  passed: allPassed,\n  step: 'AI',\n  statusCode: allPassed ? 200 : 503,\n  details: checks.map(c => `${c.name}: ${c.ok ? 'OK' : 'FAIL'}`).join(' | '),\n  durationMs,\n  checks\n} }];"
       },
       "id": "b0000004-0005-0005-0005-000000000004",
       "name": "Build Result",
@@ -72,7 +73,7 @@
       "parameters": {
         "options": {},
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify($json) }}"
+        "responseBody": "={{$json}}"
       },
       "id": "b0000004-0006-0006-0006-000000000004",
       "name": "Respond",
@@ -102,12 +103,11 @@
     "executionOrder": "v1",
     "timezone": "Asia/Ho_Chi_Minh"
   },
-  "tags": [{ "name": "e2e-test" }, { "name": "ai" }, { "name": "sub-workflow" }],
   "_meta": {
-    "description": "Sub-workflow: checks ai-service /health and Qdrant vector DB /health. Called by orchestrator via POST /webhook/gym-test-ai.",
+    "description": "Sub-workflow: checks ai-service /health and Qdrant vector DB /collections. Called by orchestrator via POST /webhook/gym-test-ai.",
     "webhook_path": "gym-test-ai",
-    "checks": ["http://ai-service:3003/health", "http://qdrant:6333/health"],
-    "note": "Qdrant health returns { title, version } not { status: 'ok' } — checked via title field.",
+    "checks": ["http://ai-service:3003/health", "http://qdrant:6333/collections"],
+    "note": "Qdrant health endpoint may be unavailable on this build; /collections shape is used for readiness.",
     "response_schema": {
       "passed": "boolean",
       "step": "AI",

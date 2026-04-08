@@ -15,6 +15,23 @@ type WorkflowMeta = {
   healthStatusCode: number;
 };
 
+type StudioAuthState = {
+  n8nReachable: boolean;
+  authenticated: boolean;
+  requiresSignIn: boolean;
+  supportsSignUp: boolean;
+  authMode: "owner-setup" | "sign-in" | "unknown";
+  signUpReason: string | null;
+  studioUrl: string;
+  signInUrl: string;
+  signUpUrl: string;
+  proxiedStudioUrl?: string;
+  proxiedSignInUrl?: string;
+  proxiedSignUpUrl?: string;
+  healthStatusCode?: number;
+  sessionProbeStatusCode?: number;
+};
+
 type WorkflowItem = {
   id: string;
   name: string;
@@ -108,6 +125,7 @@ export function AdminWorkflowStudio() {
   const [loading, setLoading]           = useState(true);
   const [refreshing, setRefreshing]     = useState(false);
   const [meta, setMeta]                 = useState<WorkflowMeta | null>(null);
+  const [studioAuthState, setStudioAuthState] = useState<StudioAuthState | null>(null);
   const [workflows, setWorkflows]       = useState<WorkflowItem[]>([]);
   const [error, setError]               = useState<string | null>(null);
 
@@ -139,12 +157,14 @@ export function AdminWorkflowStudio() {
   const loadData = async () => {
     try {
       setError(null);
-      const [metaRes, wfRes] = await Promise.all([
+      const [metaRes, wfRes, authStateRes] = await Promise.all([
         adminService.getWorkflowMeta(),
         adminService.listWorkflows(),
+        adminService.getStudioAuthState(),
       ]);
       setMeta(metaRes?.data ?? null);
       setWorkflows(wfRes?.data?.workflows ?? []);
+      setStudioAuthState(authStateRes?.data ?? null);
     } catch (err: any) {
       setError(err?.response?.data?.error?.message ?? "Không thể tải dữ liệu n8n");
     } finally {
@@ -174,7 +194,19 @@ export function AdminWorkflowStudio() {
       const res = await adminService.getWorkflowExecutions(wf.id, 20);
       setExecutions(res?.data?.executions ?? []);
     } catch (err: any) {
-      setExecError(err?.response?.data?.error?.message ?? "Không thể tải execution list");
+      const status = err?.response?.status;
+      const message = err?.response?.data?.error?.message ?? "Không thể tải execution list";
+
+      // n8n API keys may not have executions scope even when workflow listing works.
+      // Fallback to native n8n Studio page so admins can inspect executions there.
+      if (status === 502 && /403|forbidden/i.test(String(message))) {
+        const nativeWorkflowUrl = `${studioBasePath}/workflow/${encodeURIComponent(wf.id)}`;
+        window.open(nativeWorkflowUrl, "_blank", "noopener,noreferrer");
+        setExecError("API executions bị chặn quyền (403). Đã mở workflow trong n8n Studio để xem executions trực tiếp.");
+        return;
+      }
+
+      setExecError(message);
     } finally {
       setExecLoading(false);
     }
@@ -265,12 +297,21 @@ export function AdminWorkflowStudio() {
 
   const activeCount   = workflows.filter((w) => w.active).length;
   const inactiveCount = workflows.length - activeCount;
-  const studioBasePath = (meta?.studioPath ?? "/admin/workflows/studio").replace(/\/+$/, "");
+  const studioBasePath = (studioAuthState?.studioUrl ?? `${API_URL}${meta?.studioPath ?? "/admin/workflows/studio"}`).replace(/\/+$/, "");
+  const signInBasePath = (studioAuthState?.signInUrl ?? `${studioBasePath}/signin`).replace(/\/+$/, "");
+  const signUpBasePath = (studioAuthState?.signUpUrl ?? `${studioBasePath}/signup`).replace(/\/+$/, "");
   const accessToken = localStorage.getItem("accessToken");
-  const studioQuery = accessToken ? `?access_token=${encodeURIComponent(accessToken)}` : "";
-  const studioHref = `${API_URL}${studioBasePath}${studioQuery}`;
-  const studioLoginHref = `${API_URL}${studioBasePath}/login${studioQuery}`;
-  const studioRegisterHref = `${API_URL}${studioBasePath}/register${studioQuery}`;
+  const studioQuery = accessToken && studioBasePath.includes('/admin/workflows/studio')
+    ? `?access_token=${encodeURIComponent(accessToken)}`
+    : "";
+  const studioHref = `${studioBasePath}${studioQuery}`;
+  const studioLoginHref = signInBasePath;
+  const studioRegisterHref = signUpBasePath;
+
+  const isN8nAuthenticated = !!studioAuthState?.authenticated;
+  const shouldShowAuthButtons = !isN8nAuthenticated;
+  const canSignUp = !!studioAuthState?.supportsSignUp;
+  const canOpenStudio = isN8nAuthenticated;
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -289,33 +330,54 @@ export function AdminWorkflowStudio() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <a
-            href={studioLoginHref}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-200 hover:bg-zinc-700 border border-zinc-700 transition-colors"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            Đăng nhập n8n
-          </a>
-          <a
-            href={studioRegisterHref}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-200 hover:bg-zinc-700 border border-zinc-700 transition-colors"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            Đăng ký n8n
-          </a>
-          <a
-            href={studioHref}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-200 hover:bg-zinc-700 border border-zinc-700 transition-colors"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            Mở Studio
-          </a>
+          {shouldShowAuthButtons && (
+            <a
+              href={studioLoginHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-200 hover:bg-zinc-700 border border-zinc-700 transition-colors"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              Đăng nhập n8n
+            </a>
+          )}
+
+          {shouldShowAuthButtons && canSignUp && (
+            <a
+              href={studioRegisterHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-200 hover:bg-zinc-700 border border-zinc-700 transition-colors"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Đăng ký n8n
+            </a>
+          )}
+
+          {shouldShowAuthButtons && !canSignUp && (
+            <button
+              type="button"
+              disabled
+              title={studioAuthState?.signUpReason ?? "Đăng ký hiện không khả dụng"}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-900 text-zinc-500 border border-zinc-700/80 cursor-not-allowed"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Đăng ký n8n
+            </button>
+          )}
+
+          {canOpenStudio && (
+            <a
+              href={studioHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-200 hover:bg-zinc-700 border border-zinc-700 transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Mở Studio
+            </a>
+          )}
+
           <button
             onClick={onRefresh}
             disabled={refreshing || loading}
@@ -326,6 +388,13 @@ export function AdminWorkflowStudio() {
           </button>
         </div>
       </div>
+
+      {studioAuthState && shouldShowAuthButtons && !canSignUp && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 flex items-center gap-2">
+          <Info className="w-4 h-4 flex-shrink-0" />
+          {studioAuthState.signUpReason ?? "Đăng ký n8n hiện không khả dụng. Hãy dùng đăng nhập hoặc invite user."}
+        </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300 flex items-center gap-2">
@@ -490,13 +559,25 @@ export function AdminWorkflowStudio() {
                     </td>
                     <td className="px-4 py-3 text-xs text-zinc-500">{fmtDate(wf.updatedAt)}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => loadExecutions(wf)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700/50 transition-colors"
-                      >
-                        <Clock className="w-3 h-3" />
-                        Executions
-                      </button>
+                      <div className="inline-flex items-center gap-2">
+                        <button
+                          onClick={() => loadExecutions(wf)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700/50 transition-colors"
+                        >
+                          <Clock className="w-3 h-3" />
+                          Executions
+                        </button>
+                        <a
+                          href={`${studioBasePath}/workflow/${encodeURIComponent(wf.id)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-700/50 transition-colors"
+                          title="Mở workflow trong n8n Studio (UI native giống n8n.io)"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Mở n8n
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 ))

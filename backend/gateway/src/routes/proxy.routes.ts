@@ -92,6 +92,12 @@ type N8nExecution = {
   workflowData?: { id: string; name: string };
 };
 
+type N8nSettingsData = {
+  userManagement?: {
+    showSetupOnFirstLoad?: boolean;
+  };
+};
+
 const N8N_SMOKE_TEST_WEBHOOK_URL = process.env.N8N_SMOKE_TEST_WEBHOOK_URL;
 const N8N_E2E_WEBHOOK_URL = process.env.N8N_E2E_WEBHOOK_URL;
 
@@ -224,6 +230,65 @@ function buildN8nApiUrl(path: string) {
 
 async function requestN8n(path: string) {
   return axios.get(buildN8nApiUrl(path), getN8nAxiosOptions());
+}
+
+function getStudioUrls(req?: Request) {
+  const editorPath = N8N_EDITOR_BASE_PATH.startsWith('/')
+    ? N8N_EDITOR_BASE_PATH
+    : `/${N8N_EDITOR_BASE_PATH}`;
+  const studioPath = editorPath.replace(/\/+$/, '');
+
+  const envPublicBase =
+    process.env.N8N_PUBLIC_URL
+    || process.env.N8N_WEBHOOK_URL
+    || N8N_BASE_URL;
+
+  const normalizedEnvBase = envPublicBase.endsWith('/')
+    ? envPublicBase.slice(0, -1)
+    : envPublicBase;
+
+  let directBase = normalizedEnvBase;
+  try {
+    const parsed = new URL(normalizedEnvBase);
+    if (parsed.hostname === 'n8n') {
+      parsed.hostname = req?.hostname || 'localhost';
+      directBase = parsed.toString().replace(/\/$/, '');
+    }
+  } catch {
+    directBase = 'http://localhost:5678';
+  }
+
+  return {
+    // proxied URLs (kept for compatibility)
+    proxiedStudioUrl: studioPath,
+    proxiedSignInUrl: `${studioPath}/login`,
+    proxiedSignUpUrl: `${studioPath}/register`,
+    // direct n8n UI URLs (used by frontend to avoid SPA route mismatch on proxy path)
+    studioUrl: `${directBase}/`,
+    signInUrl: `${directBase}/`,
+    signUpUrl: `${directBase}/`,
+  };
+}
+
+async function checkN8nSessionFromRequestCookie(req: Request) {
+  const cookieHeader = req.headers.cookie;
+
+  if (!cookieHeader) {
+    return { authenticated: false, statusCode: 401 };
+  }
+
+  const response = await axios.get(buildN8nApiUrl('/rest/login'), {
+    timeout: 5000,
+    validateStatus: () => true,
+    headers: {
+      Cookie: cookieHeader,
+    },
+  });
+
+  return {
+    authenticated: response.status < 400,
+    statusCode: response.status,
+  };
 }
 
 async function probeServices(): Promise<ProbeResult[]> {
@@ -484,6 +549,72 @@ router.get('/admin/workflows/meta', authMiddleware, requireRoles('ADMIN'), async
       error: {
         code: 'N8N_UNAVAILABLE',
         message: 'n8n is unavailable. Verify docker-compose service and env settings.',
+      },
+    });
+  }
+});
+
+router.get('/admin/workflows/studio-auth-state', authMiddleware, requireRoles('ADMIN'), async (req, res) => {
+  const urls = getStudioUrls(req);
+
+  try {
+    const [healthResponse, settingsResponse, sessionState] = await Promise.all([
+      requestN8n('/healthz'),
+      requestN8n('/rest/settings'),
+      checkN8nSessionFromRequestCookie(req),
+    ]);
+
+    const n8nReachable = healthResponse.status < 400;
+    const settingsPayload = settingsResponse.data as { data?: N8nSettingsData };
+    const showSetupOnFirstLoad = !!settingsPayload?.data?.userManagement?.showSetupOnFirstLoad;
+    const supportsSignUp = showSetupOnFirstLoad;
+    const requiresSignIn = !showSetupOnFirstLoad && !sessionState.authenticated;
+
+    let signUpReason: string | null = null;
+    if (!supportsSignUp) {
+      signUpReason = 'n8n owner has been created. Public sign-up is unavailable; use sign-in or invite-based user flow.';
+    }
+
+    res.json({
+      success: true,
+      data: {
+        n8nReachable,
+        authenticated: sessionState.authenticated,
+        requiresSignIn,
+        supportsSignUp,
+        authMode: showSetupOnFirstLoad ? 'owner-setup' : 'sign-in',
+        signUpReason,
+        studioUrl: urls.studioUrl,
+        signInUrl: urls.signInUrl,
+        signUpUrl: urls.signUpUrl,
+        proxiedStudioUrl: urls.proxiedStudioUrl,
+        proxiedSignInUrl: urls.proxiedSignInUrl,
+        proxiedSignUpUrl: urls.proxiedSignUpUrl,
+        healthStatusCode: healthResponse.status,
+        sessionProbeStatusCode: sessionState.statusCode,
+      },
+    });
+  } catch (error: any) {
+    logger.error({ error: error?.message }, 'n8n studio-auth-state failed');
+    res.status(502).json({
+      success: false,
+      error: {
+        code: 'N8N_UNAVAILABLE',
+        message: 'Cannot determine n8n auth state because n8n is unreachable.',
+      },
+      data: {
+        n8nReachable: false,
+        authenticated: false,
+        requiresSignIn: true,
+        supportsSignUp: false,
+        authMode: 'unknown',
+        signUpReason: 'n8n is unreachable.',
+        studioUrl: urls.studioUrl,
+        signInUrl: urls.signInUrl,
+        signUpUrl: urls.signUpUrl,
+        proxiedStudioUrl: urls.proxiedStudioUrl,
+        proxiedSignInUrl: urls.proxiedSignInUrl,
+        proxiedSignUpUrl: urls.proxiedSignUpUrl,
       },
     });
   }

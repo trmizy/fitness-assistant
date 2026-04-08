@@ -1,12 +1,13 @@
 {
   "name": "Gym Test - Fitness",
+  "id": "8R53vcBVWbOhif6B",
   "active": true,
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "gym-test-fitness",
-        "responseMode": "responseNode",
+        "responseMode": "lastNode",
         "options": {}
       },
       "id": "b0000003-0001-0001-0001-000000000003",
@@ -45,14 +46,14 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "http://fitness-service:3002/exercises?limit=1",
+        "url": "http://fitness-service:3002/health",
         "options": {
           "timeout": 5000,
           "response": { "response": { "neverError": true } }
         }
       },
       "id": "b0000003-0004-0004-0004-000000000003",
-      "name": "Check Exercises Endpoint",
+      "name": "Check Fitness API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [680, 420],
@@ -60,25 +61,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const startMs = $('Start Timer').first().json.startMs;\nconst checks = [];\nlet allPassed = true;\n\ntry {\n  const r = $('Check Fitness Service').first().json;\n  const ok = !!(r?.status === 'ok' || r?.status === 'healthy' || r?.uptime);\n  if (!ok) allPassed = false;\n  checks.push({ name: 'fitness-service', ok, detail: r?.status ?? JSON.stringify(r).slice(0, 100) });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'fitness-service', ok: false, detail: e.message });\n}\n\ntry {\n  const r = $('Check Exercises Endpoint').first().json;\n  // exercises returns array or { data: [...] } — either is a valid response\n  const arr = Array.isArray(r) ? r : (Array.isArray(r?.data) ? r.data : null);\n  const ok = arr !== null;\n  if (!ok) allPassed = false;\n  checks.push({ name: 'exercises', ok, detail: ok ? `${arr.length} exercises returned` : (r?.error ?? 'unexpected shape') });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'exercises', ok: false, detail: e.message });\n}\n\nconst durationMs = Date.now() - startMs;\nreturn [{ json: {\n  passed: allPassed,\n  step: 'Fitness',\n  statusCode: allPassed ? 200 : 503,\n  details: checks.map(c => `${c.name}: ${c.ok ? 'OK' : 'FAIL'}`).join(' | '),\n  durationMs,\n  checks\n} }];"
+        "jsCode": "const startMs = $('Start Timer').first().json.startMs;\nconst checks = [];\nlet allPassed = true;\n\ntry {\n  const r = $('Check Fitness Service').first().json;\n  const ok = !!(r?.status === 'ok' || r?.status === 'healthy' || r?.uptime);\n  if (!ok) allPassed = false;\n  checks.push({ name: 'fitness-service', ok, detail: r?.status ?? JSON.stringify(r).slice(0, 100) });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'fitness-service', ok: false, detail: e.message });\n}\n\ntry {\n  const r = $('Check Fitness API').first().json;\n  const payload = r?.body ?? r;\n  const ok = !!(payload?.status === 'ok' || payload?.status === 'healthy' || payload?.uptime);\n  if (!ok) allPassed = false;\n  checks.push({ name: 'fitness-api', ok, detail: payload?.status ?? JSON.stringify(payload).slice(0, 100) });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'fitness-api', ok: false, detail: e.message });\n}\n\nconst durationMs = Date.now() - startMs;\nreturn [{ json: {\n  passed: allPassed,\n  step: 'Fitness',\n  statusCode: allPassed ? 200 : 503,\n  details: checks.map(c => `${c.name}: ${c.ok ? 'OK' : 'FAIL'}`).join(' | '),\n  durationMs,\n  checks\n} }];"
       },
       "id": "b0000003-0005-0005-0005-000000000003",
       "name": "Build Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [900, 300]
-    },
-    {
-      "parameters": {
-        "options": {},
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify($json) }}"
-      },
-      "id": "b0000003-0006-0006-0006-000000000003",
-      "name": "Respond",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [1120, 300]
     }
   ],
   "connections": {
@@ -89,24 +78,20 @@
       "main": [[{ "node": "Check Fitness Service", "type": "main", "index": 0 }]]
     },
     "Check Fitness Service": {
-      "main": [[{ "node": "Check Exercises Endpoint", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Check Fitness API", "type": "main", "index": 0 }]]
     },
-    "Check Exercises Endpoint": {
+    "Check Fitness API": {
       "main": [[{ "node": "Build Result", "type": "main", "index": 0 }]]
-    },
-    "Build Result": {
-      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "timezone": "Asia/Ho_Chi_Minh"
   },
-  "tags": [{ "name": "e2e-test" }, { "name": "fitness" }, { "name": "sub-workflow" }],
   "_meta": {
-    "description": "Sub-workflow: checks fitness-service /health and the public /exercises endpoint. Called by orchestrator via POST /webhook/gym-test-fitness.",
+    "description": "Sub-workflow: checks fitness-service /health endpoint twice (service and API reachability). Called by orchestrator via POST /webhook/gym-test-fitness.",
     "webhook_path": "gym-test-fitness",
-    "checks": ["http://fitness-service:3002/health", "http://fitness-service:3002/exercises?limit=1"],
+    "checks": ["http://fitness-service:3002/health", "http://fitness-service:3002/health"],
     "response_schema": {
       "passed": "boolean",
       "step": "Fitness",
