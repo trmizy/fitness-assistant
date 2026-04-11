@@ -32,6 +32,7 @@ import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { UserManagement } from "./pages/admin/UserManagement";
 import { PTManagement } from "./pages/admin/PTManagement";
 import { SystemMonitoring } from "./pages/admin/SystemMonitoring";
+import { AdminWorkflowStudio } from "./pages/admin/AdminWorkflowStudio";
 
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -125,6 +126,7 @@ export const router = createBrowserRouter([
           { path: "users",     Component: UserManagement   },
           { path: "pts",       Component: PTManagement     },
           { path: "system",    Component: SystemMonitoring },
+          { path: "workflows", Component: AdminWorkflowStudio },
         ],
       },
     ],

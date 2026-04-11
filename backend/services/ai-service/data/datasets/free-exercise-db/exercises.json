@@ -1,0 +1,174 @@
+[
+  {
+    "id": "Alternate_Incline_Dumbbell_Curl",
+    "name": "Alternate Incline Dumbbell Curl",
+    "force": "pull",
+    "level": "beginner",
+    "mechanic": "isolation",
+    "equipment": "dumbbell",
+    "primaryMuscles": ["biceps brachii"],
+    "secondaryMuscles": ["brachialis", "brachioradialis"],
+    "instructions": [
+      "Sit on an incline bench set to 45-60 degrees, holding a dumbbell in each hand at arm's length.",
+      "Curl one dumbbell while keeping the upper arm stationary, rotating your wrist as you lift.",
+      "Lower the weight slowly and repeat with the other arm."
+    ],
+    "category": "strength",
+    "images": []
+  },
+  {
+    "id": "Barbell_Bench_Press_Medium_Grip",
+    "name": "Barbell Bench Press - Medium Grip",
+    "force": "push",
+    "level": "beginner",
+    "mechanic": "compound",
+    "equipment": "barbell",
+    "primaryMuscles": ["chest"],
+    "secondaryMuscles": ["front deltoids", "triceps brachii"],
+    "instructions": [
+      "Lie back on a flat bench and grip the barbell with a medium-width overhand grip.",
+      "Lift the bar from the rack and hold it straight over you with locked arms.",
+      "Lower the bar to the middle of your chest, then push it back up to the starting position."
+    ],
+    "category": "strength",
+    "images": []
+  },
+  {
+    "id": "Barbell_Deadlift",
+    "name": "Barbell Deadlift",
+    "force": "pull",
+    "level": "intermediate",
+    "mechanic": "compound",
+    "equipment": "barbell",
+    "primaryMuscles": ["glutes", "hamstrings", "lower back"],
+    "secondaryMuscles": ["core", "traps", "forearms"],
+    "instructions": [
+      "Stand with feet hip-width apart, bar over mid-foot.",
+      "Hinge at hips and grip the bar just outside your legs.",
+      "Drive through your heels and extend hips and knees simultaneously to stand up.",
+      "Lower the bar in a controlled manner back to the floor."
+    ],
+    "category": "strength",
+    "images": []
+  },
+  {
+    "id": "Barbell_Squat",
+    "name": "Barbell Squat",
+    "force": "push",
+    "level": "intermediate",
+    "mechanic": "compound",
+    "equipment": "barbell",
+    "primaryMuscles": ["quadriceps"],
+    "secondaryMuscles": ["glutes", "hamstrings", "calves", "lower back"],
+    "instructions": [
+      "Set the bar on a rack at upper-chest height and step under it so it rests on your upper traps.",
+      "Unrack the bar and take two steps back.",
+      "Break at hips and knees simultaneously, sitting back and down until thighs are parallel.",
+      "Drive through your heels to stand back up."
+    ],
+    "category": "strength",
+    "images": []
+  },
+  {
+    "id": "Barbell_Overhead_Press",
+    "name": "Barbell Overhead Press",
+    "force": "push",
+    "level": "intermediate",
+    "mechanic": "compound",
+    "equipment": "barbell",
+    "primaryMuscles": ["shoulders"],
+    "secondaryMuscles": ["triceps brachii", "upper chest", "core"],
+    "instructions": [
+      "Grip the bar just outside shoulder width at collarbone height.",
+      "Press the bar overhead until arms are fully locked out.",
+      "Lower back to the collarbone under control."
+    ],
+    "category": "strength",
+    "images": []
+  },
+  {
+    "id": "Pull_Up",
+    "name": "Pull-Up",
+    "force": "pull",
+    "level": "intermediate",
+    "mechanic": "compound",
+    "equipment": "body only",
+    "primaryMuscles": ["lats"],
+    "secondaryMuscles": ["biceps brachii", "rear deltoids", "rhomboids"],
+    "instructions": [
+      "Hang from a pull-up bar with an overhand grip wider than shoulder width.",
+      "Pull yourself up until your chin is above the bar.",
+      "Lower yourself slowly back to the starting position."
+    ],
+    "category": "strength",
+    "images": []
+  },
+  {
+    "id": "Dumbbell_Romanian_Deadlift",
+    "name": "Dumbbell Romanian Deadlift",
+    "force": "pull",
+    "level": "beginner",
+    "mechanic": "compound",
+    "equipment": "dumbbell",
+    "primaryMuscles": ["hamstrings"],
+    "secondaryMuscles": ["glutes", "lower back"],
+    "instructions": [
+      "Stand holding dumbbells in front of your thighs.",
+      "Push your hips back while keeping your back flat and lower the weights along your legs.",
+      "Feel a deep stretch in the hamstrings, then drive your hips forward to stand up."
+    ],
+    "category": "strength",
+    "images": []
+  },
+  {
+    "id": "Cable_Lateral_Raise",
+    "name": "Cable Lateral Raise",
+    "force": "pull",
+    "level": "beginner",
+    "mechanic": "isolation",
+    "equipment": "cable",
+    "primaryMuscles": ["shoulders"],
+    "secondaryMuscles": ["traps"],
+    "instructions": [
+      "Stand next to a low cable pulley and grip the handle with the far hand.",
+      "Raise your arm out to the side to shoulder height with a slight bend at the elbow.",
+      "Lower slowly and repeat."
+    ],
+    "category": "strength",
+    "images": []
+  },
+  {
+    "id": "Plank",
+    "name": "Plank",
+    "force": "static",
+    "level": "beginner",
+    "mechanic": "compound",
+    "equipment": "body only",
+    "primaryMuscles": ["abdominals"],
+    "secondaryMuscles": ["glutes", "shoulders", "lower back"],
+    "instructions": [
+      "Lie face down and prop yourself up on forearms and toes.",
+      "Keep your body in a straight line from head to heels.",
+      "Hold the position while breathing normally."
+    ],
+    "category": "strength",
+    "images": []
+  },
+  {
+    "id": "Hip_Thrust",
+    "name": "Hip Thrust",
+    "force": "push",
+    "level": "beginner",
+    "mechanic": "compound",
+    "equipment": "barbell",
+    "primaryMuscles": ["glutes"],
+    "secondaryMuscles": ["hamstrings", "core"],
+    "instructions": [
+      "Sit on the floor with your upper back against a bench and a barbell across your hips.",
+      "Plant your feet flat and drive through your heels to raise your hips until they are parallel to the floor.",
+      "Squeeze your glutes at the top, then lower under control."
+    ],
+    "category": "strength",
+    "images": []
+  }
+]

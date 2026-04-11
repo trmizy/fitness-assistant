@@ -92,12 +92,29 @@ model WorkoutExercise {
   order      Int      @default(0)
   createdAt  DateTime @default(now()) @map("created_at")
 
-  workout    Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
-  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+  workout     Workout      @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise    Exercise     @relation(fields: [exerciseId], references: [id])
+  workoutSets WorkoutSet[]
 
   @@index([workoutId])
   @@index([exerciseId])
   @@map("workout_exercises")
+}
+
+model WorkoutSet {
+  id                String          @id @default(uuid())
+  workoutExerciseId String          @map("workout_exercise_id")
+  setNumber         Int             @map("set_number")
+  reps              Int?
+  weight            Float?          // kg
+  rpe               Float?          // Rate of Perceived Exertion (1-10)
+  completed         Boolean         @default(false)
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([workoutExerciseId])
+  @@map("workout_sets")
 }
 
 model NutritionLog {

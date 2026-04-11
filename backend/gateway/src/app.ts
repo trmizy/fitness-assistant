@@ -15,7 +15,18 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',');
+      const envOrigins = (process.env.CORS_ORIGIN || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+      const allowedOrigins = Array.from(
+        new Set([
+          'http://localhost:3000', // gateway itself — needed for n8n studio asset requests
+          'http://localhost:5173',
+          'http://localhost:5678',
+          ...envOrigins,
+        ]),
+      );
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -46,6 +57,22 @@ app.get('/health', (_req, res) => {
     uptime: process.uptime(),
   });
 });
+
+// ── n8n CSP bypass ───────────────────────────────────────────────────────────
+// Helmet adds strict CSP / noSniff headers to ALL responses. Strip them for
+// every path that proxies to n8n so the editor and its assets load cleanly.
+function removeN8nHelmetHeaders(_req: Request, res: Response, next: NextFunction) {
+  res.removeHeader('X-Frame-Options');
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('X-Content-Type-Options');
+  next();
+}
+app.use('/admin/workflows/studio', removeN8nHelmetHeaders);
+app.use('/rest', removeN8nHelmetHeaders);
+app.use('/assets', removeN8nHelmetHeaders);
+app.use('/static', removeN8nHelmetHeaders);
+app.use('/signin', removeN8nHelmetHeaders);
+app.use('/login', removeN8nHelmetHeaders);
 
 app.use('/', proxyRoutes);
 

@@ -10,7 +10,13 @@
     "db:migrate": "prisma migrate dev",
     "ingest": "tsx src/ingest.ts",
     "test:evaluation": "tsx src/evaluation/run_evaluation_tests.ts",
-    "test:policy": "tsx src/evaluation/run_policy_behavior_tests.ts"
+    "test:policy": "tsx src/evaluation/run_policy_behavior_tests.ts",
+    "seed:exercises": "tsx src/datasets/seed/seedExercises.ts",
+    "seed:datasets": "npm run seed:exercises",
+    "import:wger": "tsx src/datasets/seed/importWger.ts",
+    "import:openfoodfacts": "echo 'Open Food Facts uses live API — no bulk import needed. Use openFoodFactsProvider directly.'",
+    "import:nhanes": "tsx src/datasets/seed/importNhanes.ts",
+    "import:kaggle": "tsx src/datasets/seed/importKaggle.ts"
   },
   "dependencies": {
     "@gym-coach/shared": "workspace:*",

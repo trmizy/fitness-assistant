@@ -1,6 +1,24 @@
 import type { InputIntent, UserProfile } from './types';
 import { intentRouter } from './intent_router';
 
+function detectDetailMode(question: string): boolean {
+  return /(đầy đủ|chi tiết|không rút gọn|ghi rõ|từng ngày|từng bữa|day by day|step by step|detailed|full plan)/i.test(question);
+}
+
+function mapRouteCategory(routeIntent: InputIntent['routeIntent'], question: string): InputIntent['routeCategory'] {
+  const q = question.toLowerCase();
+  if (routeIntent === 'combined_plan_request') return 'combined_plan_request';
+  if (routeIntent === 'meal_plan_request') {
+    if (/macro|protein|carb|fat|calo|calories|kcal/i.test(q) && !/thực đơn|meal plan|bữa/i.test(q)) {
+      return 'nutrition_macro_request';
+    }
+    return 'meal_plan_request';
+  }
+  if (routeIntent === 'specific_exercise_request') return 'exercise_request';
+  if (routeIntent === 'muscle_group_routine_request') return 'workout_session_request';
+  return 'training_schedule_request';
+}
+
 function normalize(text: string): string {
   return text
     .trim()
@@ -86,6 +104,10 @@ function parseMinimumExercisesPerDay(question: string): number | undefined {
 
 function inferMealPreference(question: string): string | undefined {
   const q = question.toLowerCase();
+  if (/(dị ứng sữa|di ung sua|không sữa|khong sua|lactose|dairy free|no dairy)/i.test(q)) return 'dairy_free';
+  if (/(không whey|khong whey|no whey|without whey)/i.test(q)) return 'no_whey';
+  if (/(tiết kiệm|tiet kiem|budget|rẻ|re|giá rẻ)/i.test(q)) return 'budget';
+  if (/(ít nấu|it nau|quick prep|nhanh gọn|meal prep nhanh)/i.test(q)) return 'low_cook';
   if (/(chay|vegan)/i.test(q)) return 'vegan';
   if (/(vegetarian|an chay co sua)/i.test(q)) return 'vegetarian';
   if (/(low carb|it carb|keto)/i.test(q)) return 'low_carb';
@@ -121,21 +143,31 @@ export const inputParser = {
     const routed = intentRouter.route(normalizedQuestion, profile);
     const intent = inferIntent(normalizedQuestion);
     const goalHint = inferGoal(normalizedQuestion, profile);
+    const detailMode = detectDetailMode(normalizedQuestion);
     const parsedTrainingDays = parseTrainingDays(normalizedQuestion);
     const minimumExercisesPerDay = parseMinimumExercisesPerDay(normalizedQuestion);
     const mealPreferenceHint = inferMealPreference(normalizedQuestion);
     const mentionsInjury = /(injury|pain|ch[aấ]n th[uươ][oơ]ng|chan thuong|[dđ]au g[oố]i|dau goi|[dđ]au l[uư]ng|dau lung|[dđ]au vai|dau vai|[dđ]au kh[oớ]p|knee pain|shoulder pain|back pain)/i.test(normalizedQuestion);
+    const requestsCardio = /(cardio|c[aà]o tim|aerobic|ch[aạ]y b[oộ]|chay bo|[dđ][aạ]p xe|dap xe|swimming|b[oơ]i l[oộ]i|rowing|b[uướ][oớ]c nhanh|buoc nhanh)/i.test(normalizedQuestion);
+    const mealsMatch = stripGymDiacritics(normalizedQuestion).match(/(\d)\s*bua(?:\s*an)?(?:\s*moi\s*ngay)?(?:\s*trong\s*(?:\d+\s*)?(?:ngay|tuan|week))?/i)
+      || stripGymDiacritics(normalizedQuestion).match(/(\d)\s*(?:meals?|bua)\s*(?:a\s*day|per\s*day)/i);
+    const parsedMealsPerDay = mealsMatch ? Math.min(6, Math.max(1, Number(mealsMatch[1]))) : undefined;
     const missingFields = computeMissingFields(profile, intent);
 
     return {
       normalizedQuestion,
       intent,
       routeIntent: routed.intent,
+      routeCategory: mapRouteCategory(routed.intent, normalizedQuestion),
+      detailMode,
       goalHint,
+      muscleGroupHint: routed.muscleGroupHint,
       mealPreferenceHint,
       parsedTrainingDays: routed.parsedTrainingDays ?? parsedTrainingDays,
       minimumExercisesPerDay,
+      parsedMealsPerDay,
       mentionsInjury,
+      requestsCardio,
       needsPersonalization: intent === 'personalized_plan' || intent === 'workout_plan' || intent === 'meal_plan',
       missingFields: Array.from(new Set([...missingFields, ...routed.missingFields])),
     };

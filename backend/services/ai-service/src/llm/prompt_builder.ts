@@ -163,6 +163,7 @@ export const promptBuilder = {
           if (isMeal) {
             return [
               'ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (chỉ về dinh dưỡng, viết bằng tiếng Việt):',
+              '⛔ TUYỆT ĐỐI KHÔNG đưa lịch tập, bảng bài tập, kế hoạch workout, hay bất kỳ nội dung training nào vào câu trả lời này. Chỉ dinh dưỡng.',
               '',
               '## [Một câu nhận xét cá nhân hóa về dinh dưỡng của họ]',
               '',
@@ -253,6 +254,7 @@ export const promptBuilder = {
         if (isMeal) {
           return [
             'MANDATORY OUTPUT FORMAT (nutrition focus only, write in English):',
+            '⛔ DO NOT include any workout schedule, exercise table, training plan, or any non-nutrition content in this response.',
             '',
             '## [One sentence personalized nutrition insight]',
             '',

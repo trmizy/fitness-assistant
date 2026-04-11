@@ -3,7 +3,7 @@ import { Bot, Send, Lightbulb, AlertCircle, RefreshCw, User, Loader2 } from "luc
 import { useQuery } from "@tanstack/react-query";
 import { inbodyService, coachService } from "../../services/api";
 
-interface ChatMessage { id: number; from: "user" | "ai"; text: string; time: string; }
+interface ChatMessage { id: number | string; from: "user" | "ai"; text: string; time: string; }
 
 const AI_COACH_STORAGE_PREFIX = "ai_coach_messages_v1";
 
@@ -18,21 +18,33 @@ function getAICoachStorageKey(): string {
   }
 }
 
+function getAICoachStorageFallbackKey(): string {
+  return `${AI_COACH_STORAGE_PREFIX}:latest`;
+}
+
+function parseStoredMessages(raw: string | null): ChatMessage[] {
+  if (!raw) return [];
+  const parsed = JSON.parse(raw);
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.filter((msg: any) =>
+    msg &&
+    (typeof msg.id === "number" || typeof msg.id === "string") &&
+    (msg.from === "user" || msg.from === "ai") &&
+    typeof msg.text === "string" &&
+    typeof msg.time === "string"
+  );
+}
+
 function loadStoredMessages(): ChatMessage[] {
   try {
-    const storageKey = getAICoachStorageKey();
-    const raw = localStorage.getItem(storageKey);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+    const primary = parseStoredMessages(localStorage.getItem(getAICoachStorageKey()));
+    if (primary.length > 0) return primary;
 
-    return parsed.filter((msg: any) =>
-      msg &&
-      typeof msg.id === "number" &&
-      (msg.from === "user" || msg.from === "ai") &&
-      typeof msg.text === "string" &&
-      typeof msg.time === "string"
-    );
+    const fallback = parseStoredMessages(localStorage.getItem(getAICoachStorageFallbackKey()));
+    if (fallback.length > 0) return fallback;
+
+    return [];
   } catch {
     return [];
   }
@@ -87,6 +99,7 @@ export function AICoachPage() {
     if (messages.length === 0) return;
     try {
       localStorage.setItem(getAICoachStorageKey(), JSON.stringify(messages));
+      localStorage.setItem(getAICoachStorageFallbackKey(), JSON.stringify(messages));
     } catch {
       // Ignore storage errors and keep chat functional.
     }
@@ -217,7 +230,7 @@ export function AICoachPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col max-w-3xl mx-auto w-full">
+    <div className="h-[calc(100vh-56px)] flex flex-col w-full">
       {/* Header */}
       <div className="bg-zinc-900 border-b border-zinc-800/60 px-4 py-3 flex items-center gap-3 flex-shrink-0">
         <div className="w-9 h-9 bg-green-500/15 border border-green-500/30 rounded-xl flex items-center justify-center flex-shrink-0">

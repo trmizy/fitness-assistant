@@ -1,0 +1,1226 @@
+{
+  "dataset": "ai_gym_e2e_test_cases_vi",
+  "generated_at": "2026-04-08T03:56:46.129Z",
+  "config": {
+    "AI_URL": "http://localhost:3003/ai/ask",
+    "USER_ID": "b7ebfe26-d90c-4bf9-a354-f014dd8a658c"
+  },
+  "summary": {
+    "total": 42,
+    "pass": 31,
+    "fail": 11,
+    "avg_score": "7.67"
+  },
+  "reviews": [
+    {
+      "id": "EX01",
+      "group": "bai_tap",
+      "user_input": "Mình mới tập gym, hãy cho mình buổi tập thân dưới để tăng cơ mông đùi.",
+      "user_profile": {
+        "age": 24,
+        "gender": "female",
+        "goal": "hypertrophy",
+        "training_level": "beginner",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Bạn là một người mới bắt đầu tập gym và muốn tăng cơ mông đùi, nhưng có vẻ như bạn chưa cung cấp đủ thông tin về chính mình. Dưới đây là một lịch tập mẫu cho bạn, dựa trên mục tiêu hypertrophy (tăng cơ) và số ngày/tuần là 3:\n\n## 💪 Lịch Tập\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|------|------|------|\n| Thứ 2 | Hông Đùi | Barbell Squat | **4** | 8-12 | 60s |\n| Thứ 3 | Hông Đùi | Romanian Deadlift | **4** | 10-15 | 60s |\n| Thứ 4 | Tay Trái/Thigh | Leg Press | **4** | 12-18 | 60s |\n\nLưu ý: Bạn nên bắt đầu với số lượng tập và lần lặp lại (sets, reps) hợp lý cho mức độ cơ thể của mình.\n\n## 🥗 Dinh Dưỡng\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **2500** kcal |\n| Đạm | **170g** |\n| Carb | **350g** |\n| Béo | **70g** |\n\nLý giải ngắn: Mục tiêu hypertrophy đòi hỏi một chế độ ăn đủ đạm và calo để hỗ trợ tăng cơ. Bạn nên đảm bảo rằng bạn đang đáp ứng nhu cầu dinh dưỡng của cơ thể.\n\n## ⚡ Hành Động Tuần Này\n1. Thực hiện 3 buổi tập gym, bao gồm cả các bài tập cardio như đi bộ nhanh hoặc đạp xe.\n2. Uống đủ nước và ăn uống đều đặn trong ngày.\n3. Giữ cho chính mình nghỉ ngơi hợp lý để phục hồi cơ thể.\n\n**Giả định:** Chưa có thông tin về chiều cao và cân nặng của bạn, vì vậy chúng tôi không thể đưa ra chế độ dinh dưỡng chính xác.\n\n**Để cá nhân hóa thêm:** Bạn có muốn chia sẻ chiều cao và cân nặng của mình để chúng tôi có thể đưa ra chế độ dinh dưỡng phù hợp hơn không?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "7/10",
+        "thieu_gi": [
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX02",
+      "group": "bai_tap",
+      "user_input": "Cho tôi bài tập ngực vai tay sau trong 60 phút, ưu tiên tăng sức mạnh.",
+      "user_profile": {
+        "age": 29,
+        "gender": "male",
+        "goal": "strength",
+        "training_level": "intermediate",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Buổi Tập Theo Yêu Cầu\n\n🎯 **Mục tiêu buổi tập:** Full-body hypertrophy session with balanced push, pull, and lower body work.\n> Lịch mặc định — bắt đầu ngay được.\n\n### 🏋️ Danh Sách Bài Tập\n- **Goblet Squat**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Romanian Deadlift**: 4 hiệp × 8-10 reps — nghỉ 2 phút\n- **Dumbbell Bench Press**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Seated Cable Row**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Dumbbell Shoulder Press**: 3 hiệp × 10-12 reps — nghỉ 1p15s\n- **Plank**: 3 hiệp × 45-60 seconds reps — nghỉ 45s\n\n### 🔧 Kỹ Thuật Thực Hiện\n1. Warm up 8-10 minutes before first compound lift.\n2. Stop each set with 1-2 reps in reserve.\n3. Prioritize form over load on every repetition.\n\n### 📈 Tăng Tải Tiến Bộ\n1. Add 1-2 reps per week until top range is achieved, then increase load.\n2. Track sets, reps, and load for every exercise to ensure progression.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your weight?\n2. Can you share your height?",
+      "qa_review": {
+        "ket_luan": "FAIL",
+        "diem": "5/10",
+        "thieu_gi": [
+          "Thieu ca nhan hoa theo thong tin user_profile.",
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Chen ro thong tin profile vao quyet dinh de tang ca nhan hoa."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX03",
+      "group": "bai_tap",
+      "user_input": "Tôi bị đau lưng dưới nhẹ, vẫn muốn tập lưng xô. Gợi ý buổi tập an toàn.",
+      "user_profile": {
+        "age": 34,
+        "gender": "male",
+        "goal": "muscle_gain",
+        "training_level": "intermediate",
+        "injuries": [
+          "lower_back_sensitivity"
+        ],
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "⚠️ CONSTRAINT: Số ngày/tuần = 3. Phải trả đúng 3 ngày.\n\n## ⚠️ Lưu Ý Chấn Thương\nDo bạn có vấn đề về lưng dưới, chúng tôi sẽ tránh các bài tập có thể gây áp lực lên vùng lưng này. Trong bối cảnh này, chúng tôi khuyên bạn nên tập trung vào các bài tập không ảnh hưởng đến lưng dưới.\n\n## 💪 Lịch Tập Điều Chỉnh\n\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|------|------|------|\n| Thứ 2 | Bàn tay | Bench Press | **3** | **8-12** | **60-90**s |\n| Thứ 4 | Hông, chân | Squats | **4** | **6-8** | **120-180**s |\n| Thứ 6 | Tay trước (Biceps) | Barbell Curl | **3** | **12-15** | **60-90**s |\n\n## 🥗 Dinh Dưỡng\n**Calo:** Không có dữ liệu để xác định. | **Đạm:** Not available | **Carb:** Not available | **Béo:** Not available |\n\n## ⚡ Hành Động Tuần Này\n1. Hãy ăn uống cân đối và đảm bảo cung cấp đủ năng lượng cho cơ thể.\n2. Tập trung vào việc phục hồi sau tập luyện bằng cách thư giãn, ngủ đủ giấc.\n3. Hãy kiên nhẫn và không bỏ cuộc vì mục tiêu của bạn là **tai cau truc co the**.\n\n**Giả định:** Không có dữ liệu về hoạt động hàng ngày hoặc chế độ ăn uống cụ thể.",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "7/10",
+        "thieu_gi": [
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX04",
+      "group": "bai_tap",
+      "user_input": "Cho em buổi tập full body tại nhà chỉ với 2 quả dumbbell 10kg.",
+      "user_profile": {
+        "age": 21,
+        "gender": "female",
+        "goal": "fat_loss",
+        "training_level": "beginner",
+        "equipment": "home_dumbbell_10kg",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi là AI fitness coach cho người dùng Việt Nam!\n\nVới thông tin của bạn, tôi sẽ tạo một buổi tập full body tại nhà chỉ với 2 quả dumbbell 10kg.\n\n**Buổi Tập Full Body**\n\n| Ngày | Nhóm Cơ | Bài Tập | Sets | Reps | Rest |\n| --- | --- | --- | --- | --- | --- |\n| **Thứ 2 (buổi 1)** | Tay Trước | Dumbbell Bench Press | 3 | 8-12 | 60s |\n| | Tay Sau | Dumbbell Bicep Curl | 3 | 12-15 | 60s |\n| | Hông | Dumbbell Squat | 3 | 10-12 | 60s |\n| **Thứ 4 (buổi 2)** | Tay Trước | Dumbbell Bench Press | 3 | 8-12 | 60s |\n| | Tay Sau | Dumbbell Tricep Extension | 3 | 12-15 | 60s |\n| | Hông | Dumbbell Lunge | 3 | 10-12 | 60s |\n| **Thứ 6 (buổi 3)** | Tay Trước | Dumbbell Bench Press | 3 | 8-12 | 60s |\n| | Tay Sau | Dumbbell Hammer Curl | 3 | 12-15 | 60s |\n| | Hông | Dumbbell Deadlift | 3 | 10-12 | 60s |\n\nHãy nhớ điều chỉnh số lượng và độ nặng tùy theo khả năng của bạn.\n\n**Giả định:** Không có dữ liệu về chiều cao, trọng lượng hoặc hoạt động hàng ngày, vì vậy chúng ta sẽ bắt đầu với một plan an toàn.\n\nĐể cá nhân hóa thêm:\n\n1. Bạn muốn tăng cường tay trước (biceps) hay tay sau (tricep)?\n2. Bạn muốn giảm cân nhanh hơn hay tập trung vào sức mạnh?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "7/10",
+        "thieu_gi": [
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX05",
+      "group": "bai_tap",
+      "user_input": "Hãy cho tôi buổi cardio đốt mỡ nhưng không chạy bộ vì đau gối.",
+      "user_profile": {
+        "age": 31,
+        "gender": "female",
+        "goal": "fat_loss",
+        "training_level": "beginner",
+        "injuries": [
+          "knee_pain"
+        ],
+        "equipment": "gym_cardio_zone",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "**Giá trị mặc định**:\n\n- Calo: **1500 kcal/ngày**\n- Đạm: **1,6 g/kg cân nặng**\n- Carb: **2,0 g/kg cân nặng**\n- Béo: **0,5 g/kg cân nặng**\n\nDựa trên mục tiêu **tai cau truc co the**, chúng ta sẽ tập trung vào việc tăng cường cơ bắp và giảm mỡ.\n\n**Gợi ý thực đơn**\n\n* Bữa sáng: Súp rau củ với sữa đậu nành, **400 kcal** - 25g đạm - 60g carb\n* Bữa trưa: Thịt gà nướng với quinoa và rau xanh, **550 kcal** - 35g đạm - 70g carb\n* Bữa tối: Cá nướng với khoai tây và rau củ, **450 kcal** - 30g đạm - 40g carb\n\n**Cách điều chỉnh theo tiến trình**\n\n- **Tuần 1**: Tiếp tục thực hiện meal plan trên. Monitor lại cân nặng và đo vòng eo để đánh giá tiến độ.\n- **Tuần 2**: Tăng calo lên **1700 kcal/ngày** để hỗ trợ tăng trưởng cơ bắp.\n- **Tuần 3**: Bắt đầu giảm lượng carb xuống **50g/ngày** để tăng cường quá trình đốt mỡ.\n\n**Hành động tuần này**\n\n1. Uống ít nhất **2 lít nước** mỗi ngày\n2. Thực hiện các bài tập cardio như đi bộ nhanh, chạy bộ nhẹ hoặc đạp xe để đốt cháy mỡ\n3. Tập trung vào việc tăng cường cơ bắp với các bài tập như push-ups, squat và lunges\n\nLưu ý: **Giả định**: Người dùng có thể thiếu thông tin về cân nặng, kích thước cơ bắp và hoạt động hàng ngày. Để cá nhân hóa thêm, bạn có thể hỏi:\n\n- Cân nặng hiện tại là **_____ kg**\n- Kích thước cơ bắp hiện tại là **_____ cm**\n- Hoạt động hàng ngày (ví dụ như đi bộ 1 tiếng/ngày)",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "7/10",
+        "thieu_gi": [
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX06",
+      "group": "bai_tap",
+      "user_input": "Viết giúp tôi buổi tập tay trước tay sau để tay to hơn, tập 45 phút.",
+      "user_profile": {
+        "age": 27,
+        "gender": "male",
+        "goal": "arm_hypertrophy",
+        "training_level": "intermediate",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Buổi Tập Theo Yêu Cầu\n\n🎯 **Mục tiêu buổi tập:** Full-body hypertrophy session with balanced push, pull, and lower body work.\n> Lịch mặc định — bắt đầu ngay được.\n\n### 🏋️ Danh Sách Bài Tập\n- **Goblet Squat**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Romanian Deadlift**: 4 hiệp × 8-10 reps — nghỉ 2 phút\n- **Dumbbell Bench Press**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Seated Cable Row**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Dumbbell Shoulder Press**: 3 hiệp × 10-12 reps — nghỉ 1p15s\n- **Plank**: 3 hiệp × 45-60 seconds reps — nghỉ 45s\n\n### 🔧 Kỹ Thuật Thực Hiện\n1. Warm up 8-10 minutes before first compound lift.\n2. Stop each set with 1-2 reps in reserve.\n3. Prioritize form over load on every repetition.\n\n### 📈 Tăng Tải Tiến Bộ\n1. Add 1-2 reps per week until top range is achieved, then increase load.\n2. Track sets, reps, and load for every exercise to ensure progression.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your weight?\n2. Can you share your height?",
+      "qa_review": {
+        "ket_luan": "FAIL",
+        "diem": "5/10",
+        "thieu_gi": [
+          "Thieu ca nhan hoa theo thong tin user_profile.",
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Chen ro thong tin profile vao quyet dinh de tang ca nhan hoa."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX07",
+      "group": "bai_tap",
+      "user_input": "Tôi nữ 42 tuổi, mới quay lại tập sau 2 năm nghỉ. Cho buổi tập nhẹ toàn thân.",
+      "user_profile": {
+        "age": 42,
+        "gender": "female",
+        "goal": "return_to_training",
+        "training_level": "detrained_beginner",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Cảm ơn bạn đã quay lại tập luyện sau 2 năm nghỉ! 🥗\n\n## 💪 Lịch Tập\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|------|------|------|\n| Thứ 1 | Tròn cơ thể | Bench Press | **3** | **8-12** | **60s** |\n| Thứ 2 | Tay trước | Bicep Curl | **3** | **10-15** | **60s** |\n| Thứ 3 | Hông, lưng | Squats | **4** | **8-12** | **90s** |\n\n## 🥗 Dinh Dưỡng\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | X kcal |\n| Đạm | Xg |\n| Carb | Xg |\n| Béo | Xg |\nGiả định: Không có dữ liệu về cân nặng và chiều cao, nên chúng ta sẽ dựa vào một template dinh dưỡng cơ bản. **Giả định:** Không có dữ liệu về mục tiêu calo.\n\n## ⚡ Hành Động Tuần Này\n1. Làm nóng 5-10 phút với cardio nhẹ (tai nghe nhạc hoặc đi bộ nhanh)\n2. Thực hiện bài tập **Bench Press** với trọng lượng phù hợp và giữ đúng RPE (**3 sets** của **8-12** reps)\n3. Thực hiện bài tập **Bicep Curl** với trọng lượng phù hợp và giữ đúng RPE (**3 sets** của **10-15** reps)\n\nĐể cá nhân hóa thêm: Bạn muốn tăng cường việc tập luyện tay trước hay tay sau?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "7/10",
+        "thieu_gi": [
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX08",
+      "group": "bai_tap",
+      "user_input": "Cho mình bài core 20 phút tại nhà để cải thiện đau lưng do ngồi nhiều.",
+      "user_profile": {
+        "age": 26,
+        "gender": "male",
+        "goal": "core_stability",
+        "training_level": "beginner",
+        "equipment": "bodyweight",
+        "occupation": "office_worker",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## ⚠️ Lưu Ý Chấn Thương\nNếu bạn đang gặp vấn đề về chấn thương, hãy chọn bài tập nhẹ nhàng và tránh các động tác gây stress cho vùng cơ bị ảnh hưởng.\n\n## 💪 Lịch Tập Điều Chỉnh\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|------|------|------|\n| Thứ 2 | Vùng lưng | Plank | **3** | **30** | **60**s |\n| Thứ 4 | Vùng lưng | Bird Dog | **3** | **15** | **30**s |\n| Thứ 6 | Vùng lưng | Superman | **3** | **20** | **45**s |\n\n## 🥗 Dinh Dưỡng\n**Calo:** 2.500 kcal | **Đạm:** **120g** | **Carb:** **250g** | **Béo:** **70g**\n\n## ⚡ Hành Động Tuần Này\n1. Lập kế hoạch ăn uống cân đối và bổ sung dinh dưỡng cho cơ thể.\n2. Thực hiện các bài tập planking, bird dog và superman để tăng cường sức mạnh và ổn định vùng lưng.\n3. Uống nhiều nước và nghỉ ngơi đầy đủ để giúp cơ thể phục hồi.\n\n**Giả định:** Không có dữ liệu về hoạt động hàng ngày và chế độ ăn uống cụ thể.",
+      "qa_review": {
+        "ket_luan": "FAIL",
+        "diem": "5/10",
+        "thieu_gi": [
+          "Thieu ca nhan hoa theo thong tin user_profile.",
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Chen ro thong tin profile vao quyet dinh de tang ca nhan hoa."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX09",
+      "group": "bai_tap",
+      "user_input": "Hãy đề xuất buổi tập chân cho runner, ưu tiên sức bền cơ.",
+      "user_profile": {
+        "age": 30,
+        "gender": "male",
+        "goal": "running_performance",
+        "training_level": "intermediate",
+        "sport": "half_marathon",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Buổi Tập Theo Yêu Cầu\n\n🎯 **Mục tiêu buổi tập:** Full-body hypertrophy session with balanced push, pull, and lower body work.\n> Lịch mặc định — bắt đầu ngay được.\n\n### 🏋️ Danh Sách Bài Tập\n- **Goblet Squat**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Romanian Deadlift**: 4 hiệp × 8-10 reps — nghỉ 2 phút\n- **Dumbbell Bench Press**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Seated Cable Row**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Dumbbell Shoulder Press**: 3 hiệp × 10-12 reps — nghỉ 1p15s\n- **Plank**: 3 hiệp × 45-60 seconds reps — nghỉ 45s\n\n### 🔧 Kỹ Thuật Thực Hiện\n1. Warm up 8-10 minutes before first compound lift.\n2. Stop each set with 1-2 reps in reserve.\n3. Prioritize form over load on every repetition.\n\n### 📈 Tăng Tải Tiến Bộ\n1. Add 1-2 reps per week until top range is achieved, then increase load.\n2. Track sets, reps, and load for every exercise to ensure progression.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your goal?\n2. Can you share your activity_level?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "7/10",
+        "thieu_gi": [
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX10",
+      "group": "bai_tap",
+      "user_input": "Please give me a pull workout, but answer in Vietnamese only.",
+      "user_profile": {
+        "age": 23,
+        "gender": "male",
+        "goal": "hypertrophy",
+        "training_level": "beginner",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## Your 23-year-old male hypertrophy journey starts with a solid foundation.\n\n### 💪 Training\n**Weekly Schedule:**\n\n- Day 1 (Chest and Triceps): Barbell Bench Press **(3 sets of 8-12 reps**) + Incline Dumbbell Press **(3 sets of 10-15 reps**) + Tricep Pushdown **(3 sets of 12-15 reps**)\n- Day 2 (Back and Biceps): Deadlifts **(3 sets of 8-12 reps**) + Bent-Over Barbell Rows **(3 sets of 8-12 reps**) + Dumbbell Bicep Curls **(3 sets of 10-12 reps**)\n- Day 3 (Legs and Shoulders): Squats **(3 sets of 8-12 reps**) + Leg Press **(3 sets of 10-12 reps**) + Standing Military Press **(3 sets of 8-10 reps**) | Rest days or active recovery on non-Leg/Shoulder days\n\n### 🥗 Nutrition\n**Macronutrient Breakdown:**\n- **Calories:** To achieve muscle gain, we aim for a daily calorie surplus. Assuming your basal metabolic rate (BMR) is roughly 1,800 kcal/day and you want to consume an additional 250 calories above that, we'll set our target at **2,050 kcal/day**.\n- **Protein:** For hypertrophy, a higher protein intake is beneficial. Let's start with **170g** of protein spread across 3 main meals and 2 post-workout shakes.\n- **Carbs:** We'll allocate **275g** of carbs daily to support muscle growth.\n- **Fats:** To maintain overall health while aiming for hypertrophy, let's target **50g** of fat intake.\n\n### ⚡ Action Steps This Week\n1. Eat every 2-3 hours between meals to keep your muscles fueled and support muscle growth.\n2. Increase water intake by at least 1 liter above what you currently drink daily.\n3. Monitor and adjust your macros as needed over the next week; we'll revisit this in a follow-up session.\n\n**To dial this in further:**\n1. Can you please provide your height (in cm) so I can accurately calculate your BMR?\n2. What is your current weight?",
+      "qa_review": {
+        "ket_luan": "FAIL",
+        "diem": "3/10",
+        "thieu_gi": [
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [
+          "Khong dam bao tra loi hoan toan bang tieng Viet."
+        ],
+        "co_mau_thuan_gi": [
+          "Macro (2230 kcal) lech lon so voi tong kcal (800)."
+        ],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Sua noi dung sai/khong an toan va bo cam ket phi thuc te.",
+          "Can doi lai so lieu de tranh mau thuan kcal-macro."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX11",
+      "group": "bai_tap",
+      "user_input": "Mình chỉ có 30 phút giờ nghỉ trưa, cho buổi tập ngực hiệu quả tối đa.",
+      "user_profile": {
+        "age": 28,
+        "gender": "male",
+        "goal": "time_efficient_hypertrophy",
+        "training_level": "intermediate",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Buổi Tập Theo Yêu Cầu\n\n🎯 **Mục tiêu buổi tập:** Full-body hypertrophy session with balanced push, pull, and lower body work.\n> Lịch mặc định — bắt đầu ngay được.\n\n### 🏋️ Danh Sách Bài Tập\n- **Goblet Squat**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Romanian Deadlift**: 4 hiệp × 8-10 reps — nghỉ 2 phút\n- **Dumbbell Bench Press**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Seated Cable Row**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Dumbbell Shoulder Press**: 3 hiệp × 10-12 reps — nghỉ 1p15s\n- **Plank**: 3 hiệp × 45-60 seconds reps — nghỉ 45s\n\n### 🔧 Kỹ Thuật Thực Hiện\n1. Warm up 8-10 minutes before first compound lift.\n2. Stop each set with 1-2 reps in reserve.\n3. Prioritize form over load on every repetition.\n\n### 📈 Tăng Tải Tiến Bộ\n1. Add 1-2 reps per week until top range is achieved, then increase load.\n2. Track sets, reps, and load for every exercise to ensure progression.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your weight?\n2. Can you share your height?",
+      "qa_review": {
+        "ket_luan": "FAIL",
+        "diem": "5/10",
+        "thieu_gi": [
+          "Thieu ca nhan hoa theo thong tin user_profile.",
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Chen ro thong tin profile vao quyet dinh de tang ca nhan hoa."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX12",
+      "group": "bai_tap",
+      "user_input": "Tôi muốn buổi tập vai tránh impingement, vai trước của tôi hay bị khó chịu.",
+      "user_profile": {
+        "age": 33,
+        "gender": "male",
+        "goal": "shoulder_hypertrophy_safe",
+        "training_level": "intermediate",
+        "injuries": [
+          "shoulder_impingement_history"
+        ],
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Buổi Tập Theo Yêu Cầu\n\n🎯 **Mục tiêu buổi tập:** Full-body hypertrophy session with balanced push, pull, and lower body work.\n> Lịch mặc định — bắt đầu ngay được.\n\n### 🏋️ Danh Sách Bài Tập\n- **Goblet Squat**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Romanian Deadlift**: 4 hiệp × 8-10 reps — nghỉ 2 phút\n- **Dumbbell Bench Press**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Seated Cable Row**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Dumbbell Shoulder Press**: 3 hiệp × 10-12 reps — nghỉ 1p15s\n- **Plank**: 3 hiệp × 45-60 seconds reps — nghỉ 45s\n\n### 🔧 Kỹ Thuật Thực Hiện\n1. Warm up 8-10 minutes before first compound lift.\n2. Stop each set with 1-2 reps in reserve.\n3. Prioritize form over load on every repetition.\n\n### 📈 Tăng Tải Tiến Bộ\n1. Add 1-2 reps per week until top range is achieved, then increase load.\n2. Track sets, reps, and load for every exercise to ensure progression.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your weight?\n2. Can you share your height?",
+      "qa_review": {
+        "ket_luan": "FAIL",
+        "diem": "3/10",
+        "thieu_gi": [
+          "Thieu ca nhan hoa theo thong tin user_profile.",
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [
+          "Tra loi chua dung tam cau hoi cua user."
+        ],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Sua noi dung sai/khong an toan va bo cam ket phi thuc te.",
+          "Chen ro thong tin profile vao quyet dinh de tang ca nhan hoa."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX13",
+      "group": "bai_tap",
+      "user_input": "Cho em buổi HIIT 25 phút tại nhà đốt mỡ, không dụng cụ.",
+      "user_profile": {
+        "age": 20,
+        "gender": "female",
+        "goal": "fat_loss",
+        "training_level": "beginner",
+        "equipment": "bodyweight",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi là AI fitness coach cho người dùng Việt Nam.\n\n### Lịch tập 3 ngày/tuần\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n| --- | --- | --- | --- | --- | --- |\n| **Thứ 2** | Tay trước | Push-up 💪 | **3** | **12** | 60 |\n| Thứ 2 | Tay sau | Bodyweight squats ⚡ | **3** | **15** | 60 |\n| Thứ 4 | Chân trên đùi | Lunges 🤸‍♀️ | **3** | **12** | 60 |\n\n### Gợi ý thực đơn\n- Bữa sáng (7.00 - 8.00)\n 🍳 1 chén cháo gạo lứt với 2 quả trứng gà, 1 thìa dầu ô liu, và một quả chanh thái nhỏ.\n\n- Bữa trưa (12.30 - 13.30)\n 🥗 1 salad rau xà lách với 100g thịt gà nướng, 1/2 chén súp lơ trắng nấu chín, và 1 thìa dầu ô liu.\n\n- Bữa tối (18.00 - 19.00)\n 🍜 1 bát cháo củ cải với 200g thịt gà nấu mềm, 1 thìa dầu ô liu, và một quả chanh thái nhỏ.\n\n\n### Hành động tuần này\n1. Uống đủ nước trong ngày (tối thiểu 8 lít).\n2. Tập luyện cardio ít nhất 25 phút mỗi buổi.\n3. Ăn uống cân đối với mục tiêu giảm cân.\n\n**Giả định:** Không có dữ liệu về cân nặng và chiều cao, nên sử dụng giá trị trung bình cho việc tính toán macro.",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "7/10",
+        "thieu_gi": [
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "EX14",
+      "group": "bai_tap",
+      "user_input": "Mình tập powerlifting, cần buổi kỹ thuật squat nhẹ trong tuần deload.",
+      "user_profile": {
+        "age": 32,
+        "gender": "male",
+        "goal": "deload_technique",
+        "training_level": "advanced",
+        "sport": "powerlifting",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Lịch tập cho bạn, Thưa! 🙏\n\n## 💪 Lịch Tập\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|------|------|------|\n| Thứ 2 | Hông và vai | Squat | **4** | 3-5 | 120s |\n| Thứ 3 | Tay trước | Bench Press | **4** | 8-12 | 90s |\n| Thứ 4 | Hông và chân | Leg Press | **4** | 10-15 | 120s |\n\n## 🥗 Dinh Dưỡng\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **2500 kcal** (Giả định, không có dữ liệu về hoạt động và cân nặng) |\n| Đạm | **1.6 g/kg cân nặng** (Giả định, không có dữ liệu về cân nặng) |\n| Carb | **2.2 g/kg cân nặng** (Giả định, không có dữ liệu về cân nặng) |\n| Béo | **0.5 g/kg cân nặng** (Giả định, không có dữ liệu về cân nặng) |\n\nLý giải: Lịch tập được thiết kế để đáp ứng nhu cầu deload nhẹ trong tuần này. Squat là bài tập cơ bản giúp tăng cường sức mạnh hông và chân, trong khi Bench Press tập trung vào vai và tay trước.\n\n## ⚡ Hành Động Tuần Này\n1. **Ngủ đủ giấc**: 7-9 giờ mỗi đêm để đảm bảo phục hồi.\n2. **Uống nhiều nước**: **8-10** lít mỗi ngày để giữ cho cơ thể đủ nước.\n3. **Ăn uống cân đối**: Tuân thủ meal template high protein body tai cau truc co the.\n\n[Chỉ thêm nếu hồ sơ thiếu]\n**Giả định:** Không có dữ liệu về cân nặng, hoạt động và mục tiêu cá nhân cụ thể.",
+      "qa_review": {
+        "ket_luan": "FAIL",
+        "diem": "5/10",
+        "thieu_gi": [
+          "Thieu ca nhan hoa theo thong tin user_profile.",
+          "Bai tap chua day du set/rep/nghi.",
+          "Thieu luu y ky thuat/an toan."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Chen ro thong tin profile vao quyet dinh de tang ca nhan hoa."
+        ],
+        "phien_ban_tot_hon_mau": "Muc tieu: Tom tat dung yeu cau cua user va profile.\nKhoi dong 8-10 phut: mobility + activation dung nhom co.\nBai tap chinh (it nhat 5 bai): moi bai ghi ro set, rep, nghi, cue ky thuat ngan gon.\nVi du format: Squat 4x8-10, nghi 90s; RDL 3x10-12, nghi 90s; ...\nLuu y an toan: dau hieu dung bai, dieu chinh tai trong theo RPE 7-8.\nHa nhiet 5-8 phut + ke hoach tang tai tuan sau."
+      }
+    },
+    {
+      "id": "SC01",
+      "group": "lich_tap",
+      "user_input": "Lên lịch tập 4 buổi/tuần tăng cơ cho nam văn phòng.",
+      "user_profile": {
+        "age": 27,
+        "gender": "male",
+        "goal": "hypertrophy",
+        "training_level": "beginner",
+        "days_available": 4,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Lịch Tập Của Bạn\n\n🎯 **Mục tiêu:** Tái cấu trúc — Upper/Lower 4 ngày/tuần — Trung cấp\n\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|:----:|:----:|:----:|\n| Thứ 2 (Upper A) | Ngực + Lưng — strength | Bench Press | 4 | 5-7 | 2 phút |\n| | | Barbell Row | 4 | 5-7 | 1p30s |\n| | | Overhead Press | 3 | 8-10 | 1p15s |\n| | | Lat Pulldown | 3 | 10-12 | 1 phút |\n| | | Cable Lateral Raise | 3 | 12-15 | 1 phút |\n| Thứ 3 (Lower A) | Tứ đầu + Gân khoeo — strength | Back Squat | 4 | 5-7 | 2 phút |\n| | | Romanian Deadlift | 4 | 8-10 | 1p30s |\n| | | Leg Press | 3 | 10-12 | 1p15s |\n| | | Leg Curl | 3 | 10-12 | 1 phút |\n| | | Calf Raise | 4 | 15-20 | 45s |\n| Thứ 5 (Upper B) | Ngực + Lưng — hypertrophy | Incline Dumbbell Press | 4 | 8-10 | 1p15s |\n| | | Chest Supported Row | 4 | 8-10 | 1p15s |\n| | | Arnold Press | 3 | 10-12 | 1p15s |\n| | | Pull-ups | 3 | 8-12 | 1p15s |\n| | | Face Pull | 3 | 12-15 | 1 phút |\n| Thứ 6 (Lower B) | Mông + Gân khoeo + Core | Deadlift | 4 | 5 | 3 phút |\n| | | Hack Squat | 3 | 10-12 | 1p30s |\n| | | Hip Thrust | 4 | 8-10 | 1p15s |\n| | | Walking Lunges | 3 | 12 each | 1 phút |\n| | | Plank | 3 | 60s | 45s |\n\n### 📈 Ghi Chú Tăng Tiến\n1. Tăng tạ 2.5–5% khi hoàn thành tất cả sets ở ngưỡng reps cao nhất.\n2. Giữ 1–2 reps in reserve (RIR) ở các bài compound để kiểm soát fatigue.\n3. Sau 4–6 tuần, deload 1 tuần bằng cách giảm 30–40% volume.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your weight?\n2. Can you share your height?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "10/10",
+        "thieu_gi": [],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [],
+        "phien_ban_tot_hon_mau": "Lich 4 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC02",
+      "group": "lich_tap",
+      "user_input": "Mình chỉ rảnh thứ 2,4,6,7. Hãy thiết kế lịch tập 4 ngày phù hợp.",
+      "user_profile": {
+        "age": 30,
+        "gender": "female",
+        "goal": "fat_loss_and_tone",
+        "training_level": "intermediate",
+        "available_days": [
+          "Mon",
+          "Wed",
+          "Fri",
+          "Sat"
+        ],
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi là AI fitness coach, và tôi sẽ giúp bạn thiết kế lịch tập phù hợp cho mục tiêu giảm cân và tăng cơ của bạn.\n\n\"Tôi tin rằng với lịch tập 4 ngày này, bạn sẽ có thể đạt được mục tiêu fitness của mình.\"\n\n## 💪 Lịch Tập\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|------|------|------|\n| Thứ Hai | Cơ bản và Tay Trái | Bench Press | **3** | 8-12 | 60s |\n| Thứ Hai | Cơ bản và Tay Trái | Incline Dumbbell Press | **3** | 10-15 | 60s |\n| Thứ Sáu | Cơ bản và Tay Trái | Squat | **4** | 8-12 | 90s |\n| Thứ Sáu | Cơ bản và Tay Trái | Leg Press | **3** | 10-15 | 90s |\n\n## 🥗 Dinh Dưỡng\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **2500 kcal/năm** (giả định) |\n| Đạm | **1,6-2,2 gram/kg bw** (giả định) |\n| Carb | **2-3 gram/kg bw** (giả định) |\n| Béo | không có thông tin |\n\n**Giả định:** Không có thông tin về cân nặng và chiều cao. Hãy tham khảo bác sĩ hoặc chuyên gia dinh dưỡng để xác định giá trị chính xác.\n\n## ⚡ Hành Động Tuần Này\n1. **Đi bộ nhanh trong 30 phút**: Đây là bước cơ bản để bắt đầu tuần tập.\n2. **Thực hiện stretching sau tập**: Giúp cải thiện sự linh hoạt và giảm nguy cơ chấn thương.\n3. **Uống đủ nước**: Hãy uống ít nhất 8-10 ly nước mỗi ngày để hỗ trợ quá trình giảm cân.\n\nHãy nhớ rằng, lịch tập này chỉ là một đề xuất và bạn nên tham khảo ý kiến của bác sĩ hoặc chuyên gia dinh dưỡng để xác định giá trị chính xác cho bản thân.",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "10/10",
+        "thieu_gi": [],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [],
+        "phien_ban_tot_hon_mau": "Lich 4 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC03",
+      "group": "lich_tap",
+      "user_input": "Cho tôi lịch push pull legs 6 buổi.",
+      "user_profile": {
+        "age": 25,
+        "gender": "male",
+        "goal": "hypertrophy",
+        "training_level": "intermediate",
+        "days_available": 6,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi là AI fitness coach và sẵn sàng giúp bạn đạt mục tiêu hypertrophy.\n\n**\"Tôi hiểu rằng bạn đang tìm kiếm một lịch tập đầy đủ để hỗ trợ sự phát triển cơ bắp của mình.\"**\n\n## 💪 Lịch Tập\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|------|------|------|\n| Thứ 2 | Trước | Bench Press **4** | **3-4** | **8-12** | **60-90s** |\n| Thứ 2 | Tay trước | Barbell Curl **4** | **3-4** | **10-15** | **60-90s** |\n| Thứ 3 | Hông | Leg Press **4** | **3-4** | **8-12** | **60-90s** |\n| Thứ 4 | Trước | Incline Dumbbell Press **3** | **3-4** | **8-12** | **60-90s** |\n| Thứ 5 | Tay sau | Seated Row **4** | **3-4** | **10-15** | **60-90s** |\n| Thứ 6 | Hông | Leg Extension **3** | **3-4** | **12-15** | **60-90s** |\n\n## 🥗 Dinh Dưỡng\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **2500 kcal** (gia định dựa trên mức hoạt động trung bình) |\n| Đạm | **150g** (mục tiêu cho hypertrophy) |\n| Carb | **300g** (mục tiêu cho hypertrophy) |\n| Béo | **70g** (mục tiêu cho hypertrophy) |\n\n**\"Tôi hy vọng lịch tập này sẽ giúp bạn đạt mục tiêu hypertrophy của mình. Hãy nhớ rằng việc ăn uống và nghỉ ngơi cũng rất quan trọng.\"**\n\n## ⚡ Hành Động Tuần Này\n1. Lên lịch tập và thực hiện lịch tập cho tuần này.\n2. Kiểm tra và cập nhật cân nặng hàng tuần để điều chỉnh kế hoạch dinh dưỡng.\n3. Thực hiện các bài tập bổ sung như yoga hoặc Pilates để giảm stress và cải thiện recover.\n\n[Chỉ thêm nếu hồ sơ thiếu]\n**Giả định:** Không có dữ liệu về chiều cao, cân nặng và hoạt động hàng ngày.",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "10/10",
+        "thieu_gi": [],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [],
+        "phien_ban_tot_hon_mau": "Lich 6 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC04",
+      "group": "lich_tap",
+      "user_input": "Thiết kế lịch 3 buổi cho người mới, ưu tiên học kỹ thuật trước tăng tạ.",
+      "user_profile": {
+        "age": 22,
+        "gender": "female",
+        "goal": "movement_quality",
+        "training_level": "beginner",
+        "days_available": 3,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Bạn mới bắt đầu hành trình tập luyện của mình! Với mục tiêu \"di chuyển chất lượng\", chúng ta sẽ tập trung vào việc học kỹ thuật và tăng cường sức mạnh.\n\n**Giả định:** Không có dữ liệu về height, weight, age, giới tính, hoạt động và mức độ kinh nghiệm để thực hiện các tính toán cụ thể. Chúng ta sẽ dựa trên các nguyên tắc cơ bản để thiết kế lịch tập phù hợp cho bạn.\n\n## 💪 Lịch Tập\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|------|------|------|\n| Thứ 2 | Tay trước | Bench Press | **3** | **8-12** | 60s |\n| Thứ 4 | Tay sau | Squats | **3** | **10-15** | 90s |\n| Thứ 6 | Cánh tay và chân | Lunges | **3** | **12-18** | 120s |\n\n## 🥗 Dinh Dưỡng\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **1500 kcal** (tăng dần trong tuần đầu tiên) |\n| Đạm | **1.6 g/kg CM** |\n| Carb | **2.2 g/kg CM** |\n| Béo | **0.5 g/kg CM** |\n\nHãy nhớ rằng, việc tăng trọng và cải thiện sức mạnh đòi hỏi sự kiên nhẫn và nhất quán trong chế độ ăn uống và tập luyện.\n\n## ⚡ Hành Động Tuần Này\n1. Luyện tập Bench Press 3 lần/tuần.\n2. Thực hiện Squats 2 lần/tuần.\n3. Tập lunges 2 lần/tuần.\n\n**Để cá nhân hóa thêm:**\n- Bạn có thể cho tôi biết mục tiêu của bạn là gì?\n- Bạn có muốn tăng cường sức mạnh hoặc cải thiện sự bền và sự dẻo dai trong tập luyện?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "10/10",
+        "thieu_gi": [],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [],
+        "phien_ban_tot_hon_mau": "Lich 3 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC05",
+      "group": "lich_tap",
+      "user_input": "Lập lịch tập cho nữ sau sinh 6 tháng, 4 buổi/tuần.",
+      "user_profile": {
+        "age": 31,
+        "gender": "female",
+        "goal": "postpartum_recovery",
+        "training_level": "beginner",
+        "special_conditions": [
+          "postpartum_6_months"
+        ],
+        "days_available": 4,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Lịch Tập Của Bạn\n\n🎯 **Mục tiêu:** Tái cấu trúc — Upper/Lower 4 ngày/tuần — Trung cấp\n\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|:----:|:----:|:----:|\n| Thứ 2 (Upper A) | Ngực + Lưng — strength | Bench Press | 4 | 5-7 | 2 phút |\n| | | Barbell Row | 4 | 5-7 | 1p30s |\n| | | Overhead Press | 3 | 8-10 | 1p15s |\n| | | Lat Pulldown | 3 | 10-12 | 1 phút |\n| | | Cable Lateral Raise | 3 | 12-15 | 1 phút |\n| Thứ 3 (Lower A) | Tứ đầu + Gân khoeo — strength | Back Squat | 4 | 5-7 | 2 phút |\n| | | Romanian Deadlift | 4 | 8-10 | 1p30s |\n| | | Leg Press | 3 | 10-12 | 1p15s |\n| | | Leg Curl | 3 | 10-12 | 1 phút |\n| | | Calf Raise | 4 | 15-20 | 45s |\n| Thứ 5 (Upper B) | Ngực + Lưng — hypertrophy | Incline Dumbbell Press | 4 | 8-10 | 1p15s |\n| | | Chest Supported Row | 4 | 8-10 | 1p15s |\n| | | Arnold Press | 3 | 10-12 | 1p15s |\n| | | Pull-ups | 3 | 8-12 | 1p15s |\n| | | Face Pull | 3 | 12-15 | 1 phút |\n| Thứ 6 (Lower B) | Mông + Gân khoeo + Core | Deadlift | 4 | 5 | 3 phút |\n| | | Hack Squat | 3 | 10-12 | 1p30s |\n| | | Hip Thrust | 4 | 8-10 | 1p15s |\n| | | Walking Lunges | 3 | 12 each | 1 phút |\n| | | Plank | 3 | 60s | 45s |\n\n### 📈 Ghi Chú Tăng Tiến\n1. Tăng tạ 2.5–5% khi hoàn thành tất cả sets ở ngưỡng reps cao nhất.\n2. Giữ 1–2 reps in reserve (RIR) ở các bài compound để kiểm soát fatigue.\n3. Sau 4–6 tuần, deload 1 tuần bằng cách giảm 30–40% volume.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your goal?\n2. Can you share your activity_level?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "10/10",
+        "thieu_gi": [],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [],
+        "phien_ban_tot_hon_mau": "Lich 4 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC06",
+      "group": "lich_tap",
+      "user_input": "Mình có mục tiêu giảm mỡ, hãy cho lịch 5 buổi gồm cả cardio và tạ.",
+      "user_profile": {
+        "age": 35,
+        "gender": "male",
+        "goal": "fat_loss",
+        "training_level": "intermediate",
+        "days_available": 5,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi xin chào bạn! Với mục tiêu giảm mỡ, tôi đã tạo ra một lịch tập hợp lý cho bạn với 5 buổi/tuần, bao gồm cả cardio và tập tạ.\n\n**Lịch Tập**\n\n| Ngày | Nhóm Cơ | Bài Tập | Sets | Reps | Rest |\n| --- | --- | --- | --- | --- | --- |\n| Thứ Hai | Push | Bench Press **4x8** ⚡ | 4 | 12 | 120 |\n| Thứ Hai | Legs | Squats **4x10** 💪 | 4 | 15 | 150 |\n| Thứ Ba | Pull | Lat Pulldown **3x12** | 3 | 15 | 90 |\n| Thứ Tư | Cardio | Tăng Nền **30 phút** ⚡️ | - | - | - |\n| Thứ Sáu | Legs | Deadlifts **4x10** 💪 | 4 | 15 | 150 |\n\nHãy nhớ rằng, đây là một lịch tập mẫu và bạn nên điều chỉnh nó theo nhu cầu cá nhân của mình.\n\nVề dinh dưỡng, chúng ta sẽ bắt đầu với mục tiêu giảm mỡ. Dưới đây là một số gợi ý:\n\n## 🥗 Dinh Dưỡng Mục Tiêu\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **1500-1800** kcal/năm |\n| Đạm | **1,6-2,2g/kg cân nặng** |\n| Carb | **2-3g/kg cân nặng** |\n| Béo | **0,5-1g/kg cân nặng** |\n\n## 🍽️ Gợi Ý Thực Đơn\n- Bữa sáng: Sầu riêng và trứng non (20g protein, 200kcal)\n- Bữa trưa: Thịt gà nướng với quinoa và rau (40g protein, 400kcal)\n- Bữa tối: Cá hồi nấu với đậu xanh và khoai tây (50g protein, 500kcal)\n\n## ⚡ Hành Động Tuần Này\n1. Tăng cường tập Bench Press lên 4x12.\n2. Thực hiện Squats với trọng lượng vừa phải để tăng sức mạnh.\n3. Thêm một ngày Cardio vào tuần này.\n\nHãy nhớ cập nhật hồ sơ của bạn và tôi sẽ giúp bạn cá nhân hóa further.",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "10/10",
+        "thieu_gi": [],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [],
+        "phien_ban_tot_hon_mau": "Lich 5 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC07",
+      "group": "lich_tap",
+      "user_input": "Cho tôi lịch 2 buổi/tuần vì rất bận, vẫn muốn duy trì cơ.",
+      "user_profile": {
+        "age": 38,
+        "gender": "female",
+        "goal": "maintenance",
+        "training_level": "intermediate",
+        "days_available": 2,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Lịch Tập Của Bạn\n\n🎯 **Mục tiêu:** Tái cấu trúc — Full Body 2 ngày/tuần — Trung cấp\n\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|:----:|:----:|:----:|\n| Thứ 2 (Full Body A) | Strength — squat + press + pull pattern | Back Squat | 4 | 5-7 | 2 phút |\n| | | Bench Press | 4 | 6-8 | 1p30s |\n| | | Barbell Row | 4 | 6-8 | 1p30s |\n| | | Romanian Deadlift | 3 | 8-10 | 1p30s |\n| | | Overhead Press | 3 | 8-10 | 1p15s |\n| Thứ 4 (Full Body B) | Hypertrophy — hinge + incline + vertical pull | Deadlift | 4 | 5 | 3 phút |\n| | | Incline Dumbbell Press | 4 | 8-10 | 1p15s |\n| | | Pull-ups | 4 | 8-10 | 1p15s |\n| | | Goblet Squat | 3 | 10-12 | 1p15s |\n| | | Cable Lateral Raise | 3 | 12-15 | 1 phút |\n\n### 📈 Ghi Chú Tăng Tiến\n1. Tăng tạ 2.5–5% khi hoàn thành tất cả sets ở ngưỡng reps cao nhất.\n2. Giữ 1–2 reps in reserve (RIR) ở các bài compound để kiểm soát fatigue.\n3. Sau 4–6 tuần, deload 1 tuần bằng cách giảm 30–40% volume.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your goal?\n2. Can you share your activity_level?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "10/10",
+        "thieu_gi": [],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [],
+        "phien_ban_tot_hon_mau": "Lich 2 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC08",
+      "group": "lich_tap",
+      "user_input": "Thiết kế lịch tập 7 ngày cho vận động viên cử tạ, có ngày phục hồi chủ động.",
+      "user_profile": {
+        "age": 24,
+        "gender": "male",
+        "goal": "performance",
+        "sport": "weightlifting",
+        "training_level": "advanced",
+        "days_available": 7,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Buổi Tập Theo Yêu Cầu\n\n🎯 **Mục tiêu buổi tập:** Full-body hypertrophy session with balanced push, pull, and lower body work.\n> Lịch mặc định — bắt đầu ngay được.\n\n### 🏋️ Danh Sách Bài Tập\n- **Goblet Squat**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Romanian Deadlift**: 4 hiệp × 8-10 reps — nghỉ 2 phút\n- **Dumbbell Bench Press**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Seated Cable Row**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Dumbbell Shoulder Press**: 3 hiệp × 10-12 reps — nghỉ 1p15s\n- **Plank**: 3 hiệp × 45-60 seconds reps — nghỉ 45s\n\n### 🔧 Kỹ Thuật Thực Hiện\n1. Warm up 8-10 minutes before first compound lift.\n2. Stop each set with 1-2 reps in reserve.\n3. Prioritize form over load on every repetition.\n\n### 📈 Tăng Tải Tiến Bộ\n1. Add 1-2 reps per week until top range is achieved, then increase load.\n2. Track sets, reps, and load for every exercise to ensure progression.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your goal?\n2. Can you share your activity_level?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "8/10",
+        "thieu_gi": [
+          "Lich tap co dau hieu thieu buoi/ngay so voi yeu cau."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Lich 7 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC09",
+      "group": "lich_tap",
+      "user_input": "Mình muốn lịch tập cải thiện posture do ngồi máy tính 10 tiếng/ngày.",
+      "user_profile": {
+        "age": 29,
+        "gender": "female",
+        "goal": "posture_improvement",
+        "training_level": "beginner",
+        "occupation": "desk_job",
+        "days_available": 4,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Buổi Tập Theo Yêu Cầu\n\n🎯 **Mục tiêu buổi tập:** Full-body hypertrophy session with balanced push, pull, and lower body work.\n> Lịch mặc định — bắt đầu ngay được.\n\n### 🏋️ Danh Sách Bài Tập\n- **Goblet Squat**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Romanian Deadlift**: 4 hiệp × 8-10 reps — nghỉ 2 phút\n- **Dumbbell Bench Press**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Seated Cable Row**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Dumbbell Shoulder Press**: 3 hiệp × 10-12 reps — nghỉ 1p15s\n- **Plank**: 3 hiệp × 45-60 seconds reps — nghỉ 45s\n\n### 🔧 Kỹ Thuật Thực Hiện\n1. Warm up 8-10 minutes before first compound lift.\n2. Stop each set with 1-2 reps in reserve.\n3. Prioritize form over load on every repetition.\n\n### 📈 Tăng Tải Tiến Bộ\n1. Add 1-2 reps per week until top range is achieved, then increase load.\n2. Track sets, reps, and load for every exercise to ensure progression.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your goal?\n2. Can you share your activity_level?",
+      "qa_review": {
+        "ket_luan": "FAIL",
+        "diem": "6/10",
+        "thieu_gi": [
+          "Lich tap co dau hieu thieu buoi/ngay so voi yeu cau."
+        ],
+        "sai_gi": [
+          "Tra loi chua dung tam cau hoi cua user."
+        ],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Sua noi dung sai/khong an toan va bo cam ket phi thuc te."
+        ],
+        "phien_ban_tot_hon_mau": "Lich 4 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC10",
+      "group": "lich_tap",
+      "user_input": "Hãy cho lịch 4 tuần để tăng dần độ khó, 4 buổi/tuần.",
+      "user_profile": {
+        "age": 26,
+        "gender": "male",
+        "goal": "progressive_overload",
+        "training_level": "intermediate",
+        "days_available": 4,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Lịch Tập Của Bạn\n\n🎯 **Mục tiêu:** Tái cấu trúc — Upper/Lower 4 ngày/tuần — Trung cấp\n\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|:----:|:----:|:----:|\n| Thứ 2 (Upper A) | Ngực + Lưng — strength | Bench Press | 4 | 5-7 | 2 phút |\n| | | Barbell Row | 4 | 5-7 | 1p30s |\n| | | Overhead Press | 3 | 8-10 | 1p15s |\n| | | Lat Pulldown | 3 | 10-12 | 1 phút |\n| | | Cable Lateral Raise | 3 | 12-15 | 1 phút |\n| Thứ 3 (Lower A) | Tứ đầu + Gân khoeo — strength | Back Squat | 4 | 5-7 | 2 phút |\n| | | Romanian Deadlift | 4 | 8-10 | 1p30s |\n| | | Leg Press | 3 | 10-12 | 1p15s |\n| | | Leg Curl | 3 | 10-12 | 1 phút |\n| | | Calf Raise | 4 | 15-20 | 45s |\n| Thứ 5 (Upper B) | Ngực + Lưng — hypertrophy | Incline Dumbbell Press | 4 | 8-10 | 1p15s |\n| | | Chest Supported Row | 4 | 8-10 | 1p15s |\n| | | Arnold Press | 3 | 10-12 | 1p15s |\n| | | Pull-ups | 3 | 8-12 | 1p15s |\n| | | Face Pull | 3 | 12-15 | 1 phút |\n| Thứ 6 (Lower B) | Mông + Gân khoeo + Core | Deadlift | 4 | 5 | 3 phút |\n| | | Hack Squat | 3 | 10-12 | 1p30s |\n| | | Hip Thrust | 4 | 8-10 | 1p15s |\n| | | Walking Lunges | 3 | 12 each | 1 phút |\n| | | Plank | 3 | 60s | 45s |\n\n### 📈 Ghi Chú Tăng Tiến\n1. Tăng tạ 2.5–5% khi hoàn thành tất cả sets ở ngưỡng reps cao nhất.\n2. Giữ 1–2 reps in reserve (RIR) ở các bài compound để kiểm soát fatigue.\n3. Sau 4–6 tuần, deload 1 tuần bằng cách giảm 30–40% volume.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your goal?\n2. Can you share your activity_level?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "10/10",
+        "thieu_gi": [],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [],
+        "phien_ban_tot_hon_mau": "Lich 4 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC11",
+      "group": "lich_tap",
+      "user_input": "Mình yêu cầu lịch tập hoàn toàn bằng tiếng Việt, 3 buổi upper/lower/full body.",
+      "user_profile": {
+        "age": 23,
+        "gender": "female",
+        "goal": "hypertrophy",
+        "training_level": "beginner",
+        "days_available": 3,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Buổi Tập Theo Yêu Cầu\n\n🎯 **Mục tiêu buổi tập:** Full-body hypertrophy session with balanced push, pull, and lower body work.\n> Lịch mặc định — bắt đầu ngay được.\n\n### 🏋️ Danh Sách Bài Tập\n- **Goblet Squat**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Romanian Deadlift**: 4 hiệp × 8-10 reps — nghỉ 2 phút\n- **Dumbbell Bench Press**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Seated Cable Row**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Dumbbell Shoulder Press**: 3 hiệp × 10-12 reps — nghỉ 1p15s\n- **Plank**: 3 hiệp × 45-60 seconds reps — nghỉ 45s\n\n### 🔧 Kỹ Thuật Thực Hiện\n1. Warm up 8-10 minutes before first compound lift.\n2. Stop each set with 1-2 reps in reserve.\n3. Prioritize form over load on every repetition.\n\n### 📈 Tăng Tải Tiến Bộ\n1. Add 1-2 reps per week until top range is achieved, then increase load.\n2. Track sets, reps, and load for every exercise to ensure progression.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your weight?\n2. Can you share your height?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "10/10",
+        "thieu_gi": [],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [],
+        "phien_ban_tot_hon_mau": "Lich 3 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC12",
+      "group": "lich_tap",
+      "user_input": "Lập lịch tập cho người overfat, BMI 31, chưa từng vào gym, 5 buổi/tuần.",
+      "user_profile": {
+        "age": 36,
+        "gender": "male",
+        "goal": "fat_loss_beginner",
+        "training_level": "novice",
+        "bmi": 31,
+        "days_available": 5,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Lịch Tập Của Bạn\n\n🎯 **Mục tiêu:** Tái cấu trúc — Push/Pull/Legs 5 ngày/tuần — Trung cấp\n\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|:----:|:----:|:----:|\n| Thứ 2 (Push A) | Ngực + Vai trước + Tay sau | Bench Press | 4 | 6-8 | 1p30s |\n| | | Incline Dumbbell Press | 3 | 8-10 | 1p15s |\n| | | Overhead Press | 4 | 6-8 | 1p30s |\n| | | Cable Lateral Raise | 3 | 12-15 | 1 phút |\n| | | Triceps Pushdown | 3 | 10-12 | 1 phút |\n| | | Overhead Triceps Extension | 3 | 10-12 | 1 phút |\n| Thứ 3 (Pull A) | Lưng rộng + Lưng dày + Tay trước | Barbell Row | 4 | 6-8 | 1p30s |\n| | | Lat Pulldown | 4 | 8-10 | 1p15s |\n| | | Seated Cable Row | 3 | 10-12 | 1 phút |\n| | | Face Pull | 3 | 12-15 | 1 phút |\n| | | Barbell Curl | 3 | 10-12 | 1 phút |\n| | | Hammer Curl | 3 | 10-12 | 1 phút |\n| Thứ 4 (Legs A) | Tứ đầu + Gân khoeo + Mông + Bắp chân | Back Squat | 4 | 6-8 | 2 phút |\n| | | Romanian Deadlift | 4 | 8-10 | 1p30s |\n| | | Bulgarian Split Squat | 3 | 10-12 each | 1p15s |\n| | | Leg Curl | 3 | 10-12 | 1 phút |\n| | | Leg Extension | 3 | 12-15 | 1 phút |\n| | | Standing Calf Raise | 4 | 15-20 | 45s |\n| Thứ 5 (Upper B) | Ngực + Lưng — volume hypertrophy | Dumbbell Bench Press | 4 | 8-12 | 1p15s |\n| | | Chest Supported Row | 4 | 8-12 | 1p15s |\n| | | Incline Cable Fly | 3 | 12-15 | 1 phút |\n| | | Single-Arm Dumbbell Row | 3 | 10-12 each | 1 phút |\n| | | Rear Delt Fly | 3 | 12-15 | 1 phút |\n| | | EZ-Bar Curl | 3 | 10-12 | 1 phút |\n| Thứ 7 (Lower B + Core) | Mông + Gân khoeo + Core | Hip Thrust | 4 | 8-10 | 1p15s |\n| | | Hack Squat | 3 | 8-10 | 1p30s |\n| | | Walking Lunges | 3 | 12 each | 1 phút |\n| | | Leg Curl | 3 | 10-12 | 1 phút |\n| | | Plank | 3 | 45-60s | 45s |\n| | | Ab Wheel Rollout | 3 | 10-12 | 45s |\n\n### 📈 Ghi Chú Tăng Tiến\n1. Tăng tạ 2.5–5% khi hoàn thành tất cả sets ở ngưỡng reps cao nhất.\n2. Giữ 1–2 reps in reserve (RIR) ở các bài compound để kiểm soát fatigue.\n3. Sau 4–6 tuần, deload 1 tuần bằng cách giảm 30–40% volume.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your weight?\n2. Can you share your height?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "10/10",
+        "thieu_gi": [],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [],
+        "phien_ban_tot_hon_mau": "Lich 5 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC13",
+      "group": "lich_tap",
+      "user_input": "Cho tôi lịch 4 buổi ưu tiên mông và đùi sau, giảm tập đùi trước.",
+      "user_profile": {
+        "age": 28,
+        "gender": "female",
+        "goal": "glute_ham_focus",
+        "training_level": "intermediate",
+        "days_available": 4,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Lịch Tập cho Glute_Ham_Focus với 4 buổi/tuần, ưu tiên mông và đùi sau.\n\nVới lịch tập mới này, chúng ta sẽ tập trung vào các bài tập giúp tăng cường sức mạnh của mông và đùi sau. Hãy nhớ rằng, việc giảm tập đùi trước có thể ảnh hưởng đến hiệu quả của tập luyện, vì vậy hãy đảm bảo rằng bạn đang duy trì một chế độ ăn uống cân đối.\n\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|------|------|------|\n| Thứ 2 | Đùi sau | Deadlift | **4** | **8-12** | **120s** |\n| Thứ 3 | Mông | Squats | **4** | **8-12** | **90s** |\n| Thứ 4 | Đùi sau | Lunges | **4** | **10-15** | **60s** |\n\n**Giả định:** Không có dữ liệu về cân nặng, chiều cao và hoạt động hàng ngày.\n\nHãy nhớ cập nhật lịch tập này theo nhu cầu của cơ thể bạn.",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "10/10",
+        "thieu_gi": [],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [],
+        "phien_ban_tot_hon_mau": "Lich 4 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "SC14",
+      "group": "lich_tap",
+      "user_input": "Tạo lịch tập kèm ngày test hiệu suất cho 8 tuần chuẩn bị giải chạy 10km.",
+      "user_profile": {
+        "age": 30,
+        "gender": "male",
+        "goal": "10k_prep",
+        "training_level": "intermediate",
+        "sport": "running",
+        "days_available": 6,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Buổi Tập Theo Yêu Cầu\n\n🎯 **Mục tiêu buổi tập:** Full-body hypertrophy session with balanced push, pull, and lower body work.\n> Lịch mặc định — bắt đầu ngay được.\n\n### 🏋️ Danh Sách Bài Tập\n- **Goblet Squat**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Romanian Deadlift**: 4 hiệp × 8-10 reps — nghỉ 2 phút\n- **Dumbbell Bench Press**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Seated Cable Row**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Dumbbell Shoulder Press**: 3 hiệp × 10-12 reps — nghỉ 1p15s\n- **Plank**: 3 hiệp × 45-60 seconds reps — nghỉ 45s\n\n### 🔧 Kỹ Thuật Thực Hiện\n1. Warm up 8-10 minutes before first compound lift.\n2. Stop each set with 1-2 reps in reserve.\n3. Prioritize form over load on every repetition.\n\n### 📈 Tăng Tải Tiến Bộ\n1. Add 1-2 reps per week until top range is achieved, then increase load.\n2. Track sets, reps, and load for every exercise to ensure progression.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your goal?\n2. Can you share your activity_level?",
+      "qa_review": {
+        "ket_luan": "FAIL",
+        "diem": "6/10",
+        "thieu_gi": [
+          "Lich tap co dau hieu thieu buoi/ngay so voi yeu cau."
+        ],
+        "sai_gi": [
+          "Tra loi chua dung tam cau hoi cua user."
+        ],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Sua noi dung sai/khong an toan va bo cam ket phi thuc te."
+        ],
+        "phien_ban_tot_hon_mau": "Lich 6 buoi/tuan (ghi ro tung ngay, khong thieu buoi).\nMoi buoi: muc tieu + nhom co + tong so bai + cuong do.\nPhan bo recovery hop ly (khong xep 2 buoi nang lien tiep cung nhom co).\nNeu user co han che/chan thuong: thay bai va giam tai trong ngay lien quan.\nThem huong dan progression 2-4 tuan va tieu chi dieu chinh lich."
+      }
+    },
+    {
+      "id": "NU01",
+      "group": "dinh_duong",
+      "user_input": "Cho tôi thực đơn giảm mỡ 1 ngày, nêu rõ calories và macro.",
+      "user_profile": {
+        "age": 29,
+        "gender": "female",
+        "weight_kg": 62,
+        "height_cm": 162,
+        "goal": "fat_loss",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Cảm ơn vì đã tin tưởng cho tôi việc tư vấn dinh dưỡng cho bạn. 🥗\n\nTôi sẽ đưa ra một thực đơn giảm mỡ 1 ngày, nêu rõ calories và macro, dựa trên mục tiêu của bạn. Tuy nhiên, cần lưu ý rằng do hồ sơ của bạn còn thiếu dữ liệu về cân nặng, chiều cao, tuổi, giới tính và mức độ hoạt động, nên tôi sẽ đưa ra một plan mẫu an toàn.\n\n**Dinh Dưỡng Mục Tiêu**\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **1500 kcal** |\n| Đạm | 120g |\n| Carb | 200g |\n| Béo | 40g |\n\nLý giải: Với mục tiêu giảm mỡ, chúng ta muốn giảm lượng calo hàng ngày để tạo cơ hội cho cơ thể đốt cháy mỡ thừa. Tuy nhiên, cần đảm bảo rằng bạn nhận được đủ protein để duy trì sức khỏe cơ bắp. Trong thực đơn này, tôi đã đưa ra giá trị mặc định cho macros, nhưng bạn có thể điều chỉnh theo tiến trình của mình.\n\n**Gợi Ý Thực Đơn**\n\n* Bữa sáng: 2 quả trứng luộc, 1 chén rau xanh (50g), 1 lát bánh mì nguyên cám (30g) - **300kcal**, **20g đạm**, **30g carb**, **10g béo**\n* Bữa trưa: Thức ăn khô gia cầm (120g), 1 chén rau xào (100g) - **400kcal**, **25g đạm**, **40g carb**, **15g béo**\n* Bữa tối: 150g thịt nạc, 1 chén đậu xanh luộc (100g) - **350kcal**, **30g đạm**, **20g carb**, **10g béo**\n\n**Cách Điều Chỉnh Theo Thời Gian**\nBạn có thể điều chỉnh lượng calo và macros theo tiến trình của mình. Ví dụ, nếu bạn muốn giảm calo thêm, bạn có thể giảm 100-200 kcal hàng ngày.\n\n**Hành Động Tuần Này**\n1. Lập kế hoạch tập luyện cho tuần này\n2. Kết hợp thực đơn với chế độ tập luyện để đạt mục tiêu giảm mỡ\n\n**Giả định:** Không có dữ liệu về cân nặng, chiều cao, tuổi, giới tính và mức độ hoạt động.\n\n**Để cá nhân hóa thêm:**\n1. Bạn có thể chia sẻ số cân nặng hiện tại của mình để tôi có thể đưa ra giá trị chính xác hơn cho mục tiêu giảm mỡ.\n2. Bạn muốn tăng cường cardio hay tập luyện chuyên sâu nào trong tuần này?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "9/10",
+        "thieu_gi": [
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU02",
+      "group": "dinh_duong",
+      "user_input": "Mình muốn meal plan tăng cơ 7 ngày, có thay thế món Việt dễ nấu.",
+      "user_profile": {
+        "age": 24,
+        "gender": "male",
+        "weight_kg": 68,
+        "height_cm": 174,
+        "goal": "muscle_gain",
+        "diet_preference": "vietnamese_home_cooking",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Chào bạn! 🥗\n\nTôi sẽ giúp bạn tạo một meal plan tăng cơ 7 ngày với thực phẩm Việt dễ nấu. Dưới đây là thông tin chi tiết:\n\n**Thông Tin Cá Nhân**\n\n- Số ngày/tuần: 7\n- Mục tiêu: Tăng cơ\n- Thức ăn: Thức ăn nhà hàng Việt\n- Nhiệt độ: Trung bình\n\n**Dinh Dưỡng Mục Tiêu**\n\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **2500 kcal** |\n| Đạm | **170g** |\n| Carb | **230g** |\n| Béo | **70g** |\n\nLý giải: Để tăng cơ, chúng ta cần cung cấp đủ calo và protein. Mục tiêu là tăng cơ, nên chúng ta sẽ tăng calo và đạm.\n\n**Gợi Ý Thực Đơn**\n\n- Bữa sáng: Ăn cháo gạo lứt với trứng và thịt heo nấu cùng, **320kcal**, **35g đạm**\n- Bữa trưa: Ăn bánh mì phô mai và cà chua với salad rau xào, **500kcal**, **30g đạm**\n- Bữa tối: Ăn cơm gạo lứt với thịt bò nấu cùng, **400kcal**, **40g đạm**\n\n**Cách Điều Chỉnh Theo Thời Gian**\n\n- Tuần 1-2: Cung cấp calo và đạm cơ bản\n- Tuần 3-4: Tăng calo và đạm lên 10%\n- Tuần 5-6: Tăng calo và đạm lên 20%\n- Tuần 7: Lọc lại chế độ ăn để đảm bảo cân đối\n\n**Hành Động Tuần Này**\n\n1. Ăn cháo gạo lứt với trứng và thịt heo nấu cùng vào sáng sớm\n2. Ăn bánh mì phô mai và cà chua với salad rau xào vào trưa\n3. Ăn cơm gạo lứt với thịt bò nấu cùng vào tối\n\n**Giả định:** Không có dữ liệu về sở thích ăn uống của bạn, nên sẽ dựa trên chế độ ăn cơ bản.\n\n**Để cá nhân hóa thêm:** Bạn muốn thay đổi thực phẩm nào trong chế độ ăn?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "9/10",
+        "thieu_gi": [
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU03",
+      "group": "dinh_duong",
+      "user_input": "Tôi ăn chay, cần thực đơn đủ protein để tăng cơ.",
+      "user_profile": {
+        "age": 33,
+        "gender": "female",
+        "weight_kg": 57,
+        "goal": "muscle_gain",
+        "diet_type": "vegetarian",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi là AI fitness coach cho người dùng Việt Nam. Tôi sẽ giúp bạn đạt mục tiêu tăng cơ với chế độ ăn chay.\n\n## 🥗 Dinh Dưỡng Mục Tiêu\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | 1800 kcal (độ calo cần thiết cho tăng cơ) |\n| Đạm | 120g (độ đạm cần thiết cho tăng cơ) |\n| Carb | 200g (độ carb cần thiết cho tăng cơ) |\n| Béo | 40g (độ béo cần thiết cho tăng cơ) |\n\n## 🍽️ Gợi Ý Thực Đơn\n- **Bữa sáng**: Cháo chay với đậu xanh, gạo lứt và trái cây (30g đạm)\n- **Bữa trưa**: Thức ăn chay với cá hồi, khoai tây và rau củ (40g đạm)\n- **Bữa tối**: Salat chay với tofu, rau củ và dầu ô liu (35g đạm)\n\n## 🔄 Cách Điều Chỉnh Theo Thời Gian\n- Tăng calo và đạm theo từng tuần: tăng 250kal/đêm và 10g đạm mỗi tuần\n- Điều chỉnh carb theo tiến trình: giảm 20g carb vào tuần thứ 2 để tạo điều kiện cho tăng cơ\n\n## ⚡ Hành Động Tuần Này\n1. **Tập luyện**: Tập bench press với 3 set 8-12 reps và tập bắp tay sau (30 phút)\n2. **Nghiền protein**: Nghiền 1 chén đậu xanh sau bữa tối (10g đạm)\n3. **Uống nước**: Uống ít nhất 2 lít nước mỗi ngày\n\n**Giả định:** Không có thông tin về height, age và gender của bạn.\n\n**Để cá nhân hóa thêm:** Bạn muốn biết lịch tập cụ thể cho tuần này không?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "9/10",
+        "thieu_gi": [
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU04",
+      "group": "dinh_duong",
+      "user_input": "Thiết kế thực đơn 3 bữa + 2 bữa phụ cho người tập sáng sớm.",
+      "user_profile": {
+        "age": 27,
+        "gender": "male",
+        "goal": "performance",
+        "training_time": "05:30",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Với thông tin của bạn, tôi sẽ thiết kế một thực đơn phù hợp cho người tập sáng sớm với mục tiêu tăng cường hiệu suất và tái tạo cơ thể.\n\n## 🥗 Dinh Dưỡng Mục Tiêu\n**Giả định:** Không có dữ liệu về cân nặng, chiều cao, độ tuổi và mức độ hoạt động. Vì vậy, chúng ta sẽ bắt đầu bằng một chế độ ăn uống trung bình cho người đàn ông đang tập luyện với mục tiêu tăng cường hiệu suất.\n\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **2500** kcal/ngày |\n| Đạm | **1.6-2.2g/kg cân nặng/ngày** |\n| Carb | **2-3g/kg cân nặng/ngày** |\n| Béo | **0.5-1g/kg cân nặng/ngày** |\n\n## 🍽️ Gợi Ý Thực Đơn\n\n### Bữa Sáng\n- 3 quả trứng luộc + 1 chén rau xào (30g)\n- 1 chén súp lơ đỏ nấu với thịt gà (100g)\n\n### Bữa Trưa\n- 120g thịt bò nướng với rau xào (40g)\n- 1 chén cơm trắng (150g)\n\n### Bữa Tối\n- 1 chén cá hấp với rau củ (120g)\n- 1 chén súp lơ xanh nấu với thịt gà (100g)\n\n## 🔄 Cách Điều Chỉnh Theo Thời Gian\nĐể tăng cường hiệu suất, chúng ta cần điều chỉnh chế độ ăn uống theo tiến trình. Hãy kiểm tra cân nặng và phân tích lại chế độ ăn uống hàng tuần sau 4 tuần.\n\n### Week 1-2:\n- Tăng thêm 250kcal/ngày để hỗ trợ tăng trưởng cơ\n\n### Week 3-4:\n- Giảm thêm 250kcal/ngày để hỗ trợ giảm cân\n\n## ⚡ Hành Động Tuần Này\n1. **Nâng cao chất lượng giấc ngủ**: Hãy thử đi ngủ sớm hơn 30 phút mỗi đêm trong tuần này.\n2. **Tăng cường hoạt động thể dục**: Thêm một buổi tập luyện nhẹ nhàng 20-30 phút sau bữa trưa và trước khi ngủ.\n3. **Sử dụng thức ăn bổ sung protein**: Dùng sau mỗi bữa ăn để hỗ trợ tăng trưởng cơ.\n\n**Để cá nhân hóa thêm:** Bạn có muốn biết thông tin cụ thể về chế độ ăn uống cho một mục tiêu cụ thể không? Ví dụ như giảm cân hoặc tăng cân?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "7/10",
+        "thieu_gi": [
+          "Thieu ca nhan hoa theo thong tin user_profile.",
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Chen ro thong tin profile vao quyet dinh de tang ca nhan hoa."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU05",
+      "group": "dinh_duong",
+      "user_input": "Tôi bị tiểu đường type 2, cần chế độ ăn giảm mỡ an toàn.",
+      "user_profile": {
+        "age": 45,
+        "gender": "male",
+        "goal": "fat_loss",
+        "medical_conditions": [
+          "type_2_diabetes"
+        ],
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi hiểu rằng bạn đang tìm kiếm một chế độ ăn giảm mỡ an toàn với tiểu đường type 2.\n\n## **Dinh dưỡng Mục tiêu**\n\nDo thiếu thông tin về cân nặng, chiều cao và hoạt động thường xuyên của bạn, chúng tôi sẽ giả định **calo** = 1500 kcal/ngày. Điều này có thể được điều chỉnh sau khi có dữ liệu đầy đủ hơn.\n\n- **Đạm**: 1,2 g/kg/cân nặng (tương đương 60g cho người đàn ông 45 tuổi)\n- **Carb**: 200g (thuộc vào mức giảm mỡ)\n- **Béo**: 50g (thuộc vào mức giảm mỡ)\n\n## **Gợi ý Thực đơn**\n\n- **Bữa sáng**:\n + 2 quả trứng * 1/4 egg = 180 calo, 18g đạm\n + 1 thìa đậu phộng * 150 calo, 8g chất béo\n + 1 cốc sữa tươi không đường * 100 calo, 20g protein\n- **Bữa trưa**:\n + 120g thịt gà * 140 calo, 30g đạm\n + 100g rau xà lách * 10 calo, 2g chất béo\n+ **Bữa tối**:\n + 120g cá hồi * 180 calo, 35g đạm\n + 100g cà rốt * 50 calo, 2g chất béo\n\n## **Cách điều chỉnh theo thời gian**\n\n- Tăng calo và protein khi cân nặng tăng lên\n- Giảm calo và đạm khi cân nặng giảm xuống\n\n## **Hành động tuần này**\n\n1. Uống ít nhất 8 cốc nước mỗi ngày.\n2. Ăn tối thiểu 5 bữa một ngày.\n\n**Giả định:** Để có dữ liệu chính xác hơn, vui lòng cung cấp thông tin về cân nặng, chiều cao và hoạt động thường xuyên của bạn.\n\nĐể cá nhân hóa thêm, vui lòng cho biết **thực phẩm mà bạn thích hoặc không thích**.",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "9/10",
+        "thieu_gi": [
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU06",
+      "group": "dinh_duong",
+      "user_input": "Hãy tính calories và macro cho tôi: nam 80kg, cao 178, tập 5 buổi/tuần, mục tiêu siết.",
+      "user_profile": {
+        "age": 30,
+        "gender": "male",
+        "weight_kg": 80,
+        "height_cm": 178,
+        "activity_level": "high",
+        "goal": "cutting",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## 💪 Lịch Tập Của Bạn\n\n🎯 **Mục tiêu:** Tái cấu trúc — Push/Pull/Legs 5 ngày/tuần — Trung cấp\n\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|:----:|:----:|:----:|\n| Thứ 2 (Push A) | Ngực + Vai trước + Tay sau | Bench Press | 4 | 6-8 | 1p30s |\n| | | Incline Dumbbell Press | 3 | 8-10 | 1p15s |\n| | | Overhead Press | 4 | 6-8 | 1p30s |\n| | | Cable Lateral Raise | 3 | 12-15 | 1 phút |\n| | | Triceps Pushdown | 3 | 10-12 | 1 phút |\n| | | Overhead Triceps Extension | 3 | 10-12 | 1 phút |\n| Thứ 3 (Pull A) | Lưng rộng + Lưng dày + Tay trước | Barbell Row | 4 | 6-8 | 1p30s |\n| | | Lat Pulldown | 4 | 8-10 | 1p15s |\n| | | Seated Cable Row | 3 | 10-12 | 1 phút |\n| | | Face Pull | 3 | 12-15 | 1 phút |\n| | | Barbell Curl | 3 | 10-12 | 1 phút |\n| | | Hammer Curl | 3 | 10-12 | 1 phút |\n| Thứ 4 (Legs A) | Tứ đầu + Gân khoeo + Mông + Bắp chân | Back Squat | 4 | 6-8 | 2 phút |\n| | | Romanian Deadlift | 4 | 8-10 | 1p30s |\n| | | Bulgarian Split Squat | 3 | 10-12 each | 1p15s |\n| | | Leg Curl | 3 | 10-12 | 1 phút |\n| | | Leg Extension | 3 | 12-15 | 1 phút |\n| | | Standing Calf Raise | 4 | 15-20 | 45s |\n| Thứ 5 (Upper B) | Ngực + Lưng — volume hypertrophy | Dumbbell Bench Press | 4 | 8-12 | 1p15s |\n| | | Chest Supported Row | 4 | 8-12 | 1p15s |\n| | | Incline Cable Fly | 3 | 12-15 | 1 phút |\n| | | Single-Arm Dumbbell Row | 3 | 10-12 each | 1 phút |\n| | | Rear Delt Fly | 3 | 12-15 | 1 phút |\n| | | EZ-Bar Curl | 3 | 10-12 | 1 phút |\n| Thứ 7 (Lower B + Core) | Mông + Gân khoeo + Core | Hip Thrust | 4 | 8-10 | 1p15s |\n| | | Hack Squat | 3 | 8-10 | 1p30s |\n| | | Walking Lunges | 3 | 12 each | 1 phút |\n| | | Leg Curl | 3 | 10-12 | 1 phút |\n| | | Plank | 3 | 45-60s | 45s |\n| | | Ab Wheel Rollout | 3 | 10-12 | 45s |\n\n### 📈 Ghi Chú Tăng Tiến\n1. Tăng tạ 2.5–5% khi hoàn thành tất cả sets ở ngưỡng reps cao nhất.\n2. Giữ 1–2 reps in reserve (RIR) ở các bài compound để kiểm soát fatigue.\n3. Sau 4–6 tuần, deload 1 tuần bằng cách giảm 30–40% volume.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your weight?\n2. Can you share your height?",
+      "qa_review": {
+        "ket_luan": "FAIL",
+        "diem": "6/10",
+        "thieu_gi": [
+          "Thieu calories muc tieu.",
+          "Thieu cau truc bua an/mon an mau.",
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU07",
+      "group": "dinh_duong",
+      "user_input": "Cho tôi thực đơn tăng cân sạch 3500 kcal, dễ mang đi làm.",
+      "user_profile": {
+        "age": 26,
+        "gender": "male",
+        "weight_kg": 60,
+        "goal": "clean_bulk",
+        "occupation": "office_worker",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Với thông tin bạn cung cấp, tôi sẽ tạo một kế hoạch thực đơn tăng cân sạch cho bạn với mục tiêu tăng cân sạch.\n\n## 🥗 Dinh Dưỡng Mục Tiêu\n- Calo: **3500** kcal/tuần (phù hợp cho tăng cân sạch)\n- Đạm: 1,6-2,2 g/kg CW (phù hợp cho tăng cân sạch)\n- Carb: 2-3 g/kg CW (phù hợp cho tăng cân sạch)\n- Béo: 0,5-1 g/kg CW (phù hợp cho tăng cân sạch)\n\nLý giải: Mục tiêu tăng cân sạch đòi hỏi phải có lượng calo và đạm đủ để hỗ trợ quá trình tăng cân nhưng vẫn đảm bảo nguyên tắc tăng cân sạch. Lượng carb và chất béo cần được điều chỉnh dựa trên nhu cầu cá nhân.\n\n## 🍽️ Gợi Ý Thực Đơn\n- **Bữa sáng**: 3 quả trứng, 2 thìa súp gạo lứt, 1 quả chuối (400 kcal, 30g đạm)\n- **Bữa trưa**: 150g thịt gà nướng, 100g khoai tây chiên, 1 cốc salad rau xanh (500 kcal, 40g đạm)\n- **Bữa tối**: 200g cá hồi nấu với rau củ, 2 thìa súp gạo trắng (550 kcal, 50g đạm)\n\n## 🔄 Cách Điều Chỉnh Theo Thời Gian\n- Đầu tuần: tăng calo và đạm 10% so với tuần trước.\n- Tuần thứ hai và thứ ba: giảm lượng carbs xuống 1,5 g/kg CW.\n\n## ⚡ Hành Động Tuần Này\n1. Uống ít nhất 2 lít nước mỗi ngày.\n2. Thực hiện các bài tập cơ bản như squat, bench press, deadlift trong 3 buổi/tuần.\n3. Tập cardio như chạy bộ hoặc đạp xe trong 20-30 phút mỗi tuần.\n\n**Giả định:** Không có thông tin về hoạt động thể thao hàng ngày và chế độ ăn uống của bạn.\n\n**Để cá nhân hóa thêm:** Bạn có muốn chia sẻ loại thực phẩm bạn thích hoặc không thích? Bạn cũng muốn kiểm soát lượng calo cụ thể cho từng bữa ăn hay không?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "7/10",
+        "thieu_gi": [
+          "Thieu ca nhan hoa theo thong tin user_profile.",
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Chen ro thong tin profile vao quyet dinh de tang ca nhan hoa."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU08",
+      "group": "dinh_duong",
+      "user_input": "Mình cần thực đơn giảm mỡ 14 ngày, không ăn hải sản.",
+      "user_profile": {
+        "age": 32,
+        "gender": "female",
+        "goal": "fat_loss",
+        "food_restrictions": [
+          "no_seafood"
+        ],
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi là AI fitness coach cho người dùng Việt Nam, và tôi sẽ giúp bạn tạo một kế hoạch giảm mỡ hiệu quả trong 14 ngày.\n\n**Giả định:**\n- Mục tiêu của bạn là giảm mỡ.\n- Bạn không ăn hải sản.\n- Số ngày/tuần = 4.\n- Tôi sẽ đưa ra 4 bài tập mỗi tuần, bao gồm Bench Press, Sets và Reps. \n\nĐầu tiên, chúng ta cần tạo một kế hoạch dinh dưỡng phù hợp với mục tiêu của bạn. Dưới đây là một gợi ý thực đơn giảm mỡ cho 14 ngày:\n\n**🥗 Dinh Dưỡng Mục Tiêu**\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **1800 kcal** |\n| Đạm | **1,6g/kgWB** |\n| Carb | **2g/kgWB** |\n| Béo | **0,5g/kgWB** |\n\n**🍽️ Gợi Ý Thực Đơn**\n\n- **Bữa sáng**: 2 quả trứng luộc + 1 cốc sữa không đường + 1 ly nước ép cam\n- **Bữa trưa**: 120g thịt gà nướng + 100g cơm trắng + 1 chén xà lách salad\n- **Bữa tối**: 120g cá hồi khô (không có hải sản) + 100g quinoa + 1 chén rau củ\n\n**🔄 Cách Điều Chỉnh Theo Thời Gian**\n- Để giảm cân, bạn cần duy trì một calorie deficit nhỏ mỗi ngày. Tôi sẽ giúp bạn điều chỉnh macros theo tiến trình.\n- Hãy để tôi biết số đo cơ thể của bạn (chiều cao và cân nặng) để tôi có thể tính toán macros chính xác hơn.\n\n**⚡ Hành Động Tuần Này**\n1. Lập kế hoạch tập luyện cho tuần tới, bao gồm Bench Press, Sets và Reps.\n2. Thực hiện 30 phút cardio mỗi ngày.\n3. Uống ít nhất 2 lít nước mỗi ngày.\n\nChúc bạn thành công trên con đường giảm mỡ!",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "9/10",
+        "thieu_gi": [
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU09",
+      "group": "dinh_duong",
+      "user_input": "Hãy lên thực đơn keto 1 tuần và ghi rõ macro từng ngày.",
+      "user_profile": {
+        "age": 37,
+        "gender": "male",
+        "goal": "fat_loss",
+        "diet_type": "keto",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi sẽ giúp bạn lên thực đơn keto 3 ngày với macro mục tiêu và ghi rõ từng bữa ăn.\n\n## 🥗 Dinh Dưỡng Mục Tiêu\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **1500 kcal** (đã xem xét chế độ ăn kiêng, nhưng chưa có thông tin về cân nặng, chiều cao) |\n| Đạm | **90g** (đều theo khuyến cáo của thể loại keto) |\n| Carb | **20g** (nhiều người trên chế độ keto nên hạn chế carb để hỗ trợ giảm cân và tăng cường đạm) |\n| Béo | **70g** (đều theo khuyến cáo của thể loại keto, nhưng chưa có thông tin về hoạt động thể chất để xác định lượng béo cần thiết) |\n\n## 🍽️ Gợi Ý Thực Đơn\n\n### Bữa Sáng\n- 3 trứng luộc * ( **6g đạm**, **1,5g carb**)\n- 1 chén rau xào * ( **2g đạm**, **5g carb**)\n\n### Bữa Trưa\n- 120g thịt gà nướng * ( **30g đạm**, **0g carb**)\n- 1 chén salad rau củ * ( **2g đạm**, **5g carb**)\n\n### Bữa Tối\n- 120g phô mai cheddar * ( **20g đạm**, **1g carb**)\n- 1 chén xà lách luộc * ( **2g đạm**, **2g carb**)\n\n## 🔄 Cách Điều Chỉnh Theo Thời Gian\n\n- Để đạt được mục tiêu, bạn nên tăng lượng calo và đạm vào cuối tuần.\n- Đảm bảo rằng bạn không vượt quá giới hạn carb để tránh ảnh hưởng đến chế độ ăn kiêng.\n\n## ⚡ Hành Động Tuần Này\n1. Lên kế hoạch thực đơn cho tuần tới với sự tham gia của một người thân hoặc bạn bè có kinh nghiệm về chế độ ăn.\n2. Đảm bảo rằng bạn đã chuẩn bị sẵn nguyên liệu và thực phẩm trong nhà.\n3. Cân bằng lượng calo vào mỗi bữa để không vượt quá giới hạn được chỉ định.\n\n**Giả định:** \n- Không có thông tin về cân nặng, chiều cao, hoạt động thể chất.\n\nĐể cá nhân hóa thêm:\n1. Bạn có muốn thay đổi chế độ ăn của mình theo tiến trình tăng cân/ giảm cân không?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "9/10",
+        "thieu_gi": [
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU10",
+      "group": "dinh_duong",
+      "user_input": "Please respond entirely in Vietnamese: create a cutting meal plan with 4 meals/day.",
+      "user_profile": {
+        "age": 25,
+        "gender": "female",
+        "goal": "cutting",
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "## Bạn cần giảm cân và cắt mỡ, điều này đòi hỏi sự kiểm soát nghiêm ngặt về chế độ ăn.\n\n## 🥗 Lợi ích dinh dưỡng\n**Calories:** **1500** kcal | **Protein:** **80g** | **Carbs:** **50g** | **Fats:** **40g**\nChế độ ăn của bạn sẽ tập trung vào việc tăng cường lượng protein, giảm carb và béo phì để hỗ trợ quá trình giảm cân hiệu quả.\n\n## 🍽️ Ví dụ về bữa ăn\n- Bữa sáng: 2 quả trứng luộc (140kcal, 12g protein) + 1 lát bánh mì nguyên cám (89kcal, 4g carbs) + 1 thìa dầu ô liu (120kcal, 0g fat)\n- Bữa trưa: 120g thịt gà quay (140kcal, 30g protein) + 1 chén xà lách tươi (20kcal, 2g carbs) + 1/4 chén bơ phô mai (100kcal, 8g fat)\n- Bữa tối: 150g cá hồi nấu với rau (180kcal, 35g protein) + 1 chén quinoa (150kcal, 30g carbs) + 1 thìa dầu ô liu (120kcal, 0g fat)\n\n## 🔄 Cách điều chỉnh theo thời gian\nKhi bạn bắt đầu giảm cân hiệu quả, hãy điều chỉnh lượng calo vàmacros dựa trên tiến trình của mình. Bạn có thể tăng lượng protein lên **90g** vào tuần thứ hai, và giảm xuống **70g** vào tuần thứ ba.\n\n## ⚡ Hoạt động trong tuần này\n1. Uống ít nhất 8 cốc nước mỗi ngày.\n2. Thực hiện 15 phút tập cardio sau bữa tối hàng ngày.\n3. Ăn tất cả các bữa ăn trước khi đi ngủ.",
+      "qa_review": {
+        "ket_luan": "FAIL",
+        "diem": "5/10",
+        "thieu_gi": [
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [
+          "Tra loi chua dung tam cau hoi cua user."
+        ],
+        "co_mau_thuan_gi": [
+          "Macro (880 kcal) lech lon so voi tong kcal (140)."
+        ],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Sua noi dung sai/khong an toan va bo cam ket phi thuc te.",
+          "Can doi lai so lieu de tranh mau thuan kcal-macro."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU11",
+      "group": "dinh_duong",
+      "user_input": "Mình dị ứng lactose, hãy làm thực đơn tăng cơ không sữa.",
+      "user_profile": {
+        "age": 28,
+        "gender": "male",
+        "goal": "muscle_gain",
+        "allergies": [
+          "lactose"
+        ],
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi là AI fitness coach và tôi sẽ giúp bạn đạt được mục tiêu tăng cơ của mình.\n\nĐầu tiên, tôi muốn nói rằng tôi rất tiếc về việc bạn dị ứng lactose. Tôi sẽ đảm bảo rằng tất cả các thực phẩm sữa trong menu của chúng ta đều an toàn với bạn.\n\nVới số ngày/tuần là 3, chúng ta sẽ tạo một lịch trình tập luyện và thực đơn ăn uống phù hợp.\n\n**Lịch Tập luyện**\n\n| Ngày | Nhóm Cơ | Bài tập | Sets | Reps | Rest |\n| --- | --- | --- | --- | --- | --- |\n| Thứ 2 | Tay Trước (Biceps) | Bench Press | **3** | **8-12** | **60-90 giây** |\n| Thứ 4 | Tay Sau (Trung Tâm) | Squats | **3** | **8-12** | **60-90 giây** |\n| Thứ 6 | Tay Trước và Tay Sau (Cả Hai) | Bench Press và Deadlifts | **3** | **8-12** | **60-90 giây** |\n\n**Thực Đơn**\n\n**🥗 Dinh Dưỡng Mục Tiêu**\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **2500** kcal |\n| Đạm | **150g** |\n| Carb | **300g** |\n| Béo | **70g |\n\n**🍽️ Gợi Ý Thực Đơn**\n\n* Bữa sáng: Cơm gạo trắng với trứng và rau xà lách.\n* Bữa trưa: Thịt gà nướng với quế và khoai tây nướng.\n* Bữa tối: Cá hồi nướng với đu đủ và salad.\n\n**🔄 Cách Điều Chỉnh Theo Thời Gian**\nĐể điều chỉnh macro/calo theo tiến trình, chúng ta sẽ tăng dần calo và đạm theo tuần. Ví dụ, tuần 1 sẽ là **2500** kcal và **150g** đạm, tuần 2 sẽ là **2600** kcal và **160g** đạm.\n\n**⚡ Hành Động Tuần Này**\n\n1. Ăn sáng: Cơm gạo trắng với trứng và rau xà lách.\n2. Tập luyện: Tập luyện vào buổi sáng với lịch trình trên.\n3. Ăn trưa: Thịt gà nướng với quế và khoai tây nướng.\n\n**Giả định:** Không có dữ liệu về cân nặng, chiều cao, tuổi hoặc hoạt động thể chất.\n\nĐể cá nhân hóa thêm, vui lòng cho tôi biết:\n\n1. Bạn muốn tăng cơ nhanh chóng hay bền vững?\n2. Bạn có bất kỳ hạn chế nào khác không?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "9/10",
+        "thieu_gi": [
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU12",
+      "group": "dinh_duong",
+      "user_input": "Cho tôi thực đơn cho ngày nghỉ và ngày tập khác nhau.",
+      "user_profile": {
+        "age": 31,
+        "gender": "female",
+        "goal": "recomposition",
+        "training_days_per_week": 4,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi hiểu rằng bạn muốn tôi tạo một kế hoạch tập luyện và dinh dưỡng cho một người dùng Việt Nam với mục tiêu tái cấu trúc cơ thể, nhưng chưa cung cấp đủ thông tin về giới hạn calo và tỷ lệ đạm / Carb / béo. Vì vậy, tôi sẽ đưa ra một kế hoạch mẫu an toàn và khuyến nghị thêm.\n\n## 💪 Lịch Tập\n| Ngày | Nhóm cơ | Bài tập | Sets | Reps | Rest |\n|------|---------|---------|------|------|------|\n| Thứ 2 | Trunk & Tay trước | Bench Press | **3** | **8-12**, RPE: **6-8** | **60s** |\n| Thứ 3 | Ngực, Tay sau | Incline Dumbbell Press | **3** | **10-15**, RPE: **5-7** | **60s** |\n| Thứ 4 | Hông & Tay sau | Squats | **4** | **8-12**, RPE: **6-8** | **90s** |\n\n## 🥗 Dinh Dưỡng\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **1500-1700 kcal** (Giả định) |\n| Đạm | **1.2-1.5 g/kg CM** (Giả định) = **120-140g** |\n| Carb | **2-3 g/kg CM** (Giả định) = **180-210g** |\n| Béo | **0.5-1 g/kg CM** (Giả định) = **50-70g** |\n\n**Lý giải ngắn:** Các giá trị trên chỉ là giả định và có thể thay đổi dựa trên từng cá nhân, đặc biệt là đối với mức độ đạm, carb và béo cần thiết cho mục tiêu tái cấu trúc cơ thể. Việc xác định chính xác những con số này đòi hỏi sự tham khảo của bác sĩ dinh dưỡng hoặc chuyên gia khoa học dinh dưỡng.\n\n## ⚡ Hành Động Tuần Này\n1. **Thức ăn sáng:** Ăn 1 quả trứng luộc với 2 lát bánh mì trắng và 1 thìa bơ.\n2. **Trưa:** Ăn salad gà tây với rau xanh, hành tây, cà chua và 100g thịt gà nấu chín.\n3. **Chiều:** Ăn một bát cơm trắng nấu từ gạo đỏ cùng 150g thịt bò nướng và rau xanh.\n\n[Chỉ thêm nếu hồ sơ thiếu]\n**Giả định:** Mất dữ liệu về giới hạn calo, đạm / Carb / béo và hoạt động hàng ngày.",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "8/10",
+        "thieu_gi": [
+          "Thieu cau truc bua an/mon an mau.",
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU13",
+      "group": "dinh_duong",
+      "user_input": "Làm thực đơn 5 bữa/ngày cho người tập 2 buổi (sáng tạ, chiều cardio).",
+      "user_profile": {
+        "age": 27,
+        "gender": "male",
+        "goal": "performance_fat_loss",
+        "double_session": true,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Để bắt đầu, tôi cần biết thông tin cụ thể về bữa ăn của bạn. Tuy nhiên, với hồ sơ của bạn chưa đầy đủ (với giới hạn về độ thiếu dữ liệu), tôi sẽ cung cấp một mẫu thực đơn 5 bữa/ngày dựa trên mục tiêu \"tai cau truc co the\" và giả định không có thông tin cụ thể về cân nặng, chiều cao và hoạt động.\n\n## 🥗 Dinh Dưỡng Mục Tiêu\n| Chỉ số | Giá trị |\n|--------|---------|\n| **Calo** | 2500 kcal |\n| Đạm | 1.6-2.2g/kg BW |\n| Carb | 2-3g/kg BW |\n| Béo | 0.5-1g/kg BW |\n\nLý giải: Mục tiêu \"tai cau truc co the\" đòi hỏi sự cân bằng giữa protein, carbs và fats để hỗ trợ quá trình tái xây dựng cơ bắp và giảm mỡ thừa. Tuy nhiên, để xác định chính xác các giá trị này, cần có thông tin về cân nặng và chiều cao của bạn.\n\n## 🍽️ Gợi Ý Thực Đơn\n\n- **Bữa sáng**: 3 egg, 1 chén nấm rơm, 1 lít nước ép cam\n- **Bữa trưa**: 120g thịt gà nướng, 1 chén rau xanh xào, 1 lít nước ép dưa hấu\n- **Bữa tối**: 150g cá hồi grill, 1 chén quinoa, 1 lít nước ép chanh\n- **Bữa phụ sáng**: 1 cốc sữa chua không đường, 1/2 chén granola\n- **Bữa phụ tối**: 1 chén súp gà\n\n## 🔄 Cách Điều Chỉnh Theo Thời Gian\nĐể đạt được mục tiêu \"tai cau truc co the\", bạn cần điều chỉnh macro/calo theo tiến trình. Bạn có thể tăng calo và protein khi tập luyện nặng hơn, nhưng giảm carbs khi thấy mình đang giảm mỡ thừa.\n\n## ⚡ Hành Động Tuần Này\n1. Ăn 5 bữa trong ngày với các thực phẩm trên.\n2. Uống đủ nước trong suốt ngày (t least **8** lít).\n3. Tập luyện cardio trong buổi chiều (30-45 phút).\n\n**Giả định:** Không có thông tin về cân nặng, chiều cao và hoạt động của bạn.\n\n**Để cá nhân hóa thêm:**\n1. Cung cấp thông tin về cân nặng và chiều cao để xác định chính xác các giá trị dinh dưỡng.\n2. Hãy cho tôi biết bạn có bất kỳ chế độ ăn kiêng cụ thể nào mà bạn muốn áp dụng vào thực đơn này không?",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "7/10",
+        "thieu_gi": [
+          "Thieu ca nhan hoa theo thong tin user_profile.",
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
+          "Chen ro thong tin profile vao quyet dinh de tang ca nhan hoa."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    },
+    {
+      "id": "NU14",
+      "group": "dinh_duong",
+      "user_input": "Mình muốn thực đơn cho ngân sách 80k/ngày mà vẫn đủ protein.",
+      "user_profile": {
+        "age": 22,
+        "gender": "female",
+        "goal": "fat_loss",
+        "budget_vnd_per_day": 80000,
+        "language": "vi"
+      },
+      "status_code": 200,
+      "ai_answer": "Tôi là AI Fitness Coach và tôi đây để giúp bạn đạt mục tiêu fat loss.\n\nVới ngân sách 80k/ngày, chúng ta có thể tạo một thực đơn phù hợp với nhu cầu của bạn. Mục tiêu của bạn là tai cau truc co the, nghĩa là xây dựng cơ bắp đồng thời giảm cân.\n\n**Dinh Dưỡng Mục Tiêu**\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | 1500-1700 kcal |\n| Đạm | **120g** |\n| Carb | **200g** |\n| Béo | **70g** |\n\nLý giải: Với mục tiêu fat loss, chúng ta cần giảm lượng calo để cơ thể đốt cháy mỡ thừa. Tuy nhiên, không muốn mất quá nhiều cơ bắp trong quá trình này. Vì vậy, chúng ta sẽ giữ cho mức calo vừa phải và tăng cường protein để bảo vệ cơ bắp.\n\n**Gợi Ý Thực Đơn**\n| Bữa Sáng | Thực Phẩm Cụ Thể (g) |\n|--------|-------------------------|\n| Sữa Chua | 1 chén |\n| Bánh Mì |\n| Dried Fruit |\n\n| Bữa Trưa | Thực Phẩm Cụ Thể (g) |\n|--------|-------------------------|\n| Gà Nướng | 120g |\n| Rau Xanh | 50g |\n| Quinoa | 100g |\n\n| Bữa Tối | Thực Phẩm Cụ Thể (g) |\n|--------|-------------------------|\n| Sữa Chè | 1 chén |\n| Bánh Kem |\n| Dried Fruit |\n\n**Cách Điều Chỉnh Theo Thời Gian**\n- Tuần 1: giảm calo xuống 1450 kcal\n- Tuần 2-3: tăng dần calo lên 1550 kcal\n\n**Hành Động Tuần Này**\n\n1. Lên kế hoạch tập luyện cho tuần này.\n2. Tìm kiếm thực phẩm phù hợp để ăn uống.\n\n**Giả định:** Không có dữ liệu về height, weight, age, gender và hoạt động hàng ngày của bạn.\n\nĐể cá nhân hóa thêm:\n\n- 1. Hãy cung cấp thông tin về height và weight của bạn để chúng ta có thể tính toán calo chính xác hơn.\n- 2. Hãy cho tôi biết về hoạt động hàng ngày của bạn để chúng ta có thể điều chỉnh calo phù hợp.",
+      "qa_review": {
+        "ket_luan": "PASS",
+        "diem": "9/10",
+        "thieu_gi": [
+          "Thieu huong dan dieu chinh theo tien do."
+        ],
+        "sai_gi": [],
+        "co_mau_thuan_gi": [],
+        "can_sua_the_nao": [
+          "Bo sung day du cac phan bat buoc theo nhom cau hoi."
+        ],
+        "phien_ban_tot_hon_mau": "Xac dinh muc kcal muc tieu theo profile va muc tieu.\nKhai bao macro P/C/F ro rang va nhat quan voi tong kcal.\nThuc don mau day du cac bua (an sang, trua, toi, bua phu neu can).\nMoi bua co goi y mon an cu the, de ap dung trong thuc te.\nHuong dan dieu chinh sau 1-2 tuan dua tren can nang/hieu suat tap.\nNeu user co dietary restriction hoac benh ly: dieu chinh mon va canh bao an toan."
+      }
+    }
+  ]
+}

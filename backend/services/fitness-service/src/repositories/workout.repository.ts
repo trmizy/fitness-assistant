@@ -2,7 +2,10 @@ import { prisma } from './prisma';
 
 const workoutInclude = {
   exercises: {
-    include: { exercise: true },
+    include: {
+      exercise: true,
+      workoutSets: { orderBy: { setNumber: 'asc' as const } },
+    },
     orderBy: { order: 'asc' as const },
   },
 };
@@ -40,6 +43,14 @@ export const workoutRepository = {
             weight: ex.weight,
             notes: ex.notes,
             order: index,
+            workoutSets: {
+              create: Array.from({ length: ex.sets }, (_, i) => ({
+                setNumber: i + 1,
+                reps: ex.reps ?? null,
+                weight: ex.weight ?? null,
+                completed: false,
+              })),
+            },
           })),
         },
       },
@@ -65,6 +76,14 @@ export const workoutRepository = {
             weight: ex.weight,
             notes: ex.notes,
             order: index,
+            workoutSets: {
+              create: Array.from({ length: ex.sets }, (_, i) => ({
+                setNumber: i + 1,
+                reps: ex.reps ?? null,
+                weight: ex.weight ?? null,
+                completed: false,
+              })),
+            },
           })),
         },
       },
@@ -73,6 +92,20 @@ export const workoutRepository = {
   },
 
   delete: (id: string) => prisma.workout.delete({ where: { id } }),
+
+  updateSet: (setId: string, data: { reps?: number; weight?: number; rpe?: number; completed?: boolean }) =>
+    prisma.workoutSet.update({
+      where: { id: setId },
+      data,
+    }),
+
+  findSetWithOwner: (setId: string, userId: string) =>
+    prisma.workoutSet.findFirst({
+      where: {
+        id: setId,
+        workoutExercise: { workout: { userId } },
+      },
+    }),
 
   async findExercisePRs(userId: string, exerciseId?: string) {
     const where: any = { workout: { userId } };

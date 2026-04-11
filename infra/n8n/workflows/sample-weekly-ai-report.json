@@ -1,0 +1,182 @@
+{
+  "name": "Weekly AI Coach Usage Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Every Monday 8am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://api-gateway:3000/ai/feedback/stats",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.N8N_GATEWAY_SERVICE_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "fetch-ai-stats",
+      "name": "Fetch AI Feedback Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stats = $input.first().json;\n\nconst totalConversations = stats?.data?.total ?? 0;\nconst relevant = stats?.data?.relevant ?? 0;\nconst partlyRelevant = stats?.data?.partlyRelevant ?? 0;\nconst nonRelevant = stats?.data?.nonRelevant ?? 0;\n\nconst relevanceRate = totalConversations > 0\n  ? ((relevant / totalConversations) * 100).toFixed(1)\n  : '0.0';\n\nconst report = {\n  generatedAt: new Date().toISOString(),\n  week: `Week of ${new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}`,\n  totalConversations,\n  relevanceRate: `${relevanceRate}%`,\n  breakdown: { relevant, partlyRelevant, nonRelevant },\n  summary: `AI Coach handled ${totalConversations} conversations this week with ${relevanceRate}% relevance rate.`\n};\n\nreturn [{ json: report }];"
+      },
+      "id": "build-report",
+      "name": "Build Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.totalConversations }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        }
+      },
+      "id": "has-data",
+      "name": "Has Data?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://api-gateway:3000/admin/dashboard",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.N8N_GATEWAY_SERVICE_TOKEN }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-to-gateway",
+      "name": "Verify Gateway (Optional)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 240]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "no-data",
+      "name": "No Data (Skip)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1120, 400]
+    }
+  ],
+  "connections": {
+    "Every Monday 8am": {
+      "main": [
+        [
+          {
+            "node": "Fetch AI Feedback Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch AI Feedback Stats": {
+      "main": [
+        [
+          {
+            "node": "Build Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Report": {
+      "main": [
+        [
+          {
+            "node": "Has Data?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Data?": {
+      "main": [
+        [
+          {
+            "node": "Verify Gateway (Optional)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Data (Skip)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh"
+  },
+  "tags": ["fitness", "reporting", "scheduled"],
+  "_meta": {
+    "description": "Runs every Monday at 8am. Fetches AI coach feedback stats from the gateway, builds a weekly usage report, and conditionally triggers downstream actions (email, Slack, etc.) if there is data.",
+    "why_n8n": "This is a scheduled cross-service aggregation task with conditional branching and potential notification fan-out. Adding this logic directly to ai-service would couple it to notification infrastructure and scheduling — exactly what n8n is designed for.",
+    "setup": [
+      "1. Import this file into n8n Studio via Settings → Import workflow",
+      "2. Create an HTTP Header Auth credential in n8n with the gateway service token",
+      "3. Set N8N_GATEWAY_SERVICE_TOKEN env var in n8n container (or use n8n credentials store)",
+      "4. Add email/Slack node after 'Verify Gateway' node to actually send the report",
+      "5. Activate the workflow"
+    ]
+  }
+}

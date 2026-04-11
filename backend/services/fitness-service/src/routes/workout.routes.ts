@@ -7,6 +7,7 @@ const router = Router();
 // NOTE: named routes must be declared BEFORE /:id to avoid route shadowing
 router.post('/generate', authMiddleware, workoutController.generateWorkout as any);
 router.get('/prs', authMiddleware, workoutController.getPRs as any);
+router.patch('/sets/:setId', authMiddleware, workoutController.updateSet as any);
 router.get('/', authMiddleware, workoutController.listWorkouts as any);
 router.get('/:id', authMiddleware, workoutController.getWorkout as any);
 router.post('/', authMiddleware, workoutController.createWorkout as any);

@@ -1,6 +1,6 @@
 import { Queue } from 'bullmq';
 import { workoutRepository } from '../repositories/workout.repository';
-import type { CreateWorkoutDto } from '../models/fitness.models';
+import type { CreateWorkoutDto, UpdateWorkoutSetDto } from '../models/fitness.models';
 
 export const workoutQueue = new Queue('workout-generation', {
   connection: {
@@ -52,6 +52,12 @@ export const workoutService = {
 
     const exercises = await workoutRepository.findExercisePRs(userId, exerciseId);
     return exercises;
+  },
+
+  async updateSet(setId: string, userId: string, data: UpdateWorkoutSetDto) {
+    const existing = await workoutRepository.findSetWithOwner(setId, userId);
+    if (!existing) throw { status: 404, message: 'Set not found' };
+    return workoutRepository.updateSet(setId, data);
   },
 
   async queueWorkoutGeneration(userId: string, params: any) {

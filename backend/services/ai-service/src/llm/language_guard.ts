@@ -2,6 +2,20 @@ import type { LanguageDecision, ResponseLanguage } from './types';
 
 const userLanguageLock = new Map<string, ResponseLanguage>();
 
+/**
+ * Strips diacritics / tone marks so that both accented ("trả lời bằng tiếng việt")
+ * and unaccented ("tra loi bang tieng viet") forms reduce to the same ASCII string.
+ * Steps: lowercase → NFD decompose → remove combining marks → collapse whitespace.
+ */
+function normalizeForMatch(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')   // strip combining diacritical marks
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function detectLanguage(message: string): ResponseLanguage {
   const text = message.toLowerCase();
   // Vietnamese-specific diacritics (tone marks + vowel modifiers outside basic Latin)
@@ -13,11 +27,12 @@ function detectLanguage(message: string): ResponseLanguage {
 }
 
 function parseExplicitLanguageRequest(message: string): ResponseLanguage | undefined {
-  const text = message.toLowerCase();
-  if (/(tra loi bang tieng viet|chi dung tieng viet|noi tieng viet|speak vietnamese)/i.test(text)) {
+  // Normalize so accented + unaccented variants both match the same ASCII patterns.
+  const norm = normalizeForMatch(message);
+  if (/(tra loi bang tieng viet|chi dung tieng viet|noi tieng viet|speak vietnamese)/i.test(norm)) {
     return 'vi';
   }
-  if (/(reply in english|speak english|tra loi bang tieng anh|use english)/i.test(text)) {
+  if (/(reply in english|speak english|tra loi bang tieng anh|use english)/i.test(norm)) {
     return 'en';
   }
   return undefined;

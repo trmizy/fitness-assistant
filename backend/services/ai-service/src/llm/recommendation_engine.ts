@@ -1,5 +1,6 @@
 import { nutritionCalculator } from './nutrition_calculator';
 import { workoutPlanSelector } from './workout_plan_selector';
+import { mealPlanLoader } from './meal_plan_loader';
 import type {
   DayPlan,
   ExercisePrescription,
@@ -7,6 +8,7 @@ import type {
   MealPlanTemplate,
   MealRecommendation,
   RecommendationResult,
+  ResponseLanguage,
   RoutedIntentType,
   SpecificRoutineTemplate,
   UserProfile,
@@ -300,6 +302,17 @@ function enforceMinExercises(days: DayPlan[], minPerDay: number): DayPlan[] {
   });
 }
 
+function cardioForDay(day: DayPlan): string {
+  const d = day.day.toLowerCase();
+  if (d.includes('legs') || d.includes('lower')) {
+    return '10 phút Cycling nhẹ hoặc Walking — warm-down';
+  }
+  if (d.includes('full body')) {
+    return '10–15 phút LISS Cardio (đi bộ nhanh hoặc xe đạp)';
+  }
+  return '10–15 phút Assault Bike hoặc Rowing — moderate pace';
+}
+
 function goalSummaryText(objective: string, days: number, level: string): string {
   const split = days <= 3 ? 'Full Body' : days === 4 ? 'Upper/Lower' : days <= 6 ? 'Push/Pull/Legs' : 'PPL x2';
   const goalVI = objective === 'fat_loss' ? 'Giảm mỡ' : objective === 'muscle_gain' ? 'Tăng cơ' : 'Tái cấu trúc';
@@ -312,14 +325,17 @@ function buildWorkoutPlanTemplate(profile: UserProfile, intent: InputIntent): Wo
     profile.training.trainingDaysPerWeek ||
     3;
 
-  const minExercises = intent.minimumExercisesPerDay || 5;
+  const minExercises = Math.max(intent.minimumExercisesPerDay || 5, intent.detailMode ? 6 : 5);
   const objective = profile.goal === 'WEIGHT_LOSS' ? 'fat_loss'
     : profile.goal === 'MUSCLE_GAIN' ? 'muscle_gain'
     : 'recomposition';
   const level = profile.experienceLevel || 'INTERMEDIATE';
 
   const rawDays = selectDaysByCount(requestedDays);
-  const days = enforceMinExercises(rawDays, minExercises);
+  const withMinExercises = enforceMinExercises(rawDays, minExercises);
+  const days = intent.requestsCardio
+    ? withMinExercises.map((day) => ({ ...day, cardio: cardioForDay(day) }))
+    : withMinExercises;
 
   return {
     isDefaultTemplate: !profile.training.trainingDaysPerWeek && !intent.parsedTrainingDays,
@@ -331,6 +347,100 @@ function buildWorkoutPlanTemplate(profile: UserProfile, intent: InputIntent): Wo
       'Sau 4–6 tuần, deload 1 tuần bằng cách giảm 30–40% volume.',
     ],
   };
+}
+
+function buildChestRoutine(detailMode = false): SpecificRoutineTemplate {
+  return {
+    isDefaultTemplate: true,
+    sessionGoal: 'Buổi ngực đầy đủ cho người mới đến trung cấp, ưu tiên kỹ thuật chuẩn.',
+    exercises: [
+      buildExercise(1, 'Machine Chest Press', 4, detailMode ? '8-12' : '10-12', 90),
+      buildExercise(2, 'Incline Dumbbell Press', 4, detailMode ? '8-10' : '10-12', 90),
+      buildExercise(3, 'Cable Fly', 3, '12-15', 60),
+      buildExercise(4, 'Push-up', 3, 'AMRAP kỹ thuật chuẩn', 60),
+      buildExercise(5, 'Pec Deck', 3, '12-15', 60),
+    ],
+    techniqueNotes: [
+      'Siết bả vai, mở ngực và giữ cổ tay thẳng trong toàn bộ biên độ.',
+      'Hạ tạ có kiểm soát 2-3 giây, không nảy tạ ở đáy chuyển động.',
+      'Giữ khuỷu tay ở góc an toàn, tránh flare quá rộng gây stress vai trước.',
+    ],
+    overloadGuide: [
+      'Khi đạt ngưỡng reps trên ở mọi set, tăng tạ 2.5-5% ở buổi tiếp theo.',
+      'Nếu form vỡ, giữ mức tạ và tăng tổng reps thêm 1-2 reps mỗi buổi.',
+    ],
+  };
+}
+
+function buildBackRoutine(detailMode = false): SpecificRoutineTemplate {
+  return {
+    isDefaultTemplate: true,
+    sessionGoal: 'Buổi lưng xô chi tiết, nhấn vào kéo xô và độ dày lưng.',
+    exercises: [
+      buildExercise(1, 'Lat Pulldown', 4, detailMode ? '8-10' : '10-12', 90),
+      buildExercise(2, 'Chest Supported Row', 4, '8-10', 90),
+      buildExercise(3, 'Single Arm Dumbbell Row', 3, '10-12 mỗi bên', 75),
+      buildExercise(4, 'Seated Cable Row', 3, '10-12', 75),
+      buildExercise(5, 'Face Pull', 3, '12-15', 60),
+      buildExercise(6, 'Straight Arm Pulldown', 3, '12-15', 60),
+    ],
+    techniqueNotes: [
+      'Bắt đầu mỗi rep bằng siết xương bả vai, không giật bằng lưng dưới.',
+      'Giữ thân ổn định, tránh ngửa người quá mức khi kéo xô.',
+      'Ưu tiên biên độ đầy đủ và cảm nhận cơ lưng hơn là kéo nặng.',
+    ],
+    overloadGuide: [
+      'Tăng tải nhỏ khi hoàn thành toàn bộ set ở ngưỡng reps cao nhất.',
+      'Giữ RIR 1-2 ở bài compound và RIR 0-1 ở bài isolation cuối buổi.',
+    ],
+  };
+}
+
+function buildPushDayRoutine(detailMode = false): SpecificRoutineTemplate {
+  return {
+    isDefaultTemplate: true,
+    sessionGoal: 'Push day hoàn chỉnh: ngực, vai, tay sau theo thứ tự từ compound đến isolation.',
+    exercises: [
+      buildExercise(1, 'Bench Press', 4, detailMode ? '6-8' : '8-10', 120),
+      buildExercise(2, 'Incline Dumbbell Press', 4, '8-10', 90),
+      buildExercise(3, 'Overhead Press', 3, '8-10', 90),
+      buildExercise(4, 'Cable Lateral Raise', 4, '12-15', 60),
+      buildExercise(5, 'Triceps Pushdown', 3, '10-12', 60),
+      buildExercise(6, 'Overhead Triceps Extension', 3, '10-12', 60),
+    ],
+    techniqueNotes: [
+      'Khởi động vai và khớp khuỷu 8-10 phút trước bài compound đầu tiên.',
+      'Giữ core căng và không ưỡn lưng quá mức khi Press.',
+      'Bài isolation cần tempo có kiểm soát để bảo vệ khuỷu tay.',
+    ],
+    overloadGuide: [
+      'Tăng tạ ở bài 1-3 khi giữ được form với RIR 1-2.',
+      'Bài 4-6 ưu tiên tăng reps trước, sau đó mới tăng tải.',
+    ],
+  };
+}
+
+function buildSpecificRoutineByIntent(intent: InputIntent): SpecificRoutineTemplate {
+  const q = intent.normalizedQuestion.toLowerCase();
+  if (/push day|push/i.test(q)) return buildPushDayRoutine(Boolean(intent.detailMode));
+  if (intent.muscleGroupHint === 'chest') return buildChestRoutine(Boolean(intent.detailMode));
+  if (intent.muscleGroupHint === 'back') return buildBackRoutine(Boolean(intent.detailMode));
+  if (intent.muscleGroupHint === 'biceps' || /tay truoc|biceps/i.test(q)) return buildBicepsRoutine();
+  return buildGeneralSpecificRoutine();
+}
+
+function buildPersonalizationSummary(profile: UserProfile): string[] {
+  const notes: string[] = [];
+  if (profile.gender) notes.push(`Giới tính: ${profile.gender}`);
+  if (profile.age) notes.push(`Tuổi: ${profile.age}`);
+  if (profile.currentWeightKg || profile.inBody?.weightKg) notes.push(`Cân nặng: ${profile.currentWeightKg || profile.inBody?.weightKg}kg`);
+  if (profile.heightCm) notes.push(`Chiều cao: ${profile.heightCm}cm`);
+  if (profile.goal) notes.push(`Mục tiêu: ${profile.goal}`);
+  if (profile.experienceLevel) notes.push(`Kinh nghiệm: ${profile.experienceLevel}`);
+  if (profile.training.injuries.length > 0) notes.push(`Chấn thương cần tránh: ${profile.training.injuries.join(', ')}`);
+  if (profile.training.availableEquipment.length > 0) notes.push(`Thiết bị sẵn có: ${profile.training.availableEquipment.join(', ')}`);
+  if (profile.foodPreference) notes.push(`Ưu tiên ăn uống: ${profile.foodPreference}`);
+  return notes;
 }
 
 function buildBicepsRoutine(): SpecificRoutineTemplate {
@@ -383,43 +493,118 @@ function buildGeneralSpecificRoutine(): SpecificRoutineTemplate {
 
 function buildMealPlanTemplate(profile: UserProfile, intent: InputIntent): MealPlanTemplate {
   const nutrition = nutritionCalculator.calculate(profile, intent);
+  const objective = objectiveFromGoal(profile.goal, intent.goalHint);
+  const mealsPerDay = intent.parsedMealsPerDay ?? 3;
 
-  return {
-    isDefaultTemplate: nutrition.confidence === 'low',
-    kcal: nutrition.targetCalories || 2100,
-    proteinGrams: nutrition.proteinGrams || 150,
-    carbsGrams: nutrition.carbsGrams || 220,
-    fatGrams: nutrition.fatGrams || 65,
-    meals: [
-      { mealName: 'Meal 1', foods: ['Oats 60g', 'Greek yogurt 200g', 'Banana 1 fruit'] },
-      { mealName: 'Meal 2', foods: ['Chicken breast 150g', 'Rice 180g cooked', 'Vegetables 200g'] },
-      { mealName: 'Meal 3', foods: ['Salmon 150g', 'Sweet potato 250g', 'Salad 1 bowl'] },
-      { mealName: 'Meal 4', foods: ['Whey protein 1 scoop', 'Almonds 20g', 'Apple 1 fruit'] },
-    ],
-    substitutions: [
-      'Replace chicken with tofu or lean beef at equivalent protein.',
-      'Replace rice with potatoes or whole-grain bread at equivalent carbs.',
-      'Replace salmon with eggs plus olive oil to keep fats similar.',
-    ],
+  const preference = intent.mealPreferenceHint || profile.foodPreference || '';
+  const isDairyFree = /dairy_free|no_whey|không sữa|lactose|di ung sua/i.test(preference);
+
+  const applyMealConstraints = (plan: MealPlanTemplate): MealPlanTemplate => {
+    if (!isDairyFree) return plan;
+    return {
+      ...plan,
+      meals: plan.meals.map((meal) => ({
+        ...meal,
+        foods: meal.foods.map((f) =>
+          f
+            .replace(/sữa chua hy lạp/gi, 'đậu phụ non')
+            .replace(/sữa chua/gi, 'sữa hạt không đường')
+            .replace(/whey protein/gi, 'ức gà hoặc đậu phụ')
+            .replace(/whey/gi, 'đạm từ thực phẩm tự nhiên'),
+        ),
+      })),
+      substitutions: [
+        ...plan.substitutions,
+        'Ưu tiên nguồn đạm thay thế từ đậu phụ, trứng, cá và thịt nạc; tránh toàn bộ sản phẩm từ sữa.',
+      ],
+    };
   };
+
+  // Try to load a real plan from the dataset
+  const loaded = mealPlanLoader.load(
+    objective,
+    nutrition.targetCalories ?? 2000,
+    nutrition.proteinGrams ?? 150,
+    nutrition.carbsGrams ?? 220,
+    nutrition.fatGrams ?? 65,
+    mealsPerDay,
+    intent.mealPreferenceHint,
+  );
+  if (loaded) return applyMealConstraints(loaded);
+
+  // Fallback when dataset unavailable
+  const meals = isDairyFree
+    ? [
+        { mealName: 'Bữa sáng', foods: ['Yến mạch 60g', 'Sữa hạt không đường 250ml', 'Chuối 1 quả'] },
+        { mealName: 'Bữa trưa', foods: ['Ức gà 150g', 'Cơm trắng 180g', 'Rau xanh 200g'] },
+        { mealName: 'Bữa tối', foods: ['Cá hồi 150g', 'Khoai lang 250g', 'Salad 1 tô'] },
+      ]
+    : [
+        { mealName: 'Bữa sáng', foods: ['Yến mạch 60g', 'Sữa chua Hy Lạp 200g', 'Chuối 1 quả'] },
+        { mealName: 'Bữa trưa', foods: ['Ức gà 150g', 'Cơm trắng 180g', 'Rau xanh 200g'] },
+        { mealName: 'Bữa tối', foods: ['Cá hồi 150g', 'Khoai lang 250g', 'Salad 1 tô'] },
+      ];
+
+  return applyMealConstraints({
+    isDefaultTemplate: true,
+    kcal: nutrition.targetCalories ?? 2100,
+    proteinGrams: nutrition.proteinGrams ?? 150,
+    carbsGrams: nutrition.carbsGrams ?? 220,
+    fatGrams: nutrition.fatGrams ?? 65,
+    meals,
+    substitutions: [
+      'Đổi ức gà → đậu hũ hoặc bò nạc (giữ nguyên gram protein).',
+      'Đổi cơm trắng → khoai lang hoặc bánh mì nguyên cám (giữ nguyên gram carb).',
+      isDairyFree
+        ? 'Nếu dị ứng sữa: thay toàn bộ sữa/sữa chua/whey bằng sữa hạt, đậu phụ, trứng hoặc thịt nạc.'
+        : 'Đổi cá hồi → trứng + dầu ô liu (giữ nguyên gram fat).',
+    ],
+  });
 }
 
-function buildFollowUps(intent: RoutedIntentType, missingFields: string[]): string[] {
-  const fromMissing = missingFields.slice(0, 2).map((f) => `Can you share your ${f}?`);
+const FIELD_LABEL_VI: Record<string, string> = {
+  weight: 'cân nặng hiện tại',
+  height: 'chiều cao',
+  age: 'tuổi',
+  gender: 'giới tính',
+  goal: 'mục tiêu tập luyện',
+  activity_level: 'mức độ vận động hàng ngày',
+  experience_level: 'kinh nghiệm tập luyện',
+};
+
+function buildFollowUps(intent: RoutedIntentType, missingFields: string[], language: ResponseLanguage = 'en'): string[] {
+  const isVi = language === 'vi';
+
+  const fromMissing = missingFields.slice(0, 2).map((f) => {
+    if (isVi) {
+      const label = FIELD_LABEL_VI[f] ?? f;
+      return `Bạn có thể cho mình biết ${label} không?`;
+    }
+    return `Can you share your ${f}?`;
+  });
 
   if (intent === 'specific_exercise_request' || intent === 'muscle_group_routine_request') {
-    return [...fromMissing, 'Do you train at home or gym?', 'Any pain or injury to avoid?'].slice(0, 3);
+    const extras = isVi
+      ? ['Bạn tập ở nhà hay phòng gym?', 'Bạn có đau hoặc chấn thương nào cần tránh không?']
+      : ['Do you train at home or gym?', 'Any pain or injury to avoid?'];
+    return [...fromMissing, ...extras].slice(0, 3);
   }
 
   if (intent === 'meal_plan_request') {
-    return [...fromMissing, 'Any food allergy or diet preference?'].slice(0, 3);
+    const extras = isVi
+      ? ['Bạn có dị ứng thực phẩm hoặc chế độ ăn kiêng đặc biệt không?']
+      : ['Any food allergy or diet preference?'];
+    return [...fromMissing, ...extras].slice(0, 3);
   }
 
-  return [...fromMissing, 'How many training days per week can you commit?'].slice(0, 3);
+  const extras = isVi
+    ? ['Bạn có thể tập mấy buổi mỗi tuần?']
+    : ['How many training days per week can you commit?'];
+  return [...fromMissing, ...extras].slice(0, 3);
 }
 
 export const recommendationEngine = {
-  recommend(profile: UserProfile, intent: InputIntent): RecommendationResult {
+  recommend(profile: UserProfile, intent: InputIntent, language: ResponseLanguage = 'en'): RecommendationResult {
     const responseIntent = intent.routeIntent || 'general_fitness_knowledge';
     const objective = objectiveFromGoal(profile.goal, intent.goalHint);
     const nutrition = nutritionCalculator.calculate(profile, intent);
@@ -429,18 +614,19 @@ export const recommendationEngine = {
     const workoutPlan =
       responseIntent === 'workout_plan_request' ||
       responseIntent === 'body_recomposition_request' ||
-      responseIntent === 'frequency_change_request'
+      responseIntent === 'frequency_change_request' ||
+      responseIntent === 'combined_plan_request'
         ? buildWorkoutPlanTemplate(profile, intent)
         : undefined;
 
     const specificRoutine =
       responseIntent === 'specific_exercise_request' || responseIntent === 'muscle_group_routine_request'
-        ? intent.normalizedQuestion.toLowerCase().includes('tay truoc') || intent.normalizedQuestion.toLowerCase().includes('biceps')
-          ? buildBicepsRoutine()
-          : buildGeneralSpecificRoutine()
+        ? buildSpecificRoutineByIntent(intent)
         : undefined;
 
-    const mealPlan = responseIntent === 'meal_plan_request' ? buildMealPlanTemplate(profile, intent) : undefined;
+    const mealPlan = (responseIntent === 'meal_plan_request' || responseIntent === 'combined_plan_request')
+      ? buildMealPlanTemplate(profile, intent)
+      : undefined;
 
     const assumptions = [
       ...workout.assumptions,
@@ -453,13 +639,15 @@ export const recommendationEngine = {
     return {
       objective,
       responseIntent,
+      detailMode: Boolean(intent.detailMode),
+      personalizationSummary: buildPersonalizationSummary(profile),
       nutrition,
       workout,
       meal,
       workoutPlan,
       specificRoutine,
       mealPlan,
-      followUpQuestions: buildFollowUps(responseIntent, intent.missingFields),
+      followUpQuestions: buildFollowUps(responseIntent, intent.missingFields, language),
       assumptions,
       missingFields: intent.missingFields,
     };
