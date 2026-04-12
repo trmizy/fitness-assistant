@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { logger } from '@gym-coach/shared';
+import { logger, chatMessagesTotal } from '@gym-coach/shared';
 import { chatRepository } from '../repositories/chat.repository';
 
 interface JoinPayload { conversationId: string }
@@ -51,6 +51,9 @@ export function registerChatHandlers(
         user.id,
         content.trim(),
       );
+
+      // Record chat message metric
+      chatMessagesTotal.inc();
 
       // Emit to ALL sockets in the conversation room (including sender for confirmation)
       io.to(conversationId).emit('chat:new_message', message);

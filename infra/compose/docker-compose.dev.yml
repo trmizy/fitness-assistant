@@ -300,6 +300,68 @@ services:
     networks:
       - default
 
+  # ── Monitoring Stack ────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: gymcoach-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - default
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: gymcoach-grafana
+    ports:
+      - "3100:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
+    volumes:
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - default
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: gymcoach-pg-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: gymcoach-redis-exporter
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+
 volumes:
   user_uploads:
   easyocr_models:
@@ -307,6 +369,8 @@ volumes:
   redis_data:
   qdrant_data:
   n8n_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   default:

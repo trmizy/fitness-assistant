@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { logger } from '@gym-coach/shared';
+import { logger, aiCoachQueriesTotal, aiCoachQueryDuration, aiPlanGenerationsTotal } from '@gym-coach/shared';
 import { ragService } from '../services/rag.service';
 import { conversationService } from '../services/conversation.service';
 
@@ -11,6 +11,7 @@ function getAuthenticatedUserId(req: Request): string | null {
 
 export const aiController = {
   async ask(req: Request, res: Response): Promise<void> {
+    const startTime = Date.now();
     try {
       const { question } = req.body;
       const userId = getAuthenticatedUserId(req);
@@ -24,8 +25,16 @@ export const aiController = {
         return;
       }
       const result = await ragService.rag(question, userId, authorizationHeader);
+
+      // Record success metrics
+      aiCoachQueriesTotal.inc({ status: 'success' });
+      aiCoachQueryDuration.observe((Date.now() - startTime) / 1000);
+
       res.json(result);
     } catch (error) {
+      aiCoachQueriesTotal.inc({ status: 'failure' });
+      aiCoachQueryDuration.observe((Date.now() - startTime) / 1000);
+
       logger.error('Error in /ai/ask:', error);
       res.status(500).json({ error: 'Failed to process question' });
     }
@@ -108,8 +117,10 @@ export const aiController = {
         durationWeeks,
         daysPerWeek,
       });
+      aiPlanGenerationsTotal.inc({ status: 'queued' });
       res.status(202).json(result);
     } catch (error) {
+      aiPlanGenerationsTotal.inc({ status: 'failure' });
       logger.error('Error queuing plan generation:', error);
       res.status(500).json({ error: 'Failed to start plan generation' });
     }

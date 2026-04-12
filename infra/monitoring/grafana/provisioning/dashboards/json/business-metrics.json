@@ -1,0 +1,347 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "OCR / InBody Metrics",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "title": "InBody Uploads (Total)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "expr": "sum(inbody_uploads_total) or vector(0)",
+          "legendFormat": "Total Uploads",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "title": "Upload Method Breakdown",
+      "type": "piechart",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 1 },
+      "targets": [
+        {
+          "expr": "inbody_uploads_total",
+          "legendFormat": "{{method}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "legend": { "displayMode": "list", "placement": "right" },
+        "pieType": "donut"
+      }
+    },
+    {
+      "title": "OCR Success vs Failure",
+      "type": "timeseries",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 1 },
+      "targets": [
+        {
+          "expr": "sum(rate(ocr_extractions_total{status=\"success\"}[5m])) or vector(0)",
+          "legendFormat": "Success/sec",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(ocr_extractions_total{status=\"failure\"}[5m])) or vector(0)",
+          "legendFormat": "Failure/sec",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Success/sec" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Failure/sec" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "title": "OCR Processing Time (p95)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 1 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ocr_extraction_duration_seconds_bucket[5m])) by (le)) or vector(0)",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 15 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "title": "PT Application Flow",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "collapsed": false
+    },
+    {
+      "title": "PT Applications by Status",
+      "type": "bargauge",
+      "gridPos": { "h": 5, "w": 12, "x": 0, "y": 7 },
+      "targets": [
+        {
+          "expr": "pt_applications_total",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "SUBMITTED" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "APPROVED" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "REJECTED" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "NEEDS_MORE_INFO" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
+    },
+    {
+      "title": "PT Application Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 7 },
+      "targets": [
+        {
+          "expr": "sum(rate(pt_applications_total[10m])) by (status)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15 },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" } }
+    },
+    {
+      "title": "AI Coach",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 12 },
+      "collapsed": false
+    },
+    {
+      "title": "AI Coach Queries",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 13 },
+      "targets": [
+        {
+          "expr": "sum(ai_coach_queries_total) or vector(0)",
+          "legendFormat": "Total",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "title": "AI Coach Success Rate",
+      "type": "gauge",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 13 },
+      "targets": [
+        {
+          "expr": "(sum(ai_coach_queries_total{status=\"success\"}) / sum(ai_coach_queries_total)) * 100 or vector(100)",
+          "legendFormat": "Rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 80 },
+              { "color": "green", "value": 95 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "AI Response Time (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 13 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ai_coach_query_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.5, sum(rate(ai_coach_query_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "title": "Plan Generations",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 13 },
+      "targets": [
+        {
+          "expr": "sum(ai_plan_generations_total) or vector(0)",
+          "legendFormat": "Total",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "title": "Chat / WebSocket",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "collapsed": false
+    },
+    {
+      "title": "Active WebSocket Connections",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 19 },
+      "targets": [
+        {
+          "expr": "websocket_connections_active or vector(0)",
+          "legendFormat": "Active",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 100 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "title": "Chat Messages Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 19 },
+      "targets": [
+        {
+          "expr": "rate(chat_messages_total[5m])",
+          "legendFormat": "Messages/sec",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 20, "gradientMode": "scheme" },
+          "unit": "ops",
+          "color": { "mode": "fixed", "fixedColor": "cyan" }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Total Chat Messages",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 19 },
+      "targets": [
+        {
+          "expr": "chat_messages_total or vector(0)",
+          "legendFormat": "Total",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "cyan", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["fitness-assistant", "business"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Fitness Assistant — Business Metrics",
+  "uid": "gym-business-metrics",
+  "version": 1
+}

@@ -1,7 +1,7 @@
 import http from 'http';
 import { Server, Socket } from 'socket.io';
 import axios from 'axios';
-import { logger } from '@gym-coach/shared';
+import { logger, websocketConnectionsActive } from '@gym-coach/shared';
 import { registerChatHandlers } from './chat.handler';
 
 // Track online users: userId → Set of socket IDs (user may have multiple tabs)
@@ -41,6 +41,9 @@ export function initSocket(httpServer: http.Server) {
     const user = (socket as any).user as { id: string; email: string };
     logger.info({ userId: user.id, socketId: socket.id }, 'Socket connected');
 
+    // Track metrics
+    websocketConnectionsActive.inc();
+
     // Track online presence
     if (!onlineUsers.has(user.id)) onlineUsers.set(user.id, new Set());
     onlineUsers.get(user.id)!.add(socket.id);
@@ -54,6 +57,8 @@ export function initSocket(httpServer: http.Server) {
     registerChatHandlers(io, socket, user);
 
     socket.on('disconnect', () => {
+      websocketConnectionsActive.dec();
+
       const sockets = onlineUsers.get(user.id);
       if (sockets) {
         sockets.delete(socket.id);
@@ -69,3 +74,4 @@ export function initSocket(httpServer: http.Server) {
   logger.info('Socket.IO initialized');
   return io;
 }
+
