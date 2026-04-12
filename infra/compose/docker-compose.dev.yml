@@ -173,7 +173,7 @@ services:
       USER_SERVICE_URL: http://user-service:3004
       FITNESS_SERVICE_URL: http://fitness-service:3002
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
-      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://ollama:11434}
       LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
     env_file:
@@ -184,6 +184,8 @@ services:
       redis:
         condition: service_healthy
       qdrant:
+        condition: service_started
+      ollama:
         condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
@@ -270,6 +272,15 @@ services:
       - qdrant_data:/qdrant/storage
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: gymcoach-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
 
   # ── Workflow Orchestration ───────────────────────────────────────────────
   n8n:
@@ -368,6 +379,7 @@ volumes:
   postgres_data:
   redis_data:
   qdrant_data:
+  ollama_data:
   n8n_data:
   prometheus_data:
   grafana_data:
