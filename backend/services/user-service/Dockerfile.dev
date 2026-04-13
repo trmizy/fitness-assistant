@@ -1,0 +1,51 @@
+FROM node:20-slim
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+
+# ── System + Python deps ──────────────────────────────────────────────────────
+# This layer is heavy but cached. Only rebuilds if this RUN line changes.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl wget ca-certificates \
+    python3 python3-pip python3-venv \
+    tesseract-ocr \
+    libgl1 libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Python virtualenv + packages ─────────────────────────────────────────────
+# Split torch (slow) from lighter packages so partial caching is possible.
+RUN python3 -m venv /opt/inbody-venv \
+    && /opt/inbody-venv/bin/pip install --no-cache-dir \
+       torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu \
+    && /opt/inbody-venv/bin/pip install --no-cache-dir \
+       pydantic pytesseract opencv-python-headless numpy Pillow easyocr \
+    && /opt/inbody-venv/bin/python -c \
+       "import easyocr; easyocr.Reader(['en'], gpu=False, verbose=True)"
+
+ENV PATH="/opt/inbody-venv/bin:$PATH"
+
+WORKDIR /app
+
+# ── Install Node dependencies (cached layer) ──────────────────────────────────
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY backend/shared/package.json                      ./backend/shared/
+COPY backend/services/user-service/package.json       ./backend/services/user-service/
+RUN pnpm install --filter @gym-coach/user-service
+
+# ── Pre-build @gym-coach/shared ───────────────────────────────────────────────
+COPY tsconfig.base.json                               ./
+COPY backend/shared/tsconfig.json                     ./backend/shared/
+COPY backend/shared/src                               ./backend/shared/src
+RUN pnpm --filter @gym-coach/shared build
+
+# ── Generate Prisma client ────────────────────────────────────────────────────
+COPY backend/services/user-service/prisma             ./backend/services/user-service/prisma
+RUN pnpm --filter @gym-coach/user-service db:generate
+
+# ── Copy service config (src/ & inbody_extractor/ are bind-mounted) ───────────
+COPY backend/services/user-service/tsconfig.json      ./backend/services/user-service/
+
+RUN mkdir -p /app/backend/services/user-service/uploads/pt-applications
+
+WORKDIR /app/backend/services/user-service
+EXPOSE 3004
+
+CMD ["sh", "-c", "node_modules/.bin/prisma db push --accept-data-loss && pnpm run dev"]

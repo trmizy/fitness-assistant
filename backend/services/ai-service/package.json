@@ -9,6 +9,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "ingest": "tsx src/ingest.ts",
+    "test": "tsx --test src/__tests__/ai.test.ts",
+    "test:all": "tsx --test src/__tests__/ai.test.ts src/datasets/__tests__/datasets.test.ts src/llm/__tests__/bugfix.test.ts",
     "test:evaluation": "tsx src/evaluation/run_evaluation_tests.ts",
     "test:policy": "tsx src/evaluation/run_policy_behavior_tests.ts",
     "seed:exercises": "tsx src/datasets/seed/seedExercises.ts",
@@ -32,7 +34,9 @@
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.10.6",
+    "@types/supertest": "^6.0.2",
     "prisma": "^5.22.0",
+    "supertest": "^6.3.4",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   }

@@ -1,0 +1,26 @@
+FROM node:20-alpine
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+RUN apk add --no-cache wget
+
+WORKDIR /app
+
+# ── Install dependencies (cached layer) ──────────────────────────────────────
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY backend/shared/package.json    ./backend/shared/
+COPY backend/gateway/package.json   ./backend/gateway/
+RUN pnpm install --filter @gym-coach/api-gateway
+
+# ── Pre-build @gym-coach/shared ───────────────────────────────────────────────
+# Services import shared from dist/. Rebuild image if shared src changes.
+COPY tsconfig.base.json             ./
+COPY backend/shared/tsconfig.json   ./backend/shared/
+COPY backend/shared/src             ./backend/shared/src
+RUN pnpm --filter @gym-coach/shared build
+
+# ── Copy gateway config (src/ is bind-mounted at runtime) ─────────────────────
+COPY backend/gateway/tsconfig.json  ./backend/gateway/
+
+WORKDIR /app/backend/gateway
+EXPOSE 3000
+
+CMD ["pnpm", "run", "dev"]

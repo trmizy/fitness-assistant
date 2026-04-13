@@ -20,11 +20,54 @@ async function generateEmbedding(text: string): Promise<number[]> {
       prompt: text,
     });
     return response.data.embedding;
-  } catch (error: any) {
-    console.error('Error generating embedding:', error.message);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('Error generating embedding:', msg);
     throw error;
   }
 }
+
+/**
+ * RFC 4180-compliant CSV line parser.
+ * Handles quoted fields, escaped double-quotes (""), and commas inside quotes.
+ * Strips surrounding whitespace from each field.
+ */
+function parseCSVLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        // Escaped quote ("") inside a quoted field → literal "
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (ch === ',' && !inQuotes) {
+      fields.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
+/** Required column names in the exercises CSV (case-sensitive). */
+const REQUIRED_COLUMNS = [
+  'exercise_name',
+  'type_of_activity',
+  'type_of_equipment',
+  'body_part',
+  'type',
+  'muscle_groups_activated',
+  'instructions',
+] as const;
 
 function resolveCsvPath(): string {
   const envPath = process.env.RAG_INGEST_CSV_PATH;
@@ -48,28 +91,50 @@ function resolveCsvPath(): string {
 async function main() {
   console.log('Starting ingestion to Qdrant...');
 
-  // Read CSV
+  // ── Read and parse CSV ────────────────────────────────────────────────────
   const csvPath = resolveCsvPath();
   console.log(`Using CSV: ${csvPath}`);
-  const csvContent = fs.readFileSync(csvPath, 'utf-8');
-  const lines = csvContent.split('\n').slice(1); // Skip header
+  const rawLines = fs.readFileSync(csvPath, 'utf-8')
+    .split('\n')
+    .map((l) => l.replace(/\r$/, '')); // strip Windows CR
 
-  const exercises = lines
-    .filter((line) => line.trim())
+  if (rawLines.length < 2) {
+    throw new Error('CSV file is empty or contains only a header row');
+  }
+
+  // Parse header and build column → index map
+  const headers = parseCSVLine(rawLines[0]);
+  const missing = REQUIRED_COLUMNS.filter((col) => !headers.includes(col));
+  if (missing.length > 0) {
+    throw new Error(
+      `CSV is missing required columns: ${missing.join(', ')}. ` +
+        `Found columns: ${headers.join(', ')}`
+    );
+  }
+  const col: Record<string, number> = {};
+  headers.forEach((h, i) => { col[h] = i; });
+
+  const dataRows = rawLines.slice(1).filter((l) => l.trim());
+  const exercises = dataRows
     .map((line, index) => {
-      const parts = line.split(',');
+      const parts = parseCSVLine(line);
       return {
         id: index,
-        exerciseName: parts[1]?.trim() || '',
-        typeOfActivity: parts[2]?.trim() || '',
-        typeOfEquipment: parts[3]?.trim() || '',
-        bodyPart: parts[4]?.trim() || '',
-        type: parts[5]?.trim() || '',
-        muscleGroupsActivated: parts[6]?.trim() || '',
-        instructions: parts[7]?.trim() || '',
+        exerciseName: parts[col['exercise_name']] ?? '',
+        typeOfActivity: parts[col['type_of_activity']] ?? '',
+        typeOfEquipment: parts[col['type_of_equipment']] ?? '',
+        bodyPart: parts[col['body_part']] ?? '',
+        type: parts[col['type']] ?? '',
+        muscleGroupsActivated: parts[col['muscle_groups_activated']] ?? '',
+        instructions: parts[col['instructions']] ?? '',
       };
-    });
+    })
+    .filter((ex) => ex.exerciseName); // skip rows with empty exercise name
 
+  const skipped = dataRows.length - exercises.length;
+  if (skipped > 0) {
+    console.warn(`⚠  Skipped ${skipped} row(s) with empty exercise_name`);
+  }
   console.log(`Loaded ${exercises.length} exercises from CSV`);
 
   // Check if collection exists

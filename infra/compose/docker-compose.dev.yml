@@ -1,35 +1,75 @@
+##############################################################################
+# docker-compose.dev.yml  —  Hot-reload development environment
+#
+# Strategy
+# ─────────
+# Each application service uses a dedicated Dockerfile.dev that:
+#   1. Installs all Node (+ Python for user-service) dependencies.
+#   2. Pre-builds the @gym-coach/shared workspace package.
+#   3. Generates the Prisma client (where applicable).
+#   4. Does NOT copy src/ — that directory is bind-mounted from the host.
+#
+# When you save a .ts file inside any service's src/ folder:
+#   • Backend services  → tsx watch detects the change and restarts the server
+#                         in-process (< 1 s).
+#   • Frontend (Vite)   → Vite HMR patches the running browser tab instantly.
+#
+# Note: changes to backend/shared/src require rebuilding the affected image:
+#   docker compose -f docker-compose.dev.yml build <service>
+#   docker compose -f docker-compose.dev.yml restart <service>
+#
+# Usage
+# ─────
+#   First run (build images + start everything):
+#     docker compose -f infra/compose/docker-compose.dev.yml up --build
+#
+#   Subsequent runs (images already built):
+#     docker compose -f infra/compose/docker-compose.dev.yml up
+#
+#   Single service rebuild (e.g., after adding a package):
+#     docker compose -f infra/compose/docker-compose.dev.yml up --build auth-service
+#
+#   Tear down (keep volumes):
+#     docker compose -f infra/compose/docker-compose.dev.yml down
+#
+#   Tear down (remove volumes too):
+#     docker compose -f infra/compose/docker-compose.dev.yml down -v
+##############################################################################
+
 services:
-  # ── Frontend ──────────────────────────────────────────────────────────────
+  # ── Frontend ────────────────────────────────────────────────────────────────
   web:
     build:
-      context: ../..          # repo root (so pnpm workspace files are accessible)
-      dockerfile: frontend/web/Dockerfile
-      args:
-        VITE_API_URL: http://localhost:3000
-        VITE_CHAT_WS_URL: http://localhost:3005
-    container_name: gymcoach-web
+      context: ../..
+      dockerfile: frontend/web/Dockerfile.dev
+    container_name: gymcoach-web-dev
     ports:
-      - "5173:80"
+      - "5173:5173"        # Vite dev server (not nginx)
+    environment:
+      VITE_API_URL: http://localhost:3000
+      VITE_CHAT_WS_URL: http://localhost:3005
+      CHOKIDAR_USEPOLLING: "true"   # Required for Windows bind-mount file-watching
+    volumes:
+      # Bind-mount React source so Vite HMR picks up every save
+      - ../../frontend/web/src:/app/frontend/web/src
     depends_on:
       - api-gateway
-    restart: unless-stopped
-    dns:
-      - 8.8.8.8
     networks:
       - default
+    dns:
+      - 8.8.8.8
 
-  # ── API Gateway ───────────────────────────────────────────────────────────
+  # ── API Gateway ─────────────────────────────────────────────────────────────
   api-gateway:
     build:
-      context: ../..          # repo root
-      dockerfile: backend/gateway/Dockerfile
-    container_name: gymcoach-gateway
+      context: ../..
+      dockerfile: backend/gateway/Dockerfile.dev
+    container_name: gymcoach-gateway-dev
     ports:
       - "3000:3000"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3000
-      # Corrected internal Docker service URLs and ports
       AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3004
       FITNESS_SERVICE_URL: http://fitness-service:3002
@@ -45,6 +85,8 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
     env_file:
       - ../../.env
+    volumes:
+      - ../../backend/gateway/src:/app/backend/gateway/src
     depends_on:
       auth-service:
         condition: service_healthy
@@ -58,24 +100,23 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 15s
-    restart: unless-stopped
+      start_period: 20s
     dns:
       - 8.8.8.8
 
-  # ── Auth Service ──────────────────────────────────────────────────────────
+  # ── Auth Service ─────────────────────────────────────────────────────────────
   auth-service:
     build:
       context: ../..
-      dockerfile: backend/services/auth-service/Dockerfile
-    container_name: gymcoach-auth
+      dockerfile: backend/services/auth-service/Dockerfile.dev
+    container_name: gymcoach-auth-dev
     ports:
       - "3001:3001"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
@@ -87,61 +128,67 @@ services:
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:
       - ../../.env
+    volumes:
+      - ../../backend/services/auth-service/src:/app/backend/services/auth-service/src
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 15s
-    restart: unless-stopped
+      start_period: 25s
     dns:
       - 8.8.8.8
 
-  # ── User Service ──────────────────────────────────────────────────────────
+  # ── User Service ─────────────────────────────────────────────────────────────
+  # Slowest image to build (Python + torch + EasyOCR). Build once and reuse.
   user-service:
     build:
       context: ../..
-      dockerfile: backend/services/user-service/Dockerfile
-    container_name: gymcoach-user
+      dockerfile: backend/services/user-service/Dockerfile.dev
+    container_name: gymcoach-user-dev
     ports:
       - "3004:3004"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3004
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_user
       AUTH_SERVICE_URL: http://auth-service:3001
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:
       - ../../.env
+    volumes:
+      # TypeScript source — hot-reloaded by tsx watch
+      - ../../backend/services/user-service/src:/app/backend/services/user-service/src
+      # Python OCR scripts — changes take effect on next subprocess call (no restart needed)
+      - ../../backend/services/user-service/inbody_extractor:/app/backend/services/user-service/inbody_extractor
+      # Persist uploaded files across container restarts
+      - user_uploads:/app/backend/services/user-service/uploads
+      - easyocr_models:/root/.EasyOCR/model
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 15s
-    restart: unless-stopped
+      start_period: 30s
     dns:
       - 8.8.8.8
-    volumes:
-      - user_uploads:/app/backend/services/user-service/uploads
-      - easyocr_models:/root/.EasyOCR/model
 
-  # ── Fitness Service ───────────────────────────────────────────────────────
+  # ── Fitness Service ──────────────────────────────────────────────────────────
   fitness-service:
     build:
       context: ../..
-      dockerfile: backend/services/fitness-service/Dockerfile
-    container_name: gymcoach-fitness
+      dockerfile: backend/services/fitness-service/Dockerfile.dev
+    container_name: gymcoach-fitness-dev
     ports:
       - "3002:3002"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3002
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_fitness
       REDIS_HOST: redis
@@ -149,6 +196,8 @@ services:
       AUTH_SERVICE_URL: http://auth-service:3001
     env_file:
       - ../../.env
+    volumes:
+      - ../../backend/services/fitness-service/src:/app/backend/services/fitness-service/src
     depends_on:
       postgres:
         condition: service_healthy
@@ -156,24 +205,23 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 15s
-    restart: unless-stopped
+      start_period: 25s
     dns:
       - 8.8.8.8
 
-  # ── AI Service ────────────────────────────────────────────────────────────
+  # ── AI Service ───────────────────────────────────────────────────────────────
   ai-service:
     build:
       context: ../..
-      dockerfile: backend/services/ai-service/Dockerfile
-    container_name: gymcoach-ai
+      dockerfile: backend/services/ai-service/Dockerfile.dev
+    container_name: gymcoach-ai-dev
     ports:
       - "3003:3003"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3003
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_ai
       REDIS_HOST: redis
@@ -188,6 +236,8 @@ services:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
     env_file:
       - ../../.env
+    volumes:
+      - ../../backend/services/ai-service/src:/app/backend/services/ai-service/src
     depends_on:
       postgres:
         condition: service_healthy
@@ -199,24 +249,23 @@ services:
         condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 15s
-    restart: unless-stopped
+      start_period: 25s
     dns:
       - 8.8.8.8
 
-  # ── Chat Service ─────────────────────────────────────────────────────────
+  # ── Chat Service ─────────────────────────────────────────────────────────────
   chat-service:
     build:
       context: ../..
-      dockerfile: backend/services/chat-service/Dockerfile
-    container_name: gymcoach-chat
+      dockerfile: backend/services/chat-service/Dockerfile.dev
+    container_name: gymcoach-chat-dev
     ports:
       - "3005:3005"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3005
       CHAT_SERVICE_PORT: 3005
       CHAT_DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat
@@ -226,6 +275,8 @@ services:
       CORS_ORIGIN: http://localhost:5173
     env_file:
       - ../../.env
+    volumes:
+      - ../../backend/services/chat-service/src:/app/backend/services/chat-service/src
     depends_on:
       postgres:
         condition: service_healthy
@@ -233,15 +284,14 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 20s
-    restart: unless-stopped
+      start_period: 30s
     dns:
       - 8.8.8.8
 
-  # ── Infrastructure ────────────────────────────────────────────────────────
+  # ── Infrastructure (unchanged from production) ────────────────────────────────
   postgres:
     image: postgres:15-alpine
     container_name: gymcoach-postgres
@@ -286,6 +336,7 @@ services:
       - qdrant_data:/qdrant/storage
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__SERVICE__ENABLE_UI=true
 
   ollama:
     image: ollama/ollama:latest
@@ -296,7 +347,6 @@ services:
       - ollama_data:/root/.ollama
     restart: unless-stopped
 
-  # ── Workflow Orchestration ───────────────────────────────────────────────
   n8n:
     image: n8nio/n8n:latest
     container_name: gymcoach-n8n
@@ -325,7 +375,6 @@ services:
     networks:
       - default
 
-  # ── Monitoring Stack ────────────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:v2.51.0
     container_name: gymcoach-prometheus

@@ -10,39 +10,54 @@ datasource db {
 }
 
 model Conversation {
-  id                    String   @id @default(uuid())
-  userId                String?  @map("user_id")
-  question              String
-  answer                String
-  modelUsed             String   @map("model_used")
-  responseTime          Float    @map("response_time")
-  relevance             String?
-  relevanceExplanation  String?  @map("relevance_explanation")
-  promptTokens          Int      @map("prompt_tokens")
-  completionTokens      Int      @map("completion_tokens")
-  totalTokens           Int      @map("total_tokens")
-  cost                  Float    @default(0)
-  feedback              Int?     // 1 for thumbs up, -1 for thumbs down
-  feedbackTimestamp     DateTime? @map("feedback_timestamp")
-  createdAt             DateTime @default(now()) @map("created_at")
+  id                   String    @id @default(uuid())
+  userId               String?   @map("user_id")
+  question             String
+  answer               String
+  modelUsed            String    @map("model_used")
+  responseTime         Float     @map("response_time")
+  relevance            String?
+  relevanceExplanation String?   @map("relevance_explanation")
+  promptTokens         Int       @map("prompt_tokens")
+  completionTokens     Int       @map("completion_tokens")
+  totalTokens          Int       @map("total_tokens")
+  cost                 Float     @default(0)
+  feedback             Int?
+  feedbackTimestamp    DateTime? @map("feedback_timestamp")
+  createdAt            DateTime  @default(now()) @map("created_at")
 
   @@index([userId, createdAt])
   @@index([createdAt])
   @@map("conversations")
 }
 
+enum PlanStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model WorkoutPlan {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
+  id          String     @id @default(uuid())
+  userId      String     @map("user_id")
   name        String
   description String?
   goal        String
-  duration    Int      // weeks
-  daysPerWeek Int      @map("days_per_week")
-  plan        Json     // Store full workout plan as JSON
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  duration    Int
+  daysPerWeek Int        @map("days_per_week")
+  /// Structured JSON matching PlanContentSchema once COMPLETED; empty object while QUEUED/PROCESSING
+  plan        Json
+  status      PlanStatus @default(QUEUED)
+  version     Int        @default(1)
+  /// BullMQ job ID — used for polling via GET /plans/job/:jobId
+  jobId       String?    @map("job_id")
+  failReason  String?    @map("fail_reason")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
 
   @@index([userId])
+  @@index([jobId])
+  @@index([userId, status])
   @@map("workout_plans")
 }

@@ -30,7 +30,7 @@ function generateAccessToken(userId: string, role: string, email: string): strin
 }
 
 function generateRefreshToken(userId: string): string {
-  return jwt.sign({ userId }, REFRESH_TOKEN_SECRET, {
+  return jwt.sign({ userId, jti: crypto.randomUUID() }, REFRESH_TOKEN_SECRET, {
     expiresIn: REFRESH_TOKEN_EXPIRY,
   });
 }

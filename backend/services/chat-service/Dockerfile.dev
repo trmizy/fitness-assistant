@@ -1,0 +1,29 @@
+FROM node:20-alpine
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+RUN apk add --no-cache openssl wget
+
+WORKDIR /app
+
+# ── Install dependencies (cached layer) ──────────────────────────────────────
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY backend/shared/package.json                       ./backend/shared/
+COPY backend/services/chat-service/package.json        ./backend/services/chat-service/
+RUN pnpm install --filter @gym-coach/chat-service
+
+# ── Pre-build @gym-coach/shared ───────────────────────────────────────────────
+COPY tsconfig.base.json                                ./
+COPY backend/shared/tsconfig.json                      ./backend/shared/
+COPY backend/shared/src                                ./backend/shared/src
+RUN pnpm --filter @gym-coach/shared build
+
+# ── Generate Prisma client ────────────────────────────────────────────────────
+COPY backend/services/chat-service/prisma              ./backend/services/chat-service/prisma
+RUN pnpm --filter @gym-coach/chat-service db:generate
+
+# ── Copy service config (src/ is bind-mounted at runtime) ─────────────────────
+COPY backend/services/chat-service/tsconfig.json       ./backend/services/chat-service/
+
+WORKDIR /app/backend/services/chat-service
+EXPOSE 3005
+
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]

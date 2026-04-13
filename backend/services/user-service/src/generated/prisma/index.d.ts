@@ -2007,6 +2007,7 @@ export namespace Prisma {
     preferredTrainingDays: number | null
     currentWeight: number | null
     targetWeight: number | null
+    sessionDurationMinutes: number | null
   }
 
   export type UserProfileSumAggregateOutputType = {
@@ -2015,6 +2016,7 @@ export namespace Prisma {
     preferredTrainingDays: number[]
     currentWeight: number | null
     targetWeight: number | null
+    sessionDurationMinutes: number | null
   }
 
   export type UserProfileMinAggregateOutputType = {
@@ -2032,6 +2034,7 @@ export namespace Prisma {
     experienceLevel: $Enums.ExperienceLevel | null
     currentWeight: number | null
     targetWeight: number | null
+    sessionDurationMinutes: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2051,6 +2054,7 @@ export namespace Prisma {
     experienceLevel: $Enums.ExperienceLevel | null
     currentWeight: number | null
     targetWeight: number | null
+    sessionDurationMinutes: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2073,6 +2077,7 @@ export namespace Prisma {
     injuries: number
     currentWeight: number
     targetWeight: number
+    sessionDurationMinutes: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -2085,6 +2090,7 @@ export namespace Prisma {
     preferredTrainingDays?: true
     currentWeight?: true
     targetWeight?: true
+    sessionDurationMinutes?: true
   }
 
   export type UserProfileSumAggregateInputType = {
@@ -2093,6 +2099,7 @@ export namespace Prisma {
     preferredTrainingDays?: true
     currentWeight?: true
     targetWeight?: true
+    sessionDurationMinutes?: true
   }
 
   export type UserProfileMinAggregateInputType = {
@@ -2110,6 +2117,7 @@ export namespace Prisma {
     experienceLevel?: true
     currentWeight?: true
     targetWeight?: true
+    sessionDurationMinutes?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2129,6 +2137,7 @@ export namespace Prisma {
     experienceLevel?: true
     currentWeight?: true
     targetWeight?: true
+    sessionDurationMinutes?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2151,6 +2160,7 @@ export namespace Prisma {
     injuries?: true
     currentWeight?: true
     targetWeight?: true
+    sessionDurationMinutes?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -2260,6 +2270,7 @@ export namespace Prisma {
     injuries: string[]
     currentWeight: number | null
     targetWeight: number | null
+    sessionDurationMinutes: number
     createdAt: Date
     updatedAt: Date
     _count: UserProfileCountAggregateOutputType | null
@@ -2301,6 +2312,7 @@ export namespace Prisma {
     injuries?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    sessionDurationMinutes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     ptApplication?: boolean | UserProfile$ptApplicationArgs<ExtArgs>
@@ -2324,6 +2336,7 @@ export namespace Prisma {
     injuries?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    sessionDurationMinutes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["userProfile"]>
@@ -2346,6 +2359,7 @@ export namespace Prisma {
     injuries?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    sessionDurationMinutes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -2378,6 +2392,7 @@ export namespace Prisma {
       injuries: string[]
       currentWeight: number | null
       targetWeight: number | null
+      sessionDurationMinutes: number
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["userProfile"]>
@@ -2791,6 +2806,7 @@ export namespace Prisma {
     readonly injuries: FieldRef<"UserProfile", 'String[]'>
     readonly currentWeight: FieldRef<"UserProfile", 'Float'>
     readonly targetWeight: FieldRef<"UserProfile", 'Float'>
+    readonly sessionDurationMinutes: FieldRef<"UserProfile", 'Int'>
     readonly createdAt: FieldRef<"UserProfile", 'DateTime'>
     readonly updatedAt: FieldRef<"UserProfile", 'DateTime'>
   }
@@ -3150,14 +3166,18 @@ export namespace Prisma {
 
   export type PTApplicationAvgAggregateOutputType = {
     desiredSessionPrice: number | null
-    packagePrice: number | null
     monthlyProgramPrice: number | null
+    packagePrice: number | null
+    sessionsPerPackage: number | null
+    sessionDurationMinutes: number | null
   }
 
   export type PTApplicationSumAggregateOutputType = {
     desiredSessionPrice: number | null
-    packagePrice: number | null
     monthlyProgramPrice: number | null
+    packagePrice: number | null
+    sessionsPerPackage: number | null
+    sessionDurationMinutes: number | null
   }
 
   export type PTApplicationMinAggregateOutputType = {
@@ -3184,8 +3204,10 @@ export namespace Prisma {
     availableFrom: string | null
     availableUntil: string | null
     gymAffiliation: string | null
-    packagePrice: number | null
     monthlyProgramPrice: number | null
+    packagePrice: number | null
+    sessionsPerPackage: number | null
+    sessionDurationMinutes: number | null
     additionalPricingNotes: string | null
     otherReferences: string | null
     adminNote: string | null
@@ -3221,8 +3243,10 @@ export namespace Prisma {
     availableFrom: string | null
     availableUntil: string | null
     gymAffiliation: string | null
-    packagePrice: number | null
     monthlyProgramPrice: number | null
+    packagePrice: number | null
+    sessionsPerPackage: number | null
+    sessionDurationMinutes: number | null
     additionalPricingNotes: string | null
     otherReferences: string | null
     adminNote: string | null
@@ -3265,8 +3289,11 @@ export namespace Prisma {
     availableFrom: number
     availableUntil: number
     gymAffiliation: number
-    packagePrice: number
     monthlyProgramPrice: number
+    packagePrice: number
+    sessionsPerPackage: number
+    sessionDurationMinutes: number
+    availabilityBlocks: number
     additionalPricingNotes: number
     otherReferences: number
     adminNote: number
@@ -3282,14 +3309,18 @@ export namespace Prisma {
 
   export type PTApplicationAvgAggregateInputType = {
     desiredSessionPrice?: true
-    packagePrice?: true
     monthlyProgramPrice?: true
+    packagePrice?: true
+    sessionsPerPackage?: true
+    sessionDurationMinutes?: true
   }
 
   export type PTApplicationSumAggregateInputType = {
     desiredSessionPrice?: true
-    packagePrice?: true
     monthlyProgramPrice?: true
+    packagePrice?: true
+    sessionsPerPackage?: true
+    sessionDurationMinutes?: true
   }
 
   export type PTApplicationMinAggregateInputType = {
@@ -3316,8 +3347,10 @@ export namespace Prisma {
     availableFrom?: true
     availableUntil?: true
     gymAffiliation?: true
-    packagePrice?: true
     monthlyProgramPrice?: true
+    packagePrice?: true
+    sessionsPerPackage?: true
+    sessionDurationMinutes?: true
     additionalPricingNotes?: true
     otherReferences?: true
     adminNote?: true
@@ -3353,8 +3386,10 @@ export namespace Prisma {
     availableFrom?: true
     availableUntil?: true
     gymAffiliation?: true
-    packagePrice?: true
     monthlyProgramPrice?: true
+    packagePrice?: true
+    sessionsPerPackage?: true
+    sessionDurationMinutes?: true
     additionalPricingNotes?: true
     otherReferences?: true
     adminNote?: true
@@ -3397,8 +3432,11 @@ export namespace Prisma {
     availableFrom?: true
     availableUntil?: true
     gymAffiliation?: true
-    packagePrice?: true
     monthlyProgramPrice?: true
+    packagePrice?: true
+    sessionsPerPackage?: true
+    sessionDurationMinutes?: true
+    availabilityBlocks?: true
     additionalPricingNotes?: true
     otherReferences?: true
     adminNote?: true
@@ -3528,8 +3566,11 @@ export namespace Prisma {
     availableFrom: string | null
     availableUntil: string | null
     gymAffiliation: string | null
-    packagePrice: number | null
     monthlyProgramPrice: number | null
+    packagePrice: number | null
+    sessionsPerPackage: number
+    sessionDurationMinutes: number
+    availabilityBlocks: JsonValue | null
     additionalPricingNotes: string | null
     otherReferences: string | null
     adminNote: string | null
@@ -3591,8 +3632,11 @@ export namespace Prisma {
     availableFrom?: boolean
     availableUntil?: boolean
     gymAffiliation?: boolean
-    packagePrice?: boolean
     monthlyProgramPrice?: boolean
+    packagePrice?: boolean
+    sessionsPerPackage?: boolean
+    sessionDurationMinutes?: boolean
+    availabilityBlocks?: boolean
     additionalPricingNotes?: boolean
     otherReferences?: boolean
     adminNote?: boolean
@@ -3639,8 +3683,11 @@ export namespace Prisma {
     availableFrom?: boolean
     availableUntil?: boolean
     gymAffiliation?: boolean
-    packagePrice?: boolean
     monthlyProgramPrice?: boolean
+    packagePrice?: boolean
+    sessionsPerPackage?: boolean
+    sessionDurationMinutes?: boolean
+    availabilityBlocks?: boolean
     additionalPricingNotes?: boolean
     otherReferences?: boolean
     adminNote?: boolean
@@ -3684,8 +3731,11 @@ export namespace Prisma {
     availableFrom?: boolean
     availableUntil?: boolean
     gymAffiliation?: boolean
-    packagePrice?: boolean
     monthlyProgramPrice?: boolean
+    packagePrice?: boolean
+    sessionsPerPackage?: boolean
+    sessionDurationMinutes?: boolean
+    availabilityBlocks?: boolean
     additionalPricingNotes?: boolean
     otherReferences?: boolean
     adminNote?: boolean
@@ -3745,8 +3795,11 @@ export namespace Prisma {
       availableFrom: string | null
       availableUntil: string | null
       gymAffiliation: string | null
-      packagePrice: number | null
       monthlyProgramPrice: number | null
+      packagePrice: number | null
+      sessionsPerPackage: number
+      sessionDurationMinutes: number
+      availabilityBlocks: Prisma.JsonValue | null
       additionalPricingNotes: string | null
       otherReferences: string | null
       adminNote: string | null
@@ -4182,8 +4235,11 @@ export namespace Prisma {
     readonly availableFrom: FieldRef<"PTApplication", 'String'>
     readonly availableUntil: FieldRef<"PTApplication", 'String'>
     readonly gymAffiliation: FieldRef<"PTApplication", 'String'>
-    readonly packagePrice: FieldRef<"PTApplication", 'Float'>
     readonly monthlyProgramPrice: FieldRef<"PTApplication", 'Float'>
+    readonly packagePrice: FieldRef<"PTApplication", 'Float'>
+    readonly sessionsPerPackage: FieldRef<"PTApplication", 'Int'>
+    readonly sessionDurationMinutes: FieldRef<"PTApplication", 'Int'>
+    readonly availabilityBlocks: FieldRef<"PTApplication", 'Json'>
     readonly additionalPricingNotes: FieldRef<"PTApplication", 'String'>
     readonly otherReferences: FieldRef<"PTApplication", 'String'>
     readonly adminNote: FieldRef<"PTApplication", 'String'>
@@ -6516,6 +6572,8 @@ export namespace Prisma {
   }
 
   export type ContractAvgAggregateOutputType = {
+    packageQuantity: number | null
+    extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
     price: number | null
@@ -6523,6 +6581,8 @@ export namespace Prisma {
   }
 
   export type ContractSumAggregateOutputType = {
+    packageQuantity: number | null
+    extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
     price: number | null
@@ -6537,6 +6597,8 @@ export namespace Prisma {
     packageType: $Enums.PackageType | null
     packageName: string | null
     description: string | null
+    packageQuantity: number | null
+    extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
     price: number | null
@@ -6562,6 +6624,8 @@ export namespace Prisma {
     packageType: $Enums.PackageType | null
     packageName: string | null
     description: string | null
+    packageQuantity: number | null
+    extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
     price: number | null
@@ -6587,6 +6651,8 @@ export namespace Prisma {
     packageType: number
     packageName: number
     description: number
+    packageQuantity: number
+    extraSessions: number
     totalSessions: number
     usedSessions: number
     price: number
@@ -6607,6 +6673,8 @@ export namespace Prisma {
 
 
   export type ContractAvgAggregateInputType = {
+    packageQuantity?: true
+    extraSessions?: true
     totalSessions?: true
     usedSessions?: true
     price?: true
@@ -6614,6 +6682,8 @@ export namespace Prisma {
   }
 
   export type ContractSumAggregateInputType = {
+    packageQuantity?: true
+    extraSessions?: true
     totalSessions?: true
     usedSessions?: true
     price?: true
@@ -6628,6 +6698,8 @@ export namespace Prisma {
     packageType?: true
     packageName?: true
     description?: true
+    packageQuantity?: true
+    extraSessions?: true
     totalSessions?: true
     usedSessions?: true
     price?: true
@@ -6653,6 +6725,8 @@ export namespace Prisma {
     packageType?: true
     packageName?: true
     description?: true
+    packageQuantity?: true
+    extraSessions?: true
     totalSessions?: true
     usedSessions?: true
     price?: true
@@ -6678,6 +6752,8 @@ export namespace Prisma {
     packageType?: true
     packageName?: true
     description?: true
+    packageQuantity?: true
+    extraSessions?: true
     totalSessions?: true
     usedSessions?: true
     price?: true
@@ -6790,6 +6866,8 @@ export namespace Prisma {
     packageType: $Enums.PackageType
     packageName: string
     description: string | null
+    packageQuantity: number
+    extraSessions: number
     totalSessions: number
     usedSessions: number
     price: number | null
@@ -6834,6 +6912,8 @@ export namespace Prisma {
     packageType?: boolean
     packageName?: boolean
     description?: boolean
+    packageQuantity?: boolean
+    extraSessions?: boolean
     totalSessions?: boolean
     usedSessions?: boolean
     price?: boolean
@@ -6862,6 +6942,8 @@ export namespace Prisma {
     packageType?: boolean
     packageName?: boolean
     description?: boolean
+    packageQuantity?: boolean
+    extraSessions?: boolean
     totalSessions?: boolean
     usedSessions?: boolean
     price?: boolean
@@ -6887,6 +6969,8 @@ export namespace Prisma {
     packageType?: boolean
     packageName?: boolean
     description?: boolean
+    packageQuantity?: boolean
+    extraSessions?: boolean
     totalSessions?: boolean
     usedSessions?: boolean
     price?: boolean
@@ -6925,6 +7009,8 @@ export namespace Prisma {
       packageType: $Enums.PackageType
       packageName: string
       description: string | null
+      packageQuantity: number
+      extraSessions: number
       totalSessions: number
       usedSessions: number
       price: number | null
@@ -7342,6 +7428,8 @@ export namespace Prisma {
     readonly packageType: FieldRef<"Contract", 'PackageType'>
     readonly packageName: FieldRef<"Contract", 'String'>
     readonly description: FieldRef<"Contract", 'String'>
+    readonly packageQuantity: FieldRef<"Contract", 'Int'>
+    readonly extraSessions: FieldRef<"Contract", 'Int'>
     readonly totalSessions: FieldRef<"Contract", 'Int'>
     readonly usedSessions: FieldRef<"Contract", 'Int'>
     readonly price: FieldRef<"Contract", 'Float'>
@@ -13784,6 +13872,7 @@ export namespace Prisma {
     injuries: 'injuries',
     currentWeight: 'currentWeight',
     targetWeight: 'targetWeight',
+    sessionDurationMinutes: 'sessionDurationMinutes',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -13822,8 +13911,11 @@ export namespace Prisma {
     availableFrom: 'availableFrom',
     availableUntil: 'availableUntil',
     gymAffiliation: 'gymAffiliation',
-    packagePrice: 'packagePrice',
     monthlyProgramPrice: 'monthlyProgramPrice',
+    packagePrice: 'packagePrice',
+    sessionsPerPackage: 'sessionsPerPackage',
+    sessionDurationMinutes: 'sessionDurationMinutes',
+    availabilityBlocks: 'availabilityBlocks',
     additionalPricingNotes: 'additionalPricingNotes',
     otherReferences: 'otherReferences',
     adminNote: 'adminNote',
@@ -13874,6 +13966,8 @@ export namespace Prisma {
     packageType: 'packageType',
     packageName: 'packageName',
     description: 'description',
+    packageQuantity: 'packageQuantity',
+    extraSessions: 'extraSessions',
     totalSessions: 'totalSessions',
     usedSessions: 'usedSessions',
     price: 'price',
@@ -14337,6 +14431,7 @@ export namespace Prisma {
     injuries?: StringNullableListFilter<"UserProfile">
     currentWeight?: FloatNullableFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    sessionDurationMinutes?: IntFilter<"UserProfile"> | number
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
     ptApplication?: XOR<PTApplicationNullableRelationFilter, PTApplicationWhereInput> | null
@@ -14360,6 +14455,7 @@ export namespace Prisma {
     injuries?: SortOrder
     currentWeight?: SortOrderInput | SortOrder
     targetWeight?: SortOrderInput | SortOrder
+    sessionDurationMinutes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     ptApplication?: PTApplicationOrderByWithRelationInput
@@ -14386,6 +14482,7 @@ export namespace Prisma {
     injuries?: StringNullableListFilter<"UserProfile">
     currentWeight?: FloatNullableFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    sessionDurationMinutes?: IntFilter<"UserProfile"> | number
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
     ptApplication?: XOR<PTApplicationNullableRelationFilter, PTApplicationWhereInput> | null
@@ -14409,6 +14506,7 @@ export namespace Prisma {
     injuries?: SortOrder
     currentWeight?: SortOrderInput | SortOrder
     targetWeight?: SortOrderInput | SortOrder
+    sessionDurationMinutes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserProfileCountOrderByAggregateInput
@@ -14439,6 +14537,7 @@ export namespace Prisma {
     injuries?: StringNullableListFilter<"UserProfile">
     currentWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
+    sessionDurationMinutes?: IntWithAggregatesFilter<"UserProfile"> | number
     createdAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
   }
@@ -14477,8 +14576,11 @@ export namespace Prisma {
     availableFrom?: StringNullableFilter<"PTApplication"> | string | null
     availableUntil?: StringNullableFilter<"PTApplication"> | string | null
     gymAffiliation?: StringNullableFilter<"PTApplication"> | string | null
-    packagePrice?: FloatNullableFilter<"PTApplication"> | number | null
     monthlyProgramPrice?: FloatNullableFilter<"PTApplication"> | number | null
+    packagePrice?: FloatNullableFilter<"PTApplication"> | number | null
+    sessionsPerPackage?: IntFilter<"PTApplication"> | number
+    sessionDurationMinutes?: IntFilter<"PTApplication"> | number
+    availabilityBlocks?: JsonNullableFilter<"PTApplication">
     additionalPricingNotes?: StringNullableFilter<"PTApplication"> | string | null
     otherReferences?: StringNullableFilter<"PTApplication"> | string | null
     adminNote?: StringNullableFilter<"PTApplication"> | string | null
@@ -14524,8 +14626,11 @@ export namespace Prisma {
     availableFrom?: SortOrderInput | SortOrder
     availableUntil?: SortOrderInput | SortOrder
     gymAffiliation?: SortOrderInput | SortOrder
-    packagePrice?: SortOrderInput | SortOrder
     monthlyProgramPrice?: SortOrderInput | SortOrder
+    packagePrice?: SortOrderInput | SortOrder
+    sessionsPerPackage?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    availabilityBlocks?: SortOrderInput | SortOrder
     additionalPricingNotes?: SortOrderInput | SortOrder
     otherReferences?: SortOrderInput | SortOrder
     adminNote?: SortOrderInput | SortOrder
@@ -14574,8 +14679,11 @@ export namespace Prisma {
     availableFrom?: StringNullableFilter<"PTApplication"> | string | null
     availableUntil?: StringNullableFilter<"PTApplication"> | string | null
     gymAffiliation?: StringNullableFilter<"PTApplication"> | string | null
-    packagePrice?: FloatNullableFilter<"PTApplication"> | number | null
     monthlyProgramPrice?: FloatNullableFilter<"PTApplication"> | number | null
+    packagePrice?: FloatNullableFilter<"PTApplication"> | number | null
+    sessionsPerPackage?: IntFilter<"PTApplication"> | number
+    sessionDurationMinutes?: IntFilter<"PTApplication"> | number
+    availabilityBlocks?: JsonNullableFilter<"PTApplication">
     additionalPricingNotes?: StringNullableFilter<"PTApplication"> | string | null
     otherReferences?: StringNullableFilter<"PTApplication"> | string | null
     adminNote?: StringNullableFilter<"PTApplication"> | string | null
@@ -14621,8 +14729,11 @@ export namespace Prisma {
     availableFrom?: SortOrderInput | SortOrder
     availableUntil?: SortOrderInput | SortOrder
     gymAffiliation?: SortOrderInput | SortOrder
-    packagePrice?: SortOrderInput | SortOrder
     monthlyProgramPrice?: SortOrderInput | SortOrder
+    packagePrice?: SortOrderInput | SortOrder
+    sessionsPerPackage?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    availabilityBlocks?: SortOrderInput | SortOrder
     additionalPricingNotes?: SortOrderInput | SortOrder
     otherReferences?: SortOrderInput | SortOrder
     adminNote?: SortOrderInput | SortOrder
@@ -14673,8 +14784,11 @@ export namespace Prisma {
     availableFrom?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     availableUntil?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     gymAffiliation?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
-    packagePrice?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
     monthlyProgramPrice?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
+    packagePrice?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
+    sessionsPerPackage?: IntWithAggregatesFilter<"PTApplication"> | number
+    sessionDurationMinutes?: IntWithAggregatesFilter<"PTApplication"> | number
+    availabilityBlocks?: JsonNullableWithAggregatesFilter<"PTApplication">
     additionalPricingNotes?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     otherReferences?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     adminNote?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
@@ -14837,6 +14951,8 @@ export namespace Prisma {
     packageType?: EnumPackageTypeFilter<"Contract"> | $Enums.PackageType
     packageName?: StringFilter<"Contract"> | string
     description?: StringNullableFilter<"Contract"> | string | null
+    packageQuantity?: IntFilter<"Contract"> | number
+    extraSessions?: IntFilter<"Contract"> | number
     totalSessions?: IntFilter<"Contract"> | number
     usedSessions?: IntFilter<"Contract"> | number
     price?: FloatNullableFilter<"Contract"> | number | null
@@ -14864,6 +14980,8 @@ export namespace Prisma {
     packageType?: SortOrder
     packageName?: SortOrder
     description?: SortOrderInput | SortOrder
+    packageQuantity?: SortOrder
+    extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
     price?: SortOrderInput | SortOrder
@@ -14894,6 +15012,8 @@ export namespace Prisma {
     packageType?: EnumPackageTypeFilter<"Contract"> | $Enums.PackageType
     packageName?: StringFilter<"Contract"> | string
     description?: StringNullableFilter<"Contract"> | string | null
+    packageQuantity?: IntFilter<"Contract"> | number
+    extraSessions?: IntFilter<"Contract"> | number
     totalSessions?: IntFilter<"Contract"> | number
     usedSessions?: IntFilter<"Contract"> | number
     price?: FloatNullableFilter<"Contract"> | number | null
@@ -14921,6 +15041,8 @@ export namespace Prisma {
     packageType?: SortOrder
     packageName?: SortOrder
     description?: SortOrderInput | SortOrder
+    packageQuantity?: SortOrder
+    extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
     price?: SortOrderInput | SortOrder
@@ -14954,6 +15076,8 @@ export namespace Prisma {
     packageType?: EnumPackageTypeWithAggregatesFilter<"Contract"> | $Enums.PackageType
     packageName?: StringWithAggregatesFilter<"Contract"> | string
     description?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    packageQuantity?: IntWithAggregatesFilter<"Contract"> | number
+    extraSessions?: IntWithAggregatesFilter<"Contract"> | number
     totalSessions?: IntWithAggregatesFilter<"Contract"> | number
     usedSessions?: IntWithAggregatesFilter<"Contract"> | number
     price?: FloatNullableWithAggregatesFilter<"Contract"> | number | null
@@ -15522,6 +15646,7 @@ export namespace Prisma {
     injuries?: UserProfileCreateinjuriesInput | string[]
     currentWeight?: number | null
     targetWeight?: number | null
+    sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
@@ -15545,6 +15670,7 @@ export namespace Prisma {
     injuries?: UserProfileCreateinjuriesInput | string[]
     currentWeight?: number | null
     targetWeight?: number | null
+    sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
@@ -15568,6 +15694,7 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
@@ -15591,6 +15718,7 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
@@ -15614,6 +15742,7 @@ export namespace Prisma {
     injuries?: UserProfileCreateinjuriesInput | string[]
     currentWeight?: number | null
     targetWeight?: number | null
+    sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -15636,6 +15765,7 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -15658,6 +15788,7 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -15692,8 +15823,11 @@ export namespace Prisma {
     availableFrom?: string | null
     availableUntil?: string | null
     gymAffiliation?: string | null
-    packagePrice?: number | null
     monthlyProgramPrice?: number | null
+    packagePrice?: number | null
+    sessionsPerPackage?: number
+    sessionDurationMinutes?: number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
     otherReferences?: string | null
     adminNote?: string | null
@@ -15739,8 +15873,11 @@ export namespace Prisma {
     availableFrom?: string | null
     availableUntil?: string | null
     gymAffiliation?: string | null
-    packagePrice?: number | null
     monthlyProgramPrice?: number | null
+    packagePrice?: number | null
+    sessionsPerPackage?: number
+    sessionDurationMinutes?: number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
     otherReferences?: string | null
     adminNote?: string | null
@@ -15784,8 +15921,11 @@ export namespace Prisma {
     availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
     availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
     gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
-    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionsPerPackage?: IntFieldUpdateOperationsInput | number
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15831,8 +15971,11 @@ export namespace Prisma {
     availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
     availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
     gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
-    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionsPerPackage?: IntFieldUpdateOperationsInput | number
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15877,8 +16020,11 @@ export namespace Prisma {
     availableFrom?: string | null
     availableUntil?: string | null
     gymAffiliation?: string | null
-    packagePrice?: number | null
     monthlyProgramPrice?: number | null
+    packagePrice?: number | null
+    sessionsPerPackage?: number
+    sessionDurationMinutes?: number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
     otherReferences?: string | null
     adminNote?: string | null
@@ -15920,8 +16066,11 @@ export namespace Prisma {
     availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
     availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
     gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
-    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionsPerPackage?: IntFieldUpdateOperationsInput | number
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15964,8 +16113,11 @@ export namespace Prisma {
     availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
     availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
     gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
-    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionsPerPackage?: IntFieldUpdateOperationsInput | number
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16137,6 +16289,8 @@ export namespace Prisma {
     packageType?: $Enums.PackageType
     packageName: string
     description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
     totalSessions: number
     usedSessions?: number
     price?: number | null
@@ -16164,6 +16318,8 @@ export namespace Prisma {
     packageType?: $Enums.PackageType
     packageName: string
     description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
     totalSessions: number
     usedSessions?: number
     price?: number | null
@@ -16191,6 +16347,8 @@ export namespace Prisma {
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -16218,6 +16376,8 @@ export namespace Prisma {
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -16245,6 +16405,8 @@ export namespace Prisma {
     packageType?: $Enums.PackageType
     packageName: string
     description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
     totalSessions: number
     usedSessions?: number
     price?: number | null
@@ -16270,6 +16432,8 @@ export namespace Prisma {
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -16295,6 +16459,8 @@ export namespace Prisma {
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -17037,6 +17203,17 @@ export namespace Prisma {
     isEmpty?: boolean
   }
 
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -17076,6 +17253,7 @@ export namespace Prisma {
     injuries?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    sessionDurationMinutes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17086,6 +17264,7 @@ export namespace Prisma {
     preferredTrainingDays?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    sessionDurationMinutes?: SortOrder
   }
 
   export type UserProfileMaxOrderByAggregateInput = {
@@ -17103,6 +17282,7 @@ export namespace Prisma {
     experienceLevel?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    sessionDurationMinutes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17122,6 +17302,7 @@ export namespace Prisma {
     experienceLevel?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    sessionDurationMinutes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17132,6 +17313,7 @@ export namespace Prisma {
     preferredTrainingDays?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    sessionDurationMinutes?: SortOrder
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -17248,6 +17430,22 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumExperienceLevelNullableFilter<$PrismaModel>
     _max?: NestedEnumExperienceLevelNullableFilter<$PrismaModel>
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -17367,8 +17565,11 @@ export namespace Prisma {
     availableFrom?: SortOrder
     availableUntil?: SortOrder
     gymAffiliation?: SortOrder
-    packagePrice?: SortOrder
     monthlyProgramPrice?: SortOrder
+    packagePrice?: SortOrder
+    sessionsPerPackage?: SortOrder
+    sessionDurationMinutes?: SortOrder
+    availabilityBlocks?: SortOrder
     additionalPricingNotes?: SortOrder
     otherReferences?: SortOrder
     adminNote?: SortOrder
@@ -17382,8 +17583,10 @@ export namespace Prisma {
 
   export type PTApplicationAvgOrderByAggregateInput = {
     desiredSessionPrice?: SortOrder
-    packagePrice?: SortOrder
     monthlyProgramPrice?: SortOrder
+    packagePrice?: SortOrder
+    sessionsPerPackage?: SortOrder
+    sessionDurationMinutes?: SortOrder
   }
 
   export type PTApplicationMaxOrderByAggregateInput = {
@@ -17410,8 +17613,10 @@ export namespace Prisma {
     availableFrom?: SortOrder
     availableUntil?: SortOrder
     gymAffiliation?: SortOrder
-    packagePrice?: SortOrder
     monthlyProgramPrice?: SortOrder
+    packagePrice?: SortOrder
+    sessionsPerPackage?: SortOrder
+    sessionDurationMinutes?: SortOrder
     additionalPricingNotes?: SortOrder
     otherReferences?: SortOrder
     adminNote?: SortOrder
@@ -17447,8 +17652,10 @@ export namespace Prisma {
     availableFrom?: SortOrder
     availableUntil?: SortOrder
     gymAffiliation?: SortOrder
-    packagePrice?: SortOrder
     monthlyProgramPrice?: SortOrder
+    packagePrice?: SortOrder
+    sessionsPerPackage?: SortOrder
+    sessionDurationMinutes?: SortOrder
     additionalPricingNotes?: SortOrder
     otherReferences?: SortOrder
     adminNote?: SortOrder
@@ -17462,8 +17669,10 @@ export namespace Prisma {
 
   export type PTApplicationSumOrderByAggregateInput = {
     desiredSessionPrice?: SortOrder
-    packagePrice?: SortOrder
     monthlyProgramPrice?: SortOrder
+    packagePrice?: SortOrder
+    sessionsPerPackage?: SortOrder
+    sessionDurationMinutes?: SortOrder
   }
 
   export type EnumPTApplicationStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -17627,17 +17836,6 @@ export namespace Prisma {
     not?: NestedEnumPackageTypeFilter<$PrismaModel> | $Enums.PackageType
   }
 
-  export type IntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
-  }
-
   export type SessionListRelationFilter = {
     every?: SessionWhereInput
     some?: SessionWhereInput
@@ -17666,6 +17864,8 @@ export namespace Prisma {
     packageType?: SortOrder
     packageName?: SortOrder
     description?: SortOrder
+    packageQuantity?: SortOrder
+    extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
     price?: SortOrder
@@ -17684,6 +17884,8 @@ export namespace Prisma {
   }
 
   export type ContractAvgOrderByAggregateInput = {
+    packageQuantity?: SortOrder
+    extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
     price?: SortOrder
@@ -17698,6 +17900,8 @@ export namespace Prisma {
     packageType?: SortOrder
     packageName?: SortOrder
     description?: SortOrder
+    packageQuantity?: SortOrder
+    extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
     price?: SortOrder
@@ -17723,6 +17927,8 @@ export namespace Prisma {
     packageType?: SortOrder
     packageName?: SortOrder
     description?: SortOrder
+    packageQuantity?: SortOrder
+    extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
     price?: SortOrder
@@ -17741,6 +17947,8 @@ export namespace Prisma {
   }
 
   export type ContractSumOrderByAggregateInput = {
+    packageQuantity?: SortOrder
+    extraSessions?: SortOrder
     totalSessions?: SortOrder
     usedSessions?: SortOrder
     price?: SortOrder
@@ -17765,22 +17973,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPackageTypeFilter<$PrismaModel>
     _max?: NestedEnumPackageTypeFilter<$PrismaModel>
-  }
-
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type EnumSessionStatusFilter<$PrismaModel = never> = {
@@ -18308,6 +18500,14 @@ export namespace Prisma {
     push?: string | string[]
   }
 
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
   export type DateTimeFieldUpdateOperationsInput = {
     set?: Date | string
   }
@@ -18555,14 +18755,6 @@ export namespace Prisma {
     set?: $Enums.PackageType
   }
 
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
-  }
-
   export type SessionUpdateManyWithoutContractNestedInput = {
     create?: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput> | SessionCreateWithoutContractInput[] | SessionUncheckedCreateWithoutContractInput[]
     connectOrCreate?: SessionCreateOrConnectWithoutContractInput | SessionCreateOrConnectWithoutContractInput[]
@@ -18804,6 +18996,17 @@ export namespace Prisma {
     not?: NestedEnumExperienceLevelNullableFilter<$PrismaModel> | $Enums.ExperienceLevel | null
   }
 
+  export type NestedIntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
   export type NestedDateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -18830,17 +19033,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
-  }
-
-  export type NestedIntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
   }
 
   export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -18938,6 +19130,33 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumExperienceLevelNullableFilter<$PrismaModel>
     _max?: NestedEnumExperienceLevelNullableFilter<$PrismaModel>
+  }
+
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
   }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -19086,33 +19305,6 @@ export namespace Prisma {
     _max?: NestedEnumPackageTypeFilter<$PrismaModel>
   }
 
-  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
-  }
-
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
-  }
-
   export type NestedEnumSessionStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.SessionStatus | EnumSessionStatusFieldRefInput<$PrismaModel>
     in?: $Enums.SessionStatus[] | ListEnumSessionStatusFieldRefInput<$PrismaModel>
@@ -19244,8 +19436,11 @@ export namespace Prisma {
     availableFrom?: string | null
     availableUntil?: string | null
     gymAffiliation?: string | null
-    packagePrice?: number | null
     monthlyProgramPrice?: number | null
+    packagePrice?: number | null
+    sessionsPerPackage?: number
+    sessionDurationMinutes?: number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
     otherReferences?: string | null
     adminNote?: string | null
@@ -19289,8 +19484,11 @@ export namespace Prisma {
     availableFrom?: string | null
     availableUntil?: string | null
     gymAffiliation?: string | null
-    packagePrice?: number | null
     monthlyProgramPrice?: number | null
+    packagePrice?: number | null
+    sessionsPerPackage?: number
+    sessionDurationMinutes?: number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
     otherReferences?: string | null
     adminNote?: string | null
@@ -19350,8 +19548,11 @@ export namespace Prisma {
     availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
     availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
     gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
-    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionsPerPackage?: IntFieldUpdateOperationsInput | number
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19395,8 +19596,11 @@ export namespace Prisma {
     availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
     availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
     gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
-    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionsPerPackage?: IntFieldUpdateOperationsInput | number
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19488,6 +19692,7 @@ export namespace Prisma {
     injuries?: UserProfileCreateinjuriesInput | string[]
     currentWeight?: number | null
     targetWeight?: number | null
+    sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -19510,6 +19715,7 @@ export namespace Prisma {
     injuries?: UserProfileCreateinjuriesInput | string[]
     currentWeight?: number | null
     targetWeight?: number | null
+    sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -19608,6 +19814,7 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -19630,6 +19837,7 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -19664,8 +19872,11 @@ export namespace Prisma {
     availableFrom?: string | null
     availableUntil?: string | null
     gymAffiliation?: string | null
-    packagePrice?: number | null
     monthlyProgramPrice?: number | null
+    packagePrice?: number | null
+    sessionsPerPackage?: number
+    sessionDurationMinutes?: number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
     otherReferences?: string | null
     adminNote?: string | null
@@ -19710,8 +19921,11 @@ export namespace Prisma {
     availableFrom?: string | null
     availableUntil?: string | null
     gymAffiliation?: string | null
-    packagePrice?: number | null
     monthlyProgramPrice?: number | null
+    packagePrice?: number | null
+    sessionsPerPackage?: number
+    sessionDurationMinutes?: number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
     otherReferences?: string | null
     adminNote?: string | null
@@ -19770,8 +19984,11 @@ export namespace Prisma {
     availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
     availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
     gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
-    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionsPerPackage?: IntFieldUpdateOperationsInput | number
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19816,8 +20033,11 @@ export namespace Prisma {
     availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
     availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
     gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
-    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionsPerPackage?: IntFieldUpdateOperationsInput | number
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19860,8 +20080,11 @@ export namespace Prisma {
     availableFrom?: string | null
     availableUntil?: string | null
     gymAffiliation?: string | null
-    packagePrice?: number | null
     monthlyProgramPrice?: number | null
+    packagePrice?: number | null
+    sessionsPerPackage?: number
+    sessionDurationMinutes?: number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
     otherReferences?: string | null
     adminNote?: string | null
@@ -19906,8 +20129,11 @@ export namespace Prisma {
     availableFrom?: string | null
     availableUntil?: string | null
     gymAffiliation?: string | null
-    packagePrice?: number | null
     monthlyProgramPrice?: number | null
+    packagePrice?: number | null
+    sessionsPerPackage?: number
+    sessionDurationMinutes?: number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
     otherReferences?: string | null
     adminNote?: string | null
@@ -19966,8 +20192,11 @@ export namespace Prisma {
     availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
     availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
     gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
-    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionsPerPackage?: IntFieldUpdateOperationsInput | number
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20012,8 +20241,11 @@ export namespace Prisma {
     availableFrom?: NullableStringFieldUpdateOperationsInput | string | null
     availableUntil?: NullableStringFieldUpdateOperationsInput | string | null
     gymAffiliation?: NullableStringFieldUpdateOperationsInput | string | null
-    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     monthlyProgramPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    packagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    sessionsPerPackage?: IntFieldUpdateOperationsInput | number
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20180,6 +20412,8 @@ export namespace Prisma {
     packageType?: $Enums.PackageType
     packageName: string
     description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
     totalSessions: number
     usedSessions?: number
     price?: number | null
@@ -20206,6 +20440,8 @@ export namespace Prisma {
     packageType?: $Enums.PackageType
     packageName: string
     description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
     totalSessions: number
     usedSessions?: number
     price?: number | null
@@ -20271,6 +20507,8 @@ export namespace Prisma {
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -20297,6 +20535,8 @@ export namespace Prisma {
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -20397,6 +20637,8 @@ export namespace Prisma {
     packageType?: $Enums.PackageType
     packageName: string
     description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
     totalSessions: number
     usedSessions?: number
     price?: number | null
@@ -20423,6 +20665,8 @@ export namespace Prisma {
     packageType?: $Enums.PackageType
     packageName: string
     description?: string | null
+    packageQuantity?: number
+    extraSessions?: number
     totalSessions: number
     usedSessions?: number
     price?: number | null
@@ -20516,6 +20760,8 @@ export namespace Prisma {
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -20542,6 +20788,8 @@ export namespace Prisma {
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
+    packageQuantity?: IntFieldUpdateOperationsInput | number
+    extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
     price?: NullableFloatFieldUpdateOperationsInput | number | null
