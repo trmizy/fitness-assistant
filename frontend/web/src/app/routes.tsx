@@ -22,6 +22,7 @@ import { PTApplicationPage } from "./pages/client/PTApplicationPage";
 import { PTDashboard } from "./pages/pt/PTDashboard";
 import { PTClientList } from "./pages/pt/PTClientList";
 import { PTClientDetail } from "./pages/pt/PTClientDetail";
+import { PTContractsPage } from "./pages/pt/PTContractsPage";
 import { PlanReviewPage } from "./pages/pt/PlanReviewPage";
 import { PTSchedulePage } from "./pages/pt/PTSchedulePage";
 import { PTProfilePage } from "./pages/pt/PTProfilePage";
@@ -36,6 +37,7 @@ import { AdminWorkflowStudio } from "./pages/admin/AdminWorkflowStudio";
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
+import { CallProvider } from "./context/CallContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,8 +61,10 @@ function Root() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppProvider>
-        <Toaster position="top-center" expand={false} richColors />
-        <Outlet />
+        <CallProvider>
+          <Toaster position="top-center" expand={false} richColors />
+          <Outlet />
+        </CallProvider>
       </AppProvider>
     </QueryClientProvider>
   );
@@ -105,9 +109,10 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/pt/dashboard" replace /> },
           { path: "dashboard",   Component: PTDashboard    },
-          { path: "clients",     Component: PTClientList   },
-          { path: "clients/:id", Component: PTClientDetail },
-          { path: "plans",       Component: PlanReviewPage },
+          { path: "clients",     Component: PTClientList    },
+          { path: "clients/:id", Component: PTClientDetail  },
+          { path: "contracts",   Component: PTContractsPage },
+          { path: "plans",       Component: PlanReviewPage  },
           { path: "schedule",    Component: PTSchedulePage },
           { path: "profile",     Component: PTProfilePage  },
           { path: "chat",        Component: ChatPage       },

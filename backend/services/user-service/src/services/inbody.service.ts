@@ -1,6 +1,7 @@
 import { inbodyRepository } from '../repositories/inbody.repository';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { ocrExtractionsTotal, ocrExtractionDuration, inbodyUploadsTotal } from '@gym-coach/shared';
 
 const execAsync = promisify(exec);
 
@@ -14,10 +15,12 @@ export const inbodyService = {
   },
 
   async createEntry(userId: string, data: any) {
+    inbodyUploadsTotal.inc({ method: 'manual' });
     return inbodyRepository.create(userId, data);
   },
 
   async extractFromImage(_userId: string, imagePath: string) {
+    const startTime = Date.now();
     try {
       // Call the Python OCR script
       const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
@@ -32,6 +35,12 @@ export const inbodyService = {
       }
 
       const result = JSON.parse(stdout.trim());
+
+      // Record OCR metrics
+      const durationSec = (Date.now() - startTime) / 1000;
+      ocrExtractionsTotal.inc({ status: 'success' });
+      ocrExtractionDuration.observe(durationSec);
+      inbodyUploadsTotal.inc({ method: 'image' });
 
       // Compute BMI and body fat % from extracted values
       const weight = result.weight || 0;
@@ -74,8 +83,14 @@ export const inbodyService = {
       // We don't save immediately, we return to the user for review
       return { result, entryData };
     } catch (error: any) {
+      // Record failure metrics
+      const durationSec = (Date.now() - startTime) / 1000;
+      ocrExtractionsTotal.inc({ status: 'failure' });
+      ocrExtractionDuration.observe(durationSec);
+
       console.error('Extraction failed:', error);
       throw new Error(`Failed to extract data: ${error.message}`);
     }
   }
 };
+

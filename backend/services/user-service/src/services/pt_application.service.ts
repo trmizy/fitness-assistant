@@ -2,7 +2,7 @@ import axios from 'axios';
 import { ptApplicationRepository } from '../repositories/pt_application.repository';
 import { profileRepository } from '../repositories/profile.repository';
 import { PTApplicationStatus } from '../generated/prisma';
-// import { logger } from '@gym-coach/shared';
+import { ptApplicationsTotal } from '@gym-coach/shared';
 
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
 const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
@@ -63,6 +63,7 @@ export const ptApplicationService = {
       throw new Error('At least one specialty is required');
     }
 
+    ptApplicationsTotal.inc({ status: 'SUBMITTED' });
     return ptApplicationRepository.updateStatus(app.id, PTApplicationStatus.SUBMITTED, {
       submittedAt: new Date(),
     });
@@ -110,6 +111,7 @@ export const ptApplicationService = {
       await profileRepository.setIsPT(app.userProfile.userId, true);
     }
 
+    ptApplicationsTotal.inc({ status: normalizedAction });
     return ptApplicationRepository.updateStatus(id, status, extra);
   },
 

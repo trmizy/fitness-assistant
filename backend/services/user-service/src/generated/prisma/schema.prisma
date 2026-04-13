@@ -195,6 +195,209 @@ model PTApplicationMedia {
   @@map("pt_application_media")
 }
 
+// ─── Contract + Booking Enums ─────────────────────────────────────
+
+enum ContractStatus {
+  PENDING_REVIEW // Client requested, awaiting PT decision
+  ACTIVE // PT accepted, contract in effect
+  COMPLETED // All sessions used
+  EXPIRED // Past end date
+  CANCELLED // Terminated early by either party
+  REJECTED // PT declined the request
+}
+
+enum PackageType {
+  PER_SESSION // Pay per session
+  PACKAGE // Fixed number of sessions bundle
+}
+
+enum SessionStatus {
+  REQUESTED // Client booked, awaiting PT confirmation
+  CONFIRMED // PT confirmed
+  COMPLETED // PT marked complete
+  CANCELLED // Either party cancelled
+  NO_SHOW // Client or PT did not attend
+}
+
+enum SessionMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum NotificationEventType {
+  CONTRACT_REQUESTED
+  CONTRACT_ACCEPTED
+  CONTRACT_REJECTED
+  CONTRACT_CANCELLED
+  SESSION_BOOKED
+  SESSION_CONFIRMED
+  SESSION_COMPLETED
+  SESSION_CANCELLED
+  SESSION_NO_SHOW_CLIENT
+  SESSION_NO_SHOW_PT
+}
+
+enum NotificationEntityType {
+  CONTRACT
+  SESSION
+}
+
+// ─── Contract ─────────────────────────────────────────────────────
+
+model Contract {
+  id           String         @id @default(uuid())
+  ptUserId     String         @map("pt_user_id")
+  clientUserId String         @map("client_user_id")
+  status       ContractStatus @default(PENDING_REVIEW)
+
+  // Package details
+  packageType     PackageType @default(PACKAGE) @map("package_type")
+  packageName     String      @map("package_name")
+  description     String?
+  totalSessions   Int         @map("total_sessions")
+  usedSessions    Int         @default(0) @map("used_sessions")
+  price           Float?
+  pricePerSession Float?      @map("price_per_session")
+
+  // Timeline
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  completedAt DateTime? @map("completed_at")
+
+  // Request & negotiation
+  clientMessage      String? @map("client_message")
+  rejectionReason    String? @map("rejection_reason")
+  cancelledBy        String? @map("cancelled_by")
+  cancellationReason String? @map("cancellation_reason")
+
+  // Terms
+  terms String?
+  notes String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sessions Session[]
+  reviews  SessionReview[]
+
+  @@index([ptUserId])
+  @@index([clientUserId])
+  @@index([status])
+  @@map("contracts")
+}
+
+// ─── Session (Booking) ────────────────────────────────────────────
+
+model Session {
+  id           String        @id @default(uuid())
+  contractId   String        @map("contract_id")
+  clientUserId String        @map("client_user_id")
+  ptUserId     String        @map("pt_user_id")
+  status       SessionStatus @default(REQUESTED)
+  sessionMode  SessionMode   @default(OFFLINE) @map("session_mode")
+
+  // Scheduling — authoritative datetime range
+  scheduledStartAt DateTime @map("scheduled_start_at")
+  scheduledEndAt   DateTime @map("scheduled_end_at")
+
+  location           String?
+  notes              String?
+  ptNotes            String?   @map("pt_notes")
+  cancelledBy        String?   @map("cancelled_by")
+  cancellationReason String?   @map("cancellation_reason")
+  sessionDeducted    Boolean   @default(false) @map("session_deducted")
+  completedAt        DateTime? @map("completed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  contract Contract       @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  review   SessionReview?
+
+  @@index([contractId])
+  @@index([clientUserId])
+  @@index([ptUserId])
+  @@index([scheduledStartAt])
+  @@map("sessions")
+}
+
+// ─── Session Review ───────────────────────────────────────────────
+
+model SessionReview {
+  id           String   @id @default(uuid())
+  sessionId    String   @unique @map("session_id")
+  contractId   String   @map("contract_id")
+  clientUserId String   @map("client_user_id")
+  rating       Int // 1–5
+  comment      String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  session  Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@map("session_reviews")
+}
+
+// ─── Notification ─────────────────────────────────────────────────
+
+model Notification {
+  id         String                 @id @default(uuid())
+  userId     String                 @map("user_id")
+  text       String
+  eventType  NotificationEventType  @map("event_type")
+  entityType NotificationEntityType @map("entity_type")
+  entityId   String                 @map("entity_id")
+  link       String?
+  unread     Boolean                @default(true)
+  createdAt  DateTime               @default(now()) @map("created_at")
+  updatedAt  DateTime               @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt])
+  @@index([userId, unread])
+  @@map("notifications")
+}
+
+// ─── PT Availability ──────────────────────────────────────────────
+
+model PTAvailability {
+  id        String    @id @default(uuid())
+  ptUserId  String    @map("pt_user_id")
+  dayOfWeek DayOfWeek @map("day_of_week")
+  startTime String    @map("start_time") // "09:00"
+  endTime   String    @map("end_time") // "17:00"
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([ptUserId])
+  @@map("pt_availability")
+}
+
+// ─── PT Schedule Exception ────────────────────────────────────────
+
+model PTScheduleException {
+  id        String   @id @default(uuid())
+  ptUserId  String   @map("pt_user_id")
+  date      DateTime
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ptUserId, date])
+  @@map("pt_schedule_exceptions")
+}
+
 model InBodyEntry {
   id     String   @id @default(uuid())
   userId String   @map("user_id")

@@ -408,4 +408,163 @@ export const nutritionService = {
   },
 };
 
+export const contractService = {
+  // New contract request flow
+  requestContract: async (requestData: {
+    ptUserId: string;
+    packageType: string;
+    packageName: string;
+    description?: string;
+    totalSessions: number;
+    price?: number;
+    pricePerSession?: number;
+    startDate?: string;
+    endDate?: string;
+    message?: string;
+  }) => {
+    const { data } = await api.post('/contracts/request', requestData);
+    return data;
+  },
+  acceptContract: async (id: string) => {
+    const { data } = await api.patch(`/contracts/${id}/accept`);
+    return data;
+  },
+  rejectContract: async (id: string, reason: string) => {
+    const { data } = await api.patch(`/contracts/${id}/reject`, { reason });
+    return data;
+  },
+  cancelContract: async (id: string, reason: string) => {
+    const { data } = await api.patch(`/contracts/${id}/cancel`, { reason });
+    return data;
+  },
+  getEarnings: async () => {
+    const { data } = await api.get('/contracts/pt/earnings');
+    return data;
+  },
+
+  // Existing methods
+  getByPT: async (status?: string) => {
+    const params = status ? `?status=${status}` : '';
+    const { data } = await api.get(`/contracts/pt${params}`);
+    return data;
+  },
+  getByClient: async (status?: string) => {
+    const params = status ? `?status=${status}` : '';
+    const { data } = await api.get(`/contracts/client${params}`);
+    return data;
+  },
+  getById: async (id: string) => {
+    const { data } = await api.get(`/contracts/${id}`);
+    return data;
+  },
+  create: async (contractData: any) => {
+    const { data } = await api.post('/contracts', contractData);
+    return data;
+  },
+  updateStatus: async (id: string, status: string) => {
+    const { data } = await api.patch(`/contracts/${id}/status`, { status });
+    return data;
+  },
+  update: async (id: string, contractData: any) => {
+    const { data } = await api.put(`/contracts/${id}`, contractData);
+    return data;
+  },
+  logSession: async (id: string) => {
+    const { data } = await api.post(`/contracts/${id}/session`);
+    return data;
+  },
+};
+
+export const sessionService = {
+  bookSession: async (contractId: string, sessionData: {
+    scheduledDate: string;
+    scheduledTime: string;
+    durationMin?: number;
+    sessionMode?: string;
+    location?: string;
+    notes?: string;
+  }) => {
+    const { data } = await api.post('/sessions', { contractId, ...sessionData });
+    return data;
+  },
+  getContractSessions: async (contractId: string) => {
+    const { data } = await api.get(`/sessions/contract/${contractId}`);
+    return data;
+  },
+  getMyUpcoming: async () => {
+    const { data } = await api.get('/sessions/upcoming');
+    return data;
+  },
+  confirmSession: async (id: string) => {
+    const { data } = await api.patch(`/sessions/${id}/confirm`);
+    return data;
+  },
+  completeSession: async (id: string, ptNotes?: string) => {
+    const { data } = await api.patch(`/sessions/${id}/complete`, { ptNotes });
+    return data;
+  },
+  cancelSession: async (id: string, reason: string) => {
+    const { data } = await api.patch(`/sessions/${id}/cancel`, { reason });
+    return data;
+  },
+  markNoShow: async (id: string, noShowBy: 'CLIENT' | 'PT') => {
+    const { data } = await api.patch(`/sessions/${id}/no-show`, { noShowBy });
+    return data;
+  },
+  reviewSession: async (id: string, rating: number, comment?: string) => {
+    const { data } = await api.post(`/sessions/${id}/review`, { rating, comment });
+    return data;
+  },
+};
+
+export const availabilityService = {
+  getAvailability: async (ptUserId: string) => {
+    const { data } = await api.get(`/availability/${ptUserId}`);
+    return data;
+  },
+  setAvailability: async (slots: Array<{
+    dayOfWeek: string;
+    startTime: string;
+    endTime: string;
+  }>) => {
+    const { data } = await api.put('/availability/me', { slots });
+    return data;
+  },
+  getExceptions: async () => {
+    const { data } = await api.get('/availability/me/exceptions');
+    return data;
+  },
+  addException: async (date: string, reason?: string) => {
+    const { data } = await api.post('/availability/me/exceptions', { date, reason });
+    return data;
+  },
+  removeException: async (id: string) => {
+    const { data } = await api.delete(`/availability/me/exceptions/${id}`);
+    return data;
+  },
+  getAvailableSlots: async (ptUserId: string, date: string) => {
+    const { data } = await api.get(`/availability/${ptUserId}/slots?date=${date}`);
+    return data;
+  },
+};
+
+export const notificationService = {
+  list: async (page = 1, limit = 20) => {
+    const { data } = await api.get(`/notifications?page=${page}&limit=${limit}`);
+    return data;
+  },
+  markRead: async (id: string) => {
+    const { data } = await api.patch(`/notifications/${id}/read`);
+    return data;
+  },
+  markAllRead: async () => {
+    const { data } = await api.patch('/notifications/read-all');
+    return data;
+  },
+  getUnreadCount: async () => {
+    const { data } = await api.get('/notifications/unread-count');
+    return data;
+  },
+};
+
 export default api;

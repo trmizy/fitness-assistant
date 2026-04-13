@@ -8,6 +8,10 @@ import { logger, register, metricsMiddleware } from '@gym-coach/shared';
 import profileRoutes from './routes/profile.routes';
 import inbodyRoutes from './routes/inbody.routes';
 import ptApplicationRoutes from './routes/pt_application.routes';
+import contractRoutes from './routes/contract.routes';
+import notificationRoutes from './routes/notification.routes';
+import sessionRoutes from './routes/session.routes';
+import availabilityRoutes from './routes/availability.routes';
 
 const app = express();
 
@@ -42,5 +46,9 @@ app.get('/metrics', async (_req, res) => {
 app.use('/profile', profileRoutes);
 app.use('/inbody', inbodyRoutes);
 app.use('/pt-applications', ptApplicationRoutes);
+app.use('/contracts', contractRoutes);
+app.use('/notifications', notificationRoutes);
+app.use('/sessions', sessionRoutes);
+app.use('/availability', availabilityRoutes);
 
 export default app;

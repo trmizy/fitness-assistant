@@ -24,17 +24,18 @@ const clientNavFull = [
   { label: "Profile",        icon: User,            to: "/client/profile"   },
 ];
 
-/** Client nav for PT users — same as above but WITHOUT Find a Coach */
-const ptClientNav = clientNavFull.filter((n) => n.to !== "/client/coaches");
+/** Client nav for PT users — no Find a Coach, no Chat (PT chats from Trainer workspace) */
+const ptClientNav = clientNavFull.filter((n) => n.to !== "/client/coaches" && n.to !== "/client/chat");
 
 /** PT professional workspace nav */
 const ptWorkspaceNav = [
-  { label: "PT Dashboard",   icon: LayoutDashboard, to: "/pt/dashboard" },
-  { label: "My Clients",     icon: Users,           to: "/pt/clients"   },
-  { label: "Plan Review",    icon: ClipboardList,   to: "/pt/plans"     },
-  { label: "Schedule",       icon: Calendar,        to: "/pt/schedule"  },
-  { label: "Chat",           icon: MessageSquare,   to: "/pt/chat"      },
-  { label: "PT Profile",     icon: User,            to: "/pt/profile"   },
+  { label: "PT Dashboard",   icon: LayoutDashboard, to: "/pt/dashboard"  },
+  { label: "My Clients",     icon: Users,           to: "/pt/clients"    },
+  { label: "Contracts",      icon: FileText,        to: "/pt/contracts"  },
+  { label: "Plan Review",    icon: ClipboardList,   to: "/pt/plans"      },
+  { label: "Schedule",       icon: Calendar,        to: "/pt/schedule"   },
+  { label: "Chat",           icon: MessageSquare,   to: "/pt/chat"       },
+  { label: "PT Profile",     icon: User,            to: "/pt/profile"    },
 ];
 
 /** Admin nav */
@@ -182,18 +183,6 @@ export function Sidebar() {
               Trainer
             </button>
           </div>
-
-          {/* Current mode indicator */}
-          <div className={`mt-2 flex items-center gap-1.5 px-2 py-1.5 rounded-lg border ${workspaceConfig.pillBg} ${workspaceConfig.pillBorder}`}>
-            <WorkspaceIcon className={`w-3 h-3 ${workspaceConfig.textColor}`} />
-            <span className={`text-xs font-semibold ${workspaceConfig.textColor}`}>{workspaceConfig.label}</span>
-            {activeView === "client" && (
-              <span className="ml-auto text-xs text-zinc-600 italic">personal view</span>
-            )}
-            {activeView === "pt" && (
-              <span className="ml-auto text-xs text-zinc-600 italic">coaching view</span>
-            )}
-          </div>
         </div>
       )}
 
@@ -208,20 +197,6 @@ export function Sidebar() {
           </div>
         )}
         <NavGroup items={navItems} onClose={() => setSidebarOpen(false)} />
-
-        {/* PT: quick link to switch workspace at the bottom of nav */}
-        {isPT && (
-          <button
-            onClick={activeView === "pt" ? switchToClientView : switchToPTView}
-            className="flex items-center gap-2.5 w-full mt-3 px-3 py-2.5 rounded-lg text-sm text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/60 border border-zinc-800/40 hover:border-zinc-700/60 transition-all"
-          >
-            <ArrowLeftRight className="w-4 h-4 flex-shrink-0" />
-            <span>
-              {activeView === "pt" ? "Go to Client Workspace" : "Go to Trainer Workspace"}
-            </span>
-            <ChevronRight className="w-3.5 h-3.5 ml-auto" />
-          </button>
-        )}
       </nav>
 
       {/* ── Bottom: user info + logout ── */}

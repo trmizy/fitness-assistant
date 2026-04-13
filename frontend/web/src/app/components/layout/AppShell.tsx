@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useApp } from "../../context/AppContext";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { CallOverlay } from "../call/CallOverlay";
 
 export function AppShell() {
   const { isAuthenticated, isPT, setActiveView } = useApp();
@@ -25,7 +26,12 @@ export function AppShell() {
   }, [location.pathname, isPT, setActiveView]);
 
   if (!isAuthenticated) return null;
-  return <AppShellInner />;
+  return (
+    <>
+      <CallOverlay />
+      <AppShellInner />
+    </>
+  );
 }
 
 function AppShellInner() {

@@ -40,8 +40,11 @@ export interface PTApplication {
   availableDays: string[];
   availableFrom?: string;
   availableUntil?: string;
+  availabilityBlocks?: any[];
+  sessionDurationMinutes?: number;
   gymAffiliation?: string;
   packagePrice?: number;
+  sessionsPerPackage?: number;
   monthlyProgramPrice?: number;
   additionalPricingNotes?: string;
   otherReferences?: string;

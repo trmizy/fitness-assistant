@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import { logger } from '@gym-coach/shared';
+import { logger, register, metricsMiddleware } from '@gym-coach/shared';
 import { rateLimiter } from './middleware/rateLimit.middleware';
 import proxyRoutes from './routes/proxy.routes';
 
@@ -37,6 +37,7 @@ app.use(
   }),
 );
 app.use(rateLimiter);
+app.use(metricsMiddleware());
 
 // Request logging
 app.use((req: Request, _res: Response, next: NextFunction) => {
@@ -56,6 +57,11 @@ app.get('/health', (_req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });
+});
+
+app.get('/metrics', async (_req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
 });
 
 // ── n8n CSP bypass ───────────────────────────────────────────────────────────

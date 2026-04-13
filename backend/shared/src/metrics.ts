@@ -94,3 +94,73 @@ export function metricsMiddleware() {
     next();
   };
 }
+
+// ── Business Metrics: OCR / InBody ──────────────────────────────────────────
+
+export const ocrExtractionsTotal = new Counter({
+  name: 'ocr_extractions_total',
+  help: 'Total number of OCR extraction attempts',
+  labelNames: ['status'],
+  registers: [register],
+});
+
+export const ocrExtractionDuration = new Histogram({
+  name: 'ocr_extraction_duration_seconds',
+  help: 'Duration of OCR extraction in seconds',
+  buckets: [0.5, 1, 2, 5, 10, 20, 30, 60],
+  registers: [register],
+});
+
+export const inbodyUploadsTotal = new Counter({
+  name: 'inbody_uploads_total',
+  help: 'Total number of InBody data entries',
+  labelNames: ['method'],
+  registers: [register],
+});
+
+// ── Business Metrics: PT Application ────────────────────────────────────────
+
+export const ptApplicationsTotal = new Counter({
+  name: 'pt_applications_total',
+  help: 'Total PT application status transitions',
+  labelNames: ['status'],
+  registers: [register],
+});
+
+// ── Business Metrics: AI Coach ──────────────────────────────────────────────
+
+export const aiCoachQueriesTotal = new Counter({
+  name: 'ai_coach_queries_total',
+  help: 'Total number of AI coach queries',
+  labelNames: ['status'],
+  registers: [register],
+});
+
+export const aiCoachQueryDuration = new Histogram({
+  name: 'ai_coach_query_duration_seconds',
+  help: 'Duration of AI coach query processing in seconds',
+  buckets: [0.5, 1, 2, 5, 10, 30, 60, 120],
+  registers: [register],
+});
+
+export const aiPlanGenerationsTotal = new Counter({
+  name: 'ai_plan_generations_total',
+  help: 'Total AI plan generation requests',
+  labelNames: ['status'],
+  registers: [register],
+});
+
+// ── Business Metrics: Chat / WebSocket ──────────────────────────────────────
+
+export const websocketConnectionsActive = new Gauge({
+  name: 'websocket_connections_active',
+  help: 'Number of active WebSocket connections',
+  registers: [register],
+});
+
+export const chatMessagesTotal = new Counter({
+  name: 'chat_messages_total',
+  help: 'Total chat messages sent via WebSocket',
+  registers: [register],
+});
+

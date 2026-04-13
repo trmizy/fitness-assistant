@@ -52,7 +52,18 @@ export function RegisterPage() {
       toast.success("Verification code sent to your email");
       setStep(1); // Move to Verify step
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Registration failed");
+      const errorMsg = error.response?.data?.error || "";
+      if (errorMsg === "Email already registered") {
+        toast.error("Email này đã được đăng ký. Bạn có muốn đăng nhập không?", {
+          action: {
+            label: "Đăng nhập ngay",
+            onClick: () => navigate("/login")
+          },
+          duration: 5000
+        });
+      } else {
+        toast.error(errorMsg || "Registration failed");
+      }
     } finally {
       setLoading(false);
     }

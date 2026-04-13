@@ -12,6 +12,7 @@ router.post('/verify', authController.verify);
 router.patch('/me', authController.updateMe);
 router.get('/users', authController.listUsers);
 router.patch('/users/:userId/role', authController.updateUserRole);
+router.get('/internal/users/:userId', authController.getUserInternal);
 router.patch('/internal/users/:userId/role', authController.updateUserRoleInternal);
 
 export default router;

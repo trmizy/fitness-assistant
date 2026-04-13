@@ -1231,6 +1231,50 @@ router.use(
   }),
 );
 
+// Protected — Contracts (User Service)
+router.use(
+  '/contracts',
+  authMiddleware,
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('User service'),
+  }),
+);
+
+// Protected — Availability (User Service)
+router.use(
+  '/availability',
+  authMiddleware,
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('User service'),
+  }),
+);
+
+// Protected — Sessions (User Service)
+router.use(
+  '/sessions',
+  authMiddleware,
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('User service'),
+  }),
+);
+
+// Protected — Notifications (User Service)
+router.use(
+  '/notifications',
+  authMiddleware,
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('User service'),
+  }),
+);
+
 // Protected — InBody (User Service)
 router.use(
   '/inbody',

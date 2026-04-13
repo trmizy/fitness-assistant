@@ -30,9 +30,38 @@ export const profileRepository = {
       create: { userId, isPT },
     }),
 
-  /** List users where isPT = true, for chat "find a PT" feature */
+  /** List users where isPT = true, including approved PT application data */
   findPTs: () =>
-    prisma.userProfile.findMany({ where: { isPT: true } }),
+    prisma.userProfile.findMany({
+      where: { isPT: true },
+      include: {
+        ptApplication: {
+          select: {
+            professionalBio: true,
+            mainSpecialties: true,
+            yearsOfExperience: true,
+            desiredSessionPrice: true,
+            packagePrice: true,
+            sessionsPerPackage: true,
+            monthlyProgramPrice: true,
+            additionalPricingNotes: true,
+            serviceMode: true,
+            operatingAreas: true,
+            gymAffiliation: true,
+            certificates: {
+              select: { certificateName: true, issuingOrganization: true, isCurrentlyValid: true },
+            },
+          },
+        },
+      },
+    }),
+
+  findPTApplicationByUserId: (userId: string) =>
+    prisma.pTApplication.findFirst({
+      where: {
+        userProfile: { userId }
+      }
+    }),
 
   deleteByUserId: (userId: string) =>
     prisma.userProfile.delete({ where: { userId } }),

@@ -195,6 +195,8 @@ export function PTApplicationPage() {
     primaryTrainingGoals: [],
     operatingAreas: [],
     availableDays: [],
+    availabilityBlocks: [],
+    sessionDurationMinutes: 60,
     certificates: [{ ...emptyCert }],
     media: [],
   });
@@ -214,6 +216,8 @@ export function PTApplicationPage() {
         primaryTrainingGoals: appData.primaryTrainingGoals || [],
         operatingAreas: appData.operatingAreas || [],
         availableDays: appData.availableDays || [],
+        availabilityBlocks: appData.availabilityBlocks || [],
+        sessionDurationMinutes: appData.sessionDurationMinutes || 60,
         certificates: appData.certificates?.length > 0 ? appData.certificates : [{ ...emptyCert }],
         media: appData.media || [],
       }));
@@ -301,7 +305,41 @@ export function PTApplicationPage() {
   const handleSaveDraft = () => saveMutation.mutate(formData);
   const handleSubmit = () => submitMutation.mutate();
 
+  const validateAvailability = () => {
+    if (currentStep !== 5) return true;
+    const blocks = formData.availabilityBlocks || [];
+    if (blocks.length === 0) {
+      alert("Please add at least one availability block.");
+      return false;
+    }
+    
+    for (const block of blocks) {
+      if (!block.startTime || !block.endTime) {
+        alert("Please fill in both start and end times for all blocks.");
+        return false;
+      }
+      if (block.startTime >= block.endTime) {
+        alert(`Start time must be before end time for ${block.dayOfWeek}.`);
+        return false;
+      }
+    }
+
+    // Overlap check
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    for (const day of days) {
+      const dayBlocks = blocks.filter(b => b.dayOfWeek === day).sort((a,b) => a.startTime.localeCompare(b.startTime));
+      for (let i = 0; i < dayBlocks.length - 1; i++) {
+        if (dayBlocks[i].endTime > dayBlocks[i+1].startTime) {
+          alert(`Overlapping blocks detected on ${day}. Please fix them before proceeding.`);
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
   const goNext = () => {
+    if (currentStep === 5 && !validateAvailability()) return;
     handleSaveDraft();
     setCurrentStep(s => Math.min(s + 1, steps.length - 1));
   };
@@ -657,45 +695,84 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Working Mode *</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {["Online", "Offline", "Hybrid"].map(m => (
-                    <button key={m} type="button" onClick={() => updateField("serviceMode", m.toUpperCase() as any)}
-                      className={`py-3 rounded-xl border text-sm font-bold transition-all ${formData.serviceMode === m.toUpperCase()
+                <label className={lbl}>Coaching Session Duration *</label>
+                <div className="grid grid-cols-4 gap-3 mt-1">
+                  {[30, 45, 60, 90].map(mins => (
+                    <button key={mins} type="button" onClick={() => updateField("sessionDurationMinutes", mins)}
+                      className={`py-2 rounded-lg border text-xs font-bold transition-all ${formData.sessionDurationMinutes === mins
                           ? "bg-green-500/15 border-green-500/40 text-green-400"
                           : "bg-zinc-800/40 border-zinc-700/50 text-zinc-500 hover:border-zinc-600"
                         }`}>
-                      {m}
+                      {mins} min
                     </button>
                   ))}
                 </div>
+                <p className="text-[10px] text-zinc-600 mt-2 italic">Choose how long your standard coaching session lasts.</p>
               </div>
 
               <div>
-                <label className={lbl}>Available Days *</label>
-                <div className="flex gap-2 mt-1">
-                  {dayOptions.map(day => (
-                    <button key={day} type="button"
-                      onClick={() => toggle("availableDays", day)}
-                      className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${
-                        formData.availableDays?.includes(day)
-                          ? "bg-green-500/15 text-green-400 border-green-500/40"
-                          : "bg-zinc-800 text-zinc-500 border-zinc-700/50 hover:border-zinc-600"
-                      }`}>
-                      {day}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <label className={lbl}>Weekly Availability Schedule *</label>
+                  <button type="button" 
+                    onClick={() => {
+                      const current = formData.availabilityBlocks || [];
+                      updateField("availabilityBlocks", [...current, { dayOfWeek: "Mon", startTime: "08:00", endTime: "12:00" }]);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-green-400 hover:bg-zinc-700 transition-all">
+                    <Plus className="w-3.5 h-3.5" /> Add Block
+                  </button>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={lbl}>Available From</label>
-                  <input type="time" className={inp} value={formData.availableFrom || ""} onChange={e => updateField("availableFrom", e.target.value)} />
-                </div>
-                <div>
-                  <label className={lbl}>Available Until</label>
-                  <input type="time" className={inp} value={formData.availableUntil || ""} onChange={e => updateField("availableUntil", e.target.value)} />
+                <div className="space-y-3">
+                  {(formData.availabilityBlocks || []).map((block: any, idx: number) => (
+                    <div key={idx} className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-3 flex flex-wrap items-center gap-3">
+                      <div className="flex-1 min-w-[100px]">
+                        <select className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300 focus:outline-none"
+                          value={block.dayOfWeek} 
+                          onChange={(e) => {
+                            const blocks = [...(formData.availabilityBlocks || [])];
+                            blocks[idx].dayOfWeek = e.target.value;
+                            updateField("availabilityBlocks", blocks);
+                          }}>
+                          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="time" className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300"
+                          value={block.startTime}
+                          onChange={(e) => {
+                            const blocks = [...(formData.availabilityBlocks || [])];
+                            blocks[idx].startTime = e.target.value;
+                            updateField("availabilityBlocks", blocks);
+                          }}
+                        />
+                        <span className="text-zinc-600">to</span>
+                        <input type="time" className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300"
+                          value={block.endTime}
+                          onChange={(e) => {
+                            const blocks = [...(formData.availabilityBlocks || [])];
+                            blocks[idx].endTime = e.target.value;
+                            updateField("availabilityBlocks", blocks);
+                          }}
+                        />
+                      </div>
+                      <button type="button" 
+                        onClick={() => {
+                          const blocks = [...(formData.availabilityBlocks || [])];
+                          blocks.splice(idx, 1);
+                          updateField("availabilityBlocks", blocks);
+                        }}
+                        className="p-1.5 text-zinc-600 hover:text-red-400 transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {(formData.availabilityBlocks || []).length === 0 && (
+                    <div className="text-center py-6 border border-dashed border-zinc-800 rounded-xl">
+                      <Clock className="w-6 h-6 text-zinc-700 mx-auto mb-2" />
+                      <p className="text-xs text-zinc-600">No availability blocks added yet.</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -712,13 +789,17 @@ export function PTApplicationPage() {
 
               <div>
                 <label className={lbl}>Session Pricing *</label>
-                <div className="grid grid-cols-3 gap-3 mt-1">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-1">
                   <div>
                     <p className="text-[10px] text-zinc-600 mb-1">Per Session (THB)</p>
                     <input type="number" className={inp} placeholder="e.g. 800" value={formData.desiredSessionPrice ?? ""} onChange={e => updateField("desiredSessionPrice", e.target.value ? parseFloat(e.target.value) : null)} />
                   </div>
                   <div>
-                    <p className="text-[10px] text-zinc-600 mb-1">Package (10 sessions)</p>
+                    <p className="text-[10px] text-zinc-600 mb-1">Sessions per Package</p>
+                    <input type="number" className={inp} placeholder="e.g. 10" value={formData.sessionsPerPackage ?? ""} onChange={e => updateField("sessionsPerPackage", e.target.value ? parseInt(e.target.value) : null)} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-zinc-600 mb-1">Package Price (THB)</p>
                     <input type="number" className={inp} placeholder="e.g. 7000" value={formData.packagePrice ?? ""} onChange={e => updateField("packagePrice", e.target.value ? parseFloat(e.target.value) : null)} />
                   </div>
                   <div>
@@ -893,8 +974,18 @@ export function PTApplicationPage() {
 
               {/* Service & Availability */}
               <ReviewSection icon={<Calendar className="w-4 h-4 text-teal-400" />} title="Service & Availability" onEdit={() => setCurrentStep(5)}>
+                <ReviewRow label="Session Duration" value={`${formData.sessionDurationMinutes || 60} mins`} />
                 <ReviewRow label="Mode" value={formData.serviceMode} />
-                <ReviewRow label="Days" value={formData.availableDays?.length ? formData.availableDays.join(", ") : "Not selected"} />
+                <div className="mt-1 space-y-1 pl-4 border-l border-zinc-700/50">
+                  <p className="text-[10px] text-zinc-600 uppercase font-bold">Weekly Blocks</p>
+                  {(formData.availabilityBlocks || []).map((b: any, i: number) => (
+                    <div key={i} className="flex justify-between text-xs py-0.5">
+                      <span className="text-zinc-500">{b.dayOfWeek}</span>
+                      <span className="text-zinc-300 font-medium">{b.startTime} - {b.endTime}</span>
+                    </div>
+                  ))}
+                  {(formData.availabilityBlocks || []).length === 0 && <p className="text-xs text-zinc-600">No blocks defined</p>}
+                </div>
                 <ReviewRow label="Location" value={formData.operatingAreas?.[0]} />
                 <ReviewRow label="Price" value={formData.desiredSessionPrice ? `฿${formData.desiredSessionPrice} / session` : undefined} />
               </ReviewSection>
