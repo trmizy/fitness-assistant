@@ -143,6 +143,22 @@ export const contractController = {
     }
   },
 
+  // Check relationship between two users (for call permission)
+  async checkRelationship(req: any, res: Response) {
+    try {
+      const { userAId, userBId } = req.query;
+      if (!userAId || !userBId) {
+        res.status(400).json({ error: 'userAId and userBId are required' });
+        return;
+      }
+      const result = await contractService.checkRelationship(userAId as string, userBId as string);
+      res.json(result);
+    } catch (error: any) {
+      logger.error(error, 'Check relationship error');
+      res.status(500).json({ error: 'Failed to check relationship' });
+    }
+  },
+
   // PT earnings summary
   async getEarnings(req: any, res: Response) {
     try {

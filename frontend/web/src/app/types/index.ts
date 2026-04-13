@@ -216,3 +216,31 @@ export interface PTScheduleException {
   date: string;
   reason?: string;
 }
+
+// ── Call types ──────────────────────────────────────────────────
+export type CallType = 'VOICE' | 'VIDEO';
+export type CallStatus = 'INITIATING' | 'RINGING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'CONNECTING' | 'ACTIVE' | 'ENDED' | 'MISSED' | 'FAILED';
+export type CallOrigin = 'CHAT' | 'SESSION';
+
+export type CallUIState = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'active';
+
+export interface CallSessionInfo {
+  callSessionId: string;
+  callerId: string;
+  calleeId: string;
+  callerName?: string;
+  callType: CallType;
+  origin: CallOrigin;
+  conversationId: string;
+  iceServers?: RTCIceServer[];
+}
+
+export interface CallState {
+  uiState: CallUIState;
+  callInfo: CallSessionInfo | null;
+  isMuted: boolean;
+  isVideoOff: boolean;
+  remoteMuted: boolean;
+  remoteVideoOff: boolean;
+  callDuration: number;
+}

@@ -1,5 +1,6 @@
 import { ContractStatus, PackageType } from '../generated/prisma';
 import { contractRepository } from '../repositories/contract.repository';
+import { profileRepository } from '../repositories/profile.repository';
 import { notificationService } from './notification.service';
 
 function err(message: string, status: number) {
@@ -13,8 +14,10 @@ export const contractService = {
     packageType?: string;
     packageName: string;
     description?: string;
-    totalSessions: number;
-    price?: number;
+    packageQuantity?: number;
+    extraSessions?: number;
+    totalSessions?: number; // Ignored if calculations are performed
+    price?: number;         // Ignored if calculations are performed
     pricePerSession?: number;
     startDate?: string;
     endDate?: string;
@@ -22,6 +25,31 @@ export const contractService = {
     terms?: string;
     notes?: string;
   }) {
+    // 1. Fetch PT Application for pricing rules
+    const app = await profileRepository.findPTApplicationByUserId(data.ptUserId);
+    if (!app) throw err('PT profile or pricing not found', 404);
+
+    let finalSessions = 0;
+    let finalPrice = 0;
+    let unitPrice = 0;
+
+    const packQty = Math.max(1, data.packageQuantity || 1);
+    const extra = Math.max(0, data.extraSessions || 0);
+
+    if (data.packageType === 'PACKAGE') {
+      const sessPerPack = app.sessionsPerPackage || 10;
+      const basePrice = app.packagePrice || 0;
+      
+      finalSessions = (sessPerPack * packQty) + extra;
+      unitPrice = sessPerPack > 0 ? basePrice / sessPerPack : 0;
+      finalPrice = (basePrice * packQty) + (extra * unitPrice);
+    } else {
+      // PER_SESSION logic
+      finalSessions = Math.max(1, data.totalSessions || 1);
+      unitPrice = app.desiredSessionPrice || 0;
+      finalPrice = finalSessions * unitPrice;
+    }
+
     // MVP rule: one active/pending contract per client
     const existing = await contractRepository.findActiveOrPendingByClient(clientUserId);
     if (existing) {
@@ -35,9 +63,11 @@ export const contractService = {
       packageType: (data.packageType as PackageType) || PackageType.PACKAGE,
       packageName: data.packageName,
       description: data.description,
-      totalSessions: data.totalSessions,
-      price: data.price,
-      pricePerSession: data.pricePerSession,
+      packageQuantity: data.packageType === 'PACKAGE' ? packQty : 1,
+      extraSessions: data.packageType === 'PACKAGE' ? extra : 0,
+      totalSessions: finalSessions,
+      price: finalPrice,
+      pricePerSession: unitPrice,
       startDate: data.startDate ? new Date(data.startDate) : undefined,
       endDate: data.endDate ? new Date(data.endDate) : undefined,
       clientMessage: data.message,
@@ -248,6 +278,33 @@ export const contractService = {
       count++;
     }
     return count;
+  },
+
+  // ── Check relationship (for call permission) ──────────────────────
+  async checkRelationship(userAId: string, userBId: string) {
+    // Check if either user is a PT
+    const [profileA, profileB] = await Promise.all([
+      profileRepository.findByUserId(userAId),
+      profileRepository.findByUserId(userBId),
+    ]);
+
+    if (profileA?.isPT || profileB?.isPT) {
+      return { allowed: true };
+    }
+
+    // Check for active contract between them
+    const contract = await contractRepository.findActiveByPair(userAId, userBId);
+    if (contract) {
+      return { allowed: true };
+    }
+
+    // Also check reverse direction
+    const contractReverse = await contractRepository.findActiveByPair(userBId, userAId);
+    if (contractReverse) {
+      return { allowed: true };
+    }
+
+    return { allowed: false };
   },
 
   // ── PT earnings aggregate ──────────────────────────────────────────

@@ -37,6 +37,7 @@ import { AdminWorkflowStudio } from "./pages/admin/AdminWorkflowStudio";
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
+import { CallProvider } from "./context/CallContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,8 +61,10 @@ function Root() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppProvider>
-        <Toaster position="top-center" expand={false} richColors />
-        <Outlet />
+        <CallProvider>
+          <Toaster position="top-center" expand={false} richColors />
+          <Outlet />
+        </CallProvider>
       </AppProvider>
     </QueryClientProvider>
   );

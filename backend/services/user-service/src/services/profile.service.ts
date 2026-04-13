@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { profileRepository } from '../repositories/profile.repository';
+import { availabilityService } from './availability.service';
 import type { ProfileDto } from '../models/profile.models';
 
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
@@ -74,6 +75,12 @@ export const profileService = {
     const targetRole: 'PT' | 'CUSTOMER' = isPT ? 'PT' : 'CUSTOMER';
     await syncRole(userId, targetRole);
     const profile = await profileRepository.setIsPTByUserId(userId, isPT);
+
+    // If becoming PT, seed initial availability from application
+    if (isPT) {
+      await availabilityService.seedInitialAvailability(userId);
+    }
+
     return { profile };
   },
 };

@@ -13,6 +13,8 @@ services:
     depends_on:
       - api-gateway
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
     networks:
       - default
 
@@ -61,6 +63,8 @@ services:
       retries: 5
       start_period: 15s
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
 
   # ── Auth Service ──────────────────────────────────────────────────────────
   auth-service:
@@ -93,6 +97,8 @@ services:
       retries: 5
       start_period: 15s
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
 
   # ── User Service ──────────────────────────────────────────────────────────
   user-service:
@@ -120,6 +126,8 @@ services:
       retries: 5
       start_period: 15s
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
     volumes:
       - user_uploads:/app/backend/services/user-service/uploads
       - easyocr_models:/root/.EasyOCR/model
@@ -153,6 +161,8 @@ services:
       retries: 5
       start_period: 15s
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
 
   # ── AI Service ────────────────────────────────────────────────────────────
   ai-service:
@@ -194,6 +204,8 @@ services:
       retries: 5
       start_period: 15s
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
 
   # ── Chat Service ─────────────────────────────────────────────────────────
   chat-service:
@@ -226,6 +238,8 @@ services:
       retries: 5
       start_period: 20s
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
 
   # ── Infrastructure ────────────────────────────────────────────────────────
   postgres:

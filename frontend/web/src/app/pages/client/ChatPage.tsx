@@ -4,10 +4,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { chatService } from "../../services/api";
 import { connectSocket, disconnectSocket } from "../../services/socket";
 import { useApp } from "../../context/AppContext";
+import { useCall } from "../../context/CallContext";
 
 export function ChatPage() {
   const queryClient = useQueryClient();
   const { user } = useApp();
+  const { initiateCall } = useCall();
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -194,10 +196,24 @@ export function ChatPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <button className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
+                <button
+                  onClick={() => {
+                    const otherUserId = activeConv.otherUser?.id;
+                    if (otherUserId && activeConvId) initiateCall(otherUserId, 'VOICE', activeConvId);
+                  }}
+                  className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors"
+                  title="Voice call"
+                >
                   <Phone className="w-4 h-4" />
                 </button>
-                <button className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
+                <button
+                  onClick={() => {
+                    const otherUserId = activeConv.otherUser?.id;
+                    if (otherUserId && activeConvId) initiateCall(otherUserId, 'VIDEO', activeConvId);
+                  }}
+                  className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors"
+                  title="Video call"
+                >
                   <Video className="w-4 h-4" />
                 </button>
                 <button className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">

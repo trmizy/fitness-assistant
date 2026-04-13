@@ -1,578 +1,1570 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Dumbbell, Check, Plus, ChevronDown, ChevronUp, Award, Loader2, Save, X,
+  Dumbbell, ChevronLeft, ChevronRight, Plus, Lock,
+  AlertCircle, Share2, Star, ArrowUpDown, ChevronDown,
+  Minus, Clock, MessageSquare, Timer, Target, BarChart3,
+  Zap, Calendar, TrendingUp, Play, GripVertical, Trash2,
+  Check, X, SkipForward, Pause, RotateCcw, Trophy, PartyPopper
 } from "lucide-react";
-import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { workoutService } from "../../services/api";
+import confetti from "canvas-confetti";
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip,
+  PieChart, Pie, Cell, CartesianGrid
+} from "recharts";
+import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
-type View = "today" | "history" | "records";
+/* ───── Data ───── */
+const heroImg = "https://images.unsplash.com/photo-1628935291759-bbaf33a66dc6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxneW0lMjB3b3Jrb3V0JTIwbXVzY2xlJTIwdHJhaW5pbmclMjBkYXJrfGVufDF8fHx8MTc3NjA2NjY0NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral";
 
-type SetPatch = {
-  reps?: number;
-  weight?: number;
-  rpe?: number;
-  completed?: boolean;
+const weightData = [
+  { week: "W1", kg: 80 }, { week: "W2", kg: 79.5 }, { week: "W3", kg: 79.2 },
+  { week: "W4", kg: 78.8 }, { week: "W5", kg: 78.5 }, { week: "W6", kg: 78.3 },
+  { week: "W7", kg: 78.1 }, { week: "W8", kg: 78 },
+];
+
+const muscleChartData = [
+  { name: "Chest", value: 25, color: "#22c55e" },
+  { name: "Back", value: 22, color: "#2dd4bf" },
+  { name: "Legs", value: 20, color: "#a3e635" },
+  { name: "Shoulders", value: 15, color: "#34d399" },
+  { name: "Arms", value: 12, color: "#86efac" },
+  { name: "Core", value: 6, color: "#5eead4" },
+];
+
+const exerciseTypeData = [
+  { name: "Compound", value: 45, color: "#22c55e" },
+  { name: "Isolation", value: 30, color: "#2dd4bf" },
+  { name: "Cardio", value: 15, color: "#a3e635" },
+  { name: "Stretch", value: 10, color: "#86efac" },
+];
+
+const DAYS_IN_APRIL = 30;
+const FIRST_DAY_OFFSET = 2;
+const trainingMarkers = [1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29];
+
+const workoutDays = [
+  { day: 1, title: "Chest + Triceps + Front Delts", progress: 0, locked: false, exercises: 6, duration: "1h 24m" },
+  { day: 2, title: "Back + Biceps + Rear Delts", progress: 0, locked: false, exercises: 5, duration: "1h 18m" },
+  { day: 3, title: "Legs + Side Delts", progress: 0, locked: true, exercises: 6, duration: "1h 30m" },
+];
+
+const exerciseImages = {
+  treadmill: "https://images.unsplash.com/photo-1761971974992-6df33df97c3a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmVhZG1pbGwlMjBydW5uaW5nJTIwY2FyZGlvJTIwZml0bmVzc3xlbnwxfHx8fDE3NzYwNjg0ODN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  bench: "https://images.unsplash.com/photo-1690731033723-ad718c6e585a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXJiZWxsJTIwYmVuY2glMjBwcmVzcyUyMGd5bSUyMGRhcmt8ZW58MXx8fHwxNzc2MDY4NDgzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  dumbbell: "https://images.unsplash.com/photo-1600878601444-d5d1e8fa6069?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkdW1iYmVsbCUyMHByZXNzJTIwd29ya291dCUyMGV4ZXJjaXNlfGVufDF8fHx8MTc3NjA2ODQ4M3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  cable: "https://images.unsplash.com/photo-1582760415711-2348c74f717e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYWJsZSUyMG1hY2hpbmUlMjBjaGVzdCUyMHdvcmtvdXR8ZW58MXx8fHwxNzc2MDY4NDg4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  shoulder: "https://images.unsplash.com/photo-1752365172726-a6d8d71b6db9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaG91bGRlciUyMHByZXNzJTIwc2VhdGVkJTIwZHVtYmJlbGx8ZW58MXx8fHwxNzc2MDY4NDg0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  triceps: "https://images.unsplash.com/photo-1738524108211-9b2bbb179024?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmljZXBzJTIwZXh0ZW5zaW9uJTIwbHlpbmclMjBiYXJiZWxsfGVufDF8fHx8MTc3NjA2ODQ4NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
 };
 
-type WorkoutSet = {
-  id: string;
-  setNumber: number;
-  reps: number | null;
-  weight: number | null;
-  rpe: number | null;
-  completed: boolean;
+const dayExercises = [
+  { name: "Treadmill Run", prescription: "8 min, 110–140 bpm", img: exerciseImages.treadmill, type: "cardio" as const, video: "https://www.youtube.com/embed/1nY2f1GKGOQ", description: "A steady-state cardio warm-up on the treadmill to elevate heart rate and prepare the body for strength training. Maintain a moderate pace at 110–140 bpm. Focus on controlled breathing and upright posture throughout.", muscles: ["Quadriceps", "Hamstrings", "Calves"], tips: ["Start slow and gradually increase speed", "Keep your core engaged", "Don't hold the handrails"] },
+  { name: "Flat Barbell Bench Press", prescription: "4×10×65 kg", img: exerciseImages.bench, type: "strength" as const, video: "https://www.youtube.com/embed/rT7DgCr-3pg", description: "The king of chest exercises. Lie flat on a bench, grip the bar slightly wider than shoulder-width, lower to mid-chest, then press up explosively. Keep shoulder blades retracted and feet flat on the floor.", muscles: ["Chest", "Triceps", "Front Delts"], tips: ["Arch your upper back slightly", "Touch the bar to your chest", "Drive through your feet for stability"] },
+  { name: "Incline Dumbbell Press", prescription: "4×10×18 kg", img: exerciseImages.dumbbell, type: "strength" as const, video: "https://www.youtube.com/embed/8iPEnn-ltC8", description: "Targets the upper chest. Set the bench to 30–45°, press dumbbells upward from shoulder level with a slight arc. Squeeze at the top and control the descent for maximum time under tension.", muscles: ["Upper Chest", "Triceps", "Front Delts"], tips: ["Don't flare elbows past 75°", "Control the negative phase", "Keep wrists neutral"] },
+  { name: "Cable Chest Fly", prescription: "4×10×35 kg", img: exerciseImages.cable, type: "strength" as const, video: "https://www.youtube.com/embed/Iwe6AmxVf7o", description: "An isolation movement for the chest using cable pulleys. Stand centered between the cables, bring handles together in a hugging motion with a slight bend in the elbows. Squeeze the chest hard at the midpoint.", muscles: ["Chest", "Front Delts"], tips: ["Keep a slight bend in elbows throughout", "Focus on the squeeze, not the weight", "Control the eccentric phase"] },
+  { name: "Seated Dumbbell Shoulder Press", prescription: "4×10×20 kg", img: exerciseImages.shoulder, type: "strength" as const, video: "https://www.youtube.com/embed/qEwKCR5JCog", description: "A compound shoulder exercise performed seated for strict form. Press dumbbells overhead from shoulder height, fully extending arms without locking elbows. Lower with control to ear level.", muscles: ["Front Delts", "Side Delts", "Triceps"], tips: ["Keep your back against the pad", "Don't use momentum", "Exhale on the press"] },
+  { name: "Lying Triceps Extension", prescription: "3×10×32.5 kg", img: exerciseImages.triceps, type: "strength" as const, video: "https://www.youtube.com/embed/d_KZxkY_0cM", description: "Also known as skull crushers. Lie flat and lower the barbell toward your forehead by bending at the elbows, then extend back up. Keep upper arms perpendicular to the floor throughout the movement.", muscles: ["Triceps (all heads)"], tips: ["Keep elbows pointed to ceiling", "Use a controlled tempo", "Don't flare elbows out"] },
+];
+
+const bodyFatData = [
+  { week: "W1", pct: 18.5 }, { week: "W2", pct: 18.3 }, { week: "W3", pct: 18.0 },
+  { week: "W4", pct: 17.8 }, { week: "W5", pct: 17.5 }, { week: "W6", pct: 17.2 },
+  { week: "W7", pct: 17.0 }, { week: "W8", pct: 16.8 },
+];
+const muscleMassData = [
+  { week: "W1", kg: 35.2 }, { week: "W2", kg: 35.4 }, { week: "W3", kg: 35.5 },
+  { week: "W4", kg: 35.7 }, { week: "W5", kg: 35.9 }, { week: "W6", kg: 36.0 },
+  { week: "W7", kg: 36.2 }, { week: "W8", kg: 36.4 },
+];
+const waterData = [
+  { week: "W1", pct: 55 }, { week: "W2", pct: 56 }, { week: "W3", pct: 55.5 },
+  { week: "W4", pct: 56.5 }, { week: "W5", pct: 57 }, { week: "W6", pct: 56.8 },
+  { week: "W7", pct: 57.2 }, { week: "W8", pct: 57.5 },
+];
+
+const metricOptions = [
+  { key: "weight", label: "Weight", unit: "kg", color: "#10b981", current: "78 kg", target: "75 kg", data: weightData, dataKey: "kg", domain: [76, 82] },
+  { key: "bodyfat", label: "Body Fat", unit: "%", color: "#f59e0b", current: "16.8%", target: "15%", data: bodyFatData, dataKey: "pct", domain: [15, 20] },
+  { key: "muscle", label: "Muscle Mass", unit: "kg", color: "#3b82f6", current: "36.4 kg", target: "38 kg", data: muscleMassData, dataKey: "kg", domain: [34, 38] },
+  { key: "water", label: "Body Water", unit: "%", color: "#06b6d4", current: "57.5%", target: "60%", data: waterData, dataKey: "pct", domain: [53, 60] },
+] as const;
+
+type Tab = "overview" | "plan";
+type TimeFilter = "last" | "week" | "month" | "all";
+type PlanView = "main" | "dayDetail" | "activeExercise";
+
+// Accent helpers
+const G = {
+  text: "text-emerald-400",
+  textSoft: "text-emerald-300",
+  textMuted: "text-emerald-400/60",
+  glow: "shadow-[0_0_20px_rgba(16,185,129,0.2)]",
+  glowSm: "shadow-[0_0_10px_rgba(16,185,129,0.15)]",
+  glowLg: "shadow-[0_0_30px_rgba(16,185,129,0.25)]",
+  border: "border-emerald-500/20",
+  borderHover: "hover:border-emerald-500/30",
+  bg: "bg-emerald-500/10",
+  bgSoft: "bg-emerald-500/5",
+  ring: "#10b981",
+  ringDark: "#064e3b",
 };
-
-type WorkoutExercise = {
-  id: string;
-  sets: number;
-  reps: number | null;
-  weight: number | null;
-  notes: string | null;
-  exercise: {
-    exerciseName: string;
-    bodyPart: string;
-    muscleGroupsActivated?: string[];
-  };
-  workoutSets: WorkoutSet[];
-};
-
-type Workout = {
-  id: string;
-  name: string;
-  date: string;
-  duration: number | null;
-  notes: string | null;
-  exercises: WorkoutExercise[];
-};
-
-type ExerciseOption = {
-  id: string;
-  exerciseName: string;
-};
-
-type LogExerciseRow = {
-  tempId: string;
-  exerciseId: string;
-  sets: number;
-  reps: number;
-  weight: number;
-  duration: number;
-  notes: string;
-};
-
-function makeTempId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function computeVolume(w: Workout): number {
-  if (!Array.isArray(w.exercises)) return 0;
-  return w.exercises.reduce((sum, ex) => {
-    if (Array.isArray(ex.workoutSets) && ex.workoutSets.length > 0) {
-      return sum + ex.workoutSets.reduce((s, set) => s + (set.weight || 0) * (set.reps || 0), 0);
-    }
-    return sum + (ex.weight || 0) * (ex.reps || 0) * (ex.sets || 0);
-  }, 0);
-}
-
-function normalizeWorkouts(data: any): Workout[] {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.workouts)) return data.workouts;
-  return [];
-}
-
-function normalizeExercises(data: any): ExerciseOption[] {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.exercises)) return data.exercises;
-  return [];
-}
 
 export function WorkoutLogPage() {
-  const queryClient = useQueryClient();
-  const [view, setView] = useState<View>("today");
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [showLogForm, setShowLogForm] = useState(false);
+  const [tab, setTab] = useState<Tab>("overview");
+  const [muscleFilter, setMuscleFilter] = useState<TimeFilter>("week");
+  const [exerciseFilter, setExerciseFilter] = useState<TimeFilter>("week");
+  const [planView, setPlanView] = useState<PlanView>("main");
+  const [selectedDay, setSelectedDay] = useState(1);
+  const [showOnOverview, setShowOnOverview] = useState(true);
+  const [showAllPrograms, setShowAllPrograms] = useState(false);
+  const [autoSchedule, setAutoSchedule] = useState(true);
+  const [editableSchedule, setEditableSchedule] = useState(true);
+  const [scheduleMode, setScheduleMode] = useState<"day" | "cycle">("cycle");
+  const [consecutiveTrain, setConsecutiveTrain] = useState(3);
+  const [consecutiveRest, setConsecutiveRest] = useState(1);
+  const [calendarExpanded, setCalendarExpanded] = useState(true);
+  const [inputValue, setInputValue] = useState("");
+  const [selectedExercise, setSelectedExercise] = useState<typeof dayExercises[number] | null>(null);
 
-  // Local set state for optimistic UI before save
-  const [setEdits, setSetEdits] = useState<Record<string, SetPatch>>({});
-
-  // Log form state
-  const [logName, setLogName] = useState("Custom Workout Session");
-  const [logDate, setLogDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [logDuration, setLogDuration] = useState(60);
-  const [logNotes, setLogNotes] = useState("");
-  const [logExercises, setLogExercises] = useState<LogExerciseRow[]>([
-    { tempId: makeTempId(), exerciseId: "", sets: 3, reps: 10, weight: 0, duration: 0, notes: "" },
-  ]);
-
-  const { data: historyRaw, isLoading: loadingHistory } = useQuery({
-    queryKey: ["workout-history"],
-    queryFn: () => workoutService.getHistory(1, 10),
+  // Calendar schedule modal
+  const [showCalendarAdd, setShowCalendarAdd] = useState(false);
+  type WeekdaySlot = { enabled: boolean; time: string };
+  const [weekdaySlots, setWeekdaySlots] = useState<Record<number, WeekdaySlot>>({
+    1: { enabled: true, time: "07:00" },
+    3: { enabled: true, time: "07:00" },
+    5: { enabled: true, time: "09:00" },
   });
-
-  const { data: statsData, isLoading: loadingStats } = useQuery({
-    queryKey: ["workout-stats"],
-    queryFn: workoutService.getStats,
-  });
-
-  const { data: prRaw, isLoading: loadingPRs } = useQuery({
-    queryKey: ["workout-prs"],
-    queryFn: () => workoutService.getPRs(),
-  });
-
-  const { data: exercisesRaw, isLoading: loadingExercises } = useQuery({
-    queryKey: ["exercise-options"],
-    queryFn: workoutService.getExercises,
-  });
-
-  const updateSetMutation = useMutation({
-    mutationFn: ({ setId, patch }: { setId: string; patch: SetPatch }) =>
-      workoutService.updateSet(setId, patch),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workout-history"] });
-      queryClient.invalidateQueries({ queryKey: ["workout-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["workout-prs"] });
-    },
-  });
-
-  const logWorkoutMutation = useMutation({
-    mutationFn: async () => {
-      const validRows = logExercises.filter((r) => r.exerciseId);
-      if (validRows.length === 0) throw new Error("Chon it nhat 1 bai tap.");
-      return workoutService.logWorkout({
-        name: logName.trim() || "Custom Workout Session",
-        date: new Date(`${logDate}T07:00:00`).toISOString(),
-        duration: logDuration > 0 ? logDuration : undefined,
-        notes: logNotes || undefined,
-        exercises: validRows.map((r) => ({
-          exerciseId: r.exerciseId,
-          sets: r.sets > 0 ? r.sets : 1,
-          reps: r.reps > 0 ? r.reps : undefined,
-          weight: r.weight > 0 ? r.weight : undefined,
-          duration: r.duration > 0 ? r.duration : undefined,
-          notes: r.notes || undefined,
-        })),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workout-history"] });
-      queryClient.invalidateQueries({ queryKey: ["workout-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["workout-prs"] });
-      setShowLogForm(false);
-      setView("today");
-    },
-  });
-
-  if (loadingHistory || loadingStats || loadingPRs || loadingExercises) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-zinc-950">
-        <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
-      </div>
-    );
-  }
-
-  const workouts = normalizeWorkouts(historyRaw);
-  const exercises = normalizeExercises(exercisesRaw);
-  const todayWorkout: Workout | null = workouts[0] || null;
-
-  const prs = (Array.isArray(prRaw) ? prRaw : prRaw?.prs || []).map((p: any) => ({
-    exercise: p.exerciseName || "Exercise",
-    weight: `${p.weight || 0} kg × ${p.reps || "-"}`,
-    date: p.date ? format(new Date(p.date), "MMM d") : "-",
-  }));
-
-  const weeklyData = (() => {
-    const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const today = new Date();
-    const dayOfWeek = (today.getDay() + 6) % 7; // Mon=0
-    return labels.map((day, idx) => {
-      const d = new Date(today);
-      d.setDate(today.getDate() - dayOfWeek + idx);
-      const dateStr = format(d, "yyyy-MM-dd");
-      const dayWorkouts = workouts.filter(
-        (w) => format(new Date(w.date), "yyyy-MM-dd") === dateStr
-      );
-      const volume = dayWorkouts.reduce((s, w) => s + computeVolume(w), 0);
-      return { day, volume: Math.round(volume) };
-    });
+  const [exceptions, setExceptions] = useState<Set<number>>(new Set());
+  const WD_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const derivedMarkers = (() => {
+    const m: number[] = [];
+    for (let d = 1; d <= DAYS_IN_APRIL; d++) {
+      const dow = ((d + FIRST_DAY_OFFSET - 1) % 7);
+      if (weekdaySlots[dow]?.enabled && !exceptions.has(d)) m.push(d);
+    }
+    return m;
   })();
 
-  const totalSets = todayWorkout?.exercises?.reduce(
-    (a, e) => a + (e.workoutSets?.length || e.sets || 0), 0
-  ) || 0;
-  const doneSets = todayWorkout?.exercises?.reduce(
-    (a, e) => a + (e.workoutSets?.filter((s) => {
-      const edit = setEdits[s.id];
-      return edit?.completed !== undefined ? edit.completed : s.completed;
-    })?.length || 0), 0
-  ) || 0;
-  const completedExercises = todayWorkout?.exercises?.filter((e) =>
-    e.workoutSets?.length > 0 &&
-    e.workoutSets.every((s) => {
-      const edit = setEdits[s.id];
-      return edit?.completed !== undefined ? edit.completed : s.completed;
-    })
-  )?.length || 0;
+  // Log modal
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [logMetric, setLogMetric] = useState<"weight" | "bodyfat" | "muscle" | "water">("weight");
+  const [logValue, setLogValue] = useState("");
+  const [activeCharts, setActiveCharts] = useState<Set<string>>(new Set(["weight"]));
 
-  function getSetValue<K extends keyof WorkoutSet>(set: WorkoutSet, key: K): WorkoutSet[K] {
-    const edit = setEdits[set.id];
-    return (edit && key in edit ? edit[key] : set[key]) as WorkoutSet[K];
-  }
+  // Edit mode
+  const [editMode, setEditMode] = useState(false);
+  const [editExercises, setEditExercises] = useState(dayExercises.map((e, i) => ({ ...e, id: i })));
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
 
-  function patchSetLocal(setId: string, patch: SetPatch) {
-    setSetEdits((prev) => ({ ...prev, [setId]: { ...prev[setId], ...patch } }));
-  }
+  // Active workout state
+  const [activeExIdx, setActiveExIdx] = useState(0);
+  const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set());
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [restTimerRunning, setRestTimerRunning] = useState(false);
+  const [restSeconds, setRestSeconds] = useState(90);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const restRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  function saveSet(setId: string) {
-    const patch = setEdits[setId] as SetPatch | undefined;
-    if (!patch || Object.keys(patch).length === 0) return;
-    updateSetMutation.mutate({ setId, patch });
-  }
+  // Timer effect
+  useEffect(() => {
+    if (timerRunning) {
+      timerRef.current = setInterval(() => setTimerSeconds((s) => s + 1), 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [timerRunning]);
 
-  function toggleCompleted(set: WorkoutSet) {
-    const newVal = !(getSetValue(set, "completed") as boolean);
-    const patch: SetPatch = { completed: newVal };
-    patchSetLocal(set.id, patch);
-    updateSetMutation.mutate({ setId: set.id, patch });
-  }
+  // Rest timer effect
+  useEffect(() => {
+    if (restTimerRunning && restSeconds > 0) {
+      restRef.current = setInterval(() => setRestSeconds((s) => s - 1), 1000);
+    } else {
+      if (restRef.current) clearInterval(restRef.current);
+      if (restTimerRunning && restSeconds <= 0) setRestTimerRunning(false);
+    }
+    return () => { if (restRef.current) clearInterval(restRef.current); };
+  }, [restTimerRunning, restSeconds]);
+
+  const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+
+  const fireConfetti = useCallback(() => {
+    const duration = 4000;
+    const end = Date.now() + duration;
+    const colors = ["#10b981", "#22c55e", "#a3e635", "#34d399", "#6ee7b7", "#ffffff"];
+    const frame = () => {
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors });
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+    // Big burst first
+    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors, scalar: 1.2 });
+    frame();
+  }, []);
+
+  const handleCompleteExercise = () => {
+    const newCompleted = new Set(completedExercises);
+    newCompleted.add(activeExIdx);
+    setCompletedExercises(newCompleted);
+    setTimerRunning(false);
+    setTimerSeconds(0);
+
+    if (newCompleted.size === dayExercises.length) {
+      // All exercises done!
+      setShowCompletion(true);
+      setTimeout(() => fireConfetti(), 300);
+    } else if (activeExIdx < dayExercises.length - 1) {
+      // Start rest timer then move to next
+      setRestSeconds(90);
+      setRestTimerRunning(true);
+      setActiveExIdx(activeExIdx + 1);
+    }
+  };
+
+  const handleSkipExercise = () => {
+    setTimerRunning(false);
+    setTimerSeconds(0);
+    if (activeExIdx < dayExercises.length - 1) {
+      setActiveExIdx(activeExIdx + 1);
+    }
+  };
+
+  // Reset workout when leaving active view
+  useEffect(() => {
+    if (planView !== "activeExercise") {
+      setActiveExIdx(0);
+      setCompletedExercises(new Set());
+      setTimerRunning(false);
+      setTimerSeconds(0);
+      setRestTimerRunning(false);
+      setShowCompletion(false);
+    }
+  }, [planView]);
 
   return (
-    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-zinc-100 flex items-center gap-2">
-            <Dumbbell className="w-5 h-5 text-green-400" /> Workout Log
-          </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">Track your sets, reps, and performance</p>
-        </div>
-        <button
-          onClick={() => setShowLogForm((v) => !v)}
-          className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded-xl text-sm font-bold transition-all self-start sm:self-auto shadow-lg shadow-green-500/20"
-        >
-          <Plus className="w-4 h-4" /> Log Workout
-        </button>
-      </div>
+    <div className="p-5 md:p-8 space-y-7 max-w-[1400px] mx-auto">
+      {/* ─── Page Header ─── */}
+      <div className="relative">
+        <div className="absolute -top-24 -left-24 w-80 h-80 bg-emerald-500/[0.04] rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute -top-16 right-32 w-56 h-56 bg-green-500/[0.03] rounded-full blur-[60px] pointer-events-none" />
 
-      {/* Inline Log Form */}
-      {showLogForm && (
-        <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-zinc-200">New Workout Log</h3>
-            <button onClick={() => setShowLogForm(false)}>
-              <X className="w-4 h-4 text-zinc-500 hover:text-zinc-300" />
-            </button>
+        <div className="relative flex items-end justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-3.5 mb-1.5">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-green-600/10 border border-emerald-500/15 flex items-center justify-center shadow-[0_0_24px_rgba(16,185,129,0.1)]">
+                <Dumbbell className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <h1 className="text-2xl text-white tracking-tight">Workout Log</h1>
+                <p className="text-zinc-500 text-sm">Plan, schedule, and track your training</p>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <input
-              value={logName}
-              onChange={(e) => setLogName(e.target.value)}
-              placeholder="Workout name"
-              className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-            />
-            <input
-              type="date"
-              value={logDate}
-              onChange={(e) => setLogDate(e.target.value)}
-              className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-            />
-            <input
-              type="number"
-              min={1}
-              value={logDuration}
-              onChange={(e) => setLogDuration(Number(e.target.value || 0))}
-              placeholder="Duration (min)"
-              className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-            />
-          </div>
-
-          <textarea
-            value={logNotes}
-            onChange={(e) => setLogNotes(e.target.value)}
-            placeholder="Session notes"
-            className="min-h-16 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-          />
-
-          <div className="space-y-2">
-            {logExercises.map((row, idx) => (
-              <div key={row.tempId} className="grid grid-cols-1 gap-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3 sm:grid-cols-7">
-                <select
-                  value={row.exerciseId}
-                  onChange={(e) => setLogExercises((prev) => prev.map((r) => r.tempId === row.tempId ? { ...r, exerciseId: e.target.value } : r))}
-                  className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 sm:col-span-2"
-                >
-                  <option value="">Exercise</option>
-                  {exercises.map((ex) => (
-                    <option key={ex.id} value={ex.id}>{ex.exerciseName}</option>
-                  ))}
-                </select>
-                <input type="number" min={1} value={row.sets} onChange={(e) => setLogExercises((prev) => prev.map((r) => r.tempId === row.tempId ? { ...r, sets: Number(e.target.value || 1) } : r))} className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100" placeholder="Sets" />
-                <input type="number" min={0} value={row.reps} onChange={(e) => setLogExercises((prev) => prev.map((r) => r.tempId === row.tempId ? { ...r, reps: Number(e.target.value || 0) } : r))} className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100" placeholder="Reps" />
-                <input type="number" min={0} value={row.weight} onChange={(e) => setLogExercises((prev) => prev.map((r) => r.tempId === row.tempId ? { ...r, weight: Number(e.target.value || 0) } : r))} className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100" placeholder="Kg" />
-                <input type="number" min={0} value={row.duration} onChange={(e) => setLogExercises((prev) => prev.map((r) => r.tempId === row.tempId ? { ...r, duration: Number(e.target.value || 0) } : r))} className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100" placeholder="Sec" />
-                <button
-                  onClick={() => setLogExercises((prev) => prev.filter((r) => r.tempId !== row.tempId))}
-                  disabled={logExercises.length === 1}
-                  className="rounded border border-rose-500/30 bg-rose-500/10 px-2 py-1.5 text-sm text-rose-300 hover:bg-rose-500/20 disabled:opacity-40"
-                >
-                  Remove
-                </button>
-                <input
-                  value={row.notes}
-                  onChange={(e) => setLogExercises((prev) => prev.map((r) => r.tempId === row.tempId ? { ...r, notes: e.target.value } : r))}
-                  className="rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-zinc-100 sm:col-span-7"
-                  placeholder={`Exercise note #${idx + 1}`}
-                />
+          <div className="hidden lg:flex items-center gap-3">
+            {[
+              { label: "Active Plan", value: "Muscle Gain", icon: Zap },
+              { label: "This Week", value: "0 / 3 sessions", icon: Calendar },
+              { label: "Streak", value: "0 days", icon: TrendingUp },
+            ].map((s) => (
+              <div key={s.label} className="px-4 py-2.5 rounded-xl bg-zinc-900/70 border border-zinc-800/50 min-w-[130px]">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <s.icon className="w-3 h-3 text-emerald-500/60" />
+                  <span className="text-[10px] text-zinc-600 uppercase tracking-wider">{s.label}</span>
+                </div>
+                <p className="text-sm text-zinc-300">{s.value}</p>
               </div>
             ))}
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setLogExercises((prev) => [...prev, { tempId: makeTempId(), exerciseId: "", sets: 3, reps: 10, weight: 0, duration: 0, notes: "" }])}
-              className="inline-flex items-center gap-1 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700"
-            >
-              <Plus className="h-4 w-4" /> Add Exercise
-            </button>
-            <button
-              onClick={() => logWorkoutMutation.mutate()}
-              disabled={logWorkoutMutation.isPending}
-              className="inline-flex items-center gap-1 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm font-semibold text-green-300 hover:bg-green-500/20 disabled:opacity-60"
-            >
-              <Save className="h-4 w-4" /> {logWorkoutMutation.isPending ? "Saving..." : "Save Workout"}
-            </button>
-          </div>
-
-          {logWorkoutMutation.isError && (
-            <p className="text-xs text-rose-400">{(logWorkoutMutation.error as any)?.message || "Failed to save"}</p>
-          )}
         </div>
-      )}
+      </div>
 
-      {/* Tab switcher */}
-      <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex">
-        {(["today", "history", "records"] as View[]).map((v) => (
+      {/* ─── Tabs ─── */}
+      <div className="flex gap-1 bg-zinc-900/50 border border-zinc-800/40 p-1 rounded-2xl w-fit">
+        {(["overview", "plan"] as Tab[]).map((t) => (
           <button
-            key={v}
-            onClick={() => setView(v)}
-            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold capitalize transition-all ${view === v ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}
+            key={t}
+            onClick={() => { setTab(t); setPlanView("main"); }}
+            className={`px-8 py-2.5 rounded-xl text-sm transition-all ${
+              tab === t
+                ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/30"
+            }`}
           >
-            {v === "today" ? "Today" : v === "history" ? "History" : "PRs"}
+            {t === "overview" ? "Overview" : "Workout Plan"}
           </button>
         ))}
       </div>
 
-      {/* Today View */}
-      {view === "today" && (
-        <div className="space-y-4">
-          {todayWorkout ? (
-            <>
-              {/* Progress bar */}
-              <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-zinc-200">{todayWorkout.name || "Workout"}</h3>
-                  <span className="text-xs text-green-400 font-bold">{doneSets}/{totalSets} sets done</span>
+      {/* ═══════════════ OVERVIEW ═══════════════ */}
+      {tab === "overview" && (
+        <div className="space-y-6">
+          {/* Reminder */}
+          <div className="relative overflow-hidden rounded-2xl border border-emerald-500/12 bg-gradient-to-r from-emerald-950/30 via-emerald-950/15 to-transparent p-5">
+            <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/[0.04] rounded-full blur-[60px]" />
+            <div className="relative flex items-center gap-4">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-emerald-100/90">It's time to update your body metrics</p>
+                <p className="text-xs text-emerald-500/40 mt-0.5">Last updated 14 days ago · InBody scan recommended</p>
+              </div>
+              <button className="px-4 py-2 rounded-xl bg-emerald-500/8 border border-emerald-500/15 text-xs text-emerald-300 hover:bg-emerald-500/15 transition-all shrink-0">
+                Update Now
+              </button>
+            </div>
+          </div>
+
+          {/* Hero + Upcoming */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 group relative rounded-2xl overflow-hidden border border-zinc-700/25 h-64">
+              <img src={heroImg} alt="Training" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/25" />
+              <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/20 via-transparent to-transparent" />
+              <div className="absolute top-4 right-4 flex gap-2">
+                <span className="px-3 py-1.5 rounded-xl bg-amber-500/12 border border-amber-500/20 text-[11px] text-amber-300 backdrop-blur-md flex items-center gap-1.5">
+                  <Star className="w-3 h-3" /> 4.8
+                </span>
+                <span className="px-3 py-1.5 rounded-xl bg-emerald-500/12 border border-emerald-500/20 text-[11px] text-emerald-300 backdrop-blur-md">
+                  At Gym
+                </span>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 p-6">
+                <span className="text-[10px] text-emerald-400/60 uppercase tracking-[0.2em] mb-1.5 block">Current Program</span>
+                <h2 className="text-2xl text-white mb-2 tracking-tight">General Muscle Gain</h2>
+                <div className="flex items-center gap-4 text-xs text-zinc-400">
+                  <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3 text-zinc-600" /> 33 training days</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>3 sessions/week</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>Completed: <span className="text-emerald-400">0</span></span>
                 </div>
-                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-green-500 rounded-full transition-all shadow-[0_0_8px_rgba(34,197,94,0.4)]"
-                    style={{ width: `${totalSets > 0 ? (doneSets / totalSets) * 100 : 0}%` }}
-                  />
+                <div className="mt-3 h-1.5 bg-white/[0.06] rounded-full overflow-hidden max-w-sm">
+                  <div className="h-full w-0 bg-gradient-to-r from-emerald-500 to-green-400 rounded-full" />
                 </div>
-                <p className="text-xs text-zinc-600 mt-1">
-                  {completedExercises}/{todayWorkout.exercises?.length || 0} exercises completed
-                </p>
+              </div>
+            </div>
+
+            <GlassPanel title="Upcoming Workouts" icon={<Dumbbell className="w-4 h-4 text-emerald-400" />}>
+              <div className="space-y-2.5">
+                {workoutDays.map((w) => (
+                  <div key={`upk-${w.day}`}
+                    onClick={() => { if (!w.locked) { setTab("plan"); setPlanView("dayDetail"); setSelectedDay(w.day); } }}
+                    className={`group/item rounded-xl border p-3.5 transition-all ${
+                    w.locked
+                      ? "bg-zinc-900/20 border-zinc-800/25 opacity-40"
+                      : "bg-zinc-800/20 border-zinc-700/25 hover:border-emerald-500/20 hover:bg-zinc-800/40 cursor-pointer"
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        w.locked ? "bg-zinc-800/40 border border-zinc-700/40" : "bg-emerald-500/8 border border-emerald-500/15"
+                      }`}>
+                        {w.locked ? <Lock className="w-3.5 h-3.5 text-zinc-700" /> : <span className="text-[11px] text-emerald-400">D{w.day}</span>}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-zinc-200">Day {w.day}</p>
+                        <p className="text-[11px] text-zinc-500 truncate">{w.title}</p>
+                      </div>
+                      {!w.locked && <ChevronRight className="w-3.5 h-3.5 text-zinc-700 group-hover/item:text-emerald-400 transition-colors" />}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassPanel>
+          </div>
+
+          {/* Calendar + Metrics */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <GlassPanel title="Workout Calendar" icon={<Calendar className="w-4 h-4 text-emerald-400" />} actionLabel="Add" onAction={() => setShowCalendarAdd(true)}>
+              <CalendarGrid markers={derivedMarkers} />
+            </GlassPanel>
+
+            <GlassPanel title="Body Metrics" icon={<TrendingUp className="w-4 h-4 text-emerald-400" />} actionLabel="+ Log" onAction={() => setShowLogModal(true)}>
+              {/* Active metric chips */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {metricOptions.map((m) => {
+                  const isActive = activeCharts.has(m.key);
+                  return (
+                    <button
+                      key={m.key}
+                      onClick={() => {
+                        const next = new Set(activeCharts);
+                        if (isActive && next.size > 1) next.delete(m.key);
+                        else next.add(m.key);
+                        setActiveCharts(next);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] border transition-all ${
+                        isActive
+                          ? "border-opacity-30 bg-opacity-10"
+                          : "border-zinc-700/20 bg-zinc-800/20 text-zinc-600 hover:text-zinc-400"
+                      }`}
+                      style={isActive ? { borderColor: m.color + "40", backgroundColor: m.color + "15", color: m.color } : {}}
+                    >
+                      {m.label}
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Exercises */}
-              {todayWorkout.exercises?.map((ex) => {
-                const allDone = ex.workoutSets?.length > 0 && ex.workoutSets.every((s) => {
-                  const edit = setEdits[s.id];
-                  return edit?.completed !== undefined ? edit.completed : s.completed;
-                });
-                const doneCount = ex.workoutSets?.filter((s) => {
-                  const edit = setEdits[s.id];
-                  return edit?.completed !== undefined ? edit.completed : s.completed;
-                }).length || 0;
-
+              {/* Chart area */}
+              {Array.from(activeCharts).map((chartKey) => {
+                const m = metricOptions.find((o) => o.key === chartKey)!;
                 return (
-                  <div key={ex.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
-                    <button
-                      onClick={() => setExpanded(expanded === ex.id ? null : ex.id)}
-                      className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-zinc-800/40 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${allDone ? "bg-green-500/15 border border-green-500/20" : "bg-zinc-800 border border-zinc-700"}`}>
-                          {allDone ? <Check className="w-4 h-4 text-green-400" /> : <Dumbbell className="w-4 h-4 text-zinc-500" />}
-                        </div>
-                        <div>
-                          <div className="text-sm font-bold text-zinc-200">{ex.exercise?.exerciseName || "Exercise"}</div>
-                          <div className="text-xs text-zinc-600">
-                            {ex.exercise?.bodyPart?.replace("_", " ") || "Muscle"} · {ex.workoutSets?.length || ex.sets} sets
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-zinc-500">{doneCount}/{ex.workoutSets?.length || ex.sets}</span>
-                        {expanded === ex.id ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
-                      </div>
-                    </button>
-
-                    {expanded === ex.id && ex.workoutSets?.length > 0 && (
-                      <div className="border-t border-zinc-800/60">
-                        <div className="overflow-x-auto">
-                          <table className="w-full min-w-[350px] text-sm">
-                            <thead>
-                              <tr className="text-left text-xs text-zinc-600 bg-zinc-800/30 uppercase tracking-wider">
-                                <th className="px-4 py-2">Set</th>
-                                <th className="px-4 py-2">Reps</th>
-                                <th className="px-4 py-2">Weight (kg)</th>
-                                <th className="px-4 py-2">RPE</th>
-                                <th className="px-4 py-2">Done</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {ex.workoutSets.map((set, i) => {
-                                const isCompleted = getSetValue(set, "completed") as boolean;
-                                return (
-                                  <tr
-                                    key={set.id}
-                                    className={`border-t border-zinc-800/40 transition-colors ${isCompleted ? "bg-green-500/5" : "hover:bg-zinc-800/30"}`}
-                                  >
-                                    <td className="px-4 py-2.5 text-zinc-500">{i + 1}</td>
-                                    <td className="px-4 py-2.5">
-                                      <input
-                                        defaultValue={getSetValue(set, "reps") ?? ""}
-                                        placeholder="—"
-                                        onChange={(e) => patchSetLocal(set.id, { reps: e.target.value ? Number(e.target.value) : undefined })}
-                                        onBlur={() => saveSet(set.id)}
-                                        className="w-14 px-2 py-1 border border-zinc-700/60 rounded text-xs focus:outline-none focus:ring-1 focus:ring-green-500/50 bg-zinc-800/60 text-zinc-200"
-                                      />
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                      <input
-                                        defaultValue={getSetValue(set, "weight") ?? ""}
-                                        placeholder="—"
-                                        onChange={(e) => patchSetLocal(set.id, { weight: e.target.value ? Number(e.target.value) : undefined })}
-                                        onBlur={() => saveSet(set.id)}
-                                        className="w-16 px-2 py-1 border border-zinc-700/60 rounded text-xs focus:outline-none focus:ring-1 focus:ring-green-500/50 bg-zinc-800/60 text-zinc-200"
-                                      />
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                      <input
-                                        defaultValue={getSetValue(set, "rpe") ?? ""}
-                                        placeholder="—"
-                                        onChange={(e) => patchSetLocal(set.id, { rpe: e.target.value ? Number(e.target.value) : undefined })}
-                                        onBlur={() => saveSet(set.id)}
-                                        className="w-12 px-2 py-1 border border-zinc-700/60 rounded text-xs focus:outline-none focus:ring-1 focus:ring-green-500/50 bg-zinc-800/60 text-zinc-200"
-                                      />
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                      <button
-                                        onClick={() => toggleCompleted(set)}
-                                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isCompleted ? "bg-green-500 border-green-500 shadow-[0_0_6px_rgba(34,197,94,0.4)]" : "border-zinc-600 hover:border-green-500/50"}`}
-                                      >
-                                        {isCompleted && <Check className="w-3 h-3 text-black" />}
-                                      </button>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
+                  <div key={chartKey} className="mb-4 last:mb-0">
+                    <p className="text-xs text-zinc-500 mb-2">{m.label}: <span style={{ color: m.color }}>{m.current}</span> · Target: <span className="text-zinc-400">{m.target}</span></p>
+                    <div className="h-40">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={m.data as any}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+                          <XAxis dataKey="week" tick={{ fontSize: 10, fill: "#3f3f46" }} axisLine={false} tickLine={false} />
+                          <YAxis domain={m.domain as any} tick={{ fontSize: 10, fill: "#3f3f46" }} axisLine={false} tickLine={false} />
+                          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 14, border: "1px solid #1e1e24", backgroundColor: "rgba(8,8,12,0.96)", color: "#e4e4e7" }} formatter={(v: number) => [`${v} ${m.unit}`, m.label]} />
+                          <Line type="monotone" dataKey={m.dataKey} stroke={m.color} strokeWidth={2.5} dot={{ r: 3, fill: m.color, strokeWidth: 0 }} activeDot={{ r: 6, fill: m.color, stroke: "#0a0a0f", strokeWidth: 3 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 );
               })}
-            </>
-          ) : (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-20 text-center">
-              <Dumbbell className="w-12 h-12 text-zinc-800 mx-auto mb-3" />
-              <p className="text-zinc-500">No workout logged yet.</p>
-              <button
-                onClick={() => setShowLogForm(true)}
-                className="mt-4 text-green-500 font-bold hover:text-green-400"
-              >
-                Start Training Now
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* History View */}
-      {view === "history" && (
-        <div className="space-y-4">
-          <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
-            <h4 className="text-sm font-bold text-zinc-200 mb-3">Weekly Volume (kg)</h4>
-            <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={weeklyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#71717a" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #27272a", backgroundColor: "#111111", color: "#f4f4f5" }}
-                  formatter={(v: number) => [`${v} kg`, "Volume"]}
-                />
-                <Bar dataKey="volume" fill="#22c55e" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            </GlassPanel>
           </div>
 
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-800/60">
-              <h4 className="text-sm font-bold text-zinc-200">Recent Workouts</h4>
-            </div>
-            {workouts.length > 0 ? (
-              workouts.map((w, i) => (
-                <div key={w.id || i} className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/30 transition-colors">
-                  <div>
-                    <div className="text-sm font-semibold text-zinc-200">{w.name}</div>
-                    <div className="text-xs text-zinc-600">
-                      {format(new Date(w.date), "MMM d, yyyy")} · {w.exercises?.length || 0} exercises
+          {/* Analytics */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Muscle Group Training */}
+            <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 relative overflow-hidden">
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/[0.02] rounded-full blur-[40px] pointer-events-none" />
+              <div className="relative">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 rounded-xl bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center">
+                    <Target className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <h3 className="text-sm text-zinc-100">Muscle Group Training</h3>
+                </div>
+                <TimeFilterBar value={muscleFilter} onChange={setMuscleFilter} />
+                <div className="flex items-start gap-8 mt-6">
+                  <div className="shrink-0" style={{ width: 180, height: 180 }}>
+                    <div className="relative w-full h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                          <Pie data={muscleChartData} cx="50%" cy="50%" innerRadius={38} outerRadius={62} paddingAngle={2.5} dataKey="value" strokeWidth={0}
+                            label={({ cx, cy, midAngle, outerRadius, value, name }) => {
+                              const RADIAN = Math.PI / 180;
+                              const radius = outerRadius + 18;
+                              const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                              const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                              return <text x={x} y={y} fill="#d4d4d8" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={10}>{value}%</text>;
+                            }} labelLine={false}>
+                            {muscleChartData.map((d) => <Cell key={`mc-${d.name}`} fill={d.color} />)}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="text-center">
+                          <span className="text-base text-white">6</span>
+                          <p className="text-[9px] text-zinc-600 mt-0.5">Groups</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <span className="text-sm font-bold text-green-400">{Math.round(computeVolume(w)).toLocaleString()} kg</span>
+                  <div className="flex-1 space-y-3 pt-1">
+                    {muscleChartData.map((d) => (
+                      <div key={`ml-${d.name}`} className="flex items-center gap-3">
+                        <span className="w-3 h-3 rounded-[4px] shrink-0" style={{ backgroundColor: d.color, boxShadow: `0 0 8px ${d.color}40` }} />
+                        <span className="text-xs text-zinc-300 flex-1 min-w-[64px]">{d.name}</span>
+                        <div className="w-24 h-[7px] bg-zinc-800/80 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${d.value * 2}%`, backgroundColor: d.color }} />
+                        </div>
+                        <span className="text-xs text-zinc-400 w-10 text-right tabular-nums">{d.value}%</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))
-            ) : (
-              <div className="p-10 text-center text-zinc-600 text-sm italic">No workout history found.</div>
-            )}
+              </div>
+            </div>
+
+            {/* Exercise Type Distribution */}
+            <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 relative overflow-hidden">
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/[0.02] rounded-full blur-[40px] pointer-events-none" />
+              <div className="relative">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 rounded-xl bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center">
+                    <BarChart3 className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <h3 className="text-sm text-zinc-100">Exercise Type Distribution</h3>
+                </div>
+                <TimeFilterBar value={exerciseFilter} onChange={setExerciseFilter} />
+                <div className="flex items-start gap-8 mt-6">
+                  <div className="shrink-0" style={{ width: 180, height: 180 }}>
+                    <div className="relative w-full h-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                          <Pie data={exerciseTypeData} cx="50%" cy="50%" innerRadius={38} outerRadius={62} paddingAngle={2.5} dataKey="value" strokeWidth={0}
+                            label={({ cx, cy, midAngle, outerRadius, value, name }) => {
+                              const RADIAN = Math.PI / 180;
+                              const radius = outerRadius + 18;
+                              const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                              const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                              return <text x={x} y={y} fill="#d4d4d8" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={10}>{value}%</text>;
+                            }} labelLine={false}>
+                            {exerciseTypeData.map((d) => <Cell key={`et-${d.name}`} fill={d.color} />)}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="text-center">
+                          <span className="text-base text-white">4</span>
+                          <p className="text-[9px] text-zinc-600 mt-0.5">Types</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex-1 space-y-4 pt-2">
+                    {exerciseTypeData.map((d) => (
+                      <div key={`el-${d.name}`} className="flex items-center gap-3">
+                        <span className="w-3 h-3 rounded-[4px] shrink-0" style={{ backgroundColor: d.color, boxShadow: `0 0 8px ${d.color}40` }} />
+                        <span className="text-xs text-zinc-300 flex-1 min-w-[64px]">{d.name}</span>
+                        <div className="w-24 h-[7px] bg-zinc-800/80 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${d.value * 2}%`, backgroundColor: d.color }} />
+                        </div>
+                        <span className="text-xs text-zinc-400 w-10 text-right tabular-nums">{d.value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Records View */}
-      {view === "records" && (
-        <div className="space-y-3">
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
-            <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-400" />
-              <h4 className="text-sm font-bold text-zinc-200">Personal Records</h4>
+      {/* ═══════════════ WORKOUT PLAN — MAIN ═══════════════ */}
+      {tab === "plan" && planView === "main" && (
+        <div className="space-y-7">
+          {/* Cinematic Hero */}
+          <div className="group relative rounded-2xl overflow-hidden border border-zinc-700/20 h-60">
+            <img src={heroImg} alt="Training" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/15" />
+            <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/15 via-transparent to-transparent" />
+
+            <button className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/40 transition-all">
+              <Share2 className="w-4 h-4 text-white/50" />
+            </button>
+
+            <div className="absolute top-4 right-4 flex gap-2">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/15 text-[11px] text-amber-300 backdrop-blur-md">
+                <Star className="w-3 h-3" /> 4.8
+              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-[11px] text-emerald-300 backdrop-blur-md">At Gym</span>
+              <span className="px-3 py-1.5 rounded-xl bg-zinc-500/10 border border-zinc-500/15 text-[11px] text-zinc-300 backdrop-blur-md">Intermediate</span>
             </div>
-            {prs.length === 0 && (
-              <div className="p-10 text-center text-zinc-600 text-sm italic">No PR data yet.</div>
-            )}
-            {prs.map((pr) => (
-              <div key={pr.exercise} className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/30 transition-colors">
-                <div>
-                  <div className="text-sm font-bold text-zinc-200">{pr.exercise}</div>
-                  <div className="text-xs text-zinc-600">{pr.date}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-amber-400">{pr.weight}</span>
-                  <Award className="w-4 h-4 text-amber-400" />
+
+            <div className="absolute bottom-0 left-0 right-0 p-6">
+              <span className="text-[10px] text-emerald-400/50 uppercase tracking-[0.2em] mb-1.5 block">Active Program</span>
+              <h2 className="text-2xl text-white mb-2 tracking-tight">General Muscle Gain</h2>
+              <div className="flex items-center gap-4 text-xs text-zinc-400">
+                <span className="flex items-center gap-1.5"><Dumbbell className="w-3 h-3 text-emerald-500/50" /> 33 training days</span>
+                <span className="text-zinc-700">·</span>
+                <span>3 sessions/week</span>
+                <span className="text-zinc-700">·</span>
+                <span>Completed: <span className="text-emerald-400">0</span></span>
+              </div>
+              <div className="mt-3 h-1.5 bg-white/[0.05] rounded-full overflow-hidden max-w-md">
+                <div className="h-full w-0 bg-gradient-to-r from-emerald-500 to-green-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.35)]" />
+              </div>
+            </div>
+          </div>
+
+          {/* Training Days + Calendar/Schedule */}
+          <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            {/* Training Days */}
+            <div className="xl:col-span-2">
+              <SectionTitle title="Training Days" />
+              <div className="space-y-3 mt-4">
+                {workoutDays.map((w) => (
+                  <button
+                    key={`td-${w.day}`}
+                    onClick={() => { if (!w.locked) { setSelectedDay(w.day); setPlanView("dayDetail"); } }}
+                    disabled={w.locked}
+                    className={`group/card w-full rounded-2xl border p-5 transition-all text-left relative overflow-hidden ${
+                      w.locked
+                        ? "bg-zinc-900/20 border-zinc-800/25 opacity-40 cursor-not-allowed"
+                        : "bg-zinc-900/50 border-zinc-800/30 hover:border-emerald-500/20 hover:shadow-[0_0_30px_rgba(16,185,129,0.04)] active:scale-[0.99]"
+                    }`}
+                  >
+                    {!w.locked && <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/0 group-hover/card:from-emerald-500/[0.02] group-hover/card:to-transparent transition-all duration-300" />}
+
+                    <div className="relative flex items-center gap-4">
+                      {/* Ring */}
+                      <div className="relative shrink-0">
+                        <svg width="52" height="52" viewBox="0 0 52 52">
+                          <circle cx="26" cy="26" r="22" fill="none" stroke={w.locked ? "#18181b" : "#064e3b"} strokeWidth="3" />
+                          {!w.locked && w.progress > 0 && (
+                            <circle cx="26" cy="26" r="22" fill="none" stroke="#10b981" strokeWidth="3"
+                              strokeDasharray={`${(w.progress / 100) * 138} 138`} strokeLinecap="round" transform="rotate(-90 26 26)" />
+                          )}
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          {w.locked ? <Lock className="w-4 h-4 text-zinc-700" /> : <span className="text-[11px] text-emerald-400">{w.progress}%</span>}
+                        </div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-zinc-100">Day {w.day} workout</p>
+                        <p className="text-xs text-zinc-500 mt-0.5 truncate">{w.title}</p>
+                        {!w.locked && (
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="text-[10px] text-zinc-600 flex items-center gap-1"><Clock className="w-3 h-3" /> {w.duration}</span>
+                            <span className="text-[10px] text-zinc-600">{w.exercises} exercises</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {!w.locked && <ChevronRight className="w-4 h-4 text-zinc-700 group-hover/card:text-emerald-400 transition-colors shrink-0" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Calendar + Schedule */}
+            <div className="xl:col-span-3 space-y-6">
+              {/* Calendar */}
+              <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/[0.02] rounded-full blur-[60px] pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-5">
+                    <SectionTitle title="Workout Calendar" />
+                    <button onClick={() => setCalendarExpanded(!calendarExpanded)} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-400 transition-colors">
+                      {calendarExpanded ? "Collapse" : "Expand"}
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${!calendarExpanded ? "rotate-180" : ""}`} />
+                    </button>
+                  </div>
+                  {calendarExpanded && <CalendarGrid markers={derivedMarkers} />}
                 </div>
               </div>
-            ))}
+
+              {/* Schedule Settings */}
+              <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 relative overflow-hidden">
+                <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-500/[0.02] rounded-full blur-[50px] pointer-events-none" />
+                <div className="relative">
+                  <SectionTitle title="Training Schedule" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-0 mt-5">
+                    <div>
+                      <ToggleRow label="Show on Overview Page" value={showOnOverview} onChange={setShowOnOverview} />
+                      <ToggleRow label="Show all workout programs" value={showAllPrograms} onChange={setShowAllPrograms} />
+                      <ToggleRow label="Automatic Schedule" value={autoSchedule} onChange={setAutoSchedule} />
+                      <ToggleRow label="Editable Schedule" value={editableSchedule} onChange={setEditableSchedule} />
+                    </div>
+
+                    {editableSchedule && (
+                      <div className="space-y-4 pt-2 md:pt-0">
+                        {/* Mode */}
+                        <div className="flex bg-zinc-800/30 rounded-xl p-1 border border-zinc-700/20">
+                          {(["day", "cycle"] as const).map((m) => (
+                            <button key={m} onClick={() => setScheduleMode(m)} className={`flex-1 py-2 rounded-lg text-xs transition-all ${
+                              scheduleMode === m
+                                ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/15 shadow-[0_0_10px_rgba(16,185,129,0.08)]"
+                                : "text-zinc-500 hover:text-zinc-400 border border-transparent"
+                            }`}>
+                              {m === "day" ? "By Day" : "Cycle"}
+                            </button>
+                          ))}
+                        </div>
+                        <SettingRow label="Training start date">
+                          <button className="px-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-xs text-emerald-400 hover:border-emerald-500/20 transition-colors">Apr 1, 2026</button>
+                        </SettingRow>
+                        <SettingRow label="Consecutive training">
+                          <Stepper value={consecutiveTrain} onChange={setConsecutiveTrain} min={1} max={7} />
+                        </SettingRow>
+                        <SettingRow label="Consecutive rest">
+                          <Stepper value={consecutiveRest} onChange={setConsecutiveRest} min={1} max={7} />
+                        </SettingRow>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      {/* ═══════════════ DAY DETAIL ═══════════════ */}
+      {tab === "plan" && planView === "dayDetail" && (() => {
+        const wd = workoutDays.find(d => d.day === selectedDay) || workoutDays[0];
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <button onClick={() => setPlanView("main")} className="w-10 h-10 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+                <ChevronLeft className="w-5 h-5 text-zinc-400" />
+              </button>
+              <div>
+                <h2 className="text-lg text-white tracking-tight">Day {selectedDay} — Workout Detail</h2>
+                <p className="text-xs text-zinc-500">{wd.title}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Summary */}
+              <div className="rounded-2xl border border-zinc-800/30 bg-gradient-to-b from-zinc-900/50 to-zinc-900/30 p-6 relative overflow-hidden">
+                <div className="absolute -top-10 -right-10 w-36 h-36 bg-emerald-500/[0.03] rounded-full blur-[40px]" />
+                <div className="relative">
+                  <div className="flex justify-center mb-6">
+                    <div className="relative">
+                      <svg width="110" height="110" viewBox="0 0 110 110">
+                        <circle cx="55" cy="55" r="48" fill="none" stroke="#064e3b" strokeWidth="4" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center">
+                          <span className="text-2xl text-emerald-400">0%</span>
+                          <p className="text-[9px] text-zinc-600 mt-0.5">Complete</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center mb-5">
+                    <h3 className="text-base text-zinc-100 mb-0.5">Day {selectedDay} workout</h3>
+                    <p className="text-xs text-zinc-500">{wd.title}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    <div className="bg-zinc-800/25 rounded-xl border border-zinc-700/20 p-3.5 text-center">
+                      <Clock className="w-4 h-4 text-emerald-500/50 mx-auto mb-1" />
+                      <p className="text-sm text-zinc-200">{wd.duration}</p>
+                      <p className="text-[10px] text-zinc-600">Duration</p>
+                    </div>
+                    <div className="bg-zinc-800/25 rounded-xl border border-zinc-700/20 p-3.5 text-center">
+                      <Dumbbell className="w-4 h-4 text-emerald-500/50 mx-auto mb-1" />
+                      <p className="text-sm text-zinc-200">{wd.exercises}</p>
+                      <p className="text-[10px] text-zinc-600">Exercises</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setPlanView("activeExercise")}
+                    className="w-full py-3.5 rounded-xl bg-emerald-500 text-black text-sm tracking-wider transition-all hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-[0.98] flex items-center justify-center gap-2"
+                  >
+                    <Play className="w-4 h-4" /> START WORKOUT
+                  </button>
+                </div>
+              </div>
+
+              {/* Exercises */}
+              <div className="lg:col-span-2">
+                <div className="flex items-center justify-between">
+                  <SectionTitle title="Exercises" badge={`${editMode ? editExercises.length : dayExercises.length}`} />
+                  {editMode ? (
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setEditMode(false); }} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 hover:border-zinc-600/30">
+                        <X className="w-3 h-3" /> Cancel
+                      </button>
+                      <button onClick={() => { setEditMode(false); }} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/25">
+                        <Check className="w-3 h-3" /> Save
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setEditExercises(dayExercises.map((e, i) => ({ ...e, id: i }))); setEditMode(true); }} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20">
+                      <ArrowUpDown className="w-3 h-3" /> Edit
+                    </button>
+                  )}
+                </div>
+
+                {editMode ? (
+                  /* ── Edit Mode: reorderable list ── */
+                  <div className="space-y-2 mt-4">
+                    {editExercises.map((ex, i) => (
+                      <div
+                        key={`edit-${ex.id}`}
+                        draggable
+                        onDragStart={() => setDragIdx(i)}
+                        onDragOver={(e) => { e.preventDefault(); }}
+                        onDrop={() => {
+                          if (dragIdx === null || dragIdx === i) return;
+                          const items = [...editExercises];
+                          const [moved] = items.splice(dragIdx, 1);
+                          items.splice(i, 0, moved);
+                          setEditExercises(items);
+                          setDragIdx(null);
+                        }}
+                        onDragEnd={() => setDragIdx(null)}
+                        className={`rounded-2xl border p-4 flex items-center gap-4 transition-all ${
+                          dragIdx === i
+                            ? "border-emerald-500/30 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.08)]"
+                            : "border-zinc-800/30 bg-zinc-900/40 hover:border-zinc-700/40"
+                        }`}
+                      >
+                        <div className="cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 transition-colors">
+                          <GripVertical className="w-4 h-4" />
+                        </div>
+                        <span className="w-6 h-6 rounded-lg bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center text-[10px] text-zinc-500 shrink-0">{i + 1}</span>
+                        <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25">
+                          <ImageWithFallback src={ex.img} alt={ex.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-zinc-100 truncate">{ex.name}</p>
+                          <p className="text-xs text-zinc-500 mt-0.5">{ex.prescription}</p>
+                        </div>
+                        <span className={`text-[10px] px-2.5 py-1 rounded-lg border shrink-0 ${
+                          ex.type === "cardio"
+                            ? "text-emerald-300 border-emerald-500/15 bg-emerald-500/6"
+                            : "text-green-300 border-green-500/15 bg-green-500/6"
+                        }`}>
+                          {ex.type === "cardio" ? "Cardio" : "Strength"}
+                        </span>
+                        <button
+                          onClick={() => setEditExercises(editExercises.filter((_, j) => j !== i))}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-red-400 hover:bg-red-500/8 transition-all shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    <button className="w-full rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/20 p-4 flex items-center justify-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/20 transition-all">
+                      <Plus className="w-4 h-4" /> Add Exercise
+                    </button>
+                  </div>
+                ) : (
+                  /* ── Normal Mode: clickable cards ── */
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                    {dayExercises.map((ex, i) => (
+                      <div
+                        key={`ex-${i}-${ex.name}`}
+                        onClick={() => setSelectedExercise(ex)}
+                        className="group/ex rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-4 flex items-center gap-4 hover:border-emerald-500/15 hover:shadow-[0_0_20px_rgba(16,185,129,0.03)] transition-all cursor-pointer relative overflow-hidden"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 group-hover/ex:from-emerald-500/[0.015] to-transparent transition-all duration-300" />
+                        <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25">
+                          <ImageWithFallback src={ex.img} alt={ex.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="relative flex-1 min-w-0">
+                          <p className="text-sm text-zinc-100 truncate">{ex.name}</p>
+                          <p className="text-xs text-zinc-500 mt-1">{ex.prescription}</p>
+                        </div>
+                        <span className={`relative text-[10px] px-2.5 py-1 rounded-lg border shrink-0 ${
+                          ex.type === "cardio"
+                            ? "text-emerald-300 border-emerald-500/15 bg-emerald-500/6"
+                            : "text-green-300 border-green-500/15 bg-green-500/6"
+                        }`}>
+                          {ex.type === "cardio" ? "Cardio" : "Strength"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ═══════════════ ACTIVE EXERCISE ═══════════════ */}
+      {tab === "plan" && planView === "activeExercise" && !showCompletion && (() => {
+        const curEx = dayExercises[activeExIdx];
+        const isCompleted = completedExercises.has(activeExIdx);
+        const progressPct = (completedExercises.size / dayExercises.length) * 100;
+        return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center gap-4">
+            <button onClick={() => setPlanView("dayDetail")} className="w-10 h-10 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+              <ChevronLeft className="w-5 h-5 text-zinc-400" />
+            </button>
+            <div className="flex-1">
+              <h2 className="text-base text-white">
+                <span className="text-emerald-400">{activeExIdx + 1}</span><span className="text-zinc-600">/{dayExercises.length}</span>{" "}
+                <span className="text-zinc-300">{curEx.type === "cardio" ? "Cardio" : "Strength"} — {curEx.name}</span>
+              </h2>
+              <p className="text-xs text-zinc-500">{curEx.prescription}</p>
+            </div>
+            {/* Timer button */}
+            {!timerRunning ? (
+              <button onClick={() => setTimerRunning(true)} className="px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-sm text-emerald-300 hover:bg-emerald-500/15 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)] transition-all flex items-center gap-2">
+                <Play className="w-4 h-4" /> {timerSeconds > 0 ? "Resume" : "Start Timer"}
+              </button>
+            ) : (
+              <button onClick={() => setTimerRunning(false)} className="px-5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/15 text-sm text-amber-300 hover:bg-amber-500/15 transition-all flex items-center gap-2">
+                <Pause className="w-4 h-4" /> Pause
+              </button>
+            )}
+          </div>
+
+          {/* Overall progress bar */}
+          <div className="rounded-xl bg-zinc-900/40 border border-zinc-800/30 p-3 flex items-center gap-4">
+            <span className="text-[10px] text-zinc-600 uppercase tracking-wider shrink-0">Progress</span>
+            <div className="flex-1 h-2 bg-zinc-800/50 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.35)]" style={{ width: `${progressPct}%` }} />
+            </div>
+            <span className="text-xs text-emerald-400 shrink-0">{completedExercises.size}/{dayExercises.length}</span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left: Media + Info */}
+            <div className="space-y-5">
+              {/* Rest timer banner */}
+              {restTimerRunning && restSeconds > 0 && (
+                <div className="rounded-2xl border border-amber-500/15 bg-amber-950/20 p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center shrink-0">
+                      <Timer className="w-4 h-4 text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-amber-200">Rest Period</p>
+                      <p className="text-xs text-amber-400/50">Recover before next set</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl text-amber-300 tabular-nums">{formatTime(restSeconds)}</span>
+                    <button onClick={() => { setRestTimerRunning(false); setRestSeconds(90); }} className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/15 flex items-center justify-center hover:bg-amber-500/20 transition-all">
+                      <SkipForward className="w-3.5 h-3.5 text-amber-400" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-2xl border border-emerald-500/10 bg-emerald-950/20 p-4 flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/8 border border-emerald-500/15 flex items-center justify-center shrink-0">
+                  <BarChart3 className="w-4 h-4 text-emerald-400" />
+                </div>
+                <p className="text-xs text-emerald-200/60">Tap the exercise image to see the video tutorial</p>
+              </div>
+
+              <div onClick={() => setSelectedExercise(curEx)} className="rounded-2xl overflow-hidden border border-zinc-800/30 aspect-video relative group cursor-pointer">
+                <ImageWithFallback src={curEx.img} alt={curEx.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-14 h-14 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+                    <Play className="w-6 h-6 text-white ml-0.5" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center space-y-2 py-2">
+                <h3 className="text-xl text-white tracking-tight">{curEx.name}</h3>
+                <p className="text-sm text-zinc-500">Prescription: <span className="text-emerald-400/70">{curEx.prescription}</span></p>
+              </div>
+            </div>
+
+            {/* Right: Timer rings + Logging + Navigation */}
+            <div className="space-y-5">
+              {/* Timer & Stats rings */}
+              <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-8">
+                <div className="flex items-center justify-center gap-10">
+                  {/* Elapsed Timer */}
+                  <div className="flex flex-col items-center gap-2.5">
+                    <div className="relative" style={{ width: 90, height: 90 }}>
+                      <svg width="90" height="90" viewBox="0 0 90 90">
+                        <circle cx="45" cy="45" r="39" fill="none" stroke="#064e3b" strokeWidth="3" />
+                        <circle cx="45" cy="45" r="39" fill="none" stroke={timerRunning ? "#10b981" : "#22c55e"} strokeWidth="3"
+                          strokeDasharray={`${Math.min((timerSeconds / 600) * 245, 245)} 245`} strokeLinecap="round" transform="rotate(-90 45 45)"
+                          className="transition-all duration-1000" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className={`text-base tabular-nums ${timerRunning ? "text-emerald-400" : "text-zinc-300"}`}>{formatTime(timerSeconds)}</span>
+                      </div>
+                      {timerRunning && <div className="absolute inset-0 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-pulse" />}
+                    </div>
+                    <span className="text-[11px] text-zinc-500">Elapsed</span>
+                  </div>
+                  {/* Rest */}
+                  <div className="flex flex-col items-center gap-2.5">
+                    <div className="relative" style={{ width: 90, height: 90 }}>
+                      <svg width="90" height="90" viewBox="0 0 90 90">
+                        <circle cx="45" cy="45" r="39" fill="none" stroke="#18181b" strokeWidth="3" />
+                        {restTimerRunning && (
+                          <circle cx="45" cy="45" r="39" fill="none" stroke="#f59e0b" strokeWidth="3"
+                            strokeDasharray={`${(restSeconds / 90) * 245} 245`} strokeLinecap="round" transform="rotate(-90 45 45)"
+                            className="transition-all duration-1000" />
+                        )}
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        {restTimerRunning ? (
+                          <span className="text-base text-amber-300 tabular-nums">{formatTime(restSeconds)}</span>
+                        ) : (
+                          <Timer className="w-5 h-5 text-zinc-600" />
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-zinc-500">Rest</span>
+                  </div>
+                  {/* Set Progress */}
+                  <div className="flex flex-col items-center gap-2.5">
+                    <div className="relative" style={{ width: 90, height: 90 }}>
+                      <svg width="90" height="90" viewBox="0 0 90 90">
+                        <circle cx="45" cy="45" r="39" fill="none" stroke="#064e3b" strokeWidth="3" />
+                        <circle cx="45" cy="45" r="39" fill="none" stroke="#10b981" strokeWidth="3"
+                          strokeDasharray={`${progressPct / 100 * 245} 245`} strokeLinecap="round" transform="rotate(-90 45 45)" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-base text-emerald-400">{completedExercises.size}/{dayExercises.length}</span>
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-zinc-500">Done</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Log Entry */}
+              <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 space-y-4">
+                <p className="text-xs text-zinc-600 uppercase tracking-wider">Log Entry</p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder={curEx.type === "cardio" ? "Enter minutes..." : "Enter weight (kg)..."}
+                    className="flex-1 px-5 py-4 rounded-xl bg-zinc-800/30 border border-zinc-700/25 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/25 focus:ring-1 focus:ring-emerald-500/10 focus:shadow-[0_0_12px_rgba(16,185,129,0.06)] transition-all"
+                  />
+                  <button className="w-14 h-14 rounded-xl bg-emerald-500 flex items-center justify-center hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-95">
+                    <Plus className="w-5 h-5 text-black" />
+                  </button>
+                </div>
+                <button className="flex items-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 transition-colors">
+                  <MessageSquare className="w-3.5 h-3.5" /> Add comment or note
+                </button>
+              </div>
+
+              {/* Navigation buttons */}
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => { if (activeExIdx > 0) { setActiveExIdx(activeExIdx - 1); setTimerRunning(false); setTimerSeconds(0); } }}
+                  disabled={activeExIdx === 0}
+                  className="py-3.5 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Prev
+                </button>
+                <button
+                  onClick={handleCompleteExercise}
+                  disabled={isCompleted}
+                  className={`py-3.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${
+                    isCompleted
+                      ? "bg-emerald-500/10 border border-emerald-500/15 text-emerald-500/50 cursor-not-allowed"
+                      : "bg-emerald-500 text-black hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98]"
+                  }`}
+                >
+                  <Check className="w-4 h-4" /> {isCompleted ? "Done" : "Complete"}
+                </button>
+                <button
+                  onClick={handleSkipExercise}
+                  disabled={activeExIdx === dayExercises.length - 1}
+                  className="py-3.5 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  Skip <SkipForward className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Exercise list mini nav */}
+              <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-4">
+                <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Exercise List</p>
+                <div className="space-y-1.5">
+                  {dayExercises.map((ex, i) => {
+                    const done = completedExercises.has(i);
+                    const active = i === activeExIdx;
+                    return (
+                      <button
+                        key={`nav-${i}`}
+                        onClick={() => { setActiveExIdx(i); setTimerRunning(false); setTimerSeconds(0); }}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-all ${
+                          active
+                            ? "bg-emerald-500/8 border border-emerald-500/15"
+                            : "hover:bg-zinc-800/30 border border-transparent"
+                        }`}
+                      >
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                          done ? "bg-emerald-500 text-black" : active ? "bg-emerald-500/15 border border-emerald-500/25" : "bg-zinc-800/40 border border-zinc-700/25"
+                        }`}>
+                          {done ? <Check className="w-3 h-3" /> : <span className="text-[10px] text-zinc-500">{i + 1}</span>}
+                        </div>
+                        <span className={`text-xs truncate ${done ? "text-zinc-500 line-through" : active ? "text-emerald-300" : "text-zinc-400"}`}>{ex.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
+
+      {/* ═══════════════ WORKOUT COMPLETION ═══════════════ */}
+      {tab === "plan" && planView === "activeExercise" && showCompletion && (
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-8 max-w-lg mx-auto">
+            {/* Trophy */}
+            <div className="relative inline-block">
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-500/20 to-green-600/10 border-2 border-emerald-500/25 flex items-center justify-center mx-auto shadow-[0_0_60px_rgba(16,185,129,0.2)]">
+                <Trophy className="w-14 h-14 text-emerald-400" />
+              </div>
+              <div className="absolute -top-2 -right-2 w-10 h-10 rounded-full bg-emerald-500/15 flex items-center justify-center border border-emerald-500/20">
+                <PartyPopper className="w-5 h-5 text-emerald-300" />
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-3xl text-white tracking-tight mb-3">Workout Complete!</h2>
+              <p className="text-zinc-400 text-sm">You crushed Day {selectedDay} — all {dayExercises.length} exercises done! Keep up the momentum.</p>
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center justify-center gap-6">
+              {[
+                { label: "Exercises", value: `${dayExercises.length}/${dayExercises.length}`, icon: Dumbbell },
+                { label: "Duration", value: formatTime(timerSeconds || 0), icon: Clock },
+                { label: "Status", value: "Completed", icon: Check },
+              ].map((s) => (
+                <div key={s.label} className="px-5 py-4 rounded-2xl bg-zinc-900/50 border border-zinc-800/30 min-w-[120px]">
+                  <s.icon className="w-4 h-4 text-emerald-500/60 mx-auto mb-2" />
+                  <p className="text-sm text-emerald-300">{s.value}</p>
+                  <p className="text-[10px] text-zinc-600 mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={() => { setPlanView("dayDetail"); }}
+                className="px-8 py-3.5 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-300 hover:bg-zinc-800/70 transition-all"
+              >
+                Back to Day Detail
+              </button>
+              <button
+                onClick={() => { setPlanView("main"); }}
+                className="px-8 py-3.5 rounded-xl bg-emerald-500 text-black text-sm hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] flex items-center gap-2"
+              >
+                <Trophy className="w-4 h-4" /> View All Days
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ EXERCISE DETAIL MODAL ═══════════════ */}
+      {selectedExercise && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelectedExercise(null)}>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl shadow-black/50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close */}
+            <button onClick={() => setSelectedExercise(null)} className="absolute top-4 right-4 z-10 w-9 h-9 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/60 transition-all">
+              <Plus className="w-4 h-4 text-white/60 rotate-45" />
+            </button>
+
+            {/* Video */}
+            <div className="aspect-video w-full rounded-t-2xl overflow-hidden bg-black">
+              <iframe
+                src={selectedExercise.video}
+                title={selectedExercise.name}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-5">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl text-white tracking-tight">{selectedExercise.name}</h2>
+                  <p className="text-sm text-emerald-400 mt-1">{selectedExercise.prescription}</p>
+                </div>
+                <span className={`text-[11px] px-3 py-1.5 rounded-xl border shrink-0 ${
+                  selectedExercise.type === "cardio"
+                    ? "text-emerald-300 border-emerald-500/15 bg-emerald-500/6"
+                    : "text-green-300 border-green-500/15 bg-green-500/6"
+                }`}>
+                  {selectedExercise.type === "cardio" ? "Cardio" : "Strength"}
+                </span>
+              </div>
+
+              {/* Description */}
+              <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
+                <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">Description</p>
+                <p className="text-sm text-zinc-300 leading-relaxed">{selectedExercise.description}</p>
+              </div>
+
+              {/* Muscles & Tips */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
+                  <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Target Muscles</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedExercise.muscles.map((m) => (
+                      <span key={m} className="px-3 py-1.5 rounded-lg bg-emerald-500/8 border border-emerald-500/12 text-xs text-emerald-300">{m}</span>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
+                  <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Pro Tips</p>
+                  <ul className="space-y-2">
+                    {selectedExercise.tips.map((t, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-zinc-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                        {t}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ CALENDAR SCHEDULE MODAL ═══════════════ */}
+      {showCalendarAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowCalendarAdd(false)}>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg text-white">Workout Schedule</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Select weekdays and time, then adjust exceptions</p>
+              </div>
+              <button onClick={() => setShowCalendarAdd(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+                <X className="w-4 h-4 text-zinc-400" />
+              </button>
+            </div>
+
+            {/* ── Step 1: Weekday selection ── */}
+            <div>
+              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">1 · Training Days & Time</p>
+              <div className="space-y-2">
+                {WD_LABELS.map((label, idx) => {
+                  const slot = weekdaySlots[idx];
+                  const enabled = !!slot?.enabled;
+                  return (
+                    <div key={label} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                      enabled ? "border-emerald-500/20 bg-emerald-500/[0.04]" : "border-zinc-800/30 bg-zinc-800/15"
+                    }`}>
+                      {/* Toggle */}
+                      <button
+                        onClick={() => {
+                          const next = { ...weekdaySlots };
+                          if (enabled) { delete next[idx]; } else { next[idx] = { enabled: true, time: "07:00" }; }
+                          setWeekdaySlots(next);
+                        }}
+                        className={`relative rounded-full transition-all shrink-0 ${enabled ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-zinc-700"}`}
+                        style={{ width: 38, height: 22 }}
+                      >
+                        <div className={`absolute top-[3px] w-[16px] h-[16px] rounded-full bg-white shadow-md transition-transform ${enabled ? "left-[19px]" : "left-[3px]"}`} />
+                      </button>
+
+                      <span className={`text-sm w-12 shrink-0 ${enabled ? "text-zinc-100" : "text-zinc-600"}`}>{label}</span>
+
+                      {enabled ? (
+                        <input
+                          type="time"
+                          value={slot.time}
+                          onChange={(e) => setWeekdaySlots({ ...weekdaySlots, [idx]: { ...slot, time: e.target.value } })}
+                          className="ml-auto px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 text-sm text-emerald-300 focus:outline-none focus:border-emerald-500/25 transition-all [color-scheme:dark]"
+                        />
+                      ) : (
+                        <span className="ml-auto text-xs text-zinc-700">Rest day</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="rounded-xl bg-emerald-950/20 border border-emerald-500/10 p-3.5 flex items-center gap-3">
+              <Calendar className="w-4 h-4 text-emerald-400 shrink-0" />
+              <p className="text-xs text-emerald-200/70">
+                <span className="text-emerald-300">{Object.keys(weekdaySlots).length} days/week</span> selected → <span className="text-emerald-300">{derivedMarkers.length} sessions</span> in April 2026
+              </p>
+            </div>
+
+            {/* ── Step 2: Exceptions ── */}
+            <div>
+              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">2 · Exceptions <span className="normal-case text-zinc-700">— tap dates to skip</span></p>
+              <div className="rounded-xl bg-zinc-800/20 border border-zinc-800/25 p-4">
+                <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                  {WD_LABELS.map((d) => <span key={d} className="text-[9px] text-zinc-700 uppercase tracking-wider">{d}</span>)}
+                </div>
+                <div className="grid grid-cols-7 gap-1 text-center">
+                  {(() => {
+                    const cells: (number | null)[] = [];
+                    for (let i = 0; i < FIRST_DAY_OFFSET; i++) cells.push(null);
+                    for (let d = 1; d <= DAYS_IN_APRIL; d++) cells.push(d);
+                    while (cells.length % 7 !== 0) cells.push(null);
+                    return cells.map((day, i) => {
+                      if (day === null) return <span key={`exc-e-${i}`} />;
+                      const dow = ((day + FIRST_DAY_OFFSET - 1) % 7);
+                      const isScheduled = !!weekdaySlots[dow]?.enabled;
+                      const isException = exceptions.has(day);
+                      const isActive = isScheduled && !isException;
+                      return (
+                        <button
+                          key={`exc-${day}`}
+                          onClick={() => {
+                            if (!isScheduled) return;
+                            const next = new Set(exceptions);
+                            if (isException) next.delete(day); else next.add(day);
+                            setExceptions(next);
+                          }}
+                          disabled={!isScheduled}
+                          className={`w-full aspect-square rounded-lg text-[11px] transition-all ${
+                            isException
+                              ? "bg-red-500/10 text-red-400 border border-red-500/20 line-through"
+                              : isActive
+                              ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/15 hover:bg-emerald-500/20"
+                              : "text-zinc-700 cursor-default"
+                          }`}
+                        >{day}</button>
+                      );
+                    });
+                  })()}
+                </div>
+                {exceptions.size > 0 && (
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-[11px] text-red-400/60">{exceptions.size} date{exceptions.size > 1 ? "s" : ""} skipped</p>
+                    <button onClick={() => setExceptions(new Set())} className="text-[11px] text-zinc-500 hover:text-zinc-400 flex items-center gap-1 transition-colors">
+                      <RotateCcw className="w-3 h-3" /> Clear all
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setShowCalendarAdd(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Cancel</button>
+              <button onClick={() => setShowCalendarAdd(false)} className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98]">Save Schedule</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ LOG METRIC MODAL ═══════════════ */}
+      {showLogModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowLogModal(false)}>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg text-white">Log Body Metric</h2>
+              <button onClick={() => setShowLogModal(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+                <X className="w-4 h-4 text-zinc-400" />
+              </button>
+            </div>
+
+            {/* Metric type selector */}
+            <div>
+              <p className="text-xs text-zinc-600 uppercase tracking-wider mb-3">Metric Type</p>
+              <div className="grid grid-cols-2 gap-2">
+                {metricOptions.map((m) => (
+                  <button
+                    key={m.key}
+                    onClick={() => setLogMetric(m.key as any)}
+                    className={`p-3.5 rounded-xl border text-left transition-all ${
+                      logMetric === m.key
+                        ? "border-opacity-30 bg-opacity-10"
+                        : "border-zinc-800/30 bg-zinc-800/20 hover:border-zinc-700/40"
+                    }`}
+                    style={logMetric === m.key ? { borderColor: m.color + "40", backgroundColor: m.color + "10" } : {}}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} />
+                      <span className={`text-sm ${logMetric === m.key ? "text-zinc-100" : "text-zinc-400"}`}>{m.label}</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-600">Current: {m.current}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Value input */}
+            <div>
+              <p className="text-xs text-zinc-600 uppercase tracking-wider mb-2">Value</p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={logValue}
+                  onChange={(e) => setLogValue(e.target.value)}
+                  placeholder={`Enter ${metricOptions.find((m) => m.key === logMetric)?.unit}...`}
+                  className="flex-1 px-5 py-4 rounded-xl bg-zinc-800/30 border border-zinc-700/25 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/25 focus:ring-1 focus:ring-emerald-500/10 transition-all"
+                />
+                <span className="text-sm text-zinc-500">{metricOptions.find((m) => m.key === logMetric)?.unit}</span>
+              </div>
+            </div>
+
+            {/* Auto-add chart toggle */}
+            <div className="flex items-center justify-between py-2">
+              <span className="text-sm text-zinc-400">Add chart to dashboard</span>
+              <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+                activeCharts.has(logMetric) ? "bg-emerald-500 border-emerald-500" : "border-zinc-700 hover:border-zinc-600"
+              }`}>
+                {activeCharts.has(logMetric) && <Check className="w-3 h-3 text-black" />}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setShowLogModal(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Cancel</button>
+              <button onClick={() => {
+                if (logValue) {
+                  const next = new Set(activeCharts);
+                  next.add(logMetric);
+                  setActiveCharts(next);
+                }
+                setShowLogModal(false);
+                setLogValue("");
+              }} className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all">
+                Save Log
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════ */
+/* Sub-components                         */
+/* ═══════════════════════════════════════ */
+
+function GlassPanel({ title, icon, actionLabel, onAction, children }: {
+  title: string;
+  icon?: React.ReactNode;
+  actionLabel?: string;
+  onAction?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 relative overflow-hidden">
+      <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/[0.02] rounded-full blur-[40px] pointer-events-none" />
+      <div className="relative">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            {icon && <div className="w-8 h-8 rounded-xl bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center">{icon}</div>}
+            <h3 className="text-sm text-zinc-100">{title}</h3>
+          </div>
+          {actionLabel && (
+            <button onClick={onAction} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20">
+              <Plus className="w-3 h-3" /> {actionLabel}
+            </button>
+          )}
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SectionTitle({ title, badge }: { title: string; badge?: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-green-600" />
+      <h3 className="text-sm text-zinc-100">{title}</h3>
+      {badge && <span className="text-[10px] text-zinc-500 bg-zinc-800/50 px-2 py-0.5 rounded-md border border-zinc-700/25">{badge}</span>}
+    </div>
+  );
+}
+
+function TimeFilterBar({ value, onChange }: { value: TimeFilter; onChange: (v: TimeFilter) => void }) {
+  return (
+    <div className="flex bg-zinc-800/30 rounded-xl p-1 border border-zinc-700/20 w-fit mt-1">
+      {(["last", "week", "month", "all"] as TimeFilter[]).map((v) => (
+        <button key={v} onClick={() => onChange(v)} className={`px-4 py-1.5 rounded-lg text-xs transition-all capitalize ${
+          value === v
+            ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.06)]"
+            : "text-zinc-500 hover:text-zinc-400 border border-transparent"
+        }`}>
+          {v}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CalendarGrid({ markers }: { markers?: number[] }) {
+  const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < FIRST_DAY_OFFSET; i++) cells.push(null);
+  for (let d = 1; d <= DAYS_IN_APRIL; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+  const today = 13;
+  const activeMarkers = markers ?? trainingMarkers;
+
+  return (
+    <div>
+      <div className="flex items-center justify-center gap-6 mb-4">
+        <button className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors">
+          <ChevronLeft className="w-4 h-4 text-zinc-500" />
+        </button>
+        <span className="text-sm text-zinc-200 min-w-[120px] text-center">April 2026</span>
+        <button className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors">
+          <ChevronRight className="w-4 h-4 text-zinc-500" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1.5 text-center">
+        {dayLabels.map((d) => <span key={d} className="text-[10px] text-zinc-600 py-1.5 uppercase tracking-wider">{d}</span>)}
+        {cells.map((day, i) => {
+          if (day === null) return <span key={`e-${i}`} />;
+          const isTraining = activeMarkers.includes(day);
+          const isToday = day === today;
+          return (
+            <div
+              key={`d-${day}`}
+              className={`relative w-full aspect-square flex items-center justify-center rounded-xl text-xs transition-all cursor-pointer ${
+                isToday
+                  ? "bg-emerald-500 text-black shadow-[0_0_14px_rgba(16,185,129,0.3)]"
+                  : isTraining
+                  ? "bg-emerald-500/6 text-emerald-300 border border-emerald-500/12 hover:bg-emerald-500/12"
+                  : "text-zinc-500 hover:bg-zinc-800/30"
+              }`}
+            >
+              {day}
+              {isTraining && !isToday && <span className="absolute bottom-1 w-1 h-1 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(16,185,129,0.4)]" />}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between py-3">
+      <span className="text-sm text-zinc-400">{label}</span>
+      <button
+        onClick={() => onChange(!value)}
+        className={`relative rounded-full transition-all ${value ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-zinc-700"}`}
+        style={{ width: 42, height: 24 }}
+      >
+        <div className={`absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-md transition-transform ${value ? "left-[21px]" : "left-[3px]"}`} />
+      </button>
+    </div>
+  );
+}
+
+function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <span className="text-sm text-zinc-400">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function Stepper({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <button onClick={() => onChange(Math.max(min, value - 1))} className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center hover:border-emerald-500/20 transition-colors">
+        <Minus className="w-3 h-3 text-zinc-400" />
+      </button>
+      <span className="w-7 text-center text-sm text-emerald-400">{value}</span>
+      <button onClick={() => onChange(Math.min(max, value + 1))} className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center hover:border-emerald-500/20 transition-colors">
+        <Plus className="w-3 h-3 text-zinc-400" />
+      </button>
     </div>
   );
 }

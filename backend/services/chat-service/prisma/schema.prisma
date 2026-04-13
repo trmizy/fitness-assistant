@@ -13,6 +13,29 @@ enum ConversationType {
   // GROUP — future: group chats for team training
 }
 
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+enum CallStatus {
+  INITIATING
+  RINGING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  CONNECTING
+  ACTIVE
+  ENDED
+  MISSED
+  FAILED
+}
+
+enum CallOrigin {
+  CHAT
+  SESSION
+}
+
 model Conversation {
   id            String           @id @default(uuid())
   type          ConversationType @default(DIRECT)
@@ -22,6 +45,7 @@ model Conversation {
 
   participants ConversationParticipant[]
   messages     Message[]
+  calls        CallSession[]
 
   @@map("conversations")
 }
@@ -52,4 +76,29 @@ model Message {
   @@index([conversationId, createdAt])
   @@index([senderId])
   @@map("messages")
+}
+
+model CallSession {
+  id                String     @id @default(uuid())
+  conversationId    String
+  callerId          String
+  calleeId          String
+  callType          CallType   @map("call_type")
+  status            CallStatus @default(INITIATING)
+  origin            CallOrigin @default(CHAT)
+  coachingSessionId String?    @map("coaching_session_id")
+  startedAt         DateTime?  @map("started_at")
+  endedAt           DateTime?  @map("ended_at")
+  answeredAt        DateTime?  @map("answered_at")
+  endReason         String?    @map("end_reason")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([callerId])
+  @@index([calleeId])
+  @@index([conversationId])
+  @@index([status])
+  @@map("call_sessions")
 }

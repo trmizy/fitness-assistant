@@ -71,6 +71,8 @@ model UserProfile {
   currentWeight Float?
   targetWeight  Float?
   
+  sessionDurationMinutes Int @default(60) @map("session_duration_minutes")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -141,8 +143,11 @@ model PTApplication {
   availableFrom           String?              @map("available_from")
   availableUntil          String?              @map("available_until")
   gymAffiliation          String?              @map("gym_affiliation")
-  packagePrice            Float?               @map("package_price")
   monthlyProgramPrice     Float?               @map("monthly_program_price")
+  packagePrice            Float?               @map("package_price")
+  sessionsPerPackage      Int                  @default(10) @map("sessions_per_package")
+  sessionDurationMinutes  Int                  @default(60) @map("session_duration_minutes")
+  availabilityBlocks      Json?                @map("availability_blocks")
   additionalPricingNotes  String?              @map("additional_pricing_notes")
   otherReferences         String?              @map("other_references")
   
@@ -265,6 +270,8 @@ model Contract {
   packageType        PackageType    @default(PACKAGE) @map("package_type")
   packageName        String         @map("package_name")
   description        String?
+  packageQuantity    Int            @default(1) @map("package_quantity")
+  extraSessions      Int            @default(0) @map("extra_sessions")
   totalSessions      Int            @map("total_sessions")
   usedSessions       Int            @default(0) @map("used_sessions")
   price              Float?

@@ -42,6 +42,7 @@ export const profileRepository = {
             yearsOfExperience: true,
             desiredSessionPrice: true,
             packagePrice: true,
+            sessionsPerPackage: true,
             monthlyProgramPrice: true,
             additionalPricingNotes: true,
             serviceMode: true,
@@ -53,6 +54,13 @@ export const profileRepository = {
           },
         },
       },
+    }),
+
+  findPTApplicationByUserId: (userId: string) =>
+    prisma.pTApplication.findFirst({
+      where: {
+        userProfile: { userId }
+      }
     }),
 
   deleteByUserId: (userId: string) =>

@@ -23,7 +23,9 @@ export function PTDiscoveryPage() {
   // Request coaching modal state
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [requestType, setRequestType] = useState<"PER_SESSION" | "PACKAGE">("PER_SESSION");
-  const [requestSessions, setRequestSessions] = useState(1);
+  const [requestSessions, setRequestSessions] = useState(1); // Used for PER_SESSION
+  const [packageQuantity, setPackageQuantity] = useState(1);
+  const [extraSessions, setExtraSessions] = useState(0);
   const [requestMessage, setRequestMessage] = useState("");
 
   const handleMessage = async (ptUserId: string) => {
@@ -42,13 +44,15 @@ export function PTDiscoveryPage() {
   };
 
   const requestMutation = useMutation({
-    mutationFn: (data: Parameters<typeof contractService.requestContract>[0]) =>
+    mutationFn: (data: any) =>
       contractService.requestContract(data),
     onSuccess: () => {
       toast.success("Coaching request sent! The trainer will review your request.");
       setShowRequestModal(false);
       setRequestMessage("");
       setRequestSessions(1);
+      setPackageQuantity(1);
+      setExtraSessions(0);
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
     onError: (err: any) => {
@@ -59,27 +63,25 @@ export function PTDiscoveryPage() {
 
   const handleRequestCoaching = (type: "PER_SESSION" | "PACKAGE") => {
     setRequestType(type);
-    setRequestSessions(type === "PER_SESSION" ? 1 : 10);
+    if (type === "PER_SESSION") {
+      setRequestSessions(1);
+    } else {
+      setPackageQuantity(1);
+      setExtraSessions(0);
+    }
     setShowRequestModal(true);
   };
 
   const submitRequest = () => {
     if (!selectedPT) return;
-    const app = selectedPT.ptApplication;
-    const price = requestType === "PER_SESSION"
-      ? (app?.desiredSessionPrice || 0) * requestSessions
-      : app?.packagePrice || 0;
-    const pricePerSession = requestType === "PER_SESSION"
-      ? app?.desiredSessionPrice
-      : app?.packagePrice ? app.packagePrice / requestSessions : undefined;
-
+    
     requestMutation.mutate({
       ptUserId: selectedPT.userId,
       packageType: requestType,
-      packageName: requestType === "PER_SESSION" ? "Per Session" : "Package",
-      totalSessions: requestSessions,
-      price: price || undefined,
-      pricePerSession: pricePerSession || undefined,
+      packageName: requestType === "PER_SESSION" ? "Per Session" : "Coaching Package",
+      packageQuantity: requestType === "PACKAGE" ? packageQuantity : 1,
+      extraSessions: requestType === "PACKAGE" ? extraSessions : 0,
+      totalSessions: requestType === "PER_SESSION" ? requestSessions : 0, // Ignored by backend if PACKAGE
       message: requestMessage || undefined,
     });
   };
@@ -267,7 +269,7 @@ export function PTDiscoveryPage() {
                         <div className="border rounded-xl p-4 border-zinc-700/60">
                           <div className="flex items-start justify-between mb-2">
                             <div>
-                              <span className="text-sm font-bold text-zinc-200">Package</span>
+                              <span className="text-sm font-bold text-zinc-200">Package ({app.sessionsPerPackage || 10} sessions)</span>
                               <div className="text-xs text-zinc-500">Multi-session bundle</div>
                             </div>
                             <span className="text-base font-bold text-green-400">{formatPrice(app.packagePrice)}</span>
@@ -327,31 +329,78 @@ export function PTDiscoveryPage() {
                 </div>
                 <div>
                   <div className="text-sm font-bold text-zinc-200">{selectedPT.firstName} {selectedPT.lastName}</div>
-                  <div className="text-xs text-zinc-500">{requestType === "PER_SESSION" ? "Per Session" : "Package"}</div>
+                  <div className="text-xs text-zinc-500">{requestType === "PER_SESSION" ? "Per Session Mode" : "Package Mode"}</div>
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Number of Sessions</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={requestSessions}
-                  onChange={e => setRequestSessions(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-                />
-              </div>
+              {requestType === "PER_SESSION" ? (
+                <div>
+                  <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Number of Sessions</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={requestSessions}
+                    onChange={e => setRequestSessions(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                   <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Package Quantity</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={packageQuantity}
+                        onChange={e => setPackageQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Extra Sessions</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={extraSessions}
+                        onChange={e => setExtraSessions(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-zinc-500 italic bg-zinc-800/30 p-2 rounded-lg border border-zinc-700/30">
+                    * Each package includes <span className="text-zinc-300 font-bold">{selectedPT.ptApplication?.sessionsPerPackage || 10}</span> sessions. 
+                    Extra sessions are priced at the package's daily rate.
+                  </div>
+                </div>
+              )}
 
               {(() => {
                 const app = selectedPT.ptApplication;
-                const totalPrice = requestType === "PER_SESSION"
-                  ? (app?.desiredSessionPrice || 0) * requestSessions
-                  : app?.packagePrice || 0;
+                let totalPrice = 0;
+                let totalSess = 0;
+
+                if (requestType === "PER_SESSION") {
+                   totalSess = requestSessions;
+                   totalPrice = (app?.desiredSessionPrice || 0) * requestSessions;
+                } else {
+                   const sessPerPack = app?.sessionsPerPackage || 10;
+                   totalSess = (sessPerPack * packageQuantity) + extraSessions;
+                   const unitPrice = sessPerPack > 0 ? (app?.packagePrice || 0) / sessPerPack : 0;
+                   totalPrice = ((app?.packagePrice || 0) * packageQuantity) + (extraSessions * unitPrice);
+                }
+
                 return totalPrice > 0 ? (
-                  <div className="flex justify-between text-sm bg-zinc-800/50 rounded-lg px-3 py-2">
-                    <span className="text-zinc-400">Estimated Total</span>
-                    <span className="font-bold text-green-400">{formatPrice(totalPrice)}</span>
+                  <div className="space-y-1 bg-zinc-800/50 rounded-lg px-3 py-3 border border-zinc-700/40">
+                    <div className="flex justify-between text-xs text-zinc-500">
+                      <span>Total Sessions</span>
+                      <span className="font-semibold text-zinc-300">{totalSess} sessions</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-1 border-t border-zinc-700/30 mt-1">
+                      <span className="text-zinc-400 font-medium">Estimated Total</span>
+                      <span className="font-bold text-green-400">{formatPrice(totalPrice)}</span>
+                    </div>
                   </div>
                 ) : null;
               })()}
@@ -361,7 +410,7 @@ export function PTDiscoveryPage() {
                 <textarea
                   value={requestMessage}
                   onChange={e => setRequestMessage(e.target.value)}
-                  rows={3}
+                  rows={2}
                   placeholder="Tell the trainer about your goals, availability, etc."
                   className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50 resize-none"
                 />
@@ -370,14 +419,14 @@ export function PTDiscoveryPage() {
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
                 onClick={() => setShowRequestModal(false)}
-                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="flex-1 py-3 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={submitRequest}
                 disabled={requestMutation.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
               >
                 {requestMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {requestMutation.isPending ? "Sending…" : "Send Request"}

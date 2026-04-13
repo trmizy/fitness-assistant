@@ -9,6 +9,8 @@ export const contractRepository = {
     packageType?: PackageType;
     packageName: string;
     description?: string;
+    packageQuantity?: number;
+    extraSessions?: number;
     totalSessions: number;
     price?: number;
     pricePerSession?: number;

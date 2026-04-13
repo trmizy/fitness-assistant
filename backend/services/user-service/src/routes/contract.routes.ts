@@ -10,6 +10,9 @@ router.patch('/:id/accept', authMiddleware, contractController.acceptContract as
 router.patch('/:id/reject', authMiddleware, contractController.rejectContract as any);
 router.patch('/:id/cancel', authMiddleware, contractController.cancelContract as any);
 
+// ── Relationship check (for call permission) ─────────────────────
+router.get('/check-relationship', authMiddleware, contractController.checkRelationship as any);
+
 // ── PT earnings ───────────────────────────────────────────────────
 router.get('/pt/earnings', authMiddleware, contractController.getEarnings as any);
 
