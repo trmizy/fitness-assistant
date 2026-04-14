@@ -80,6 +80,13 @@ export const ragService = {
       completionTokens: orchestrated.completionTokens,
       totalTokens: orchestrated.totalTokens,
       cost: 0,
+      // ── Observability fields ────────────────────────────────────────────────
+      traceId: orchestrated.traceId,
+      usedFallback: orchestrated.usedFallback,
+      usedDeterministicFallback: orchestrated.usedDeterministicFallbackBecauseOfValidation,
+      responseLanguage: orchestrated.responseLanguage,
+      routeIntent: orchestrated.routeIntent,
+      warningCount: orchestrated.warningCount,
     });
 
     return {

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { logger, aiCoachQueriesTotal, aiCoachQueryDuration } from '@gym-coach/shared';
 import { ragService } from '../services/rag.service';
 import { conversationService } from '../services/conversation.service';
-import { LlmError, formatSuccessResponse, formatErrorResponse } from '../errors/api-error';
+import { LlmError, LlmGenerationError, formatSuccessResponse, formatErrorResponse } from '../errors/api-error';
 import type { AskRequest, FeedbackRequest, GenerateWorkoutRequest } from '../schemas/ai.schemas';
 
 export const aiController = {
@@ -81,6 +81,12 @@ export const aiController = {
       if (err instanceof LlmError) {
         res.status(503).json(
           formatErrorResponse('LLM_UNAVAILABLE', 'AI service is temporarily unavailable. Please try again shortly.'),
+        );
+        return;
+      }
+      if (err instanceof LlmGenerationError) {
+        res.status(502).json(
+          formatErrorResponse('LLM_GENERATION_FAILED', 'AI returned invalid structured output. Please retry.'),
         );
         return;
       }

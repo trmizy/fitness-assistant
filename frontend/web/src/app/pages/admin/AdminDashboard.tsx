@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import { Users, UserCheck, FileText, Calendar, Activity, AlertTriangle, TrendingUp, Server } from "lucide-react";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 const kpis = [
   { label: "Total Users", value: "1,284", change: "+48 this month", icon: Users, color: "text-green-400", bg: "bg-green-500/10", iconBg: "bg-green-500/15", border: "border-green-500/20" },
@@ -14,11 +14,6 @@ const userGrowth = [
   { month: "Apr", users: 1100 }, { month: "May", users: 1210 }, { month: "Jun", users: 1284 },
 ];
 
-const ocrStats = [
-  { day: "Mon", success: 45, fail: 3 }, { day: "Tue", success: 52, fail: 2 },
-  { day: "Wed", success: 38, fail: 5 }, { day: "Thu", success: 60, fail: 2 },
-  { day: "Fri", success: 48, fail: 4 }, { day: "Sat", success: 30, fail: 1 }, { day: "Sun", success: 22, fail: 1 },
-];
 
 const roleData = [
   { name: "Clients", value: 1197 }, { name: "Trainers", value: 87 },
@@ -115,17 +110,12 @@ export function AdminDashboard() {
       {/* OCR stats + alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
-          <h4 className="text-sm font-bold text-zinc-200 mb-3">OCR Extraction Stats (7d)</h4>
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={ocrStats}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-              <XAxis dataKey="day" tick={{ fontSize: 11, fill: "#71717a" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #27272a", backgroundColor: "#111111", color: "#f4f4f5" }} itemStyle={{ color: "#f4f4f5" }} labelStyle={{ color: "#f4f4f5" }} />
-              <Bar dataKey="success" fill="#22c55e" radius={[3, 3, 0, 0]} name="Success" stackId="a" />
-              <Bar dataKey="fail" fill="#ef4444" radius={[3, 3, 0, 0]} name="Failed" stackId="a" />
-            </BarChart>
-          </ResponsiveContainer>
+          <h4 className="text-sm font-bold text-zinc-200 mb-3">InBody OCR Scan Stats (7d)</h4>
+          <div className="flex items-center justify-center h-[140px] text-zinc-600 text-sm flex-col gap-2">
+            <Activity className="w-6 h-6 text-zinc-700" />
+            <span>No OCR scan data available</span>
+            <span className="text-xs text-zinc-700">Scans will appear here once users upload InBody images</span>
+          </div>
         </div>
 
         <div className="bg-zinc-900 rounded-xl border border-zinc-800/60">

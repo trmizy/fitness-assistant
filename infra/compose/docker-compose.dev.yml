@@ -82,6 +82,7 @@ services:
       N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
       N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
     env_file:
       - ../../.env
@@ -234,10 +235,12 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:-http://ollama:11434}
       LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:
       - ../../.env
     volumes:
       - ../../backend/services/ai-service/src:/app/backend/services/ai-service/src
+      - ../../backend/services/ai-service/prisma:/app/backend/services/ai-service/prisma
     depends_on:
       postgres:
         condition: service_healthy
@@ -362,6 +365,7 @@ services:
       N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
       N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
       N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
+      N8N_LICENSE_ACTIVATION_KEY: ${N8N_LICENSE_ACTIVATION_KEY:-}
       N8N_PUBLIC_API_DISABLED: ${N8N_PUBLIC_API_DISABLED:-false}
     volumes:
       - n8n_data:/home/node/.n8n

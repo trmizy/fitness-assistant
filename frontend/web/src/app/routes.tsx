@@ -33,6 +33,7 @@ import { UserManagement } from "./pages/admin/UserManagement";
 import { PTManagement } from "./pages/admin/PTManagement";
 import { SystemMonitoring } from "./pages/admin/SystemMonitoring";
 import { AdminWorkflowStudio } from "./pages/admin/AdminWorkflowStudio";
+import { AdminAIObservability } from "./pages/admin/AdminAIObservability";
 
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -125,11 +126,12 @@ export const router = createBrowserRouter([
         Component: AppShell,
         children: [
           { index: true, element: <Navigate to="/admin/dashboard" replace /> },
-          { path: "dashboard", Component: AdminDashboard   },
-          { path: "users",     Component: UserManagement   },
-          { path: "pts",       Component: PTManagement     },
-          { path: "system",    Component: SystemMonitoring },
-          { path: "workflows", Component: AdminWorkflowStudio },
+          { path: "dashboard",       Component: AdminDashboard      },
+          { path: "users",           Component: UserManagement      },
+          { path: "pts",             Component: PTManagement        },
+          { path: "system",          Component: SystemMonitoring    },
+          { path: "workflows",       Component: AdminWorkflowStudio },
+          { path: "ai-observability", Component: AdminAIObservability },
         ],
       },
     ],

@@ -12,6 +12,8 @@ const FITNESS_SERVICE_URL =
   process.env.FITNESS_SERVICE_URL || 'http://localhost:3002';
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:3003';
 const CHAT_SERVICE_URL = process.env.CHAT_SERVICE_URL || 'http://localhost:3005';
+const INTERNAL_SERVICE_SECRET =
+  process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 const N8N_BASE_URL = process.env.N8N_BASE_URL || 'http://localhost:5678';
 const N8N_EDITOR_BASE_PATH = process.env.N8N_EDITOR_BASE_PATH || '/admin/workflows/studio';
 const N8N_PUBLIC_API_KEY = process.env.N8N_PUBLIC_API_KEY;
@@ -455,15 +457,6 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
     const trainerCount = users.filter((u) => u.role === 'PT' || ptSet.has(u.id)).length;
 
     const monitorSummary = buildMonitorSummary(probes);
-    const aiProbe = probes.find((p) => p.key === 'ai');
-    const aiHealthy = aiProbe?.status === 'healthy';
-    const aiBase = aiHealthy ? 48 : 22;
-    const aiFail = aiHealthy ? 2 : 8;
-    const ocrStats = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => ({
-      day,
-      success: Math.max(5, aiBase - idx * 3),
-      fail: Math.max(1, aiFail - Math.floor(idx / 2)),
-    }));
 
     const recentUsers = users
       .slice(0, 4)
@@ -504,7 +497,6 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
           { name: 'Clients', value: clientCount },
           { name: 'Trainers', value: trainerCount },
         ],
-        ocrStats,
         systemAlerts: alerts,
         recentUsers,
         monitor: {
@@ -1085,6 +1077,26 @@ router.use(
   }),
 );
 
+// Protected — AI observability admin endpoints (admin only, proxied to AI service)
+// Registered BEFORE the generic /ai proxy so /admin/ai/* is matched first.
+router.use(
+  '/admin/ai',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({
+    target: AI_SERVICE_URL,
+    changeOrigin: true,
+    onProxyReq: (proxyReq, req) => {
+      const userId = req.headers['x-user-id'];
+      const userRole = req.headers['x-user-role'];
+      if (typeof userId === 'string') proxyReq.setHeader('x-user-id', userId);
+      if (typeof userRole === 'string') proxyReq.setHeader('x-user-role', userRole);
+      proxyReq.setHeader('x-internal-token', INTERNAL_SERVICE_SECRET);
+    },
+    onError: serviceUnavailable('AI service (admin)'),
+  }),
+);
+
 // Protected — Auth role management (admin only)
 router.use(
   '/auth/users/:userId/role',
@@ -1190,6 +1202,24 @@ router.use(
   createProxyMiddleware({
     target: AI_SERVICE_URL,
     changeOrigin: true,
+    onProxyReq: (proxyReq, req) => {
+      const userId = req.headers['x-user-id'];
+      const userEmail = req.headers['x-user-email'];
+      const userRole = req.headers['x-user-role'];
+      const authorization = req.headers.authorization;
+
+      if (typeof userId === 'string') proxyReq.setHeader('x-user-id', userId);
+      if (typeof userEmail === 'string') {
+        proxyReq.setHeader('x-user-email', userEmail);
+      }
+      if (typeof userRole === 'string') {
+        proxyReq.setHeader('x-user-role', userRole);
+      }
+      if (typeof authorization === 'string') {
+        proxyReq.setHeader('Authorization', authorization);
+      }
+      proxyReq.setHeader('x-internal-token', INTERNAL_SERVICE_SECRET);
+    },
     onError: serviceUnavailable('AI service'),
   }),
 );
@@ -1215,6 +1245,7 @@ router.use(
       if (typeof authorization === 'string') {
         proxyReq.setHeader('Authorization', authorization);
       }
+      proxyReq.setHeader('x-internal-token', INTERNAL_SERVICE_SECRET);
     },
     onError: serviceUnavailable('AI service'),
   }),

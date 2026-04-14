@@ -10,24 +10,33 @@ datasource db {
 }
 
 model Conversation {
-  id                   String    @id @default(uuid())
-  userId               String?   @map("user_id")
-  question             String
-  answer               String
-  modelUsed            String    @map("model_used")
-  responseTime         Float     @map("response_time")
-  relevance            String?
-  relevanceExplanation String?   @map("relevance_explanation")
-  promptTokens         Int       @map("prompt_tokens")
-  completionTokens     Int       @map("completion_tokens")
-  totalTokens          Int       @map("total_tokens")
-  cost                 Float     @default(0)
-  feedback             Int?
-  feedbackTimestamp    DateTime? @map("feedback_timestamp")
-  createdAt            DateTime  @default(now()) @map("created_at")
+  id                        String    @id @default(uuid())
+  userId                    String?   @map("user_id")
+  question                  String
+  answer                    String
+  modelUsed                 String    @map("model_used")
+  responseTime              Float     @map("response_time")
+  relevance                 String?
+  relevanceExplanation      String?   @map("relevance_explanation")
+  promptTokens              Int       @map("prompt_tokens")
+  completionTokens          Int       @map("completion_tokens")
+  totalTokens               Int       @map("total_tokens")
+  cost                      Float     @default(0)
+  feedback                  Int?
+  feedbackTimestamp         DateTime? @map("feedback_timestamp")
+  // ── Observability fields ────────────────────────────────────────────────────
+  traceId                   String?   @map("trace_id")
+  usedFallback              Boolean   @default(false) @map("used_fallback")
+  usedDeterministicFallback Boolean   @default(false) @map("used_deterministic_fallback")
+  responseLanguage          String?   @map("response_language")
+  routeIntent               String?   @map("route_intent")
+  warningCount              Int       @default(0) @map("warning_count")
+  createdAt                 DateTime  @default(now()) @map("created_at")
 
   @@index([userId, createdAt])
   @@index([createdAt])
+  @@index([routeIntent])
+  @@index([usedFallback])
   @@map("conversations")
 }
 

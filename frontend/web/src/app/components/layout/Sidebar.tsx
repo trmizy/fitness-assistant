@@ -40,11 +40,12 @@ const ptWorkspaceNav = [
 
 /** Admin nav */
 const adminNav = [
-  { label: "Dashboard",      icon: LayoutDashboard, to: "/admin/dashboard" },
-  { label: "Users",          icon: Users,           to: "/admin/users"     },
-  { label: "PT Management",  icon: UserCheck,       to: "/admin/pts"       },
-  { label: "System Monitor", icon: Monitor,         to: "/admin/system"    },
-  { label: "Workflows",      icon: Workflow,        to: "/admin/workflows" },
+  { label: "Dashboard",        icon: LayoutDashboard, to: "/admin/dashboard"       },
+  { label: "Users",            icon: Users,           to: "/admin/users"           },
+  { label: "PT Management",    icon: UserCheck,       to: "/admin/pts"             },
+  { label: "System Monitor",   icon: Monitor,         to: "/admin/system"          },
+  { label: "Workflows",        icon: Workflow,        to: "/admin/workflows"       },
+  { label: "AI Observability", icon: Brain,           to: "/admin/ai-observability" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

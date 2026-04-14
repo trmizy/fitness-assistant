@@ -107,8 +107,8 @@ function formatWorkoutPlan(rec: RecommendationResult, language: ResponseLanguage
   const plan = rec.workoutPlan;
   if (!plan) {
     return language === 'vi'
-      ? '## 💪 Lịch Tập\nĐã tạo lịch tập mặc định.'
-      : '## 💪 Training Plan\nDefault plan created.';
+      ? '## 💪 Lịch Tập\nĐã tạo lịch tập theo yêu cầu hiện tại của bạn.'
+      : '## 💪 Training Plan\nCreated a training plan based on your current request.';
   }
 
   const lines: string[] = [];
@@ -193,8 +193,8 @@ function formatSpecificRoutine(rec: RecommendationResult, language: ResponseLang
   const routine = rec.specificRoutine;
   if (!routine) {
     return language === 'vi'
-      ? '## 💪 Buổi Tập\nĐã tạo buổi tập mặc định.'
-      : '## 💪 Workout\nDefault routine created.';
+      ? '## 💪 Buổi Tập\nĐã tạo buổi tập theo yêu cầu hiện tại của bạn.'
+      : '## 💪 Workout\nCreated a workout session based on your current request.';
   }
 
   const lines: string[] = [];
@@ -269,8 +269,8 @@ function formatMealPlan(rec: RecommendationResult, language: ResponseLanguage): 
   const mealPlan = rec.mealPlan;
   if (!mealPlan) {
     return language === 'vi'
-      ? '## 🥗 Thực Đơn\nĐã tạo thực đơn mặc định.'
-      : '## 🥗 Meal Plan\nDefault plan created.';
+      ? '## 🥗 Thực Đơn\nĐã tạo thực đơn theo mục tiêu hiện tại của bạn.'
+      : '## 🥗 Meal Plan\nCreated a meal plan aligned with your current goals.';
   }
 
   const lines: string[] = [];
@@ -296,7 +296,7 @@ function formatMealPlan(rec: RecommendationResult, language: ResponseLanguage): 
     lines.push('## 🥗 Your Meal Plan');
     lines.push('');
     if (mealPlan.isDefaultTemplate) {
-      lines.push('> Sample plan — update your body metrics for precise targets.');
+      lines.push('> Template generated from available profile data. Update body metrics for higher precision.');
       lines.push('');
     }
     lines.push(`📊 **Daily targets:** ${mealPlan.kcal} kcal | Protein: **${mealPlan.proteinGrams}g** | Carbs: **${mealPlan.carbsGrams}g** | Fats: **${mealPlan.fatGrams}g**`);

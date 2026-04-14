@@ -387,6 +387,44 @@ export const adminService = {
     );
     return data;
   },
+
+  // ── AI Observability ────────────────────────────────────────────────────────
+
+  getAIOverview: async () => {
+    const { data } = await api.get('/admin/ai/overview');
+    return data;
+  },
+
+  getAIRequests: async (params?: {
+    filter?: 'all' | 'fallback' | 'slow' | 'warnings';
+    intent?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.filter && params.filter !== 'all') query.set('filter', params.filter);
+    if (params?.intent) query.set('intent', params.intent);
+    if (params?.page)   query.set('page',   String(params.page));
+    if (params?.limit)  query.set('limit',  String(params.limit));
+    const qs = query.toString();
+    const { data } = await api.get(`/admin/ai/requests${qs ? `?${qs}` : ''}`);
+    return data;
+  },
+
+  getAIRequestDetail: async (id: string) => {
+    const { data } = await api.get(`/admin/ai/requests/${id}`);
+    return data;
+  },
+
+  getAIQueue: async () => {
+    const { data } = await api.get('/admin/ai/queue');
+    return data;
+  },
+
+  getAIErrors: async () => {
+    const { data } = await api.get('/admin/ai/errors');
+    return data;
+  },
 };
 
 export const nutritionService = {

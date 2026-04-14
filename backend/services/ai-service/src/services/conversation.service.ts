@@ -4,7 +4,7 @@ import { conversationRepository, PlanStatus } from '../repositories/conversation
 import { llmService } from './llm.service';
 import { aiQueue } from '../workers/ai.worker';
 import type { GenerateWorkoutRequest, GeneratePlanRequest } from '../schemas/ai.schemas';
-import { ApiError } from '../errors/api-error';
+import { ApiError, LlmGenerationError } from '../errors/api-error';
 
 // ── Quick-workout exercise schema (simpler than full plan) ────────────────────
 const QuickExerciseSchema = z.object({
@@ -21,18 +21,27 @@ function parseExercisesFromLlm(rawAnswer: string): QuickExercise[] {
   const arrayMatch = rawAnswer.match(/\[[\s\S]*?\]/);
   if (!arrayMatch) {
     logger.warn({ answerSnippet: rawAnswer.slice(0, 200) }, 'generateWorkout: no JSON array found in LLM answer');
-    return [];
+    throw new LlmGenerationError('LLM returned malformed workout output');
   }
   try {
     const parsed: unknown = JSON.parse(arrayMatch[0]);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
+    if (!Array.isArray(parsed)) {
+      throw new LlmGenerationError('LLM workout output did not include an exercises array');
+    }
+    const exercises = parsed
       .map((item) => QuickExerciseSchema.safeParse(item))
       .filter((r): r is z.SafeParseSuccess<QuickExercise> => r.success)
       .map((r) => r.data);
+    if (exercises.length === 0) {
+      throw new LlmGenerationError('LLM workout output did not include valid exercises');
+    }
+    return exercises;
   } catch (err) {
+    if (err instanceof LlmGenerationError) {
+      throw err;
+    }
     logger.warn({ err }, 'generateWorkout: failed to parse exercises JSON');
-    return [];
+    throw new LlmGenerationError('LLM returned malformed workout JSON');
   }
 }
 

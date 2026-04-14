@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import { metricsMiddleware, register, logger } from '@gym-coach/shared';
 import aiRoutes from './routes/ai.routes';
 import planRoutes from './routes/plan.routes';
+import adminAiRoutes from './routes/admin.routes';
 import { ApiError, formatErrorResponse } from './errors/api-error';
 
 const app = express();
@@ -32,6 +33,8 @@ app.get('/metrics', async (_req, res) => {
 
 app.use('/ai', aiRoutes);
 app.use('/plans', planRoutes);
+// Admin observability endpoints — proxied from gateway with ADMIN role check
+app.use('/admin/ai', adminAiRoutes);
 
 // ── Global error handler ─────────────────────────────────────────────────────
 // Must have 4 parameters so Express recognises it as an error-handling middleware.

@@ -25,6 +25,25 @@ export type Conversation = $Result.DefaultSelection<Prisma.$ConversationPayload>
 export type WorkoutPlan = $Result.DefaultSelection<Prisma.$WorkoutPlanPayload>
 
 /**
+ * Enums
+ */
+export namespace $Enums {
+  export const PlanStatus: {
+  QUEUED: 'QUEUED',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+};
+
+export type PlanStatus = (typeof PlanStatus)[keyof typeof PlanStatus]
+
+}
+
+export type PlanStatus = $Enums.PlanStatus
+
+export const PlanStatus: typeof $Enums.PlanStatus
+
+/**
  * ##  Prisma Client ʲˢ
  * 
  * Type-safe database client for TypeScript & Node.js
@@ -948,6 +967,7 @@ export namespace Prisma {
     totalTokens: number | null
     cost: number | null
     feedback: number | null
+    warningCount: number | null
   }
 
   export type ConversationSumAggregateOutputType = {
@@ -957,6 +977,7 @@ export namespace Prisma {
     totalTokens: number | null
     cost: number | null
     feedback: number | null
+    warningCount: number | null
   }
 
   export type ConversationMinAggregateOutputType = {
@@ -974,6 +995,12 @@ export namespace Prisma {
     cost: number | null
     feedback: number | null
     feedbackTimestamp: Date | null
+    traceId: string | null
+    usedFallback: boolean | null
+    usedDeterministicFallback: boolean | null
+    responseLanguage: string | null
+    routeIntent: string | null
+    warningCount: number | null
     createdAt: Date | null
   }
 
@@ -992,6 +1019,12 @@ export namespace Prisma {
     cost: number | null
     feedback: number | null
     feedbackTimestamp: Date | null
+    traceId: string | null
+    usedFallback: boolean | null
+    usedDeterministicFallback: boolean | null
+    responseLanguage: string | null
+    routeIntent: string | null
+    warningCount: number | null
     createdAt: Date | null
   }
 
@@ -1010,6 +1043,12 @@ export namespace Prisma {
     cost: number
     feedback: number
     feedbackTimestamp: number
+    traceId: number
+    usedFallback: number
+    usedDeterministicFallback: number
+    responseLanguage: number
+    routeIntent: number
+    warningCount: number
     createdAt: number
     _all: number
   }
@@ -1022,6 +1061,7 @@ export namespace Prisma {
     totalTokens?: true
     cost?: true
     feedback?: true
+    warningCount?: true
   }
 
   export type ConversationSumAggregateInputType = {
@@ -1031,6 +1071,7 @@ export namespace Prisma {
     totalTokens?: true
     cost?: true
     feedback?: true
+    warningCount?: true
   }
 
   export type ConversationMinAggregateInputType = {
@@ -1048,6 +1089,12 @@ export namespace Prisma {
     cost?: true
     feedback?: true
     feedbackTimestamp?: true
+    traceId?: true
+    usedFallback?: true
+    usedDeterministicFallback?: true
+    responseLanguage?: true
+    routeIntent?: true
+    warningCount?: true
     createdAt?: true
   }
 
@@ -1066,6 +1113,12 @@ export namespace Prisma {
     cost?: true
     feedback?: true
     feedbackTimestamp?: true
+    traceId?: true
+    usedFallback?: true
+    usedDeterministicFallback?: true
+    responseLanguage?: true
+    routeIntent?: true
+    warningCount?: true
     createdAt?: true
   }
 
@@ -1084,6 +1137,12 @@ export namespace Prisma {
     cost?: true
     feedback?: true
     feedbackTimestamp?: true
+    traceId?: true
+    usedFallback?: true
+    usedDeterministicFallback?: true
+    responseLanguage?: true
+    routeIntent?: true
+    warningCount?: true
     createdAt?: true
     _all?: true
   }
@@ -1189,6 +1248,12 @@ export namespace Prisma {
     cost: number
     feedback: number | null
     feedbackTimestamp: Date | null
+    traceId: string | null
+    usedFallback: boolean
+    usedDeterministicFallback: boolean
+    responseLanguage: string | null
+    routeIntent: string | null
+    warningCount: number
     createdAt: Date
     _count: ConversationCountAggregateOutputType | null
     _avg: ConversationAvgAggregateOutputType | null
@@ -1226,6 +1291,12 @@ export namespace Prisma {
     cost?: boolean
     feedback?: boolean
     feedbackTimestamp?: boolean
+    traceId?: boolean
+    usedFallback?: boolean
+    usedDeterministicFallback?: boolean
+    responseLanguage?: boolean
+    routeIntent?: boolean
+    warningCount?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["conversation"]>
 
@@ -1244,6 +1315,12 @@ export namespace Prisma {
     cost?: boolean
     feedback?: boolean
     feedbackTimestamp?: boolean
+    traceId?: boolean
+    usedFallback?: boolean
+    usedDeterministicFallback?: boolean
+    responseLanguage?: boolean
+    routeIntent?: boolean
+    warningCount?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["conversation"]>
 
@@ -1262,6 +1339,12 @@ export namespace Prisma {
     cost?: boolean
     feedback?: boolean
     feedbackTimestamp?: boolean
+    traceId?: boolean
+    usedFallback?: boolean
+    usedDeterministicFallback?: boolean
+    responseLanguage?: boolean
+    routeIntent?: boolean
+    warningCount?: boolean
     createdAt?: boolean
   }
 
@@ -1284,6 +1367,12 @@ export namespace Prisma {
       cost: number
       feedback: number | null
       feedbackTimestamp: Date | null
+      traceId: string | null
+      usedFallback: boolean
+      usedDeterministicFallback: boolean
+      responseLanguage: string | null
+      routeIntent: string | null
+      warningCount: number
       createdAt: Date
     }, ExtArgs["result"]["conversation"]>
     composites: {}
@@ -1692,6 +1781,12 @@ export namespace Prisma {
     readonly cost: FieldRef<"Conversation", 'Float'>
     readonly feedback: FieldRef<"Conversation", 'Int'>
     readonly feedbackTimestamp: FieldRef<"Conversation", 'DateTime'>
+    readonly traceId: FieldRef<"Conversation", 'String'>
+    readonly usedFallback: FieldRef<"Conversation", 'Boolean'>
+    readonly usedDeterministicFallback: FieldRef<"Conversation", 'Boolean'>
+    readonly responseLanguage: FieldRef<"Conversation", 'String'>
+    readonly routeIntent: FieldRef<"Conversation", 'String'>
+    readonly warningCount: FieldRef<"Conversation", 'Int'>
     readonly createdAt: FieldRef<"Conversation", 'DateTime'>
   }
     
@@ -1996,11 +2091,13 @@ export namespace Prisma {
   export type WorkoutPlanAvgAggregateOutputType = {
     duration: number | null
     daysPerWeek: number | null
+    version: number | null
   }
 
   export type WorkoutPlanSumAggregateOutputType = {
     duration: number | null
     daysPerWeek: number | null
+    version: number | null
   }
 
   export type WorkoutPlanMinAggregateOutputType = {
@@ -2011,6 +2108,10 @@ export namespace Prisma {
     goal: string | null
     duration: number | null
     daysPerWeek: number | null
+    status: $Enums.PlanStatus | null
+    version: number | null
+    jobId: string | null
+    failReason: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2023,6 +2124,10 @@ export namespace Prisma {
     goal: string | null
     duration: number | null
     daysPerWeek: number | null
+    status: $Enums.PlanStatus | null
+    version: number | null
+    jobId: string | null
+    failReason: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2036,6 +2141,10 @@ export namespace Prisma {
     duration: number
     daysPerWeek: number
     plan: number
+    status: number
+    version: number
+    jobId: number
+    failReason: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -2045,11 +2154,13 @@ export namespace Prisma {
   export type WorkoutPlanAvgAggregateInputType = {
     duration?: true
     daysPerWeek?: true
+    version?: true
   }
 
   export type WorkoutPlanSumAggregateInputType = {
     duration?: true
     daysPerWeek?: true
+    version?: true
   }
 
   export type WorkoutPlanMinAggregateInputType = {
@@ -2060,6 +2171,10 @@ export namespace Prisma {
     goal?: true
     duration?: true
     daysPerWeek?: true
+    status?: true
+    version?: true
+    jobId?: true
+    failReason?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2072,6 +2187,10 @@ export namespace Prisma {
     goal?: true
     duration?: true
     daysPerWeek?: true
+    status?: true
+    version?: true
+    jobId?: true
+    failReason?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2085,6 +2204,10 @@ export namespace Prisma {
     duration?: true
     daysPerWeek?: true
     plan?: true
+    status?: true
+    version?: true
+    jobId?: true
+    failReason?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -2185,6 +2308,10 @@ export namespace Prisma {
     duration: number
     daysPerWeek: number
     plan: JsonValue
+    status: $Enums.PlanStatus
+    version: number
+    jobId: string | null
+    failReason: string | null
     createdAt: Date
     updatedAt: Date
     _count: WorkoutPlanCountAggregateOutputType | null
@@ -2217,6 +2344,10 @@ export namespace Prisma {
     duration?: boolean
     daysPerWeek?: boolean
     plan?: boolean
+    status?: boolean
+    version?: boolean
+    jobId?: boolean
+    failReason?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workoutPlan"]>
@@ -2230,6 +2361,10 @@ export namespace Prisma {
     duration?: boolean
     daysPerWeek?: boolean
     plan?: boolean
+    status?: boolean
+    version?: boolean
+    jobId?: boolean
+    failReason?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workoutPlan"]>
@@ -2243,6 +2378,10 @@ export namespace Prisma {
     duration?: boolean
     daysPerWeek?: boolean
     plan?: boolean
+    status?: boolean
+    version?: boolean
+    jobId?: boolean
+    failReason?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -2259,7 +2398,17 @@ export namespace Prisma {
       goal: string
       duration: number
       daysPerWeek: number
+      /**
+       * Structured JSON matching PlanContentSchema once COMPLETED; empty object while QUEUED/PROCESSING
+       */
       plan: Prisma.JsonValue
+      status: $Enums.PlanStatus
+      version: number
+      /**
+       * BullMQ job ID — used for polling via GET /plans/job/:jobId
+       */
+      jobId: string | null
+      failReason: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["workoutPlan"]>
@@ -2663,6 +2812,10 @@ export namespace Prisma {
     readonly duration: FieldRef<"WorkoutPlan", 'Int'>
     readonly daysPerWeek: FieldRef<"WorkoutPlan", 'Int'>
     readonly plan: FieldRef<"WorkoutPlan", 'Json'>
+    readonly status: FieldRef<"WorkoutPlan", 'PlanStatus'>
+    readonly version: FieldRef<"WorkoutPlan", 'Int'>
+    readonly jobId: FieldRef<"WorkoutPlan", 'String'>
+    readonly failReason: FieldRef<"WorkoutPlan", 'String'>
     readonly createdAt: FieldRef<"WorkoutPlan", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkoutPlan", 'DateTime'>
   }
@@ -2982,6 +3135,12 @@ export namespace Prisma {
     cost: 'cost',
     feedback: 'feedback',
     feedbackTimestamp: 'feedbackTimestamp',
+    traceId: 'traceId',
+    usedFallback: 'usedFallback',
+    usedDeterministicFallback: 'usedDeterministicFallback',
+    responseLanguage: 'responseLanguage',
+    routeIntent: 'routeIntent',
+    warningCount: 'warningCount',
     createdAt: 'createdAt'
   };
 
@@ -2997,6 +3156,10 @@ export namespace Prisma {
     duration: 'duration',
     daysPerWeek: 'daysPerWeek',
     plan: 'plan',
+    status: 'status',
+    version: 'version',
+    jobId: 'jobId',
+    failReason: 'failReason',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -3106,9 +3269,30 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
    * Reference to a field of type 'Json'
    */
   export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+  /**
+   * Reference to a field of type 'PlanStatus'
+   */
+  export type EnumPlanStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PlanStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PlanStatus[]'
+   */
+  export type ListEnumPlanStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PlanStatus[]'>
     
   /**
    * Deep Input Types
@@ -3133,6 +3317,12 @@ export namespace Prisma {
     cost?: FloatFilter<"Conversation"> | number
     feedback?: IntNullableFilter<"Conversation"> | number | null
     feedbackTimestamp?: DateTimeNullableFilter<"Conversation"> | Date | string | null
+    traceId?: StringNullableFilter<"Conversation"> | string | null
+    usedFallback?: BoolFilter<"Conversation"> | boolean
+    usedDeterministicFallback?: BoolFilter<"Conversation"> | boolean
+    responseLanguage?: StringNullableFilter<"Conversation"> | string | null
+    routeIntent?: StringNullableFilter<"Conversation"> | string | null
+    warningCount?: IntFilter<"Conversation"> | number
     createdAt?: DateTimeFilter<"Conversation"> | Date | string
   }
 
@@ -3151,6 +3341,12 @@ export namespace Prisma {
     cost?: SortOrder
     feedback?: SortOrderInput | SortOrder
     feedbackTimestamp?: SortOrderInput | SortOrder
+    traceId?: SortOrderInput | SortOrder
+    usedFallback?: SortOrder
+    usedDeterministicFallback?: SortOrder
+    responseLanguage?: SortOrderInput | SortOrder
+    routeIntent?: SortOrderInput | SortOrder
+    warningCount?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -3172,6 +3368,12 @@ export namespace Prisma {
     cost?: FloatFilter<"Conversation"> | number
     feedback?: IntNullableFilter<"Conversation"> | number | null
     feedbackTimestamp?: DateTimeNullableFilter<"Conversation"> | Date | string | null
+    traceId?: StringNullableFilter<"Conversation"> | string | null
+    usedFallback?: BoolFilter<"Conversation"> | boolean
+    usedDeterministicFallback?: BoolFilter<"Conversation"> | boolean
+    responseLanguage?: StringNullableFilter<"Conversation"> | string | null
+    routeIntent?: StringNullableFilter<"Conversation"> | string | null
+    warningCount?: IntFilter<"Conversation"> | number
     createdAt?: DateTimeFilter<"Conversation"> | Date | string
   }, "id">
 
@@ -3190,6 +3392,12 @@ export namespace Prisma {
     cost?: SortOrder
     feedback?: SortOrderInput | SortOrder
     feedbackTimestamp?: SortOrderInput | SortOrder
+    traceId?: SortOrderInput | SortOrder
+    usedFallback?: SortOrder
+    usedDeterministicFallback?: SortOrder
+    responseLanguage?: SortOrderInput | SortOrder
+    routeIntent?: SortOrderInput | SortOrder
+    warningCount?: SortOrder
     createdAt?: SortOrder
     _count?: ConversationCountOrderByAggregateInput
     _avg?: ConversationAvgOrderByAggregateInput
@@ -3216,6 +3424,12 @@ export namespace Prisma {
     cost?: FloatWithAggregatesFilter<"Conversation"> | number
     feedback?: IntNullableWithAggregatesFilter<"Conversation"> | number | null
     feedbackTimestamp?: DateTimeNullableWithAggregatesFilter<"Conversation"> | Date | string | null
+    traceId?: StringNullableWithAggregatesFilter<"Conversation"> | string | null
+    usedFallback?: BoolWithAggregatesFilter<"Conversation"> | boolean
+    usedDeterministicFallback?: BoolWithAggregatesFilter<"Conversation"> | boolean
+    responseLanguage?: StringNullableWithAggregatesFilter<"Conversation"> | string | null
+    routeIntent?: StringNullableWithAggregatesFilter<"Conversation"> | string | null
+    warningCount?: IntWithAggregatesFilter<"Conversation"> | number
     createdAt?: DateTimeWithAggregatesFilter<"Conversation"> | Date | string
   }
 
@@ -3231,6 +3445,10 @@ export namespace Prisma {
     duration?: IntFilter<"WorkoutPlan"> | number
     daysPerWeek?: IntFilter<"WorkoutPlan"> | number
     plan?: JsonFilter<"WorkoutPlan">
+    status?: EnumPlanStatusFilter<"WorkoutPlan"> | $Enums.PlanStatus
+    version?: IntFilter<"WorkoutPlan"> | number
+    jobId?: StringNullableFilter<"WorkoutPlan"> | string | null
+    failReason?: StringNullableFilter<"WorkoutPlan"> | string | null
     createdAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
   }
@@ -3244,6 +3462,10 @@ export namespace Prisma {
     duration?: SortOrder
     daysPerWeek?: SortOrder
     plan?: SortOrder
+    status?: SortOrder
+    version?: SortOrder
+    jobId?: SortOrderInput | SortOrder
+    failReason?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -3260,6 +3482,10 @@ export namespace Prisma {
     duration?: IntFilter<"WorkoutPlan"> | number
     daysPerWeek?: IntFilter<"WorkoutPlan"> | number
     plan?: JsonFilter<"WorkoutPlan">
+    status?: EnumPlanStatusFilter<"WorkoutPlan"> | $Enums.PlanStatus
+    version?: IntFilter<"WorkoutPlan"> | number
+    jobId?: StringNullableFilter<"WorkoutPlan"> | string | null
+    failReason?: StringNullableFilter<"WorkoutPlan"> | string | null
     createdAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
   }, "id">
@@ -3273,6 +3499,10 @@ export namespace Prisma {
     duration?: SortOrder
     daysPerWeek?: SortOrder
     plan?: SortOrder
+    status?: SortOrder
+    version?: SortOrder
+    jobId?: SortOrderInput | SortOrder
+    failReason?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: WorkoutPlanCountOrderByAggregateInput
@@ -3294,6 +3524,10 @@ export namespace Prisma {
     duration?: IntWithAggregatesFilter<"WorkoutPlan"> | number
     daysPerWeek?: IntWithAggregatesFilter<"WorkoutPlan"> | number
     plan?: JsonWithAggregatesFilter<"WorkoutPlan">
+    status?: EnumPlanStatusWithAggregatesFilter<"WorkoutPlan"> | $Enums.PlanStatus
+    version?: IntWithAggregatesFilter<"WorkoutPlan"> | number
+    jobId?: StringNullableWithAggregatesFilter<"WorkoutPlan"> | string | null
+    failReason?: StringNullableWithAggregatesFilter<"WorkoutPlan"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"WorkoutPlan"> | Date | string
   }
@@ -3313,6 +3547,12 @@ export namespace Prisma {
     cost?: number
     feedback?: number | null
     feedbackTimestamp?: Date | string | null
+    traceId?: string | null
+    usedFallback?: boolean
+    usedDeterministicFallback?: boolean
+    responseLanguage?: string | null
+    routeIntent?: string | null
+    warningCount?: number
     createdAt?: Date | string
   }
 
@@ -3331,6 +3571,12 @@ export namespace Prisma {
     cost?: number
     feedback?: number | null
     feedbackTimestamp?: Date | string | null
+    traceId?: string | null
+    usedFallback?: boolean
+    usedDeterministicFallback?: boolean
+    responseLanguage?: string | null
+    routeIntent?: string | null
+    warningCount?: number
     createdAt?: Date | string
   }
 
@@ -3349,6 +3595,12 @@ export namespace Prisma {
     cost?: FloatFieldUpdateOperationsInput | number
     feedback?: NullableIntFieldUpdateOperationsInput | number | null
     feedbackTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    traceId?: NullableStringFieldUpdateOperationsInput | string | null
+    usedFallback?: BoolFieldUpdateOperationsInput | boolean
+    usedDeterministicFallback?: BoolFieldUpdateOperationsInput | boolean
+    responseLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    routeIntent?: NullableStringFieldUpdateOperationsInput | string | null
+    warningCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -3367,6 +3619,12 @@ export namespace Prisma {
     cost?: FloatFieldUpdateOperationsInput | number
     feedback?: NullableIntFieldUpdateOperationsInput | number | null
     feedbackTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    traceId?: NullableStringFieldUpdateOperationsInput | string | null
+    usedFallback?: BoolFieldUpdateOperationsInput | boolean
+    usedDeterministicFallback?: BoolFieldUpdateOperationsInput | boolean
+    responseLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    routeIntent?: NullableStringFieldUpdateOperationsInput | string | null
+    warningCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -3385,6 +3643,12 @@ export namespace Prisma {
     cost?: number
     feedback?: number | null
     feedbackTimestamp?: Date | string | null
+    traceId?: string | null
+    usedFallback?: boolean
+    usedDeterministicFallback?: boolean
+    responseLanguage?: string | null
+    routeIntent?: string | null
+    warningCount?: number
     createdAt?: Date | string
   }
 
@@ -3403,6 +3667,12 @@ export namespace Prisma {
     cost?: FloatFieldUpdateOperationsInput | number
     feedback?: NullableIntFieldUpdateOperationsInput | number | null
     feedbackTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    traceId?: NullableStringFieldUpdateOperationsInput | string | null
+    usedFallback?: BoolFieldUpdateOperationsInput | boolean
+    usedDeterministicFallback?: BoolFieldUpdateOperationsInput | boolean
+    responseLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    routeIntent?: NullableStringFieldUpdateOperationsInput | string | null
+    warningCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -3421,6 +3691,12 @@ export namespace Prisma {
     cost?: FloatFieldUpdateOperationsInput | number
     feedback?: NullableIntFieldUpdateOperationsInput | number | null
     feedbackTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    traceId?: NullableStringFieldUpdateOperationsInput | string | null
+    usedFallback?: BoolFieldUpdateOperationsInput | boolean
+    usedDeterministicFallback?: BoolFieldUpdateOperationsInput | boolean
+    responseLanguage?: NullableStringFieldUpdateOperationsInput | string | null
+    routeIntent?: NullableStringFieldUpdateOperationsInput | string | null
+    warningCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -3433,6 +3709,10 @@ export namespace Prisma {
     duration: number
     daysPerWeek: number
     plan: JsonNullValueInput | InputJsonValue
+    status?: $Enums.PlanStatus
+    version?: number
+    jobId?: string | null
+    failReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3446,6 +3726,10 @@ export namespace Prisma {
     duration: number
     daysPerWeek: number
     plan: JsonNullValueInput | InputJsonValue
+    status?: $Enums.PlanStatus
+    version?: number
+    jobId?: string | null
+    failReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3459,6 +3743,10 @@ export namespace Prisma {
     duration?: IntFieldUpdateOperationsInput | number
     daysPerWeek?: IntFieldUpdateOperationsInput | number
     plan?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanStatusFieldUpdateOperationsInput | $Enums.PlanStatus
+    version?: IntFieldUpdateOperationsInput | number
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    failReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3472,6 +3760,10 @@ export namespace Prisma {
     duration?: IntFieldUpdateOperationsInput | number
     daysPerWeek?: IntFieldUpdateOperationsInput | number
     plan?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanStatusFieldUpdateOperationsInput | $Enums.PlanStatus
+    version?: IntFieldUpdateOperationsInput | number
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    failReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3485,6 +3777,10 @@ export namespace Prisma {
     duration: number
     daysPerWeek: number
     plan: JsonNullValueInput | InputJsonValue
+    status?: $Enums.PlanStatus
+    version?: number
+    jobId?: string | null
+    failReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3498,6 +3794,10 @@ export namespace Prisma {
     duration?: IntFieldUpdateOperationsInput | number
     daysPerWeek?: IntFieldUpdateOperationsInput | number
     plan?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanStatusFieldUpdateOperationsInput | $Enums.PlanStatus
+    version?: IntFieldUpdateOperationsInput | number
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    failReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3511,6 +3811,10 @@ export namespace Prisma {
     duration?: IntFieldUpdateOperationsInput | number
     daysPerWeek?: IntFieldUpdateOperationsInput | number
     plan?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanStatusFieldUpdateOperationsInput | $Enums.PlanStatus
+    version?: IntFieldUpdateOperationsInput | number
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    failReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3589,6 +3893,11 @@ export namespace Prisma {
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -3620,6 +3929,12 @@ export namespace Prisma {
     cost?: SortOrder
     feedback?: SortOrder
     feedbackTimestamp?: SortOrder
+    traceId?: SortOrder
+    usedFallback?: SortOrder
+    usedDeterministicFallback?: SortOrder
+    responseLanguage?: SortOrder
+    routeIntent?: SortOrder
+    warningCount?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -3630,6 +3945,7 @@ export namespace Prisma {
     totalTokens?: SortOrder
     cost?: SortOrder
     feedback?: SortOrder
+    warningCount?: SortOrder
   }
 
   export type ConversationMaxOrderByAggregateInput = {
@@ -3647,6 +3963,12 @@ export namespace Prisma {
     cost?: SortOrder
     feedback?: SortOrder
     feedbackTimestamp?: SortOrder
+    traceId?: SortOrder
+    usedFallback?: SortOrder
+    usedDeterministicFallback?: SortOrder
+    responseLanguage?: SortOrder
+    routeIntent?: SortOrder
+    warningCount?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -3665,6 +3987,12 @@ export namespace Prisma {
     cost?: SortOrder
     feedback?: SortOrder
     feedbackTimestamp?: SortOrder
+    traceId?: SortOrder
+    usedFallback?: SortOrder
+    usedDeterministicFallback?: SortOrder
+    responseLanguage?: SortOrder
+    routeIntent?: SortOrder
+    warningCount?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -3675,6 +4003,7 @@ export namespace Prisma {
     totalTokens?: SortOrder
     cost?: SortOrder
     feedback?: SortOrder
+    warningCount?: SortOrder
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -3775,6 +4104,14 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -3811,6 +4148,13 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
+  export type EnumPlanStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanStatus | EnumPlanStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PlanStatus[] | ListEnumPlanStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlanStatus[] | ListEnumPlanStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlanStatusFilter<$PrismaModel> | $Enums.PlanStatus
+  }
+
   export type WorkoutPlanCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
@@ -3820,6 +4164,10 @@ export namespace Prisma {
     duration?: SortOrder
     daysPerWeek?: SortOrder
     plan?: SortOrder
+    status?: SortOrder
+    version?: SortOrder
+    jobId?: SortOrder
+    failReason?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -3827,6 +4175,7 @@ export namespace Prisma {
   export type WorkoutPlanAvgOrderByAggregateInput = {
     duration?: SortOrder
     daysPerWeek?: SortOrder
+    version?: SortOrder
   }
 
   export type WorkoutPlanMaxOrderByAggregateInput = {
@@ -3837,6 +4186,10 @@ export namespace Prisma {
     goal?: SortOrder
     duration?: SortOrder
     daysPerWeek?: SortOrder
+    status?: SortOrder
+    version?: SortOrder
+    jobId?: SortOrder
+    failReason?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -3849,6 +4202,10 @@ export namespace Prisma {
     goal?: SortOrder
     duration?: SortOrder
     daysPerWeek?: SortOrder
+    status?: SortOrder
+    version?: SortOrder
+    jobId?: SortOrder
+    failReason?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -3856,6 +4213,7 @@ export namespace Prisma {
   export type WorkoutPlanSumOrderByAggregateInput = {
     duration?: SortOrder
     daysPerWeek?: SortOrder
+    version?: SortOrder
   }
   export type JsonWithAggregatesFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -3881,6 +4239,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedJsonFilter<$PrismaModel>
     _max?: NestedJsonFilter<$PrismaModel>
+  }
+
+  export type EnumPlanStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanStatus | EnumPlanStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PlanStatus[] | ListEnumPlanStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlanStatus[] | ListEnumPlanStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlanStatusWithAggregatesFilter<$PrismaModel> | $Enums.PlanStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPlanStatusFilter<$PrismaModel>
+    _max?: NestedEnumPlanStatusFilter<$PrismaModel>
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -3919,8 +4287,16 @@ export namespace Prisma {
     set?: Date | string | null
   }
 
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
   export type DateTimeFieldUpdateOperationsInput = {
     set?: Date | string
+  }
+
+  export type EnumPlanStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PlanStatus
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -3993,6 +4369,11 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type NestedDateTimeFilter<$PrismaModel = never> = {
@@ -4113,6 +4494,14 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -4125,6 +4514,13 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPlanStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanStatus | EnumPlanStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PlanStatus[] | ListEnumPlanStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlanStatus[] | ListEnumPlanStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlanStatusFilter<$PrismaModel> | $Enums.PlanStatus
   }
   export type NestedJsonFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -4147,6 +4543,16 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedEnumPlanStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PlanStatus | EnumPlanStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PlanStatus[] | ListEnumPlanStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PlanStatus[] | ListEnumPlanStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPlanStatusWithAggregatesFilter<$PrismaModel> | $Enums.PlanStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPlanStatusFilter<$PrismaModel>
+    _max?: NestedEnumPlanStatusFilter<$PrismaModel>
   }
 
 
