@@ -16,7 +16,7 @@ export const workoutController = {
       });
       res.json(workouts);
     } catch (error) {
-      logger.error('Error fetching workouts:', error);
+      logger.error({ err: error }, 'Error fetching workouts');
       res.status(500).json({ error: 'Failed to fetch workouts' });
     }
   },

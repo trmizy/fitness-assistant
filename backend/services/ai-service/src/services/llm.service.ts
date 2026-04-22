@@ -10,11 +10,33 @@ export const LLM_MODEL = process.env.LLM_MODEL || 'llama3.2:3b';
 export const llmService = {
   async generateEmbedding(text: string): Promise<number[]> {
     try {
-      const response = await axios.post(`${LLM_BASE_URL}/api/embeddings`, {
-        model: process.env.EMBEDDING_MODEL || 'nomic-embed-text',
-        prompt: text,
-      });
-      return response.data.embedding as number[];
+      const model = process.env.EMBEDDING_MODEL || 'nomic-embed-text';
+
+      try {
+        const response = await axios.post(`${LLM_BASE_URL}/api/embeddings`, {
+          model,
+          prompt: text,
+        });
+        return response.data.embedding as number[];
+      } catch (err) {
+        // Newer Ollama builds use /api/embed instead of /api/embeddings.
+        const is404 = err instanceof AxiosError && err.response?.status === 404;
+        if (!is404) throw err;
+
+        const response = await axios.post(`${LLM_BASE_URL}/api/embed`, {
+          model,
+          input: text,
+        });
+
+        const embeddings = response.data?.embeddings as number[][] | undefined;
+        const embedding = response.data?.embedding as number[] | undefined;
+        const vector = embeddings?.[0] ?? embedding;
+
+        if (!vector || !Array.isArray(vector)) {
+          throw new Error('Invalid embedding response from LLM provider');
+        }
+        return vector;
+      }
     } catch (err) {
       const msg = err instanceof AxiosError ? err.message : String(err);
       throw new LlmError(`Embedding generation failed: ${msg}`, err instanceof Error ? err : undefined);
@@ -31,7 +53,18 @@ export const llmService = {
       if (LLM_PROVIDER === 'ollama') {
         const response = await axios.post(
           `${LLM_BASE_URL}/api/generate`,
-          { model: LLM_MODEL, prompt, stream: false },
+          {
+            model: LLM_MODEL,
+            prompt,
+            stream: false,
+            options: {
+              // Cap context to just above our max prompt size (~1200 tokens) to reduce
+              // KV allocation overhead. Default is 2048 which wastes capacity on CPU.
+              num_ctx: 1536,
+              // Limit generation to prevent runaway responses on slow hardware.
+              num_predict: 500,
+            },
+          },
           { timeout: 120000 },
         );
         return {

@@ -37,15 +37,13 @@ function compactProfile(profile: UserProfile): string {
 
 function compactRetrieval(result: RetrievalResult): string {
   if (result.isEmpty || result.documents.length === 0) {
-    return '- No relevant context was retrieved. Use conservative recommendations and clearly state assumptions.';
+    return '- No relevant context retrieved. Use conservative recommendations.';
   }
 
+  // Limit to 3 docs — more context doesn't improve small-model accuracy but increases latency
   return result.documents
-    .slice(0, 6)
-    .map((doc, idx) => {
-      const source = doc.metadata.source_file || doc.category || 'unknown';
-      return `${idx + 1}. [${source}] score=${doc.score.toFixed(3)}\n${doc.pageContent}`;
-    })
+    .slice(0, 3)
+    .map((doc, idx) => `${idx + 1}. ${doc.pageContent}`)
     .join('\n\n');
 }
 

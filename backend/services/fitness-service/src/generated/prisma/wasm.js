@@ -161,6 +161,17 @@ exports.Prisma.WorkoutExerciseScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.WorkoutSetScalarFieldEnum = {
+  id: 'id',
+  workoutExerciseId: 'workoutExerciseId',
+  setNumber: 'setNumber',
+  reps: 'reps',
+  weight: 'weight',
+  rpe: 'rpe',
+  completed: 'completed',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.NutritionLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -228,6 +239,7 @@ exports.Prisma.ModelName = {
   Exercise: 'Exercise',
   Workout: 'Workout',
   WorkoutExercise: 'WorkoutExercise',
+  WorkoutSet: 'WorkoutSet',
   NutritionLog: 'NutritionLog'
 };
 

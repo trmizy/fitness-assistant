@@ -278,12 +278,13 @@ export const coachService = {
         timeout: 120000,
       },
     );
-    return data;
+    // AI service wraps responses in {success, data} — unwrap to get answer at top level.
+    return data?.data ?? data;
   },
 
   getConversations: async () => {
     const { data } = await api.get('/ai/conversations');
-    return data;
+    return data?.data ?? data;
   },
 };
 

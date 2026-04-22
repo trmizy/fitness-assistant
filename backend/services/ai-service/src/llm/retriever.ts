@@ -5,7 +5,9 @@ import type { RetrievalDocument, RetrievalResult } from './types';
 
 const COLLECTION_NAME = 'exercises';
 const MIN_SCORE = Number(process.env.RAG_MIN_SCORE || '0.35');
-const TOP_K = Number(process.env.RAG_TOP_K || '8');
+const TOP_K = Number(process.env.RAG_TOP_K || '5');
+// Max chars for instructions field — long how-to text bloats the prompt without adding value for the LLM
+const INSTRUCTION_MAX_CHARS = 120;
 
 function expandQueries(question: string): string[] {
   const variants = new Set<string>([question]);
@@ -34,15 +36,16 @@ function docFromPayload(payload: Record<string, unknown>, score: number, id: str
   const bodyPart = String(payload.bodyPart || 'unknown');
   const movementType = String(payload.type || 'unknown');
   const muscles = String(payload.muscleGroupsActivated || 'unknown');
-  const instructions = String(payload.instructions || 'No instructions');
+  const rawInstructions = String(payload.instructions || 'No instructions');
+  // Truncate instructions to avoid inflating the prompt — the LLM only needs the name + muscles + movement type
+  const instructions = rawInstructions.length > INSTRUCTION_MAX_CHARS
+    ? rawInstructions.slice(0, INSTRUCTION_MAX_CHARS) + '…'
+    : rawInstructions;
 
   const pageContent = [
     `Exercise: ${exerciseName}`,
-    `Activity: ${typeOfActivity}`,
-    `Equipment: ${typeOfEquipment}`,
-    `Body Part: ${bodyPart}`,
-    `Movement: ${movementType}`,
-    `Muscles: ${muscles}`,
+    `Equipment: ${typeOfEquipment} | Activity: ${typeOfActivity} | Body Part: ${bodyPart}`,
+    `Movement: ${movementType} | Muscles: ${muscles}`,
     `Instructions: ${instructions}`,
   ].join('\n');
 
@@ -77,28 +80,30 @@ function dedupeAndSort(docs: RetrievalDocument[]): RetrievalDocument[] {
     .slice(0, TOP_K);
 }
 
+async function searchOne(query: string): Promise<RetrievalDocument[]> {
+  const vector = await llmService.generateEmbedding(query);
+  const results = await getQdrantClient().search(COLLECTION_NAME, { vector, limit: TOP_K });
+  const docs: RetrievalDocument[] = [];
+  for (const item of results) {
+    const payload = (item.payload || {}) as Record<string, unknown>;
+    const score = typeof item.score === 'number' ? item.score : 0;
+    if (score >= MIN_SCORE) docs.push(docFromPayload(payload, score, String(item.id)));
+  }
+  return docs;
+}
+
 export const retriever = {
   async retrieve(question: string): Promise<RetrievalResult> {
     const queries = expandQueries(question);
+
+    // Run all embedding + search calls in parallel instead of sequentially
+    const results = await Promise.allSettled(queries.map(searchOne));
     const collected: RetrievalDocument[] = [];
-
-    for (const query of queries) {
-      try {
-        const vector = await llmService.generateEmbedding(query);
-        const results = await getQdrantClient().search(COLLECTION_NAME, {
-          vector,
-          limit: TOP_K,
-        });
-
-        for (const item of results) {
-          const payload = (item.payload || {}) as Record<string, unknown>;
-          const score = typeof item.score === 'number' ? item.score : 0;
-          if (score < MIN_SCORE) continue;
-          const id = String(item.id);
-          collected.push(docFromPayload(payload, score, id));
-        }
-      } catch (error) {
-        logger.warn({ error, query }, 'Retriever query failed, continuing with next variant');
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        collected.push(...result.value);
+      } else {
+        logger.warn({ error: result.reason }, 'Retriever query failed, continuing with results from other variants');
       }
     }
 
