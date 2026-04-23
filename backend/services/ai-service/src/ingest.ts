@@ -154,6 +154,7 @@ async function ingestCollection(
 async function main() {
   const args = process.argv.slice(2);
   const collectionArg = args.find(a => a.startsWith('--collection='))?.split('=')[1] || 'all';
+  const checkEmpty = args.includes('--check-empty');
 
   const configs = [
     {
@@ -210,6 +211,28 @@ async function main() {
       extractText: (p: any) => `${p.questionVi} ${p.answerVi} ${p.category} ${p.tags}`,
     }
   ];
+
+  if (checkEmpty) {
+    console.log('Checking if collections are already populated...');
+    let allPopulated = true;
+    for (const config of configs) {
+      try {
+        const info = await qdrantClient.getCollection(config.name);
+        if ((info.points_count || 0) === 0) {
+          allPopulated = false;
+          console.log(`Collection ${config.name} is empty.`);
+        }
+      } catch (e) {
+        allPopulated = false;
+        console.log(`Collection ${config.name} does not exist.`);
+      }
+    }
+
+    if (allPopulated) {
+      console.log('✅ All collections are already populated. Skipping ingestion.');
+      return;
+    }
+  }
 
   for (const config of configs) {
     if (collectionArg === 'all' || collectionArg === config.name) {

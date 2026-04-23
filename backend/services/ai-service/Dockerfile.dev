@@ -26,4 +26,4 @@ COPY backend/services/ai-service/tsconfig.json        ./backend/services/ai-serv
 WORKDIR /app/backend/services/ai-service
 EXPOSE 3003
 
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && npx tsx src/ingest.ts --collection=all --check-empty && pnpm run dev"]

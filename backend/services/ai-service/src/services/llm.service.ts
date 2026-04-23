@@ -5,7 +5,7 @@ import { LlmError } from '../errors/api-error';
 
 const LLM_PROVIDER = process.env.LLM_PROVIDER || 'ollama';
 const LLM_BASE_URL = process.env.LLM_BASE_URL || 'http://localhost:11434';
-export const LLM_MODEL = process.env.LLM_MODEL || 'llama3.1:8b';
+export const LLM_MODEL = process.env.LLM_MODEL || 'llama3.2:3b';
 
 export const llmService = {
   async generateEmbedding(text: string): Promise<number[]> {
@@ -72,13 +72,13 @@ export const llmService = {
             options: {
               // Increased from 1536 to accommodate chat history, expanded RAG results,
               // and workout/nutrition history in the prompt (~2000-3000 tokens typical).
-              num_ctx: 4096,
+              num_ctx: 2048,
               // Increased from 500 to prevent truncated workout tables (5-6 day plans
               // with exercises need ~600-800 tokens).
-              num_predict: 1024,
+              num_predict: 512,
             },
           },
-          { timeout: 120000 },
+          { timeout: 300000 },
         );
         return {
           answer: (response.data.message?.content as string) || '',
@@ -94,7 +94,7 @@ export const llmService = {
       const response = await axios.post(
         `${LLM_BASE_URL}/v1/chat/completions`,
         { model: LLM_MODEL, messages: [{ role: 'user', content: prompt }] },
-        { headers: { 'Content-Type': 'application/json' }, timeout: 120000 },
+        { headers: { 'Content-Type': 'application/json' }, timeout: 300000 },
       );
       const usage = (response.data.usage || {}) as Record<string, number>;
       return {

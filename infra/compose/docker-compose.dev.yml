@@ -233,7 +233,7 @@ services:
       FITNESS_SERVICE_URL: http://fitness-service:3002
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       LLM_BASE_URL: ${LLM_BASE_URL:-http://ollama:11434}
-      LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
+      LLM_MODEL: llama3.2:3b
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:
@@ -241,6 +241,7 @@ services:
     volumes:
       - ../../backend/services/ai-service/src:/app/backend/services/ai-service/src
       - ../../backend/services/ai-service/prisma:/app/backend/services/ai-service/prisma
+      - ../../data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -349,6 +350,24 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - default
+
+  ollama-model-puller:
+    image: curlimages/curl:latest
+    container_name: gymcoach-ollama-puller
+    depends_on:
+      - ollama
+    entrypoint: [ "sh", "-c", "until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d '{\"name\": \"llama3.2:3b\"}'; curl http://ollama:11434/api/pull -d '{\"name\": \"nomic-embed-text\"}'" ]
+    networks:
+      - default
 
   n8n:
     image: n8nio/n8n:latest
