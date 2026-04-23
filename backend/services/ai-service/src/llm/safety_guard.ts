@@ -13,13 +13,13 @@ export const safetyGuard = {
 
     return {
       blocked: true,
-      reason: 'Muc tieu giam can qua nhanh co the gay mat co, roi loan dien giai va anh huong tim mach.',
-      safeAlternative: 'Muc tieu an toan hon la giam khoang 0.3-0.8 kg moi tuan, ket hop tap suc manh va dieu chinh calo vua phai.',
+      reason: 'Mục tiêu giảm cân quá nhanh có thể gây mất cơ, rối loạn điện giải và ảnh hưởng tim mạch.',
+      safeAlternative: 'Mục tiêu an toàn hơn là giảm khoảng 0.3-0.8 kg mỗi tuần, kết hợp tập sức mạnh và điều chỉnh calo vừa phải.',
       firstWeekSteps: [
-        'Dat muc tieu giam 0.5 kg trong tuan dau.',
-        'Giam 300-500 kcal moi ngay tu tong khau phan hien tai.',
-        'Tap ta 3-4 buoi va di bo nhanh 20-30 phut, 4-5 buoi moi tuan.',
-        'Ngu 7-8 gio moi dem va theo doi can nang 2-3 lan moi tuan.',
+        'Đặt mục tiêu giảm 0.5 kg trong tuần đầu.',
+        'Giảm 300-500 kcal mỗi ngày từ tổng khẩu phần hiện tại.',
+        'Tập tạ 3-4 buổi và đi bộ nhanh 20-30 phút, 4-5 buổi mỗi tuần.',
+        'Ngủ 7-8 giờ mỗi đêm và theo dõi cân nặng 2-3 lần mỗi tuần.',
       ],
     };
   },

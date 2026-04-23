@@ -5,7 +5,7 @@ import { LlmError } from '../errors/api-error';
 
 const LLM_PROVIDER = process.env.LLM_PROVIDER || 'ollama';
 const LLM_BASE_URL = process.env.LLM_BASE_URL || 'http://localhost:11434';
-export const LLM_MODEL = process.env.LLM_MODEL || 'llama3.2:3b';
+export const LLM_MODEL = process.env.LLM_MODEL || 'llama3.1:8b';
 
 export const llmService = {
   async generateEmbedding(text: string): Promise<number[]> {
@@ -51,24 +51,37 @@ export const llmService = {
   async callLLM(prompt: string): Promise<LLMResponse> {
     try {
       if (LLM_PROVIDER === 'ollama') {
+        // Use /api/chat (chat format) for better instruction following.
+        // The prompt is split into a system message (rules) and a user message (question + context).
+        const systemEnd = prompt.indexOf('Câu hỏi của user:');
+        const hasSystemSplit = systemEnd > 0;
+
+        const messages = hasSystemSplit
+          ? [
+              { role: 'system', content: prompt.slice(0, systemEnd).trim() },
+              { role: 'user', content: prompt.slice(systemEnd).trim() },
+            ]
+          : [{ role: 'user', content: prompt }];
+
         const response = await axios.post(
-          `${LLM_BASE_URL}/api/generate`,
+          `${LLM_BASE_URL}/api/chat`,
           {
             model: LLM_MODEL,
-            prompt,
+            messages,
             stream: false,
             options: {
-              // Cap context to just above our max prompt size (~1200 tokens) to reduce
-              // KV allocation overhead. Default is 2048 which wastes capacity on CPU.
-              num_ctx: 1536,
-              // Limit generation to prevent runaway responses on slow hardware.
-              num_predict: 500,
+              // Increased from 1536 to accommodate chat history, expanded RAG results,
+              // and workout/nutrition history in the prompt (~2000-3000 tokens typical).
+              num_ctx: 4096,
+              // Increased from 500 to prevent truncated workout tables (5-6 day plans
+              // with exercises need ~600-800 tokens).
+              num_predict: 1024,
             },
           },
           { timeout: 120000 },
         );
         return {
-          answer: (response.data.response as string) || '',
+          answer: (response.data.message?.content as string) || '',
           promptTokens: (response.data.prompt_eval_count as number) || 0,
           completionTokens: (response.data.eval_count as number) || 0,
           totalTokens:
@@ -106,3 +119,4 @@ export const llmService = {
     }
   },
 };
+

@@ -1,4 +1,5 @@
 import { llmService } from '../services/llm.service';
+import { conversationRepository } from '../repositories/conversation.repository';
 import { inputParser } from './input_parser';
 import { intentRouter } from './intent_router';
 import { languageGuard } from './language_guard';
@@ -19,9 +20,10 @@ export const llmOrchestrator = {
 
     // Profile fetch (4 downstream HTTP calls) and Qdrant vector search run concurrently —
     // neither depends on the other, so parallelising saves ~150-300 ms per request.
-    const [context, retrieval] = await Promise.all([
+    const [context, retrieval, chatHistory] = await Promise.all([
       profileExtractor.extract(userId, authHeader),
       retriever.retrieve(question),
+      userId ? conversationRepository.findMany({ userId }, 5) : Promise.resolve([]),
     ]);
 
     const language = languageGuard.resolve(question, userId);
@@ -64,7 +66,7 @@ export const llmOrchestrator = {
     const needsLlm = llmIntents.has(routedIntent.intent) || parsedInput.mentionsInjury;
 
     if (needsLlm && !unsafe?.blocked) {
-      prompt = promptBuilder.build(question, parsedInput, context.profile, retrieval, recommendation, language.responseLanguage);
+      prompt = promptBuilder.build(question, parsedInput, context, retrieval, recommendation, language.responseLanguage, chatHistory);
       const llmResponse = await llmService.callLLM(prompt);
       llmAnswer = labelLocalizer.localize(llmResponse.answer, language.responseLanguage);
       promptTokens = llmResponse.promptTokens;

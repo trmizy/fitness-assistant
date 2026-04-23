@@ -1,11 +1,11 @@
 import type { ResponseLanguage } from './types';
 
 const INTERNAL_LABEL_REPLACEMENTS: Record<string, string> = {
-  recomposition: 'tai cau truc co the',
-  strength_retention: 'giu suc manh',
-  omnivorous: 'an da dang thuc pham',
-  moderate_volume: 'khoi luong tap vua phai',
-  confidence: 'do tin cay',
+  recomposition: 'tái cấu trúc cơ thể',
+  strength_retention: 'giữ sức mạnh',
+  omnivorous: 'ăn đa dạng thực phẩm',
+  moderate_volume: 'khối lượng tập vừa phải',
+  confidence: 'độ tin cậy',
 };
 
 function sanitizeVietnameseOutput(text: string): string {
@@ -15,7 +15,7 @@ function sanitizeVietnameseOutput(text: string): string {
     sanitized = sanitized.replace(regex, replacement);
   }
 
-  sanitized = sanitized.replace(/missing profile/gi, 'thieu thong tin ho so');
+  sanitized = sanitized.replace(/missing profile/gi, 'thiếu thông tin hồ sơ');
   sanitized = sanitized.replace(/ {2,}/g, ' ').trim();
   return sanitized;
 }
@@ -32,16 +32,17 @@ export const labelLocalizer = {
     if (language === 'en') return fields;
 
     const map: Record<string, string> = {
-      profile: 'ho so co ban',
-      weight: 'can nang',
-      height: 'chieu cao',
-      age: 'tuoi',
-      gender: 'gioi tinh',
-      goal: 'muc tieu',
-      activity_level: 'muc do van dong',
-      experience_level: 'kinh nghiem tap',
+      profile: 'hồ sơ cơ bản',
+      weight: 'cân nặng',
+      height: 'chiều cao',
+      age: 'tuổi',
+      gender: 'giới tính',
+      goal: 'mục tiêu',
+      activity_level: 'mức độ vận động',
+      experience_level: 'kinh nghiệm tập',
     };
 
     return fields.map((field) => map[field] || field);
   },
 };
+

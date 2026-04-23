@@ -1,4 +1,5 @@
 import type { InputIntent, RecommendationResult, ResponseLanguage, RetrievalResult, UserProfile } from './types';
+import type { PersonalizationContext } from './profile_extractor';
 
 function compactProfile(profile: UserProfile): string {
   const lines: string[] = [
@@ -33,6 +34,35 @@ function compactProfile(profile: UserProfile): string {
   }
 
   return lines.join('\n');
+}
+
+function formatHistorySections(context: PersonalizationContext, chatHistory: any[]): string[] {
+  const sections: string[] = [];
+
+  if (context.workoutHistory && context.workoutHistory.length > 0) {
+    const workouts = context.workoutHistory.slice(0, 5).map(w => 
+      `- ${w.date?.split('T')[0] || 'Unknown'}: ${w.duration ? w.duration + ' min' : 'Unknown duration'}, ${Array.isArray(w.exercises) ? w.exercises.length : 0} exercises`
+    ).join('\n');
+    sections.push('Lịch sử tập luyện gần đây:\n' + workouts);
+  }
+
+  if (context.nutritionHistory && context.nutritionHistory.length > 0) {
+    const nutrition = context.nutritionHistory.slice(0, 7).map(n =>
+      `- ${n.date?.split('T')[0] || 'Unknown'}: ${n.calories || 0} kcal, ${n.protein || 0}g protein`
+    ).join('\n');
+    sections.push('Lịch sử dinh dưỡng gần đây:\n' + nutrition);
+  }
+
+  if (chatHistory && chatHistory.length > 0) {
+    const chat = chatHistory.slice(0, 5).reverse().map(c => {
+      const q = c.question || '';
+      const a = c.answer || '';
+      return `User: ${q.length > 100 ? q.slice(0, 100) + '...' : q}\nCoach: ${a.length > 150 ? a.slice(0, 150) + '...' : a}`;
+    }).join('\n\n');
+    sections.push('Lịch sử hội thoại:\n' + chat);
+  }
+
+  return sections;
 }
 
 function compactRetrieval(result: RetrievalResult): string {
@@ -74,11 +104,13 @@ export const promptBuilder = {
   build(
     inputQuestion: string,
     intent: InputIntent,
-    profile: UserProfile,
+    context: PersonalizationContext,
     retrieval: RetrievalResult,
     recommendation: RecommendationResult,
     responseLanguage: ResponseLanguage,
+    chatHistory: any[],
   ): string {
+    const profile = context.profile;
     const viRules = [
       'Bạn là AI fitness coach cho người dùng Việt Nam.',
       '',
@@ -130,6 +162,10 @@ export const promptBuilder = {
     return [
       ...(responseLanguage === 'vi' ? viRules : enRules),
       '',
+      ...(() => {
+        const sections = formatHistorySections(context, chatHistory);
+        return sections.length > 0 ? [...sections, ''] : [];
+      })(),
       'Câu hỏi của user:',
       inputQuestion,
       '',
