@@ -5,7 +5,7 @@ import { LlmError } from '../errors/api-error';
 
 const LLM_PROVIDER = process.env.LLM_PROVIDER || 'ollama';
 const LLM_BASE_URL = process.env.LLM_BASE_URL || 'http://localhost:11434';
-export const LLM_MODEL = process.env.LLM_MODEL || 'llama3:8b';
+export const LLM_MODEL = process.env.LLM_MODEL || 'llama3.2:3b';
 
 export const llmService = {
   async generateEmbedding(text: string): Promise<number[]> {
