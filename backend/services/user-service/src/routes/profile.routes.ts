@@ -13,4 +13,8 @@ router.delete('/me', authMiddleware, profileController.deleteProfile as any);
 router.get('/pts', authMiddleware, profileController.listPTs as any);
 router.patch('/admin/users/:userId/pt-status', authMiddleware, profileController.adminSetPTStatus as any);
 
+// Admin: contract count summary — used by API Gateway to enrich user list
+router.get('/admin/contracts/summary', authMiddleware, profileController.adminContractsSummary as any);
+router.get('/admin/stats', authMiddleware, profileController.adminGetStats as any);
+
 export default router;

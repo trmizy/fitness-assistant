@@ -2,7 +2,8 @@ import { Response } from 'express';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { profileService } from '../services/profile.service';
-import { profileRepository } from '../repositories/profile.repository';
+import { profileRepository, prisma } from '../repositories/profile.repository';
+import { contractRepository } from '../repositories/contract.repository';
 import { adminPTStatusSchema, profileSchema } from '../models/profile.models';
 import type { AuthRequest } from '../middleware/auth.middleware';
 
@@ -80,6 +81,59 @@ export const profileController = {
         return;
       }
       logger.error(error, 'Admin set PT status error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  /** Returns { summary: { [userId]: contractCount } } for all user IDs.
+   *  Called by the API Gateway to enrich the admin User Management list.
+   */
+  async adminContractsSummary(_req: AuthRequest, res: Response): Promise<void> {
+    try {
+      // Fetch all contracts and group counts in the repository
+      // We pass an empty array to get ALL users (repository handles it)
+      const allContracts = await contractRepository.findAll(0, 10000);
+      const userIds = [
+        ...new Set([
+          ...allContracts.map((c) => c.ptUserId),
+          ...allContracts.map((c) => c.clientUserId),
+        ]),
+      ];
+      const summary = await contractRepository.countByUsers(userIds);
+      res.json({ summary });
+    } catch (error) {
+      logger.error(error, 'Admin contracts summary error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  /** Returns general system stats for the admin dashboard. */
+  async adminGetStats(_req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const activeContracts = await contractRepository.countActive();
+      
+      // Calculate OCR stats for the last 7 days
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const inbodyStats = await prisma.inBodyEntry.groupBy({
+        by: ['status'],
+        where: {
+          createdAt: { gte: sevenDaysAgo }
+        },
+        _count: true
+      });
+
+      const ocrStats = {
+        total: inbodyStats.reduce((acc, curr) => acc + curr._count, 0),
+        extracted: inbodyStats.find(s => s.status === 'extracted')?._count || 0,
+        manual: inbodyStats.find(s => s.status === 'manual')?._count || 0,
+        pending: inbodyStats.find(s => s.status === 'pending')?._count || 0,
+      };
+
+      res.json({ activeContracts, ocrStats });
+    } catch (error) {
+      logger.error(error, 'Admin get stats error');
       res.status(500).json({ error: 'Internal server error' });
     }
   },

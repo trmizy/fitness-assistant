@@ -407,7 +407,7 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
   try {
     const authHeader = req.headers.authorization;
 
-    const [usersRes, ptsRes, probes] = await Promise.all([
+    const [usersRes, ptsRes, statsRes, probes] = await Promise.all([
       axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
         headers: authHeader ? { Authorization: authHeader } : undefined,
         timeout: 6000,
@@ -416,11 +416,16 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
         headers: authHeader ? { Authorization: authHeader } : undefined,
         timeout: 6000,
       }),
+      axios.get(`${USER_SERVICE_URL}/profile/admin/stats`, {
+        headers: authHeader ? { Authorization: authHeader } : undefined,
+        timeout: 6000,
+      }),
       probeServices(),
     ]);
 
     const users = ((usersRes.data?.users || []) as AuthUser[]).filter((u) => u.role !== 'ADMIN');
     const ptProfiles = (ptsRes.data?.pts || []) as PTProfile[];
+    const activeContracts = statsRes.data?.activeContracts || 0;
     const ptSet = new Set(ptProfiles.filter((p) => p.isPT).map((p) => p.userId));
 
     const totalUsers = users.length;
@@ -488,7 +493,7 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
         kpis: {
           totalUsers,
           verifiedPTs,
-          activeContracts: 0,
+          activeContracts,
           sessionsToday,
           pendingPT,
         },
@@ -499,6 +504,7 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
         ],
         systemAlerts: alerts,
         recentUsers,
+        ocrStats: statsRes.data?.ocrStats || { total: 0, extracted: 0, manual: 0, pending: 0 },
         monitor: {
           healthScore: monitorSummary.healthScore,
           healthyCount: monitorSummary.healthyCount,
@@ -514,6 +520,105 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
         code: 'DASHBOARD_AGGREGATION_FAILED',
         message: 'Failed to aggregate dashboard data',
       },
+    });
+  }
+});
+
+// ── Admin: User Management list ──────────────────────────────────────────────
+// Aggregates auth-service (name/email/role/createdAt) with user-service
+// (isPT flag, contract count) into a single normalized list for the admin UI.
+router.get('/admin/users', authMiddleware, requireRoles('ADMIN'), async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    // Fetch users + PT profiles in parallel
+    const [usersRes, contractsRes] = await Promise.allSettled([
+      axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
+        headers: authHeader ? { Authorization: authHeader } : undefined,
+        timeout: 6000,
+      }),
+      axios.get(`${USER_SERVICE_URL}/profile/admin/contracts/summary`, {
+        headers: authHeader ? { Authorization: authHeader } : undefined,
+        timeout: 6000,
+      }),
+    ]);
+
+    const authUsers = (
+      usersRes.status === 'fulfilled'
+        ? (usersRes.value.data?.users || [])
+        : []
+    ) as AuthUser[];
+
+    // contractSummary: { [userId]: number } — pre-aggregated counts per user
+    const contractSummary: Record<string, number> =
+      contractsRes.status === 'fulfilled'
+        ? (contractsRes.value.data?.summary || {})
+        : {};
+
+    const users = authUsers.map((u) => {
+      const name = [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email.split('@')[0];
+      const role = u.role === 'PT' ? 'PT' : u.role === 'ADMIN' ? 'Admin' : 'Client';
+      const contracts = contractSummary[u.id] ?? 0;
+
+      // Determine status:
+      // - PT role → Active
+      // - CUSTOMER with no activity recently → Active (default)
+      // We don't have a suspended/inactive field yet, so default to Active.
+      const status = 'Active';
+
+      return {
+        id: u.id,
+        name,
+        email: u.email,
+        role,
+        status,
+        joined: new Date(u.createdAt).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        }),
+        lastActive: new Date(u.updatedAt).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        }),
+        sessions: 0,   // future: pull from fitness-service
+        contracts,
+      };
+    });
+
+    res.json({ success: true, data: { total: users.length, users } });
+  } catch (error: any) {
+    logger.error({ error: error?.message }, 'Admin users aggregation failed');
+    res.status(500).json({
+      success: false,
+      error: { code: 'ADMIN_USERS_FAILED', message: 'Failed to fetch user list' },
+    });
+  }
+});
+
+// ── Admin: Update user role ───────────────────────────────────────────────────
+router.patch('/admin/users/:userId/role', authMiddleware, requireRoles('ADMIN'), async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    const response = await axios.patch(
+      `${AUTH_SERVICE_URL}/auth/users/${userId}/role`,
+      { role },
+      {
+        headers: authHeader ? { Authorization: authHeader } : undefined,
+        timeout: 5000,
+      },
+    );
+
+    res.json({ success: true, data: response.data });
+  } catch (error: any) {
+    logger.error({ error: error?.message }, 'Admin update user role failed');
+    const status = error?.response?.status || 500;
+    res.status(status).json({
+      success: false,
+      error: { code: 'UPDATE_ROLE_FAILED', message: error?.response?.data?.error || 'Failed to update user role' },
     });
   }
 });

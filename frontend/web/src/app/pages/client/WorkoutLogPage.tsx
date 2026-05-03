@@ -13,6 +13,90 @@ import {
 } from "recharts";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 
+// Format helper
+const formatVideoUrlToImg = (videoUrl: string | null | undefined, frame: 0 | 1) => {
+  if (!videoUrl) return null;
+  // If it's already a github raw url ending in .jpg, just replace the last part
+  if (videoUrl.includes('yuhonas/free-exercise-db') && videoUrl.endsWith('.jpg')) {
+    return videoUrl.replace(/\/[^\/]+$/, `/${frame}.jpg`);
+  }
+  return videoUrl; // Fallback
+};
+
+/* ───── ExerciseFlipDemo ─────
+ * Animates between img1 (start position) and img2 (end position).
+ * Both images come from yuhonas/free-exercise-db GitHub raw content.
+ * Falls back gracefully if either image fails to load.
+ */
+function ExerciseFlipDemo({ img1, img2, alt, className = "" }: {
+  img1: string | null | undefined;
+  img2: string | null | undefined;
+  alt: string;
+  className?: string;
+}) {
+  const [showSecond, setShowSecond] = useState(false);
+  const [img1Loaded, setImg1Loaded] = useState(false);
+  const [img2Loaded, setImg2Loaded] = useState(false);
+
+  const [img1Error, setImg1Error] = useState(false);
+  const [img2Error, setImg2Error] = useState(false);
+
+  const canAnimate = img1Loaded && img2Loaded && !img1Error && !img2Error;
+
+  useEffect(() => {
+    if (!canAnimate) return;
+    const interval = setInterval(() => setShowSecond((v) => !v), 1500);
+    return () => clearInterval(interval);
+  }, [canAnimate]);
+
+  // Fallback if no source provided, or if the primary image failed to load
+  if (!img1 || img1Error) {
+    return (
+      <div className={`relative flex items-center justify-center bg-zinc-900/60 border border-zinc-800/30 rounded-2xl overflow-hidden ${className}`}>
+        <Dumbbell className="w-10 h-10 text-zinc-700" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative overflow-hidden ${className}`}>
+      {/* Image 1 — starting position */}
+      <img
+        src={img1}
+        alt={`${alt} - start`}
+        onLoad={() => setImg1Loaded(true)}
+        onError={() => setImg1Error(true)}
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+        style={{ opacity: showSecond && !img2Error ? 0 : 1 }}
+      />
+      {/* Image 2 — end position */}
+      {img2 && !img2Error && (
+        <img
+          src={img2}
+          alt={`${alt} - end`}
+          onLoad={() => setImg2Loaded(true)}
+          onError={() => setImg2Error(true)}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+          style={{ opacity: showSecond ? 1 : 0 }}
+        />
+      )}
+      {/* Placeholder while loading */}
+      {!img1Loaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80">
+          <div className="w-8 h-8 rounded-full border-2 border-emerald-500/30 border-t-emerald-400 animate-spin" />
+        </div>
+      )}
+      {/* Animation indicator */}
+      {canAnimate && (
+        <div className="absolute bottom-2 right-2 flex gap-1">
+          <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${!showSecond ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${showSecond ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ───── Data ───── */
 const heroImg = "https://images.unsplash.com/photo-1628935291759-bbaf33a66dc6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxneW0lMjB3b3Jrb3V0JTIwbXVzY2xlJTIwdHJhaW5pbmclMjBkYXJrfGVufDF8fHx8MTc3NjA2NjY0NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral";
 
@@ -48,22 +132,71 @@ const workoutDays = [
   { day: 3, title: "Legs + Side Delts", progress: 0, locked: true, exercises: 6, duration: "1h 30m" },
 ];
 
-const exerciseImages = {
-  treadmill: "https://images.unsplash.com/photo-1761971974992-6df33df97c3a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmVhZG1pbGwlMjBydW5uaW5nJTIwY2FyZGlvJTIwZml0bmVzc3xlbnwxfHx8fDE3NzYwNjg0ODN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  bench: "https://images.unsplash.com/photo-1690731033723-ad718c6e585a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiYXJiZWxsJTIwYmVuY2glMjBwcmVzcyUyMGd5bSUyMGRhcmt8ZW58MXx8fHwxNzc2MDY4NDgzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  dumbbell: "https://images.unsplash.com/photo-1600878601444-d5d1e8fa6069?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkdW1iYmVsbCUyMHByZXNzJTIwd29ya291dCUyMGV4ZXJjaXNlfGVufDF8fHx8MTc3NjA2ODQ4M3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  cable: "https://images.unsplash.com/photo-1582760415711-2348c74f717e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYWJsZSUyMG1hY2hpbmUlMjBjaGVzdCUyMHdvcmtvdXR8ZW58MXx8fHwxNzc2MDY4NDg4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  shoulder: "https://images.unsplash.com/photo-1752365172726-a6d8d71b6db9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaG91bGRlciUyMHByZXNzJTIwc2VhdGVkJTIwZHVtYmJlbGx8ZW58MXx8fHwxNzc2MDY4NDg0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  triceps: "https://images.unsplash.com/photo-1738524108211-9b2bbb179024?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0cmljZXBzJTIwZXh0ZW5zaW9uJTIwbHlpbmclMjBiYXJiZWxsfGVufDF8fHx8MTc3NjA2ODQ4NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-};
+/* ── yuhonas/free-exercise-db GitHub raw image base URL ── */
+const EXERCISE_IMG = (folder: string, frame: 0 | 1) =>
+  `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${folder}/${frame}.jpg`;
 
 const dayExercises = [
-  { name: "Treadmill Run", prescription: "8 min, 110–140 bpm", img: exerciseImages.treadmill, type: "cardio" as const, video: "https://www.youtube.com/embed/1nY2f1GKGOQ", description: "A steady-state cardio warm-up on the treadmill to elevate heart rate and prepare the body for strength training. Maintain a moderate pace at 110–140 bpm. Focus on controlled breathing and upright posture throughout.", muscles: ["Quadriceps", "Hamstrings", "Calves"], tips: ["Start slow and gradually increase speed", "Keep your core engaged", "Don't hold the handrails"] },
-  { name: "Flat Barbell Bench Press", prescription: "4×10×65 kg", img: exerciseImages.bench, type: "strength" as const, video: "https://www.youtube.com/embed/rT7DgCr-3pg", description: "The king of chest exercises. Lie flat on a bench, grip the bar slightly wider than shoulder-width, lower to mid-chest, then press up explosively. Keep shoulder blades retracted and feet flat on the floor.", muscles: ["Chest", "Triceps", "Front Delts"], tips: ["Arch your upper back slightly", "Touch the bar to your chest", "Drive through your feet for stability"] },
-  { name: "Incline Dumbbell Press", prescription: "4×10×18 kg", img: exerciseImages.dumbbell, type: "strength" as const, video: "https://www.youtube.com/embed/8iPEnn-ltC8", description: "Targets the upper chest. Set the bench to 30–45°, press dumbbells upward from shoulder level with a slight arc. Squeeze at the top and control the descent for maximum time under tension.", muscles: ["Upper Chest", "Triceps", "Front Delts"], tips: ["Don't flare elbows past 75°", "Control the negative phase", "Keep wrists neutral"] },
-  { name: "Cable Chest Fly", prescription: "4×10×35 kg", img: exerciseImages.cable, type: "strength" as const, video: "https://www.youtube.com/embed/Iwe6AmxVf7o", description: "An isolation movement for the chest using cable pulleys. Stand centered between the cables, bring handles together in a hugging motion with a slight bend in the elbows. Squeeze the chest hard at the midpoint.", muscles: ["Chest", "Front Delts"], tips: ["Keep a slight bend in elbows throughout", "Focus on the squeeze, not the weight", "Control the eccentric phase"] },
-  { name: "Seated Dumbbell Shoulder Press", prescription: "4×10×20 kg", img: exerciseImages.shoulder, type: "strength" as const, video: "https://www.youtube.com/embed/qEwKCR5JCog", description: "A compound shoulder exercise performed seated for strict form. Press dumbbells overhead from shoulder height, fully extending arms without locking elbows. Lower with control to ear level.", muscles: ["Front Delts", "Side Delts", "Triceps"], tips: ["Keep your back against the pad", "Don't use momentum", "Exhale on the press"] },
-  { name: "Lying Triceps Extension", prescription: "3×10×32.5 kg", img: exerciseImages.triceps, type: "strength" as const, video: "https://www.youtube.com/embed/d_KZxkY_0cM", description: "Also known as skull crushers. Lie flat and lower the barbell toward your forehead by bending at the elbows, then extend back up. Keep upper arms perpendicular to the floor throughout the movement.", muscles: ["Triceps (all heads)"], tips: ["Keep elbows pointed to ceiling", "Use a controlled tempo", "Don't flare elbows out"] },
+  {
+    name: "Treadmill Run",
+    prescription: "8 min, 110–140 bpm",
+    img:  EXERCISE_IMG("Jogging_Treadmill", 0),
+    img2: EXERCISE_IMG("Jogging_Treadmill", 1),
+    type: "cardio" as const,
+    description: "A steady-state cardio warm-up to elevate heart rate and prepare the body for strength training. Maintain a moderate pace at 110–140 bpm.",
+    muscles: ["Quadriceps", "Hamstrings", "Calves"],
+    tips: ["Start slow and gradually increase speed", "Keep your core engaged", "Don't hold the handrails"],
+  },
+  {
+    name: "Flat Barbell Bench Press",
+    prescription: "4×10×65 kg",
+    img:  EXERCISE_IMG("Barbell_Bench_Press_-_Medium_Grip", 0),
+    img2: EXERCISE_IMG("Barbell_Bench_Press_-_Medium_Grip", 1),
+    type: "strength" as const,
+    description: "The king of chest exercises. Lie flat on a bench, grip the bar slightly wider than shoulder-width, lower to mid-chest, then press up explosively.",
+    muscles: ["Chest", "Triceps", "Front Delts"],
+    tips: ["Arch your upper back slightly", "Touch the bar to your chest", "Drive through your feet for stability"],
+  },
+  {
+    name: "Incline Dumbbell Press",
+    prescription: "4×10×18 kg",
+    img:  EXERCISE_IMG("Dumbbell_Bench_Press", 0),
+    img2: EXERCISE_IMG("Dumbbell_Bench_Press", 1),
+    type: "strength" as const,
+    description: "Targets the upper chest. Set the bench to 30–45°, press dumbbells upward from shoulder level with a slight arc.",
+    muscles: ["Upper Chest", "Triceps", "Front Delts"],
+    tips: ["Don't flare elbows past 75°", "Control the negative phase", "Keep wrists neutral"],
+  },
+  {
+    name: "Cable Chest Fly",
+    prescription: "4×10×35 kg",
+    img:  EXERCISE_IMG("Cable_Crossover", 0),
+    img2: EXERCISE_IMG("Cable_Crossover", 1),
+    type: "strength" as const,
+    description: "An isolation movement for the chest using cable pulleys. Stand centered between the cables, bring handles together in a hugging arc.",
+    muscles: ["Chest", "Front Delts"],
+    tips: ["Keep a slight bend in elbows throughout", "Focus on the squeeze, not the weight", "Control the eccentric phase"],
+  },
+  {
+    name: "Seated Dumbbell Shoulder Press",
+    prescription: "4×10×20 kg",
+    img:  EXERCISE_IMG("Seated_Dumbbell_Press", 0),
+    img2: EXERCISE_IMG("Seated_Dumbbell_Press", 1),
+    type: "strength" as const,
+    description: "A compound shoulder exercise performed seated for strict form. Press dumbbells overhead from shoulder height.",
+    muscles: ["Front Delts", "Side Delts", "Triceps"],
+    tips: ["Keep your back against the pad", "Don't use momentum", "Exhale on the press"],
+  },
+  {
+    name: "Lying Triceps Extension",
+    prescription: "3×10×32.5 kg",
+    img:  EXERCISE_IMG("Lying_Triceps_Press", 0),
+    img2: EXERCISE_IMG("Lying_Triceps_Press", 1),
+    type: "strength" as const,
+    description: "Also known as skull crushers. Lie flat and lower the barbell toward your forehead by bending at the elbows, then extend back up.",
+    muscles: ["Triceps (all heads)"],
+    tips: ["Keep elbows pointed to ceiling", "Use a controlled tempo", "Don't flare elbows out"],
+  },
 ];
 
 const bodyFatData = [
@@ -166,6 +299,48 @@ export function WorkoutLogPage() {
   const [showCompletion, setShowCompletion] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const restRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Add Exercise Modal state
+  const [showAddExercise, setShowAddExercise] = useState(false);
+  const [dbSearch, setDbSearch] = useState("");
+  const [dbExercises, setDbExercises] = useState<any[]>([]);
+  const [dbLoading, setDbLoading] = useState(false);
+
+  // Search DB Exercises
+  useEffect(() => {
+    if (!showAddExercise) return;
+    const timer = setTimeout(() => {
+      setDbLoading(true);
+      const url = import.meta.env.VITE_API_URL + "/exercises" + (dbSearch ? `?search=${encodeURIComponent(dbSearch)}` : "");
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          setDbExercises(Array.isArray(data) ? data : []);
+          setDbLoading(false);
+        })
+        .catch(err => {
+          console.error("Failed to fetch exercises:", err);
+          setDbLoading(false);
+        });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [showAddExercise, dbSearch]);
+
+  const handleAddFromDB = (dbEx: any) => {
+    const newEx = {
+      id: Date.now(), // temporary UI id
+      name: dbEx.exerciseName,
+      prescription: "3×10", // Default prescription
+      img: formatVideoUrlToImg(dbEx.videoUrl, 0),
+      img2: formatVideoUrlToImg(dbEx.videoUrl, 1),
+      type: (dbEx.typeOfActivity === "CARDIO" ? "cardio" : "strength") as "cardio"|"strength",
+      description: dbEx.instructions,
+      muscles: dbEx.muscleGroupsActivated || [],
+      tips: [],
+    };
+    setEditExercises([...editExercises, newEx]);
+    setShowAddExercise(false);
+  };
 
   // Timer effect
   useEffect(() => {
@@ -824,7 +999,13 @@ export function WorkoutLogPage() {
                         </button>
                       </div>
                     ))}
-                    <button className="w-full rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/20 p-4 flex items-center justify-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/20 transition-all">
+                    <button 
+                      onClick={() => {
+                        setDbSearch("");
+                        setShowAddExercise(true);
+                      }}
+                      className="w-full rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/20 p-4 flex items-center justify-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/20 transition-all"
+                    >
                       <Plus className="w-4 h-4" /> Add Exercise
                     </button>
                   </div>
@@ -930,13 +1111,22 @@ export function WorkoutLogPage() {
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/8 border border-emerald-500/15 flex items-center justify-center shrink-0">
                   <BarChart3 className="w-4 h-4 text-emerald-400" />
                 </div>
-                <p className="text-xs text-emerald-200/60">Tap the exercise image to see the video tutorial</p>
+                <p className="text-xs text-emerald-200/60">Exercise animation — tap to see full details</p>
               </div>
 
-              <div onClick={() => setSelectedExercise(curEx)} className="rounded-2xl overflow-hidden border border-zinc-800/30 aspect-video relative group cursor-pointer">
-                <ImageWithFallback src={curEx.img} alt={curEx.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Exercise flip animation demo */}
+              <div
+                onClick={() => setSelectedExercise(curEx)}
+                className="rounded-2xl overflow-hidden border border-zinc-800/30 aspect-video relative group cursor-pointer"
+              >
+                <ExerciseFlipDemo
+                  img1={curEx.img}
+                  img2={(curEx as any).img2}
+                  alt={curEx.name}
+                  className="w-full h-full rounded-2xl"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                   <div className="w-14 h-14 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center">
                     <Play className="w-6 h-6 text-white ml-0.5" />
                   </div>
@@ -1157,15 +1347,19 @@ export function WorkoutLogPage() {
               <Plus className="w-4 h-4 text-white/60 rotate-45" />
             </button>
 
-            {/* Video */}
-            <div className="aspect-video w-full rounded-t-2xl overflow-hidden bg-black">
-              <iframe
-                src={selectedExercise.video}
-                title={selectedExercise.name}
+            {/* Exercise Demo — flip animation between image 0 and 1 */}
+            <div className="aspect-video w-full rounded-t-2xl overflow-hidden bg-zinc-950 relative">
+              <ExerciseFlipDemo
+                img1={selectedExercise.img}
+                img2={(selectedExercise as any).img2}
+                alt={selectedExercise.name}
                 className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
               />
+              {/* Overlay label */}
+              <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-sm border border-white/[0.06] flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] text-zinc-400">Exercise Demo</span>
+              </div>
             </div>
 
             {/* Content */}
@@ -1422,6 +1616,71 @@ export function WorkoutLogPage() {
           </div>
         </div>
       )}
+      {/* ═══════════════ ADD EXERCISE FROM DB MODAL ═══════════════ */}
+      {showAddExercise && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowAddExercise(false)}>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div 
+            className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-zinc-700/30 bg-zinc-900 shadow-2xl shadow-black/50 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-zinc-800/50 flex items-center gap-3">
+              <div className="flex-1 relative">
+                <input 
+                  type="text" 
+                  value={dbSearch}
+                  onChange={(e) => setDbSearch(e.target.value)}
+                  placeholder="Search exercise database..." 
+                  className="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                  autoFocus
+                />
+              </div>
+              <button onClick={() => setShowAddExercise(false)} className="w-10 h-10 rounded-xl bg-zinc-800/50 flex items-center justify-center hover:bg-zinc-700 transition-colors shrink-0">
+                <X className="w-4 h-4 text-zinc-400" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {dbLoading ? (
+                <div className="py-12 flex items-center justify-center">
+                  <div className="w-6 h-6 border-2 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin" />
+                </div>
+              ) : dbExercises.length === 0 ? (
+                <div className="py-12 text-center text-sm text-zinc-500">
+                  No exercises found.
+                </div>
+              ) : (
+                dbExercises.map((ex: any) => (
+                  <button 
+                    key={ex.id}
+                    onClick={() => handleAddFromDB(ex)}
+                    className="w-full text-left p-3 rounded-xl border border-zinc-800/40 bg-zinc-800/20 hover:bg-zinc-800/60 hover:border-emerald-500/30 transition-all flex items-center gap-4 group"
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-zinc-900 overflow-hidden shrink-0 border border-zinc-700/50">
+                      <ExerciseFlipDemo 
+                        img1={formatVideoUrlToImg(ex.videoUrl, 0)}
+                        img2={formatVideoUrlToImg(ex.videoUrl, 1)}
+                        alt={ex.exerciseName}
+                        className="w-full h-full"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-zinc-200 truncate">{ex.exerciseName}</p>
+                      <div className="flex gap-2 mt-1">
+                        <span className="text-[10px] text-zinc-500">{ex.bodyPart?.replace('_', ' ')}</span>
+                        <span className="text-[10px] text-zinc-600">•</span>
+                        <span className="text-[10px] text-zinc-500">{ex.typeOfEquipment?.replace('_', ' ')}</span>
+                      </div>
+                    </div>
+                    <Plus className="w-4 h-4 text-emerald-500/0 group-hover:text-emerald-400 transition-colors" />
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

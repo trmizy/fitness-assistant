@@ -26,4 +26,4 @@ COPY backend/services/fitness-service/tsconfig.json      ./backend/services/fitn
 WORKDIR /app/backend/services/fitness-service
 EXPOSE 3002
 
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && pnpm run dev"]
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/prisma db seed && pnpm run dev"]

@@ -12,12 +12,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # ── Python virtualenv + packages ─────────────────────────────────────────────
 # Split torch (slow) from lighter packages so partial caching is possible.
-RUN python3 -m venv /opt/inbody-venv \
-    && /opt/inbody-venv/bin/pip install --no-cache-dir \
-       torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu \
-    && /opt/inbody-venv/bin/pip install --no-cache-dir \
-       pydantic pytesseract opencv-python-headless numpy Pillow easyocr \
-    && /opt/inbody-venv/bin/python -c \
+RUN python3 -m venv /opt/inbody-venv
+RUN /opt/inbody-venv/bin/pip install --no-cache-dir --default-timeout=1000 \
+       torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
+RUN /opt/inbody-venv/bin/pip install --no-cache-dir --default-timeout=1000 \
+       pydantic pytesseract opencv-python-headless numpy Pillow
+RUN /opt/inbody-venv/bin/pip install --no-cache-dir --default-timeout=1000 \
+       easyocr
+RUN /opt/inbody-venv/bin/python -c \
        "import easyocr; easyocr.Reader(['en'], gpu=False, verbose=True)"
 
 ENV PATH="/opt/inbody-venv/bin:$PATH"

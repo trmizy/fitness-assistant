@@ -199,6 +199,7 @@ services:
       - ../../.env
     volumes:
       - ../../backend/services/fitness-service/src:/app/backend/services/fitness-service/src
+      - ../../backend/services/fitness-service/prisma:/app/backend/services/fitness-service/prisma
     depends_on:
       postgres:
         condition: service_healthy

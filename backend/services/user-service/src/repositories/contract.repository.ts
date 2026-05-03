@@ -96,4 +96,33 @@ export const contractRepository = {
       skip,
       take,
     }),
+
+  /** Admin: count contracts per user for a list of user IDs.
+   *  Returns { [userId]: count } combining both PT and client roles.
+   */
+  async countByUsers(userIds: string[]): Promise<Record<string, number>> {
+    if (userIds.length === 0) return {};
+    const [asPT, asClient] = await Promise.all([
+      prisma.contract.groupBy({
+        by: ['ptUserId'],
+        where: { ptUserId: { in: userIds } },
+        _count: true,
+      }),
+      prisma.contract.groupBy({
+        by: ['clientUserId'],
+        where: { clientUserId: { in: userIds } },
+        _count: true,
+      }),
+    ]);
+    const result: Record<string, number> = {};
+    for (const row of asPT)    result[row.ptUserId]     = (result[row.ptUserId]     ?? 0) + row._count;
+    for (const row of asClient) result[row.clientUserId] = (result[row.clientUserId] ?? 0) + row._count;
+    return result;
+  },
+
+  /** Admin: count total active contracts in the system */
+  countActive: () =>
+    prisma.contract.count({
+      where: { status: ContractStatus.ACTIVE },
+    }),
 };
