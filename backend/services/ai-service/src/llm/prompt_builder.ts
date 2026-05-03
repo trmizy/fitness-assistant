@@ -171,6 +171,9 @@ export const promptBuilder = {
       '',
       // Inject extracted constraints so LLM cannot ignore them
       ...(() => {
+        const isGeneralKnowledge = intent.routeIntent === 'general_fitness_knowledge';
+        if (isGeneralKnowledge) return [];
+
         const constraints: string[] = [];
         if (recommendation.workout.sessionsPerWeek) {
           constraints.push(`⚠️ CONSTRAINT: Số ngày/tuần = ${recommendation.workout.sessionsPerWeek}. Phải trả đúng ${recommendation.workout.sessionsPerWeek} ngày.`);
@@ -183,8 +186,15 @@ export const promptBuilder = {
       'Hồ sơ user:',
       compactProfile(profile),
       '',
-      `Chỉ số tính toán (nguồn sự thật — không được lệch khỏi các con số này):`,
-      compactRecommendations(recommendation),
+      ...(() => {
+        const isGeneralKnowledge = intent.routeIntent === 'general_fitness_knowledge';
+        if (isGeneralKnowledge) return [];
+        return [
+          `Chỉ số tính toán (nguồn sự thật — không được lệch khỏi các con số này):`,
+          compactRecommendations(recommendation),
+          ''
+        ];
+      })(),
       '',
       'Tri thức bài tập liên quan:',
       compactRetrieval(retrieval),
@@ -192,8 +202,22 @@ export const promptBuilder = {
       ...(() => {
         const isMeal = intent.routeIntent === 'meal_plan_request';
         const isInjury = intent.mentionsInjury;
+        const isGeneralKnowledge = intent.routeIntent === 'general_fitness_knowledge';
 
         if (responseLanguage === 'vi') {
+          if (isGeneralKnowledge) {
+            return [
+              'ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (viết bằng tiếng Việt):',
+              '⛔ NẾU CÂU HỎI KHÔNG LIÊN QUAN ĐẾN THỂ HÌNH, SỨC KHỎE, DINH DƯỠNG (ví dụ: hỏi về lập trình, toán học, chính trị, v.v.): Hãy từ chối trả lời một cách lịch sự ("Xin lỗi, tôi là trợ lý thể hình nên chỉ hỗ trợ các vấn đề về sức khỏe/tập luyện..."). KHÔNG trả về bất kỳ kế hoạch nào.',
+              '',
+              'Nếu câu hỏi liên quan đến fitness:',
+              '- Trả lời trực tiếp, rõ ràng, dựa trên khoa học thể hình và thông tin RAG cung cấp.',
+              '- Chỉ đưa ra lời khuyên cá nhân hóa nếu phù hợp với câu hỏi.',
+              '- KHÔNG ép buộc xuất ra bảng lịch tập hay bảng dinh dưỡng nếu câu hỏi chỉ hỏi kiến thức chung.',
+              '- Viết theo đoạn văn dễ đọc, dùng markdown cơ bản, không dài dòng.',
+            ];
+          }
+
           if (isMeal) {
             return [
               'ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (chỉ về dinh dưỡng, viết bằng tiếng Việt):',
@@ -285,6 +309,19 @@ export const promptBuilder = {
         }
 
         // English path
+          if (isGeneralKnowledge) {
+            return [
+              'MANDATORY OUTPUT FORMAT (write in English):',
+              '⛔ IF THE QUESTION IS NOT RELATED TO FITNESS, HEALTH, OR NUTRITION (e.g., programming, math, politics): Politely decline to answer ("I am a fitness assistant and can only help with health and training matters..."). DO NOT generate any plan.',
+              '',
+              'If the question is related to fitness:',
+              '- Answer directly and clearly, based on sports science and the provided RAG information.',
+              '- Provide personalized advice only if it makes sense for the question.',
+              '- DO NOT force a workout table or nutrition table unless the user explicitly asks for a full plan.',
+              '- Write in easy-to-read paragraphs using basic markdown.',
+            ];
+          }
+
         if (isMeal) {
           return [
             'MANDATORY OUTPUT FORMAT (nutrition focus only, write in English):',

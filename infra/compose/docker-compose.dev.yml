@@ -236,6 +236,7 @@ services:
       LLM_MODEL: llama3.2:3b
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      CHOKIDAR_USEPOLLING: "true"
     env_file:
       - ../../.env
     volumes:

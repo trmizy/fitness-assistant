@@ -168,18 +168,22 @@ export const answerValidator = {
   ): ValidationResult {
     const warnings: string[] = [];
     const nutrition = recommendation.nutrition;
+    const isGeneralKnowledge = recommendation.responseIntent === 'general_fitness_knowledge';
 
-    warnings.push(...validateCalories(answer, nutrition.targetCalories || 0));
-    warnings.push(...validateMacro(answer, 'protein', nutrition.proteinGrams || 0));
-    warnings.push(...validateMacro(answer, 'carb|carbs', nutrition.carbsGrams || 0));
-    warnings.push(...validateMacro(answer, 'fat|fats', nutrition.fatGrams || 0));
+    if (!isGeneralKnowledge) {
+      warnings.push(...validateCalories(answer, nutrition.targetCalories || 0));
+      warnings.push(...validateMacro(answer, 'protein', nutrition.proteinGrams || 0));
+      warnings.push(...validateMacro(answer, 'carb|carbs', nutrition.carbsGrams || 0));
+      warnings.push(...validateMacro(answer, 'fat|fats', nutrition.fatGrams || 0));
+      warnings.push(...validateRequiredSections(answer, recommendation));
+      warnings.push(...validateNutritionConsistency(recommendation));
+      warnings.push(...validatePersonalization(answer, profile));
+    }
+
     warnings.push(...validateSafetyLanguage(answer));
-    warnings.push(...validateRequiredSections(answer, recommendation));
     warnings.push(...validateLanguageLock(answer, language));
-    warnings.push(...validateNutritionConsistency(recommendation));
-    warnings.push(...validatePersonalization(answer, profile));
 
-    if (recommendation.missingFields.length > 0) {
+    if (recommendation.missingFields.length > 0 && !isGeneralKnowledge) {
       const asksFollowup =
         /follow-up|follow up|can you share|please provide|could you tell|ban co the cho minh biet|ban vui long cung cap|cho minh xin them thong tin|cau hoi de ca nhan hoa/i.test(
           answer,
