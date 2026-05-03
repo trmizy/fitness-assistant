@@ -37,4 +37,4 @@ COPY --from=builder /app/backend/services/fitness-service/package.json ./backend
 COPY --from=builder /app/backend/services/fitness-service/prisma ./backend/services/fitness-service/prisma
 WORKDIR /app/backend/services/fitness-service
 EXPOSE 3002
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/server.js"]
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/prisma db seed && node dist/server.js"]

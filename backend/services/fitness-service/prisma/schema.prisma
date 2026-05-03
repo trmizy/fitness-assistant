@@ -56,7 +56,8 @@ model Exercise {
   createdAt             DateTime       @default(now()) @map("created_at")
   updatedAt             DateTime       @updatedAt @map("updated_at")
 
-  workoutExercises      WorkoutExercise[]
+  workoutExercises        WorkoutExercise[]
+  workoutProgramExercises WorkoutProgramExercise[]
 
   @@index([bodyPart, typeOfActivity])
   @@index([typeOfEquipment])
@@ -75,6 +76,7 @@ model Workout {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   exercises   WorkoutExercise[]
+  schedules   WorkoutSchedule[]
 
   @@index([userId, date])
   @@map("workouts")
@@ -133,4 +135,99 @@ model NutritionLog {
 
   @@index([userId, date])
   @@map("nutrition_logs")
+}
+
+// 📊 Body Composition Tracking
+model BodyMetrics {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  date            DateTime @default(now())
+  weight          Float?   // kg
+  bodyFat         Float?   @map("body_fat") // percentage
+  muscleMass      Float?   @map("muscle_mass") // kg
+  bodyWater       Float?   @map("body_water") // percentage
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, date])
+  @@map("body_metrics")
+}
+
+// 💪 Workout Program Templates
+model WorkoutProgram {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  name            String   // "Muscle Gain", "Cutting", etc.
+  description     String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  days            WorkoutProgramDay[]
+
+  @@index([userId])
+  @@map("workout_programs")
+}
+
+// 📅 Individual Days within a Workout Program
+model WorkoutProgramDay {
+  id              String   @id @default(uuid())
+  programId       String   @map("program_id")
+  dayNumber       Int      @map("day_number") // 1, 2, 3...
+  title           String   // "Chest + Triceps", "Back + Biceps"
+  description     String?
+  duration        Int?     // minutes
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  program         WorkoutProgram        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercises       WorkoutProgramExercise[]
+  schedules       WorkoutSchedule[]
+
+  @@unique([programId, dayNumber])
+  @@index([programId])
+  @@map("workout_program_days")
+}
+
+// 🏋️ Exercises within a Program Day (with prescriptions)
+model WorkoutProgramExercise {
+  id              String   @id @default(uuid())
+  programDayId    String   @map("program_day_id")
+  exerciseId      String   @map("exercise_id")
+  order           Int      @default(0)
+  sets            Int?
+  reps            Int?
+  weight          Float?   // kg
+  duration        Int?     // seconds
+  restSeconds     Int?     @map("rest_seconds")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  programDay      WorkoutProgramDay @relation(fields: [programDayId], references: [id], onDelete: Cascade)
+  exercise        Exercise          @relation(fields: [exerciseId], references: [id])
+
+  @@index([programDayId])
+  @@index([exerciseId])
+  @@map("workout_program_exercises")
+}
+
+// 📆 Calendar Scheduling (links user to program days on specific dates)
+model WorkoutSchedule {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  date            DateTime
+  programDayId    String?  @map("program_day_id") // optional: which program day is scheduled
+  workoutId       String?  @map("workout_id")     // optional: completed workout
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  programDay      WorkoutProgramDay? @relation(fields: [programDayId], references: [id], onDelete: SetNull)
+  workout         Workout?           @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@index([programDayId])
+  @@index([workoutId])
+  @@map("workout_schedules")
 }
