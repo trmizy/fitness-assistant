@@ -12,6 +12,7 @@ import {
   PieChart, Pie, Cell, CartesianGrid
 } from "recharts";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
+import { workoutService } from "../../services/api";
 
 // Format helper
 const formatVideoUrlToImg = (videoUrl: string | null | undefined, frame: 0 | 1) => {
@@ -136,9 +137,10 @@ const workoutDays = [
 const EXERCISE_IMG = (folder: string, frame: 0 | 1) =>
   `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${folder}/${frame}.jpg`;
 
-const dayExercises = [
+const DEFAULT_DAY_EXERCISES = [
   {
     name: "Treadmill Run",
+    dbId: "Jogging_Treadmill",
     prescription: "8 min, 110–140 bpm",
     img:  EXERCISE_IMG("Jogging_Treadmill", 0),
     img2: EXERCISE_IMG("Jogging_Treadmill", 1),
@@ -149,6 +151,7 @@ const dayExercises = [
   },
   {
     name: "Flat Barbell Bench Press",
+    dbId: "Barbell_Bench_Press_-_Medium_Grip",
     prescription: "4×10×65 kg",
     img:  EXERCISE_IMG("Barbell_Bench_Press_-_Medium_Grip", 0),
     img2: EXERCISE_IMG("Barbell_Bench_Press_-_Medium_Grip", 1),
@@ -159,6 +162,7 @@ const dayExercises = [
   },
   {
     name: "Incline Dumbbell Press",
+    dbId: "Dumbbell_Bench_Press",
     prescription: "4×10×18 kg",
     img:  EXERCISE_IMG("Dumbbell_Bench_Press", 0),
     img2: EXERCISE_IMG("Dumbbell_Bench_Press", 1),
@@ -169,6 +173,7 @@ const dayExercises = [
   },
   {
     name: "Cable Chest Fly",
+    dbId: "Cable_Crossover",
     prescription: "4×10×35 kg",
     img:  EXERCISE_IMG("Cable_Crossover", 0),
     img2: EXERCISE_IMG("Cable_Crossover", 1),
@@ -179,6 +184,7 @@ const dayExercises = [
   },
   {
     name: "Seated Dumbbell Shoulder Press",
+    dbId: "Seated_Dumbbell_Press",
     prescription: "4×10×20 kg",
     img:  EXERCISE_IMG("Seated_Dumbbell_Press", 0),
     img2: EXERCISE_IMG("Seated_Dumbbell_Press", 1),
@@ -189,6 +195,7 @@ const dayExercises = [
   },
   {
     name: "Lying Triceps Extension",
+    dbId: "Lying_Triceps_Press",
     prescription: "3×10×32.5 kg",
     img:  EXERCISE_IMG("Lying_Triceps_Press", 0),
     img2: EXERCISE_IMG("Lying_Triceps_Press", 1),
@@ -248,6 +255,10 @@ export function WorkoutLogPage() {
   const [exerciseFilter, setExerciseFilter] = useState<TimeFilter>("week");
   const [planView, setPlanView] = useState<PlanView>("main");
   const [selectedDay, setSelectedDay] = useState(1);
+  const [dayExercises, setDayExercises] = useState<any[]>(DEFAULT_DAY_EXERCISES.map((e, i) => ({ ...e, id: `seed-${i}` })));
+  const [currentWorkoutId, setCurrentWorkoutId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showOnOverview, setShowOnOverview] = useState(true);
   const [showAllPrograms, setShowAllPrograms] = useState(false);
   const [autoSchedule, setAutoSchedule] = useState(true);
@@ -257,7 +268,39 @@ export function WorkoutLogPage() {
   const [consecutiveRest, setConsecutiveRest] = useState(1);
   const [calendarExpanded, setCalendarExpanded] = useState(true);
   const [inputValue, setInputValue] = useState("");
-  const [selectedExercise, setSelectedExercise] = useState<typeof dayExercises[number] | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<any | null>(null);
+
+  // Fetch initial workout from DB
+  useEffect(() => {
+    const fetchLatestWorkout = async () => {
+      setIsLoading(true);
+      try {
+        const res = await workoutService.getHistory(1, 1);
+        if (res && res.length > 0) {
+          const latest = res[0];
+          setCurrentWorkoutId(latest.id);
+          const mapped = latest.exercises.map((we: any) => ({
+            id: we.id,
+            dbId: we.exerciseId,
+            name: we.exercise.exerciseName,
+            prescription: `${we.sets}×${we.reps || 10}${we.weight ? '×' + we.weight + ' kg' : ''}`,
+            img: formatVideoUrlToImg(we.exercise.videoUrl, 0),
+            img2: formatVideoUrlToImg(we.exercise.videoUrl, 1),
+            type: (we.exercise.typeOfActivity === "CARDIO" ? "cardio" : "strength") as "cardio" | "strength",
+            description: we.exercise.instructions,
+            muscles: we.exercise.muscleGroupsActivated || [],
+            tips: [],
+          }));
+          setDayExercises(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to fetch workouts:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchLatestWorkout();
+  }, []);
 
   // Calendar schedule modal
   const [showCalendarAdd, setShowCalendarAdd] = useState(false);
@@ -286,8 +329,40 @@ export function WorkoutLogPage() {
 
   // Edit mode
   const [editMode, setEditMode] = useState(false);
-  const [editExercises, setEditExercises] = useState(dayExercises.map((e, i) => ({ ...e, id: i })));
+  const [editExercises, setEditExercises] = useState<any[]>([]);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  const handleSaveWorkout = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const payload = {
+        name: "Day 1 workout",
+        date: new Date().toISOString(),
+        exercises: editExercises.map((ex) => ({
+          exerciseId: ex.dbId || ex.id?.toString(),
+          sets: 3,
+          reps: 10,
+          weight: 0,
+        }))
+      };
+
+      if (currentWorkoutId) {
+        await workoutService.updateWorkout(currentWorkoutId, payload);
+      } else {
+        const res = await workoutService.logWorkout(payload);
+        if (res && res.id) setCurrentWorkoutId(res.id);
+      }
+      
+      setDayExercises(editExercises);
+      setEditMode(false);
+    } catch (err) {
+      console.error("Failed to save workout:", err);
+      alert("Failed to save workout. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Active workout state
   const [activeExIdx, setActiveExIdx] = useState(0);
@@ -329,6 +404,7 @@ export function WorkoutLogPage() {
   const handleAddFromDB = (dbEx: any) => {
     const newEx = {
       id: Date.now(), // temporary UI id
+      dbId: dbEx.id,
       name: dbEx.exerciseName,
       prescription: "3×10", // Default prescription
       img: formatVideoUrlToImg(dbEx.videoUrl, 0),
@@ -938,12 +1014,21 @@ export function WorkoutLogPage() {
                       <button onClick={() => { setEditMode(false); }} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 hover:border-zinc-600/30">
                         <X className="w-3 h-3" /> Cancel
                       </button>
-                      <button onClick={() => { setEditMode(false); }} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/25">
-                        <Check className="w-3 h-3" /> Save
+                      <button 
+                        onClick={handleSaveWorkout} 
+                        disabled={isSaving}
+                        className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/25 disabled:opacity-50"
+                      >
+                        {isSaving ? (
+                          <div className="w-3 h-3 border border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        )}
+                        {isSaving ? "Saving..." : "Save"}
                       </button>
                     </div>
                   ) : (
-                    <button onClick={() => { setEditExercises(dayExercises.map((e, i) => ({ ...e, id: i }))); setEditMode(true); }} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20">
+                    <button onClick={() => { setEditExercises([...dayExercises]); setEditMode(true); }} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20">
                       <ArrowUpDown className="w-3 h-3" /> Edit
                     </button>
                   )}
@@ -952,7 +1037,12 @@ export function WorkoutLogPage() {
                 {editMode ? (
                   /* ── Edit Mode: reorderable list ── */
                   <div className="space-y-2 mt-4">
-                    {editExercises.map((ex, i) => (
+                    {isLoading ? (
+                      <div className="py-12 flex flex-col items-center justify-center space-y-4">
+                        <div className="w-8 h-8 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
+                        <p className="text-xs text-zinc-500">Loading workout plan...</p>
+                      </div>
+                    ) : editExercises.map((ex, i) => (
                       <div
                         key={`edit-${ex.id}`}
                         draggable
@@ -978,7 +1068,12 @@ export function WorkoutLogPage() {
                         </div>
                         <span className="w-6 h-6 rounded-lg bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center text-[10px] text-zinc-500 shrink-0">{i + 1}</span>
                         <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25">
-                          <ImageWithFallback src={ex.img} alt={ex.name} className="w-full h-full object-cover" />
+                          <ExerciseFlipDemo 
+                            img1={ex.img} 
+                            img2={ex.img2} 
+                            alt={ex.name} 
+                            className="w-full h-full" 
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-zinc-100 truncate">{ex.name}</p>
@@ -999,20 +1094,27 @@ export function WorkoutLogPage() {
                         </button>
                       </div>
                     ))}
-                    <button 
-                      onClick={() => {
-                        setDbSearch("");
-                        setShowAddExercise(true);
-                      }}
-                      className="w-full rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/20 p-4 flex items-center justify-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/20 transition-all"
-                    >
-                      <Plus className="w-4 h-4" /> Add Exercise
-                    </button>
+                    {!isLoading && (
+                      <button 
+                        onClick={() => {
+                          setDbSearch("");
+                          setShowAddExercise(true);
+                        }}
+                        className="w-full rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/20 p-4 flex items-center justify-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/20 transition-all"
+                      >
+                        <Plus className="w-4 h-4" /> Add Exercise
+                      </button>
+                    )}
                   </div>
                 ) : (
                   /* ── Normal Mode: clickable cards ── */
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                    {dayExercises.map((ex, i) => (
+                    {isLoading ? (
+                      <div className="col-span-full py-12 flex flex-col items-center justify-center space-y-4">
+                        <div className="w-8 h-8 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
+                        <p className="text-xs text-zinc-500">Loading your workout plan...</p>
+                      </div>
+                    ) : dayExercises.map((ex, i) => (
                       <div
                         key={`ex-${i}-${ex.name}`}
                         onClick={() => setSelectedExercise(ex)}
@@ -1020,7 +1122,12 @@ export function WorkoutLogPage() {
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 group-hover/ex:from-emerald-500/[0.015] to-transparent transition-all duration-300" />
                         <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25">
-                          <ImageWithFallback src={ex.img} alt={ex.name} className="w-full h-full object-cover" />
+                          <ExerciseFlipDemo 
+                            img1={ex.img} 
+                            img2={ex.img2} 
+                            alt={ex.name} 
+                            className="w-full h-full" 
+                          />
                         </div>
                         <div className="relative flex-1 min-w-0">
                           <p className="text-sm text-zinc-100 truncate">{ex.name}</p>

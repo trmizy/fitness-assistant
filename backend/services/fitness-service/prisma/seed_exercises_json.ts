@@ -16,7 +16,13 @@ async function main() {
 
   console.log('No exercises found. Starting seed...');
 
-  const rawData = fs.readFileSync(path.join(__dirname, 'raw_exercises.json'), 'utf8');
+  const jsonPath = path.join(__dirname, 'raw_exercises.json');
+  if (!fs.existsSync(jsonPath)) {
+    console.error(`CRITICAL ERROR: Seed file not found at ${jsonPath}`);
+    process.exit(1);
+  }
+
+  const rawData = fs.readFileSync(jsonPath, 'utf8');
   const exercises = JSON.parse(rawData);
 
   console.log(`Found ${exercises.length} exercises to import.`);

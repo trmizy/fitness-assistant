@@ -219,6 +219,16 @@ export const workoutService = {
     return data;
   },
 
+  getWorkout: async (id: string) => {
+    const { data } = await api.get(`/workouts/${id}`);
+    return data;
+  },
+
+  updateWorkout: async (id: string, workout: any) => {
+    const { data } = await api.put(`/workouts/${id}`, workout);
+    return data;
+  },
+
   getExercises: async () => {
     const { data } = await api.get('/exercises');
     return data;
