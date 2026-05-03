@@ -45,6 +45,7 @@ export const workoutController = {
       res.status(201).json(workout);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
+        logger.error({ validationErrors: error.errors }, 'Workout validation failed');
         res.status(400).json({ error: 'Validation failed', details: error.errors });
         return;
       }
@@ -64,6 +65,7 @@ export const workoutController = {
       res.json(workout);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
+        logger.error({ validationErrors: error.errors }, 'Workout update validation failed');
         res.status(400).json({ error: 'Validation failed', details: error.errors });
         return;
       }

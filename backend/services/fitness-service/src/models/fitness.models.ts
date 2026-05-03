@@ -13,7 +13,7 @@ export const createWorkoutSchema = z.object({
       sets: z.number().int().positive(),
       reps: z.number().int().positive().optional(),
       duration: z.number().int().positive().optional(),
-      weight: z.number().positive().optional(),
+      weight: z.number().nonnegative().optional(),
       notes: z.string().optional(),
     }),
   ),

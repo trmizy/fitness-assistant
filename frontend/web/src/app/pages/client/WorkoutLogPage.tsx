@@ -12,7 +12,7 @@ import {
   PieChart, Pie, Cell, CartesianGrid
 } from "recharts";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
-import { workoutService } from "../../services/api";
+import { workoutService, inbodyService } from "../../services/api";
 
 // Format helper
 const formatVideoUrlToImg = (videoUrl: string | null | undefined, frame: 0 | 1) => {
@@ -270,14 +270,46 @@ export function WorkoutLogPage() {
   const [inputValue, setInputValue] = useState("");
   const [selectedExercise, setSelectedExercise] = useState<any | null>(null);
 
-  // Fetch initial workout from DB
+  // Dynamic Navigation & Stats
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [latestInBody, setLatestInBody] = useState<any>(null);
+  const [workoutStats, setWorkoutStats] = useState<any>(null);
+  const [daysSinceInBody, setDaysSinceInBody] = useState<number | null>(null);
+  const [workoutCache, setWorkoutCache] = useState<Record<string, any>>({});
+
+  const handlePrevMonth = () => {
+    setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1));
+  };
+  const handleNextMonth = () => {
+    setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1));
+  };
+
+  // Fetch initial workout and stats from DB
   useEffect(() => {
-    const fetchLatestWorkout = async () => {
+    const fetchAllData = async () => {
       setIsLoading(true);
       try {
-        const res = await workoutService.getHistory(1, 1);
-        if (res && res.length > 0) {
-          const latest = res[0];
+        const { inbodyService } = await import("../../services/api");
+        const [history, inbody, stats] = await Promise.all([
+          workoutService.getHistory(1, 50), // Fetch last 50 workouts to fill cache
+          inbodyService.getLatest(),
+          workoutService.getStats()
+        ]);
+
+        // 1. Build Workout Cache
+        const cache: Record<string, any> = {};
+        if (history && Array.isArray(history)) {
+          history.forEach((w: any) => {
+            const d = new Date(w.date).toDateString();
+            cache[d] = w;
+          });
+        }
+        setWorkoutCache(cache);
+
+        // 2. Set current day exercises from cache if exists
+        const todayStr = new Date().toDateString();
+        if (cache[todayStr]) {
+          const latest = cache[todayStr];
           setCurrentWorkoutId(latest.id);
           const mapped = latest.exercises.map((we: any) => ({
             id: we.id,
@@ -292,15 +324,27 @@ export function WorkoutLogPage() {
             tips: [],
           }));
           setDayExercises(mapped);
+        } else {
+          // Fallback if no workout for today
+          setDayExercises([]);
         }
+
+        // 3. InBody Stats
+        if (inbody && inbody.createdAt) {
+          setLatestInBody(inbody);
+          const diff = Math.floor((Date.now() - new Date(inbody.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+          setDaysSinceInBody(diff);
+        }
+        setWorkoutStats(stats);
       } catch (err) {
-        console.error("Failed to fetch workouts:", err);
+        console.error("Failed to fetch all data:", err);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchLatestWorkout();
-  }, []);
+
+    fetchAllData();
+  }, [calendarMonth]);
 
   // Calendar schedule modal
   const [showCalendarAdd, setShowCalendarAdd] = useState(false);
@@ -332,41 +376,67 @@ export function WorkoutLogPage() {
   const [editExercises, setEditExercises] = useState<any[]>([]);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
-  const handleSaveWorkout = async () => {
+  const handleSaveWorkout = async (silent = false) => {
     if (isSaving) return;
     setIsSaving(true);
     try {
+      const saveDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), selectedDay);
       const payload = {
-        name: "Day 1 workout",
-        date: new Date().toISOString(),
-        exercises: editExercises.map((ex) => ({
-          exerciseId: ex.dbId || ex.id?.toString(),
-          sets: 3,
-          reps: 10,
-          weight: 0,
-        }))
+        name: `Workout for ${saveDate.toLocaleDateString()}`,
+        date: saveDate.toISOString(),
+        exercises: editExercises.map((ex) => {
+          // Ensure we have a valid UUID for exerciseId
+          // If it's a seed ID or missing, we need to skip it or handle it
+          const exerciseId = ex.dbId;
+          if (!exerciseId || exerciseId.startsWith('seed')) {
+             throw new Error(`Exercise "${ex.name}" does not have a valid database ID. Please remove and re-add it from the search list.`);
+          }
+          return {
+            exerciseId: exerciseId,
+            sets: 3,
+            reps: 10,
+            weight: 0,
+          };
+        })
       };
 
       if (currentWorkoutId) {
         await workoutService.updateWorkout(currentWorkoutId, payload);
       } else {
         const res = await workoutService.logWorkout(payload);
-        if (res && res.id) setCurrentWorkoutId(res.id);
+        if (res && res.id) {
+          setCurrentWorkoutId(res.id);
+          // Update cache with the new workout
+          const dStr = saveDate.toDateString();
+          setWorkoutCache({ ...workoutCache, [dStr]: { ...res, exercises: editExercises.map(e => ({ ...e, exercise: { exerciseName: e.name, videoUrl: e.img, instructions: e.description, muscleGroupsActivated: e.muscles } })) } });
+        }
       }
       
       setDayExercises(editExercises);
-      setEditMode(false);
-    } catch (err) {
+      if (!silent) setEditMode(false);
+    } catch (err: any) {
       console.error("Failed to save workout:", err);
-      alert("Failed to save workout. Please try again.");
+      const msg = err.response?.data?.error || err.message || "Unknown error";
+      if (!silent) alert(`Failed to save workout: ${msg}`);
     } finally {
       setIsSaving(false);
     }
   };
 
+  // Auto-save effect
+  useEffect(() => {
+    if (editMode && editExercises.length > 0) {
+      const timer = setTimeout(() => {
+        handleSaveWorkout(true); // silent save
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [editExercises, editMode]);
+
   // Active workout state
   const [activeExIdx, setActiveExIdx] = useState(0);
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set());
+  const [showExerciseDetail, setShowExerciseDetail] = useState<any | null>(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [restTimerRunning, setRestTimerRunning] = useState(false);
@@ -552,22 +622,31 @@ export function WorkoutLogPage() {
       {/* ═══════════════ OVERVIEW ═══════════════ */}
       {tab === "overview" && (
         <div className="space-y-6">
-          {/* Reminder */}
-          <div className="relative overflow-hidden rounded-2xl border border-emerald-500/12 bg-gradient-to-r from-emerald-950/30 via-emerald-950/15 to-transparent p-5">
-            <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/[0.04] rounded-full blur-[60px]" />
-            <div className="relative flex items-center gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-5 h-5 text-emerald-400" />
+          {/* Reminder - Only show if > 7 days or no data */}
+          {(daysSinceInBody === null || daysSinceInBody > 7) && (
+            <div className="relative overflow-hidden rounded-2xl border border-emerald-500/12 bg-gradient-to-r from-emerald-950/30 via-emerald-950/15 to-transparent p-5">
+              <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/[0.04] rounded-full blur-[60px]" />
+              <div className="relative flex items-center gap-4">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-emerald-100/90">It's time to update your body metrics</p>
+                  <p className="text-xs text-emerald-500/40 mt-0.5">
+                    {daysSinceInBody !== null 
+                      ? `Last updated ${daysSinceInBody} days ago · InBody scan recommended`
+                      : "No InBody data found · Start by uploading your first scan"}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowLogModal(true)}
+                  className="px-4 py-2 rounded-xl bg-emerald-500/8 border border-emerald-500/15 text-xs text-emerald-300 hover:bg-emerald-500/15 transition-all shrink-0"
+                >
+                  Update Now
+                </button>
               </div>
-              <div className="flex-1">
-                <p className="text-sm text-emerald-100/90">It's time to update your body metrics</p>
-                <p className="text-xs text-emerald-500/40 mt-0.5">Last updated 14 days ago · InBody scan recommended</p>
-              </div>
-              <button className="px-4 py-2 rounded-xl bg-emerald-500/8 border border-emerald-500/15 text-xs text-emerald-300 hover:bg-emerald-500/15 transition-all shrink-0">
-                Update Now
-              </button>
             </div>
-          </div>
+          )}
 
           {/* Hero + Upcoming */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -587,14 +666,17 @@ export function WorkoutLogPage() {
                 <span className="text-[10px] text-emerald-400/60 uppercase tracking-[0.2em] mb-1.5 block">Current Program</span>
                 <h2 className="text-2xl text-white mb-2 tracking-tight">General Muscle Gain</h2>
                 <div className="flex items-center gap-4 text-xs text-zinc-400">
-                  <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3 text-zinc-600" /> 33 training days</span>
+                  <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3 text-zinc-600" /> 12 week program</span>
                   <span className="text-zinc-700">·</span>
-                  <span>3 sessions/week</span>
+                  <span>{workoutStats?.workoutsPerWeek || "3.0"} sessions/week</span>
                   <span className="text-zinc-700">·</span>
-                  <span>Completed: <span className="text-emerald-400">0</span></span>
+                  <span>Completed: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
                 </div>
                 <div className="mt-3 h-1.5 bg-white/[0.06] rounded-full overflow-hidden max-w-sm">
-                  <div className="h-full w-0 bg-gradient-to-r from-emerald-500 to-green-400 rounded-full" />
+                  <div 
+                    className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-1000" 
+                    style={{ width: `${Math.min(100, ((workoutStats?.totalWorkouts || 0) / 36) * 100)}%` }}
+                  />
                 </div>
               </div>
             </div>
@@ -630,7 +712,50 @@ export function WorkoutLogPage() {
           {/* Calendar + Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <GlassPanel title="Workout Calendar" icon={<Calendar className="w-4 h-4 text-emerald-400" />} actionLabel="Add" onAction={() => setShowCalendarAdd(true)}>
-              <CalendarGrid markers={derivedMarkers} />
+              <CalendarGrid 
+                markers={derivedMarkers} 
+                month={calendarMonth} 
+                onPrevMonth={handlePrevMonth} 
+                onNextMonth={handleNextMonth}
+                onDayClick={(day) => {
+                  const clickedDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
+                  const dStr = clickedDate.toDateString();
+                  const dateLabel = clickedDate.toLocaleDateString();
+                  setSelectedDay(day);
+
+                  // Check if we have this workout in cache
+                  if (workoutCache[dStr]) {
+                    const w = workoutCache[dStr];
+                    setCurrentWorkoutId(w.id);
+                    const mapped = w.exercises.map((we: any) => ({
+                      id: we.id,
+                      dbId: we.exerciseId,
+                      name: we.exercise.exerciseName,
+                      prescription: `${we.sets}×${we.reps || 10}${we.weight ? '×' + we.weight + ' kg' : ''}`,
+                      img: formatVideoUrlToImg(we.exercise.videoUrl, 0),
+                      img2: formatVideoUrlToImg(we.exercise.videoUrl, 1),
+                      type: (we.exercise.typeOfActivity === "CARDIO" ? "cardio" : "strength") as "cardio" | "strength",
+                      description: we.exercise.instructions,
+                      muscles: we.exercise.muscleGroupsActivated || [],
+                      tips: [],
+                    }));
+                    setDayExercises(mapped);
+                    setTab("plan");
+                    setPlanView("dayDetail");
+                  } else {
+                    // No workout in cache
+                    if (window.confirm(`No workout scheduled for ${dateLabel}. Would you like to custom a workout for this day?`)) {
+                      setDayExercises([]);
+                      setEditExercises([]);
+                      setTab("plan");
+                      setPlanView("dayDetail");
+                      setEditMode(true);
+                      setShowAddExercise(true);
+                      setCurrentWorkoutId(null);
+                    }
+                  }
+                }}
+              />
             </GlassPanel>
 
             <GlassPanel title="Body Metrics" icon={<TrendingUp className="w-4 h-4 text-emerald-400" />} actionLabel="+ Log" onAction={() => setShowLogModal(true)}>
@@ -817,14 +942,17 @@ export function WorkoutLogPage() {
               <span className="text-[10px] text-emerald-400/50 uppercase tracking-[0.2em] mb-1.5 block">Active Program</span>
               <h2 className="text-2xl text-white mb-2 tracking-tight">General Muscle Gain</h2>
               <div className="flex items-center gap-4 text-xs text-zinc-400">
-                <span className="flex items-center gap-1.5"><Dumbbell className="w-3 h-3 text-emerald-500/50" /> 33 training days</span>
+                <span className="flex items-center gap-1.5"><Dumbbell className="w-3 h-3 text-emerald-500/50" /> 12 week program</span>
                 <span className="text-zinc-700">·</span>
-                <span>3 sessions/week</span>
+                <span>{workoutStats?.workoutsPerWeek || "3.0"} sessions/week</span>
                 <span className="text-zinc-700">·</span>
-                <span>Completed: <span className="text-emerald-400">0</span></span>
+                <span>Completed: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
               </div>
               <div className="mt-3 h-1.5 bg-white/[0.05] rounded-full overflow-hidden max-w-md">
-                <div className="h-full w-0 bg-gradient-to-r from-emerald-500 to-green-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.35)]" />
+                <div 
+                  className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.35)] transition-all duration-1000" 
+                  style={{ width: `${Math.min(100, ((workoutStats?.totalWorkouts || 0) / 36) * 100)}%` }}
+                />
               </div>
             </div>
           </div>
@@ -894,7 +1022,31 @@ export function WorkoutLogPage() {
                       <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${!calendarExpanded ? "rotate-180" : ""}`} />
                     </button>
                   </div>
-                  {calendarExpanded && <CalendarGrid markers={derivedMarkers} />}
+                  {calendarExpanded && (
+                    <CalendarGrid 
+                      markers={derivedMarkers} 
+                      month={calendarMonth} 
+                      onPrevMonth={handlePrevMonth} 
+                      onNextMonth={handleNextMonth}
+                      onDayClick={(day) => {
+                        const clickedDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
+                        const dateStr = clickedDate.toLocaleDateString();
+                        setSelectedDay(day);
+                        
+                        if (derivedMarkers.includes(day)) {
+                          setPlanView("dayDetail");
+                        } else {
+                          if (window.confirm(`No workout scheduled for ${dateStr}. Would you like to custom a workout for this day?`)) {
+                            setDayExercises([]);
+                            setEditExercises([]);
+                            setPlanView("dayDetail");
+                            setEditMode(true);
+                            setShowAddExercise(true);
+                          }
+                        }
+                      }}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -1011,11 +1163,22 @@ export function WorkoutLogPage() {
                   <SectionTitle title="Exercises" badge={`${editMode ? editExercises.length : dayExercises.length}`} />
                   {editMode ? (
                     <div className="flex items-center gap-2">
-                      <button onClick={() => { setEditMode(false); }} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 hover:border-zinc-600/30">
-                        <X className="w-3 h-3" /> Cancel
+                      {editMode && (
+                        <span className="text-[10px] text-zinc-500 italic mr-2">
+                          {isSaving ? "Saving..." : "All changes saved"}
+                        </span>
+                      )}
+                      <button 
+                        onClick={() => { 
+                          setDayExercises(editExercises); 
+                          setEditMode(false); 
+                        }} 
+                        className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 hover:border-zinc-600/30"
+                      >
+                        <Check className="w-3 h-3 text-emerald-400" /> Finish Editing
                       </button>
                       <button 
-                        onClick={handleSaveWorkout} 
+                        onClick={() => handleSaveWorkout(false)} 
                         disabled={isSaving}
                         className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/25 disabled:opacity-50"
                       >
@@ -1024,7 +1187,7 @@ export function WorkoutLogPage() {
                         ) : (
                           <Check className="w-3 h-3" />
                         )}
-                        {isSaving ? "Saving..." : "Save"}
+                        {isSaving ? "Saving..." : "Save Now"}
                       </button>
                     </div>
                   ) : (
@@ -1067,7 +1230,7 @@ export function WorkoutLogPage() {
                           <GripVertical className="w-4 h-4" />
                         </div>
                         <span className="w-6 h-6 rounded-lg bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center text-[10px] text-zinc-500 shrink-0">{i + 1}</span>
-                        <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25">
+                        <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25" onClick={() => setShowExerciseDetail(ex)}>
                           <ExerciseFlipDemo 
                             img1={ex.img} 
                             img2={ex.img2} 
@@ -1117,7 +1280,7 @@ export function WorkoutLogPage() {
                     ) : dayExercises.map((ex, i) => (
                       <div
                         key={`ex-${i}-${ex.name}`}
-                        onClick={() => setSelectedExercise(ex)}
+                        onClick={() => setShowExerciseDetail(ex)}
                         className="group/ex rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-4 flex items-center gap-4 hover:border-emerald-500/15 hover:shadow-[0_0_20px_rgba(16,185,129,0.03)] transition-all cursor-pointer relative overflow-hidden"
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 group-hover/ex:from-emerald-500/[0.015] to-transparent transition-all duration-300" />
@@ -1223,7 +1386,7 @@ export function WorkoutLogPage() {
 
               {/* Exercise flip animation demo */}
               <div
-                onClick={() => setSelectedExercise(curEx)}
+                onClick={() => setShowExerciseDetail(curEx)}
                 className="rounded-2xl overflow-hidden border border-zinc-800/30 aspect-video relative group cursor-pointer"
               >
                 <ExerciseFlipDemo
@@ -1442,24 +1605,24 @@ export function WorkoutLogPage() {
       )}
 
       {/* ═══════════════ EXERCISE DETAIL MODAL ═══════════════ */}
-      {selectedExercise && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setSelectedExercise(null)}>
+      {showExerciseDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowExerciseDetail(null)}>
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           <div
             className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl shadow-black/50"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close */}
-            <button onClick={() => setSelectedExercise(null)} className="absolute top-4 right-4 z-10 w-9 h-9 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/60 transition-all">
+            <button onClick={() => setShowExerciseDetail(null)} className="absolute top-4 right-4 z-10 w-9 h-9 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/60 transition-all">
               <Plus className="w-4 h-4 text-white/60 rotate-45" />
             </button>
 
             {/* Exercise Demo — flip animation between image 0 and 1 */}
             <div className="aspect-video w-full rounded-t-2xl overflow-hidden bg-zinc-950 relative">
               <ExerciseFlipDemo
-                img1={selectedExercise.img}
-                img2={(selectedExercise as any).img2}
-                alt={selectedExercise.name}
+                img1={showExerciseDetail.img}
+                img2={(showExerciseDetail as any).img2}
+                alt={showExerciseDetail.name}
                 className="w-full h-full"
               />
               {/* Overlay label */}
@@ -1474,22 +1637,22 @@ export function WorkoutLogPage() {
               {/* Header */}
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-xl text-white tracking-tight">{selectedExercise.name}</h2>
-                  <p className="text-sm text-emerald-400 mt-1">{selectedExercise.prescription}</p>
+                  <h2 className="text-xl text-white tracking-tight">{showExerciseDetail.name}</h2>
+                  <p className="text-sm text-emerald-400 mt-1">{showExerciseDetail.prescription || "No prescription set"}</p>
                 </div>
                 <span className={`text-[11px] px-3 py-1.5 rounded-xl border shrink-0 ${
-                  selectedExercise.type === "cardio"
+                  showExerciseDetail.type === "cardio"
                     ? "text-emerald-300 border-emerald-500/15 bg-emerald-500/6"
                     : "text-green-300 border-green-500/15 bg-green-500/6"
                 }`}>
-                  {selectedExercise.type === "cardio" ? "Cardio" : "Strength"}
+                  {showExerciseDetail.type === "cardio" ? "Cardio" : "Strength"}
                 </span>
               </div>
 
               {/* Description */}
               <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
                 <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">Description</p>
-                <p className="text-sm text-zinc-300 leading-relaxed">{selectedExercise.description}</p>
+                <p className="text-sm text-zinc-300 leading-relaxed">{showExerciseDetail.description}</p>
               </div>
 
               {/* Muscles & Tips */}
@@ -1497,7 +1660,7 @@ export function WorkoutLogPage() {
                 <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
                   <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Target Muscles</p>
                   <div className="flex flex-wrap gap-2">
-                    {selectedExercise.muscles.map((m) => (
+                    {showExerciseDetail.muscles.map((m: string) => (
                       <span key={m} className="px-3 py-1.5 rounded-lg bg-emerald-500/8 border border-emerald-500/12 text-xs text-emerald-300">{m}</span>
                     ))}
                   </div>
@@ -1505,7 +1668,7 @@ export function WorkoutLogPage() {
                 <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
                   <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Pro Tips</p>
                   <ul className="space-y-2">
-                    {selectedExercise.tips.map((t, i) => (
+                    {showExerciseDetail.tips?.map((t: string, i: number) => (
                       <li key={i} className="flex items-start gap-2 text-xs text-zinc-400">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                         {t}
@@ -1850,23 +2013,48 @@ function TimeFilterBar({ value, onChange }: { value: TimeFilter; onChange: (v: T
   );
 }
 
-function CalendarGrid({ markers }: { markers?: number[] }) {
+function CalendarGrid({ markers, month, onPrevMonth, onNextMonth, onDayClick }: { 
+  markers?: number[]; 
+  month: Date;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+  onDayClick: (day: number) => void;
+}) {
   const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  
+  const year = month.getFullYear();
+  const monthIdx = month.getMonth();
+  const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+  const firstDayOfMonth = new Date(year, monthIdx, 1).getDay(); // 0=Sun, 1=Mon...
+  const offset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Adjust to Mon-start
+
+  const monthLabel = month.toLocaleString('default', { month: 'long', year: 'numeric' });
+
   const cells: (number | null)[] = [];
-  for (let i = 0; i < FIRST_DAY_OFFSET; i++) cells.push(null);
-  for (let d = 1; d <= DAYS_IN_APRIL; d++) cells.push(d);
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
-  const today = 13;
-  const activeMarkers = markers ?? trainingMarkers;
+
+  const todayDate = new Date();
+  const isCurrentMonth = todayDate.getFullYear() === year && todayDate.getMonth() === monthIdx;
+  const todayDay = isCurrentMonth ? todayDate.getDate() : -1;
+  
+  const activeMarkers = markers ?? [];
 
   return (
     <div>
       <div className="flex items-center justify-center gap-6 mb-4">
-        <button className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors">
+        <button 
+          onClick={onPrevMonth}
+          className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors"
+        >
           <ChevronLeft className="w-4 h-4 text-zinc-500" />
         </button>
-        <span className="text-sm text-zinc-200 min-w-[120px] text-center">April 2026</span>
-        <button className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors">
+        <span className="text-sm text-zinc-200 min-w-[120px] text-center">{monthLabel}</span>
+        <button 
+          onClick={onNextMonth}
+          className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors"
+        >
           <ChevronRight className="w-4 h-4 text-zinc-500" />
         </button>
       </div>
@@ -1875,10 +2063,11 @@ function CalendarGrid({ markers }: { markers?: number[] }) {
         {cells.map((day, i) => {
           if (day === null) return <span key={`e-${i}`} />;
           const isTraining = activeMarkers.includes(day);
-          const isToday = day === today;
+          const isToday = day === todayDay;
           return (
             <div
               key={`d-${day}`}
+              onClick={() => onDayClick(day)}
               className={`relative w-full aspect-square flex items-center justify-center rounded-xl text-xs transition-all cursor-pointer ${
                 isToday
                   ? "bg-emerald-500 text-black shadow-[0_0_14px_rgba(16,185,129,0.3)]"
