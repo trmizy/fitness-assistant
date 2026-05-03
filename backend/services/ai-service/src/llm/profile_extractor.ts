@@ -92,6 +92,12 @@ function authHeaders(authorizationHeader?: string): Record<string, string> | und
   return { Authorization: authorizationHeader };
 }
 
+interface CacheEntry {
+  data: PersonalizationContext;
+  expiresAt: number;
+}
+const profileCache = new Map<string, CacheEntry>();
+
 export const profileExtractor = {
   async extract(userId?: string, authorizationHeader?: string): Promise<PersonalizationContext> {
     const fallbackProfile: UserProfile = {
@@ -110,6 +116,12 @@ export const profileExtractor = {
         workoutHistory: [],
         nutritionHistory: [],
       };
+    }
+
+    const now = Date.now();
+    const cached = profileCache.get(userId);
+    if (cached && cached.expiresAt > now) {
+      return cached.data;
     }
 
     const [profileRes, inBodyRes, workoutsRes, nutritionRes] = await Promise.allSettled([
@@ -165,11 +177,15 @@ export const profileExtractor = {
       inBody: latestInBody,
     };
 
-    return {
+    const finalContext = {
       profile,
       latestInBody,
       workoutHistory: workoutsData,
       nutritionHistory: nutritionData,
     };
+
+    profileCache.set(userId, { data: finalContext, expiresAt: Date.now() + 60000 }); // cache for 60s
+
+    return finalContext;
   },
 };

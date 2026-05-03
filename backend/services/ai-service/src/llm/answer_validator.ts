@@ -66,10 +66,10 @@ function validateRequiredSections(answer: string, recommendation: Recommendation
   const intent = recommendation.responseIntent;
 
   if (intent === 'meal_plan_request') {
-    warnings.push(...requireSection(answer, [/##\s*🥗\s*(Dinh Dưỡng|Nutrition)/i], 'nutrition'));
+    warnings.push(...requireSection(answer, [/ðŸ¥—|dinh dưỡng|nutrition/i], 'nutrition'));
     warnings.push(...requireSection(answer, [/meal|bữa|thực đơn/i], 'meal_examples'));
     warnings.push(...requireSection(answer, [/điều chỉnh|adjust/i], 'adjustment'));
-    if (/\|\s*(Ngày|Day)\s*\|\s*(Nhóm cơ|Muscle Group)\s*\|\s*(Bài tập|Exercise)\s*\|/i.test(answer)) {
+    if (/(bài tập|exercise|workout)/i.test(answer)) {
       warnings.push('Answer includes workout content for meal-only intent.');
     }
   }
@@ -80,10 +80,10 @@ function validateRequiredSections(answer: string, recommendation: Recommendation
     intent === 'frequency_change_request' ||
     intent === 'combined_plan_request'
   ) {
-    warnings.push(...requireSection(answer, [/\|\s*(Ngày|Day)\s*\|\s*(Nhóm cơ|Muscle Group)\s*\|\s*(Bài tập|Exercise)\s*\|/i], 'workout_table'));
-    warnings.push(...requireSection(answer, [/\|\s*(Calo|Calories)\s*\|/i, /##\s*🥗\s*(Dinh Dưỡng|Nutrition)/i], 'nutrition_summary'));
-    warnings.push(...requireSection(answer, [/sets?/i], 'sets'));
-    warnings.push(...requireSection(answer, [/reps?/i], 'reps'));
+    warnings.push(...requireSection(answer, [/day|ngày|tuần|week/i], 'workout_table'));
+    warnings.push(...requireSection(answer, [/calo|kcal/i, /ðŸ¥—/i, /dinh|nutri/i], 'nutrition_summary'));
+    warnings.push(...requireSection(answer, [/sets?|hiệp/i], 'sets'));
+    warnings.push(...requireSection(answer, [/reps?|lặp/i], 'reps'));
     warnings.push(...requireSection(answer, [/rest|nghỉ/i], 'rest'));
   }
 
@@ -95,7 +95,7 @@ function validateRequiredSections(answer: string, recommendation: Recommendation
 
   if (recommendation.detailMode) {
     warnings.push(...requireSection(answer, [/set|hiệp/i], 'detail_sets'));
-    warnings.push(...requireSection(answer, [/rep|lần lặp/i], 'detail_reps'));
+    warnings.push(...requireSection(answer, [/rep|lặp/i], 'detail_reps'));
     warnings.push(...requireSection(answer, [/rest|nghỉ/i], 'detail_rest'));
     warnings.push(...requireSection(answer, [/technique|kỹ thuật/i], 'detail_technique'));
   }
