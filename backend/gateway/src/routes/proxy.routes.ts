@@ -3,6 +3,11 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { logger } from '@gym-coach/shared';
 import { authMiddleware, requireRoles } from '../middleware/auth.middleware';
 import axios from 'axios';
+import http from 'http';
+import https from 'https';
+import { validateInternalSecret, INTERNAL_SERVICE_SECRET_DEFAULT } from '../utils/internal-secret';
+
+export { validateInternalSecret };
 
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
@@ -13,7 +18,9 @@ const FITNESS_SERVICE_URL =
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:3003';
 const CHAT_SERVICE_URL = process.env.CHAT_SERVICE_URL || 'http://localhost:3005';
 const INTERNAL_SERVICE_SECRET =
-  process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
+  process.env.INTERNAL_SERVICE_SECRET || INTERNAL_SERVICE_SECRET_DEFAULT;
+
+validateInternalSecret(process.env.INTERNAL_SERVICE_SECRET, process.env.NODE_ENV);
 const N8N_BASE_URL = process.env.N8N_BASE_URL || 'http://localhost:5678';
 const N8N_EDITOR_BASE_PATH = process.env.N8N_EDITOR_BASE_PATH || '/admin/workflows/studio';
 const N8N_PUBLIC_API_KEY = process.env.N8N_PUBLIC_API_KEY;
@@ -1327,6 +1334,85 @@ router.use(
     },
     onError: serviceUnavailable('AI service'),
   }),
+);
+
+// Dedicated SSE streaming route for /ai/ask/stream.
+// http-proxy-middleware v2 buffers chunked responses, which breaks SSE.
+// This route uses Node's native http module to pipe the response without buffering.
+// Body is collected manually (not piped) to avoid stream-state issues after async authMiddleware.
+// MUST be registered BEFORE the generic /ai proxy below.
+router.post(
+  '/ai/ask/stream',
+  authMiddleware,
+  (req: Request, res: Response) => {
+    const userId = req.headers['x-user-id'];
+    const userEmail = req.headers['x-user-email'];
+    const userRole = req.headers['x-user-role'];
+    const authorization = req.headers.authorization;
+
+    const targetUrl = new URL(AI_SERVICE_URL);
+    const isHttps = AI_SERVICE_URL.startsWith('https');
+    const transport = isHttps ? https : http;
+
+    // Collect request body before forwarding. authMiddleware is async so the req
+    // stream may be in an uncertain state — reading it explicitly is safer than piping.
+    const bodyChunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => bodyChunks.push(chunk));
+    req.on('end', () => {
+      const bodyData = Buffer.concat(bodyChunks);
+
+      const requestHeaders: http.OutgoingHttpHeaders = {
+        'content-type': 'application/json',
+        'content-length': bodyData.length,
+        'x-internal-token': INTERNAL_SERVICE_SECRET,
+      };
+      if (typeof userId === 'string') requestHeaders['x-user-id'] = userId;
+      if (typeof userEmail === 'string') requestHeaders['x-user-email'] = userEmail;
+      if (typeof userRole === 'string') requestHeaders['x-user-role'] = userRole;
+      if (typeof authorization === 'string') requestHeaders['authorization'] = authorization;
+
+      const proxyReq = transport.request(
+        {
+          hostname: targetUrl.hostname,
+          port: targetUrl.port ? Number(targetUrl.port) : (isHttps ? 443 : 80),
+          path: '/ai/ask/stream',
+          method: 'POST',
+          headers: requestHeaders,
+        },
+        (proxyRes) => {
+          res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers as Record<string, string | string[]>);
+          proxyRes.pipe(res, { end: true });
+        },
+      );
+
+      proxyReq.on('error', (err) => {
+        logger.error({ err }, 'AI service SSE stream error');
+        if (!res.headersSent) {
+          res.status(503).json({
+            success: false,
+            error: { code: 'SERVICE_UNAVAILABLE', message: 'AI service unavailable' },
+          });
+        } else {
+          res.end();
+        }
+      });
+
+      res.on('close', () => {
+        if (!res.writableEnded && !proxyReq.destroyed) {
+          proxyReq.destroy();
+        }
+      });
+      proxyReq.write(bodyData);
+      proxyReq.end();
+    });
+
+    req.on('error', (err) => {
+      logger.error({ err }, 'SSE stream request read error');
+      if (!res.headersSent) {
+        res.status(400).json({ success: false, error: { code: 'REQUEST_ERROR', message: 'Request error' } });
+      }
+    });
+  },
 );
 
 // Protected — AI Service
