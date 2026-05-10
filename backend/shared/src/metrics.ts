@@ -107,7 +107,7 @@ export const ocrExtractionsTotal = new Counter({
 export const ocrExtractionDuration = new Histogram({
   name: 'ocr_extraction_duration_seconds',
   help: 'Duration of OCR extraction in seconds',
-  buckets: [0.5, 1, 2, 5, 10, 20, 30, 60],
+  buckets: [1, 2, 3, 5, 8, 12, 20, 30, 60],
   registers: [register],
 });
 

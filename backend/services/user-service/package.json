@@ -12,6 +12,7 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
     "@gym-coach/shared": "workspace:*",
     "@prisma/client": "^5.22.0",
     "axios": "^1.6.3",

@@ -5,15 +5,16 @@ import { authMiddleware } from '../middleware/auth.middleware';
 import { inbodyController } from '../controllers/inbody.controller';
 
 const router = Router();
-const upload = multer({ 
+const upload = multer({
   dest: 'uploads/',
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (ext !== '.png' && ext !== '.jpg' && ext !== '.jpeg') {
       return cb(new Error('Only images are allowed'));
     }
     cb(null, true);
-  }
+  },
 });
 
 router.get('/', authMiddleware, inbodyController.getHistory as any);

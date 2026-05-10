@@ -144,7 +144,6 @@ services:
       - 8.8.8.8
 
   # ── User Service ─────────────────────────────────────────────────────────────
-  # Slowest image to build (Python + torch + EasyOCR). Build once and reuse.
   user-service:
     build:
       context: ../..
@@ -158,16 +157,15 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_user
       AUTH_SERVICE_URL: http://auth-service:3001
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
     env_file:
       - ../../.env
     volumes:
       # TypeScript source — hot-reloaded by tsx watch
       - ../../backend/services/user-service/src:/app/backend/services/user-service/src
-      # Python OCR scripts — changes take effect on next subprocess call (no restart needed)
-      - ../../backend/services/user-service/inbody_extractor:/app/backend/services/user-service/inbody_extractor
       # Persist uploaded files across container restarts
       - user_uploads:/app/backend/services/user-service/uploads
-      - easyocr_models:/root/.EasyOCR/model
     depends_on:
       postgres:
         condition: service_healthy
@@ -463,7 +461,6 @@ services:
 
 volumes:
   user_uploads:
-  easyocr_models:
   postgres_data:
   redis_data:
   qdrant_data:

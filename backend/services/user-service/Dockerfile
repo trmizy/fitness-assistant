@@ -24,35 +24,9 @@ RUN pnpm --filter @gym-coach/user-service db:generate
 RUN pnpm --filter @gym-coach/user-service build
 RUN cp -R backend/services/user-service/src/generated backend/services/user-service/dist/
 
-# Python dependencies for InBody OCR extraction
-FROM base AS python-deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip python3-venv \
-    tesseract-ocr \
-    libgl1 libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-RUN python3 -m venv /opt/inbody-venv \
-    && /opt/inbody-venv/bin/pip install --no-cache-dir \
-       torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu \
-    && /opt/inbody-venv/bin/pip install --no-cache-dir \
-       pydantic pytesseract opencv-python-headless numpy Pillow easyocr \
-    && /opt/inbody-venv/bin/python -c "import easyocr; easyocr.Reader(['en'], gpu=False, verbose=True)"
-
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-# Install runtime Python + Tesseract dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    tesseract-ocr \
-    libgl1 libglib2.0-0 \
-    ca-certificates \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
-# Copy pre-built Python virtualenv and pre-downloaded EasyOCR models
-COPY --from=python-deps /opt/inbody-venv /opt/inbody-venv
-COPY --from=python-deps /root/.EasyOCR /root/.EasyOCR
-ENV PATH="/opt/inbody-venv/bin:$PATH"
 # Root node_modules includes .pnpm virtual store AND generated Prisma client
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/backend/shared/node_modules ./backend/shared/node_modules
@@ -63,7 +37,6 @@ COPY --from=builder /app/backend/services/user-service/dist ./backend/services/u
 COPY --from=builder /app/backend/services/user-service/src/generated ./backend/services/user-service/dist/generated
 COPY --from=builder /app/backend/services/user-service/package.json ./backend/services/user-service/package.json
 COPY --from=builder /app/backend/services/user-service/prisma ./backend/services/user-service/prisma
-COPY --from=builder /app/backend/services/user-service/inbody_extractor ./backend/services/user-service/inbody_extractor
 WORKDIR /app/backend/services/user-service
 RUN mkdir -p uploads/pt-applications
 EXPOSE 3004
