@@ -12652,7 +12652,6 @@ export namespace Prisma {
     weight: number | null
     height: number | null
     bmi: number | null
-    bmr: number | null
     bodyFat: number | null
     bodyFatPct: number | null
     muscleMass: number | null
@@ -12672,7 +12671,6 @@ export namespace Prisma {
     weight: number | null
     height: number | null
     bmi: number | null
-    bmr: number | null
     bodyFat: number | null
     bodyFatPct: number | null
     muscleMass: number | null
@@ -12695,7 +12693,6 @@ export namespace Prisma {
     weight: number | null
     height: number | null
     bmi: number | null
-    bmr: number | null
     bodyFat: number | null
     bodyFatPct: number | null
     muscleMass: number | null
@@ -12722,7 +12719,6 @@ export namespace Prisma {
     weight: number | null
     height: number | null
     bmi: number | null
-    bmr: number | null
     bodyFat: number | null
     bodyFatPct: number | null
     muscleMass: number | null
@@ -12749,7 +12745,6 @@ export namespace Prisma {
     weight: number
     height: number
     bmi: number
-    bmr: number
     bodyFat: number
     bodyFatPct: number
     muscleMass: number
@@ -12775,7 +12770,6 @@ export namespace Prisma {
     weight?: true
     height?: true
     bmi?: true
-    bmr?: true
     bodyFat?: true
     bodyFatPct?: true
     muscleMass?: true
@@ -12795,7 +12789,6 @@ export namespace Prisma {
     weight?: true
     height?: true
     bmi?: true
-    bmr?: true
     bodyFat?: true
     bodyFatPct?: true
     muscleMass?: true
@@ -12818,7 +12811,6 @@ export namespace Prisma {
     weight?: true
     height?: true
     bmi?: true
-    bmr?: true
     bodyFat?: true
     bodyFatPct?: true
     muscleMass?: true
@@ -12845,7 +12837,6 @@ export namespace Prisma {
     weight?: true
     height?: true
     bmi?: true
-    bmr?: true
     bodyFat?: true
     bodyFatPct?: true
     muscleMass?: true
@@ -12872,7 +12863,6 @@ export namespace Prisma {
     weight?: true
     height?: true
     bmi?: true
-    bmr?: true
     bodyFat?: true
     bodyFatPct?: true
     muscleMass?: true
@@ -12986,7 +12976,6 @@ export namespace Prisma {
     weight: number
     height: number | null
     bmi: number | null
-    bmr: number | null
     bodyFat: number
     bodyFatPct: number | null
     muscleMass: number
@@ -13032,7 +13021,6 @@ export namespace Prisma {
     weight?: boolean
     height?: boolean
     bmi?: boolean
-    bmr?: boolean
     bodyFat?: boolean
     bodyFatPct?: boolean
     muscleMass?: boolean
@@ -13059,7 +13047,6 @@ export namespace Prisma {
     weight?: boolean
     height?: boolean
     bmi?: boolean
-    bmr?: boolean
     bodyFat?: boolean
     bodyFatPct?: boolean
     muscleMass?: boolean
@@ -13086,7 +13073,6 @@ export namespace Prisma {
     weight?: boolean
     height?: boolean
     bmi?: boolean
-    bmr?: boolean
     bodyFat?: boolean
     bodyFatPct?: boolean
     muscleMass?: boolean
@@ -13117,7 +13103,6 @@ export namespace Prisma {
       weight: number
       height: number | null
       bmi: number | null
-      bmr: number | null
       bodyFat: number
       bodyFatPct: number | null
       muscleMass: number
@@ -13534,7 +13519,6 @@ export namespace Prisma {
     readonly weight: FieldRef<"InBodyEntry", 'Float'>
     readonly height: FieldRef<"InBodyEntry", 'Float'>
     readonly bmi: FieldRef<"InBodyEntry", 'Float'>
-    readonly bmr: FieldRef<"InBodyEntry", 'Float'>
     readonly bodyFat: FieldRef<"InBodyEntry", 'Float'>
     readonly bodyFatPct: FieldRef<"InBodyEntry", 'Float'>
     readonly muscleMass: FieldRef<"InBodyEntry", 'Float'>
@@ -14072,7 +14056,6 @@ export namespace Prisma {
     weight: 'weight',
     height: 'height',
     bmi: 'bmi',
-    bmr: 'bmr',
     bodyFat: 'bodyFat',
     bodyFatPct: 'bodyFatPct',
     muscleMass: 'muscleMass',
@@ -15489,7 +15472,6 @@ export namespace Prisma {
     weight?: FloatFilter<"InBodyEntry"> | number
     height?: FloatNullableFilter<"InBodyEntry"> | number | null
     bmi?: FloatNullableFilter<"InBodyEntry"> | number | null
-    bmr?: FloatNullableFilter<"InBodyEntry"> | number | null
     bodyFat?: FloatFilter<"InBodyEntry"> | number
     bodyFatPct?: FloatNullableFilter<"InBodyEntry"> | number | null
     muscleMass?: FloatFilter<"InBodyEntry"> | number
@@ -15516,7 +15498,6 @@ export namespace Prisma {
     weight?: SortOrder
     height?: SortOrderInput | SortOrder
     bmi?: SortOrderInput | SortOrder
-    bmr?: SortOrderInput | SortOrder
     bodyFat?: SortOrder
     bodyFatPct?: SortOrderInput | SortOrder
     muscleMass?: SortOrder
@@ -15546,7 +15527,6 @@ export namespace Prisma {
     weight?: FloatFilter<"InBodyEntry"> | number
     height?: FloatNullableFilter<"InBodyEntry"> | number | null
     bmi?: FloatNullableFilter<"InBodyEntry"> | number | null
-    bmr?: FloatNullableFilter<"InBodyEntry"> | number | null
     bodyFat?: FloatFilter<"InBodyEntry"> | number
     bodyFatPct?: FloatNullableFilter<"InBodyEntry"> | number | null
     muscleMass?: FloatFilter<"InBodyEntry"> | number
@@ -15573,7 +15553,6 @@ export namespace Prisma {
     weight?: SortOrder
     height?: SortOrderInput | SortOrder
     bmi?: SortOrderInput | SortOrder
-    bmr?: SortOrderInput | SortOrder
     bodyFat?: SortOrder
     bodyFatPct?: SortOrderInput | SortOrder
     muscleMass?: SortOrder
@@ -15608,7 +15587,6 @@ export namespace Prisma {
     weight?: FloatWithAggregatesFilter<"InBodyEntry"> | number
     height?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
     bmi?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
-    bmr?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
     bodyFat?: FloatWithAggregatesFilter<"InBodyEntry"> | number
     bodyFatPct?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
     muscleMass?: FloatWithAggregatesFilter<"InBodyEntry"> | number
@@ -16920,7 +16898,6 @@ export namespace Prisma {
     weight: number
     height?: number | null
     bmi?: number | null
-    bmr?: number | null
     bodyFat: number
     bodyFatPct?: number | null
     muscleMass: number
@@ -16947,7 +16924,6 @@ export namespace Prisma {
     weight: number
     height?: number | null
     bmi?: number | null
-    bmr?: number | null
     bodyFat: number
     bodyFatPct?: number | null
     muscleMass: number
@@ -16974,7 +16950,6 @@ export namespace Prisma {
     weight?: FloatFieldUpdateOperationsInput | number
     height?: NullableFloatFieldUpdateOperationsInput | number | null
     bmi?: NullableFloatFieldUpdateOperationsInput | number | null
-    bmr?: NullableFloatFieldUpdateOperationsInput | number | null
     bodyFat?: FloatFieldUpdateOperationsInput | number
     bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
     muscleMass?: FloatFieldUpdateOperationsInput | number
@@ -17001,7 +16976,6 @@ export namespace Prisma {
     weight?: FloatFieldUpdateOperationsInput | number
     height?: NullableFloatFieldUpdateOperationsInput | number | null
     bmi?: NullableFloatFieldUpdateOperationsInput | number | null
-    bmr?: NullableFloatFieldUpdateOperationsInput | number | null
     bodyFat?: FloatFieldUpdateOperationsInput | number
     bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
     muscleMass?: FloatFieldUpdateOperationsInput | number
@@ -17028,7 +17002,6 @@ export namespace Prisma {
     weight: number
     height?: number | null
     bmi?: number | null
-    bmr?: number | null
     bodyFat: number
     bodyFatPct?: number | null
     muscleMass: number
@@ -17055,7 +17028,6 @@ export namespace Prisma {
     weight?: FloatFieldUpdateOperationsInput | number
     height?: NullableFloatFieldUpdateOperationsInput | number | null
     bmi?: NullableFloatFieldUpdateOperationsInput | number | null
-    bmr?: NullableFloatFieldUpdateOperationsInput | number | null
     bodyFat?: FloatFieldUpdateOperationsInput | number
     bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
     muscleMass?: FloatFieldUpdateOperationsInput | number
@@ -17082,7 +17054,6 @@ export namespace Prisma {
     weight?: FloatFieldUpdateOperationsInput | number
     height?: NullableFloatFieldUpdateOperationsInput | number | null
     bmi?: NullableFloatFieldUpdateOperationsInput | number | null
-    bmr?: NullableFloatFieldUpdateOperationsInput | number | null
     bodyFat?: FloatFieldUpdateOperationsInput | number
     bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
     muscleMass?: FloatFieldUpdateOperationsInput | number
@@ -18287,7 +18258,6 @@ export namespace Prisma {
     weight?: SortOrder
     height?: SortOrder
     bmi?: SortOrder
-    bmr?: SortOrder
     bodyFat?: SortOrder
     bodyFatPct?: SortOrder
     muscleMass?: SortOrder
@@ -18311,7 +18281,6 @@ export namespace Prisma {
     weight?: SortOrder
     height?: SortOrder
     bmi?: SortOrder
-    bmr?: SortOrder
     bodyFat?: SortOrder
     bodyFatPct?: SortOrder
     muscleMass?: SortOrder
@@ -18334,7 +18303,6 @@ export namespace Prisma {
     weight?: SortOrder
     height?: SortOrder
     bmi?: SortOrder
-    bmr?: SortOrder
     bodyFat?: SortOrder
     bodyFatPct?: SortOrder
     muscleMass?: SortOrder
@@ -18361,7 +18329,6 @@ export namespace Prisma {
     weight?: SortOrder
     height?: SortOrder
     bmi?: SortOrder
-    bmr?: SortOrder
     bodyFat?: SortOrder
     bodyFatPct?: SortOrder
     muscleMass?: SortOrder
@@ -18385,7 +18352,6 @@ export namespace Prisma {
     weight?: SortOrder
     height?: SortOrder
     bmi?: SortOrder
-    bmr?: SortOrder
     bodyFat?: SortOrder
     bodyFatPct?: SortOrder
     muscleMass?: SortOrder

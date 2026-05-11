@@ -119,6 +119,20 @@ model WorkoutSet {
   @@map("workout_sets")
 }
 
+model Food {
+  id       String @id @default(uuid())
+  fdcId    Int    @unique @map("fdc_id")
+  name     String
+  calories Float
+  protein  Float  @default(0)
+  carbs    Float  @default(0)
+  fats     Float  @default(0)
+  source   String // 'sr_legacy' | 'survey_fndds'
+
+  @@index([name])
+  @@map("foods")
+}
+
 model NutritionLog {
   id          String   @id @default(uuid())
   userId      String   @map("user_id")

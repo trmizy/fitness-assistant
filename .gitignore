@@ -81,3 +81,12 @@ tmp/
 *.bak
 *.old
 *.orig
+
+# USDA FoodData Central raw downloads (large, not committed)
+# Generate foods_seed.csv locally with: pnpm --filter @gym-coach/fitness-service db:process-usda
+data/nutrition/food.csv
+data/nutrition/food_nutrient.csv
+data/nutrition/sr_legacy_food.csv
+data/nutrition/survey_fndds_food.csv
+data/nutrition/*.zip
+data/nutrition/*.xlsx

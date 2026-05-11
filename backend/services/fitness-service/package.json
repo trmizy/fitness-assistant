@@ -12,7 +12,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "./node_modules/.bin/tsx prisma/seed_exercises_json.ts",
-    "db:seed:legacy": "tsx prisma/seed.ts"
+    "db:seed:legacy": "tsx prisma/seed.ts",
+    "db:process-usda": "tsx prisma/process-usda.ts"
   },
   "dependencies": {
     "@gym-coach/shared": "workspace:*",

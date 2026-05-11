@@ -414,7 +414,6 @@ model InBodyEntry {
   weight     Float
   height     Float?
   bmi        Float?
-  bmr        Float?
   bodyFat    Float  @map("body_fat") // Mass in kg or %? Let's use mass kg
   bodyFatPct Float? @map("body_fat_pct") // Percentage
   muscleMass Float  @map("muscle_mass")
