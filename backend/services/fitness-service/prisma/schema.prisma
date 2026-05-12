@@ -127,7 +127,8 @@ model Food {
   protein  Float  @default(0)
   carbs    Float  @default(0)
   fats     Float  @default(0)
-  source   String // 'sr_legacy' | 'survey_fndds'
+  source   String  // 'sr_legacy' | 'survey_fndds'
+  imageUrl String? @map("image_url")
 
   @@index([name])
   @@map("foods")

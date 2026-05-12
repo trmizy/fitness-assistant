@@ -193,6 +193,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       AUTH_SERVICE_URL: http://auth-service:3001
+      PEXELS_API_KEY: ${PEXELS_API_KEY}
     env_file:
       - ../../.env
     volumes:
