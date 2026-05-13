@@ -85,7 +85,7 @@ async function seedFoods() {
   console.log('Checking food seed...');
 
   const existing = await prisma.food.count();
-  if (existing > 0) {
+  if (existing >= 13000) {
     console.log(`Food seed skipped: ${existing} foods already in database.`);
     return;
   }
@@ -105,21 +105,14 @@ async function seedFoods() {
 
   console.log(`Seeding foods from ${csvPath}...`);
 
-  const BATCH_SIZE = 500;
-  const batch: {
+  type FoodRow = {
     fdcId: number; name: string; calories: number;
     protein: number; carbs: number; fats: number; source: string;
-  }[] = [];
-  let total = 0;
-
-  const flush = async () => {
-    if (batch.length === 0) return;
-    await prisma.food.createMany({ data: batch, skipDuplicates: true });
-    total += batch.length;
-    batch.length = 0;
   };
 
-  await new Promise<void>((resolve, reject) => {
+  // Read all rows into memory first (13K rows ≈ 650KB — safe)
+  const rows: FoodRow[] = await new Promise<FoodRow[]>((resolve, reject) => {
+    const result: FoodRow[] = [];
     const rl = readline.createInterface({
       input: fs.createReadStream(csvPath, { encoding: 'utf8' }),
       crlfDelay: Infinity,
@@ -139,7 +132,7 @@ async function seedFoods() {
       const fdcId = parseInt(line.slice(0, firstComma), 10);
       if (isNaN(fdcId)) return;
 
-      batch.push({
+      result.push({
         fdcId,
         name,
         calories: parseFloat(cal) || 0,
@@ -148,15 +141,19 @@ async function seedFoods() {
         fats:     parseFloat(fat)  || 0,
         source:   source?.trim() ?? 'sr_legacy',
       });
-
-      if (batch.length >= BATCH_SIZE) {
-        rl.pause();
-        flush().then(() => rl.resume()).catch(reject);
-      }
     });
-    rl.on('close', () => flush().then(resolve).catch(reject));
+    rl.on('close', () => resolve(result));
     rl.on('error', reject);
   });
+
+  // Sequential batch inserts — no concurrent connections
+  const BATCH_SIZE = 500;
+  let total = 0;
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    await prisma.food.createMany({ data: rows.slice(i, i + BATCH_SIZE), skipDuplicates: true });
+    total += Math.min(BATCH_SIZE, rows.length - i);
+    if (total % 2000 === 0) console.log(`  Imported ${total}/${rows.length}...`);
+  }
 
   console.log(`✅  Food seed complete — ${total} foods imported.`);
 }
