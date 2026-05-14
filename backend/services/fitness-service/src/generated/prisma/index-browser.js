@@ -172,6 +172,18 @@ exports.Prisma.WorkoutSetScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.FoodScalarFieldEnum = {
+  id: 'id',
+  fdcId: 'fdcId',
+  name: 'name',
+  calories: 'calories',
+  protein: 'protein',
+  carbs: 'carbs',
+  fats: 'fats',
+  source: 'source',
+  imageUrl: 'imageUrl'
+};
+
 exports.Prisma.NutritionLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -182,6 +194,64 @@ exports.Prisma.NutritionLogScalarFieldEnum = {
   protein: 'protein',
   carbs: 'carbs',
   fats: 'fats',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.BodyMetricsScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  date: 'date',
+  weight: 'weight',
+  bodyFat: 'bodyFat',
+  muscleMass: 'muscleMass',
+  bodyWater: 'bodyWater',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WorkoutProgramScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WorkoutProgramDayScalarFieldEnum = {
+  id: 'id',
+  programId: 'programId',
+  dayNumber: 'dayNumber',
+  title: 'title',
+  description: 'description',
+  duration: 'duration',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WorkoutProgramExerciseScalarFieldEnum = {
+  id: 'id',
+  programDayId: 'programDayId',
+  exerciseId: 'exerciseId',
+  order: 'order',
+  sets: 'sets',
+  reps: 'reps',
+  weight: 'weight',
+  duration: 'duration',
+  restSeconds: 'restSeconds',
+  notes: 'notes',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.WorkoutScheduleScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  date: 'date',
+  programDayId: 'programDayId',
+  workoutId: 'workoutId',
   notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -240,7 +310,13 @@ exports.Prisma.ModelName = {
   Workout: 'Workout',
   WorkoutExercise: 'WorkoutExercise',
   WorkoutSet: 'WorkoutSet',
-  NutritionLog: 'NutritionLog'
+  Food: 'Food',
+  NutritionLog: 'NutritionLog',
+  BodyMetrics: 'BodyMetrics',
+  WorkoutProgram: 'WorkoutProgram',
+  WorkoutProgramDay: 'WorkoutProgramDay',
+  WorkoutProgramExercise: 'WorkoutProgramExercise',
+  WorkoutSchedule: 'WorkoutSchedule'
 };
 
 /**
