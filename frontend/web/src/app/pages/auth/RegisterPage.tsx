@@ -5,40 +5,38 @@ import { Dumbbell, User, Zap, ArrowRight, ArrowLeft, Check, Mail, Lock, UserCirc
 import { authService, profileService } from "../../services/api";
 import { toast } from "sonner";
 
-const steps = ["Account", "Verify", "Profile", "Goals", "Done"];
+const steps = ["Tài khoản", "Xác nhận", "Hồ sơ", "Mục tiêu", "Xong"];
 
 export function RegisterPage() {
   const { login, setUser } = useApp();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  
-  // Form State
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
-  
-  // Profile State
+
   const [profile, setProfile] = useState({
     age: "",
-    gender: "MALE", // Default to MALE to match UI
+    gender: "MALE",
     heightCm: "",
     currentWeight: "",
-    activityLevel: "LIGHTLY_ACTIVE", // Default value
+    activityLevel: "LIGHTLY_ACTIVE",
     goal: ""
   });
 
   const goals = [
-    { key: "WEIGHT_LOSS",        label: "Lose Fat",        emoji: "🔥" },
-    { key: "MUSCLE_GAIN",     label: "Gain Muscle",     emoji: "💪" },
-    { key: "MAINTENANCE",        label: "Maintain Body",   emoji: "⚖️" },
-    { key: "ATHLETIC_PERFORMANCE",  label: "Improve Health",  emoji: "❤️" },
+    { key: "WEIGHT_LOSS",           label: "Giảm mỡ",              emoji: "🔥" },
+    { key: "MUSCLE_GAIN",           label: "Tăng cơ",              emoji: "💪" },
+    { key: "MAINTENANCE",           label: "Duy trì cân nặng",     emoji: "⚖️" },
+    { key: "ATHLETIC_PERFORMANCE",  label: "Cải thiện sức khỏe",   emoji: "❤️" },
   ];
 
   const handleRegister = async () => {
     if (!email || !password || !fullName) {
-      toast.error("Please fill in all fields");
+      toast.error("Vui lòng điền đầy đủ thông tin");
       return;
     }
 
@@ -47,10 +45,10 @@ export function RegisterPage() {
       const parts = fullName.trim().split(" ");
       const firstName = parts[0];
       const lastName = parts.slice(1).join(" ") || ".";
-      
+
       await authService.register(email, password, firstName, lastName);
-      toast.success("Verification code sent to your email");
-      setStep(1); // Move to Verify step
+      toast.success("Mã xác nhận đã được gửi đến email của bạn");
+      setStep(1);
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || "";
       if (errorMsg === "Email already registered") {
@@ -62,7 +60,7 @@ export function RegisterPage() {
           duration: 5000
         });
       } else {
-        toast.error(errorMsg || "Registration failed");
+        toast.error(errorMsg || "Đăng ký thất bại");
       }
     } finally {
       setLoading(false);
@@ -71,7 +69,7 @@ export function RegisterPage() {
 
   const handleVerify = async () => {
     if (!otp) {
-      toast.error("Please enter the verification code");
+      toast.error("Vui lòng nhập mã xác nhận");
       return;
     }
 
@@ -80,11 +78,11 @@ export function RegisterPage() {
       const result = await authService.verifyRegistration(email, otp);
       if (result.success) {
         setUser(result.user);
-        toast.success("Email verified successfully");
-        setStep(2); // Move to Profile step
+        toast.success("Xác minh email thành công");
+        setStep(2);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Verification failed");
+      toast.error(error.response?.data?.error || "Xác minh thất bại");
     } finally {
       setLoading(false);
     }
@@ -95,14 +93,13 @@ export function RegisterPage() {
     const heightVal = parseFloat(profile.heightCm);
     const weightVal = parseFloat(profile.currentWeight);
 
-    // Validation
     if (!profile.age || !profile.heightCm || !profile.currentWeight || !profile.gender || !profile.goal) {
-      toast.error("Please fill in all mandatory fields");
+      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
       return;
     }
 
     if (isNaN(ageVal) || ageVal < 13 || ageVal > 120) {
-      toast.error("Please enter a valid age (13-120)");
+      toast.error("Vui lòng nhập tuổi hợp lệ (13–120)");
       return;
     }
 
@@ -118,24 +115,22 @@ export function RegisterPage() {
       };
 
       await profileService.updateProfile(payload);
-      toast.success("Profile updated successfully");
-      setStep(4); // Move to Done
+      toast.success("Hồ sơ đã được cập nhật");
+      setStep(4);
     } catch (error: any) {
       console.error("Profile update error:", error);
-      toast.error(error.response?.data?.error || "Failed to update profile features");
+      toast.error(error.response?.data?.error || "Cập nhật hồ sơ thất bại");
     } finally {
       setLoading(false);
     }
   };
 
   const handleFinish = () => {
-    // Session is already set in localStorage by verifyRegistration
     window.location.href = "/client/dashboard";
   };
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-green-500/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-green-500/3 rounded-full blur-3xl" />
@@ -151,7 +146,7 @@ export function RegisterPage() {
             </div>
             <span className="text-white font-bold tracking-tight uppercase">Fitness AI</span>
           </div>
-          
+
           {/* Stepper */}
           <div className="flex items-center gap-1">
             {steps.map((s, i) => (
@@ -172,127 +167,127 @@ export function RegisterPage() {
         </div>
 
         <div className="p-6">
-          {/* Step 0: Base Credentials */}
+          {/* Step 0: Tài khoản */}
           {step === 0 && (
             <div className="space-y-4">
               <div className="mb-2">
-                <h2 className="text-xl font-bold text-zinc-100">Create account</h2>
-                <p className="text-sm text-zinc-500">Join our fitness community today</p>
+                <h2 className="text-xl font-bold text-zinc-100">Tạo tài khoản</h2>
+                <p className="text-sm text-zinc-500">Gia nhập cộng đồng thể dục của chúng tôi</p>
               </div>
 
               <div className="space-y-3">
                 <div className="relative">
                   <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <input 
+                  <input
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 text-zinc-200" 
-                    placeholder="Full name" 
+                    className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 text-zinc-200"
+                    placeholder="Họ và tên"
                   />
                 </div>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <input 
+                  <input
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 text-zinc-200" 
-                    placeholder="Email address" 
+                    className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 text-zinc-200"
+                    placeholder="Địa chỉ email"
                   />
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <input 
+                  <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 text-zinc-200" 
-                    placeholder="Password" 
+                    className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 text-zinc-200"
+                    placeholder="Mật khẩu"
                   />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 1: Verify OTP */}
+          {/* Step 1: Xác nhận OTP */}
           {step === 1 && (
             <div className="space-y-4 text-center">
               <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Mail className="w-6 h-6 text-green-500" />
               </div>
-              <h2 className="text-xl font-bold text-zinc-100">Check your email</h2>
+              <h2 className="text-xl font-bold text-zinc-100">Kiểm tra email của bạn</h2>
               <p className="text-sm text-zinc-500 px-4">
-                We've sent a 6-digit verification code to <span className="text-zinc-200 font-semibold">{email}</span>
+                Chúng tôi đã gửi mã xác nhận 6 chữ số đến <span className="text-zinc-200 font-semibold">{email}</span>
               </p>
-              
-              <input 
+
+              <input
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 className="w-full bg-zinc-800 border-2 border-zinc-700 rounded-xl py-3 text-center text-2xl font-bold tracking-[0.5em] text-green-500 focus:border-green-500 outline-none transition-all"
                 placeholder=""
               />
-              
-              <button 
+
+              <button
                 onClick={handleRegister}
                 className="text-xs text-zinc-500 hover:text-green-500 transition-colors"
                 disabled={loading}
               >
-                Didn't receive code? Resend
+                Không nhận được mã? Gửi lại
               </button>
             </div>
           )}
 
-          {/* Step 2: Profile */}
+          {/* Step 2: Hồ sơ */}
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-zinc-100">Your profile</h2>
+              <h2 className="text-xl font-bold text-zinc-100">Hồ sơ của bạn</h2>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Age</label>
-                  <input 
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Tuổi</label>
+                  <input
                     value={profile.age}
                     onChange={(e) => setProfile({...profile, age: e.target.value})}
-                    className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500" 
-                    placeholder="" 
+                    className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
+                    placeholder=""
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold tracking-wider">Gender</label>
-                  <select 
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold tracking-wider">Giới tính</label>
+                  <select
                     value={profile.gender}
                     onChange={(e) => setProfile({...profile, gender: e.target.value})}
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500 transition-all cursor-pointer"
                   >
-                    <option value="MALE">Male ♂</option>
-                    <option value="FEMALE">Female ♀</option>
-                    <option value="OTHER">Other</option>
+                    <option value="MALE">Nam ♂</option>
+                    <option value="FEMALE">Nữ ♀</option>
+                    <option value="OTHER">Khác</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Height (cm)</label>
-                  <input 
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Chiều cao (cm)</label>
+                  <input
                     value={profile.heightCm}
                     onChange={(e) => setProfile({...profile, heightCm: e.target.value})}
-                    className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500" 
-                    placeholder="" 
+                    className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
+                    placeholder=""
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Weight (kg)</label>
-                  <input 
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Cân nặng (kg)</label>
+                  <input
                     value={profile.currentWeight}
                     onChange={(e) => setProfile({...profile, currentWeight: e.target.value})}
-                    className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500" 
-                    placeholder="" 
+                    className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
+                    placeholder=""
                   />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 3: Goals */}
+          {/* Step 3: Mục tiêu */}
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-zinc-100">Select your goal</h2>
+              <h2 className="text-xl font-bold text-zinc-100">Chọn mục tiêu của bạn</h2>
               <div className="space-y-2">
                 {goals.map((g) => (
                   <button
@@ -311,71 +306,71 @@ export function RegisterPage() {
             </div>
           )}
 
-          {/* Step 4: Done */}
+          {/* Step 4: Xong */}
           {step === 4 && (
             <div className="text-center py-6 space-y-3">
               <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto border border-green-500/20">
                 <Check className="w-8 h-8 text-green-500" />
               </div>
-              <h2 className="text-2xl font-bold text-zinc-100">Welcome aboard!</h2>
-              <p className="text-zinc-500">Your professional fitness profile is ready.</p>
+              <h2 className="text-2xl font-bold text-zinc-100">Chào mừng bạn!</h2>
+              <p className="text-zinc-500">Hồ sơ thể dục của bạn đã sẵn sàng.</p>
             </div>
           )}
 
           {/* Navigation */}
           <div className="mt-8 flex gap-3">
             {step > 0 && step < 4 && (
-              <button 
+              <button
                 onClick={() => setStep(step - 1)}
                 className="px-4 py-2.5 bg-zinc-800 text-zinc-400 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all border border-zinc-700"
               >
-                Back
+                Quay lại
               </button>
             )}
-            
+
             {step === 0 && (
-              <button 
+              <button
                 onClick={handleRegister}
                 disabled={loading}
                 className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 transition-all flex items-center justify-center gap-2"
               >
-                {loading ? "Sending..." : "Continue"} <ArrowRight className="w-4 h-4" />
+                {loading ? "Đang gửi..." : "Tiếp tục"} <ArrowRight className="w-4 h-4" />
               </button>
             )}
 
             {step === 1 && (
-              <button 
+              <button
                 onClick={handleVerify}
                 disabled={loading}
                 className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 transition-all flex items-center justify-center gap-2"
               >
-                {loading ? "Verifying..." : "Verify Code"} <ArrowRight className="w-4 h-4" />
+                {loading ? "Đang xác minh..." : "Xác minh mã"} <ArrowRight className="w-4 h-4" />
               </button>
             )}
 
             {(step === 2 || step === 3) && (
-              <button 
+              <button
                 onClick={() => step === 2 ? setStep(3) : handleSaveProfile()}
                 disabled={loading || (step === 2 && (!profile.age || !profile.gender || !profile.heightCm || !profile.currentWeight)) || (step === 3 && !profile.goal)}
                 className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               >
-                {loading ? "Saving..." : "Continue"} <ArrowRight className="w-4 h-4" />
+                {loading ? "Đang lưu..." : "Tiếp tục"} <ArrowRight className="w-4 h-4" />
               </button>
             )}
 
             {step === 4 && (
-              <button 
+              <button
                 onClick={handleFinish}
                 className="flex-1 py-3 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 transition-all shadow-lg shadow-green-500/20"
               >
-                Go to Dashboard
+                Vào Dashboard
               </button>
             )}
           </div>
 
           {step === 0 && (
             <p className="text-center text-sm text-zinc-500 mt-6">
-              Already have an account? <Link to="/login" className="text-green-500 font-semibold hover:underline">Sign in</Link>
+              Đã có tài khoản? <Link to="/login" className="text-green-500 font-semibold hover:underline">Đăng nhập</Link>
             </p>
           )}
         </div>

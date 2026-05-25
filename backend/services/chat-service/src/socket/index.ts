@@ -9,6 +9,9 @@ import { callService } from '../services/call.service';
 // Track online users: userId → Set of socket IDs (user may have multiple tabs)
 export const onlineUsers = new Map<string, Set<string>>();
 
+let _io: Server | null = null;
+export function getIo(): Server | null { return _io; }
+
 export function initSocket(httpServer: http.Server) {
   const io = new Server(httpServer, {
     cors: {
@@ -16,6 +19,7 @@ export function initSocket(httpServer: http.Server) {
       credentials: true,
     },
   });
+  _io = io;
 
   // ── JWT authentication ────────────────────────────────────────
   io.use(async (socket: Socket, next) => {
@@ -40,7 +44,7 @@ export function initSocket(httpServer: http.Server) {
   });
 
   io.on('connection', (socket: Socket) => {
-    const user = (socket as any).user as { id: string; email: string };
+    const user = (socket as any).user as { id: string; email: string; role?: string };
     logger.info({ userId: user.id, socketId: socket.id }, 'Socket connected');
 
     // Track metrics
@@ -52,6 +56,11 @@ export function initSocket(httpServer: http.Server) {
 
     // Auto-join personal room so user receives notifications for all their conversations
     socket.join(`user:${user.id}`);
+
+    // Admin joins broadcast room for real-time admin notifications
+    if (String(user.role).toUpperCase() === 'ADMIN') {
+      socket.join('admin:notifications');
+    }
 
     socket.broadcast.emit('user:online', { userId: user.id });
 

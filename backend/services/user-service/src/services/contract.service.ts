@@ -1,7 +1,76 @@
-import { ContractStatus, PackageType } from '../generated/prisma';
+import axios from 'axios';
+import { ContractStatus, PackageType, PTApplicationStatus, SessionMode } from '../generated/prisma';
 import { contractRepository } from '../repositories/contract.repository';
 import { profileRepository } from '../repositories/profile.repository';
+import { ptApplicationRepository } from '../repositories/pt_application.repository';
 import { notificationService } from './notification.service';
+import { generateContractPdf } from './contractPdf.service';
+import { eSignService } from './esign.service';
+
+async function fetchUserFromAuthService(userId: string) {
+  const res = await axios.get(
+    `${process.env.AUTH_SERVICE_URL}/auth/internal/users/${userId}`,
+    { headers: { 'x-service-secret': process.env.INTERNAL_SERVICE_SECRET } },
+  );
+  return res.data.user as { id: string; email: string; firstName: string; lastName: string };
+}
+
+async function runESign(contractId: string, isResend = false) {
+  const contract = await contractRepository.findById(contractId);
+  if (!contract) throw new Error('Contract not found');
+
+  const [clientInfo, ptInfo] = await Promise.all([
+    fetchUserFromAuthService(contract.clientUserId),
+    fetchUserFromAuthService(contract.ptUserId),
+  ]);
+
+  const pdfData = {
+    id: contract.id,
+    packageName: contract.packageName,
+    sessionMode: contract.sessionMode,
+    pricePerSession: contract.pricePerSession,
+    price: contract.price,
+    totalSessions: contract.totalSessions,
+    packageType: contract.packageType,
+    startDate: contract.startDate,
+    clientInfo,
+    ptInfo,
+  };
+
+  const pdfPath = await generateContractPdf(pdfData);
+
+  const testMode = process.env.DROPBOX_SIGN_TEST_MODE !== 'false';
+
+  const eSignResult = await eSignService.send({
+    contractId: contract.id,
+    testMode,
+    signers: [
+      { email: clientInfo.email, name: `${clientInfo.firstName} ${clientInfo.lastName}`, role: 'client' },
+      { email: ptInfo.email, name: `${ptInfo.firstName} ${ptInfo.lastName}`, role: 'pt' },
+    ],
+    pdfPath,
+    title: `Hop dong huan luyen - ${contract.packageName || 'Goi tap'}`,
+    subject: 'Vui long ky hop dong huan luyen ca nhan',
+    message: 'Hop dong nay o che do thu nghiem (test mode). Vui long ky de xac nhan.',
+  });
+
+  const resetFields = isResend
+    ? { clientSignedAt: null, ptSignedAt: null, fullySignedAt: null }
+    : {};
+
+  await contractRepository.updateESignFields(contractId, {
+    clientSignerEmail: clientInfo.email,
+    ptSignerEmail: ptInfo.email,
+    eSignProvider: eSignResult.provider,
+    eSignRequestId: eSignResult.requestId,
+    eSignStatus: 'SENT',
+    eSignTestMode: eSignResult.testMode,
+    eSignSentAt: new Date(),
+    contractPdfPath: pdfPath,
+    eSignError: null,
+    ...resetFields,
+  });
+}
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -16,37 +85,81 @@ export const contractService = {
     description?: string;
     packageQuantity?: number;
     extraSessions?: number;
-    totalSessions?: number; // Ignored if calculations are performed
-    price?: number;         // Ignored if calculations are performed
+    totalSessions?: number;
+    price?: number;
     pricePerSession?: number;
+    sessionMode?: string;
     startDate?: string;
     endDate?: string;
     message?: string;
     terms?: string;
     notes?: string;
   }) {
-    // 1. Fetch PT Application for pricing rules
-    const app = await profileRepository.findPTApplicationByUserId(data.ptUserId);
-    if (!app) throw err('PT profile or pricing not found', 404);
+    // ── 1. Validate packageType ────────────────────────────────────────
+    if (!['PER_SESSION', 'PACKAGE'].includes(data.packageType ?? '')) {
+      throw err('packageType phải là PER_SESSION hoặc PACKAGE', 400);
+    }
+    const isPackage = data.packageType === 'PACKAGE';
 
+    // ── 2. Validate sessionMode ────────────────────────────────────────
+    if (!data.sessionMode || !['ONLINE', 'OFFLINE'].includes(data.sessionMode)) {
+      throw err('sessionMode phải là ONLINE hoặc OFFLINE', 400);
+    }
+    const reqMode = data.sessionMode as 'ONLINE' | 'OFFLINE';
+
+    // ── 3. PT application phải APPROVED ───────────────────────────────
+    const ptApp = await ptApplicationRepository.findByUserId(data.ptUserId);
+    if (!ptApp || ptApp.status !== PTApplicationStatus.APPROVED) {
+      throw err('Huấn luyện viên chưa được phê duyệt', 400);
+    }
+
+    // ── 4. PT phải hỗ trợ mode được yêu cầu ──────────────────────────
+    const ptMode = ptApp.serviceMode;
+    if (ptMode === 'ONLINE' && reqMode !== 'ONLINE')
+      throw err('PT này chỉ coaching Online', 400);
+    if (ptMode === 'OFFLINE' && reqMode !== 'OFFLINE')
+      throw err('PT này chỉ coaching Offline', 400);
+    // HYBRID: chấp nhận cả ONLINE lẫn OFFLINE
+
+    // ── 5. Lookup giá từ PT application ───────────────────────────────
+    let pricePerSession: number | null = null;
+    let packageTotalPrice: number | null = null;
+
+    if (reqMode === 'ONLINE') {
+      pricePerSession = (ptApp.onlinePricePerSession ?? ptApp.desiredSessionPrice) || null;
+      if (isPackage) packageTotalPrice = (ptApp.onlinePackagePrice ?? ptApp.packagePrice) || null;
+    } else {
+      pricePerSession = (ptApp.offlinePricePerSession ?? ptApp.desiredSessionPrice) || null;
+      if (isPackage) packageTotalPrice = (ptApp.offlinePackagePrice ?? ptApp.packagePrice) || null;
+    }
+
+    // ── 6. Validate giá sau lookup ────────────────────────────────────
+    if (!isPackage) {
+      if (!pricePerSession || pricePerSession <= 0)
+        throw err('PT chưa thiết lập giá per-session cho hình thức này', 400);
+    } else {
+      if (!packageTotalPrice || packageTotalPrice <= 0)
+        throw err('PT chưa thiết lập giá gói cho hình thức này', 400);
+      if (!ptApp.sessionsPerPackage || ptApp.sessionsPerPackage <= 0)
+        throw err('PT chưa thiết lập số buổi trong gói', 400);
+    }
+
+    // ── 7. Tính tổng sessions và giá ──────────────────────────────────
+    const packQty = Math.max(1, data.packageQuantity || 1);
+    const extra = Math.max(0, data.extraSessions || 0);
     let finalSessions = 0;
     let finalPrice = 0;
     let unitPrice = 0;
 
-    const packQty = Math.max(1, data.packageQuantity || 1);
-    const extra = Math.max(0, data.extraSessions || 0);
-
-    if (data.packageType === 'PACKAGE') {
-      const sessPerPack = app.sessionsPerPackage || 10;
-      const basePrice = app.packagePrice || 0;
-      
+    if (isPackage) {
+      const sessPerPack = ptApp.sessionsPerPackage!;
+      const basePrice = packageTotalPrice!;
       finalSessions = (sessPerPack * packQty) + extra;
       unitPrice = sessPerPack > 0 ? basePrice / sessPerPack : 0;
       finalPrice = (basePrice * packQty) + (extra * unitPrice);
     } else {
-      // PER_SESSION logic
       finalSessions = Math.max(1, data.totalSessions || 1);
-      unitPrice = app.desiredSessionPrice || 0;
+      unitPrice = pricePerSession!;
       finalPrice = finalSessions * unitPrice;
     }
 
@@ -63,11 +176,12 @@ export const contractService = {
       packageType: (data.packageType as PackageType) || PackageType.PACKAGE,
       packageName: data.packageName,
       description: data.description,
-      packageQuantity: data.packageType === 'PACKAGE' ? packQty : 1,
-      extraSessions: data.packageType === 'PACKAGE' ? extra : 0,
+      packageQuantity: isPackage ? packQty : 1,
+      extraSessions: isPackage ? extra : 0,
       totalSessions: finalSessions,
       price: finalPrice,
       pricePerSession: unitPrice,
+      sessionMode: reqMode as SessionMode,
       startDate: data.startDate ? new Date(data.startDate) : undefined,
       endDate: data.endDate ? new Date(data.endDate) : undefined,
       clientMessage: data.message,
@@ -78,7 +192,7 @@ export const contractService = {
     // Notify PT
     await notificationService.create({
       userId: data.ptUserId,
-      text: 'New coaching request received',
+      text: 'Nhận yêu cầu ký hợp đồng mới',
       eventType: 'CONTRACT_REQUESTED',
       entityType: 'CONTRACT',
       entityId: contract.id,
@@ -97,20 +211,47 @@ export const contractService = {
       throw err(`Cannot accept contract in ${contract.status} status`, 400);
     }
 
-    const updated = await contractRepository.updateStatus(contractId, ContractStatus.ACTIVE, {
+    // Set PENDING_SIGNATURE immediately
+    await contractRepository.updateESignFields(contractId, {
+      status: ContractStatus.PENDING_SIGNATURE,
       startDate: contract.startDate || new Date(),
     });
 
+    // Notify client
     await notificationService.create({
       userId: contract.clientUserId,
-      text: 'Your coaching request has been accepted!',
+      text: 'Yêu cầu hợp đồng của bạn đã được chấp nhận! Vui lòng kiểm tra email để ký điện tử.',
       eventType: 'CONTRACT_ACCEPTED',
       entityType: 'CONTRACT',
       entityId: contractId,
       link: '/client/contracts',
     }).catch(() => {});
 
-    return updated;
+    // Generate PDF + send Dropbox Sign (errors recorded in eSignStatus, do not crash accept flow)
+    try {
+      await runESign(contractId);
+    } catch (e: any) {
+      await contractRepository.updateESignFields(contractId, {
+        eSignStatus: 'ERROR',
+        eSignError: e?.message?.slice(0, 500) || 'Unknown error',
+      });
+    }
+
+    return contractRepository.findById(contractId);
+  },
+
+  // ── Resend e-sign request (after ERROR or EXPIRED) ─────────────────
+  async resendESign(contractId: string) {
+    const contract = await contractRepository.findById(contractId);
+    if (!contract) throw err('Contract not found', 404);
+    if (contract.status !== ContractStatus.PENDING_SIGNATURE) {
+      throw err('Contract is not in PENDING_SIGNATURE state', 400);
+    }
+    if (contract.eSignStatus === 'SIGNED') {
+      throw err('Contract is already signed', 400);
+    }
+    await runESign(contractId, true);
+    return contractRepository.findById(contractId);
   },
 
   // ── PT rejects a pending contract ─────────────────────────────────
@@ -130,7 +271,7 @@ export const contractService = {
 
     await notificationService.create({
       userId: contract.clientUserId,
-      text: 'Your coaching request was declined',
+      text: 'Yêu cầu hợp đồng của bạn đã bị từ chối',
       eventType: 'CONTRACT_REJECTED',
       entityType: 'CONTRACT',
       entityId: contractId,
@@ -149,7 +290,8 @@ export const contractService = {
     if (contract.ptUserId !== userId && contract.clientUserId !== userId) {
       throw err('Not authorized', 403);
     }
-    if (contract.status !== ContractStatus.ACTIVE && contract.status !== ContractStatus.PENDING_REVIEW) {
+    const cancellable = [ContractStatus.ACTIVE, ContractStatus.PENDING_REVIEW, ContractStatus.PENDING_SIGNATURE];
+    if (!cancellable.includes(contract.status)) {
       throw err(`Cannot cancel contract in ${contract.status} status`, 400);
     }
 
@@ -163,7 +305,7 @@ export const contractService = {
     const isClient = userId === contract.clientUserId;
     await notificationService.create({
       userId: otherUserId,
-      text: isClient ? 'Client cancelled the contract' : 'Trainer cancelled the contract',
+      text: isClient ? 'Học viên đã hủy hợp đồng' : 'Huấn luyện viên đã hủy hợp đồng',
       eventType: 'CONTRACT_CANCELLED',
       entityType: 'CONTRACT',
       entityId: contractId,
@@ -208,7 +350,20 @@ export const contractService = {
 
   async getByPT(ptUserId: string, status?: string) {
     const s = status ? (status as ContractStatus) : undefined;
-    return contractRepository.findByPT(ptUserId, s);
+    const contracts = await contractRepository.findByPT(ptUserId, s);
+
+    const clientIds = [...new Set(contracts.map(c => c.clientUserId))];
+    const profiles = clientIds.length
+      ? await profileRepository.findByUserIds(clientIds)
+      : [];
+    const nameMap = Object.fromEntries(
+      profiles.map(p => [p.userId, `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim()])
+    );
+
+    return contracts.map(c => ({
+      ...c,
+      clientName: nameMap[c.clientUserId] ?? null,
+    }));
   },
 
   async getByClient(clientUserId: string, status?: string) {

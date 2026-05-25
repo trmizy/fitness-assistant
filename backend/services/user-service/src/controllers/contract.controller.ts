@@ -1,6 +1,10 @@
+import path from 'path';
+import fs from 'fs';
 import { Response } from 'express';
 import { logger } from '@gym-coach/shared';
 import { contractService } from '../services/contract.service';
+import { contractRepository } from '../repositories/contract.repository';
+import { ContractStatus } from '../generated/prisma';
 
 export const contractController = {
   // Client requests a contract with a PT
@@ -156,6 +160,119 @@ export const contractController = {
     } catch (error: any) {
       logger.error(error, 'Check relationship error');
       res.status(500).json({ error: 'Failed to check relationship' });
+    }
+  },
+
+  // Resend e-sign request (only for ERROR/EXPIRED status)
+  async sendESign(req: any, res: Response) {
+    try {
+      const userId = req.headers['x-user-id'] as string;
+      const userRole = req.headers['x-user-role'] as string;
+      const contract = await contractRepository.findById(req.params.id);
+
+      if (!contract) {
+        res.status(404).json({ error: 'Contract not found' });
+        return;
+      }
+
+      // Auth: only client/PT of this contract or admin
+      if (userId !== contract.clientUserId && userId !== contract.ptUserId && userRole !== 'ADMIN') {
+        res.status(403).json({ error: 'Forbidden' });
+        return;
+      }
+
+      if (contract.status !== ContractStatus.PENDING_SIGNATURE) {
+        res.status(400).json({ error: 'Contract is not in PENDING_SIGNATURE state' });
+        return;
+      }
+
+      if (contract.eSignStatus === 'SIGNED') {
+        res.status(400).json({ error: 'Contract is already signed' });
+        return;
+      }
+
+      const canResend = ['ERROR', 'EXPIRED'].includes(contract.eSignStatus || '');
+      if (!canResend && userRole !== 'ADMIN') {
+        res.status(400).json({ error: 'Cannot resend while e-sign is in progress. Contact admin if needed.' });
+        return;
+      }
+
+      await contractService.resendESign(contract.id);
+      res.json({ message: 'E-sign request sent' });
+    } catch (error: any) {
+      logger.error(error, 'Send e-sign error');
+      res.status(error.status || 500).json({ error: error.message || 'Failed to send e-sign request' });
+    }
+  },
+
+  // Get e-sign status for a contract
+  async getESignStatus(req: any, res: Response) {
+    try {
+      const userId = req.headers['x-user-id'] as string;
+      const userRole = req.headers['x-user-role'] as string;
+      const contract = await contractRepository.findById(req.params.id);
+
+      if (!contract) {
+        res.status(404).json({ error: 'Contract not found' });
+        return;
+      }
+
+      if (userId !== contract.clientUserId && userId !== contract.ptUserId && userRole !== 'ADMIN') {
+        res.status(403).json({ error: 'Forbidden' });
+        return;
+      }
+
+      res.json({
+        eSignStatus: contract.eSignStatus,
+        eSignTestMode: contract.eSignTestMode,
+        clientSignedAt: contract.clientSignedAt,
+        ptSignedAt: contract.ptSignedAt,
+        fullySignedAt: contract.fullySignedAt,
+        signedPdfUrl: contract.signedPdfUrl,
+        eSignError: contract.eSignError,
+      });
+    } catch (error: any) {
+      logger.error(error, 'Get e-sign status error');
+      res.status(500).json({ error: 'Failed to get e-sign status' });
+    }
+  },
+
+  // Download the generated contract PDF
+  async getContractPdf(req: any, res: Response) {
+    try {
+      const userId = req.headers['x-user-id'] as string;
+      const userRole = req.headers['x-user-role'] as string;
+      const contract = await contractRepository.findById(req.params.id);
+
+      if (!contract) {
+        res.status(404).json({ error: 'Contract not found' });
+        return;
+      }
+
+      if (userId !== contract.clientUserId && userId !== contract.ptUserId && userRole !== 'ADMIN') {
+        res.status(403).json({ error: 'Forbidden' });
+        return;
+      }
+
+      if (!contract.contractPdfPath) {
+        res.status(404).json({ error: 'PDF not available' });
+        return;
+      }
+
+      // Use only DB-stored path — never from request input (path traversal prevention)
+      const absPath = path.isAbsolute(contract.contractPdfPath)
+        ? contract.contractPdfPath
+        : path.join(process.cwd(), contract.contractPdfPath);
+
+      if (!fs.existsSync(absPath)) {
+        res.status(404).json({ error: 'PDF file not found' });
+        return;
+      }
+
+      res.sendFile(absPath);
+    } catch (error: any) {
+      logger.error(error, 'Get contract PDF error');
+      res.status(500).json({ error: 'Failed to retrieve PDF' });
     }
   },
 

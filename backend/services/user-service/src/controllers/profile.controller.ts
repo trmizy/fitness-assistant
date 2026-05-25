@@ -33,6 +33,21 @@ export const profileController = {
     }
   },
 
+  async uploadPhoto(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.file) {
+        res.status(400).json({ error: 'No file uploaded' });
+        return;
+      }
+      const photoUrl = `/uploads/profile-photos/${req.file.filename}`;
+      await profileService.upsertProfile(req.user!.id, { photoUrl });
+      res.json({ photoUrl });
+    } catch (error) {
+      logger.error(error, 'Upload photo error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
   async listPTs(_req: AuthRequest, res: Response): Promise<void> {
     try {
       const profiles = await profileRepository.findPTs();

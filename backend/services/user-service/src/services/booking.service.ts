@@ -2,8 +2,10 @@ import { SessionStatus, SessionMode, ContractStatus, DayOfWeek } from '../genera
 import { sessionRepository } from '../repositories/session.repository';
 import { contractRepository } from '../repositories/contract.repository';
 import { availabilityRepository } from '../repositories/availability.repository';
+import { profileRepository } from '../repositories/profile.repository';
 import { notificationService } from './notification.service';
 import { contractService } from './contract.service';
+import { createJoinToken } from '../utils/joinToken';
 
 const DAY_MAP: Record<number, DayOfWeek> = {
   0: DayOfWeek.SUNDAY, 1: DayOfWeek.MONDAY, 2: DayOfWeek.TUESDAY,
@@ -106,7 +108,7 @@ export const bookingService = {
     // Notify PT
     await notificationService.create({
       userId: contract.ptUserId,
-      text: 'New session booking request',
+      text: 'Yêu cầu đặt lịch buổi tập mới',
       eventType: 'SESSION_BOOKED',
       entityType: 'SESSION',
       entityId: session.id,
@@ -129,7 +131,7 @@ export const bookingService = {
 
     await notificationService.create({
       userId: session.clientUserId,
-      text: 'Your session has been confirmed',
+      text: 'Buổi tập của bạn đã được xác nhận',
       eventType: 'SESSION_CONFIRMED',
       entityType: 'SESSION',
       entityId: sessionId,
@@ -162,7 +164,7 @@ export const bookingService = {
 
     await notificationService.create({
       userId: session.clientUserId,
-      text: 'Session marked as completed',
+      text: 'Buổi tập đã được đánh dấu hoàn thành',
       eventType: 'SESSION_COMPLETED',
       entityType: 'SESSION',
       entityId: sessionId,
@@ -212,7 +214,7 @@ export const bookingService = {
     const otherUserId = isClient ? session.ptUserId : session.clientUserId;
     await notificationService.create({
       userId: otherUserId,
-      text: isClient ? 'Client cancelled a session' : 'Trainer cancelled the session',
+      text: isClient ? 'Học viên đã hủy một buổi tập' : 'Huấn luyện viên đã hủy buổi tập',
       eventType: 'SESSION_CANCELLED',
       entityType: 'SESSION',
       entityId: sessionId,
@@ -249,7 +251,7 @@ export const bookingService = {
 
       await notificationService.create({
         userId: session.clientUserId,
-        text: 'You were marked as no-show for a session',
+        text: 'Bạn bị đánh dấu vắng mặt cho buổi tập',
         eventType: 'SESSION_NO_SHOW_CLIENT',
         entityType: 'SESSION',
         entityId: sessionId,
@@ -259,7 +261,7 @@ export const bookingService = {
       // PT no-show: no deduction, notify client
       await notificationService.create({
         userId: session.clientUserId,
-        text: 'Your trainer did not show up for the session. No session was deducted.',
+        text: 'Huấn luyện viên không đến buổi tập. Buổi học không bị trừ.',
         eventType: 'SESSION_NO_SHOW_PT',
         entityType: 'SESSION',
         entityId: sessionId,
@@ -268,6 +270,46 @@ export const bookingService = {
     }
 
     return updated;
+  },
+
+  // ── Join an online session ──────────────────────────────────────
+  async joinSession(sessionId: string, userId: string) {
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err('Không tìm thấy buổi học', 404);
+    if (session.clientUserId !== userId && session.ptUserId !== userId)
+      throw err('Bạn không có quyền tham gia buổi học này', 403);
+    if (session.sessionMode !== SessionMode.ONLINE)
+      throw err('Buổi học này không phải buổi online', 400);
+    if (session.status !== SessionStatus.CONFIRMED)
+      throw err(`Không thể tham gia buổi học ở trạng thái ${session.status}`, 400);
+
+    const startAt = new Date(session.scheduledStartAt).getTime();
+    const endAt   = new Date(session.scheduledEndAt).getTime();
+    if (isNaN(startAt) || isNaN(endAt))
+      throw err('Thiếu thông tin thời gian', 400);
+    if (endAt <= startAt)
+      throw err('Thời gian buổi học không hợp lệ', 400);
+
+    const now = Date.now();
+    if (now < startAt - 10 * 60 * 1000)
+      throw err('Chưa đến giờ tham gia — có thể vào trước 10 phút', 400);
+    if (now > endAt + 15 * 60 * 1000)
+      throw err('Buổi học đã kết thúc', 400);
+
+    const otherUserId = userId === session.ptUserId ? session.clientUserId : session.ptUserId;
+    if (!otherUserId) throw err('Buổi học thiếu thông tin người tham gia', 400);
+
+    const joinToken = createJoinToken(session.id, userId, otherUserId);
+
+    return {
+      sessionId: session.id,
+      otherUserId,
+      sessionMode: session.sessionMode,
+      status: session.status,
+      scheduledStartAt: session.scheduledStartAt,
+      scheduledEndAt: session.scheduledEndAt,
+      joinToken,
+    };
   },
 
   // ── Client reviews a completed session ──────────────────────────
@@ -305,6 +347,23 @@ export const bookingService = {
 
   // ── Get my upcoming sessions ────────────────────────────────────
   async getMyUpcoming(userId: string) {
-    return sessionRepository.findUpcomingByUser(userId);
+    const sessions = await sessionRepository.findUpcomingByUser(userId);
+
+    const clientIds = [...new Set(
+      sessions.map(s => s.clientUserId).filter(id => id !== userId)
+    )];
+
+    const profiles = clientIds.length
+      ? await profileRepository.findByUserIds(clientIds)
+      : [];
+
+    const nameMap = Object.fromEntries(
+      profiles.map(p => [p.userId, `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim()])
+    );
+
+    return sessions.map(s => ({
+      ...s,
+      clientName: nameMap[s.clientUserId] ?? null,
+    }));
   },
 };

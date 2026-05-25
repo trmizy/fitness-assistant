@@ -1300,6 +1300,16 @@ router.use(
   }),
 );
 
+// Protected — Food search (Fitness Service)
+router.use(
+  '/food',
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
 // Protected — Plans (AI Service)
 router.use(
   '/plans',
@@ -1364,6 +1374,16 @@ router.use(
     target: CHAT_SERVICE_URL,
     changeOrigin: true,
     onError: serviceUnavailable('Chat service'),
+  }),
+);
+
+// Public — Dropbox Sign webhook passthrough (no auth, Dropbox Sign posts here directly)
+router.post(
+  '/webhooks/dropbox-sign',
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('User service (Dropbox Sign webhook)'),
   }),
 );
 

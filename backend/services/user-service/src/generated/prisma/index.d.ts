@@ -144,6 +144,7 @@ export type MediaGroupType = (typeof MediaGroupType)[keyof typeof MediaGroupType
 
 export const ContractStatus: {
   PENDING_REVIEW: 'PENDING_REVIEW',
+  PENDING_SIGNATURE: 'PENDING_SIGNATURE',
   ACTIVE: 'ACTIVE',
   COMPLETED: 'COMPLETED',
   EXPIRED: 'EXPIRED',
@@ -162,6 +163,15 @@ export const PackageType: {
 export type PackageType = (typeof PackageType)[keyof typeof PackageType]
 
 
+export const SessionMode: {
+  ONLINE: 'ONLINE',
+  OFFLINE: 'OFFLINE',
+  HYBRID: 'HYBRID'
+};
+
+export type SessionMode = (typeof SessionMode)[keyof typeof SessionMode]
+
+
 export const SessionStatus: {
   REQUESTED: 'REQUESTED',
   CONFIRMED: 'CONFIRMED',
@@ -171,15 +181,6 @@ export const SessionStatus: {
 };
 
 export type SessionStatus = (typeof SessionStatus)[keyof typeof SessionStatus]
-
-
-export const SessionMode: {
-  ONLINE: 'ONLINE',
-  OFFLINE: 'OFFLINE',
-  HYBRID: 'HYBRID'
-};
-
-export type SessionMode = (typeof SessionMode)[keyof typeof SessionMode]
 
 
 export const NotificationEventType: {
@@ -256,13 +257,13 @@ export type PackageType = $Enums.PackageType
 
 export const PackageType: typeof $Enums.PackageType
 
-export type SessionStatus = $Enums.SessionStatus
-
-export const SessionStatus: typeof $Enums.SessionStatus
-
 export type SessionMode = $Enums.SessionMode
 
 export const SessionMode: typeof $Enums.SessionMode
+
+export type SessionStatus = $Enums.SessionStatus
+
+export const SessionStatus: typeof $Enums.SessionStatus
 
 export type NotificationEventType = $Enums.NotificationEventType
 
@@ -2034,6 +2035,8 @@ export namespace Prisma {
     experienceLevel: $Enums.ExperienceLevel | null
     currentWeight: number | null
     targetWeight: number | null
+    dietaryPreference: string | null
+    photoUrl: string | null
     sessionDurationMinutes: number | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -2054,6 +2057,8 @@ export namespace Prisma {
     experienceLevel: $Enums.ExperienceLevel | null
     currentWeight: number | null
     targetWeight: number | null
+    dietaryPreference: string | null
+    photoUrl: string | null
     sessionDurationMinutes: number | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -2077,6 +2082,8 @@ export namespace Prisma {
     injuries: number
     currentWeight: number
     targetWeight: number
+    dietaryPreference: number
+    photoUrl: number
     sessionDurationMinutes: number
     createdAt: number
     updatedAt: number
@@ -2117,6 +2124,8 @@ export namespace Prisma {
     experienceLevel?: true
     currentWeight?: true
     targetWeight?: true
+    dietaryPreference?: true
+    photoUrl?: true
     sessionDurationMinutes?: true
     createdAt?: true
     updatedAt?: true
@@ -2137,6 +2146,8 @@ export namespace Prisma {
     experienceLevel?: true
     currentWeight?: true
     targetWeight?: true
+    dietaryPreference?: true
+    photoUrl?: true
     sessionDurationMinutes?: true
     createdAt?: true
     updatedAt?: true
@@ -2160,6 +2171,8 @@ export namespace Prisma {
     injuries?: true
     currentWeight?: true
     targetWeight?: true
+    dietaryPreference?: true
+    photoUrl?: true
     sessionDurationMinutes?: true
     createdAt?: true
     updatedAt?: true
@@ -2270,6 +2283,8 @@ export namespace Prisma {
     injuries: string[]
     currentWeight: number | null
     targetWeight: number | null
+    dietaryPreference: string | null
+    photoUrl: string | null
     sessionDurationMinutes: number
     createdAt: Date
     updatedAt: Date
@@ -2312,6 +2327,8 @@ export namespace Prisma {
     injuries?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    dietaryPreference?: boolean
+    photoUrl?: boolean
     sessionDurationMinutes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2336,6 +2353,8 @@ export namespace Prisma {
     injuries?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    dietaryPreference?: boolean
+    photoUrl?: boolean
     sessionDurationMinutes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2359,6 +2378,8 @@ export namespace Prisma {
     injuries?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
+    dietaryPreference?: boolean
+    photoUrl?: boolean
     sessionDurationMinutes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2392,6 +2413,8 @@ export namespace Prisma {
       injuries: string[]
       currentWeight: number | null
       targetWeight: number | null
+      dietaryPreference: string | null
+      photoUrl: string | null
       sessionDurationMinutes: number
       createdAt: Date
       updatedAt: Date
@@ -2806,6 +2829,8 @@ export namespace Prisma {
     readonly injuries: FieldRef<"UserProfile", 'String[]'>
     readonly currentWeight: FieldRef<"UserProfile", 'Float'>
     readonly targetWeight: FieldRef<"UserProfile", 'Float'>
+    readonly dietaryPreference: FieldRef<"UserProfile", 'String'>
+    readonly photoUrl: FieldRef<"UserProfile", 'String'>
     readonly sessionDurationMinutes: FieldRef<"UserProfile", 'Int'>
     readonly createdAt: FieldRef<"UserProfile", 'DateTime'>
     readonly updatedAt: FieldRef<"UserProfile", 'DateTime'>
@@ -3170,6 +3195,10 @@ export namespace Prisma {
     packagePrice: number | null
     sessionsPerPackage: number | null
     sessionDurationMinutes: number | null
+    onlinePricePerSession: number | null
+    offlinePricePerSession: number | null
+    onlinePackagePrice: number | null
+    offlinePackagePrice: number | null
   }
 
   export type PTApplicationSumAggregateOutputType = {
@@ -3178,6 +3207,10 @@ export namespace Prisma {
     packagePrice: number | null
     sessionsPerPackage: number | null
     sessionDurationMinutes: number | null
+    onlinePricePerSession: number | null
+    offlinePricePerSession: number | null
+    onlinePackagePrice: number | null
+    offlinePackagePrice: number | null
   }
 
   export type PTApplicationMinAggregateOutputType = {
@@ -3209,6 +3242,10 @@ export namespace Prisma {
     sessionsPerPackage: number | null
     sessionDurationMinutes: number | null
     additionalPricingNotes: string | null
+    onlinePricePerSession: number | null
+    offlinePricePerSession: number | null
+    onlinePackagePrice: number | null
+    offlinePackagePrice: number | null
     otherReferences: string | null
     adminNote: string | null
     rejectionReason: string | null
@@ -3248,6 +3285,10 @@ export namespace Prisma {
     sessionsPerPackage: number | null
     sessionDurationMinutes: number | null
     additionalPricingNotes: string | null
+    onlinePricePerSession: number | null
+    offlinePricePerSession: number | null
+    onlinePackagePrice: number | null
+    offlinePackagePrice: number | null
     otherReferences: string | null
     adminNote: string | null
     rejectionReason: string | null
@@ -3295,6 +3336,10 @@ export namespace Prisma {
     sessionDurationMinutes: number
     availabilityBlocks: number
     additionalPricingNotes: number
+    onlinePricePerSession: number
+    offlinePricePerSession: number
+    onlinePackagePrice: number
+    offlinePackagePrice: number
     otherReferences: number
     adminNote: number
     rejectionReason: number
@@ -3313,6 +3358,10 @@ export namespace Prisma {
     packagePrice?: true
     sessionsPerPackage?: true
     sessionDurationMinutes?: true
+    onlinePricePerSession?: true
+    offlinePricePerSession?: true
+    onlinePackagePrice?: true
+    offlinePackagePrice?: true
   }
 
   export type PTApplicationSumAggregateInputType = {
@@ -3321,6 +3370,10 @@ export namespace Prisma {
     packagePrice?: true
     sessionsPerPackage?: true
     sessionDurationMinutes?: true
+    onlinePricePerSession?: true
+    offlinePricePerSession?: true
+    onlinePackagePrice?: true
+    offlinePackagePrice?: true
   }
 
   export type PTApplicationMinAggregateInputType = {
@@ -3352,6 +3405,10 @@ export namespace Prisma {
     sessionsPerPackage?: true
     sessionDurationMinutes?: true
     additionalPricingNotes?: true
+    onlinePricePerSession?: true
+    offlinePricePerSession?: true
+    onlinePackagePrice?: true
+    offlinePackagePrice?: true
     otherReferences?: true
     adminNote?: true
     rejectionReason?: true
@@ -3391,6 +3448,10 @@ export namespace Prisma {
     sessionsPerPackage?: true
     sessionDurationMinutes?: true
     additionalPricingNotes?: true
+    onlinePricePerSession?: true
+    offlinePricePerSession?: true
+    onlinePackagePrice?: true
+    offlinePackagePrice?: true
     otherReferences?: true
     adminNote?: true
     rejectionReason?: true
@@ -3438,6 +3499,10 @@ export namespace Prisma {
     sessionDurationMinutes?: true
     availabilityBlocks?: true
     additionalPricingNotes?: true
+    onlinePricePerSession?: true
+    offlinePricePerSession?: true
+    onlinePackagePrice?: true
+    offlinePackagePrice?: true
     otherReferences?: true
     adminNote?: true
     rejectionReason?: true
@@ -3572,6 +3637,10 @@ export namespace Prisma {
     sessionDurationMinutes: number
     availabilityBlocks: JsonValue | null
     additionalPricingNotes: string | null
+    onlinePricePerSession: number | null
+    offlinePricePerSession: number | null
+    onlinePackagePrice: number | null
+    offlinePackagePrice: number | null
     otherReferences: string | null
     adminNote: string | null
     rejectionReason: string | null
@@ -3638,6 +3707,10 @@ export namespace Prisma {
     sessionDurationMinutes?: boolean
     availabilityBlocks?: boolean
     additionalPricingNotes?: boolean
+    onlinePricePerSession?: boolean
+    offlinePricePerSession?: boolean
+    onlinePackagePrice?: boolean
+    offlinePackagePrice?: boolean
     otherReferences?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
@@ -3689,6 +3762,10 @@ export namespace Prisma {
     sessionDurationMinutes?: boolean
     availabilityBlocks?: boolean
     additionalPricingNotes?: boolean
+    onlinePricePerSession?: boolean
+    offlinePricePerSession?: boolean
+    onlinePackagePrice?: boolean
+    offlinePackagePrice?: boolean
     otherReferences?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
@@ -3737,6 +3814,10 @@ export namespace Prisma {
     sessionDurationMinutes?: boolean
     availabilityBlocks?: boolean
     additionalPricingNotes?: boolean
+    onlinePricePerSession?: boolean
+    offlinePricePerSession?: boolean
+    onlinePackagePrice?: boolean
+    offlinePackagePrice?: boolean
     otherReferences?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
@@ -3801,6 +3882,10 @@ export namespace Prisma {
       sessionDurationMinutes: number
       availabilityBlocks: Prisma.JsonValue | null
       additionalPricingNotes: string | null
+      onlinePricePerSession: number | null
+      offlinePricePerSession: number | null
+      onlinePackagePrice: number | null
+      offlinePackagePrice: number | null
       otherReferences: string | null
       adminNote: string | null
       rejectionReason: string | null
@@ -4241,6 +4326,10 @@ export namespace Prisma {
     readonly sessionDurationMinutes: FieldRef<"PTApplication", 'Int'>
     readonly availabilityBlocks: FieldRef<"PTApplication", 'Json'>
     readonly additionalPricingNotes: FieldRef<"PTApplication", 'String'>
+    readonly onlinePricePerSession: FieldRef<"PTApplication", 'Float'>
+    readonly offlinePricePerSession: FieldRef<"PTApplication", 'Float'>
+    readonly onlinePackagePrice: FieldRef<"PTApplication", 'Float'>
+    readonly offlinePackagePrice: FieldRef<"PTApplication", 'Float'>
     readonly otherReferences: FieldRef<"PTApplication", 'String'>
     readonly adminNote: FieldRef<"PTApplication", 'String'>
     readonly rejectionReason: FieldRef<"PTApplication", 'String'>
@@ -6596,6 +6685,7 @@ export namespace Prisma {
     status: $Enums.ContractStatus | null
     packageType: $Enums.PackageType | null
     packageName: string | null
+    sessionMode: $Enums.SessionMode | null
     description: string | null
     packageQuantity: number | null
     extraSessions: number | null
@@ -6612,6 +6702,19 @@ export namespace Prisma {
     cancellationReason: string | null
     terms: string | null
     notes: string | null
+    eSignProvider: string | null
+    eSignRequestId: string | null
+    eSignStatus: string | null
+    eSignTestMode: boolean | null
+    eSignSentAt: Date | null
+    clientSignedAt: Date | null
+    ptSignedAt: Date | null
+    fullySignedAt: Date | null
+    contractPdfPath: string | null
+    signedPdfUrl: string | null
+    eSignError: string | null
+    clientSignerEmail: string | null
+    ptSignerEmail: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -6623,6 +6726,7 @@ export namespace Prisma {
     status: $Enums.ContractStatus | null
     packageType: $Enums.PackageType | null
     packageName: string | null
+    sessionMode: $Enums.SessionMode | null
     description: string | null
     packageQuantity: number | null
     extraSessions: number | null
@@ -6639,6 +6743,19 @@ export namespace Prisma {
     cancellationReason: string | null
     terms: string | null
     notes: string | null
+    eSignProvider: string | null
+    eSignRequestId: string | null
+    eSignStatus: string | null
+    eSignTestMode: boolean | null
+    eSignSentAt: Date | null
+    clientSignedAt: Date | null
+    ptSignedAt: Date | null
+    fullySignedAt: Date | null
+    contractPdfPath: string | null
+    signedPdfUrl: string | null
+    eSignError: string | null
+    clientSignerEmail: string | null
+    ptSignerEmail: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -6650,6 +6767,7 @@ export namespace Prisma {
     status: number
     packageType: number
     packageName: number
+    sessionMode: number
     description: number
     packageQuantity: number
     extraSessions: number
@@ -6666,6 +6784,19 @@ export namespace Prisma {
     cancellationReason: number
     terms: number
     notes: number
+    eSignProvider: number
+    eSignRequestId: number
+    eSignStatus: number
+    eSignTestMode: number
+    eSignSentAt: number
+    clientSignedAt: number
+    ptSignedAt: number
+    fullySignedAt: number
+    contractPdfPath: number
+    signedPdfUrl: number
+    eSignError: number
+    clientSignerEmail: number
+    ptSignerEmail: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -6697,6 +6828,7 @@ export namespace Prisma {
     status?: true
     packageType?: true
     packageName?: true
+    sessionMode?: true
     description?: true
     packageQuantity?: true
     extraSessions?: true
@@ -6713,6 +6845,19 @@ export namespace Prisma {
     cancellationReason?: true
     terms?: true
     notes?: true
+    eSignProvider?: true
+    eSignRequestId?: true
+    eSignStatus?: true
+    eSignTestMode?: true
+    eSignSentAt?: true
+    clientSignedAt?: true
+    ptSignedAt?: true
+    fullySignedAt?: true
+    contractPdfPath?: true
+    signedPdfUrl?: true
+    eSignError?: true
+    clientSignerEmail?: true
+    ptSignerEmail?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -6724,6 +6869,7 @@ export namespace Prisma {
     status?: true
     packageType?: true
     packageName?: true
+    sessionMode?: true
     description?: true
     packageQuantity?: true
     extraSessions?: true
@@ -6740,6 +6886,19 @@ export namespace Prisma {
     cancellationReason?: true
     terms?: true
     notes?: true
+    eSignProvider?: true
+    eSignRequestId?: true
+    eSignStatus?: true
+    eSignTestMode?: true
+    eSignSentAt?: true
+    clientSignedAt?: true
+    ptSignedAt?: true
+    fullySignedAt?: true
+    contractPdfPath?: true
+    signedPdfUrl?: true
+    eSignError?: true
+    clientSignerEmail?: true
+    ptSignerEmail?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -6751,6 +6910,7 @@ export namespace Prisma {
     status?: true
     packageType?: true
     packageName?: true
+    sessionMode?: true
     description?: true
     packageQuantity?: true
     extraSessions?: true
@@ -6767,6 +6927,19 @@ export namespace Prisma {
     cancellationReason?: true
     terms?: true
     notes?: true
+    eSignProvider?: true
+    eSignRequestId?: true
+    eSignStatus?: true
+    eSignTestMode?: true
+    eSignSentAt?: true
+    clientSignedAt?: true
+    ptSignedAt?: true
+    fullySignedAt?: true
+    contractPdfPath?: true
+    signedPdfUrl?: true
+    eSignError?: true
+    clientSignerEmail?: true
+    ptSignerEmail?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -6865,6 +7038,7 @@ export namespace Prisma {
     status: $Enums.ContractStatus
     packageType: $Enums.PackageType
     packageName: string
+    sessionMode: $Enums.SessionMode | null
     description: string | null
     packageQuantity: number
     extraSessions: number
@@ -6881,6 +7055,19 @@ export namespace Prisma {
     cancellationReason: string | null
     terms: string | null
     notes: string | null
+    eSignProvider: string | null
+    eSignRequestId: string | null
+    eSignStatus: string | null
+    eSignTestMode: boolean
+    eSignSentAt: Date | null
+    clientSignedAt: Date | null
+    ptSignedAt: Date | null
+    fullySignedAt: Date | null
+    contractPdfPath: string | null
+    signedPdfUrl: string | null
+    eSignError: string | null
+    clientSignerEmail: string | null
+    ptSignerEmail: string | null
     createdAt: Date
     updatedAt: Date
     _count: ContractCountAggregateOutputType | null
@@ -6911,6 +7098,7 @@ export namespace Prisma {
     status?: boolean
     packageType?: boolean
     packageName?: boolean
+    sessionMode?: boolean
     description?: boolean
     packageQuantity?: boolean
     extraSessions?: boolean
@@ -6927,6 +7115,19 @@ export namespace Prisma {
     cancellationReason?: boolean
     terms?: boolean
     notes?: boolean
+    eSignProvider?: boolean
+    eSignRequestId?: boolean
+    eSignStatus?: boolean
+    eSignTestMode?: boolean
+    eSignSentAt?: boolean
+    clientSignedAt?: boolean
+    ptSignedAt?: boolean
+    fullySignedAt?: boolean
+    contractPdfPath?: boolean
+    signedPdfUrl?: boolean
+    eSignError?: boolean
+    clientSignerEmail?: boolean
+    ptSignerEmail?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     sessions?: boolean | Contract$sessionsArgs<ExtArgs>
@@ -6941,6 +7142,7 @@ export namespace Prisma {
     status?: boolean
     packageType?: boolean
     packageName?: boolean
+    sessionMode?: boolean
     description?: boolean
     packageQuantity?: boolean
     extraSessions?: boolean
@@ -6957,6 +7159,19 @@ export namespace Prisma {
     cancellationReason?: boolean
     terms?: boolean
     notes?: boolean
+    eSignProvider?: boolean
+    eSignRequestId?: boolean
+    eSignStatus?: boolean
+    eSignTestMode?: boolean
+    eSignSentAt?: boolean
+    clientSignedAt?: boolean
+    ptSignedAt?: boolean
+    fullySignedAt?: boolean
+    contractPdfPath?: boolean
+    signedPdfUrl?: boolean
+    eSignError?: boolean
+    clientSignerEmail?: boolean
+    ptSignerEmail?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["contract"]>
@@ -6968,6 +7183,7 @@ export namespace Prisma {
     status?: boolean
     packageType?: boolean
     packageName?: boolean
+    sessionMode?: boolean
     description?: boolean
     packageQuantity?: boolean
     extraSessions?: boolean
@@ -6984,6 +7200,19 @@ export namespace Prisma {
     cancellationReason?: boolean
     terms?: boolean
     notes?: boolean
+    eSignProvider?: boolean
+    eSignRequestId?: boolean
+    eSignStatus?: boolean
+    eSignTestMode?: boolean
+    eSignSentAt?: boolean
+    clientSignedAt?: boolean
+    ptSignedAt?: boolean
+    fullySignedAt?: boolean
+    contractPdfPath?: boolean
+    signedPdfUrl?: boolean
+    eSignError?: boolean
+    clientSignerEmail?: boolean
+    ptSignerEmail?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -7008,6 +7237,7 @@ export namespace Prisma {
       status: $Enums.ContractStatus
       packageType: $Enums.PackageType
       packageName: string
+      sessionMode: $Enums.SessionMode | null
       description: string | null
       packageQuantity: number
       extraSessions: number
@@ -7024,6 +7254,19 @@ export namespace Prisma {
       cancellationReason: string | null
       terms: string | null
       notes: string | null
+      eSignProvider: string | null
+      eSignRequestId: string | null
+      eSignStatus: string | null
+      eSignTestMode: boolean
+      eSignSentAt: Date | null
+      clientSignedAt: Date | null
+      ptSignedAt: Date | null
+      fullySignedAt: Date | null
+      contractPdfPath: string | null
+      signedPdfUrl: string | null
+      eSignError: string | null
+      clientSignerEmail: string | null
+      ptSignerEmail: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["contract"]>
@@ -7427,6 +7670,7 @@ export namespace Prisma {
     readonly status: FieldRef<"Contract", 'ContractStatus'>
     readonly packageType: FieldRef<"Contract", 'PackageType'>
     readonly packageName: FieldRef<"Contract", 'String'>
+    readonly sessionMode: FieldRef<"Contract", 'SessionMode'>
     readonly description: FieldRef<"Contract", 'String'>
     readonly packageQuantity: FieldRef<"Contract", 'Int'>
     readonly extraSessions: FieldRef<"Contract", 'Int'>
@@ -7443,6 +7687,19 @@ export namespace Prisma {
     readonly cancellationReason: FieldRef<"Contract", 'String'>
     readonly terms: FieldRef<"Contract", 'String'>
     readonly notes: FieldRef<"Contract", 'String'>
+    readonly eSignProvider: FieldRef<"Contract", 'String'>
+    readonly eSignRequestId: FieldRef<"Contract", 'String'>
+    readonly eSignStatus: FieldRef<"Contract", 'String'>
+    readonly eSignTestMode: FieldRef<"Contract", 'Boolean'>
+    readonly eSignSentAt: FieldRef<"Contract", 'DateTime'>
+    readonly clientSignedAt: FieldRef<"Contract", 'DateTime'>
+    readonly ptSignedAt: FieldRef<"Contract", 'DateTime'>
+    readonly fullySignedAt: FieldRef<"Contract", 'DateTime'>
+    readonly contractPdfPath: FieldRef<"Contract", 'String'>
+    readonly signedPdfUrl: FieldRef<"Contract", 'String'>
+    readonly eSignError: FieldRef<"Contract", 'String'>
+    readonly clientSignerEmail: FieldRef<"Contract", 'String'>
+    readonly ptSignerEmail: FieldRef<"Contract", 'String'>
     readonly createdAt: FieldRef<"Contract", 'DateTime'>
     readonly updatedAt: FieldRef<"Contract", 'DateTime'>
   }
@@ -13856,6 +14113,8 @@ export namespace Prisma {
     injuries: 'injuries',
     currentWeight: 'currentWeight',
     targetWeight: 'targetWeight',
+    dietaryPreference: 'dietaryPreference',
+    photoUrl: 'photoUrl',
     sessionDurationMinutes: 'sessionDurationMinutes',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -13901,6 +14160,10 @@ export namespace Prisma {
     sessionDurationMinutes: 'sessionDurationMinutes',
     availabilityBlocks: 'availabilityBlocks',
     additionalPricingNotes: 'additionalPricingNotes',
+    onlinePricePerSession: 'onlinePricePerSession',
+    offlinePricePerSession: 'offlinePricePerSession',
+    onlinePackagePrice: 'onlinePackagePrice',
+    offlinePackagePrice: 'offlinePackagePrice',
     otherReferences: 'otherReferences',
     adminNote: 'adminNote',
     rejectionReason: 'rejectionReason',
@@ -13949,6 +14212,7 @@ export namespace Prisma {
     status: 'status',
     packageType: 'packageType',
     packageName: 'packageName',
+    sessionMode: 'sessionMode',
     description: 'description',
     packageQuantity: 'packageQuantity',
     extraSessions: 'extraSessions',
@@ -13965,6 +14229,19 @@ export namespace Prisma {
     cancellationReason: 'cancellationReason',
     terms: 'terms',
     notes: 'notes',
+    eSignProvider: 'eSignProvider',
+    eSignRequestId: 'eSignRequestId',
+    eSignStatus: 'eSignStatus',
+    eSignTestMode: 'eSignTestMode',
+    eSignSentAt: 'eSignSentAt',
+    clientSignedAt: 'clientSignedAt',
+    ptSignedAt: 'ptSignedAt',
+    fullySignedAt: 'fullySignedAt',
+    contractPdfPath: 'contractPdfPath',
+    signedPdfUrl: 'signedPdfUrl',
+    eSignError: 'eSignError',
+    clientSignerEmail: 'clientSignerEmail',
+    ptSignerEmail: 'ptSignerEmail',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -14321,20 +14598,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'SessionStatus'
-   */
-  export type EnumSessionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionStatus'>
-    
-
-
-  /**
-   * Reference to a field of type 'SessionStatus[]'
-   */
-  export type ListEnumSessionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionStatus[]'>
-    
-
-
-  /**
    * Reference to a field of type 'SessionMode'
    */
   export type EnumSessionModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionMode'>
@@ -14345,6 +14608,20 @@ export namespace Prisma {
    * Reference to a field of type 'SessionMode[]'
    */
   export type ListEnumSessionModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionMode[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'SessionStatus'
+   */
+  export type EnumSessionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'SessionStatus[]'
+   */
+  export type ListEnumSessionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionStatus[]'>
     
 
 
@@ -14414,6 +14691,8 @@ export namespace Prisma {
     injuries?: StringNullableListFilter<"UserProfile">
     currentWeight?: FloatNullableFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
+    photoUrl?: StringNullableFilter<"UserProfile"> | string | null
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
@@ -14438,6 +14717,8 @@ export namespace Prisma {
     injuries?: SortOrder
     currentWeight?: SortOrderInput | SortOrder
     targetWeight?: SortOrderInput | SortOrder
+    dietaryPreference?: SortOrderInput | SortOrder
+    photoUrl?: SortOrderInput | SortOrder
     sessionDurationMinutes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -14465,6 +14746,8 @@ export namespace Prisma {
     injuries?: StringNullableListFilter<"UserProfile">
     currentWeight?: FloatNullableFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableFilter<"UserProfile"> | number | null
+    dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
+    photoUrl?: StringNullableFilter<"UserProfile"> | string | null
     sessionDurationMinutes?: IntFilter<"UserProfile"> | number
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
@@ -14489,6 +14772,8 @@ export namespace Prisma {
     injuries?: SortOrder
     currentWeight?: SortOrderInput | SortOrder
     targetWeight?: SortOrderInput | SortOrder
+    dietaryPreference?: SortOrderInput | SortOrder
+    photoUrl?: SortOrderInput | SortOrder
     sessionDurationMinutes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -14520,6 +14805,8 @@ export namespace Prisma {
     injuries?: StringNullableListFilter<"UserProfile">
     currentWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
+    dietaryPreference?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    photoUrl?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     sessionDurationMinutes?: IntWithAggregatesFilter<"UserProfile"> | number
     createdAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"UserProfile"> | Date | string
@@ -14565,6 +14852,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFilter<"PTApplication"> | number
     availabilityBlocks?: JsonNullableFilter<"PTApplication">
     additionalPricingNotes?: StringNullableFilter<"PTApplication"> | string | null
+    onlinePricePerSession?: FloatNullableFilter<"PTApplication"> | number | null
+    offlinePricePerSession?: FloatNullableFilter<"PTApplication"> | number | null
+    onlinePackagePrice?: FloatNullableFilter<"PTApplication"> | number | null
+    offlinePackagePrice?: FloatNullableFilter<"PTApplication"> | number | null
     otherReferences?: StringNullableFilter<"PTApplication"> | string | null
     adminNote?: StringNullableFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableFilter<"PTApplication"> | string | null
@@ -14615,6 +14906,10 @@ export namespace Prisma {
     sessionDurationMinutes?: SortOrder
     availabilityBlocks?: SortOrderInput | SortOrder
     additionalPricingNotes?: SortOrderInput | SortOrder
+    onlinePricePerSession?: SortOrderInput | SortOrder
+    offlinePricePerSession?: SortOrderInput | SortOrder
+    onlinePackagePrice?: SortOrderInput | SortOrder
+    offlinePackagePrice?: SortOrderInput | SortOrder
     otherReferences?: SortOrderInput | SortOrder
     adminNote?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
@@ -14668,6 +14963,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFilter<"PTApplication"> | number
     availabilityBlocks?: JsonNullableFilter<"PTApplication">
     additionalPricingNotes?: StringNullableFilter<"PTApplication"> | string | null
+    onlinePricePerSession?: FloatNullableFilter<"PTApplication"> | number | null
+    offlinePricePerSession?: FloatNullableFilter<"PTApplication"> | number | null
+    onlinePackagePrice?: FloatNullableFilter<"PTApplication"> | number | null
+    offlinePackagePrice?: FloatNullableFilter<"PTApplication"> | number | null
     otherReferences?: StringNullableFilter<"PTApplication"> | string | null
     adminNote?: StringNullableFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableFilter<"PTApplication"> | string | null
@@ -14718,6 +15017,10 @@ export namespace Prisma {
     sessionDurationMinutes?: SortOrder
     availabilityBlocks?: SortOrderInput | SortOrder
     additionalPricingNotes?: SortOrderInput | SortOrder
+    onlinePricePerSession?: SortOrderInput | SortOrder
+    offlinePricePerSession?: SortOrderInput | SortOrder
+    onlinePackagePrice?: SortOrderInput | SortOrder
+    offlinePackagePrice?: SortOrderInput | SortOrder
     otherReferences?: SortOrderInput | SortOrder
     adminNote?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
@@ -14773,6 +15076,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntWithAggregatesFilter<"PTApplication"> | number
     availabilityBlocks?: JsonNullableWithAggregatesFilter<"PTApplication">
     additionalPricingNotes?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
+    onlinePricePerSession?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
+    offlinePricePerSession?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
+    onlinePackagePrice?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
+    offlinePackagePrice?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
     otherReferences?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     adminNote?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
@@ -14933,6 +15240,7 @@ export namespace Prisma {
     status?: EnumContractStatusFilter<"Contract"> | $Enums.ContractStatus
     packageType?: EnumPackageTypeFilter<"Contract"> | $Enums.PackageType
     packageName?: StringFilter<"Contract"> | string
+    sessionMode?: EnumSessionModeNullableFilter<"Contract"> | $Enums.SessionMode | null
     description?: StringNullableFilter<"Contract"> | string | null
     packageQuantity?: IntFilter<"Contract"> | number
     extraSessions?: IntFilter<"Contract"> | number
@@ -14949,6 +15257,19 @@ export namespace Prisma {
     cancellationReason?: StringNullableFilter<"Contract"> | string | null
     terms?: StringNullableFilter<"Contract"> | string | null
     notes?: StringNullableFilter<"Contract"> | string | null
+    eSignProvider?: StringNullableFilter<"Contract"> | string | null
+    eSignRequestId?: StringNullableFilter<"Contract"> | string | null
+    eSignStatus?: StringNullableFilter<"Contract"> | string | null
+    eSignTestMode?: BoolFilter<"Contract"> | boolean
+    eSignSentAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    clientSignedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    ptSignedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    fullySignedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    contractPdfPath?: StringNullableFilter<"Contract"> | string | null
+    signedPdfUrl?: StringNullableFilter<"Contract"> | string | null
+    eSignError?: StringNullableFilter<"Contract"> | string | null
+    clientSignerEmail?: StringNullableFilter<"Contract"> | string | null
+    ptSignerEmail?: StringNullableFilter<"Contract"> | string | null
     createdAt?: DateTimeFilter<"Contract"> | Date | string
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
     sessions?: SessionListRelationFilter
@@ -14962,6 +15283,7 @@ export namespace Prisma {
     status?: SortOrder
     packageType?: SortOrder
     packageName?: SortOrder
+    sessionMode?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
     packageQuantity?: SortOrder
     extraSessions?: SortOrder
@@ -14978,6 +15300,19 @@ export namespace Prisma {
     cancellationReason?: SortOrderInput | SortOrder
     terms?: SortOrderInput | SortOrder
     notes?: SortOrderInput | SortOrder
+    eSignProvider?: SortOrderInput | SortOrder
+    eSignRequestId?: SortOrderInput | SortOrder
+    eSignStatus?: SortOrderInput | SortOrder
+    eSignTestMode?: SortOrder
+    eSignSentAt?: SortOrderInput | SortOrder
+    clientSignedAt?: SortOrderInput | SortOrder
+    ptSignedAt?: SortOrderInput | SortOrder
+    fullySignedAt?: SortOrderInput | SortOrder
+    contractPdfPath?: SortOrderInput | SortOrder
+    signedPdfUrl?: SortOrderInput | SortOrder
+    eSignError?: SortOrderInput | SortOrder
+    clientSignerEmail?: SortOrderInput | SortOrder
+    ptSignerEmail?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     sessions?: SessionOrderByRelationAggregateInput
@@ -14994,6 +15329,7 @@ export namespace Prisma {
     status?: EnumContractStatusFilter<"Contract"> | $Enums.ContractStatus
     packageType?: EnumPackageTypeFilter<"Contract"> | $Enums.PackageType
     packageName?: StringFilter<"Contract"> | string
+    sessionMode?: EnumSessionModeNullableFilter<"Contract"> | $Enums.SessionMode | null
     description?: StringNullableFilter<"Contract"> | string | null
     packageQuantity?: IntFilter<"Contract"> | number
     extraSessions?: IntFilter<"Contract"> | number
@@ -15010,6 +15346,19 @@ export namespace Prisma {
     cancellationReason?: StringNullableFilter<"Contract"> | string | null
     terms?: StringNullableFilter<"Contract"> | string | null
     notes?: StringNullableFilter<"Contract"> | string | null
+    eSignProvider?: StringNullableFilter<"Contract"> | string | null
+    eSignRequestId?: StringNullableFilter<"Contract"> | string | null
+    eSignStatus?: StringNullableFilter<"Contract"> | string | null
+    eSignTestMode?: BoolFilter<"Contract"> | boolean
+    eSignSentAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    clientSignedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    ptSignedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    fullySignedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    contractPdfPath?: StringNullableFilter<"Contract"> | string | null
+    signedPdfUrl?: StringNullableFilter<"Contract"> | string | null
+    eSignError?: StringNullableFilter<"Contract"> | string | null
+    clientSignerEmail?: StringNullableFilter<"Contract"> | string | null
+    ptSignerEmail?: StringNullableFilter<"Contract"> | string | null
     createdAt?: DateTimeFilter<"Contract"> | Date | string
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
     sessions?: SessionListRelationFilter
@@ -15023,6 +15372,7 @@ export namespace Prisma {
     status?: SortOrder
     packageType?: SortOrder
     packageName?: SortOrder
+    sessionMode?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
     packageQuantity?: SortOrder
     extraSessions?: SortOrder
@@ -15039,6 +15389,19 @@ export namespace Prisma {
     cancellationReason?: SortOrderInput | SortOrder
     terms?: SortOrderInput | SortOrder
     notes?: SortOrderInput | SortOrder
+    eSignProvider?: SortOrderInput | SortOrder
+    eSignRequestId?: SortOrderInput | SortOrder
+    eSignStatus?: SortOrderInput | SortOrder
+    eSignTestMode?: SortOrder
+    eSignSentAt?: SortOrderInput | SortOrder
+    clientSignedAt?: SortOrderInput | SortOrder
+    ptSignedAt?: SortOrderInput | SortOrder
+    fullySignedAt?: SortOrderInput | SortOrder
+    contractPdfPath?: SortOrderInput | SortOrder
+    signedPdfUrl?: SortOrderInput | SortOrder
+    eSignError?: SortOrderInput | SortOrder
+    clientSignerEmail?: SortOrderInput | SortOrder
+    ptSignerEmail?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ContractCountOrderByAggregateInput
@@ -15058,6 +15421,7 @@ export namespace Prisma {
     status?: EnumContractStatusWithAggregatesFilter<"Contract"> | $Enums.ContractStatus
     packageType?: EnumPackageTypeWithAggregatesFilter<"Contract"> | $Enums.PackageType
     packageName?: StringWithAggregatesFilter<"Contract"> | string
+    sessionMode?: EnumSessionModeNullableWithAggregatesFilter<"Contract"> | $Enums.SessionMode | null
     description?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     packageQuantity?: IntWithAggregatesFilter<"Contract"> | number
     extraSessions?: IntWithAggregatesFilter<"Contract"> | number
@@ -15074,6 +15438,19 @@ export namespace Prisma {
     cancellationReason?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     terms?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     notes?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    eSignProvider?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    eSignRequestId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    eSignStatus?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    eSignTestMode?: BoolWithAggregatesFilter<"Contract"> | boolean
+    eSignSentAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    clientSignedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    ptSignedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    fullySignedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    contractPdfPath?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    signedPdfUrl?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    eSignError?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    clientSignerEmail?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    ptSignerEmail?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Contract"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Contract"> | Date | string
   }
@@ -15624,6 +16001,8 @@ export namespace Prisma {
     injuries?: UserProfileCreateinjuriesInput | string[]
     currentWeight?: number | null
     targetWeight?: number | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
     sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -15648,6 +16027,8 @@ export namespace Prisma {
     injuries?: UserProfileCreateinjuriesInput | string[]
     currentWeight?: number | null
     targetWeight?: number | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
     sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -15672,6 +16053,8 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15696,6 +16079,8 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15720,6 +16105,8 @@ export namespace Prisma {
     injuries?: UserProfileCreateinjuriesInput | string[]
     currentWeight?: number | null
     targetWeight?: number | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
     sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -15743,6 +16130,8 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15766,6 +16155,8 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15807,6 +16198,10 @@ export namespace Prisma {
     sessionDurationMinutes?: number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
+    onlinePricePerSession?: number | null
+    offlinePricePerSession?: number | null
+    onlinePackagePrice?: number | null
+    offlinePackagePrice?: number | null
     otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
@@ -15857,6 +16252,10 @@ export namespace Prisma {
     sessionDurationMinutes?: number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
+    onlinePricePerSession?: number | null
+    offlinePricePerSession?: number | null
+    onlinePackagePrice?: number | null
+    offlinePackagePrice?: number | null
     otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
@@ -15905,6 +16304,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    onlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -15955,6 +16358,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    onlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16004,6 +16411,10 @@ export namespace Prisma {
     sessionDurationMinutes?: number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
+    onlinePricePerSession?: number | null
+    offlinePricePerSession?: number | null
+    onlinePackagePrice?: number | null
+    offlinePackagePrice?: number | null
     otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
@@ -16050,6 +16461,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    onlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16097,6 +16512,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    onlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16266,6 +16685,7 @@ export namespace Prisma {
     status?: $Enums.ContractStatus
     packageType?: $Enums.PackageType
     packageName: string
+    sessionMode?: $Enums.SessionMode | null
     description?: string | null
     packageQuantity?: number
     extraSessions?: number
@@ -16282,6 +16702,19 @@ export namespace Prisma {
     cancellationReason?: string | null
     terms?: string | null
     notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutContractInput
@@ -16295,6 +16728,7 @@ export namespace Prisma {
     status?: $Enums.ContractStatus
     packageType?: $Enums.PackageType
     packageName: string
+    sessionMode?: $Enums.SessionMode | null
     description?: string | null
     packageQuantity?: number
     extraSessions?: number
@@ -16311,6 +16745,19 @@ export namespace Prisma {
     cancellationReason?: string | null
     terms?: string | null
     notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
@@ -16324,6 +16771,7 @@ export namespace Prisma {
     status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     packageQuantity?: IntFieldUpdateOperationsInput | number
     extraSessions?: IntFieldUpdateOperationsInput | number
@@ -16340,6 +16788,19 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     terms?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutContractNestedInput
@@ -16353,6 +16814,7 @@ export namespace Prisma {
     status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     packageQuantity?: IntFieldUpdateOperationsInput | number
     extraSessions?: IntFieldUpdateOperationsInput | number
@@ -16369,6 +16831,19 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     terms?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
@@ -16382,6 +16857,7 @@ export namespace Prisma {
     status?: $Enums.ContractStatus
     packageType?: $Enums.PackageType
     packageName: string
+    sessionMode?: $Enums.SessionMode | null
     description?: string | null
     packageQuantity?: number
     extraSessions?: number
@@ -16398,6 +16874,19 @@ export namespace Prisma {
     cancellationReason?: string | null
     terms?: string | null
     notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -16409,6 +16898,7 @@ export namespace Prisma {
     status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     packageQuantity?: IntFieldUpdateOperationsInput | number
     extraSessions?: IntFieldUpdateOperationsInput | number
@@ -16425,6 +16915,19 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     terms?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -16436,6 +16939,7 @@ export namespace Prisma {
     status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     packageQuantity?: IntFieldUpdateOperationsInput | number
     extraSessions?: IntFieldUpdateOperationsInput | number
@@ -16452,6 +16956,19 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     terms?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -17224,6 +17741,8 @@ export namespace Prisma {
     injuries?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    dietaryPreference?: SortOrder
+    photoUrl?: SortOrder
     sessionDurationMinutes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -17253,6 +17772,8 @@ export namespace Prisma {
     experienceLevel?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    dietaryPreference?: SortOrder
+    photoUrl?: SortOrder
     sessionDurationMinutes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -17273,6 +17794,8 @@ export namespace Prisma {
     experienceLevel?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
+    dietaryPreference?: SortOrder
+    photoUrl?: SortOrder
     sessionDurationMinutes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -17542,6 +18065,10 @@ export namespace Prisma {
     sessionDurationMinutes?: SortOrder
     availabilityBlocks?: SortOrder
     additionalPricingNotes?: SortOrder
+    onlinePricePerSession?: SortOrder
+    offlinePricePerSession?: SortOrder
+    onlinePackagePrice?: SortOrder
+    offlinePackagePrice?: SortOrder
     otherReferences?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
@@ -17558,6 +18085,10 @@ export namespace Prisma {
     packagePrice?: SortOrder
     sessionsPerPackage?: SortOrder
     sessionDurationMinutes?: SortOrder
+    onlinePricePerSession?: SortOrder
+    offlinePricePerSession?: SortOrder
+    onlinePackagePrice?: SortOrder
+    offlinePackagePrice?: SortOrder
   }
 
   export type PTApplicationMaxOrderByAggregateInput = {
@@ -17589,6 +18120,10 @@ export namespace Prisma {
     sessionsPerPackage?: SortOrder
     sessionDurationMinutes?: SortOrder
     additionalPricingNotes?: SortOrder
+    onlinePricePerSession?: SortOrder
+    offlinePricePerSession?: SortOrder
+    onlinePackagePrice?: SortOrder
+    offlinePackagePrice?: SortOrder
     otherReferences?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
@@ -17628,6 +18163,10 @@ export namespace Prisma {
     sessionsPerPackage?: SortOrder
     sessionDurationMinutes?: SortOrder
     additionalPricingNotes?: SortOrder
+    onlinePricePerSession?: SortOrder
+    offlinePricePerSession?: SortOrder
+    onlinePackagePrice?: SortOrder
+    offlinePackagePrice?: SortOrder
     otherReferences?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
@@ -17644,6 +18183,10 @@ export namespace Prisma {
     packagePrice?: SortOrder
     sessionsPerPackage?: SortOrder
     sessionDurationMinutes?: SortOrder
+    onlinePricePerSession?: SortOrder
+    offlinePricePerSession?: SortOrder
+    onlinePackagePrice?: SortOrder
+    offlinePackagePrice?: SortOrder
   }
 
   export type EnumPTApplicationStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -17807,6 +18350,13 @@ export namespace Prisma {
     not?: NestedEnumPackageTypeFilter<$PrismaModel> | $Enums.PackageType
   }
 
+  export type EnumSessionModeNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionMode | EnumSessionModeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumSessionModeNullableFilter<$PrismaModel> | $Enums.SessionMode | null
+  }
+
   export type SessionListRelationFilter = {
     every?: SessionWhereInput
     some?: SessionWhereInput
@@ -17834,6 +18384,7 @@ export namespace Prisma {
     status?: SortOrder
     packageType?: SortOrder
     packageName?: SortOrder
+    sessionMode?: SortOrder
     description?: SortOrder
     packageQuantity?: SortOrder
     extraSessions?: SortOrder
@@ -17850,6 +18401,19 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     terms?: SortOrder
     notes?: SortOrder
+    eSignProvider?: SortOrder
+    eSignRequestId?: SortOrder
+    eSignStatus?: SortOrder
+    eSignTestMode?: SortOrder
+    eSignSentAt?: SortOrder
+    clientSignedAt?: SortOrder
+    ptSignedAt?: SortOrder
+    fullySignedAt?: SortOrder
+    contractPdfPath?: SortOrder
+    signedPdfUrl?: SortOrder
+    eSignError?: SortOrder
+    clientSignerEmail?: SortOrder
+    ptSignerEmail?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17870,6 +18434,7 @@ export namespace Prisma {
     status?: SortOrder
     packageType?: SortOrder
     packageName?: SortOrder
+    sessionMode?: SortOrder
     description?: SortOrder
     packageQuantity?: SortOrder
     extraSessions?: SortOrder
@@ -17886,6 +18451,19 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     terms?: SortOrder
     notes?: SortOrder
+    eSignProvider?: SortOrder
+    eSignRequestId?: SortOrder
+    eSignStatus?: SortOrder
+    eSignTestMode?: SortOrder
+    eSignSentAt?: SortOrder
+    clientSignedAt?: SortOrder
+    ptSignedAt?: SortOrder
+    fullySignedAt?: SortOrder
+    contractPdfPath?: SortOrder
+    signedPdfUrl?: SortOrder
+    eSignError?: SortOrder
+    clientSignerEmail?: SortOrder
+    ptSignerEmail?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17897,6 +18475,7 @@ export namespace Prisma {
     status?: SortOrder
     packageType?: SortOrder
     packageName?: SortOrder
+    sessionMode?: SortOrder
     description?: SortOrder
     packageQuantity?: SortOrder
     extraSessions?: SortOrder
@@ -17913,6 +18492,19 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     terms?: SortOrder
     notes?: SortOrder
+    eSignProvider?: SortOrder
+    eSignRequestId?: SortOrder
+    eSignStatus?: SortOrder
+    eSignTestMode?: SortOrder
+    eSignSentAt?: SortOrder
+    clientSignedAt?: SortOrder
+    ptSignedAt?: SortOrder
+    fullySignedAt?: SortOrder
+    contractPdfPath?: SortOrder
+    signedPdfUrl?: SortOrder
+    eSignError?: SortOrder
+    clientSignerEmail?: SortOrder
+    ptSignerEmail?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17944,6 +18536,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPackageTypeFilter<$PrismaModel>
     _max?: NestedEnumPackageTypeFilter<$PrismaModel>
+  }
+
+  export type EnumSessionModeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionMode | EnumSessionModeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumSessionModeNullableWithAggregatesFilter<$PrismaModel> | $Enums.SessionMode | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumSessionModeNullableFilter<$PrismaModel>
+    _max?: NestedEnumSessionModeNullableFilter<$PrismaModel>
   }
 
   export type EnumSessionStatusFilter<$PrismaModel = never> = {
@@ -18721,6 +19323,10 @@ export namespace Prisma {
     set?: $Enums.PackageType
   }
 
+  export type NullableEnumSessionModeFieldUpdateOperationsInput = {
+    set?: $Enums.SessionMode | null
+  }
+
   export type SessionUpdateManyWithoutContractNestedInput = {
     create?: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput> | SessionCreateWithoutContractInput[] | SessionUncheckedCreateWithoutContractInput[]
     connectOrCreate?: SessionCreateOrConnectWithoutContractInput | SessionCreateOrConnectWithoutContractInput[]
@@ -19251,6 +19857,13 @@ export namespace Prisma {
     not?: NestedEnumPackageTypeFilter<$PrismaModel> | $Enums.PackageType
   }
 
+  export type NestedEnumSessionModeNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionMode | EnumSessionModeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumSessionModeNullableFilter<$PrismaModel> | $Enums.SessionMode | null
+  }
+
   export type NestedEnumContractStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractStatus | EnumContractStatusFieldRefInput<$PrismaModel>
     in?: $Enums.ContractStatus[] | ListEnumContractStatusFieldRefInput<$PrismaModel>
@@ -19269,6 +19882,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPackageTypeFilter<$PrismaModel>
     _max?: NestedEnumPackageTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumSessionModeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.SessionMode | EnumSessionModeFieldRefInput<$PrismaModel> | null
+    in?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.SessionMode[] | ListEnumSessionModeFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumSessionModeNullableWithAggregatesFilter<$PrismaModel> | $Enums.SessionMode | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumSessionModeNullableFilter<$PrismaModel>
+    _max?: NestedEnumSessionModeNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumSessionStatusFilter<$PrismaModel = never> = {
@@ -19408,6 +20031,10 @@ export namespace Prisma {
     sessionDurationMinutes?: number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
+    onlinePricePerSession?: number | null
+    offlinePricePerSession?: number | null
+    onlinePackagePrice?: number | null
+    offlinePackagePrice?: number | null
     otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
@@ -19456,6 +20083,10 @@ export namespace Prisma {
     sessionDurationMinutes?: number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
+    onlinePricePerSession?: number | null
+    offlinePricePerSession?: number | null
+    onlinePackagePrice?: number | null
+    offlinePackagePrice?: number | null
     otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
@@ -19520,6 +20151,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    onlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19568,6 +20203,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    onlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -19658,6 +20297,8 @@ export namespace Prisma {
     injuries?: UserProfileCreateinjuriesInput | string[]
     currentWeight?: number | null
     targetWeight?: number | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
     sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -19681,6 +20322,8 @@ export namespace Prisma {
     injuries?: UserProfileCreateinjuriesInput | string[]
     currentWeight?: number | null
     targetWeight?: number | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
     sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -19780,6 +20423,8 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19803,6 +20448,8 @@ export namespace Prisma {
     injuries?: UserProfileUpdateinjuriesInput | string[]
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19844,6 +20491,10 @@ export namespace Prisma {
     sessionDurationMinutes?: number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
+    onlinePricePerSession?: number | null
+    offlinePricePerSession?: number | null
+    onlinePackagePrice?: number | null
+    offlinePackagePrice?: number | null
     otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
@@ -19893,6 +20544,10 @@ export namespace Prisma {
     sessionDurationMinutes?: number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
+    onlinePricePerSession?: number | null
+    offlinePricePerSession?: number | null
+    onlinePackagePrice?: number | null
+    offlinePackagePrice?: number | null
     otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
@@ -19956,6 +20611,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    onlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20005,6 +20664,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    onlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20052,6 +20715,10 @@ export namespace Prisma {
     sessionDurationMinutes?: number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
+    onlinePricePerSession?: number | null
+    offlinePricePerSession?: number | null
+    onlinePackagePrice?: number | null
+    offlinePackagePrice?: number | null
     otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
@@ -20101,6 +20768,10 @@ export namespace Prisma {
     sessionDurationMinutes?: number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: string | null
+    onlinePricePerSession?: number | null
+    offlinePricePerSession?: number | null
+    onlinePackagePrice?: number | null
+    offlinePackagePrice?: number | null
     otherReferences?: string | null
     adminNote?: string | null
     rejectionReason?: string | null
@@ -20164,6 +20835,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    onlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20213,6 +20888,10 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     availabilityBlocks?: NullableJsonNullValueInput | InputJsonValue
     additionalPricingNotes?: NullableStringFieldUpdateOperationsInput | string | null
+    onlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20377,6 +21056,7 @@ export namespace Prisma {
     status?: $Enums.ContractStatus
     packageType?: $Enums.PackageType
     packageName: string
+    sessionMode?: $Enums.SessionMode | null
     description?: string | null
     packageQuantity?: number
     extraSessions?: number
@@ -20393,6 +21073,19 @@ export namespace Prisma {
     cancellationReason?: string | null
     terms?: string | null
     notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
@@ -20405,6 +21098,7 @@ export namespace Prisma {
     status?: $Enums.ContractStatus
     packageType?: $Enums.PackageType
     packageName: string
+    sessionMode?: $Enums.SessionMode | null
     description?: string | null
     packageQuantity?: number
     extraSessions?: number
@@ -20421,6 +21115,19 @@ export namespace Prisma {
     cancellationReason?: string | null
     terms?: string | null
     notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
@@ -20472,6 +21179,7 @@ export namespace Prisma {
     status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     packageQuantity?: IntFieldUpdateOperationsInput | number
     extraSessions?: IntFieldUpdateOperationsInput | number
@@ -20488,6 +21196,19 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     terms?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
@@ -20500,6 +21221,7 @@ export namespace Prisma {
     status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     packageQuantity?: IntFieldUpdateOperationsInput | number
     extraSessions?: IntFieldUpdateOperationsInput | number
@@ -20516,6 +21238,19 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     terms?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
@@ -20602,6 +21337,7 @@ export namespace Prisma {
     status?: $Enums.ContractStatus
     packageType?: $Enums.PackageType
     packageName: string
+    sessionMode?: $Enums.SessionMode | null
     description?: string | null
     packageQuantity?: number
     extraSessions?: number
@@ -20618,6 +21354,19 @@ export namespace Prisma {
     cancellationReason?: string | null
     terms?: string | null
     notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutContractInput
@@ -20630,6 +21379,7 @@ export namespace Prisma {
     status?: $Enums.ContractStatus
     packageType?: $Enums.PackageType
     packageName: string
+    sessionMode?: $Enums.SessionMode | null
     description?: string | null
     packageQuantity?: number
     extraSessions?: number
@@ -20646,6 +21396,19 @@ export namespace Prisma {
     cancellationReason?: string | null
     terms?: string | null
     notes?: string | null
+    eSignProvider?: string | null
+    eSignRequestId?: string | null
+    eSignStatus?: string | null
+    eSignTestMode?: boolean
+    eSignSentAt?: Date | string | null
+    clientSignedAt?: Date | string | null
+    ptSignedAt?: Date | string | null
+    fullySignedAt?: Date | string | null
+    contractPdfPath?: string | null
+    signedPdfUrl?: string | null
+    eSignError?: string | null
+    clientSignerEmail?: string | null
+    ptSignerEmail?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
@@ -20725,6 +21488,7 @@ export namespace Prisma {
     status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     packageQuantity?: IntFieldUpdateOperationsInput | number
     extraSessions?: IntFieldUpdateOperationsInput | number
@@ -20741,6 +21505,19 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     terms?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutContractNestedInput
@@ -20753,6 +21530,7 @@ export namespace Prisma {
     status?: EnumContractStatusFieldUpdateOperationsInput | $Enums.ContractStatus
     packageType?: EnumPackageTypeFieldUpdateOperationsInput | $Enums.PackageType
     packageName?: StringFieldUpdateOperationsInput | string
+    sessionMode?: NullableEnumSessionModeFieldUpdateOperationsInput | $Enums.SessionMode | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
     packageQuantity?: IntFieldUpdateOperationsInput | number
     extraSessions?: IntFieldUpdateOperationsInput | number
@@ -20769,6 +21547,19 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     terms?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignProvider?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignRequestId?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignTestMode?: BoolFieldUpdateOperationsInput | boolean
+    eSignSentAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ptSignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fullySignedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    contractPdfPath?: NullableStringFieldUpdateOperationsInput | string | null
+    signedPdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    eSignError?: NullableStringFieldUpdateOperationsInput | string | null
+    clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput

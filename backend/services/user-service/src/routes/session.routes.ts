@@ -10,6 +10,7 @@ router.get('/upcoming', authMiddleware, bookingController.getMyUpcoming as any);
 router.get('/contract/:contractId', authMiddleware, bookingController.getContractSessions as any);
 
 // ── Session actions ──────────────────────────────────────────────────
+router.post('/:id/join', authMiddleware, bookingController.joinSession as any);
 router.patch('/:id/confirm', authMiddleware, bookingController.confirmSession as any);
 router.patch('/:id/complete', authMiddleware, bookingController.completeSession as any);
 router.patch('/:id/cancel', authMiddleware, bookingController.cancelSession as any);

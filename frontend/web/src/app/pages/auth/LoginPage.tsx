@@ -3,11 +3,10 @@ import { useNavigate, Link } from "react-router";
 import { useApp, UserRole } from "../../context/AppContext";
 import { Eye, EyeOff, Dumbbell, User, Zap, Shield, ArrowRight, Activity, Brain } from "lucide-react";
 
-// Demo account tiles — clicking one fills the form
 const features = [
-  { icon: Activity, text: "InBody body composition analysis" },
-  { icon: Brain,    text: "AI-generated workout & nutrition plans" },
-  { icon: Zap,      text: "PT-managed coaching with live progress" },
+  { icon: Activity, text: "Phân tích thành phần cơ thể InBody" },
+  { icon: Brain,    text: "Kế hoạch tập luyện & dinh dưỡng từ AI" },
+  { icon: Zap,      text: "Huấn luyện PT chuyên nghiệp với theo dõi tiến độ" },
 ];
 
 export function LoginPage() {
@@ -28,17 +27,15 @@ export function LoginPage() {
     try {
       const success = await login(email, password);
       if (success) {
-        // AppContext handles user state; we just need to navigate
-        // Get user from localStorage or state (state might not be updated yet, so we can re-derive role or use state if it is)
         const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
         const role = storedUser.role === "ADMIN" ? "admin" : (storedUser.isPT ? "pt" : "client");
-        
+
         navigate(role === "pt" ? "/pt/dashboard" : role === "admin" ? "/admin/dashboard" : "/client/dashboard");
       } else {
-        setError("Invalid email or password");
+        setError("Email hoặc mật khẩu không đúng");
       }
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setError("Đã xảy ra lỗi. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -70,16 +67,16 @@ export function LoginPage() {
               </div>
               <div>
                 <div className="font-bold text-lg text-white leading-tight tracking-tight">FITNESS AI</div>
-                <div className="text-green-400 text-sm">AI Gym Coach Platform</div>
+                <div className="text-green-400 text-sm">Nền tảng AI Gym Coach</div>
               </div>
             </div>
 
             <h1 className="text-4xl font-bold leading-tight mb-4 text-white">
-              Your intelligent<br />
-              <span className="text-green-400">fitness companion</span>
+              Trợ lý tập luyện<br />
+              <span className="text-green-400">thông minh của bạn</span>
             </h1>
             <p className="text-zinc-400 leading-relaxed">
-              AI-powered workout plans, real-time InBody analysis, and expert coaching — all in one performance platform.
+              Kế hoạch tập luyện từ AI, phân tích InBody thời gian thực, và huấn luyện chuyên gia — tất cả trong một nền tảng.
             </p>
           </div>
 
@@ -93,12 +90,10 @@ export function LoginPage() {
               </div>
             ))}
 
-            {/* Role model explainer */}
             <div className="mt-6 p-4 bg-zinc-800/60 rounded-xl border border-zinc-700/40">
               <p className="text-xs text-zinc-500 leading-relaxed">
-                <span className="text-zinc-300 font-semibold">One account, multiple roles.</span>{" "}
-                Personal Trainers retain full access to their own fitness tracking while
-                gaining a professional coaching workspace — all in one unified platform.
+                <span className="text-zinc-300 font-semibold">Một tài khoản, nhiều vai trò.</span>{" "}
+                Huấn luyện viên PT vẫn giữ toàn quyền theo dõi tập luyện cá nhân, đồng thời có không gian làm việc chuyên nghiệp — tất cả trong một nền tảng.
               </p>
             </div>
           </div>
@@ -114,8 +109,8 @@ export function LoginPage() {
             <span className="font-bold text-zinc-100 tracking-tight">FITNESS AI</span>
           </div>
 
-          <h2 className="text-2xl font-bold text-zinc-100 mb-1">Welcome back</h2>
-          <p className="text-zinc-500 text-sm mb-6">Sign in to your account to continue</p>
+          <h2 className="text-2xl font-bold text-zinc-100 mb-1">Chào mừng trở lại</h2>
+          <p className="text-zinc-500 text-sm mb-6">Đăng nhập vào tài khoản của bạn để tiếp tục</p>
 
           {error && (
             <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
@@ -123,10 +118,9 @@ export function LoginPage() {
             </div>
           )}
 
-          {/* Login form */}
           <form onSubmit={handleLogin} className="space-y-4 mb-6">
             <div>
-              <label className="text-xs font-semibold text-zinc-400 mb-1.5 block uppercase tracking-wider">Email address</label>
+              <label className="text-xs font-semibold text-zinc-400 mb-1.5 block uppercase tracking-wider">Địa chỉ email</label>
               <input
                 type="email"
                 value={email}
@@ -138,8 +132,8 @@ export function LoginPage() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Password</label>
-                <Link to="/login" className="text-xs text-green-400 hover:text-green-300 transition-colors">Forgot password?</Link>
+                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Mật khẩu</label>
+                <Link to="/login" className="text-xs text-green-400 hover:text-green-300 transition-colors">Quên mật khẩu?</Link>
               </div>
               <div className="relative">
                 <input
@@ -164,15 +158,15 @@ export function LoginPage() {
               disabled={loading}
               className="w-full bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:scale-[1.01] active:scale-[0.99]"
             >
-              {loading ? "Signing in..." : "Sign In"} <ArrowRight className="w-4 h-4" />
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"} <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
 
           <p className="text-center text-sm text-zinc-500 mt-5">
-            Don't have an account?{" "}
+            Chưa có tài khoản?{" "}
             <Link to="/register" className="text-green-400 font-semibold hover:text-green-300 transition-colors">
-              Create account
+              Tạo tài khoản
             </Link>
           </p>
         </div>

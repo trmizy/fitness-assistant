@@ -47,6 +47,10 @@ export interface PTApplication {
   sessionsPerPackage?: number;
   monthlyProgramPrice?: number;
   additionalPricingNotes?: string;
+  onlinePricePerSession?: number;
+  offlinePricePerSession?: number;
+  onlinePackagePrice?: number;
+  offlinePackagePrice?: number;
   otherReferences?: string;
   adminNote?: string;
   rejectionReason?: string;

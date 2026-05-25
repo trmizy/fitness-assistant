@@ -169,6 +169,15 @@ export const profileService = {
     return data;
   },
 
+  uploadPhoto: async (file: File) => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const { data } = await api.post('/profile/me/photo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data as { photoUrl: string };
+  },
+
   becomePT: async () => {
     const { data } = await api.patch('/profile/me/become-pt');
     return data;
@@ -438,6 +447,13 @@ export const adminService = {
   },
 };
 
+export const foodService = {
+  search: async (q: string) => {
+    const { data } = await api.get(`/food/search?q=${encodeURIComponent(q)}`);
+    return data as Array<{ id: string; name: string; calories: number; protein: number; carbs: number; fats: number; imageUrl: string | null }>;
+  },
+};
+
 export const nutritionService = {
   getLogs: async (startDate?: string, endDate?: string, mealType?: string) => {
     const params = new URLSearchParams();
@@ -451,8 +467,20 @@ export const nutritionService = {
     const { data } = await api.post('/nutrition', log);
     return data;
   },
+  updateLog: async (id: string, log: any) => {
+    const { data } = await api.put(`/nutrition/${id}`, log);
+    return data;
+  },
   deleteLog: async (id: string) => {
     const { data } = await api.delete(`/nutrition/${id}`);
+    return data;
+  },
+  getGoal: async () => {
+    const { data } = await api.get('/nutrition/goals');
+    return data as { id?: string; calories: number; protein: number; carbs: number; fat: number; waterMl: number | null };
+  },
+  upsertGoal: async (goal: { calories: number; protein: number; carbs: number; fat: number; waterMl?: number }) => {
+    const { data } = await api.put('/nutrition/goals', goal);
     return data;
   },
 };
@@ -464,9 +492,12 @@ export const contractService = {
     packageType: string;
     packageName: string;
     description?: string;
-    totalSessions: number;
+    totalSessions?: number;
+    packageQuantity?: number;
+    extraSessions?: number;
     price?: number;
     pricePerSession?: number;
+    sessionMode?: 'ONLINE' | 'OFFLINE';
     startDate?: string;
     endDate?: string;
     message?: string;
@@ -522,6 +553,17 @@ export const contractService = {
     const { data } = await api.post(`/contracts/${id}/session`);
     return data;
   },
+
+  // E-sign endpoints
+  getESignStatus: async (contractId: string) => {
+    const { data } = await api.get(`/contracts/${contractId}/esign`);
+    return data;
+  },
+  resendESign: async (contractId: string) => {
+    const { data } = await api.post(`/contracts/${contractId}/esign/send`);
+    return data;
+  },
+  getPdfUrl: (contractId: string) => `${API_URL}/contracts/${contractId}/pdf`,
 };
 
 export const sessionService = {
@@ -563,6 +605,18 @@ export const sessionService = {
   reviewSession: async (id: string, rating: number, comment?: string) => {
     const { data } = await api.post(`/sessions/${id}/review`, { rating, comment });
     return data;
+  },
+  joinSession: async (id: string) => {
+    const { data } = await api.post(`/sessions/${id}/join`);
+    return data as {
+      sessionId: string;
+      otherUserId: string;
+      sessionMode: string;
+      status: string;
+      scheduledStartAt: string;
+      scheduledEndAt: string;
+      joinToken: string;
+    };
   },
 };
 

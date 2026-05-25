@@ -5,6 +5,15 @@ import { useWebRTC } from '../hooks/useWebRTC';
 import { useApp } from './AppContext';
 import type { CallUIState, CallSessionInfo, CallType } from '../types';
 
+const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+];
+
+interface ExistingCallData { callSessionId: string; status: string; iceServers?: RTCIceServer[]; }
+interface MediaToggledData { callSessionId: string; userId: string; kind: 'audio' | 'video'; enabled: boolean; }
+interface CallErrorData { message?: string; }
+
 // ── State ──────────────────────────────────────────────────────
 interface CallState {
   uiState: CallUIState;
@@ -72,6 +81,7 @@ function callReducer(state: CallState, action: Action): CallState {
 interface CallContextValue {
   state: CallState;
   initiateCall: (calleeId: string, callType: CallType, conversationId: string) => void;
+  joinCoachingSession: (session: { id: string; otherUserId: string; joinToken: string }) => Promise<void>;
   acceptCall: () => void;
   rejectCall: () => void;
   cancelCall: () => void;
@@ -222,12 +232,38 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
     const onCallEnd = () => doCleanup();
 
-    const onMediaToggled = (data: any) => {
+    const onMissed = () => {
+      const s = stateRef.current;
+      if (s.callInfo?.origin === 'SESSION') {
+        toast.info('Người còn lại chưa online trong buổi học. Vui lòng chờ hoặc thử lại sau.');
+      }
+      doCleanup();
+    };
+
+    const onExisting = (data: ExistingCallData) => {
+      const { callSessionId, status, iceServers } = data;
+      if (['RINGING', 'INITIATING', 'ACCEPTED'].includes(status)) {
+        isCallerRef.current = false;
+        iceServersRef.current = iceServers?.length ? iceServers : DEFAULT_ICE_SERVERS;
+        dispatch({ type: 'UPDATE_CALL_SESSION_ID', payload: callSessionId });
+        connectSocket().emit('call:accept', { callSessionId });
+      } else if (status === 'ACTIVE') {
+        toast.error('Buổi học đang diễn ra. Vui lòng tham gia lại từ trang lịch học.');
+        doCleanup();
+      } else {
+        doCleanup();
+      }
+    };
+
+    const onMediaToggled = (data: MediaToggledData) => {
       dispatch({ type: 'SET_REMOTE_MEDIA', payload: { kind: data.kind, enabled: data.enabled } });
     };
 
-    const onError = (data: any) => {
-      toast.error(data.message || 'Call error');
+    const onError = (data: CallErrorData) => {
+      const isTokenError = data.message?.includes('token') || data.message?.includes('join');
+      toast.error(isTokenError
+        ? 'Phiên tham gia không hợp lệ hoặc đã hết hạn. Vui lòng bấm tham gia lại.'
+        : data.message || 'Lỗi cuộc gọi');
       doCleanup();
     };
 
@@ -240,9 +276,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
     socket.on('call:rejected', onCallEnd);
     socket.on('call:cancelled', onCallEnd);
     socket.on('call:ended', onCallEnd);
-    socket.on('call:missed', onCallEnd);
+    socket.on('call:missed', onMissed);
     socket.on('call:failed', onCallEnd);
     socket.on('call:accepted_elsewhere', onCallEnd);
+    socket.on('call:existing', onExisting);
     socket.on('call:media_toggled', onMediaToggled);
     socket.on('call:error', onError);
 
@@ -256,9 +293,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
       socket.off('call:rejected', onCallEnd);
       socket.off('call:cancelled', onCallEnd);
       socket.off('call:ended', onCallEnd);
-      socket.off('call:missed', onCallEnd);
+      socket.off('call:missed', onMissed);
       socket.off('call:failed', onCallEnd);
       socket.off('call:accepted_elsewhere', onCallEnd);
+      socket.off('call:existing', onExisting);
       socket.off('call:media_toggled', onMediaToggled);
       socket.off('call:error', onError);
     };
@@ -299,6 +337,45 @@ export function CallProvider({ children }: { children: ReactNode }) {
     });
 
     socket.emit('call:initiate', { calleeId, callType, conversationId, origin: 'CHAT' });
+  }, []);
+
+  const joinCoachingSession = useCallback(async (session: {
+    id: string;
+    otherUserId: string;
+    joinToken: string;
+  }): Promise<void> => {
+    if (stateRef.current.uiState !== 'idle') return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error('Trình duyệt không hỗ trợ camera/micro hoặc cần chạy trên HTTPS/localhost');
+      return;
+    }
+    try {
+      await webrtcRef.current.acquireMedia('VIDEO');
+    } catch (err: any) {
+      toast.error('Không thể truy cập camera/micro. Vui lòng kiểm tra quyền trình duyệt.');
+      return;
+    }
+
+    const socket = connectSocket();
+    isCallerRef.current = true;
+    dispatch({
+      type: 'SET_OUTGOING',
+      payload: {
+        callSessionId: '',
+        callerId: '',
+        calleeId: session.otherUserId,
+        callType: 'VIDEO',
+        origin: 'SESSION',
+        conversationId: '',
+      },
+    });
+    socket.emit('call:initiate', {
+      calleeId: session.otherUserId,
+      callType: 'VIDEO',
+      origin: 'SESSION',
+      coachingSessionId: session.id,
+      joinToken: session.joinToken,
+    });
   }, []);
 
   const acceptCall = useCallback(async () => {
@@ -389,6 +466,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       value={{
         state,
         initiateCall,
+        joinCoachingSession,
         acceptCall,
         rejectCall,
         cancelCall,

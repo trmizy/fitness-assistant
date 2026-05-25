@@ -1,11 +1,22 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { profileController } from '../controllers/profile.controller';
 
 const router = Router();
 
+const photoUpload = multer({
+  dest: 'uploads/profile-photos/',
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files allowed'));
+  },
+});
+
 router.get('/me', authMiddleware, profileController.getProfile as any);
 router.put('/me', authMiddleware, profileController.upsertProfile as any);
+router.post('/me/photo', authMiddleware, photoUpload.single('photo'), profileController.uploadPhoto as any);
 router.patch('/me/become-pt', authMiddleware, profileController.becomePT as any);
 router.delete('/me', authMiddleware, profileController.deleteProfile as any);
 

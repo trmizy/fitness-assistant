@@ -2,6 +2,7 @@ FROM node:20-slim AS base
 RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 FROM base AS deps

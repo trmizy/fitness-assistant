@@ -3,7 +3,7 @@ import { callRepository } from '../repositories/call.repository';
 
 export const callService = {
   async initiateCall(data: {
-    conversationId: string;
+    conversationId?: string;
     callerId: string;
     calleeId: string;
     callType: CallType;
