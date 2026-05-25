@@ -195,6 +195,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       AUTH_SERVICE_URL: http://auth-service:3001
+      AI_SERVICE_URL: http://ai-service:3003
     env_file:
       - ../../.env
     volumes:
@@ -234,7 +235,7 @@ services:
       USER_SERVICE_URL: http://user-service:3004
       FITNESS_SERVICE_URL: http://fitness-service:3002
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
-      LLM_BASE_URL: ${LLM_BASE_URL:-http://ollama:11434}
+      LLM_BASE_URL: http://ollama:11434
       LLM_MODEL: llama3.2:3b
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}

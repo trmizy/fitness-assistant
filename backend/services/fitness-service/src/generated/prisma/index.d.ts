@@ -16106,10 +16106,10 @@ export namespace Prisma {
   export type NutritionGoalCreateInput = {
     id?: string
     userId: string
-    calories?: number
-    protein?: number
-    carbs?: number
-    fat?: number
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
     waterMl?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -16118,10 +16118,10 @@ export namespace Prisma {
   export type NutritionGoalUncheckedCreateInput = {
     id?: string
     userId: string
-    calories?: number
-    protein?: number
-    carbs?: number
-    fat?: number
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
     waterMl?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -16154,10 +16154,10 @@ export namespace Prisma {
   export type NutritionGoalCreateManyInput = {
     id?: string
     userId: string
-    calories?: number
-    protein?: number
-    carbs?: number
-    fat?: number
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
     waterMl?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string

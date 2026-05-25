@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { nutritionService } from '../services/nutrition.service';
-import { createNutritionSchema } from '../models/fitness.models';
+import { createNutritionSchema, upsertNutritionGoalSchema } from '../models/fitness.models';
 import type { AuthRequest } from '../middleware/auth.middleware';
 
 export const nutritionController = {
@@ -59,7 +59,7 @@ export const nutritionController = {
   async getGoal(req: AuthRequest, res: Response): Promise<void> {
     try {
       const goal = await nutritionService.getGoal(req.user!.id);
-      res.json(goal ?? { calories: 2000, protein: 150, carbs: 200, fat: 65, waterMl: null });
+      res.json(goal);
     } catch (error) {
       logger.error('Error fetching nutrition goal:', error);
       res.status(500).json({ error: 'Failed to fetch nutrition goal' });
@@ -68,20 +68,14 @@ export const nutritionController = {
 
   async upsertGoal(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { calories, protein, carbs, fat, waterMl } = req.body;
-      if (calories == null || protein == null || carbs == null || fat == null) {
-        res.status(400).json({ error: 'calories, protein, carbs, fat are required' });
+      const data = upsertNutritionGoalSchema.parse(req.body);
+      const goal = await nutritionService.upsertGoal(req.user!.id, data);
+      res.json(goal);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation failed', details: error.errors });
         return;
       }
-      const goal = await nutritionService.upsertGoal(req.user!.id, {
-        calories: Number(calories),
-        protein: Number(protein),
-        carbs: Number(carbs),
-        fat: Number(fat),
-        waterMl: waterMl != null ? Number(waterMl) : null,
-      });
-      res.json(goal);
-    } catch (error) {
       logger.error('Error saving nutrition goal:', error);
       res.status(500).json({ error: 'Failed to save nutrition goal' });
     }
