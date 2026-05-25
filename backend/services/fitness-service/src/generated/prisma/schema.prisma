@@ -152,6 +152,21 @@ model NutritionLog {
   @@map("nutrition_logs")
 }
 
+// 🎯 Nutrition Goals (one per user, upserted)
+model NutritionGoal {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  calories  Int      @default(2000)
+  protein   Float    @default(150)
+  carbs     Float    @default(200)
+  fat       Float    @default(65)
+  waterMl   Int?     @map("water_ml")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("nutrition_goals")
+}
+
 // 📊 Body Composition Tracking
 model BodyMetrics {
   id         String   @id @default(uuid())

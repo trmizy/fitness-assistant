@@ -26,4 +26,12 @@ export const nutritionService = {
     await nutritionRepository.delete(id);
     return { message: 'Nutrition log deleted' };
   },
+
+  async getGoal(userId: string) {
+    return nutritionRepository.getGoal(userId);
+  },
+
+  async upsertGoal(userId: string, data: { calories: number; protein: number; carbs: number; fat: number; waterMl?: number | null }) {
+    return nutritionRepository.upsertGoal(userId, data);
+  },
 };

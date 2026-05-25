@@ -4,6 +4,8 @@ import { nutritionController } from '../controllers/nutrition.controller';
 
 const router = Router();
 
+router.get('/goals', authMiddleware, nutritionController.getGoal as any);
+router.put('/goals', authMiddleware, nutritionController.upsertGoal as any);
 router.get('/', authMiddleware, nutritionController.listLogs as any);
 router.post('/', authMiddleware, nutritionController.createLog as any);
 router.delete('/:id', authMiddleware, nutritionController.deleteLog as any);

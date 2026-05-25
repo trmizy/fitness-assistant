@@ -32,4 +32,14 @@ export const nutritionRepository = {
     prisma.nutritionLog.findMany({
       where: { userId, date: { gte: startDate } },
     }),
+
+  getGoal: (userId: string) =>
+    prisma.nutritionGoal.findUnique({ where: { userId } }),
+
+  upsertGoal: (userId: string, data: { calories: number; protein: number; carbs: number; fat: number; waterMl?: number | null }) =>
+    prisma.nutritionGoal.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: data,
+    }),
 };

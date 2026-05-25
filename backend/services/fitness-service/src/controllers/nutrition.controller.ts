@@ -55,4 +55,35 @@ export const nutritionController = {
       res.status(500).json({ error: 'Failed to delete nutrition log' });
     }
   },
+
+  async getGoal(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const goal = await nutritionService.getGoal(req.user!.id);
+      res.json(goal ?? { calories: 2000, protein: 150, carbs: 200, fat: 65, waterMl: null });
+    } catch (error) {
+      logger.error('Error fetching nutrition goal:', error);
+      res.status(500).json({ error: 'Failed to fetch nutrition goal' });
+    }
+  },
+
+  async upsertGoal(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { calories, protein, carbs, fat, waterMl } = req.body;
+      if (calories == null || protein == null || carbs == null || fat == null) {
+        res.status(400).json({ error: 'calories, protein, carbs, fat are required' });
+        return;
+      }
+      const goal = await nutritionService.upsertGoal(req.user!.id, {
+        calories: Number(calories),
+        protein: Number(protein),
+        carbs: Number(carbs),
+        fat: Number(fat),
+        waterMl: waterMl != null ? Number(waterMl) : null,
+      });
+      res.json(goal);
+    } catch (error) {
+      logger.error('Error saving nutrition goal:', error);
+      res.status(500).json({ error: 'Failed to save nutrition goal' });
+    }
+  },
 };
