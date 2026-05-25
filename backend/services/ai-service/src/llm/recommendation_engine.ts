@@ -269,6 +269,104 @@ function lowerDayB4(): DayPlan {
   };
 }
 
+// ─── Equipment-based exercise substitution ────────────────────────────────────
+
+const DUMBBELL_SUBS: Record<string, string> = {
+  'Back Squat': 'Goblet Squat',
+  'Deadlift': 'Dumbbell Romanian Deadlift',
+  'Romanian Deadlift': 'Dumbbell Romanian Deadlift',
+  'Barbell Row': 'One-Arm Dumbbell Row',
+  'Bench Press': 'Dumbbell Bench Press',
+  'Overhead Press': 'Dumbbell Shoulder Press',
+  'Incline Barbell Press': 'Incline Dumbbell Press',
+  'Barbell Curl': 'Dumbbell Curl',
+  'Close-Grip Bench Press': 'Dumbbell Triceps Kickback',
+  'EZ-Bar Curl': 'Dumbbell Curl',
+  'Hack Squat': 'Goblet Squat',
+  'Leg Press': 'Dumbbell Split Squat',
+  'Preacher Curl': 'Incline Dumbbell Curl',
+  'Cable Lateral Raise': 'Dumbbell Lateral Raise',
+  'Seated Cable Row': 'Dumbbell Bent-Over Row',
+  'Face Pull': 'Dumbbell Rear Delt Fly',
+  'Lat Pulldown': 'Dumbbell Pullover',
+  'Incline Cable Fly': 'Incline Dumbbell Fly',
+  'Cable Curl': 'Dumbbell Curl',
+  'Straight Arm Pulldown': 'Dumbbell Pullover',
+  'Cable Triceps Pushdown': 'Dumbbell Triceps Kickback',
+  'Overhead Cable Triceps Extension': 'Overhead Dumbbell Triceps Extension',
+  'Cable Crunch': 'Dumbbell Crunch',
+  'Seated Calf Raise': 'Standing Calf Raise',
+};
+
+const BODYWEIGHT_SUBS: Record<string, string> = {
+  // Barbell
+  'Back Squat': 'Bodyweight Squat',
+  'Deadlift': 'Glute Bridge',
+  'Romanian Deadlift': 'Glute Bridge',
+  'Barbell Row': 'Inverted Row',
+  'Bench Press': 'Push-up',
+  'Overhead Press': 'Pike Push-up',
+  'Incline Barbell Press': 'Incline Push-up',
+  'Barbell Curl': 'Chin-up',
+  'Close-Grip Bench Press': 'Diamond Push-up',
+  'EZ-Bar Curl': 'Chin-up',
+  // Dumbbell
+  'Goblet Squat': 'Bodyweight Squat',
+  'Dumbbell Romanian Deadlift': 'Glute Bridge',
+  'One-Arm Dumbbell Row': 'Inverted Row',
+  'Dumbbell Bench Press': 'Push-up',
+  'Dumbbell Shoulder Press': 'Pike Push-up',
+  'Incline Dumbbell Press': 'Incline Push-up',
+  'Incline Dumbbell Fly': 'Incline Push-up',
+  'Dumbbell Curl': 'Chin-up',
+  'Dumbbell Triceps Kickback': 'Triceps Dips',
+  'Overhead Dumbbell Triceps Extension': 'Triceps Dips',
+  'Hammer Curl': 'Chin-up',
+  'Dumbbell Split Squat': 'Lunge',
+  'Dumbbell Bent-Over Row': 'Inverted Row',
+  'Dumbbell Lateral Raise': 'Side-Lying External Rotation',
+  'Dumbbell Rear Delt Fly': 'Prone Y Raise',
+  'Dumbbell Pullover': 'Pull-up',
+  'Arnold Press': 'Pike Push-up',
+  // Machine / cable
+  'Hack Squat': 'Bodyweight Squat',
+  'Leg Press': 'Lunge',
+  'Hip Thrust': 'Glute Bridge',
+  'Bulgarian Split Squat': 'Reverse Lunge',
+  'Leg Curl': 'Nordic Curl',
+  'Leg Extension': 'Step-up',
+  'Seated Cable Row': 'Inverted Row',
+  'Lat Pulldown': 'Pull-up',
+  'Face Pull': 'Prone Y Raise',
+  'Cable Lateral Raise': 'Side-Lying External Rotation',
+  'Incline Cable Fly': 'Incline Push-up',
+  'Cable Curl': 'Chin-up',
+  'Straight Arm Pulldown': 'Pull-up',
+  'Cable Triceps Pushdown': 'Triceps Dips',
+  'Overhead Cable Triceps Extension': 'Triceps Dips',
+  'Cable Crunch': 'Crunch',
+  'Seated Calf Raise': 'Bodyweight Calf Raise',
+};
+
+function filterExercisesByEquipment(
+  exercises: ExercisePrescription[],
+  equipment: string[],
+): ExercisePrescription[] {
+  if (equipment.length === 0) return exercises;
+
+  const eq = equipment.map((e) => e.toLowerCase());
+  const hasGymAccess = eq.some((e) => /barbell|rack|gym/.test(e));
+  if (hasGymAccess) return exercises;
+
+  const hasDumbbell = eq.some((e) => /dumbbell/.test(e));
+  const subs = hasDumbbell ? DUMBBELL_SUBS : BODYWEIGHT_SUBS;
+
+  return exercises.map((ex) => {
+    const sub = subs[ex.name];
+    return sub ? { ...ex, name: sub } : ex;
+  });
+}
+
 // ─── Template selector by day count ──────────────────────────────────────────
 
 function selectDaysByCount(count: number): DayPlan[] {
@@ -332,7 +430,11 @@ function buildWorkoutPlanTemplate(profile: UserProfile, intent: InputIntent): Wo
   const level = profile.experienceLevel || 'INTERMEDIATE';
 
   const rawDays = selectDaysByCount(requestedDays);
-  const withMinExercises = enforceMinExercises(rawDays, minExercises);
+  const padded = enforceMinExercises(rawDays, minExercises);
+  const withMinExercises = padded.map((day) => ({
+    ...day,
+    exercises: filterExercisesByEquipment(day.exercises, profile.training.availableEquipment),
+  }));
   const days = intent.requestsCardio
     ? withMinExercises.map((day) => ({ ...day, cardio: cardioForDay(day) }))
     : withMinExercises;
@@ -420,13 +522,53 @@ function buildPushDayRoutine(detailMode = false): SpecificRoutineTemplate {
   };
 }
 
-function buildSpecificRoutineByIntent(intent: InputIntent): SpecificRoutineTemplate {
+function buildArmsRoutine(): SpecificRoutineTemplate {
+  return {
+    isDefaultTemplate: true,
+    sessionGoal: 'Biceps + triceps hypertrophy with support compounds.',
+    exercises: [
+      buildExercise(1, 'Barbell Curl', 4, '8-10', 90, 'Primary biceps builder'),
+      buildExercise(2, 'Incline Dumbbell Curl', 3, '10-12', 75, 'Long-head biceps bias'),
+      buildExercise(3, 'Hammer Curl', 3, '10-12', 75, 'Biceps + forearms support'),
+      buildExercise(4, 'Cable Triceps Pushdown', 4, '10-12', 60, 'Primary triceps builder'),
+      buildExercise(5, 'Overhead Cable Triceps Extension', 3, '10-12', 60, 'Long-head triceps bias'),
+      buildExercise(6, 'Close-Grip Bench Press', 3, '8-10', 90, 'Best compound support for both arms and pressing strength'),
+    ],
+    techniqueNotes: [
+      'Keep elbows fixed and avoid swinging the torso on curl patterns.',
+      'Use full range of motion and a controlled eccentric on every rep.',
+      'Keep triceps work strict and let the elbow extend without shoulder drift.',
+    ],
+    overloadGuide: [
+      'Add reps first, then load once you hit the top of the range with clean form.',
+      'Keep 1-2 reps in reserve on compounds and 0-1 RIR on the last isolation set.',
+    ],
+  };
+}
+
+function buildSpecificRoutineByIntent(intent: InputIntent, equipment: string[] = []): SpecificRoutineTemplate {
   const q = intent.normalizedQuestion.toLowerCase();
-  if (/push day|push/i.test(q)) return buildPushDayRoutine(Boolean(intent.detailMode));
-  if (intent.muscleGroupHint === 'chest') return buildChestRoutine(Boolean(intent.detailMode));
-  if (intent.muscleGroupHint === 'back') return buildBackRoutine(Boolean(intent.detailMode));
-  if (intent.muscleGroupHint === 'biceps' || /tay truoc|biceps/i.test(q)) return buildBicepsRoutine();
-  return buildGeneralSpecificRoutine();
+  const plain = q
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  let routine: SpecificRoutineTemplate;
+  if (/push day|push/i.test(q)) routine = buildPushDayRoutine(Boolean(intent.detailMode));
+  else if (intent.muscleGroupHint === 'chest') routine = buildChestRoutine(Boolean(intent.detailMode));
+  else if (intent.muscleGroupHint === 'back') routine = buildBackRoutine(Boolean(intent.detailMode));
+  else if ((plain.includes('tay truoc') && plain.includes('tay sau')) || (plain.includes('biceps') && plain.includes('triceps'))) {
+    routine = buildArmsRoutine();
+  } else if (intent.muscleGroupHint === 'biceps' || /tay truoc|biceps/i.test(q)) routine = buildBicepsRoutine();
+  else if (intent.muscleGroupHint === 'legs' || /chan|legs|dui|mong/i.test(plain)) routine = buildLegsRoutine(Boolean(intent.detailMode));
+  else if (intent.muscleGroupHint === 'shoulders' || /vai|shoulder/i.test(plain)) routine = buildShouldersRoutine(Boolean(intent.detailMode));
+  else if (intent.muscleGroupHint === 'core' || /bung|core|abs/i.test(plain)) routine = buildCoreRoutine(Boolean(intent.detailMode));
+  else routine = buildGeneralSpecificRoutine();
+
+  if (equipment.length === 0) return routine;
+  return { ...routine, exercises: filterExercisesByEquipment(routine.exercises, equipment) };
 }
 
 function buildPersonalizationSummary(profile: UserProfile): string[] {
@@ -487,6 +629,79 @@ function buildGeneralSpecificRoutine(): SpecificRoutineTemplate {
     overloadGuide: [
       'Add 1-2 reps per week until top range is achieved, then increase load.',
       'Track sets, reps, and load for every exercise to ensure progression.',
+    ],
+  };
+}
+
+function buildLegsRoutine(detailMode = false): SpecificRoutineTemplate {
+  return {
+    isDefaultTemplate: true,
+    sessionGoal: 'Buổi chân toàn diện — tứ đầu, gân khoeo, mông và bắp chân.',
+    exercises: [
+      buildExercise(1, detailMode ? 'Back Squat' : 'Goblet Squat', 4, detailMode ? '5-7' : '8-12', detailMode ? 120 : 90, 'Compound chính — tứ đầu + mông'),
+      buildExercise(2, 'Romanian Deadlift', 4, '8-10', 90, 'Hip hinge — gân khoeo + lưng dưới'),
+      buildExercise(3, detailMode ? 'Bulgarian Split Squat' : 'Leg Press', 3, detailMode ? '8-10 mỗi chân' : '10-12', 75, detailMode ? 'Đơn chân — cân bằng lực' : 'Tứ đầu volume'),
+      buildExercise(4, 'Leg Curl', 3, '10-12', 60, 'Gân khoeo isolation'),
+      buildExercise(5, 'Leg Extension', 3, '12-15', 60, 'Tứ đầu isolation'),
+      buildExercise(6, 'Standing Calf Raise', 4, '15-20', 45, 'Bắp chân'),
+    ],
+    techniqueNotes: [
+      'Squat: giữ gối tracking theo ngón chân, lưng thẳng, ngồi xuống hết biên độ chuyển động.',
+      'Romanian Deadlift: hinge từ hông không cong lưng, cảm nhận kéo căng gân khoeo trước khi đẩy hông về.',
+      'Hạ tạ có kiểm soát 2-3 giây ở mọi bài để tối đa hóa kích thích cơ.',
+    ],
+    overloadGuide: [
+      'Tăng tạ 2.5–5kg khi hoàn thành tất cả set ở ngưỡng reps cao nhất với form tốt.',
+      'Giữ 1-2 RIR (reps in reserve) ở bài compound; isolation cuối buổi có thể tập đến gần failure.',
+    ],
+  };
+}
+
+function buildShouldersRoutine(detailMode = false): SpecificRoutineTemplate {
+  return {
+    isDefaultTemplate: true,
+    sessionGoal: 'Buổi vai toàn diện — vai trước, vai giữa, vai sau và rotator cuff.',
+    exercises: [
+      buildExercise(1, 'Overhead Press', 4, detailMode ? '5-7' : '8-10', 90, 'Compound chính — vai trước + thân trên'),
+      buildExercise(2, 'Lateral Raise', 4, '12-15', 60, 'Vai giữa — cô lập'),
+      buildExercise(3, 'Face Pull', 3, '15-20', 45, 'Vai sau + rotator cuff'),
+      buildExercise(4, 'Rear Delt Fly', 3, '12-15', 60, 'Vai sau isolation'),
+      buildExercise(5, detailMode ? 'Arnold Press' : 'Cable Lateral Raise', 3, '10-12', 60, detailMode ? 'Vai toàn phần — biên độ rộng' : 'Vai giữa — căng cơ liên tục'),
+    ],
+    techniqueNotes: [
+      'Khởi động rotator cuff 5-8 phút trước bài Overhead Press (band external rotation, wall slide).',
+      'Lateral Raise: giơ nhẹ khuỷu tay hơn cổ tay, không dùng momentum xoay người để đẩy tạ.',
+      'Face Pull: kéo về ngang tai, giữ 1 giây ở cuối để kích hoạt vai sau tối đa.',
+      'Không ưỡn lưng quá mức khi Press — giữ core căng để bảo vệ thắt lưng.',
+    ],
+    overloadGuide: [
+      'Bài isolation (Lateral Raise, Face Pull, Rear Delt Fly): tăng reps trước, tăng tạ sau.',
+      'Overhead Press: tăng tạ 2.5kg khi giữ được form với RIR 1-2 ở tất cả set.',
+    ],
+  };
+}
+
+function buildCoreRoutine(detailMode = false): SpecificRoutineTemplate {
+  return {
+    isDefaultTemplate: true,
+    sessionGoal: 'Core stability — chống ưỡn, kiểm soát cột sống. Core mạnh cải thiện mọi bài tập, nhưng không thể giảm mỡ cục bộ.',
+    exercises: [
+      buildExercise(1, 'Plank', 3, detailMode ? '45-60s' : '30-45s', 45, 'Anti-extension — nền tảng core'),
+      buildExercise(2, 'Dead Bug', 3, '8-10 mỗi bên', 45, 'Anti-extension + phối hợp tay chân'),
+      buildExercise(3, 'Hollow Body Hold', 3, '20-30s', 45, 'Toàn bộ anterior chain'),
+      buildExercise(4, 'Ab Wheel Rollout', 3, detailMode ? '8-10' : '5-8', 60, 'Anti-extension nâng cao — chỉ roll xa khi giữ được lưng thẳng'),
+      buildExercise(5, 'Copenhagen Plank', 3, '20-30s mỗi bên', 45, 'Lateral stability + adductors'),
+      ...(detailMode ? [buildExercise(6, 'Cable Crunch', 3, '12-15', 45, 'Flexion có tải — rectus abdominis')] : []),
+    ],
+    techniqueNotes: [
+      'Plank: giữ thân thẳng như ván, không để hông võng xuống hoặc nhô lên, siết core và mông.',
+      'Dead Bug: lưng dưới phải áp sát sàn trong suốt động tác — đây là điểm quan trọng nhất.',
+      'Ab Wheel: chỉ roll xa khi giữ được lưng không cong; phạm vi ngắn + đúng form > xa + sai form.',
+      '⚠️ Tập core nhiều KHÔNG giảm mỡ bụng. Mỡ bụng giảm khi tổng calo deficit — core training chỉ tăng sức mạnh và ổn định cột sống.',
+    ],
+    overloadGuide: [
+      'Tăng thời gian hold (Plank, Hollow Body) trước khi tăng độ khó bài tập.',
+      'Ab Wheel: mở rộng range of motion dần dần; không tăng reps đột ngột.',
     ],
   };
 }
@@ -621,7 +836,7 @@ export const recommendationEngine = {
 
     const specificRoutine =
       responseIntent === 'specific_exercise_request' || responseIntent === 'muscle_group_routine_request'
-        ? buildSpecificRoutineByIntent(intent)
+        ? buildSpecificRoutineByIntent(intent, profile.training.availableEquipment)
         : undefined;
 
     const mealPlan = (responseIntent === 'meal_plan_request' || responseIntent === 'combined_plan_request')

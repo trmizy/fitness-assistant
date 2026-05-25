@@ -1,4 +1,5 @@
 import type { ResponseLanguage } from './types';
+import { normalizeExerciseNames } from './exercise_name_normalizer';
 
 const INTERNAL_LABEL_REPLACEMENTS: Record<string, string> = {
   recomposition: 'tái cấu trúc cơ thể',
@@ -22,10 +23,11 @@ function sanitizeVietnameseOutput(text: string): string {
 
 export const labelLocalizer = {
   localize(text: string, language: ResponseLanguage): string {
+    const canonicalized = normalizeExerciseNames(text);
     if (language === 'vi') {
-      return sanitizeVietnameseOutput(text);
+      return sanitizeVietnameseOutput(canonicalized);
     }
-    return text;
+    return canonicalized;
   },
 
   localizeMissingFields(fields: string[], language: ResponseLanguage): string[] {

@@ -35,6 +35,71 @@ export const aiController = {
     }
   },
 
+  async askStream(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    const startTime = Date.now();
+    const { userId, authorizationHeader } = req.context;
+    const { question } = req.body as AskRequest;
+
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    // Use res.on('close') — NOT req.on('close'). The req close event fires almost
+    // immediately when the HTTP client half-closes its write side after sending the
+    // request body (normal TCP behaviour), which does NOT mean the browser disconnected.
+    // res.close fires only when the response connection is truly gone.
+    let clientDisconnected = false;
+    res.on('close', () => { clientDisconnected = true; });
+
+    const sendEvent = (type: string, payload?: Record<string, unknown>): void => {
+      if (!clientDisconnected && !res.writableEnded && !res.destroyed) {
+        res.write(`data: ${JSON.stringify({ type, ...payload })}\n\n`);
+      }
+    };
+
+    try {
+      const result = await ragService.rag(
+        question,
+        userId,
+        authorizationHeader,
+        (message) => sendEvent('status', { message }),
+      );
+
+      aiCoachQueriesTotal.inc({ status: 'success' });
+      aiCoachQueryDuration.observe((Date.now() - startTime) / 1000);
+
+      // Stream the answer in small chunks to create a typing effect in the browser.
+      // This is intentional UX pacing — the LLM returns the full answer at once, so
+      // chunking with a short interval prevents React from receiving everything in
+      // one batch and rendering the final text without animation.
+      const answer = result.answer;
+      const CHUNK_SIZE = 4;
+      const TOKEN_INTERVAL_MS = 18;
+      const tokenTick = (ms: number): Promise<void> => new Promise(r => setTimeout(r, ms));
+      for (let i = 0; i < answer.length; i += CHUNK_SIZE) {
+        if (clientDisconnected) break;
+        sendEvent('token', { content: answer.slice(i, i + CHUNK_SIZE) });
+        await tokenTick(TOKEN_INTERVAL_MS);
+      }
+
+      sendEvent('done', { conversationId: result.conversationId });
+    } catch (err) {
+      aiCoachQueriesTotal.inc({ status: 'failure' });
+      aiCoachQueryDuration.observe((Date.now() - startTime) / 1000);
+
+      if (err instanceof LlmError) {
+        sendEvent('error', { message: 'AI service is temporarily unavailable. Please try again shortly.' });
+      } else {
+        logger.error({ err, userId }, 'Error in /ai/ask/stream');
+        sendEvent('error', { message: 'An unexpected error occurred. Please try again.' });
+      }
+    } finally {
+      if (!res.writableEnded && !res.destroyed) res.end();
+    }
+  },
+
   async getConversations(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { userId } = req.context;
     // limit is already parsed and validated by validateQuery middleware

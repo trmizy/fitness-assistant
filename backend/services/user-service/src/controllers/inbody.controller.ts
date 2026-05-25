@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import fs from 'fs';
 import { logger } from '@gym-coach/shared';
 import { inbodyService } from '../services/inbody.service';
 import type { AuthRequest } from '../middleware/auth.middleware';
@@ -38,6 +39,7 @@ export const inbodyController = {
   },
 
   async upload(req: AuthRequest, res: Response) {
+    const tempPath = req.file?.path;
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No image uploaded' });
@@ -48,6 +50,12 @@ export const inbodyController = {
     } catch (error: any) {
       logger.error(error, 'InBody upload/OCR error');
       return res.status(500).json({ error: error.message });
+    } finally {
+      if (tempPath) {
+        fs.unlink(tempPath, (err) => {
+          if (err) logger.warn({ err }, 'Failed to delete InBody temp file');
+        });
+      }
     }
   }
 };

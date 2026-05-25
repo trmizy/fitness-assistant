@@ -78,7 +78,7 @@ export const llmService = {
               num_predict: 1024,
             },
           },
-          { timeout: 60000 },
+          { timeout: 120000 },
         );
         return {
           answer: (response.data.message?.content as string) || '',

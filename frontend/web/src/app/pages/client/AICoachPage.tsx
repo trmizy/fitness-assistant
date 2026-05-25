@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Bot, Send, Lightbulb, AlertCircle, RefreshCw, User, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { inbodyService, coachService } from "../../services/api";
@@ -50,14 +50,13 @@ function loadStoredMessages(): ChatMessage[] {
   }
 }
 
-const suggestions = [
-  "Why is my body fat not decreasing?",
-  "How much protein should I eat today?",
-  "What exercises target my weak lower body?",
-  "Explain my InBody skeletal muscle score",
-  "Can I train if I feel sore?",
-  "What's the best time to do cardio?",
-];
+const BASE_SUGGESTIONS = [
+  "Lập lịch tập cho tôi",
+  "Tôi nên ăn gì?",
+  "Tạo lịch tập 3 ngày/tuần",
+  "Tôi muốn giảm mỡ nhưng giữ cơ",
+  "Tôi muốn tăng cơ",
+] as const;
 
 const initialMessage = (latest: any, prev: any) => {
   const weightStr = latest ? `${latest.weight} kg` : "---";
@@ -84,10 +83,16 @@ export function AICoachPage() {
   const latest = history[0];
   const prev = history[1];
 
+  const inBodySuggestion = latest ? "Phân tích InBody mới nhất của tôi" : "Phân tích InBody của tôi";
+  const suggestions = [inBodySuggestion, ...BASE_SUGGESTIONS];
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadStoredMessages());
   const [input, setInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const cancelStreamRef = useRef<(() => void) | null>(null);
+  const isFirstTokenRef = useRef(true);
 
   useEffect(() => {
     if (!isLoading && messages.length === 0) {
@@ -95,34 +100,88 @@ export function AICoachPage() {
     }
   }, [isLoading, latest, prev]);
 
+  // Only persist messages once streaming is fully complete to avoid saving partial content.
   useEffect(() => {
-    if (messages.length === 0) return;
+    if (messages.length === 0 || isStreaming) return;
     try {
       localStorage.setItem(getAICoachStorageKey(), JSON.stringify(messages));
       localStorage.setItem(getAICoachStorageFallbackKey(), JSON.stringify(messages));
     } catch {
       // Ignore storage errors and keep chat functional.
     }
-  }, [messages]);
+  }, [messages, isStreaming]);
+
+  // Cancel any active stream when the component unmounts.
+  useEffect(() => {
+    return () => { cancelStreamRef.current?.(); };
+  }, []);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  const send = async (text: string) => {
-    if (!text.trim()) return;
+  const send = useCallback((text: string) => {
+    if (!text.trim() || aiLoading) return;
+
     const userMsg: ChatMessage = { id: Date.now(), from: "user", text: text.trim(), time: "Now" };
-    setMessages(prevMsgs => [...prevMsgs, userMsg]);
+    const streamMsgId = `ai-stream-${Date.now()}`;
+    isFirstTokenRef.current = true;
+
+    setMessages(prev => [
+      ...prev,
+      userMsg,
+      { id: streamMsgId, from: "ai", text: "Đang bắt đầu xử lý...", time: "Now" },
+    ]);
     setInput("");
     setAiLoading(true);
-    try {
-      const result = await coachService.chat(text.trim());
-      const replyText = result?.answer || "Sorry, I couldn't get a response. Please try again.";
-      setMessages(prevMsgs => [...prevMsgs, { id: Date.now() + 1, from: "ai", text: replyText, time: "Now" }]);
-    } catch {
-      setMessages(prevMsgs => [...prevMsgs, { id: Date.now() + 1, from: "ai", text: "⚠️ Could not connect to AI service. Please try again later.", time: "Now" }]);
-    } finally {
-      setAiLoading(false);
+    setIsStreaming(true);
+
+    const supportsStreaming = typeof window !== "undefined" && "ReadableStream" in window;
+
+    if (!supportsStreaming) {
+      // Fallback: call old REST endpoint for browsers without ReadableStream.
+      coachService.chat(text.trim())
+        .then(result => {
+          const replyText = result?.answer || "Sorry, I couldn't get a response. Please try again.";
+          setMessages(prev => prev.map(m => m.id === streamMsgId ? { ...m, text: replyText } : m));
+        })
+        .catch(() => {
+          setMessages(prev => prev.map(m =>
+            m.id === streamMsgId ? { ...m, text: "⚠️ Could not connect to AI service. Please try again later." } : m
+          ));
+        })
+        .finally(() => { setAiLoading(false); setIsStreaming(false); });
+      return;
     }
-  };
+
+    cancelStreamRef.current?.();
+    cancelStreamRef.current = coachService.chatStream(text.trim(), {
+      onStatus: (status) => {
+        setMessages(prev => prev.map(m => m.id === streamMsgId ? { ...m, text: status } : m));
+      },
+      onToken: (token) => {
+        setMessages(prev => prev.map(m => {
+          if (m.id !== streamMsgId) return m;
+          if (isFirstTokenRef.current) {
+            isFirstTokenRef.current = false;
+            return { ...m, text: token };
+          }
+          return { ...m, text: m.text + token };
+        }));
+      },
+      onDone: () => {
+        setAiLoading(false);
+        setIsStreaming(false);
+        cancelStreamRef.current = null;
+      },
+      onError: (errorMsg) => {
+        setMessages(prev => prev.map(m =>
+          m.id === streamMsgId ? { ...m, text: `⚠️ ${errorMsg}` } : m
+        ));
+        setAiLoading(false);
+        setIsStreaming(false);
+        cancelStreamRef.current = null;
+      },
+    });
+  }, [aiLoading]);
 
   if (isLoading) {
     return (
@@ -273,7 +332,8 @@ export function AICoachPage() {
             )}
           </div>
         ))}
-        {aiLoading && (
+        {/* Bounce dots only for non-streaming fallback; streaming messages render inline above. */}
+        {aiLoading && !isStreaming && (
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-green-500/15 border border-green-500/20 rounded-full flex items-center justify-center">
               <Bot className="w-4 h-4 text-green-400" />
@@ -293,7 +353,7 @@ export function AICoachPage() {
         <div className="px-4 py-2 bg-zinc-900 border-t border-zinc-800/60 flex-shrink-0">
           <div className="flex items-center gap-1.5 mb-2">
             <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-xs text-zinc-500">Suggested questions</span>
+            <span className="text-xs text-zinc-500">Gợi ý câu hỏi</span>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {suggestions.map(s => (

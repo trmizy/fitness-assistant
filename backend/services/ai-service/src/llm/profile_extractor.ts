@@ -124,22 +124,23 @@ export const profileExtractor = {
       return cached.data;
     }
 
+    // 3 s per call keeps total latency bounded; allSettled means any failure falls back gracefully.
     const [profileRes, inBodyRes, workoutsRes, nutritionRes] = await Promise.allSettled([
       axios.get<ProfileResponse>(`${USER_SERVICE_URL}/profile/me`, {
         headers: authHeaders(authorizationHeader),
-        timeout: 5000,
+        timeout: 3000,
       }),
       axios.get<InBodyEntry[]>(`${USER_SERVICE_URL}/inbody`, {
         headers: authHeaders(authorizationHeader),
-        timeout: 5000,
+        timeout: 3000,
       }),
       axios.get<WorkoutEntry[]>(`${FITNESS_SERVICE_URL}/workouts?limit=20`, {
         headers: authHeaders(authorizationHeader),
-        timeout: 5000,
+        timeout: 3000,
       }),
       axios.get<NutritionEntry[]>(`${FITNESS_SERVICE_URL}/nutrition`, {
         headers: authHeaders(authorizationHeader),
-        timeout: 5000,
+        timeout: 3000,
       }),
     ]);
 
@@ -147,6 +148,16 @@ export const profileExtractor = {
     const inBodyData = inBodyRes.status === 'fulfilled' ? inBodyRes.value.data : [];
     const workoutsData = workoutsRes.status === 'fulfilled' ? workoutsRes.value.data : [];
     const nutritionData = nutritionRes.status === 'fulfilled' ? nutritionRes.value.data : [];
+
+    const failedCount = [profileRes, inBodyRes, workoutsRes, nutritionRes].filter(
+      (r) => r.status === 'rejected',
+    ).length;
+    if (failedCount >= 3) {
+      logger.warn(
+        { failedCount, userId },
+        'Most profile services unavailable — AI response will use anonymous mode',
+      );
+    }
 
     if (profileRes.status === 'rejected') {
       logger.warn({ error: profileRes.reason }, 'Failed to load profile for personalization');

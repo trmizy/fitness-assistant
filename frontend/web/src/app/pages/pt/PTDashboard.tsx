@@ -9,6 +9,51 @@ import { useCall } from "../../context/CallContext";
 import { contractService, sessionService } from "../../services/api";
 import { getJoinSessionState } from "../../utils/sessionUtils";
 
+// clientProfile (from testai-v4 service) or clientName string (legacy compat)
+type ClientRef = {
+  clientProfile?: { firstName?: string; lastName?: string } | null;
+  clientName?: string | null;
+};
+
+type Session = ClientRef & {
+  id: string;
+  clientUserId: string;
+  ptUserId: string;
+  scheduledStartAt: string;
+  status: string;
+  sessionMode?: string;
+};
+
+type Contract = ClientRef & {
+  id: string;
+  clientUserId: string;
+  status: string;
+  packageName?: string;
+  endDate?: string;
+};
+
+function resolveClientName(ref: ClientRef, fallback = "Học viên"): string {
+  if (ref.clientProfile) {
+    const name = `${ref.clientProfile.firstName ?? ""} ${ref.clientProfile.lastName ?? ""}`.trim();
+    return name || fallback;
+  }
+  return ref.clientName || fallback;
+}
+
+function getInitials(ref: ClientRef): string {
+  if (ref.clientProfile) {
+    const f = ref.clientProfile.firstName?.[0] ?? "";
+    const l = ref.clientProfile.lastName?.[0] ?? "";
+    return (f + l).toUpperCase() || "?";
+  }
+  const name = ref.clientName?.trim();
+  if (!name) return "?";
+  const parts = name.split(" ");
+  return parts.length >= 2
+    ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+    : parts[0].slice(0, 2).toUpperCase();
+}
+
 function getMonday(d: Date) {
   const date = new Date(d);
   const day = date.getDay();
@@ -16,6 +61,11 @@ function getMonday(d: Date) {
   date.setDate(date.getDate() + diff);
   date.setHours(0, 0, 0, 0);
   return date;
+}
+
+function formatSessionTime(dateStr: string) {
+  const d = new Date(dateStr);
+  return d.toLocaleString("vi-VN", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: false });
 }
 
 export function PTDashboard() {
@@ -43,24 +93,23 @@ export function PTDashboard() {
   const { joinCoachingSession } = useCall();
   const [joiningSessionId, setJoiningSessionId] = useState<string | null>(null);
 
-  const handleJoinSession = async (s: any) => {
+  const handleJoinSession = async (s: Session) => {
     if (joiningSessionId) return;
     setJoiningSessionId(s.id);
     try {
       const result = await sessionService.joinSession(s.id);
       await joinCoachingSession({ id: result.sessionId, otherUserId: result.otherUserId, joinToken: result.joinToken });
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Không thể tham gia buổi học');
+      toast.error(err?.response?.data?.error || "Không thể tham gia buổi học");
     } finally {
       setJoiningSessionId(null);
     }
   };
 
-  // KPI derived values
   const activeContracts: number = earnings?.activeContracts ?? 0;
   const totalEarned: number = earnings?.totalEarned ?? 0;
   const activeRevenue: number = earnings?.activeRevenue ?? 0;
-  const upcomingCount = upcomingSessions.filter((s: any) =>
+  const upcomingCount = (upcomingSessions as Session[]).filter(s =>
     ["REQUESTED", "CONFIRMED"].includes(s.status)
   ).length;
 
@@ -71,18 +120,16 @@ export function PTDashboard() {
     { label: "Tổng thu nhập", value: isLoading ? "–" : `฿${totalEarned.toLocaleString()}`, change: "Tổng cộng", icon: TrendingUp, color: "text-amber-400", bg: "bg-amber-500/10", iconBg: "bg-amber-500/15", border: "border-amber-500/20" },
   ];
 
-  // Revenue chart — Completed vs Active
   const revenueData = [
     { label: "Đã hoàn thành", revenue: totalEarned },
     { label: "Đang hoạt động", revenue: activeRevenue },
   ];
 
-  // Sessions this week chart
   const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
   const monday = getMonday(new Date());
   const sessionTrend = dayLabels.map((day, i) => ({
     day,
-    sessions: upcomingSessions.filter((s: any) => {
+    sessions: (upcomingSessions as Session[]).filter(s => {
       const d = new Date(s.scheduledStartAt);
       const dayOffset = new Date(monday);
       dayOffset.setDate(monday.getDate() + i);
@@ -90,35 +137,20 @@ export function PTDashboard() {
     }).length,
   }));
 
-  // Upcoming sessions list — first 5, sorted by time
-  const sortedSessions = [...upcomingSessions]
-    .sort((a: any, b: any) => new Date(a.scheduledStartAt).getTime() - new Date(b.scheduledStartAt).getTime())
+  const sortedSessions = [...(upcomingSessions as Session[])]
+    .sort((a, b) => new Date(a.scheduledStartAt).getTime() - new Date(b.scheduledStartAt).getTime())
     .slice(0, 5);
 
-  // Client alerts from contracts
   const now = new Date();
   const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const alerts: { type: string; text: string }[] = [
-    ...contracts
-      .filter((c: any) => c.status === "ACTIVE" && c.endDate && new Date(c.endDate) <= in7Days)
-      .map((c: any) => ({ type: "warning", text: `Hợp đồng "${c.packageName ?? "Package"}" sắp hết hạn trong vòng 7 ngày` })),
-    ...contracts
-      .filter((c: any) => c.status === "PENDING_REVIEW")
+    ...(contracts as Contract[])
+      .filter(c => c.status === "ACTIVE" && c.endDate && new Date(c.endDate) <= in7Days)
+      .map(c => ({ type: "warning", text: `Hợp đồng "${c.packageName ?? "Package"}" sắp hết hạn trong vòng 7 ngày` })),
+    ...(contracts as Contract[])
+      .filter(c => c.status === "PENDING_REVIEW")
       .map(() => ({ type: "info", text: "Yêu cầu hợp đồng mới đang chờ xét duyệt" })),
   ];
-
-  function formatSessionTime(dateStr: string) {
-    const d = new Date(dateStr);
-    return d.toLocaleString("vi-VN", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: false });
-  }
-
-  function getInitials(name: string | null | undefined, fallback: string) {
-    if (!name) return fallback;
-    const parts = name.trim().split(" ");
-    return parts.length >= 2
-      ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
-      : parts[0].slice(0, 2).toUpperCase();
-  }
 
   const statusLabel: Record<string, string> = {
     CONFIRMED: "Đã xác nhận",
@@ -214,14 +246,14 @@ export function PTDashboard() {
             <div className="px-4 py-8 text-center text-zinc-500 text-sm">Không có buổi tập sắp tới</div>
           ) : (
             <div className="divide-y divide-zinc-800/40">
-              {sortedSessions.map((s: any) => (
+              {sortedSessions.map(s => (
                 <div key={s.id} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/30 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-green-500/15 border border-green-500/20 rounded-full flex items-center justify-center text-xs font-bold text-green-400">
-                      {getInitials(s.clientName, "?")}
+                      {getInitials(s)}
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-zinc-200">{s.clientName ?? "Học viên"}</div>
+                      <div className="text-sm font-bold text-zinc-200">{resolveClientName(s)}</div>
                       <div className="text-xs text-zinc-600 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> {formatSessionTime(s.scheduledStartAt)}
                       </div>

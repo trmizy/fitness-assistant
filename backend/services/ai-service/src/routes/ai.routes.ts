@@ -19,6 +19,11 @@ router.post('/ask',
   aiController.ask,
 );
 
+router.post('/ask/stream',
+  validateBody(AskRequestSchema),
+  aiController.askStream,
+);
+
 router.get('/conversations',
   validateQuery(GetConversationsQuerySchema),
   aiController.getConversations,

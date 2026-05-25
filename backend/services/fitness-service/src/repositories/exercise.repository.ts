@@ -27,4 +27,11 @@ export const exerciseRepository = {
     if (exercise) await redisClient.setEx(cacheKey, 300, JSON.stringify(exercise));
     return exercise;
   },
+
+  findManyByIds(ids: string[]) {
+    return prisma.exercise.findMany({
+      where: { id: { in: ids } },
+      select: { id: true },
+    });
+  },
 };
