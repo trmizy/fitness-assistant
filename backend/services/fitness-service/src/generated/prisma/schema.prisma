@@ -152,6 +152,20 @@ model NutritionLog {
   @@map("nutrition_logs")
 }
 
+model NutritionGoal {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  calories  Int
+  protein   Float
+  carbs     Float
+  fat       Float
+  waterMl   Int?     @map("water_ml")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("nutrition_goals")
+}
+
 // 📊 Body Composition Tracking
 model BodyMetrics {
   id         String   @id @default(uuid())

@@ -68,6 +68,15 @@ export const createNutritionSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const upsertNutritionGoalSchema = z.object({
+  calories: z.number().int().positive(),
+  protein: z.number().positive(),
+  carbs: z.number().positive(),
+  fat: z.number().positive(),
+  waterMl: z.number().int().positive().optional().nullable(),
+});
+
 export type CreateWorkoutDto = z.infer<typeof createWorkoutSchema>;
 export type UpdateWorkoutSetDto = z.infer<typeof updateWorkoutSetSchema>;
 export type CreateNutritionDto = z.infer<typeof createNutritionSchema>;
+export type UpsertNutritionGoalDto = z.infer<typeof upsertNutritionGoalSchema>;

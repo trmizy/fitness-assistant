@@ -44,6 +44,11 @@ export type Food = $Result.DefaultSelection<Prisma.$FoodPayload>
  */
 export type NutritionLog = $Result.DefaultSelection<Prisma.$NutritionLogPayload>
 /**
+ * Model NutritionGoal
+ * 
+ */
+export type NutritionGoal = $Result.DefaultSelection<Prisma.$NutritionGoalPayload>
+/**
  * Model BodyMetrics
  * 
  */
@@ -318,6 +323,16 @@ export class PrismaClient<
     * ```
     */
   get nutritionLog(): Prisma.NutritionLogDelegate<ExtArgs>;
+
+  /**
+   * `prisma.nutritionGoal`: Exposes CRUD operations for the **NutritionGoal** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more NutritionGoals
+    * const nutritionGoals = await prisma.nutritionGoal.findMany()
+    * ```
+    */
+  get nutritionGoal(): Prisma.NutritionGoalDelegate<ExtArgs>;
 
   /**
    * `prisma.bodyMetrics`: Exposes CRUD operations for the **BodyMetrics** model.
@@ -815,6 +830,7 @@ export namespace Prisma {
     WorkoutSet: 'WorkoutSet',
     Food: 'Food',
     NutritionLog: 'NutritionLog',
+    NutritionGoal: 'NutritionGoal',
     BodyMetrics: 'BodyMetrics',
     WorkoutProgram: 'WorkoutProgram',
     WorkoutProgramDay: 'WorkoutProgramDay',
@@ -835,7 +851,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "nutritionLog" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule"
+      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1256,6 +1272,76 @@ export namespace Prisma {
           count: {
             args: Prisma.NutritionLogCountArgs<ExtArgs>
             result: $Utils.Optional<NutritionLogCountAggregateOutputType> | number
+          }
+        }
+      }
+      NutritionGoal: {
+        payload: Prisma.$NutritionGoalPayload<ExtArgs>
+        fields: Prisma.NutritionGoalFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.NutritionGoalFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionGoalPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.NutritionGoalFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionGoalPayload>
+          }
+          findFirst: {
+            args: Prisma.NutritionGoalFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionGoalPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.NutritionGoalFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionGoalPayload>
+          }
+          findMany: {
+            args: Prisma.NutritionGoalFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionGoalPayload>[]
+          }
+          create: {
+            args: Prisma.NutritionGoalCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionGoalPayload>
+          }
+          createMany: {
+            args: Prisma.NutritionGoalCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.NutritionGoalCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionGoalPayload>[]
+          }
+          delete: {
+            args: Prisma.NutritionGoalDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionGoalPayload>
+          }
+          update: {
+            args: Prisma.NutritionGoalUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionGoalPayload>
+          }
+          deleteMany: {
+            args: Prisma.NutritionGoalDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.NutritionGoalUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.NutritionGoalUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionGoalPayload>
+          }
+          aggregate: {
+            args: Prisma.NutritionGoalAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateNutritionGoal>
+          }
+          groupBy: {
+            args: Prisma.NutritionGoalGroupByArgs<ExtArgs>
+            result: $Utils.Optional<NutritionGoalGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.NutritionGoalCountArgs<ExtArgs>
+            result: $Utils.Optional<NutritionGoalCountAggregateOutputType> | number
           }
         }
       }
@@ -8120,6 +8206,982 @@ export namespace Prisma {
 
 
   /**
+   * Model NutritionGoal
+   */
+
+  export type AggregateNutritionGoal = {
+    _count: NutritionGoalCountAggregateOutputType | null
+    _avg: NutritionGoalAvgAggregateOutputType | null
+    _sum: NutritionGoalSumAggregateOutputType | null
+    _min: NutritionGoalMinAggregateOutputType | null
+    _max: NutritionGoalMaxAggregateOutputType | null
+  }
+
+  export type NutritionGoalAvgAggregateOutputType = {
+    calories: number | null
+    protein: number | null
+    carbs: number | null
+    fat: number | null
+    waterMl: number | null
+  }
+
+  export type NutritionGoalSumAggregateOutputType = {
+    calories: number | null
+    protein: number | null
+    carbs: number | null
+    fat: number | null
+    waterMl: number | null
+  }
+
+  export type NutritionGoalMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    calories: number | null
+    protein: number | null
+    carbs: number | null
+    fat: number | null
+    waterMl: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionGoalMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    calories: number | null
+    protein: number | null
+    carbs: number | null
+    fat: number | null
+    waterMl: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionGoalCountAggregateOutputType = {
+    id: number
+    userId: number
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    waterMl: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type NutritionGoalAvgAggregateInputType = {
+    calories?: true
+    protein?: true
+    carbs?: true
+    fat?: true
+    waterMl?: true
+  }
+
+  export type NutritionGoalSumAggregateInputType = {
+    calories?: true
+    protein?: true
+    carbs?: true
+    fat?: true
+    waterMl?: true
+  }
+
+  export type NutritionGoalMinAggregateInputType = {
+    id?: true
+    userId?: true
+    calories?: true
+    protein?: true
+    carbs?: true
+    fat?: true
+    waterMl?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionGoalMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    calories?: true
+    protein?: true
+    carbs?: true
+    fat?: true
+    waterMl?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionGoalCountAggregateInputType = {
+    id?: true
+    userId?: true
+    calories?: true
+    protein?: true
+    carbs?: true
+    fat?: true
+    waterMl?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type NutritionGoalAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionGoal to aggregate.
+     */
+    where?: NutritionGoalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionGoals to fetch.
+     */
+    orderBy?: NutritionGoalOrderByWithRelationInput | NutritionGoalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: NutritionGoalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionGoals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionGoals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned NutritionGoals
+    **/
+    _count?: true | NutritionGoalCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: NutritionGoalAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: NutritionGoalSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: NutritionGoalMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: NutritionGoalMaxAggregateInputType
+  }
+
+  export type GetNutritionGoalAggregateType<T extends NutritionGoalAggregateArgs> = {
+        [P in keyof T & keyof AggregateNutritionGoal]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateNutritionGoal[P]>
+      : GetScalarType<T[P], AggregateNutritionGoal[P]>
+  }
+
+
+
+
+  export type NutritionGoalGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NutritionGoalWhereInput
+    orderBy?: NutritionGoalOrderByWithAggregationInput | NutritionGoalOrderByWithAggregationInput[]
+    by: NutritionGoalScalarFieldEnum[] | NutritionGoalScalarFieldEnum
+    having?: NutritionGoalScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: NutritionGoalCountAggregateInputType | true
+    _avg?: NutritionGoalAvgAggregateInputType
+    _sum?: NutritionGoalSumAggregateInputType
+    _min?: NutritionGoalMinAggregateInputType
+    _max?: NutritionGoalMaxAggregateInputType
+  }
+
+  export type NutritionGoalGroupByOutputType = {
+    id: string
+    userId: string
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    waterMl: number | null
+    createdAt: Date
+    updatedAt: Date
+    _count: NutritionGoalCountAggregateOutputType | null
+    _avg: NutritionGoalAvgAggregateOutputType | null
+    _sum: NutritionGoalSumAggregateOutputType | null
+    _min: NutritionGoalMinAggregateOutputType | null
+    _max: NutritionGoalMaxAggregateOutputType | null
+  }
+
+  type GetNutritionGoalGroupByPayload<T extends NutritionGoalGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<NutritionGoalGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof NutritionGoalGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], NutritionGoalGroupByOutputType[P]>
+            : GetScalarType<T[P], NutritionGoalGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type NutritionGoalSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    calories?: boolean
+    protein?: boolean
+    carbs?: boolean
+    fat?: boolean
+    waterMl?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["nutritionGoal"]>
+
+  export type NutritionGoalSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    calories?: boolean
+    protein?: boolean
+    carbs?: boolean
+    fat?: boolean
+    waterMl?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["nutritionGoal"]>
+
+  export type NutritionGoalSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    calories?: boolean
+    protein?: boolean
+    carbs?: boolean
+    fat?: boolean
+    waterMl?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $NutritionGoalPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "NutritionGoal"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      calories: number
+      protein: number
+      carbs: number
+      fat: number
+      waterMl: number | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["nutritionGoal"]>
+    composites: {}
+  }
+
+  type NutritionGoalGetPayload<S extends boolean | null | undefined | NutritionGoalDefaultArgs> = $Result.GetResult<Prisma.$NutritionGoalPayload, S>
+
+  type NutritionGoalCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<NutritionGoalFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: NutritionGoalCountAggregateInputType | true
+    }
+
+  export interface NutritionGoalDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['NutritionGoal'], meta: { name: 'NutritionGoal' } }
+    /**
+     * Find zero or one NutritionGoal that matches the filter.
+     * @param {NutritionGoalFindUniqueArgs} args - Arguments to find a NutritionGoal
+     * @example
+     * // Get one NutritionGoal
+     * const nutritionGoal = await prisma.nutritionGoal.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends NutritionGoalFindUniqueArgs>(args: SelectSubset<T, NutritionGoalFindUniqueArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one NutritionGoal that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {NutritionGoalFindUniqueOrThrowArgs} args - Arguments to find a NutritionGoal
+     * @example
+     * // Get one NutritionGoal
+     * const nutritionGoal = await prisma.nutritionGoal.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends NutritionGoalFindUniqueOrThrowArgs>(args: SelectSubset<T, NutritionGoalFindUniqueOrThrowArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first NutritionGoal that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionGoalFindFirstArgs} args - Arguments to find a NutritionGoal
+     * @example
+     * // Get one NutritionGoal
+     * const nutritionGoal = await prisma.nutritionGoal.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends NutritionGoalFindFirstArgs>(args?: SelectSubset<T, NutritionGoalFindFirstArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first NutritionGoal that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionGoalFindFirstOrThrowArgs} args - Arguments to find a NutritionGoal
+     * @example
+     * // Get one NutritionGoal
+     * const nutritionGoal = await prisma.nutritionGoal.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends NutritionGoalFindFirstOrThrowArgs>(args?: SelectSubset<T, NutritionGoalFindFirstOrThrowArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more NutritionGoals that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionGoalFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all NutritionGoals
+     * const nutritionGoals = await prisma.nutritionGoal.findMany()
+     * 
+     * // Get first 10 NutritionGoals
+     * const nutritionGoals = await prisma.nutritionGoal.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const nutritionGoalWithIdOnly = await prisma.nutritionGoal.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends NutritionGoalFindManyArgs>(args?: SelectSubset<T, NutritionGoalFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a NutritionGoal.
+     * @param {NutritionGoalCreateArgs} args - Arguments to create a NutritionGoal.
+     * @example
+     * // Create one NutritionGoal
+     * const NutritionGoal = await prisma.nutritionGoal.create({
+     *   data: {
+     *     // ... data to create a NutritionGoal
+     *   }
+     * })
+     * 
+     */
+    create<T extends NutritionGoalCreateArgs>(args: SelectSubset<T, NutritionGoalCreateArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many NutritionGoals.
+     * @param {NutritionGoalCreateManyArgs} args - Arguments to create many NutritionGoals.
+     * @example
+     * // Create many NutritionGoals
+     * const nutritionGoal = await prisma.nutritionGoal.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends NutritionGoalCreateManyArgs>(args?: SelectSubset<T, NutritionGoalCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many NutritionGoals and returns the data saved in the database.
+     * @param {NutritionGoalCreateManyAndReturnArgs} args - Arguments to create many NutritionGoals.
+     * @example
+     * // Create many NutritionGoals
+     * const nutritionGoal = await prisma.nutritionGoal.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many NutritionGoals and only return the `id`
+     * const nutritionGoalWithIdOnly = await prisma.nutritionGoal.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends NutritionGoalCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionGoalCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a NutritionGoal.
+     * @param {NutritionGoalDeleteArgs} args - Arguments to delete one NutritionGoal.
+     * @example
+     * // Delete one NutritionGoal
+     * const NutritionGoal = await prisma.nutritionGoal.delete({
+     *   where: {
+     *     // ... filter to delete one NutritionGoal
+     *   }
+     * })
+     * 
+     */
+    delete<T extends NutritionGoalDeleteArgs>(args: SelectSubset<T, NutritionGoalDeleteArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one NutritionGoal.
+     * @param {NutritionGoalUpdateArgs} args - Arguments to update one NutritionGoal.
+     * @example
+     * // Update one NutritionGoal
+     * const nutritionGoal = await prisma.nutritionGoal.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends NutritionGoalUpdateArgs>(args: SelectSubset<T, NutritionGoalUpdateArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more NutritionGoals.
+     * @param {NutritionGoalDeleteManyArgs} args - Arguments to filter NutritionGoals to delete.
+     * @example
+     * // Delete a few NutritionGoals
+     * const { count } = await prisma.nutritionGoal.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends NutritionGoalDeleteManyArgs>(args?: SelectSubset<T, NutritionGoalDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more NutritionGoals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionGoalUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many NutritionGoals
+     * const nutritionGoal = await prisma.nutritionGoal.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends NutritionGoalUpdateManyArgs>(args: SelectSubset<T, NutritionGoalUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one NutritionGoal.
+     * @param {NutritionGoalUpsertArgs} args - Arguments to update or create a NutritionGoal.
+     * @example
+     * // Update or create a NutritionGoal
+     * const nutritionGoal = await prisma.nutritionGoal.upsert({
+     *   create: {
+     *     // ... data to create a NutritionGoal
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the NutritionGoal we want to update
+     *   }
+     * })
+     */
+    upsert<T extends NutritionGoalUpsertArgs>(args: SelectSubset<T, NutritionGoalUpsertArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of NutritionGoals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionGoalCountArgs} args - Arguments to filter NutritionGoals to count.
+     * @example
+     * // Count the number of NutritionGoals
+     * const count = await prisma.nutritionGoal.count({
+     *   where: {
+     *     // ... the filter for the NutritionGoals we want to count
+     *   }
+     * })
+    **/
+    count<T extends NutritionGoalCountArgs>(
+      args?: Subset<T, NutritionGoalCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], NutritionGoalCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a NutritionGoal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionGoalAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends NutritionGoalAggregateArgs>(args: Subset<T, NutritionGoalAggregateArgs>): Prisma.PrismaPromise<GetNutritionGoalAggregateType<T>>
+
+    /**
+     * Group by NutritionGoal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionGoalGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends NutritionGoalGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: NutritionGoalGroupByArgs['orderBy'] }
+        : { orderBy?: NutritionGoalGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, NutritionGoalGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetNutritionGoalGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the NutritionGoal model
+   */
+  readonly fields: NutritionGoalFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for NutritionGoal.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__NutritionGoalClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the NutritionGoal model
+   */ 
+  interface NutritionGoalFieldRefs {
+    readonly id: FieldRef<"NutritionGoal", 'String'>
+    readonly userId: FieldRef<"NutritionGoal", 'String'>
+    readonly calories: FieldRef<"NutritionGoal", 'Int'>
+    readonly protein: FieldRef<"NutritionGoal", 'Float'>
+    readonly carbs: FieldRef<"NutritionGoal", 'Float'>
+    readonly fat: FieldRef<"NutritionGoal", 'Float'>
+    readonly waterMl: FieldRef<"NutritionGoal", 'Int'>
+    readonly createdAt: FieldRef<"NutritionGoal", 'DateTime'>
+    readonly updatedAt: FieldRef<"NutritionGoal", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * NutritionGoal findUnique
+   */
+  export type NutritionGoalFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionGoal
+     */
+    select?: NutritionGoalSelect<ExtArgs> | null
+    /**
+     * Filter, which NutritionGoal to fetch.
+     */
+    where: NutritionGoalWhereUniqueInput
+  }
+
+  /**
+   * NutritionGoal findUniqueOrThrow
+   */
+  export type NutritionGoalFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionGoal
+     */
+    select?: NutritionGoalSelect<ExtArgs> | null
+    /**
+     * Filter, which NutritionGoal to fetch.
+     */
+    where: NutritionGoalWhereUniqueInput
+  }
+
+  /**
+   * NutritionGoal findFirst
+   */
+  export type NutritionGoalFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionGoal
+     */
+    select?: NutritionGoalSelect<ExtArgs> | null
+    /**
+     * Filter, which NutritionGoal to fetch.
+     */
+    where?: NutritionGoalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionGoals to fetch.
+     */
+    orderBy?: NutritionGoalOrderByWithRelationInput | NutritionGoalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionGoals.
+     */
+    cursor?: NutritionGoalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionGoals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionGoals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionGoals.
+     */
+    distinct?: NutritionGoalScalarFieldEnum | NutritionGoalScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionGoal findFirstOrThrow
+   */
+  export type NutritionGoalFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionGoal
+     */
+    select?: NutritionGoalSelect<ExtArgs> | null
+    /**
+     * Filter, which NutritionGoal to fetch.
+     */
+    where?: NutritionGoalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionGoals to fetch.
+     */
+    orderBy?: NutritionGoalOrderByWithRelationInput | NutritionGoalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionGoals.
+     */
+    cursor?: NutritionGoalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionGoals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionGoals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionGoals.
+     */
+    distinct?: NutritionGoalScalarFieldEnum | NutritionGoalScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionGoal findMany
+   */
+  export type NutritionGoalFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionGoal
+     */
+    select?: NutritionGoalSelect<ExtArgs> | null
+    /**
+     * Filter, which NutritionGoals to fetch.
+     */
+    where?: NutritionGoalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionGoals to fetch.
+     */
+    orderBy?: NutritionGoalOrderByWithRelationInput | NutritionGoalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing NutritionGoals.
+     */
+    cursor?: NutritionGoalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionGoals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionGoals.
+     */
+    skip?: number
+    distinct?: NutritionGoalScalarFieldEnum | NutritionGoalScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionGoal create
+   */
+  export type NutritionGoalCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionGoal
+     */
+    select?: NutritionGoalSelect<ExtArgs> | null
+    /**
+     * The data needed to create a NutritionGoal.
+     */
+    data: XOR<NutritionGoalCreateInput, NutritionGoalUncheckedCreateInput>
+  }
+
+  /**
+   * NutritionGoal createMany
+   */
+  export type NutritionGoalCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many NutritionGoals.
+     */
+    data: NutritionGoalCreateManyInput | NutritionGoalCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * NutritionGoal createManyAndReturn
+   */
+  export type NutritionGoalCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionGoal
+     */
+    select?: NutritionGoalSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many NutritionGoals.
+     */
+    data: NutritionGoalCreateManyInput | NutritionGoalCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * NutritionGoal update
+   */
+  export type NutritionGoalUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionGoal
+     */
+    select?: NutritionGoalSelect<ExtArgs> | null
+    /**
+     * The data needed to update a NutritionGoal.
+     */
+    data: XOR<NutritionGoalUpdateInput, NutritionGoalUncheckedUpdateInput>
+    /**
+     * Choose, which NutritionGoal to update.
+     */
+    where: NutritionGoalWhereUniqueInput
+  }
+
+  /**
+   * NutritionGoal updateMany
+   */
+  export type NutritionGoalUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update NutritionGoals.
+     */
+    data: XOR<NutritionGoalUpdateManyMutationInput, NutritionGoalUncheckedUpdateManyInput>
+    /**
+     * Filter which NutritionGoals to update
+     */
+    where?: NutritionGoalWhereInput
+  }
+
+  /**
+   * NutritionGoal upsert
+   */
+  export type NutritionGoalUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionGoal
+     */
+    select?: NutritionGoalSelect<ExtArgs> | null
+    /**
+     * The filter to search for the NutritionGoal to update in case it exists.
+     */
+    where: NutritionGoalWhereUniqueInput
+    /**
+     * In case the NutritionGoal found by the `where` argument doesn't exist, create a new NutritionGoal with this data.
+     */
+    create: XOR<NutritionGoalCreateInput, NutritionGoalUncheckedCreateInput>
+    /**
+     * In case the NutritionGoal was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<NutritionGoalUpdateInput, NutritionGoalUncheckedUpdateInput>
+  }
+
+  /**
+   * NutritionGoal delete
+   */
+  export type NutritionGoalDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionGoal
+     */
+    select?: NutritionGoalSelect<ExtArgs> | null
+    /**
+     * Filter which NutritionGoal to delete.
+     */
+    where: NutritionGoalWhereUniqueInput
+  }
+
+  /**
+   * NutritionGoal deleteMany
+   */
+  export type NutritionGoalDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionGoals to delete
+     */
+    where?: NutritionGoalWhereInput
+  }
+
+  /**
+   * NutritionGoal without action
+   */
+  export type NutritionGoalDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionGoal
+     */
+    select?: NutritionGoalSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Model BodyMetrics
    */
 
@@ -13299,6 +14361,21 @@ export namespace Prisma {
   export type NutritionLogScalarFieldEnum = (typeof NutritionLogScalarFieldEnum)[keyof typeof NutritionLogScalarFieldEnum]
 
 
+  export const NutritionGoalScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    calories: 'calories',
+    protein: 'protein',
+    carbs: 'carbs',
+    fat: 'fat',
+    waterMl: 'waterMl',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type NutritionGoalScalarFieldEnum = (typeof NutritionGoalScalarFieldEnum)[keyof typeof NutritionGoalScalarFieldEnum]
+
+
   export const BodyMetricsScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -14012,6 +15089,80 @@ export namespace Prisma {
     notes?: StringNullableWithAggregatesFilter<"NutritionLog"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"NutritionLog"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"NutritionLog"> | Date | string
+  }
+
+  export type NutritionGoalWhereInput = {
+    AND?: NutritionGoalWhereInput | NutritionGoalWhereInput[]
+    OR?: NutritionGoalWhereInput[]
+    NOT?: NutritionGoalWhereInput | NutritionGoalWhereInput[]
+    id?: StringFilter<"NutritionGoal"> | string
+    userId?: StringFilter<"NutritionGoal"> | string
+    calories?: IntFilter<"NutritionGoal"> | number
+    protein?: FloatFilter<"NutritionGoal"> | number
+    carbs?: FloatFilter<"NutritionGoal"> | number
+    fat?: FloatFilter<"NutritionGoal"> | number
+    waterMl?: IntNullableFilter<"NutritionGoal"> | number | null
+    createdAt?: DateTimeFilter<"NutritionGoal"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionGoal"> | Date | string
+  }
+
+  export type NutritionGoalOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    calories?: SortOrder
+    protein?: SortOrder
+    carbs?: SortOrder
+    fat?: SortOrder
+    waterMl?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionGoalWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId?: string
+    AND?: NutritionGoalWhereInput | NutritionGoalWhereInput[]
+    OR?: NutritionGoalWhereInput[]
+    NOT?: NutritionGoalWhereInput | NutritionGoalWhereInput[]
+    calories?: IntFilter<"NutritionGoal"> | number
+    protein?: FloatFilter<"NutritionGoal"> | number
+    carbs?: FloatFilter<"NutritionGoal"> | number
+    fat?: FloatFilter<"NutritionGoal"> | number
+    waterMl?: IntNullableFilter<"NutritionGoal"> | number | null
+    createdAt?: DateTimeFilter<"NutritionGoal"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionGoal"> | Date | string
+  }, "id" | "userId">
+
+  export type NutritionGoalOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    calories?: SortOrder
+    protein?: SortOrder
+    carbs?: SortOrder
+    fat?: SortOrder
+    waterMl?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: NutritionGoalCountOrderByAggregateInput
+    _avg?: NutritionGoalAvgOrderByAggregateInput
+    _max?: NutritionGoalMaxOrderByAggregateInput
+    _min?: NutritionGoalMinOrderByAggregateInput
+    _sum?: NutritionGoalSumOrderByAggregateInput
+  }
+
+  export type NutritionGoalScalarWhereWithAggregatesInput = {
+    AND?: NutritionGoalScalarWhereWithAggregatesInput | NutritionGoalScalarWhereWithAggregatesInput[]
+    OR?: NutritionGoalScalarWhereWithAggregatesInput[]
+    NOT?: NutritionGoalScalarWhereWithAggregatesInput | NutritionGoalScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"NutritionGoal"> | string
+    userId?: StringWithAggregatesFilter<"NutritionGoal"> | string
+    calories?: IntWithAggregatesFilter<"NutritionGoal"> | number
+    protein?: FloatWithAggregatesFilter<"NutritionGoal"> | number
+    carbs?: FloatWithAggregatesFilter<"NutritionGoal"> | number
+    fat?: FloatWithAggregatesFilter<"NutritionGoal"> | number
+    waterMl?: IntNullableWithAggregatesFilter<"NutritionGoal"> | number | null
+    createdAt?: DateTimeWithAggregatesFilter<"NutritionGoal"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"NutritionGoal"> | Date | string
   }
 
   export type BodyMetricsWhereInput = {
@@ -14948,6 +16099,90 @@ export namespace Prisma {
     carbs?: NullableFloatFieldUpdateOperationsInput | number | null
     fats?: NullableFloatFieldUpdateOperationsInput | number | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionGoalCreateInput = {
+    id?: string
+    userId: string
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    waterMl?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionGoalUncheckedCreateInput = {
+    id?: string
+    userId: string
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    waterMl?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionGoalUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    calories?: IntFieldUpdateOperationsInput | number
+    protein?: FloatFieldUpdateOperationsInput | number
+    carbs?: FloatFieldUpdateOperationsInput | number
+    fat?: FloatFieldUpdateOperationsInput | number
+    waterMl?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionGoalUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    calories?: IntFieldUpdateOperationsInput | number
+    protein?: FloatFieldUpdateOperationsInput | number
+    carbs?: FloatFieldUpdateOperationsInput | number
+    fat?: FloatFieldUpdateOperationsInput | number
+    waterMl?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionGoalCreateManyInput = {
+    id?: string
+    userId: string
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    waterMl?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionGoalUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    calories?: IntFieldUpdateOperationsInput | number
+    protein?: FloatFieldUpdateOperationsInput | number
+    carbs?: FloatFieldUpdateOperationsInput | number
+    fat?: FloatFieldUpdateOperationsInput | number
+    waterMl?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionGoalUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    calories?: IntFieldUpdateOperationsInput | number
+    protein?: FloatFieldUpdateOperationsInput | number
+    carbs?: FloatFieldUpdateOperationsInput | number
+    fat?: FloatFieldUpdateOperationsInput | number
+    waterMl?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -16008,6 +17243,58 @@ export namespace Prisma {
     protein?: SortOrder
     carbs?: SortOrder
     fats?: SortOrder
+  }
+
+  export type NutritionGoalCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    calories?: SortOrder
+    protein?: SortOrder
+    carbs?: SortOrder
+    fat?: SortOrder
+    waterMl?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionGoalAvgOrderByAggregateInput = {
+    calories?: SortOrder
+    protein?: SortOrder
+    carbs?: SortOrder
+    fat?: SortOrder
+    waterMl?: SortOrder
+  }
+
+  export type NutritionGoalMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    calories?: SortOrder
+    protein?: SortOrder
+    carbs?: SortOrder
+    fat?: SortOrder
+    waterMl?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionGoalMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    calories?: SortOrder
+    protein?: SortOrder
+    carbs?: SortOrder
+    fat?: SortOrder
+    waterMl?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionGoalSumOrderByAggregateInput = {
+    calories?: SortOrder
+    protein?: SortOrder
+    carbs?: SortOrder
+    fat?: SortOrder
+    waterMl?: SortOrder
   }
 
   export type BodyMetricsCountOrderByAggregateInput = {
@@ -18491,6 +19778,10 @@ export namespace Prisma {
      * @deprecated Use NutritionLogDefaultArgs instead
      */
     export type NutritionLogArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionLogDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use NutritionGoalDefaultArgs instead
+     */
+    export type NutritionGoalArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionGoalDefaultArgs<ExtArgs>
     /**
      * @deprecated Use BodyMetricsDefaultArgs instead
      */
