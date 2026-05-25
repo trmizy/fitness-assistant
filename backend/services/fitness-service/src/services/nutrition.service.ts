@@ -19,7 +19,11 @@ export const nutritionService = {
     if (filters.startDate || filters.endDate) {
       where.date = {};
       if (filters.startDate) where.date.gte = new Date(filters.startDate);
-      if (filters.endDate) where.date.lte = new Date(filters.endDate);
+      if (filters.endDate) {
+        const end = new Date(filters.endDate);
+        end.setUTCHours(23, 59, 59, 999);
+        where.date.lte = end;
+      }
     }
     if (filters.mealType) where.mealType = filters.mealType;
     return nutritionRepository.findMany(where);
