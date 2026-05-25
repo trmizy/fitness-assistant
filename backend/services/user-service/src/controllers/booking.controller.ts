@@ -91,6 +91,19 @@ export const bookingController = {
     }
   },
 
+  // Join an online session (returns joinToken)
+  async joinSession(req: any, res: Response) {
+    try {
+      const userId = req.headers['x-user-id'] as string;
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+      const result = await bookingService.joinSession(req.params.id, userId);
+      res.json(result);
+    } catch (error: any) {
+      logger.error(error, 'Join session error');
+      res.status(error.status || 500).json({ error: error.message || 'Không thể tham gia buổi học' });
+    }
+  },
+
   // Client reviews a completed session
   async reviewSession(req: any, res: Response) {
     try {

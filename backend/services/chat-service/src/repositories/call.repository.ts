@@ -3,7 +3,7 @@ import { prisma } from './chat.repository';
 
 export const callRepository = {
   create: (data: {
-    conversationId: string;
+    conversationId?: string;
     callerId: string;
     calleeId: string;
     callType: CallType;

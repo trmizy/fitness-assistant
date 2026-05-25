@@ -356,8 +356,13 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                       <p className="text-xs text-zinc-100 font-bold">{app.yearsOfExperience ? `${app.yearsOfExperience} years` : "N/A"}</p>
                     </div>
                     <div className="p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/40">
-                      <p className="text-[10px] text-zinc-600 font-bold uppercase mb-1">Mode</p>
-                      <p className="text-xs text-green-400 font-bold">{app.serviceMode || "HYBRID"}</p>
+                      <p className="text-[10px] text-zinc-600 font-bold uppercase mb-1">Hình thức</p>
+                      <p className="text-xs text-green-400 font-bold">
+                        {app.serviceMode === 'ONLINE' ? 'Online qua video call'
+                          : app.serviceMode === 'OFFLINE' ? 'Offline tại phòng gym'
+                          : app.serviceMode === 'HYBRID' ? 'Cả online và offline'
+                          : 'Chưa cập nhật'}
+                      </p>
                     </div>
                   </div>
                   <div className="pt-2">
@@ -442,10 +447,42 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                 <p className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-2">
                   <Briefcase className="w-4 h-4 text-amber-500" /> Service Pricing
                 </p>
-                <div className="space-y-3">
-                  <PriceItem label="Session (1h)" value={app.desiredSessionPrice} />
-                  <PriceItem label="10-Session Pack" value={app.packagePrice} />
-                  <PriceItem label="Monthly Plan" value={app.monthlyProgramPrice} />
+                <div className="space-y-4">
+                  {/* Legacy pricing (PT cũ) */}
+                  {((app.desiredSessionPrice ?? 0) > 0 || (app.packagePrice ?? 0) > 0) && (
+                    <div>
+                      <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Legacy</p>
+                      <div className="space-y-2">
+                        {(app.desiredSessionPrice ?? 0) > 0 && <PriceItem label="Theo buổi" value={app.desiredSessionPrice} />}
+                        {(app.packagePrice ?? 0) > 0 && <PriceItem label={`Gói (${app.sessionsPerPackage || 10} buổi)`} value={app.packagePrice} />}
+                        {(app.monthlyProgramPrice ?? 0) > 0 && <PriceItem label="Gói tháng" value={app.monthlyProgramPrice} />}
+                      </div>
+                    </div>
+                  )}
+                  {/* Online pricing */}
+                  {((app.onlinePricePerSession ?? 0) > 0 || (app.onlinePackagePrice ?? 0) > 0) && (
+                    <div>
+                      <p className="text-[10px] text-blue-500 font-bold uppercase mb-2">Online qua video call</p>
+                      <div className="space-y-2">
+                        {(app.onlinePricePerSession ?? 0) > 0 && <PriceItem label="Theo buổi" value={app.onlinePricePerSession} />}
+                        {(app.onlinePackagePrice ?? 0) > 0 && <PriceItem label={`Gói (${app.sessionsPerPackage || 10} buổi)`} value={app.onlinePackagePrice} />}
+                      </div>
+                    </div>
+                  )}
+                  {/* Offline pricing */}
+                  {((app.offlinePricePerSession ?? 0) > 0 || (app.offlinePackagePrice ?? 0) > 0) && (
+                    <div>
+                      <p className="text-[10px] text-orange-500 font-bold uppercase mb-2">Offline tại phòng gym</p>
+                      <div className="space-y-2">
+                        {(app.offlinePricePerSession ?? 0) > 0 && <PriceItem label="Theo buổi" value={app.offlinePricePerSession} />}
+                        {(app.offlinePackagePrice ?? 0) > 0 && <PriceItem label={`Gói (${app.sessionsPerPackage || 10} buổi)`} value={app.offlinePackagePrice} />}
+                      </div>
+                    </div>
+                  )}
+                  {/* Fallback if no pricing set */}
+                  {!(app.desiredSessionPrice ?? 0) && !(app.packagePrice ?? 0) && !(app.onlinePricePerSession ?? 0) && !(app.offlinePricePerSession ?? 0) && (
+                    <p className="text-xs text-zinc-600 italic">Chưa thiết lập giá</p>
+                  )}
                   <div className="pt-2 flex items-center justify-between px-1 border-t border-zinc-800/40">
                     <span className="text-[10px] text-zinc-600 font-bold uppercase">Gym / Facility</span>
                     <span className="text-xs text-zinc-300 font-bold">{app.gymAffiliation || "Freelance"}</span>

@@ -3,6 +3,7 @@ import { CallType, CallOrigin } from '@prisma/client';
 import { logger } from '@gym-coach/shared';
 import { callService } from '../services/call.service';
 import { canInitiateCallFromChat, canInitiateCallFromSession } from '../services/call.policy';
+import { verifyJoinToken } from '../utils/joinToken';
 import { onlineUsers } from './index';
 
 // Track ring timeouts: callSessionId → timeout handle
@@ -45,16 +46,31 @@ export function registerCallHandlers(
   socket.on('call:initiate', async (payload: {
     calleeId: string;
     callType: string;
-    conversationId: string;
+    conversationId?: string;
     origin?: string;
     coachingSessionId?: string;
+    joinToken?: string;
   }) => {
     try {
-      const { calleeId, callType, conversationId, origin, coachingSessionId } = payload;
+      const { calleeId, callType, conversationId, origin, coachingSessionId, joinToken } = payload;
 
-      if (!calleeId || !callType || !conversationId) {
+      const isSessionCall = origin === 'SESSION' && coachingSessionId;
+      if (!calleeId || !callType || (!conversationId && !isSessionCall)) {
         socket.emit('call:error', { message: 'Missing required fields' });
         return;
+      }
+
+      // Verify join token for session calls
+      if (isSessionCall) {
+        if (!joinToken) {
+          socket.emit('call:error', { message: 'Join token required for session calls' });
+          return;
+        }
+        const check = verifyJoinToken(joinToken, user.id, coachingSessionId!, calleeId);
+        if (!check.valid) {
+          socket.emit('call:error', { message: 'Invalid or expired join token' });
+          return;
+        }
       }
 
       // Permission check
@@ -76,7 +92,7 @@ export function registerCallHandlers(
       if (!onlineUsers.has(calleeId)) {
         // Create call as MISSED immediately
         const result = await callService.initiateCall({
-          conversationId,
+          conversationId: conversationId || undefined,
           callerId: user.id,
           calleeId,
           callType: callType as CallType,
@@ -91,7 +107,7 @@ export function registerCallHandlers(
       }
 
       const result = await callService.initiateCall({
-        conversationId,
+        conversationId: conversationId || undefined,
         callerId: user.id,
         calleeId,
         callType: callType as CallType,
@@ -109,6 +125,7 @@ export function registerCallHandlers(
         socket.emit('call:existing', {
           callSessionId: result.existingCall.id,
           status: result.existingCall.status,
+          iceServers: getIceServers(),
         });
         return;
       }

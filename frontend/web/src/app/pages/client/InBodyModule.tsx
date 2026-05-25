@@ -18,12 +18,12 @@ type UploadStep = "drop" | "preview" | "processing" | "review" | "done" | "faile
 type ManualStep = "form" | "done";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; dot: string }> = {
-  extracted:     { label: "Extracted",          color: "bg-green-500/10 text-green-400 border-green-500/20",  icon: CheckCircle, dot: "bg-green-500"  },
-  processing:    { label: "Processing",          color: "bg-blue-500/10 text-blue-400 border-blue-500/20",    icon: RefreshCw,   dot: "bg-blue-500"   },
-  uploaded:      { label: "Uploaded",            color: "bg-zinc-700/50 text-zinc-400 border-zinc-700",       icon: FileImage,   dot: "bg-zinc-500"   },
-  needs_confirm: { label: "Needs Confirmation",  color: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: AlertCircle, dot: "bg-amber-500"  },
-  manual:        { label: "Manually Entered",    color: "bg-violet-500/10 text-violet-400 border-violet-500/20", icon: ClipboardList, dot: "bg-violet-500" },
-  failed:        { label: "Extraction Failed",   color: "bg-red-500/10 text-red-400 border-red-500/20",       icon: XCircle,     dot: "bg-red-500"    },
+  extracted:     { label: "Đã trích xuất",     color: "bg-green-500/10 text-green-400 border-green-500/20",  icon: CheckCircle, dot: "bg-green-500"  },
+  processing:    { label: "Đang xử lý",        color: "bg-blue-500/10 text-blue-400 border-blue-500/20",    icon: RefreshCw,   dot: "bg-blue-500"   },
+  uploaded:      { label: "Đã tải lên",        color: "bg-zinc-700/50 text-zinc-400 border-zinc-700",       icon: FileImage,   dot: "bg-zinc-500"   },
+  needs_confirm: { label: "Cần xác nhận",      color: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: AlertCircle, dot: "bg-amber-500"  },
+  manual:        { label: "Nhập thủ công",     color: "bg-violet-500/10 text-violet-400 border-violet-500/20", icon: ClipboardList, dot: "bg-violet-500" },
+  failed:        { label: "Trích xuất thất bại", color: "bg-red-500/10 text-red-400 border-red-500/20",     icon: XCircle,     dot: "bg-red-500"    },
 };
 
 const tooltipStyle = {
@@ -109,11 +109,11 @@ export function InBodyModule() {
   ];
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
-    { key: "overview", label: "Overview",     icon: Activity      },
-    { key: "manual",   label: "Manual Entry", icon: ClipboardList },
-    { key: "upload",   label: "Upload Image", icon: Camera        },
-    { key: "history",  label: "History",      icon: History       },
-    { key: "compare",  label: "Compare",      icon: GitCompare    },
+    { key: "overview", label: "Tổng quan",     icon: Activity      },
+    { key: "manual",   label: "Nhập thủ công", icon: ClipboardList },
+    { key: "upload",   label: "Tải ảnh lên",   icon: Camera        },
+    { key: "history",  label: "Lịch sử",       icon: History       },
+    { key: "compare",  label: "So sánh",       icon: GitCompare    },
   ];
 
   /* ── Handlers ── */
@@ -193,7 +193,7 @@ export function InBodyModule() {
             InBody Analysis
           </h1>
           <p className="text-zinc-500 text-sm mt-0.5">
-            Body composition tracking · Choose your input method below
+            Theo dõi thành phần cơ thể · Chọn phương thức nhập liệu bên dưới
           </p>
         </div>
         {/* Always-visible quick-add CTAs */}
@@ -202,13 +202,13 @@ export function InBodyModule() {
             onClick={() => { setTab("manual"); setManualStep("form"); }}
             className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/60 text-zinc-200 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
           >
-            <ClipboardList className="w-4 h-4 text-green-400" /> Enter Manually
+            <ClipboardList className="w-4 h-4 text-green-400" /> Nhập thủ công
           </button>
           <button
             onClick={() => { setTab("upload"); setUploadStep("drop"); }}
             className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/25"
           >
-            <Upload className="w-4 h-4" /> Upload InBody Image
+            <Upload className="w-4 h-4" /> Tải ảnh InBody
           </button>
         </div>
       </div>
@@ -247,8 +247,8 @@ export function InBodyModule() {
                 <ClipboardList className="w-6 h-6 text-violet-400" />
               </div>
               <div>
-                <div className="text-sm font-bold text-zinc-200">Enter Data Manually</div>
-                <div className="text-xs text-zinc-500 mt-0.5">Type in values from your InBody report</div>
+                <div className="text-sm font-bold text-zinc-200">Nhập dữ liệu thủ công</div>
+                <div className="text-xs text-zinc-500 mt-0.5">Nhập các giá trị từ phiếu InBody của bạn</div>
               </div>
               <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-green-400 ml-auto transition-colors" />
             </button>
@@ -261,8 +261,8 @@ export function InBodyModule() {
                 <Camera className="w-6 h-6 text-green-400" />
               </div>
               <div>
-                <div className="text-sm font-bold text-zinc-200">Upload InBody Image</div>
-                <div className="text-xs text-zinc-500 mt-0.5">Photo of your InBody sheet — AI extracts data</div>
+                <div className="text-sm font-bold text-zinc-200">Tải ảnh InBody</div>
+                <div className="text-xs text-zinc-500 mt-0.5">Chụp ảnh phiếu InBody — AI trích xuất dữ liệu</div>
               </div>
               <ArrowRight className="w-4 h-4 text-zinc-600 group-hover:text-green-400 ml-auto transition-colors" />
             </button>
@@ -271,20 +271,20 @@ export function InBodyModule() {
           {/* Latest snapshot */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Weight",          value: `${latest.weight} kg`, prev: prev.weight, curr: latest.weight, unit: "kg", color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/20"   },
-              { label: "Skeletal Muscle", value: `${latest.muscleMass} kg`, prev: prev.muscleMass, curr: latest.muscleMass, unit: "kg", color: "text-green-400",  bg: "bg-green-500/10",  border: "border-green-500/20"  },
-              { label: "Body Fat Mass",   value: `${latest.bodyFat} kg`,   prev: prev.bodyFat,    curr: latest.bodyFat,    unit: "kg", color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
-              { label: "Body Fat %",      value: `${latest.bodyFatPct}%`,     prev: prev.bodyFatPct,    curr: latest.bodyFatPct,    unit: "%",  color: "text-rose-400",   bg: "bg-rose-500/10",   border: "border-rose-500/20"   },
+              { label: "Cân nặng",       value: `${latest.weight} kg`, prev: prev.weight, curr: latest.weight, unit: "kg", color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/20"   },
+              { label: "Cơ bắp",        value: `${latest.muscleMass} kg`, prev: prev.muscleMass, curr: latest.muscleMass, unit: "kg", color: "text-green-400",  bg: "bg-green-500/10",  border: "border-green-500/20"  },
+              { label: "Khối lượng mỡ", value: `${latest.bodyFat} kg`,   prev: prev.bodyFat,    curr: latest.bodyFat,    unit: "kg", color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
+              { label: "% Mỡ cơ thể",   value: `${latest.bodyFatPct}%`,  prev: prev.bodyFatPct, curr: latest.bodyFatPct, unit: "%",  color: "text-rose-400",   bg: "bg-rose-500/10",   border: "border-rose-500/20"   },
             ].map(m => {
               const diff     = parseFloat((m.prev - m.curr).toFixed(1));
-              const improved = m.label === "Skeletal Muscle" ? diff < 0 : diff > 0;
+              const improved = m.label === "Cơ bắp" ? diff < 0 : diff > 0;
               return (
                 <div key={m.label} className={`${m.bg} rounded-xl p-4 border ${m.border}`}>
                   <div className="text-xs text-zinc-500 mb-1">{m.label}</div>
                   <div className={`text-xl font-bold ${m.color}`}>{m.value}</div>
                   <div className={`text-xs mt-1 flex items-center gap-1 ${improved ? "text-green-400" : "text-red-400"}`}>
                     {improved ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
-                    {Math.abs(diff)}{m.unit} vs last
+                    {Math.abs(diff)}{m.unit} so với lần trước
                   </div>
                 </div>
               );
@@ -293,7 +293,7 @@ export function InBodyModule() {
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <SectionCard title="Weight & Muscle Trend">
+            <SectionCard title="Xu hướng cân nặng & cơ bắp">
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={trends}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
@@ -306,7 +306,7 @@ export function InBodyModule() {
               </ResponsiveContainer>
             </SectionCard>
 
-            <SectionCard title="Body Balance Score">
+            <SectionCard title="Cân bằng cơ thể">
               <ResponsiveContainer width="100%" height={200}>
                 <RadarChart data={radarData}>
                   <PolarGrid stroke="#27272a" />
@@ -318,24 +318,24 @@ export function InBodyModule() {
           </div>
 
           {/* Segmental */}
-          <SectionCard title="Segmental Lean Analysis">
+          <SectionCard title="Phân tích cơ bắp theo vùng">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[450px] text-sm">
                 <thead>
                   <tr className="text-left text-xs text-zinc-600 border-b border-zinc-800/60 uppercase tracking-wider">
-                    <th className="pb-2">Segment</th>
-                    <th className="pb-2">Lean (kg)</th>
-                    <th className="pb-2">vs Normal</th>
-                    <th className="pb-2">Balance</th>
+                    <th className="pb-2">Vùng cơ thể</th>
+                    <th className="pb-2">Cơ (kg)</th>
+                    <th className="pb-2">Bình thường</th>
+                    <th className="pb-2">Cân bằng</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    { label: "Right Arm", value: latest.rightArmMuscle, norm: 3.2 },
-                    { label: "Left Arm",  value: latest.leftArmMuscle,  norm: 3.2 },
-                    { label: "Trunk",     value: latest.trunkMuscle,    norm: 24.0 },
-                    { label: "Right Leg", value: latest.rightLegMuscle, norm: 9.5 },
-                    { label: "Left Leg",  value: latest.leftLegMuscle,  norm: 9.5 },
+                    { label: "Tay phải",  value: latest.rightArmMuscle, norm: 3.2 },
+                    { label: "Tay trái",  value: latest.leftArmMuscle,  norm: 3.2 },
+                    { label: "Thân mình", value: latest.trunkMuscle,    norm: 24.0 },
+                    { label: "Chân phải", value: latest.rightLegMuscle, norm: 9.5 },
+                    { label: "Chân trái", value: latest.leftLegMuscle,  norm: 9.5 },
                   ].map((s: { label: string; value: number | undefined; norm: number; }) => {
                     const val = s.value || 0;
                     const norm = s.norm;
@@ -364,9 +364,9 @@ export function InBodyModule() {
 
           {/* Recent history */}
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Recent Records</h4>
+            <h4 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Bản ghi gần đây</h4>
             <button onClick={() => setTab("history")} className="text-xs text-green-400 hover:text-green-300 flex items-center gap-1 transition-colors">
-              View all <ChevronRight className="w-3.5 h-3.5" />
+              Xem tất cả <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="space-y-2">
@@ -376,11 +376,11 @@ export function InBodyModule() {
                 <div key={r.id} className={`flex items-center gap-4 p-3 rounded-xl border ${i === 0 ? "bg-green-500/5 border-green-500/15" : "bg-zinc-900 border-zinc-800/60"}`}>
                   <div className="text-sm font-semibold text-zinc-200 w-28 flex-shrink-0">
                     {new Date(r.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                    {i === 0 && <span className="ml-1 text-xs bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded-full border border-green-500/20">Latest</span>}
+                    {i === 0 && <span className="ml-1 text-xs bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded-full border border-green-500/20">Mới nhất</span>}
                   </div>
                   <div className="flex gap-4 text-xs text-zinc-500">
                     <span className="text-blue-400 font-semibold">{r.weight}kg</span>
-                    <span className="text-green-400 font-semibold">{r.muscleMass}kg muscle</span>
+                    <span className="text-green-400 font-semibold">{r.muscleMass}kg cơ bắp</span>
                     <span className="text-orange-400">{r.bodyFatPct}% BF</span>
                   </div>
                   <span className={`ml-auto inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold border ${cfg.color}`}>
@@ -405,14 +405,14 @@ export function InBodyModule() {
               <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/15">
                 <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
-              <h3 className="text-zinc-100 font-bold mb-1">Data Saved!</h3>
-              <p className="text-zinc-500 text-sm mb-5">Your body composition data has been recorded successfully.</p>
+              <h3 className="text-zinc-100 font-bold mb-1">Đã lưu dữ liệu!</h3>
+              <p className="text-zinc-500 text-sm mb-5">Dữ liệu thành phần cơ thể của bạn đã được ghi lại thành công.</p>
               <div className="flex gap-3 justify-center">
                 <button onClick={() => { setManualStep("form"); }} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">
-                  Add Another
+                  Thêm bản ghi
                 </button>
                 <button onClick={() => setTab("history")} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
-                  View History
+                  Xem lịch sử
                 </button>
               </div>
             </div>
@@ -420,70 +420,70 @@ export function InBodyModule() {
             <>
               <div className="flex items-center gap-3 bg-violet-500/8 border border-violet-500/20 rounded-xl px-4 py-3">
                 <ClipboardList className="w-4 h-4 text-violet-400 flex-shrink-0" />
-                <p className="text-sm text-violet-300">Enter your InBody values directly. All fields marked * are required.</p>
+                <p className="text-sm text-violet-300">Nhập trực tiếp các giá trị InBody của bạn. Các trường có dấu * là bắt buộc.</p>
               </div>
 
               {/* Actions */}
               <form onSubmit={handleManualSave} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <SectionCard title="📅 Test Information">
+                  <SectionCard title="📅 Thông tin kiểm tra">
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Test Date *</label>
+                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Ngày kiểm tra *</label>
                       <input name="date" type="date" className={inp} defaultValue={new Date().toISOString().split('T')[0]} required />
                     </div>
                   </SectionCard>
                   
-                  <SectionCard title="⚖️ Basic Measurements">
+                  <SectionCard title="⚖️ Số đo cơ bản">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Weight (kg) *</label>
+                        <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Cân nặng (kg) *</label>
                         <input name="weight" id="m-weight" type="number" step="0.1" placeholder="75.0" className={inp} required />
                       </div>
                       <div>
-                        <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Height (cm)</label>
+                        <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Chiều cao (cm)</label>
                         <input name="height" id="m-height" type="number" step="0.1" placeholder="175" className={inp} />
                       </div>
                     </div>
                   </SectionCard>
                 </div>
 
-                <SectionCard title="💪 Body Composition">
+                <SectionCard title="💪 Thành phần cơ thể">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Muscle Mass (kg)</label>
+                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Cơ bắp (kg)</label>
                       <input name="muscleMass" type="number" step="0.1" placeholder="35.0" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Body Fat Mass (kg)</label>
+                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Mỡ cơ thể (kg)</label>
                       <input name="bodyFat" type="number" step="0.1" placeholder="12.0" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Body Fat %</label>
+                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">% Mỡ cơ thể</label>
                       <input name="bodyFatPct" type="number" step="0.1" placeholder="15.0" className={inp} />
                     </div>
                   </div>
                 </SectionCard>
 
-                <SectionCard title="🦵 Segmental Lean (kg)">
+                <SectionCard title="🦵 Cơ theo vùng (kg)">
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <div>
-                      <label className="text-xs text-zinc-500 mb-1 block">R-Arm</label>
+                      <label className="text-xs text-zinc-500 mb-1 block">Tay P</label>
                       <input name="rightArmMuscle" type="number" step="0.1" placeholder="3.2" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 mb-1 block">L-Arm</label>
+                      <label className="text-xs text-zinc-500 mb-1 block">Tay T</label>
                       <input name="leftArmMuscle" type="number" step="0.1" placeholder="3.2" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 mb-1 block">Trunk</label>
+                      <label className="text-xs text-zinc-500 mb-1 block">Thân</label>
                       <input name="trunkMuscle" type="number" step="0.1" placeholder="24.0" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 mb-1 block">R-Leg</label>
+                      <label className="text-xs text-zinc-500 mb-1 block">Chân P</label>
                       <input name="rightLegMuscle" type="number" step="0.1" placeholder="9.5" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 mb-1 block">L-Leg</label>
+                      <label className="text-xs text-zinc-500 mb-1 block">Chân T</label>
                       <input name="leftLegMuscle" type="number" step="0.1" placeholder="9.5" className={inp} />
                     </div>
                   </div>
@@ -491,7 +491,7 @@ export function InBodyModule() {
 
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setTab("overview")} className="px-4 py-2.5 border border-zinc-700/60 text-zinc-400 text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors">
-                    Cancel
+                    Hủy
                   </button>
                   <button
                     type="submit"
@@ -499,7 +499,7 @@ export function InBodyModule() {
                     className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black text-sm font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                   >
                     {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    {createMutation.isPending ? "Saving..." : "Save Record"}
+                    {createMutation.isPending ? "Đang lưu..." : "Lưu bản ghi"}
                   </button>
                 </div>
               </form>
@@ -517,11 +517,11 @@ export function InBodyModule() {
           {/* Stepper */}
           <div className="flex items-center gap-2">
             {[
-              { label: "Upload",     key: "drop"       },
-              { label: "Preview",    key: "preview"    },
-              { label: "Processing", key: "processing" },
-              { label: "Review",     key: "review"     },
-              { label: "Done",       key: "done"       },
+              { label: "Tải lên",   key: "drop"       },
+              { label: "Xem trước", key: "preview"    },
+              { label: "Xử lý",     key: "processing" },
+              { label: "Xem lại",   key: "review"     },
+              { label: "Hoàn tất",  key: "done"       },
             ].map((s: { label: string; key: string; }, i: number) => {
               const stepKeys  = ["drop", "preview", "processing", "review", "done", "failed"];
               const currIdx   = stepKeys.indexOf(uploadStep);
@@ -564,8 +564,8 @@ export function InBodyModule() {
               <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Camera className="w-8 h-8 text-green-400" />
               </div>
-              <h3 className="text-zinc-200 font-bold mb-1">Upload InBody Report Photo</h3>
-              <p className="text-zinc-500 text-sm mb-4">Drag & drop or click to select your InBody scan image</p>
+              <h3 className="text-zinc-200 font-bold mb-1">Tải ảnh phiếu InBody</h3>
+              <p className="text-zinc-500 text-sm mb-4">Kéo thả hoặc bấm để chọn ảnh phiếu InBody</p>
               <div className="flex items-center gap-2 justify-center">
                 <span className="text-xs text-zinc-600 bg-zinc-800 border border-zinc-700/50 px-2 py-1 rounded-full">JPG</span>
                 <span className="text-xs text-zinc-600 bg-zinc-800 border border-zinc-700/50 px-2 py-1 rounded-full">PNG</span>
@@ -590,13 +590,13 @@ export function InBodyModule() {
               </div>
               <div className="flex gap-2 p-4 border-t border-zinc-800/60">
                 <button onClick={() => { setSelectedFile(null); setUploadStep("drop"); }} className="flex-1 py-2 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800/60">
-                  Re-upload
+                  Chọn ảnh khác
                 </button>
                 <button
                   onClick={handleUpload}
                   className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20"
                 >
-                  Extract Data with AI
+                  Trích xuất bằng AI
                 </button>
               </div>
             </div>
@@ -608,15 +608,15 @@ export function InBodyModule() {
               <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <RefreshCw className="w-8 h-8 text-green-400 animate-spin" />
               </div>
-              <div className="text-zinc-200 font-bold mb-1">Extracting Data with AI…</div>
-              <p className="text-zinc-500 text-sm">Scanning your InBody report for body composition values</p>
+              <div className="text-zinc-200 font-bold mb-1">Đang trích xuất dữ liệu bằng AI…</div>
+              <p className="text-zinc-500 text-sm">Đang phân tích ảnh phiếu InBody của bạn</p>
               <div className="flex gap-1 justify-center mt-5">
                 {[0, 1, 2].map((i: number) => (
                   <div key={i} className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                 ))}
               </div>
               <div className="mt-4 space-y-1.5 text-left max-w-xs mx-auto">
-                {["Detecting InBody format…", "Reading metric labels…", "Extracting numeric values…"].map((t: string, i: number) => (
+                {["Nhận dạng định dạng InBody…", "Đọc nhãn thông số…", "Trích xuất giá trị số…"].map((t: string, i: number) => (
                   <div key={t} className="flex items-center gap-2 text-xs text-zinc-600">
                     <Check className="w-3 h-3 text-green-500 flex-shrink-0" />
                     {t}
@@ -631,20 +631,20 @@ export function InBodyModule() {
             <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/8 border-b border-amber-500/20">
                 <AlertCircle className="w-4 h-4 text-amber-400" />
-                <span className="text-sm text-amber-300 font-semibold">Review extracted values — correct any errors before saving</span>
+                <span className="text-sm text-amber-300 font-semibold">Kiểm tra dữ liệu trích xuất — chỉnh sửa nếu cần trước khi lưu</span>
               </div>
               <div className="p-4 space-y-4">
                 {/* Basic Metrics */}
                 <div>
-                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Basic Metrics</h4>
+                  <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Thông số cơ bản</h4>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { label: "Weight (kg)",      field: "weight",     value: extractedData?.weight },
-                      { label: "Height (cm)",      field: "height",     value: extractedData?.height },
-                      { label: "Muscle Mass (kg)", field: "muscleMass", value: extractedData?.muscleMass },
-                      { label: "Body Fat (kg)",    field: "bodyFat",    value: extractedData?.bodyFat },
-                      { label: "Body Fat %",       field: "bodyFatPct", value: extractedData?.bodyFatPct },
-                      { label: "BMI",              field: "bmi",        value: extractedData?.bmi },
+                      { label: "Cân nặng (kg)",  field: "weight",     value: extractedData?.weight },
+                      { label: "Chiều cao (cm)", field: "height",     value: extractedData?.height },
+                      { label: "Cơ bắp (kg)",    field: "muscleMass", value: extractedData?.muscleMass },
+                      { label: "Mỡ cơ thể (kg)", field: "bodyFat",    value: extractedData?.bodyFat },
+                      { label: "% Mỡ cơ thể",    field: "bodyFatPct", value: extractedData?.bodyFatPct },
+                      { label: "BMI",             field: "bmi",        value: extractedData?.bmi },
                     ].map((f: { label: string; field: string; value: number | undefined }) => (
                       <div key={f.field}>
                         <label className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
@@ -658,14 +658,14 @@ export function InBodyModule() {
 
                 {/* Segmental Lean Analysis */}
                 <div>
-                  <h4 className="text-xs font-bold text-green-400/80 uppercase tracking-wider mb-2">Segmental Lean (kg)</h4>
+                  <h4 className="text-xs font-bold text-green-400/80 uppercase tracking-wider mb-2">Cơ theo vùng (kg)</h4>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { label: "Right Arm",  field: "rightArmMuscle", value: extractedData?.rightArmMuscle },
-                      { label: "Left Arm",   field: "leftArmMuscle",  value: extractedData?.leftArmMuscle },
-                      { label: "Right Leg",  field: "rightLegMuscle", value: extractedData?.rightLegMuscle },
-                      { label: "Left Leg",   field: "leftLegMuscle",  value: extractedData?.leftLegMuscle },
-                      { label: "Trunk",      field: "trunkMuscle",    value: extractedData?.trunkMuscle },
+                      { label: "Tay phải",  field: "rightArmMuscle", value: extractedData?.rightArmMuscle },
+                      { label: "Tay trái",  field: "leftArmMuscle",  value: extractedData?.leftArmMuscle },
+                      { label: "Chân phải", field: "rightLegMuscle", value: extractedData?.rightLegMuscle },
+                      { label: "Chân trái", field: "leftLegMuscle",  value: extractedData?.leftLegMuscle },
+                      { label: "Thân mình", field: "trunkMuscle",    value: extractedData?.trunkMuscle },
                     ].map((f: { label: string; field: string; value: number | undefined }) => (
                       <div key={f.field}>
                         <label className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
@@ -679,14 +679,14 @@ export function InBodyModule() {
 
                 {/* Segmental Fat Analysis */}
                 <div>
-                  <h4 className="text-xs font-bold text-amber-400/80 uppercase tracking-wider mb-2">Segmental Fat (kg)</h4>
+                  <h4 className="text-xs font-bold text-amber-400/80 uppercase tracking-wider mb-2">Mỡ theo vùng (kg)</h4>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { label: "Right Arm",  field: "rightArmFat", value: extractedData?.rightArmFat },
-                      { label: "Left Arm",   field: "leftArmFat",  value: extractedData?.leftArmFat },
-                      { label: "Right Leg",  field: "rightLegFat", value: extractedData?.rightLegFat },
-                      { label: "Left Leg",   field: "leftLegFat",  value: extractedData?.leftLegFat },
-                      { label: "Trunk",      field: "trunkFat",    value: extractedData?.trunkFat },
+                      { label: "Tay phải",  field: "rightArmFat", value: extractedData?.rightArmFat },
+                      { label: "Tay trái",  field: "leftArmFat",  value: extractedData?.leftArmFat },
+                      { label: "Chân phải", field: "rightLegFat", value: extractedData?.rightLegFat },
+                      { label: "Chân trái", field: "leftLegFat",  value: extractedData?.leftLegFat },
+                      { label: "Thân mình", field: "trunkFat",    value: extractedData?.trunkFat },
                     ].map((f: { label: string; field: string; value: number | undefined }) => (
                       <div key={f.field}>
                         <label className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
@@ -700,10 +700,10 @@ export function InBodyModule() {
               </div>
               <div className="flex gap-2 p-4 border-t border-zinc-800/60">
                 <button onClick={() => setUploadStep("drop")} className="flex-1 py-2 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800/60 transition-colors">
-                  Retake Photo
+                  Chụp lại
                 </button>
                 <button onClick={confirmExtraction} className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
-                  Confirm & Save
+                  Xác nhận & Lưu
                 </button>
               </div>
             </div>
@@ -715,14 +715,14 @@ export function InBodyModule() {
               <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <XCircle className="w-8 h-8 text-red-400" />
               </div>
-              <h3 className="text-zinc-200 font-bold mb-1">Extraction Failed</h3>
-              <p className="text-zinc-500 text-sm mb-5">The AI could not read enough data from this image. Try a clearer photo or enter data manually.</p>
+              <h3 className="text-zinc-200 font-bold mb-1">Trích xuất thất bại</h3>
+              <p className="text-zinc-500 text-sm mb-5">AI không thể đọc đủ dữ liệu từ ảnh này. Hãy thử ảnh rõ hơn hoặc nhập thủ công.</p>
               <div className="flex gap-3 justify-center">
                 <button onClick={() => setUploadStep("drop")} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">
-                  Try Again
+                  Thử lại
                 </button>
                 <button onClick={() => { setTab("manual"); setManualStep("form"); }} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
-                  Enter Manually
+                  Nhập thủ công
                 </button>
               </div>
             </div>
@@ -734,14 +734,14 @@ export function InBodyModule() {
               <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/15">
                 <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
-              <h3 className="text-zinc-200 font-bold mb-1">InBody Saved!</h3>
-              <p className="text-zinc-500 text-sm mb-5">Your body composition data has been extracted and confirmed successfully.</p>
+              <h3 className="text-zinc-200 font-bold mb-1">Đã lưu InBody!</h3>
+              <p className="text-zinc-500 text-sm mb-5">Dữ liệu thành phần cơ thể đã được trích xuất và xác nhận thành công.</p>
               <div className="flex gap-3 justify-center">
                 <button onClick={() => setUploadStep("drop")} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">
-                  Upload Another
+                  Tải ảnh khác
                 </button>
                 <button onClick={() => setTab("history")} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
-                  View History
+                  Xem lịch sử
                 </button>
               </div>
             </div>
@@ -766,21 +766,21 @@ export function InBodyModule() {
 
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-zinc-200">InBody History ({history.length} records)</h4>
+              <h4 className="text-sm font-semibold text-zinc-200">Lịch sử InBody ({history.length} bản ghi)</h4>
               <button onClick={() => setTab("upload")} className="flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300 transition-colors">
-                <Plus className="w-3.5 h-3.5" /> Add New
+                <Plus className="w-3.5 h-3.5" /> Thêm mới
               </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[620px]">
                 <thead>
                   <tr className="text-left text-xs text-zinc-600 border-b border-zinc-800/60 bg-zinc-800/30 uppercase tracking-wider">
-                    <th className="px-4 py-2.5">Date</th>
-                    <th className="px-4 py-2.5">Weight (kg)</th>
-                    <th className="px-4 py-2.5">Muscle (kg)</th>
-                    <th className="px-4 py-2.5">Fat (kg)</th>
-                    <th className="px-4 py-2.5">BF%</th>
-                    <th className="px-4 py-2.5">Method</th>
+                    <th className="px-4 py-2.5">Ngày</th>
+                    <th className="px-4 py-2.5">Cân nặng (kg)</th>
+                    <th className="px-4 py-2.5">Cơ bắp (kg)</th>
+                    <th className="px-4 py-2.5">Mỡ (kg)</th>
+                    <th className="px-4 py-2.5">% Mỡ</th>
+                    <th className="px-4 py-2.5">Phương thức</th>
                     <th className="px-4 py-2.5"></th>
                   </tr>
                 </thead>
@@ -791,7 +791,7 @@ export function InBodyModule() {
                       <tr key={r.id} className={`border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/30 transition-colors ${i === 0 ? "bg-green-500/5" : ""}`}>
                         <td className="px-4 py-3 text-sm font-semibold text-zinc-200">
                           {new Date(r.date).toLocaleDateString()}
-                          {i === 0 && <span className="ml-1.5 text-xs bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded-full border border-green-500/20">Latest</span>}
+                          {i === 0 && <span className="ml-1.5 text-xs bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded-full border border-green-500/20">Mới nhất</span>}
                         </td>
                         <td className="px-4 py-3 text-sm text-blue-400 font-semibold">{r.weight}</td>
                         <td className="px-4 py-3 text-sm text-green-400 font-semibold">{r.muscleMass}</td>
@@ -812,7 +812,7 @@ export function InBodyModule() {
                     );
                   }) : (
                     <tr>
-                      <td colSpan={7} className="text-center py-10 text-zinc-500">No records found.</td>
+                      <td colSpan={7} className="text-center py-10 text-zinc-500">Chưa có bản ghi nào.</td>
                     </tr>
                   )}
                 </tbody>
@@ -821,7 +821,7 @@ export function InBodyModule() {
           </div>
 
           {/* Trend chart */}
-          <SectionCard title="Fat Trend Over Time">
+          <SectionCard title="Xu hướng mỡ cơ thể">
             <ResponsiveContainer width="100%" height={180}>
               <AreaChart data={trends}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
@@ -842,20 +842,20 @@ export function InBodyModule() {
         <div className="space-y-4">
           {history.length < 2 ? (
             <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-10 text-center">
-              <div className="text-zinc-400 font-semibold mb-1">Not enough data</div>
-              <p className="text-zinc-600 text-sm">You need at least 2 InBody records to compare.</p>
+              <div className="text-zinc-400 font-semibold mb-1">Chưa đủ dữ liệu</div>
+              <p className="text-zinc-600 text-sm">Bạn cần ít nhất 2 bản ghi InBody để so sánh.</p>
             </div>
           ) : (<>
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Record A</label>
+              <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Bản ghi A</label>
               <select value={compareA} onChange={e => setCompareA(Number(e.target.value))} className={inp}>
                 {history.map((h: any, i: number) => <option key={h.id} value={i}>{new Date(h.date).toLocaleDateString()}</option>)}
               </select>
             </div>
             <span className="text-zinc-600 text-sm self-center hidden sm:block font-bold">vs</span>
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Record B</label>
+              <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Bản ghi B</label>
               <select value={compareB} onChange={e => setCompareB(Number(e.target.value))} className={inp}>
                 {history.map((h: any, i: number) => <option key={h.id} value={i}>{new Date(h.date).toLocaleDateString()}</option>)}
               </select>
@@ -864,10 +864,10 @@ export function InBodyModule() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {([
-              { key: "weight",     label: "Weight (kg)" },
-              { key: "muscleMass", label: "Muscle (kg)" },
-              { key: "bodyFat",    label: "Body Fat (kg)" },
-              { key: "bodyFatPct", label: "Body Fat %" },
+              { key: "weight",     label: "Cân nặng (kg)" },
+              { key: "muscleMass", label: "Cơ bắp (kg)" },
+              { key: "bodyFat",    label: "Mỡ cơ thể (kg)" },
+              { key: "bodyFatPct", label: "% Mỡ cơ thể" },
             ] as const).map(({ key, label }) => {
               const aVal   = (history[compareA]?.[key] as number) || 0;
               const bVal   = (history[compareB]?.[key] as number) || 0;
@@ -894,7 +894,7 @@ export function InBodyModule() {
             })}
           </div>
 
-          <SectionCard title="Comparison Chart">
+          <SectionCard title="Biểu đồ so sánh">
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={[
                 { metric: "Weight", A: history[compareA]?.weight || 0, B: history[compareB]?.weight || 0 },

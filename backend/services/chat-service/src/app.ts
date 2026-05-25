@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import { logger, register, metricsMiddleware } from '@gym-coach/shared';
 import chatRoutes from './routes/chat.routes';
+import { getIo } from './socket/index';
 
 const app: Express = express();
 
@@ -37,6 +38,30 @@ app.get('/metrics', async (_req, res) => {
 });
 
 app.use('/chat', chatRoutes);
+
+// Internal notification push — validated by shared secret (Docker-internal only)
+app.post('/internal/push-notification', (req: Request, res: Response) => {
+  const secret = req.headers['x-internal-secret'];
+  if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const io = getIo();
+  if (!io) return res.status(503).json({ error: 'Socket not ready' });
+
+  const { userId, adminBroadcast, notification } = req.body;
+  if (!notification) return res.status(400).json({ error: 'Missing notification' });
+
+  if (adminBroadcast) {
+    io.to('admin:notifications').emit('notification:new', notification);
+  } else if (userId) {
+    io.to(`user:${userId}`).emit('notification:new', notification);
+  } else {
+    return res.status(400).json({ error: 'Missing userId or adminBroadcast' });
+  }
+
+  res.json({ ok: true });
+});
 
 // 404 handler
 app.use((_req, res) => {

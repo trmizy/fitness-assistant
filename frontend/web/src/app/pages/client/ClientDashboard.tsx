@@ -6,9 +6,9 @@ import {
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { profileService, inbodyService, workoutService } from "../../services/api";
-import { 
-  Activity, Brain, Calendar, MessageSquare, TrendingDown, 
-  TrendingUp, Zap, Upload, Dumbbell, ChevronRight, Bell, 
+import {
+  Activity, Brain, Calendar, MessageSquare, TrendingDown,
+  TrendingUp, Zap, Upload, Dumbbell, ChevronRight, Bell,
   Target, Clock, Award, Flame, Loader2
 } from "lucide-react";
 
@@ -24,7 +24,7 @@ const tooltipStyle = {
 export function ClientDashboard() {
   const { user } = useApp();
   const navigate = useNavigate();
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const today = new Date().toLocaleDateString("vi-VN", { weekday: "long", month: "long", day: "numeric" });
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["profile"],
@@ -44,7 +44,7 @@ export function ClientDashboard() {
     queryFn: () => workoutService.getHistory(1, 4)
   });
 
-  const firstName = user?.firstName || "User";
+  const firstName = user?.firstName || "Bạn";
   const isLoading = profileLoading || inbodyLoading || workoutLoading;
 
   if (isLoading) {
@@ -55,7 +55,6 @@ export function ClientDashboard() {
     );
   }
 
-  // Derived KPIs
   const latest = inbodyHistory[0];
   const prev = inbodyHistory[1];
 
@@ -66,55 +65,55 @@ export function ClientDashboard() {
   };
 
   const kpis = [
-    { 
-      label: "Current Weight", 
-      value: latest?.weight ? `${latest.weight} kg` : "---", 
+    {
+      label: "Cân nặng",
+      value: latest?.weight ? `${latest.weight} kg` : "---",
       change: calcChange(latest?.weight, prev?.weight) + (prev ? " kg" : ""),
-      icon: TrendingDown, color: "text-green-400", bg: "bg-green-500/10", iconBg: "bg-green-500/15", border: "border-green-500/20" 
+      icon: TrendingDown, color: "text-green-400", bg: "bg-green-500/10", iconBg: "bg-green-500/15", border: "border-green-500/20"
     },
-    { 
-      label: "Muscle Mass", 
-      value: latest?.muscleMass ? `${latest.muscleMass} kg` : "---", 
+    {
+      label: "Cơ bắp",
+      value: latest?.muscleMass ? `${latest.muscleMass} kg` : "---",
       change: calcChange(latest?.muscleMass, prev?.muscleMass) + (prev ? " kg" : ""),
-      icon: TrendingUp, color: "text-blue-400", bg: "bg-blue-500/10", iconBg: "bg-blue-500/15", border: "border-blue-500/20" 
+      icon: TrendingUp, color: "text-blue-400", bg: "bg-blue-500/10", iconBg: "bg-blue-500/15", border: "border-blue-500/20"
     },
-    { 
-      label: "Body Fat", 
-      value: latest?.bodyFatPct ? `${latest.bodyFatPct}%` : "---", 
+    {
+      label: "Mỡ cơ thể",
+      value: latest?.bodyFatPct ? `${latest.bodyFatPct}%` : "---",
       change: calcChange(latest?.bodyFatPct, prev?.bodyFatPct) + (prev ? "%" : ""),
-      icon: Flame, color: "text-orange-400", bg: "bg-orange-500/10", iconBg: "bg-orange-500/15", border: "border-orange-500/20" 
+      icon: Flame, color: "text-orange-400", bg: "bg-orange-500/10", iconBg: "bg-orange-500/15", border: "border-orange-500/20"
     },
-    { 
-      label: "Workouts Done", 
-      value: workoutHistory.length.toString(), 
-      change: "Last 30d", 
-      icon: Dumbbell, color: "text-emerald-400", bg: "bg-emerald-500/10", iconBg: "bg-emerald-500/15", border: "border-emerald-500/20" 
+    {
+      label: "Buổi tập",
+      value: workoutHistory.length.toString(),
+      change: "30 ngày qua",
+      icon: Dumbbell, color: "text-emerald-400", bg: "bg-emerald-500/10", iconBg: "bg-emerald-500/15", border: "border-emerald-500/20"
     },
   ];
 
   const weightData = [...inbodyHistory].reverse().map(h => ({
-    date: new Date(h.date).toLocaleDateString(undefined, { month: 'short' }),
+    date: new Date(h.date).toLocaleDateString("vi-VN", { month: 'short' }),
     value: h.weight
   }));
 
   const muscleData = [...inbodyHistory].reverse().map(h => ({
-    date: new Date(h.date).toLocaleDateString(undefined, { month: 'short' }),
+    date: new Date(h.date).toLocaleDateString("vi-VN", { month: 'short' }),
     value: h.muscleMass
   }));
 
   const quickActions = [
-    { label: "Upload InBody", icon: Upload, to: "/client/inbody", color: "bg-green-500 hover:bg-green-400 text-black shadow-green-500/25" },
-    { label: "Log Workout", icon: Dumbbell, to: "/client/workout", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
-    { label: "View Plan", icon: Brain, to: "/client/plans", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
-    { label: "Message PT", icon: MessageSquare, to: "/client/chat", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
-    { label: "Book Session", icon: Calendar, to: "/client/booking", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
+    { label: "Tải InBody", icon: Upload, to: "/client/inbody", color: "bg-green-500 hover:bg-green-400 text-black shadow-green-500/25" },
+    { label: "Nhật ký tập", icon: Dumbbell, to: "/client/workout", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
+    { label: "Xem kế hoạch", icon: Brain, to: "/client/plans", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
+    { label: "Nhắn tin PT", icon: MessageSquare, to: "/client/chat", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
+    { label: "Đặt lịch", icon: Calendar, to: "/client/booking", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
   ];
 
   const goalLabels: any = {
-    WEIGHT_LOSS: "Lose Fat",
-    MUSCLE_GAIN: "Gain Muscle",
-    MAINTENANCE: "Maintain Body",
-    ATHLETIC_PERFORMANCE: "Improve Health"
+    WEIGHT_LOSS: "Giảm mỡ",
+    MUSCLE_GAIN: "Tăng cơ",
+    MAINTENANCE: "Duy trì",
+    ATHLETIC_PERFORMANCE: "Cải thiện sức khỏe"
   };
 
   return (
@@ -122,32 +121,31 @@ export function ClientDashboard() {
       {/* Greeting */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-zinc-100">Good morning, {firstName} 👋</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">{today} · Active Session</p>
+          <h1 className="text-zinc-100">Xin chào, {firstName} 👋</h1>
+          <p className="text-zinc-500 text-sm mt-0.5">{today} · Phiên hoạt động</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-semibold rounded-full flex items-center gap-1.5 border border-green-500/20">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
-            Fitness Member
+            Thành viên
           </span>
           <span className="px-3 py-1 bg-zinc-800 text-zinc-400 text-xs font-semibold rounded-full flex items-center gap-1.5 border border-zinc-700/50">
             <Target className="w-3 h-3" />
-            Goal: {profile?.goal ? goalLabels[profile.goal] : "Fitness"}
+            Mục tiêu: {profile?.goal ? goalLabels[profile.goal] : "Thể dục"}
           </span>
         </div>
       </div>
 
-      {/* Alerts - Only show if relevant data exists or empty for now */}
       {inbodyHistory.length === 0 && (
         <div className="flex items-start gap-3 px-4 py-3 rounded-xl text-sm border bg-amber-500/8 border-amber-500/20 text-amber-300">
           <Bell className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span>You haven't uploaded any InBody data yet. Upload now for AI analysis!</span>
+          <span>Bạn chưa tải lên dữ liệu InBody nào. Tải lên ngay để nhận phân tích từ AI!</span>
         </div>
       )}
 
       {/* Quick actions */}
       <div>
-        <h3 className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2.5">Quick Actions</h3>
+        <h3 className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2.5">Thao tác nhanh</h3>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
           {quickActions.map((a) => (
             <button
@@ -185,7 +183,7 @@ export function ClientDashboard() {
         {/* Weight trend */}
         <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-zinc-200">Weight Trend</h4>
+            <h4 className="text-sm font-semibold text-zinc-200">Xu hướng cân nặng</h4>
             {weightData.length > 1 && (
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${parseFloat(calcChange(latest?.weight, prev?.weight)) <= 0 ? "text-green-400 bg-green-500/10 border-green-500/20" : "text-red-400 bg-red-500/10 border-red-500/20"}`}>
                 {calcChange(latest?.weight, prev?.weight)} kg
@@ -195,7 +193,7 @@ export function ClientDashboard() {
           <ResponsiveContainer width="100%" height={120}>
             <AreaChart data={weightData}>
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
-              <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, "Weight"]} />
+              <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, "Cân nặng"]} />
               <Area type="monotone" dataKey="value" stroke="#22c55e" strokeWidth={2} fill="#22c55e" fillOpacity={0.12} dot={false} />
             </AreaChart>
           </ResponsiveContainer>
@@ -204,7 +202,7 @@ export function ClientDashboard() {
         {/* Muscle trend */}
         <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-zinc-200">Muscle Mass</h4>
+            <h4 className="text-sm font-semibold text-zinc-200">Cơ bắp</h4>
             {muscleData.length > 1 && (
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${parseFloat(calcChange(latest?.muscleMass, prev?.muscleMass)) >= 0 ? "text-blue-400 bg-blue-500/10 border-blue-500/20" : "text-amber-400 bg-amber-500/10 border-amber-500/20"}`}>
                 {calcChange(latest?.muscleMass, prev?.muscleMass)} kg
@@ -214,20 +212,20 @@ export function ClientDashboard() {
           <ResponsiveContainer width="100%" height={120}>
             <LineChart data={muscleData}>
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
-              <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, "Muscle"]} />
+              <Tooltip {...tooltipStyle} formatter={(v: number) => [`${v} kg`, "Cơ bắp"]} />
               <Line type="monotone" dataKey="value" stroke="#60a5fa" strokeWidth={2} dot={{ fill: "#60a5fa", strokeWidth: 0, r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Weekly calories - Empty for now */}
+        {/* Weekly calories */}
         <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60 md:col-span-2 xl:col-span-1">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-zinc-200">Weekly Calories</h4>
-            <span className="text-xs text-zinc-500">No data</span>
+            <h4 className="text-sm font-semibold text-zinc-200">Calories tuần này</h4>
+            <span className="text-xs text-zinc-500">Không có dữ liệu</span>
           </div>
           <div className="h-[120px] flex items-center justify-center border border-dashed border-zinc-800 rounded-lg">
-            <p className="text-[10px] text-zinc-600 italic">Sync your fitness tracker for calorie data</p>
+            <p className="text-[10px] text-zinc-600 italic">Đồng bộ thiết bị tập luyện để xem dữ liệu calo</p>
           </div>
         </div>
       </div>
@@ -237,20 +235,20 @@ export function ClientDashboard() {
         {/* Active plan */}
         <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-zinc-200">Active Plan</h4>
+            <h4 className="text-sm font-semibold text-zinc-200">Kế hoạch đang dùng</h4>
           </div>
           <div className="flex flex-col items-center justify-center h-[100px] border border-dashed border-zinc-800 rounded-lg text-center p-4">
-             <Brain className="w-6 h-6 text-zinc-700 mb-2" />
-             <p className="text-[10px] text-zinc-500 italic">No active AI plan. Go to AI Plans to generate one.</p>
-             <button onClick={() => navigate("/client/plans")} className="mt-2 text-[10px] text-green-500 font-bold hover:underline">Get Started</button>
+            <Brain className="w-6 h-6 text-zinc-700 mb-2" />
+            <p className="text-[10px] text-zinc-500 italic">Chưa có kế hoạch AI. Vào AI Plans để tạo kế hoạch.</p>
+            <button onClick={() => navigate("/client/plans")} className="mt-2 text-[10px] text-green-500 font-bold hover:underline">Bắt đầu ngay</button>
           </div>
         </div>
 
-        {/* Next session - Placeholder for upcoming session logic */}
+        {/* Next session */}
         <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60 flex flex-col items-center justify-center text-center">
-           <Calendar className="w-8 h-8 text-zinc-700 mb-2" />
-           <p className="text-sm text-zinc-500 font-medium">No upcoming sessions</p>
-           <button onClick={() => navigate("/client/booking")} className="mt-3 text-xs text-green-400 hover:underline">Book your first session</button>
+          <Calendar className="w-8 h-8 text-zinc-700 mb-2" />
+          <p className="text-sm text-zinc-500 font-medium">Không có lịch tập sắp tới</p>
+          <button onClick={() => navigate("/client/booking")} className="mt-3 text-xs text-green-400 hover:underline">Đặt lịch tập đầu tiên</button>
         </div>
 
         {/* AI Insights */}
@@ -261,61 +259,61 @@ export function ClientDashboard() {
               <Brain className="w-4 h-4 text-green-400" />
             </div>
             <h4 className="text-sm font-semibold text-zinc-200">AI Insights</h4>
-            <span className="ml-auto text-xs text-green-400 font-semibold">Live</span>
+            <span className="ml-auto text-xs text-green-400 font-semibold">Trực tiếp</span>
           </div>
           <div className="space-y-2.5 relative z-10">
             {latest ? (
               <>
                 <div className="flex items-start gap-2.5 bg-zinc-800/60 rounded-lg p-2.5 border border-zinc-700/40">
                   <Award className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-400" />
-                  <p className="text-xs text-zinc-400 leading-relaxed">Your latest weight is {latest.weight}kg. Keep tracking your progress!</p>
+                  <p className="text-xs text-zinc-400 leading-relaxed">Cân nặng hiện tại của bạn là {latest.weight}kg. Hãy tiếp tục theo dõi tiến độ!</p>
                 </div>
                 <div className="flex items-start gap-2.5 bg-zinc-800/60 rounded-lg p-2.5 border border-zinc-700/40">
                   <TrendingUp className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-400" />
-                  <p className="text-xs text-zinc-400 leading-relaxed">Your muscle mass is {latest.muscleMass}kg. Aim for high protein intake.</p>
+                  <p className="text-xs text-zinc-400 leading-relaxed">Cơ bắp của bạn là {latest.muscleMass}kg. Hãy bổ sung đủ protein.</p>
                 </div>
               </>
             ) : (
               <div className="text-center py-4">
-                <p className="text-xs text-zinc-500 italic">No AI insights available yet. Upload your InBody results to get started.</p>
+                <p className="text-xs text-zinc-500 italic">Chưa có dữ liệu AI Insights. Tải lên kết quả InBody để bắt đầu.</p>
               </div>
             )}
           </div>
-          <p className="text-xs text-zinc-600 mt-3 relative z-10">*AI insights are informational only, not medical advice.</p>
+          <p className="text-xs text-zinc-600 mt-3 relative z-10">*AI Insights chỉ mang tính tham khảo, không phải lời khuyên y tế.</p>
         </div>
       </div>
 
       {/* Recent workouts */}
       <div className="bg-zinc-900 rounded-xl border border-zinc-800/60">
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
-          <h4 className="text-sm font-semibold text-zinc-200">Recent Workouts</h4>
-          <button onClick={() => navigate("/client/workout")} className="text-xs text-green-400 hover:text-green-300 transition-colors">View all</button>
+          <h4 className="text-sm font-semibold text-zinc-200">Tập luyện gần đây</h4>
+          <button onClick={() => navigate("/client/workout")} className="text-xs text-green-400 hover:text-green-300 transition-colors">Xem tất cả</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[400px]">
             <thead>
               <tr className="text-left text-xs text-zinc-600 border-b border-zinc-800/60 bg-zinc-800/30">
-                <th className="px-4 py-2 font-semibold uppercase tracking-wider">Workout</th>
-                <th className="px-4 py-2 font-semibold uppercase tracking-wider">Date</th>
-                <th className="px-4 py-2 font-semibold uppercase tracking-wider">Duration</th>
-                <th className="px-4 py-2 font-semibold uppercase tracking-wider">Status</th>
+                <th className="px-4 py-2 font-semibold uppercase tracking-wider">Buổi tập</th>
+                <th className="px-4 py-2 font-semibold uppercase tracking-wider">Ngày</th>
+                <th className="px-4 py-2 font-semibold uppercase tracking-wider">Thời gian</th>
+                <th className="px-4 py-2 font-semibold uppercase tracking-wider">Trạng thái</th>
               </tr>
             </thead>
             <tbody>
               {workoutHistory.length > 0 ? workoutHistory.map((w: any, i: number) => (
                 <tr key={i} className="border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/40 transition-colors">
-                  <td className="px-4 py-2.5 text-sm font-semibold text-zinc-200">{w.title || "Workout"}</td>
-                  <td className="px-4 py-2.5 text-sm text-zinc-500">{new Date(w.date).toLocaleDateString()}</td>
-                  <td className="px-4 py-2.5 text-sm text-zinc-500">{w.durationMinutes || "--"} min</td>
+                  <td className="px-4 py-2.5 text-sm font-semibold text-zinc-200">{w.title || "Buổi tập"}</td>
+                  <td className="px-4 py-2.5 text-sm text-zinc-500">{new Date(w.date).toLocaleDateString("vi-VN")}</td>
+                  <td className="px-4 py-2.5 text-sm text-zinc-500">{w.durationMinutes || "--"} phút</td>
                   <td className="px-4 py-2.5">
                     <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-500/10 text-green-400 border border-green-500/20">
-                      Completed
+                      Hoàn thành
                     </span>
                   </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-xs text-zinc-600 italic">No recent workouts logged yet.</td>
+                  <td colSpan={4} className="px-4 py-8 text-center text-xs text-zinc-600 italic">Chưa có buổi tập nào được ghi lại.</td>
                 </tr>
               )}
             </tbody>

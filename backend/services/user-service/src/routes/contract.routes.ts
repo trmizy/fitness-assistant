@@ -23,6 +23,11 @@ router.get('/pt', authMiddleware, contractController.getByPT as any);
 // ── Client endpoints ──────────────────────────────────────────────
 router.get('/client', authMiddleware, contractController.getByClient as any);
 
+// ── E-sign endpoints (must be before /:id to avoid route conflict) ───
+router.post('/:id/esign/send', authMiddleware, contractController.sendESign as any);
+router.get('/:id/esign', authMiddleware, contractController.getESignStatus as any);
+router.get('/:id/pdf', authMiddleware, contractController.getContractPdf as any);
+
 // ── Shared endpoints ──────────────────────────────────────────────
 router.get('/:id', authMiddleware, contractController.getById as any);
 router.patch('/:id/status', authMiddleware, contractController.updateStatus as any);

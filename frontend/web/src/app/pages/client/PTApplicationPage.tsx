@@ -15,14 +15,14 @@ const inp = "w-full px-3 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded
 const lbl = "text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold";
 
 const steps = [
-  { key: "personal", label: "Personal Info", icon: User },
-  { key: "identity", label: "Identity & Verification", icon: Shield },
-  { key: "experience", label: "Professional Experience", icon: Briefcase },
-  { key: "certs", label: "Certifications", icon: Award },
-  { key: "focus", label: "Coaching Focus", icon: Users },
-  { key: "availability", label: "Service & Availability", icon: Calendar },
-  { key: "portfolio", label: "Portfolio & Social", icon: Globe },
-  { key: "review", label: "Review & Submit", icon: CheckCircle },
+  { key: "personal", label: "Thông tin cá nhân", icon: User },
+  { key: "identity", label: "Xác thực danh tính", icon: Shield },
+  { key: "experience", label: "Kinh nghiệm", icon: Briefcase },
+  { key: "certs", label: "Chứng chỉ", icon: Award },
+  { key: "focus", label: "Hướng huấn luyện", icon: Users },
+  { key: "availability", label: "Dịch vụ & Lịch", icon: Calendar },
+  { key: "portfolio", label: "Portfolio", icon: Globe },
+  { key: "review", label: "Xem lại & Nộp", icon: CheckCircle },
 ];
 
 const specialtyOptions = [
@@ -45,13 +45,13 @@ const trainingGoalOptions = [
 const dayOptions = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const appStatusConfig: Record<string, { label: string; bg: string; text: string; border: string; dot: string; desc: string }> = {
-  not_applied: { label: "Not Applied", bg: "bg-zinc-700/50", text: "text-zinc-400", border: "border-zinc-700", dot: "bg-zinc-500", desc: "You have not applied yet." },
-  DRAFT: { label: "Draft", bg: "bg-zinc-700/50", text: "text-zinc-400", border: "border-zinc-700", dot: "bg-zinc-400", desc: "Your application is saved as draft." },
-  SUBMITTED: { label: "Submitted", bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20", dot: "bg-blue-500", desc: "Application submitted, awaiting admin review." },
-  UNDER_REVIEW: { label: "Under Review", bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", dot: "bg-amber-500", desc: "Admin is reviewing your application." },
-  NEEDS_MORE_INFO: { label: "Additional Info Needed", bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/20", dot: "bg-orange-500", desc: "Admin has requested more information." },
-  APPROVED: { label: "Approved ✓", bg: "bg-green-500/10", text: "text-green-400", border: "border-green-500/20", dot: "bg-green-500", desc: "Congratulations! Your PT application has been approved." },
-  REJECTED: { label: "Rejected", bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20", dot: "bg-red-500", desc: "Your application was not approved at this time." },
+  not_applied: { label: "Chưa đăng ký", bg: "bg-zinc-700/50", text: "text-zinc-400", border: "border-zinc-700", dot: "bg-zinc-500", desc: "Bạn chưa đăng ký PT." },
+  DRAFT: { label: "Bản nháp", bg: "bg-zinc-700/50", text: "text-zinc-400", border: "border-zinc-700", dot: "bg-zinc-400", desc: "Hồ sơ đã lưu dưới dạng nháp." },
+  SUBMITTED: { label: "Đã nộp", bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20", dot: "bg-blue-500", desc: "Hồ sơ đã nộp, chờ admin xét duyệt." },
+  UNDER_REVIEW: { label: "Đang xét duyệt", bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", dot: "bg-amber-500", desc: "Admin đang xem xét hồ sơ của bạn." },
+  NEEDS_MORE_INFO: { label: "Cần bổ sung thông tin", bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/20", dot: "bg-orange-500", desc: "Admin yêu cầu bổ sung thông tin." },
+  APPROVED: { label: "Đã duyệt ✓", bg: "bg-green-500/10", text: "text-green-400", border: "border-green-500/20", dot: "bg-green-500", desc: "Chúc mừng! Hồ sơ PT của bạn đã được duyệt." },
+  REJECTED: { label: "Từ chối", bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20", dot: "bg-red-500", desc: "Hồ sơ của bạn không được chấp thuận lần này." },
 };
 
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
@@ -87,7 +87,7 @@ function UploadBox({ label: labelText, hint, value, onUpload }: { label: string;
       onUpload(resp.url);
     } catch (error) {
       console.error("Upload failed", error);
-      alert("Upload failed. Please try again.");
+      alert("Tải lên thất bại. Vui lòng thử lại.");
     } finally {
       setIsUploading(false);
     }
@@ -103,7 +103,7 @@ function UploadBox({ label: labelText, hint, value, onUpload }: { label: string;
         {isUploading ? (
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="w-6 h-6 text-green-400 animate-spin" />
-            <span className="text-xs text-zinc-500">Uploading...</span>
+            <span className="text-xs text-zinc-500">Đang tải lên...</span>
           </div>
         ) : value ? (
           <div className="flex flex-col items-center gap-3">
@@ -119,26 +119,26 @@ function UploadBox({ label: labelText, hint, value, onUpload }: { label: string;
                   }}
                 />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                  <p className="text-[10px] text-white font-bold uppercase tracking-wider">Change photo</p>
+                  <p className="text-[10px] text-white font-bold uppercase tracking-wider">Đổi ảnh</p>
                 </div>
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2 text-green-400">
                 <CheckCircle className="w-4 h-4" />
-                <span className="text-sm font-semibold text-wrap">File uploaded</span>
+                <span className="text-sm font-semibold text-wrap">Đã tải lên</span>
               </div>
             )}
             <button
               onClick={e => { e.preventDefault(); e.stopPropagation(); onUpload(""); }}
               className="px-3 py-1 rounded-full bg-zinc-900/80 border border-zinc-700 text-zinc-400 hover:text-red-400 text-[11px] font-medium transition-colors flex items-center gap-1.5"
             >
-              <X className="w-3 h-3" /> Remove file
+              <X className="w-3 h-3" /> Xóa tệp
             </button>
           </div>
         ) : (
           <div>
             <Upload className="w-6 h-6 text-zinc-600 mx-auto mb-1" />
-            <p className="text-xs text-zinc-500">{hint || "Click to upload or drag & drop"}</p>
+            <p className="text-xs text-zinc-500">{hint || "Bấm để chọn hoặc kéo thả"}</p>
           </div>
         )}
       </label>
@@ -155,7 +155,7 @@ function ReviewSection({ icon, title, onEdit, children }: { icon: React.ReactNod
           <h4 className="text-sm font-bold text-zinc-200">{title}</h4>
         </div>
         <button onClick={onEdit} className="text-xs text-green-400 hover:text-green-300 font-medium flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> Edit
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> Sửa
         </button>
       </div>
       <div className="space-y-2">{children}</div>
@@ -168,7 +168,7 @@ function ReviewRow({ label, value, isStatus }: { label: string; value?: string |
     <div className="flex justify-between items-center text-sm">
       <span className="text-zinc-500">{label}</span>
       <span className={`font-medium ${isStatus && value?.startsWith("✓") ? "text-green-400" : value ? "text-zinc-200" : "text-zinc-600"}`}>
-        {value || "Not set"}
+        {value || "Chưa nhập"}
       </span>
     </div>
   );
@@ -233,10 +233,10 @@ export function PTApplicationPage() {
     mutationFn: () => ptApplicationService.submit(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pt-application-me'] });
-      alert("Application submitted successfully!");
+      alert("Nộp hồ sơ thành công!");
     },
     onError: (err: any) => {
-      alert(err.response?.data?.error || "Submission failed. Please check all required fields.");
+      alert(err.response?.data?.error || "Nộp thất bại. Vui lòng kiểm tra các trường bắt buộc.");
     }
   });
 
@@ -275,7 +275,7 @@ export function PTApplicationPage() {
   const handlePortfolioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (portfolioMedia.length >= 5) { alert("Maximum 5 portfolio images allowed"); return; }
+    if (portfolioMedia.length >= 5) { alert("Tối đa 5 ảnh portfolio"); return; }
     setPortfolioUploading(true);
     try {
       const { url } = await ptApplicationService.uploadDocument(file);
@@ -284,7 +284,7 @@ export function PTApplicationPage() {
       updateField('media', media);
     } catch (error) {
       console.error('Portfolio upload failed', error);
-      alert("Upload failed. Please try again.");
+      alert("Tải lên thất bại. Vui lòng thử lại.");
     } finally {
       setPortfolioUploading(false);
     }
@@ -309,17 +309,17 @@ export function PTApplicationPage() {
     if (currentStep !== 5) return true;
     const blocks = formData.availabilityBlocks || [];
     if (blocks.length === 0) {
-      alert("Please add at least one availability block.");
+      alert("Vui lòng thêm ít nhất một khung giờ.");
       return false;
     }
     
     for (const block of blocks) {
       if (!block.startTime || !block.endTime) {
-        alert("Please fill in both start and end times for all blocks.");
+        alert("Vui lòng điền đầy đủ giờ bắt đầu và kết thúc cho tất cả khung giờ.");
         return false;
       }
       if (block.startTime >= block.endTime) {
-        alert(`Start time must be before end time for ${block.dayOfWeek}.`);
+        alert(`Giờ bắt đầu phải trước giờ kết thúc cho ${block.dayOfWeek}.`);
         return false;
       }
     }
@@ -330,7 +330,7 @@ export function PTApplicationPage() {
       const dayBlocks = blocks.filter(b => b.dayOfWeek === day).sort((a,b) => a.startTime.localeCompare(b.startTime));
       for (let i = 0; i < dayBlocks.length - 1; i++) {
         if (dayBlocks[i].endTime > dayBlocks[i+1].startTime) {
-          alert(`Overlapping blocks detected on ${day}. Please fix them before proceeding.`);
+          alert(`Phát hiện khung giờ trùng nhau vào ${day}. Vui lòng sửa trước khi tiếp tục.`);
           return false;
         }
       }
@@ -351,7 +351,7 @@ export function PTApplicationPage() {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-black">
         <Loader2 className="w-10 h-10 text-green-500 animate-spin mb-4" />
-        <p className="text-zinc-400">Loading your application...</p>
+        <p className="text-zinc-400">Đang tải hồ sơ của bạn...</p>
       </div>
     );
   }
@@ -366,17 +366,16 @@ export function PTApplicationPage() {
             {status === 'APPROVED' ? <CheckCircle className="w-10 h-10 text-green-400" /> : <Clock className="w-10 h-10 text-blue-400" />}
           </div>
           <h2 className="text-zinc-100 font-bold mb-2">
-            {status === 'APPROVED' ? "Application Approved!" : "Application Under Review"}
+            {status === 'APPROVED' ? "Hồ sơ đã được duyệt!" : "Hồ sơ đang xét duyệt"}
           </h2>
           <p className="text-zinc-400 text-sm mb-1">{appStatusConfig[status].desc}</p>
-          {status !== 'APPROVED' && <p className="text-zinc-600 text-xs mb-6">Typically reviewed within 2–5 business days.</p>}
+          {status !== 'APPROVED' && <p className="text-zinc-600 text-xs mb-6">Thường được xét duyệt trong 2–5 ngày làm việc.</p>}
 
           <div className="bg-zinc-800/60 border border-zinc-700/40 rounded-xl p-4 mb-6 text-left space-y-3">
             {["SUBMITTED", "UNDER_REVIEW", "APPROVED"].map((s) => {
               const cfg = appStatusConfig[s];
-              const isCurrent = status === s;
-              const isPast = (status === 'UNDER_REVIEW' && s === 'SUBMITTED') || (status === 'APPROVED');
-              const done = isCurrent || isPast;
+              const order = ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED'];
+              const done = order.indexOf(s) <= order.indexOf(status);
 
               return (
                 <div key={s} className="flex items-center gap-3">
@@ -392,8 +391,8 @@ export function PTApplicationPage() {
             })}
           </div>
           <div className="flex gap-3 justify-center">
-            <button onClick={() => navigate("/client/profile")} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">Back to Profile</button>
-            <button onClick={() => navigate("/client/dashboard")} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">Go to Dashboard</button>
+            <button onClick={() => navigate("/client/profile")} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">Về trang cá nhân</button>
+            <button onClick={() => navigate("/client/dashboard")} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">Về Dashboard</button>
           </div>
         </div>
       </div>
@@ -408,8 +407,8 @@ export function PTApplicationPage() {
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
-          <h1 className="text-zinc-100 font-bold text-xl">Apply to Become a Personal Trainer</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">Complete all sections to submit your application for admin review</p>
+          <h1 className="text-zinc-100 font-bold text-xl">Đăng ký trở thành PT</h1>
+          <p className="text-zinc-500 text-sm mt-0.5">Hoàn thành tất cả các mục để nộp hồ sơ cho admin xét duyệt</p>
         </div>
       </div>
 
@@ -418,7 +417,7 @@ export function PTApplicationPage() {
         <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl p-4 flex gap-3">
           <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0" />
           <div>
-            <p className="text-sm font-bold text-orange-400">Additional Information Requested</p>
+            <p className="text-sm font-bold text-orange-400">Yêu cầu bổ sung thông tin</p>
             <p className="text-xs text-zinc-400 mt-1">{formData.adminNote}</p>
           </div>
         </div>
@@ -427,7 +426,7 @@ export function PTApplicationPage() {
         <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex gap-3">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
           <div>
-            <p className="text-sm font-bold text-red-400">Application Rejected</p>
+            <p className="text-sm font-bold text-red-400">Hồ sơ bị từ chối</p>
             <p className="text-xs text-zinc-400 mt-1">{formData.rejectionReason}</p>
           </div>
         </div>
@@ -456,8 +455,8 @@ export function PTApplicationPage() {
           })}
         </div>
         <div className="mt-3 flex items-center justify-between text-xs text-zinc-500 mb-1">
-          <span>Step {currentStep + 1} of {steps.length}</span>
-          <span>{Math.round((currentStep / (steps.length - 1)) * 100)}% complete</span>
+          <span>Bước {currentStep + 1} / {steps.length}</span>
+          <span>Hoàn thành {Math.round((currentStep / (steps.length - 1)) * 100)}%</span>
         </div>
         <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
           <div className="h-full bg-green-500 rounded-full transition-all duration-500 shadow-sm shadow-green-500/50"
@@ -472,17 +471,17 @@ export function PTApplicationPage() {
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>Phone Number</label>
+                  <label className={lbl}>Số điện thoại</label>
                   <input type="tel" className={inp} placeholder="+84 ..." value={formData.phoneNumber || ""} onChange={e => updateField("phoneNumber", e.target.value)} />
                 </div>
                 <div>
-                  <label className={lbl}>National ID / Passport</label>
-                  <input type="text" className={inp} placeholder="ID number..." value={formData.nationalIdNumber || ""} onChange={e => updateField("nationalIdNumber", e.target.value)} />
+                  <label className={lbl}>CMND / Hộ chiếu</label>
+                  <input type="text" className={inp} placeholder="Số CMND/Hộ chiếu..." value={formData.nationalIdNumber || ""} onChange={e => updateField("nationalIdNumber", e.target.value)} />
                 </div>
               </div>
               <div>
-                <label className={lbl}>Current Address</label>
-                <input type="text" className={inp} placeholder="Street, City, Country..." value={formData.currentAddress || ""} onChange={e => updateField("currentAddress", e.target.value)} />
+                <label className={lbl}>Địa chỉ hiện tại</label>
+                <input type="text" className={inp} placeholder="Số nhà, Thành phố, Quốc gia..." value={formData.currentAddress || ""} onChange={e => updateField("currentAddress", e.target.value)} />
               </div>
             </div>
           )}
@@ -493,14 +492,14 @@ export function PTApplicationPage() {
               <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 flex gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
                 <p className="text-xs text-amber-500/80 leading-relaxed">
-                  We need to verify your identity. Please upload clear photos of your ID card (front & back) and a recent portrait.
+                  Chúng tôi cần xác thực danh tính. Vui lòng tải ảnh rõ ràng CMND (trước & sau) và ảnh chân dung gần đây.
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <UploadBox label="ID Card (Front)" value={formData.idCardFrontUrl} onUpload={url => updateField("idCardFrontUrl", url)} />
-                <UploadBox label="ID Card (Back)" value={formData.idCardBackUrl} onUpload={url => updateField("idCardBackUrl", url)} />
+                <UploadBox label="CMND (Mặt trước)" value={formData.idCardFrontUrl} onUpload={url => updateField("idCardFrontUrl", url)} />
+                <UploadBox label="CMND (Mặt sau)" value={formData.idCardBackUrl} onUpload={url => updateField("idCardBackUrl", url)} />
               </div>
-              <UploadBox label="Portrait Photo" value={formData.portraitPhotoUrl} onUpload={url => updateField("portraitPhotoUrl", url)} />
+              <UploadBox label="Ảnh chân dung" value={formData.portraitPhotoUrl} onUpload={url => updateField("portraitPhotoUrl", url)} />
             </div>
           )}
 
@@ -511,49 +510,49 @@ export function PTApplicationPage() {
                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
                   <Briefcase className="w-4 h-4 text-amber-400" />
                 </div>
-                <h3 className="text-base font-bold text-zinc-200">Professional Background</h3>
+                <h3 className="text-base font-bold text-zinc-200">Lý lịch chuyên môn</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>Years of Experience as PT *</label>
+                  <label className={lbl}>Số năm kinh nghiệm PT *</label>
                   <select className={inp} value={formData.yearsOfExperience || ""} onChange={e => updateField("yearsOfExperience", e.target.value)}>
-                    <option value="">Select experience...</option>
-                    <option value="<1">Less than 1 year</option>
-                    <option value="1-3">1 - 3 years</option>
-                    <option value="3-5">3 - 5 years</option>
-                    <option value="5-10">5 - 10 years</option>
-                    <option value="10+">More than 10 years</option>
+                    <option value="">Chọn kinh nghiệm...</option>
+                    <option value="<1">Dưới 1 năm</option>
+                    <option value="1-3">1 - 3 năm</option>
+                    <option value="3-5">3 - 5 năm</option>
+                    <option value="5-10">5 - 10 năm</option>
+                    <option value="10+">Hơn 10 năm</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className={lbl}>Education Background *</label>
-                <input type="text" className={inp} placeholder="e.g. Bachelor's in Sports Science, Chulalongkorn University" value={formData.educationBackground || ""} onChange={e => updateField("educationBackground", e.target.value)} />
+                <label className={lbl}>Trình độ học vấn *</label>
+                <input type="text" className={inp} placeholder="VD: Cử nhân Khoa học Thể thao, Đại học TDTT" value={formData.educationBackground || ""} onChange={e => updateField("educationBackground", e.target.value)} />
               </div>
 
               <div>
-                <label className={lbl}>Previous Work Experience</label>
-                <textarea className={`${inp} min-h-[100px] resize-none`} placeholder="Describe your past roles, gyms, or coaching clients..." value={formData.previousWorkExperience || ""} onChange={e => updateField("previousWorkExperience", e.target.value)} />
+                <label className={lbl}>Kinh nghiệm làm việc</label>
+                <textarea className={`${inp} min-h-[100px] resize-none`} placeholder="Mô tả các vị trí bạn đã làm, phòng gym, hoặc học viên bạn đã huấn luyện..." value={formData.previousWorkExperience || ""} onChange={e => updateField("previousWorkExperience", e.target.value)} />
               </div>
 
               <div>
-                <label className={lbl}>Main Specialties * (Select all that apply)</label>
+                <label className={lbl}>Chuyên môn chính * (Chọn tất cả phù hợp)</label>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {specialtyOptions.map(opt => (
                     <Chip key={opt} label={opt} active={formData.mainSpecialties?.includes(opt) || false} onClick={() => toggle("mainSpecialties", opt)} />
                   ))}
                 </div>
                 {(!formData.mainSpecialties || formData.mainSpecialties.length === 0) && (
-                  <p className="text-xs text-zinc-600 mt-1.5">Select at least one specialty</p>
+                  <p className="text-xs text-zinc-600 mt-1.5">Chọn ít nhất một chuyên môn</p>
                 )}
               </div>
 
               <div>
-                <label className={lbl}>Professional Bio *</label>
-                <textarea className={`${inp} min-h-[120px] resize-none`} placeholder="Describe your coaching philosophy, approach, and what makes you unique as a trainer... (min 100 characters)" value={formData.professionalBio || ""} onChange={e => updateField("professionalBio", e.target.value)} />
-                <p className="text-xs text-zinc-600 mt-1">{(formData.professionalBio || "").length}/100 characters minimum</p>
+                <label className={lbl}>Giới thiệu bản thân *</label>
+                <textarea className={`${inp} min-h-[120px] resize-none`} placeholder="Mô tả triết lý huấn luyện, phong cách và điểm khác biệt của bạn... (tối thiểu 100 ký tự)" value={formData.professionalBio || ""} onChange={e => updateField("professionalBio", e.target.value)} />
+                <p className="text-xs text-zinc-600 mt-1">{(formData.professionalBio || "").length}/100 ký tự tối thiểu</p>
               </div>
             </div>
           )}
@@ -565,17 +564,17 @@ export function PTApplicationPage() {
                 <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
                   <Award className="w-4 h-4 text-purple-400" />
                 </div>
-                <h3 className="text-base font-bold text-zinc-200">Certifications & Qualifications</h3>
+                <h3 className="text-base font-bold text-zinc-200">Chứng chỉ & Bằng cấp</h3>
               </div>
 
               {(formData.certificates || []).map((cert, index) => (
                 <div key={index} className="border border-zinc-700/50 rounded-xl p-5 space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-zinc-300 uppercase tracking-wide">Certification {index + 1}</h4>
+                    <h4 className="text-sm font-bold text-zinc-300 uppercase tracking-wide">Chứng chỉ {index + 1}</h4>
                     <div className="flex items-center gap-2">
                       {index > 0 && (
                         <>
-                          <span className="text-[10px] text-zinc-600 bg-zinc-800 px-2 py-0.5 rounded">Optional</span>
+                          <span className="text-[10px] text-zinc-600 bg-zinc-800 px-2 py-0.5 rounded">Tùy chọn</span>
                           <button type="button" onClick={() => removeCertificate(index)} className="text-zinc-600 hover:text-red-400 transition-colors">
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -586,28 +585,28 @@ export function PTApplicationPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className={lbl}>Certification Name {index === 0 ? '*' : ''}</label>
-                      <input type="text" className={inp} placeholder="e.g. NASM Certified Personal Trainer" value={cert.certificateName || ""} onChange={e => updateCertificate(index, 'certificateName', e.target.value)} />
+                      <label className={lbl}>Tên chứng chỉ {index === 0 ? '*' : ''}</label>
+                      <input type="text" className={inp} placeholder="VD: NASM Certified Personal Trainer" value={cert.certificateName || ""} onChange={e => updateCertificate(index, 'certificateName', e.target.value)} />
                     </div>
                     <div>
-                      <label className={lbl}>Issuing Organization {index === 0 ? '*' : ''}</label>
-                      <input type="text" className={inp} placeholder="e.g. NASM, ACE, ISSA, CSCS" value={cert.issuingOrganization || ""} onChange={e => updateCertificate(index, 'issuingOrganization', e.target.value)} />
+                      <label className={lbl}>Tổ chức cấp {index === 0 ? '*' : ''}</label>
+                      <input type="text" className={inp} placeholder="VD: NASM, ACE, ISSA, CSCS" value={cert.issuingOrganization || ""} onChange={e => updateCertificate(index, 'issuingOrganization', e.target.value)} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className={lbl}>Issue Date {index === 0 ? '*' : ''}</label>
+                      <label className={lbl}>Ngày cấp {index === 0 ? '*' : ''}</label>
                       <input type="date" className={inp} value={cert.issueDate ? cert.issueDate.substring(0, 10) : ""} onChange={e => updateCertificate(index, 'issueDate', e.target.value)} />
                     </div>
                     <div>
-                      <label className={lbl}>Expiry Date</label>
+                      <label className={lbl}>Ngày hết hạn</label>
                       <input type="date" className={inp} value={cert.expirationDate ? cert.expirationDate.substring(0, 10) : ""} onChange={e => updateCertificate(index, 'expirationDate', e.target.value)} />
                     </div>
                   </div>
 
                   <div>
-                    <label className={lbl}>Certification Status {index === 0 ? '*' : ''}</label>
+                    <label className={lbl}>Trạng thái chứng chỉ {index === 0 ? '*' : ''}</label>
                     <div className="flex gap-2 mt-1">
                       {[{ label: "Valid", val: "Valid" }, { label: "Expired", val: "Expired" }, { label: "Lifetime (No Expiry)", val: "Lifetime" }].map(s => (
                         <button key={s.val} type="button"
@@ -627,8 +626,8 @@ export function PTApplicationPage() {
                   </div>
 
                   <UploadBox
-                    label={`Certificate Document / Image ${index === 0 ? '*' : '(Optional)'}`}
-                    hint="JPG, PNG or PDF · Max 10MB"
+                    label={`Tài liệu / Ảnh chứng chỉ ${index === 0 ? '*' : '(Tùy chọn)'}`}
+                    hint="JPG, PNG hoặc PDF · Tối đa 10MB"
                     value={cert.certificateFileUrl}
                     onUpload={url => updateCertificate(index, 'certificateFileUrl', url)}
                   />
@@ -637,7 +636,7 @@ export function PTApplicationPage() {
 
               <button type="button" onClick={addCertificate}
                 className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-zinc-700 rounded-xl text-sm text-zinc-500 hover:text-zinc-300 hover:border-zinc-500 transition-all">
-                <Plus className="w-4 h-4" /> Add Another Certification
+                <Plus className="w-4 h-4" /> Thêm chứng chỉ
               </button>
             </div>
           )}
@@ -649,11 +648,11 @@ export function PTApplicationPage() {
                 <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
                   <Users className="w-4 h-4 text-blue-400" />
                 </div>
-                <h3 className="text-base font-bold text-zinc-200">Coaching Focus & Target Audience</h3>
+                <h3 className="text-base font-bold text-zinc-200">Hướng huấn luyện & Đối tượng mục tiêu</h3>
               </div>
 
               <div>
-                <label className={lbl}>Target Client Groups * (Select all that apply)</label>
+                <label className={lbl}>Nhóm học viên mục tiêu * (Chọn tất cả phù hợp)</label>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {targetOptions.map(opt => (
                     <Chip key={opt} label={opt} active={formData.targetClientGroups?.includes(opt) || false} onClick={() => toggle("targetClientGroups", opt)} />
@@ -662,7 +661,7 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Primary Training Goals You Offer *</label>
+                <label className={lbl}>Mục tiêu huấn luyện chính *</label>
                 <div className="space-y-2 mt-2">
                   {trainingGoalOptions.map(goal => (
                     <label key={goal} className="flex items-center gap-3 p-3 bg-zinc-800/40 border border-zinc-700/40 rounded-xl cursor-pointer hover:border-zinc-600 transition-all">
@@ -678,8 +677,8 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Training Methods & Approach</label>
-                <textarea className={`${inp} min-h-[100px] resize-none`} placeholder="Describe how you structure sessions, your coaching style, and what clients can expect..." value={formData.trainingMethodsApproach || ""} onChange={e => updateField("trainingMethodsApproach", e.target.value)} />
+                <label className={lbl}>Phương pháp & Cách tiếp cận</label>
+                <textarea className={`${inp} min-h-[100px] resize-none`} placeholder="Mô tả cách bạn cấu trúc buổi tập, phong cách huấn luyện và những gì học viên có thể mong đợi..." value={formData.trainingMethodsApproach || ""} onChange={e => updateField("trainingMethodsApproach", e.target.value)} />
               </div>
             </div>
           )}
@@ -691,11 +690,11 @@ export function PTApplicationPage() {
                 <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center">
                   <Calendar className="w-4 h-4 text-teal-400" />
                 </div>
-                <h3 className="text-base font-bold text-zinc-200">Service & Availability</h3>
+                <h3 className="text-base font-bold text-zinc-200">Dịch vụ & Lịch làm việc</h3>
               </div>
 
               <div>
-                <label className={lbl}>Coaching Session Duration *</label>
+                <label className={lbl}>Thời lượng buổi tập *</label>
                 <div className="grid grid-cols-4 gap-3 mt-1">
                   {[30, 45, 60, 90].map(mins => (
                     <button key={mins} type="button" onClick={() => updateField("sessionDurationMinutes", mins)}
@@ -707,19 +706,19 @@ export function PTApplicationPage() {
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] text-zinc-600 mt-2 italic">Choose how long your standard coaching session lasts.</p>
+                <p className="text-[10px] text-zinc-600 mt-2 italic">Chọn thời gian của một buổi tập tiêu chuẩn.</p>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className={lbl}>Weekly Availability Schedule *</label>
+                  <label className={lbl}>Lịch làm việc hàng tuần *</label>
                   <button type="button" 
                     onClick={() => {
                       const current = formData.availabilityBlocks || [];
                       updateField("availabilityBlocks", [...current, { dayOfWeek: "Mon", startTime: "08:00", endTime: "12:00" }]);
                     }}
                     className="flex items-center gap-1.5 px-3 py-1 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-green-400 hover:bg-zinc-700 transition-all">
-                    <Plus className="w-3.5 h-3.5" /> Add Block
+                    <Plus className="w-3.5 h-3.5" /> Thêm khung giờ
                   </button>
                 </div>
 
@@ -746,7 +745,7 @@ export function PTApplicationPage() {
                             updateField("availabilityBlocks", blocks);
                           }}
                         />
-                        <span className="text-zinc-600">to</span>
+                        <span className="text-zinc-600">đến</span>
                         <input type="time" className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300"
                           value={block.endTime}
                           onChange={(e) => {
@@ -770,7 +769,7 @@ export function PTApplicationPage() {
                   {(formData.availabilityBlocks || []).length === 0 && (
                     <div className="text-center py-6 border border-dashed border-zinc-800 rounded-xl">
                       <Clock className="w-6 h-6 text-zinc-700 mx-auto mb-2" />
-                      <p className="text-xs text-zinc-600">No availability blocks added yet.</p>
+                      <p className="text-xs text-zinc-600">Chưa thêm khung giờ nào.</p>
                     </div>
                   )}
                 </div>
@@ -778,40 +777,86 @@ export function PTApplicationPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>Service Area / Location *</label>
-                  <input type="text" className={inp} placeholder="e.g. Sukhumvit, Bangkok" value={formData.operatingAreas?.[0] || ""} onChange={e => updateField("operatingAreas", [e.target.value])} />
+                  <label className={lbl}>Khu vực hoạt động *</label>
+                  <input type="text" className={inp} placeholder="VD: Quận 1, TP.HCM" value={formData.operatingAreas?.[0] || ""} onChange={e => updateField("operatingAreas", [e.target.value])} />
                 </div>
                 <div>
-                  <label className={lbl}>Gym / Facility Affiliation</label>
-                  <input type="text" className={inp} placeholder="e.g. Fitness First Asok, freelance" value={formData.gymAffiliation || ""} onChange={e => updateField("gymAffiliation", e.target.value)} />
+                  <label className={lbl}>Phòng gym / Cơ sở</label>
+                  <input type="text" className={inp} placeholder="VD: California Fitness, freelance" value={formData.gymAffiliation || ""} onChange={e => updateField("gymAffiliation", e.target.value)} />
                 </div>
               </div>
 
               <div>
-                <label className={lbl}>Session Pricing *</label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-1">
-                  <div>
-                    <p className="text-[10px] text-zinc-600 mb-1">Per Session (THB)</p>
-                    <input type="number" className={inp} placeholder="e.g. 800" value={formData.desiredSessionPrice ?? ""} onChange={e => updateField("desiredSessionPrice", e.target.value ? parseFloat(e.target.value) : null)} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-zinc-600 mb-1">Sessions per Package</p>
-                    <input type="number" className={inp} placeholder="e.g. 10" value={formData.sessionsPerPackage ?? ""} onChange={e => updateField("sessionsPerPackage", e.target.value ? parseInt(e.target.value) : null)} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-zinc-600 mb-1">Package Price (THB)</p>
-                    <input type="number" className={inp} placeholder="e.g. 7000" value={formData.packagePrice ?? ""} onChange={e => updateField("packagePrice", e.target.value ? parseFloat(e.target.value) : null)} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-zinc-600 mb-1">Monthly Program</p>
-                    <input type="number" className={inp} placeholder="e.g. 3500" value={formData.monthlyProgramPrice ?? ""} onChange={e => updateField("monthlyProgramPrice", e.target.value ? parseFloat(e.target.value) : null)} />
-                  </div>
+                <label className={lbl}>Hình thức dịch vụ *</label>
+                <div className="grid grid-cols-3 gap-3 mt-1">
+                  {([
+                    { val: 'ONLINE', label: 'Online qua video call' },
+                    { val: 'OFFLINE', label: 'Offline tại phòng gym' },
+                    { val: 'HYBRID', label: 'Cả online và offline' },
+                  ] as const).map(opt => (
+                    <button key={opt.val} type="button" onClick={() => updateField("serviceMode", opt.val)}
+                      className={`py-2.5 px-3 rounded-lg border text-xs font-bold transition-all text-center ${formData.serviceMode === opt.val
+                        ? "bg-green-500/15 border-green-500/40 text-green-400"
+                        : "bg-zinc-800/40 border-zinc-700/50 text-zinc-500 hover:border-zinc-600"}`}>
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               <div>
-                <label className={lbl}>Additional Pricing Notes</label>
-                <textarea className={`${inp} min-h-[80px] resize-none`} placeholder="Any discounts, custom packages, trial sessions..." value={formData.additionalPricingNotes || ""} onChange={e => updateField("additionalPricingNotes", e.target.value)} />
+                <label className={lbl}>Giá dịch vụ *</label>
+                {!formData.serviceMode ? (
+                  <p className="text-xs text-zinc-600 italic mt-1">Chọn hình thức dịch vụ ở trên để nhập giá</p>
+                ) : (
+                  <div className="space-y-4 mt-1">
+                    {(formData.serviceMode === 'ONLINE' || formData.serviceMode === 'HYBRID') && (
+                      <div>
+                        <p className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider mb-2">Giá Online qua video call</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-[10px] text-zinc-600 mb-1">Giá theo buổi (THB) *</p>
+                            <input type="number" className={inp} placeholder="VD: 500" value={formData.onlinePricePerSession ?? ""} onChange={e => updateField("onlinePricePerSession", e.target.value ? parseFloat(e.target.value) : null)} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-zinc-600 mb-1">Giá gói (THB)</p>
+                            <input type="number" className={inp} placeholder="VD: 4500" value={formData.onlinePackagePrice ?? ""} onChange={e => updateField("onlinePackagePrice", e.target.value ? parseFloat(e.target.value) : null)} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {(formData.serviceMode === 'OFFLINE' || formData.serviceMode === 'HYBRID') && (
+                      <div>
+                        <p className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider mb-2">Giá Offline tại phòng gym</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-[10px] text-zinc-600 mb-1">Giá theo buổi (THB) *</p>
+                            <input type="number" className={inp} placeholder="VD: 800" value={formData.offlinePricePerSession ?? ""} onChange={e => updateField("offlinePricePerSession", e.target.value ? parseFloat(e.target.value) : null)} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-zinc-600 mb-1">Giá gói (THB)</p>
+                            <input type="number" className={inp} placeholder="VD: 7000" value={formData.offlinePackagePrice ?? ""} onChange={e => updateField("offlinePackagePrice", e.target.value ? parseFloat(e.target.value) : null)} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <p className="text-[10px] text-zinc-600 mb-1">Buổi trong gói</p>
+                        <input type="number" className={inp} placeholder="VD: 10" value={formData.sessionsPerPackage ?? ""} onChange={e => updateField("sessionsPerPackage", e.target.value ? parseInt(e.target.value) : null)} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-zinc-600 mb-1">Gói tháng (THB)</p>
+                        <input type="number" className={inp} placeholder="VD: 3500" value={formData.monthlyProgramPrice ?? ""} onChange={e => updateField("monthlyProgramPrice", e.target.value ? parseFloat(e.target.value) : null)} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className={lbl}>Ghi chú thêm về giá</label>
+                <textarea className={`${inp} min-h-[80px] resize-none`} placeholder="Giảm giá, gói đặc biệt, buổi thử..." value={formData.additionalPricingNotes || ""} onChange={e => updateField("additionalPricingNotes", e.target.value)} />
               </div>
             </div>
           )}
@@ -823,7 +868,7 @@ export function PTApplicationPage() {
                 <div className="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
                   <Globe className="w-4 h-4 text-pink-400" />
                 </div>
-                <h3 className="text-base font-bold text-zinc-200">Portfolio & Professional Branding</h3>
+                <h3 className="text-base font-bold text-zinc-200">Portfolio & Thương hiệu cá nhân</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -837,7 +882,7 @@ export function PTApplicationPage() {
                 <div>
                   <label className={lbl}>
                     <Globe className="inline w-3.5 h-3.5 mr-1.5 text-green-400" />
-                    Personal Website / Portfolio
+                    Website cá nhân / Portfolio
                   </label>
                   <input type="url" className={inp} placeholder="https://yourwebsite.com" value={formData.websiteUrl || ""} onChange={e => updateField("websiteUrl", e.target.value)} />
                 </div>
@@ -879,7 +924,7 @@ export function PTApplicationPage() {
 
               {/* Portfolio Images */}
               <div>
-                <label className={lbl}>Portfolio Images / Before & After (Optional)</label>
+                <label className={lbl}>Ảnh Portfolio / Trước & Sau (Tùy chọn)</label>
                 <label className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
                   portfolioMedia.length > 0 ? "border-green-500/30 bg-green-500/5" : "border-zinc-700 hover:border-green-500/40 hover:bg-zinc-800/40"
                 }`}>
@@ -887,7 +932,7 @@ export function PTApplicationPage() {
                   {portfolioUploading ? (
                     <div className="flex flex-col items-center gap-2">
                       <Loader2 className="w-6 h-6 text-green-400 animate-spin" />
-                      <span className="text-xs text-zinc-500">Uploading...</span>
+                      <span className="text-xs text-zinc-500">Đang tải lên...</span>
                     </div>
                   ) : (
                     <div>
@@ -902,7 +947,7 @@ export function PTApplicationPage() {
                       <div key={i} className="flex items-center justify-between bg-zinc-800/40 rounded-lg px-3 py-2">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-green-400" />
-                          <span className="text-xs text-zinc-300">{m.label || `Portfolio image ${i + 1}`}</span>
+                          <span className="text-xs text-zinc-300">{m.label || `Ảnh portfolio ${i + 1}`}</span>
                         </div>
                         <button onClick={() => removePortfolioImage(i)} className="text-zinc-600 hover:text-red-400">
                           <X className="w-3.5 h-3.5" />
@@ -914,8 +959,8 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Any Other Links or References</label>
-                <textarea className={`${inp} min-h-[80px] resize-none`} placeholder="Client testimonials, media features, competition results, etc." value={formData.otherReferences || ""} onChange={e => updateField("otherReferences", e.target.value)} />
+                <label className={lbl}>Link hoặc tài liệu tham khảo khác</label>
+                <textarea className={`${inp} min-h-[80px] resize-none`} placeholder="Testimonial học viên, media, kết quả thi đấu..." value={formData.otherReferences || ""} onChange={e => updateField("otherReferences", e.target.value)} />
               </div>
             </div>
           )}
@@ -926,68 +971,82 @@ export function PTApplicationPage() {
               <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 flex gap-3">
                 <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Review your information before submitting. You can go back to any step to make changes.
+                  Kiểm tra thông tin trước khi nộp. Bạn có thể quay lại bất kỳ bước nào để chỉnh sửa.
                 </p>
               </div>
 
               {/* Personal Information */}
-              <ReviewSection icon={<User className="w-4 h-4 text-green-400" />} title="Personal Information" onEdit={() => setCurrentStep(0)}>
-                <ReviewRow label="Full Name" value={user ? `${user.firstName} ${user.lastName}` : undefined} />
-                <ReviewRow label="Phone" value={formData.phoneNumber} />
-                <ReviewRow label="Address" value={formData.currentAddress} />
+              <ReviewSection icon={<User className="w-4 h-4 text-green-400" />} title="Thông tin cá nhân" onEdit={() => setCurrentStep(0)}>
+                <ReviewRow label="Họ tên" value={user ? `${user.firstName} ${user.lastName}` : undefined} />
+                <ReviewRow label="Điện thoại" value={formData.phoneNumber} />
+                <ReviewRow label="Địa chỉ" value={formData.currentAddress} />
                 <ReviewRow label="Email" value={user?.email} />
               </ReviewSection>
 
               {/* Identity & Verification */}
-              <ReviewSection icon={<Shield className="w-4 h-4 text-cyan-400" />} title="Identity & Verification" onEdit={() => setCurrentStep(1)}>
-                <ReviewRow label="National ID" value={formData.nationalIdNumber ? `${formData.nationalIdNumber} (entered)` : undefined} />
-                <ReviewRow label="ID Front" value={formData.idCardFrontUrl ? "✓ Uploaded" : undefined} isStatus />
-                <ReviewRow label="ID Back" value={formData.idCardBackUrl ? "✓ Uploaded" : undefined} isStatus />
-                <ReviewRow label="Portrait" value={formData.portraitPhotoUrl ? "✓ Uploaded" : undefined} isStatus />
+              <ReviewSection icon={<Shield className="w-4 h-4 text-cyan-400" />} title="Xác thực danh tính" onEdit={() => setCurrentStep(1)}>
+                <ReviewRow label="CMND" value={formData.nationalIdNumber ? `${formData.nationalIdNumber} (đã nhập)` : undefined} />
+                <ReviewRow label="Mặt trước" value={formData.idCardFrontUrl ? "✓ Đã tải" : undefined} isStatus />
+                <ReviewRow label="Mặt sau" value={formData.idCardBackUrl ? "✓ Đã tải" : undefined} isStatus />
+                <ReviewRow label="Chân dung" value={formData.portraitPhotoUrl ? "✓ Đã tải" : undefined} isStatus />
               </ReviewSection>
 
               {/* Professional Experience */}
-              <ReviewSection icon={<Briefcase className="w-4 h-4 text-amber-400" />} title="Professional Experience" onEdit={() => setCurrentStep(2)}>
-                <ReviewRow label="Experience" value={formData.yearsOfExperience} />
-                <ReviewRow label="Education" value={formData.educationBackground} />
-                <ReviewRow label="Specialties" value={formData.mainSpecialties?.length ? formData.mainSpecialties.join(", ") : "Not selected"} />
+              <ReviewSection icon={<Briefcase className="w-4 h-4 text-amber-400" />} title="Kinh nghiệm chuyên môn" onEdit={() => setCurrentStep(2)}>
+                <ReviewRow label="Kinh nghiệm" value={formData.yearsOfExperience} />
+                <ReviewRow label="Học vấn" value={formData.educationBackground} />
+                <ReviewRow label="Chuyên môn" value={formData.mainSpecialties?.length ? formData.mainSpecialties.join(", ") : "Chưa chọn"} />
               </ReviewSection>
 
               {/* Certifications */}
-              <ReviewSection icon={<Award className="w-4 h-4 text-purple-400" />} title="Certifications" onEdit={() => setCurrentStep(3)}>
+              <ReviewSection icon={<Award className="w-4 h-4 text-purple-400" />} title="Chứng chỉ" onEdit={() => setCurrentStep(3)}>
                 {(formData.certificates || []).filter(c => c.certificateName).map((cert, i) => (
                   <div key={i}>
-                    <ReviewRow label={`Cert ${i + 1}`} value={`${cert.certificateName} (${cert.certificationStatus || 'Valid'})`} />
-                    <ReviewRow label="File" value={cert.certificateFileUrl ? "✓ Uploaded" : "Not uploaded"} isStatus />
+                    <ReviewRow label={`Chứng chỉ ${i + 1}`} value={`${cert.certificateName} (${cert.certificationStatus || 'Valid'})`} />
+                    <ReviewRow label="Tệp" value={cert.certificateFileUrl ? "✓ Đã tải" : "Chưa tải"} isStatus />
                   </div>
                 ))}
                 {(!formData.certificates || formData.certificates.filter(c => c.certificateName).length === 0) && (
-                  <ReviewRow label="Certificates" value="None added" />
+                  <ReviewRow label="Chứng chỉ" value="Chưa thêm" />
                 )}
               </ReviewSection>
 
               {/* Coaching Focus */}
-              <ReviewSection icon={<Users className="w-4 h-4 text-blue-400" />} title="Coaching Focus" onEdit={() => setCurrentStep(4)}>
-                <ReviewRow label="Target Clients" value={formData.targetClientGroups?.length ? formData.targetClientGroups.join(", ") : "Not selected"} />
-                <ReviewRow label="Training Goals" value={formData.primaryTrainingGoals?.length ? formData.primaryTrainingGoals.join(", ") : "Not selected"} />
+              <ReviewSection icon={<Users className="w-4 h-4 text-blue-400" />} title="Hướng huấn luyện" onEdit={() => setCurrentStep(4)}>
+                <ReviewRow label="Đối tượng" value={formData.targetClientGroups?.length ? formData.targetClientGroups.join(", ") : "Chưa chọn"} />
+                <ReviewRow label="Mục tiêu" value={formData.primaryTrainingGoals?.length ? formData.primaryTrainingGoals.join(", ") : "Chưa chọn"} />
               </ReviewSection>
 
               {/* Service & Availability */}
-              <ReviewSection icon={<Calendar className="w-4 h-4 text-teal-400" />} title="Service & Availability" onEdit={() => setCurrentStep(5)}>
-                <ReviewRow label="Session Duration" value={`${formData.sessionDurationMinutes || 60} mins`} />
-                <ReviewRow label="Mode" value={formData.serviceMode} />
+              <ReviewSection icon={<Calendar className="w-4 h-4 text-teal-400" />} title="Dịch vụ & Lịch" onEdit={() => setCurrentStep(5)}>
+                <ReviewRow label="Thời lượng" value={`${formData.sessionDurationMinutes || 60} phút`} />
+                <ReviewRow label="Hình thức" value={
+                  formData.serviceMode === 'ONLINE' ? 'Online qua video call'
+                  : formData.serviceMode === 'OFFLINE' ? 'Offline tại phòng gym'
+                  : formData.serviceMode === 'HYBRID' ? 'Cả online và offline'
+                  : undefined
+                } />
                 <div className="mt-1 space-y-1 pl-4 border-l border-zinc-700/50">
-                  <p className="text-[10px] text-zinc-600 uppercase font-bold">Weekly Blocks</p>
+                  <p className="text-[10px] text-zinc-600 uppercase font-bold">Khung giờ tuần</p>
                   {(formData.availabilityBlocks || []).map((b: any, i: number) => (
                     <div key={i} className="flex justify-between text-xs py-0.5">
                       <span className="text-zinc-500">{b.dayOfWeek}</span>
                       <span className="text-zinc-300 font-medium">{b.startTime} - {b.endTime}</span>
                     </div>
                   ))}
-                  {(formData.availabilityBlocks || []).length === 0 && <p className="text-xs text-zinc-600">No blocks defined</p>}
+                  {(formData.availabilityBlocks || []).length === 0 && <p className="text-xs text-zinc-600">Chưa có khung giờ</p>}
                 </div>
-                <ReviewRow label="Location" value={formData.operatingAreas?.[0]} />
-                <ReviewRow label="Price" value={formData.desiredSessionPrice ? `฿${formData.desiredSessionPrice} / session` : undefined} />
+                <ReviewRow label="Khu vực" value={formData.operatingAreas?.[0]} />
+                {(formData.serviceMode === 'ONLINE' || formData.serviceMode === 'HYBRID') && (
+                  <ReviewRow label="Giá Online / buổi" value={formData.onlinePricePerSession ? `฿${formData.onlinePricePerSession}` : undefined} />
+                )}
+                {(formData.serviceMode === 'OFFLINE' || formData.serviceMode === 'HYBRID') && (
+                  <ReviewRow label="Giá Offline / buổi" value={formData.offlinePricePerSession ? `฿${formData.offlinePricePerSession}` : undefined} />
+                )}
+                {!formData.serviceMode && (
+                  <ReviewRow label="Giá" value={formData.desiredSessionPrice ? `฿${formData.desiredSessionPrice} / buổi` : undefined} />
+                )}
+                {formData.sessionsPerPackage && <ReviewRow label="Buổi trong gói" value={`${formData.sessionsPerPackage} buổi`} />}
               </ReviewSection>
 
               {/* Declaration & Consent */}
@@ -996,14 +1055,14 @@ export function PTApplicationPage() {
                   <div className="w-7 h-7 rounded-lg bg-zinc-700/30 flex items-center justify-center">
                     <FileText className="w-4 h-4 text-zinc-400" />
                   </div>
-                  <h4 className="text-sm font-bold text-zinc-200">Declaration & Consent</h4>
+                  <h4 className="text-sm font-bold text-zinc-200">Cam kết & Đồng ý</h4>
                 </div>
                 <div className="space-y-3">
                   {[
-                    { key: 'accurate' as const, text: 'All information provided is accurate and truthful to the best of my knowledge.' },
-                    { key: 'reviewConsent' as const, text: 'I consent to my identity and professional information being reviewed by Gymnini admins.' },
-                    { key: 'falseInfoWarning' as const, text: 'I understand that submitting false information may result in permanent account ban.' },
-                    { key: 'termsAgreed' as const, text: "I agree to Gymnini's Trainer Terms of Service and Code of Conduct." },
+                    { key: 'accurate' as const, text: 'Tất cả thông tin cung cấp là chính xác và trung thực theo hiểu biết của tôi.' },
+                    { key: 'reviewConsent' as const, text: 'Tôi đồng ý để admin Gymnini xem xét thông tin danh tính và nghề nghiệp của tôi.' },
+                    { key: 'falseInfoWarning' as const, text: 'Tôi hiểu rằng cung cấp thông tin sai có thể dẫn đến cấm tài khoản vĩnh viễn.' },
+                    { key: 'termsAgreed' as const, text: "Tôi đồng ý với Điều khoản dịch vụ và Quy tắc ứng xử của Huấn luyện viên Gymnini." },
                   ].map(item => (
                     <label key={item.key} className="flex items-start gap-3 cursor-pointer">
                       <input type="checkbox" checked={consent[item.key]}
@@ -1018,7 +1077,7 @@ export function PTApplicationPage() {
 
               <p className="text-center text-xs text-zinc-600 flex items-center justify-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />
-                Your progress is auto-saved. You can save as draft and return later before submitting.
+                Tiến trình được tự động lưu. Bạn có thể lưu nháp và quay lại sau.
               </p>
             </div>
           )}
@@ -1029,11 +1088,11 @@ export function PTApplicationPage() {
           <div className="flex items-center gap-2">
             <button onClick={goPrev} disabled={currentStep === 0}
               className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold transition-all ${currentStep === 0 ? "text-zinc-700" : "text-zinc-400 hover:text-white"}`}>
-              <ChevronLeft className="w-4 h-4" /> Back
+              <ChevronLeft className="w-4 h-4" /> Quay lại
             </button>
             <button onClick={handleSaveDraft} disabled={saveMutation.isPending}
               className="px-4 py-2 text-sm font-semibold text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 rounded-lg transition-all flex items-center gap-2">
-              {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save Draft"}
+              {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Lưu nháp"}
             </button>
           </div>
 
@@ -1047,12 +1106,12 @@ export function PTApplicationPage() {
                   : "bg-zinc-700 text-zinc-500 cursor-not-allowed shadow-none"
               }`}
             >
-              {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> Submit Application</>}
+              {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> Nộp hồ sơ</>}
             </button>
           ) : (
             <button onClick={goNext}
               className="flex items-center gap-2 px-6 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
-              Next <ChevronRight className="w-4 h-4" />
+              Tiếp theo <ChevronRight className="w-4 h-4" />
             </button>
           )}
         </div>

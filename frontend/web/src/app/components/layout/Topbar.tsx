@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
   Menu, Bell, Search, ChevronDown, User, Settings,
@@ -7,6 +7,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApp } from "../../context/AppContext";
 import { notificationService } from "../../services/api";
+import { connectSocket } from "../../services/socket";
 import type { AppNotification } from "../../types";
 
 export function Topbar() {
@@ -21,14 +22,45 @@ export function Topbar() {
   const { data: notifData } = useQuery({
     queryKey: ["notifications"],
     queryFn: () => notificationService.list(1, 10),
-    refetchInterval: 15000,
+    refetchInterval: 60000,
   });
 
   const { data: unreadData } = useQuery({
     queryKey: ["notifications-unread"],
     queryFn: () => notificationService.getUnreadCount(),
-    refetchInterval: 15000,
+    refetchInterval: 60000,
   });
+
+  useEffect(() => {
+    const socket = connectSocket();
+
+    const handleNewNotification = (notification: AppNotification) => {
+      // Dedup: read cache first, early-return if already exists — prevents badge overcounting
+      const current = queryClient.getQueryData<any>(["notifications"]);
+      const list: AppNotification[] = current?.notifications || [];
+      if (list.some((n) => n.id === notification.id)) return;
+
+      const isUnread = notification.unread !== false;
+
+      queryClient.setQueryData(["notifications"], (old: any) => {
+        const oldList: AppNotification[] = old?.notifications || [];
+        return {
+          ...(old ?? {}),
+          notifications: [notification, ...oldList].slice(0, 10),
+          unreadCount: (old?.unreadCount || 0) + (isUnread ? 1 : 0),
+        };
+      });
+
+      queryClient.setQueryData(["notifications-unread"], (old: any) => {
+        if (!isUnread) return old ?? { count: 0 };
+        return { ...(old ?? {}), count: (old?.count || 0) + 1 };
+      });
+    };
+
+    socket.on("notification:new", handleNewNotification);
+    return () => { socket.off("notification:new", handleNewNotification); };
+    // No disconnectSocket() — chat module reuses this same socket instance
+  }, [queryClient]);
 
   const markAllReadMutation = useMutation({
     mutationFn: () => notificationService.markAllRead(),
@@ -64,10 +96,10 @@ export function Topbar() {
   const workspaceBadge = isAdmin
     ? { label: "Admin", bg: "bg-violet-500/10", border: "border-violet-500/20", text: "text-violet-400", dot: "bg-violet-500" }
     : isPT && activeView === "pt"
-      ? { label: "Trainer Mode", bg: "bg-green-500/10", border: "border-green-500/20", text: "text-green-400", dot: "bg-green-500" }
+      ? { label: "Chế độ PT", bg: "bg-green-500/10", border: "border-green-500/20", text: "text-green-400", dot: "bg-green-500" }
       : isPT && activeView === "client"
-        ? { label: "Client Mode", bg: "bg-zinc-800", border: "border-zinc-700/50", text: "text-zinc-300", dot: "bg-zinc-400" }
-        : { label: "Personal Profile", bg: "bg-green-500/10", border: "border-green-500/20", text: "text-green-400", dot: "bg-green-500" };
+        ? { label: "Chế độ thành viên", bg: "bg-zinc-800", border: "border-zinc-700/50", text: "text-zinc-300", dot: "bg-zinc-400" }
+        : { label: "Trang cá nhân", bg: "bg-green-500/10", border: "border-green-500/20", text: "text-green-400", dot: "bg-green-500" };
 
   const avatarBg = isAdmin ? "bg-violet-500" : "bg-green-500";
 
@@ -92,7 +124,7 @@ export function Topbar() {
           <Search className="w-4 h-4 text-zinc-500 flex-shrink-0" />
           <input
             type="text"
-            placeholder="Search…"
+            placeholder="Tìm kiếm…"
             className="bg-transparent text-sm outline-none text-zinc-300 placeholder-zinc-600 w-full"
           />
         </div>
@@ -149,11 +181,11 @@ export function Topbar() {
               <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
               <div className="absolute right-0 top-full mt-1 w-80 bg-zinc-900 rounded-xl shadow-2xl shadow-black/50 border border-zinc-700/50 z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-zinc-100">Notifications</h3>
+                  <h3 className="text-sm font-semibold text-zinc-100">Thông báo</h3>
                   <div className="flex items-center gap-2">
                     {unreadCount > 0 && (
                       <span className="text-xs bg-green-500/15 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full font-semibold">
-                        {unreadCount} new
+                        {unreadCount} mới
                       </span>
                     )}
                     {unreadCount > 0 && (
@@ -185,7 +217,7 @@ export function Topbar() {
                 </div>
                 {notifications.length === 0 && (
                   <div className="px-4 py-8 text-center text-xs text-zinc-500">
-                    No notifications yet.
+                    Chưa có thông báo nào.
                   </div>
                 )}
               </div>
@@ -226,9 +258,9 @@ export function Topbar() {
                   {isPT && (
                     <div className="mt-2.5 flex items-center gap-1.5 px-2 py-1.5 bg-green-500/8 border border-green-500/15 rounded-lg">
                       <Zap className="w-3 h-3 text-green-400" />
-                      <span className="text-xs text-green-400 font-semibold">PT Account</span>
+                      <span className="text-xs text-green-400 font-semibold">Tài khoản PT</span>
                       <span className="ml-auto text-xs text-zinc-600">
-                        {activeView === "pt" ? "Trainer Mode" : "Client Mode"}
+                        {activeView === "pt" ? "Chế độ PT" : "Chế độ thành viên"}
                       </span>
                     </div>
                   )}
@@ -237,7 +269,7 @@ export function Topbar() {
                 {/* PT: workspace switcher in dropdown */}
                 {isPT && (
                   <div className="px-3 py-2 border-b border-zinc-800">
-                    <p className="text-xs text-zinc-600 font-semibold uppercase tracking-wider mb-1.5 px-1">Switch Workspace</p>
+                    <p className="text-xs text-zinc-600 font-semibold uppercase tracking-wider mb-1.5 px-1">Chuyển chế độ</p>
                     <div className="flex gap-1.5">
                       <button
                         onClick={() => switchToView("client")}
@@ -246,7 +278,7 @@ export function Topbar() {
                             : "text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300"
                           }`}
                       >
-                        <User className="w-3 h-3" /> Client
+                        <User className="w-3 h-3" /> Thành viên
                       </button>
                       <button
                         onClick={() => switchToView("pt")}
@@ -255,7 +287,7 @@ export function Topbar() {
                             : "text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300"
                           }`}
                       >
-                        <Zap className="w-3 h-3" /> Trainer
+                        <Zap className="w-3 h-3" /> Huấn luyện viên
                       </button>
                     </div>
                   </div>
@@ -266,10 +298,10 @@ export function Topbar() {
                   onClick={() => { setUserOpen(false); navigate(role === "pt" ? "/pt/profile" : "/client/profile"); }}
                   className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
                 >
-                  <User className="w-4 h-4" /> Profile
+                  <User className="w-4 h-4" /> Hồ sơ cá nhân
                 </button>
                 <button className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors">
-                  <Settings className="w-4 h-4" /> Settings
+                  <Settings className="w-4 h-4" /> Cài đặt
                 </button>
 
                 {/* Admin link */}
@@ -278,7 +310,7 @@ export function Topbar() {
                     onClick={() => { setUserOpen(false); navigate("/admin/dashboard"); }}
                     className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-violet-400 hover:bg-violet-500/10 transition-colors"
                   >
-                    <Shield className="w-4 h-4" /> Admin Panel
+                    <Shield className="w-4 h-4" /> Trang Admin
                   </button>
                 )}
 
@@ -289,7 +321,7 @@ export function Topbar() {
                     className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
                   >
                     <ArrowLeftRight className="w-4 h-4" />
-                    Switch to {activeView === "pt" ? "Personal" : "Trainer"} View
+                    Chuyển sang {activeView === "pt" ? "chế độ thành viên" : "chế độ PT"}
                   </button>
                 )}
 
@@ -298,7 +330,7 @@ export function Topbar() {
                     onClick={handleLogout}
                     className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                   >
-                    <LogOut className="w-4 h-4" /> Sign Out
+                    <LogOut className="w-4 h-4" /> Đăng xuất
                   </button>
                 </div>
               </div>
@@ -312,7 +344,7 @@ export function Topbar() {
         <div className="absolute top-14 left-0 right-0 bg-zinc-900 border-b border-zinc-800 px-4 py-2 sm:hidden z-50">
           <div className="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2">
             <Search className="w-4 h-4 text-zinc-500" />
-            <input autoFocus type="text" placeholder="Search…" className="bg-transparent text-sm outline-none flex-1 text-zinc-200 placeholder-zinc-600" />
+            <input autoFocus type="text" placeholder="Tìm kiếm…" className="bg-transparent text-sm outline-none flex-1 text-zinc-200 placeholder-zinc-600" />
           </div>
         </div>
       )}

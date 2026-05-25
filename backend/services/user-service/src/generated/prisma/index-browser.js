@@ -140,6 +140,8 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   injuries: 'injuries',
   currentWeight: 'currentWeight',
   targetWeight: 'targetWeight',
+  dietaryPreference: 'dietaryPreference',
+  photoUrl: 'photoUrl',
   sessionDurationMinutes: 'sessionDurationMinutes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -182,6 +184,10 @@ exports.Prisma.PTApplicationScalarFieldEnum = {
   sessionDurationMinutes: 'sessionDurationMinutes',
   availabilityBlocks: 'availabilityBlocks',
   additionalPricingNotes: 'additionalPricingNotes',
+  onlinePricePerSession: 'onlinePricePerSession',
+  offlinePricePerSession: 'offlinePricePerSession',
+  onlinePackagePrice: 'onlinePackagePrice',
+  offlinePackagePrice: 'offlinePackagePrice',
   otherReferences: 'otherReferences',
   adminNote: 'adminNote',
   rejectionReason: 'rejectionReason',
@@ -221,6 +227,7 @@ exports.Prisma.ContractScalarFieldEnum = {
   status: 'status',
   packageType: 'packageType',
   packageName: 'packageName',
+  sessionMode: 'sessionMode',
   description: 'description',
   packageQuantity: 'packageQuantity',
   extraSessions: 'extraSessions',
@@ -237,6 +244,19 @@ exports.Prisma.ContractScalarFieldEnum = {
   cancellationReason: 'cancellationReason',
   terms: 'terms',
   notes: 'notes',
+  eSignProvider: 'eSignProvider',
+  eSignRequestId: 'eSignRequestId',
+  eSignStatus: 'eSignStatus',
+  eSignTestMode: 'eSignTestMode',
+  eSignSentAt: 'eSignSentAt',
+  clientSignedAt: 'clientSignedAt',
+  ptSignedAt: 'ptSignedAt',
+  fullySignedAt: 'fullySignedAt',
+  contractPdfPath: 'contractPdfPath',
+  signedPdfUrl: 'signedPdfUrl',
+  eSignError: 'eSignError',
+  clientSignerEmail: 'clientSignerEmail',
+  ptSignerEmail: 'ptSignerEmail',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -310,7 +330,6 @@ exports.Prisma.InBodyEntryScalarFieldEnum = {
   weight: 'weight',
   height: 'height',
   bmi: 'bmi',
-  bmr: 'bmr',
   bodyFat: 'bodyFat',
   bodyFatPct: 'bodyFatPct',
   muscleMass: 'muscleMass',
@@ -405,6 +424,7 @@ exports.MediaGroupType = exports.$Enums.MediaGroupType = {
 
 exports.ContractStatus = exports.$Enums.ContractStatus = {
   PENDING_REVIEW: 'PENDING_REVIEW',
+  PENDING_SIGNATURE: 'PENDING_SIGNATURE',
   ACTIVE: 'ACTIVE',
   COMPLETED: 'COMPLETED',
   EXPIRED: 'EXPIRED',
@@ -417,18 +437,18 @@ exports.PackageType = exports.$Enums.PackageType = {
   PACKAGE: 'PACKAGE'
 };
 
+exports.SessionMode = exports.$Enums.SessionMode = {
+  ONLINE: 'ONLINE',
+  OFFLINE: 'OFFLINE',
+  HYBRID: 'HYBRID'
+};
+
 exports.SessionStatus = exports.$Enums.SessionStatus = {
   REQUESTED: 'REQUESTED',
   CONFIRMED: 'CONFIRMED',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
   NO_SHOW: 'NO_SHOW'
-};
-
-exports.SessionMode = exports.$Enums.SessionMode = {
-  ONLINE: 'ONLINE',
-  OFFLINE: 'OFFLINE',
-  HYBRID: 'HYBRID'
 };
 
 exports.NotificationEventType = exports.$Enums.NotificationEventType = {

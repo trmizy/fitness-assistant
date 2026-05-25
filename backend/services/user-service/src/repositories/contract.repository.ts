@@ -1,4 +1,4 @@
-import { ContractStatus, PackageType } from '../generated/prisma';
+import { ContractStatus, PackageType, SessionMode } from '../generated/prisma';
 import { prisma } from './profile.repository';
 
 export const contractRepository = {
@@ -14,6 +14,7 @@ export const contractRepository = {
     totalSessions: number;
     price?: number;
     pricePerSession?: number;
+    sessionMode?: SessionMode;
     startDate?: Date;
     endDate?: Date;
     clientMessage?: string;
@@ -125,4 +126,10 @@ export const contractRepository = {
     prisma.contract.count({
       where: { status: ContractStatus.ACTIVE },
     }),
+
+  updateESignFields: (id: string, data: Record<string, unknown>) =>
+    prisma.contract.update({ where: { id }, data }),
+
+  findByESignRequestId: (eSignRequestId: string) =>
+    prisma.contract.findFirst({ where: { eSignRequestId } }),
 };

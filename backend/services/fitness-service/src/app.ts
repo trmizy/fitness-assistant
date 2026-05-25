@@ -4,6 +4,7 @@ import exerciseRoutes from './routes/exercise.routes';
 import workoutRoutes from './routes/workout.routes';
 import nutritionRoutes from './routes/nutrition.routes';
 import statsRoutes from './routes/stats.routes';
+import foodRoutes from './routes/food.routes';
 
 const app = express();
 
@@ -23,5 +24,6 @@ app.use('/exercises', exerciseRoutes);
 app.use('/workouts', workoutRoutes);
 app.use('/nutrition', nutritionRoutes);
 app.use('/stats', statsRoutes);
+app.use('/food', foodRoutes);
 
 export default app;

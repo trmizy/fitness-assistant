@@ -70,7 +70,11 @@ model UserProfile {
   // Calculated fields (can be denormalized from InBody service)
   currentWeight Float?
   targetWeight  Float?
-  
+
+  // User preferences
+  dietaryPreference String? @map("dietary_preference")
+  photoUrl          String? @map("photo_url")
+
   sessionDurationMinutes Int @default(60) @map("session_duration_minutes")
 
   createdAt DateTime @default(now())
@@ -149,6 +153,10 @@ model PTApplication {
   sessionDurationMinutes  Int                  @default(60) @map("session_duration_minutes")
   availabilityBlocks      Json?                @map("availability_blocks")
   additionalPricingNotes  String?              @map("additional_pricing_notes")
+  onlinePricePerSession   Float?               @map("online_price_per_session")
+  offlinePricePerSession  Float?               @map("offline_price_per_session")
+  onlinePackagePrice      Float?               @map("online_package_price")
+  offlinePackagePrice     Float?               @map("offline_package_price")
   otherReferences         String?              @map("other_references")
   
   // Admin interaction
@@ -203,12 +211,13 @@ model PTApplicationMedia {
 // ─── Contract + Booking Enums ─────────────────────────────────────
 
 enum ContractStatus {
-  PENDING_REVIEW // Client requested, awaiting PT decision
-  ACTIVE         // PT accepted, contract in effect
-  COMPLETED      // All sessions used
-  EXPIRED        // Past end date
-  CANCELLED      // Terminated early by either party
-  REJECTED       // PT declined the request
+  PENDING_REVIEW    // Client requested, awaiting PT decision
+  PENDING_SIGNATURE // PT accepted, waiting for both parties to e-sign
+  ACTIVE            // Contract in effect (both signed or no e-sign required)
+  COMPLETED         // All sessions used
+  EXPIRED           // Past end date
+  CANCELLED         // Terminated early by either party
+  REJECTED          // PT declined the request
 }
 
 enum PackageType {
@@ -269,6 +278,8 @@ model Contract {
   // Package details
   packageType        PackageType    @default(PACKAGE) @map("package_type")
   packageName        String         @map("package_name")
+  // ONLINE or OFFLINE — never HYBRID for a specific contract
+  sessionMode        SessionMode?   @map("session_mode")
   description        String?
   packageQuantity    Int            @default(1) @map("package_quantity")
   extraSessions      Int            @default(0) @map("extra_sessions")
@@ -291,6 +302,22 @@ model Contract {
   // Terms
   terms              String?
   notes              String?
+
+  // E-Signature fields
+  // eSignStatus values: 'SENT' | 'PARTIALLY_SIGNED' | 'SIGNED' | 'DECLINED' | 'EXPIRED' | 'ERROR'
+  eSignProvider      String?        @map("esign_provider")
+  eSignRequestId     String?        @map("esign_request_id")
+  eSignStatus        String?        @map("esign_status")
+  eSignTestMode      Boolean        @default(true) @map("esign_test_mode")
+  eSignSentAt        DateTime?      @map("esign_sent_at")
+  clientSignedAt     DateTime?      @map("client_signed_at")
+  ptSignedAt         DateTime?      @map("pt_signed_at")
+  fullySignedAt      DateTime?      @map("fully_signed_at")
+  contractPdfPath    String?        @map("contract_pdf_path")
+  signedPdfUrl       String?        @map("signed_pdf_url")
+  eSignError         String?        @map("esign_error")
+  clientSignerEmail  String?        @map("client_signer_email")
+  ptSignerEmail      String?        @map("pt_signer_email")
 
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
@@ -414,7 +441,6 @@ model InBodyEntry {
   weight     Float
   height     Float?
   bmi        Float?
-  bmr        Float?
   bodyFat    Float    @map("body_fat")    // Mass in kg or %? Let's use mass kg
   bodyFatPct Float?   @map("body_fat_pct") // Percentage
   muscleMass Float    @map("muscle_mass")

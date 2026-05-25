@@ -22,6 +22,8 @@ export const profileSchema = z.object({
   injuries: z.array(z.string()).optional(),
   currentWeight: z.number().positive().optional(),
   targetWeight: z.number().positive().optional(),
+  dietaryPreference: z.string().optional(),
+  photoUrl: z.string().optional(),
 });
 
 export const adminPTStatusSchema = z.object({

@@ -11,7 +11,8 @@ const WRITABLE_FIELDS = new Set([
   'portfolioUrl', 'linkedinUrl', 'websiteUrl', 'socialLinks',
   'availabilityNotes', 'availableTimeSlots', 'serviceMode', 'operatingAreas',
   'desiredSessionPrice', 'availableDays', 'availableFrom', 'availableUntil',
-  'gymAffiliation', 'packagePrice', 'monthlyProgramPrice', 'additionalPricingNotes',
+  'gymAffiliation', 'packagePrice', 'sessionsPerPackage', 'monthlyProgramPrice', 'additionalPricingNotes',
+  'onlinePricePerSession', 'offlinePricePerSession', 'onlinePackagePrice', 'offlinePackagePrice',
   'otherReferences',
 ]);
 

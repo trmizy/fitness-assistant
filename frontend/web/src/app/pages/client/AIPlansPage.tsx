@@ -6,13 +6,11 @@ import { planService } from "../../services/api";
 type PlanStatus = "active" | "pending_review" | "draft" | "archived";
 
 const statusConfig: Record<PlanStatus, { label: string; color: string; dot: string }> = {
-  active: { label: "Active", color: "bg-green-500/10 text-green-400 border-green-500/20", dot: "bg-green-500" },
-  pending_review: { label: "Pending PT Review", color: "bg-amber-500/10 text-amber-400 border-amber-500/20", dot: "bg-amber-500" },
-  draft: { label: "Draft", color: "bg-zinc-700/50 text-zinc-400 border-zinc-700", dot: "bg-zinc-500" },
-  archived: { label: "Archived", color: "bg-red-500/10 text-red-400 border-red-500/20", dot: "bg-red-400" },
+  active:         { label: "Đang dùng",     color: "bg-green-500/10 text-green-400 border-green-500/20", dot: "bg-green-500" },
+  pending_review: { label: "Chờ PT duyệt",  color: "bg-amber-500/10 text-amber-400 border-amber-500/20", dot: "bg-amber-500" },
+  draft:          { label: "Bản nháp",       color: "bg-zinc-700/50 text-zinc-400 border-zinc-700", dot: "bg-zinc-500" },
+  archived:       { label: "Đã lưu trữ",    color: "bg-red-500/10 text-red-400 border-red-500/20", dot: "bg-red-400" },
 };
-
-// Mock data removed, now using planService.getCurrentPlans()
 
 type PlanTab = "workout" | "nutrition";
 
@@ -46,13 +44,17 @@ export function AIPlansPage() {
             <Sparkles className="w-8 h-8 text-green-400" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-zinc-100">No {planTab} plan yet</h2>
-            <p className="text-zinc-500 mt-1 max-w-xs mx-auto">Upload your InBody data or talk to our AI Coach to generate a personalized {planTab} plan.</p>
+            <h2 className="text-xl font-bold text-zinc-100">
+              Chưa có kế hoạch {planTab === "workout" ? "tập luyện" : "dinh dưỡng"}
+            </h2>
+            <p className="text-zinc-500 mt-1 max-w-xs mx-auto">
+              Tải lên dữ liệu InBody hoặc chat với AI Coach để tạo kế hoạch {planTab === "workout" ? "tập luyện" : "dinh dưỡng"} cá nhân hóa.
+            </p>
           </div>
           <div className="flex gap-3">
-             <button onClick={() => setPlanTab(planTab === "workout" ? "nutrition" : "workout")} className="px-5 py-2.5 bg-zinc-800 text-zinc-300 rounded-xl text-sm font-bold border border-zinc-700 hover:bg-zinc-700 transition-all">
-                Check {planTab === "workout" ? "Meal Plan" : "Workout Plan"}
-             </button>
+            <button onClick={() => setPlanTab(planTab === "workout" ? "nutrition" : "workout")} className="px-5 py-2.5 bg-zinc-800 text-zinc-300 rounded-xl text-sm font-bold border border-zinc-700 hover:bg-zinc-700 transition-all">
+              Xem {planTab === "workout" ? "Kế hoạch dinh dưỡng" : "Kế hoạch tập luyện"}
+            </button>
           </div>
         </div>
       </div>
@@ -69,15 +71,15 @@ export function AIPlansPage() {
           <h1 className="text-zinc-100 flex items-center gap-2">
             <Brain className="w-5 h-5 text-green-400" /> AI Plans
           </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">AI-generated plans reviewed and approved by your coach</p>
+          <p className="text-zinc-500 text-sm mt-0.5">Kế hoạch từ AI được PT xem xét và phê duyệt</p>
         </div>
       </div>
 
       {/* Plan type tabs */}
       <div className="flex gap-2">
         {[
-          { key: "workout" as PlanTab, label: "Workout Plan", icon: Zap },
-          { key: "nutrition" as PlanTab, label: "Meal Plan", icon: CheckCircle },
+          { key: "workout" as PlanTab, label: "Kế hoạch tập", icon: Zap },
+          { key: "nutrition" as PlanTab, label: "Kế hoạch dinh dưỡng", icon: CheckCircle },
         ].map((t) => (
           <button
             key={t.key}
@@ -101,14 +103,16 @@ export function AIPlansPage() {
                 {cfg.label}
               </span>
             </div>
-            <p className="text-sm text-zinc-500">Created {new Date(currentPlan.createdAt).toLocaleDateString()} · Approved by {currentPlan.approvedBy || "AI Engine"}</p>
+            <p className="text-sm text-zinc-500">
+              Tạo ngày {new Date(currentPlan.createdAt).toLocaleDateString("vi-VN")} · Phê duyệt bởi {currentPlan.approvedBy || "AI Engine"}
+            </p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <button className="flex items-center gap-1.5 px-3 py-1.5 border border-zinc-700/60 rounded-lg text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors">
-              <Archive className="w-3.5 h-3.5" /> Archive
+              <Archive className="w-3.5 h-3.5" /> Lưu trữ
             </button>
             <button className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg text-xs text-green-400 hover:bg-green-500/15 transition-colors">
-              <MessageSquare className="w-3.5 h-3.5" /> Ask PT
+              <MessageSquare className="w-3.5 h-3.5" /> Hỏi PT
             </button>
           </div>
         </div>
@@ -117,7 +121,7 @@ export function AIPlansPage() {
         <div className="mt-3 p-3 bg-blue-500/8 rounded-lg border border-blue-500/20">
           <div className="flex items-center gap-1.5 mb-1">
             <Edit3 className="w-3.5 h-3.5 text-blue-400" />
-            <span className="text-xs font-semibold text-blue-300">Coach Note</span>
+            <span className="text-xs font-semibold text-blue-300">Ghi chú PT</span>
           </div>
           <p className="text-xs text-blue-400/80">{currentPlan.ptNote}</p>
         </div>
@@ -136,10 +140,10 @@ export function AIPlansPage() {
       {planTab === "nutrition" && "macros" in currentPlan && (
         <div className="grid grid-cols-4 gap-3">
           {[
-            { label: "Calories", value: `${currentPlan.macros?.calories || 0}`, unit: "kcal", color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
-            { label: "Protein", value: `${currentPlan.macros?.protein || 0}g`, unit: "", color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/20" },
-            { label: "Carbs", value: `${currentPlan.macros?.carbs || 0}g`, unit: "", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-            { label: "Fat", value: `${currentPlan.macros?.fat || 0}g`, unit: "", color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
+            { label: "Calories",    value: `${currentPlan.macros?.calories || 0}`, unit: "kcal", color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
+            { label: "Protein",     value: `${currentPlan.macros?.protein || 0}g`,  unit: "", color: "text-green-400",  bg: "bg-green-500/10",  border: "border-green-500/20" },
+            { label: "Carbs",       value: `${currentPlan.macros?.carbs || 0}g`,    unit: "", color: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/20" },
+            { label: "Chất béo",    value: `${currentPlan.macros?.fat || 0}g`,      unit: "", color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
           ].map((m) => (
             <div key={m.label} className={`${m.bg} rounded-xl p-3 text-center border ${m.border}`}>
               <div className={`text-lg font-bold ${m.color}`}>{m.value}</div>
@@ -158,7 +162,7 @@ export function AIPlansPage() {
                 onClick={() => setExpandedWeek(expandedWeek === week.week ? null : week.week)}
                 className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-zinc-800/40 transition-colors"
               >
-                <span className="text-sm font-bold text-zinc-200">Week {week.week}</span>
+                <span className="text-sm font-bold text-zinc-200">Tuần {week.week}</span>
                 {expandedWeek === week.week ? <ChevronDown className="w-4 h-4 text-zinc-500" /> : <ChevronRight className="w-4 h-4 text-zinc-500" />}
               </button>
               {expandedWeek === week.week && (
@@ -175,7 +179,7 @@ export function AIPlansPage() {
                           </span>
                           <div>
                             <div className="text-sm font-semibold text-zinc-200">{day.name}</div>
-                            <div className="text-xs text-zinc-600">{day.exercises.length} {day.exercises.length === 1 ? "exercise" : "exercises"}</div>
+                            <div className="text-xs text-zinc-600">{day.exercises.length} bài tập</div>
                           </div>
                         </div>
                         {expandedDay === `${week.week}-${day.day}` ? <ChevronDown className="w-4 h-4 text-zinc-500" /> : <ChevronRight className="w-4 h-4 text-zinc-500" />}

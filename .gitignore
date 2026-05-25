@@ -85,3 +85,9 @@ tmp/
 # Temporary / local-only files
 skills-main.zip
 tmp-ai-request.json
+
+# USDA FoodData Central raw downloads (large, not committed)
+# Generate foods_seed.csv locally with: pnpm --filter @gym-coach/fitness-service db:process-usda
+data/nutrition/*.csv
+data/nutrition/*.zip
+data/nutrition/*.xlsx
