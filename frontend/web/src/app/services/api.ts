@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { makeRefreshOnce } from './refresh-once';
 
 // @ts-ignore - ImportMeta.env is provided by Vite
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -21,13 +22,7 @@ const refreshClient = axios.create({
   timeout: 10000,
 });
 
-let isRefreshing = false;
-let pendingRequests: Array<(token: string | null) => void> = [];
-
-function resolvePendingRequests(token: string | null) {
-  pendingRequests.forEach((cb) => cb(token));
-  pendingRequests = [];
-}
+const refreshOnce = makeRefreshOnce(refreshAccessToken);
 
 function hasUsableToken(token: string | null): token is string {
   return !!token && token !== 'null' && token !== 'undefined';
@@ -92,24 +87,7 @@ api.interceptors.response.use(
     if (status === 401 && isTokenIssue && !isAuthEndpoint && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          pendingRequests.push((newToken) => {
-            if (!hasUsableToken(newToken)) {
-              reject(error);
-              return;
-            }
-            originalRequest.headers = originalRequest.headers || {};
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            resolve(api(originalRequest));
-          });
-        });
-      }
-
-      isRefreshing = true;
-      const newToken = await refreshAccessToken();
-      isRefreshing = false;
-      resolvePendingRequests(newToken);
+      const newToken = await refreshOnce();
 
       if (hasUsableToken(newToken)) {
         originalRequest.headers = originalRequest.headers || {};
@@ -295,6 +273,84 @@ export const coachService = {
   getConversations: async () => {
     const { data } = await api.get('/ai/conversations');
     return data?.data ?? data;
+  },
+
+  chatStream(
+    message: string,
+    callbacks: {
+      onStatus: (status: string) => void;
+      onToken: (token: string) => void;
+      onDone: () => void;
+      onError: (message: string) => void;
+    },
+  ): () => void {
+    const token = localStorage.getItem('accessToken');
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const response = await fetch(`${API_URL}/ai/ask/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && token !== 'null' && token !== 'undefined'
+              ? { Authorization: `Bearer ${token}` }
+              : {}),
+          },
+          body: JSON.stringify({ question: message }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok || !response.body) {
+          callbacks.onError('Could not connect to AI service');
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let receivedFinalEvent = false;
+
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const event = JSON.parse(line.slice(6)) as Record<string, string>;
+              if (event['type'] === 'status') {
+                callbacks.onStatus(event['message'] ?? '');
+              } else if (event['type'] === 'token') {
+                callbacks.onToken(event['content'] ?? '');
+              } else if (event['type'] === 'done') {
+                receivedFinalEvent = true;
+                callbacks.onDone();
+              } else if (event['type'] === 'error') {
+                receivedFinalEvent = true;
+                callbacks.onError(event['message'] ?? 'Unknown error');
+              }
+            } catch {
+              // Ignore malformed SSE lines.
+            }
+          }
+        }
+
+        // Stream ended without a final event — connection was dropped unexpectedly.
+        if (!receivedFinalEvent) {
+          callbacks.onError('Connection lost. Please try again.');
+        }
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        callbacks.onError('Could not connect to AI service');
+      }
+    })();
+
+    return () => controller.abort();
   },
 };
 

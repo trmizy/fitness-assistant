@@ -10,6 +10,13 @@ export function getSocket(): Socket {
     socket = io(CHAT_WS_URL, {
       auth: { token },
       autoConnect: false,
+      // WebSocket-only: skip HTTP long-polling which triggers the browser tab loading
+      // indicator and hangs indefinitely when the chat service is unavailable.
+      transports: ['websocket'],
+      // Give up after 5 failed reconnects instead of retrying forever (default: Infinity).
+      reconnectionAttempts: 5,
+      // 5 s connection timeout — fail fast rather than leaving a pending request open.
+      timeout: 5000,
     });
   }
   return socket;

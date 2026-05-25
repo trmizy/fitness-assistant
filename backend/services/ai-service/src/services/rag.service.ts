@@ -2,6 +2,7 @@ import { LLM_MODEL, llmService } from './llm.service';
 import { conversationRepository } from '../repositories/conversation.repository';
 import type { RelevanceEval } from '../models/ai.models';
 import { llmOrchestrator } from '../llm/orchestrator.service';
+import type { ProgressCallback } from '../llm/orchestrator.service';
 import { logger } from '@gym-coach/shared';
 import { LlmError } from '../errors/api-error';
 
@@ -53,11 +54,11 @@ async function evaluateRelevance(
 }
 
 export const ragService = {
-  async rag(question: string, userId?: string, authHeader?: string) {
+  async rag(question: string, userId?: string, authHeader?: string, onProgress?: ProgressCallback) {
     const startTime = Date.now();
 
     // May throw LlmError if the LLM provider is down — propagates to controller.
-    const orchestrated = await llmOrchestrator.run(question, userId, authHeader);
+    const orchestrated = await llmOrchestrator.run(question, userId, authHeader, onProgress);
     const responseTime = (Date.now() - startTime) / 1000;
 
     // Self-evaluation: second LLM call, gated behind env flag.

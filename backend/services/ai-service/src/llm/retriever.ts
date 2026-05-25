@@ -26,6 +26,16 @@ function expandQueries(question: string): string[] {
     variants.add(`${question} bodyweight dumbbell resistance band`);
   }
 
+  // Muscle group expansions for better English-centric embedding retrieval
+  if (/(ng[uự]c|chest)/i.test(q)) variants.add(`${question} chest pectorals`);
+  if (/(l[uư]ng|x[oô]|back)/i.test(q)) variants.add(`${question} back lats`);
+  if (/(vai|shoulder)/i.test(q)) variants.add(`${question} shoulders deltoids`);
+  if (/(tay tr[uướ]c|biceps)/i.test(q)) variants.add(`${question} biceps arms`);
+  if (/(tay sau|triceps)/i.test(q)) variants.add(`${question} triceps arms`);
+  if (/(m[oô]ng|glutes)/i.test(q)) variants.add(`${question} glutes`);
+  if (/(đ[uù]i|ch[aâ]n|legs)/i.test(q)) variants.add(`${question} legs quadriceps hamstrings`);
+  if (/(b[uụ]ng|core)/i.test(q)) variants.add(`${question} abs core`);
+
   return Array.from(variants);
 }
 

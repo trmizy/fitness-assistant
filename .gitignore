@@ -81,3 +81,7 @@ tmp/
 *.bak
 *.old
 *.orig
+
+# Temporary / local-only files
+skills-main.zip
+tmp-ai-request.json

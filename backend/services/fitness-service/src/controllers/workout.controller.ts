@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { workoutService } from '../services/workout.service';
 import { createWorkoutSchema, updateWorkoutSetSchema } from '../models/fitness.models';
+import { formatZodErrors } from '../utils/workout-validation';
 import type { AuthRequest } from '../middleware/auth.middleware';
 
 export const workoutController = {
@@ -46,7 +47,11 @@ export const workoutController = {
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         logger.error({ validationErrors: error.errors }, 'Workout validation failed');
-        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        res.status(400).json({ error: 'Invalid workout data', details: formatZodErrors(error.errors) });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
         return;
       }
       logger.error('Error creating workout:', error);
@@ -66,7 +71,7 @@ export const workoutController = {
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         logger.error({ validationErrors: error.errors }, 'Workout update validation failed');
-        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        res.status(400).json({ error: 'Invalid workout data', details: formatZodErrors(error.errors) });
         return;
       }
       if (error.status) {

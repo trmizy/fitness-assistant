@@ -108,7 +108,35 @@ function inferIntent(question: string): RoutedIntentType {
   }
 
   if (/(tay tr[uướ]c|tay sau|ng[uự]c|l[uư]ng|ch[aâ]n|vai|b[uụ]ng|biceps|triceps|chest|back|legs|shoulders|core|forearm)/i.test(q) &&
-    /(l[iị]ch t[aậ]p|routine|bu[oổ]i t[aậ]p|b[aà]i t[aậ]p)/i.test(q)) {
+    /(l[iị]ch t[aậ]p|routine|bu[oổ]i t[aậ]p)/i.test(q)) {
+    return 'muscle_group_routine_request';
+  }
+
+  if (/(tay tr[uướ]c|tay sau|biceps|triceps|forearm)/i.test(q) &&
+    /(b[aà]i t[aậ]p|b[aà]i n[aà]o|nh[uữ]ng b[aà]i|go[iị] y|g[iợ]i y|h[oỗ] tr[uợ] t[iố]t|n[eê]n t[aậ]p g[iì]|c[oó] nh[uữ]ng b[aà]i)/i.test(q)) {
+    return 'muscle_group_routine_request';
+  }
+
+  if (/(tay tr[uướ]c|tay sau|biceps|triceps|forearm)/i.test(q) && /(t[aậ]p|train|work out|workout)/i.test(q)) {
+    return 'muscle_group_routine_request';
+  }
+
+  // Yes/No advisory questions ("có thể X không", "có nên X không") are knowledge queries,
+  // not plan-generation requests — check BEFORE the muscle-group catch-all below.
+  if (/c[oó]\s*(th[eể]|n[eê]n)\b.{0,60}kh[oô]ng\b/i.test(q)) {
+    return 'general_fitness_knowledge';
+  }
+
+  // Injury / pain questions always route to knowledge so the LLM can give
+  // contextual advice without being held to the strict workout-plan structure.
+  if (/(injury|pain|ch[aấ]n\s*th[uươ][oơ]ng|chan\s*thuong|[dđ]au\s*g[oố]i|dau\s*goi|[dđ]au\s*l[uư]ng|dau\s*lung|[dđ]au\s*vai|dau\s*vai|[dđ]au\s*kh[oớ]p|knee\s*pain|shoulder\s*pain|back\s*pain)/i.test(q)) {
+    return 'general_fitness_knowledge';
+  }
+
+  // Legs, shoulders, core: "bài tập chân/vai/bụng" or bare "tập chân/vai/bụng"
+  // Not covered by the lịch tập/routine block above because "bài tập" ≠ "lịch tập"
+  if (/(ch[aâ]n|legs|đùi|mông|vai|shoulder|b[uụ]ng|core|abs)/i.test(q) &&
+    /(b[aà]i t[aậ]p|t[aậ]p|train|workout)/i.test(q)) {
     return 'muscle_group_routine_request';
   }
 

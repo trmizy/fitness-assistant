@@ -1,6 +1,18 @@
 import { Queue } from 'bullmq';
 import { workoutRepository } from '../repositories/workout.repository';
+import { exerciseRepository } from '../repositories/exercise.repository';
+import { checkMissingExerciseIds } from '../utils/workout-validation';
 import type { CreateWorkoutDto, UpdateWorkoutSetDto } from '../models/fitness.models';
+
+async function validateExerciseIds(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const found = await exerciseRepository.findManyByIds(ids);
+  const foundSet = new Set(found.map((e) => e.id));
+  const missing = checkMissingExerciseIds(ids, foundSet);
+  if (missing.length > 0) {
+    throw { status: 400, message: `Exercise not found: ${missing.join(', ')}` };
+  }
+}
 
 export const workoutQueue = new Queue('workout-generation', {
   connection: {
@@ -30,12 +42,14 @@ export const workoutService = {
   },
 
   async createWorkout(userId: string, data: CreateWorkoutDto) {
+    await validateExerciseIds(data.exercises.map((ex) => ex.exerciseId));
     return workoutRepository.create(userId, data);
   },
 
   async updateWorkout(id: string, userId: string, data: CreateWorkoutDto) {
     const existing = await workoutRepository.findOne(id, userId);
     if (!existing) throw { status: 404, message: 'Workout not found' };
+    await validateExerciseIds(data.exercises.map((ex) => ex.exerciseId));
     return workoutRepository.update(id, data);
   },
 

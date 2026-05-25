@@ -208,12 +208,32 @@ export const contractService = {
 
   async getByPT(ptUserId: string, status?: string) {
     const s = status ? (status as ContractStatus) : undefined;
-    return contractRepository.findByPT(ptUserId, s);
+    const contracts = await contractRepository.findByPT(ptUserId, s);
+    if (contracts.length === 0) return contracts;
+
+    const clientIds = [...new Set(contracts.map(c => c.clientUserId))];
+    const profiles = await profileRepository.findByUserIds(clientIds);
+    const profileMap = new Map(profiles.map(p => [p.userId, p]));
+
+    return contracts.map(c => ({
+      ...c,
+      clientProfile: profileMap.get(c.clientUserId) ?? null,
+    }));
   },
 
   async getByClient(clientUserId: string, status?: string) {
     const s = status ? (status as ContractStatus) : undefined;
-    return contractRepository.findByClient(clientUserId, s);
+    const contracts = await contractRepository.findByClient(clientUserId, s);
+    if (contracts.length === 0) return contracts;
+
+    const ptIds = [...new Set(contracts.map(c => c.ptUserId))];
+    const profiles = await profileRepository.findByUserIds(ptIds);
+    const profileMap = new Map(profiles.map(p => [p.userId, p]));
+
+    return contracts.map(c => ({
+      ...c,
+      ptProfile: profileMap.get(c.ptUserId) ?? null,
+    }));
   },
 
   async getById(id: string) {

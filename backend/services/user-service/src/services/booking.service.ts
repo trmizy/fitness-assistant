@@ -2,6 +2,7 @@ import { SessionStatus, SessionMode, ContractStatus, DayOfWeek } from '../genera
 import { sessionRepository } from '../repositories/session.repository';
 import { contractRepository } from '../repositories/contract.repository';
 import { availabilityRepository } from '../repositories/availability.repository';
+import { profileRepository } from '../repositories/profile.repository';
 import { notificationService } from './notification.service';
 import { contractService } from './contract.service';
 
@@ -305,6 +306,20 @@ export const bookingService = {
 
   // ── Get my upcoming sessions ────────────────────────────────────
   async getMyUpcoming(userId: string) {
-    return sessionRepository.findUpcomingByUser(userId);
+    const sessions = await sessionRepository.findUpcomingByUser(userId);
+    if (sessions.length === 0) return sessions;
+
+    // Collect the "other party" IDs for each session
+    const otherIds = [...new Set(sessions.map(s =>
+      s.ptUserId === userId ? s.clientUserId : s.ptUserId
+    ))];
+    const profiles = await profileRepository.findByUserIds(otherIds);
+    const profileMap = new Map(profiles.map(p => [p.userId, p]));
+
+    return sessions.map(s => {
+      const otherId = s.ptUserId === userId ? s.clientUserId : s.ptUserId;
+      const key = s.ptUserId === userId ? 'clientProfile' : 'ptProfile';
+      return { ...s, [key]: profileMap.get(otherId) ?? null };
+    });
   },
 };

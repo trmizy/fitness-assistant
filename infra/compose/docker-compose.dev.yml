@@ -131,6 +131,7 @@ services:
       - ../../.env
     volumes:
       - ../../backend/services/auth-service/src:/app/backend/services/auth-service/src
+      - ../../scripts:/app/scripts   # Seed scripts — shared with db-seeder
     depends_on:
       postgres:
         condition: service_healthy
@@ -461,6 +462,45 @@ services:
     networks:
       - default
 
+  # ── Test-data seeder ─────────────────────────────────────────────────────────
+  # Runs automatically after ALL services are healthy (= all Prisma migrations done).
+  # Idempotent: ON CONFLICT DO NOTHING — safe to re-run on every `docker compose up`.
+  # Uses node:20-alpine + installs 3 tiny pure-JS packages (cached in seeder_modules volume).
+  # Set SKIP_SEED=true in .env to disable without removing the service definition.
+  db-seeder:
+    image: node:20-alpine
+    container_name: gymcoach-db-seeder
+    restart: "no"
+    working_dir: /app
+    command: >-
+      sh -c "
+        [ \"$$SKIP_SEED\" = 'true' ] && echo '[seeder] SKIP_SEED=true, exiting.' && exit 0;
+        [ -f node_modules/.seeder-ready ] || (npm install --no-save --quiet bcryptjs pg dotenv && touch node_modules/.seeder-ready);
+        node scripts/seed-test-users.mjs
+      "
+    volumes:
+      - ../../scripts:/app/scripts
+      - seeder_modules:/app/node_modules
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-gymcoach}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gymcoach_password}
+      SKIP_SEED: ${SKIP_SEED:-false}
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      fitness-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+      chat-service:
+        condition: service_healthy
+    networks:
+      - default
+
 volumes:
   user_uploads:
   easyocr_models:
@@ -471,6 +511,7 @@ volumes:
   n8n_data:
   prometheus_data:
   grafana_data:
+  seeder_modules:     # npm cache for db-seeder (bcryptjs, pg, dotenv)
 
 networks:
   default:

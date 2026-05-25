@@ -45,6 +45,8 @@ function validateSafetyLanguage(text: string): string[] {
     /no need to consult/i,
     /ignore pain/i,
     /train through injury/i,
+    /không cần bác sĩ|không cần tư vấn bác sĩ/i,
+    /chắc chắn giảm|đảm bảo kết quả|tuyệt đối hiệu quả/i,
   ];
 
   riskyPatterns.forEach((pattern) => {
@@ -52,6 +54,35 @@ function validateSafetyLanguage(text: string): string[] {
       warnings.push(`Potentially unsafe phrase detected: ${pattern.toString()}`);
     }
   });
+
+  return warnings;
+}
+
+function validateGeneralFitnessAdvice(answer: string): string[] {
+  const warnings: string[] = [];
+
+  // Flag extreme protein-per-kg claims (> 4 g/kg is beyond evidence-based upper limit)
+  const proteinPerKgMatch = answer.match(/(\d+(?:\.\d+)?)\s*g?\s*(?:per\s*kg|\/\s*kg|g\/kg|mỗi\s*kg)/i);
+  if (proteinPerKgMatch) {
+    const val = Number(proteinPerKgMatch[1]);
+    if (val > 4) {
+      warnings.push(
+        `Extreme protein-per-kg recommendation (${val}g/kg) — evidence-based ceiling is ~2.2g/kg for most goals.`,
+      );
+    }
+  }
+
+  // Flag obviously out-of-range explicit calorie targets
+  const calMatches = [...answer.matchAll(/\b(\d{3,5})\s*kcal/gi)];
+  for (const m of calMatches) {
+    const val = Number(m[1]);
+    if (val < 800 || val > 6000) {
+      warnings.push(
+        `Calorie value outside safe range: ${val} kcal (typical range 800–5000 kcal for most individuals).`,
+      );
+      break;
+    }
+  }
 
   return warnings;
 }
@@ -66,7 +97,7 @@ function validateRequiredSections(answer: string, recommendation: Recommendation
   const intent = recommendation.responseIntent;
 
   if (intent === 'meal_plan_request') {
-    warnings.push(...requireSection(answer, [/ðŸ¥—|dinh dưỡng|nutrition/i], 'nutrition'));
+    warnings.push(...requireSection(answer, [/dinh dưỡng|nutrition|meal|thực đơn/i], 'nutrition'));
     warnings.push(...requireSection(answer, [/meal|bữa|thực đơn/i], 'meal_examples'));
     warnings.push(...requireSection(answer, [/điều chỉnh|adjust/i], 'adjustment'));
     if (/(bài tập|exercise|workout)/i.test(answer)) {
@@ -81,7 +112,7 @@ function validateRequiredSections(answer: string, recommendation: Recommendation
     intent === 'combined_plan_request'
   ) {
     warnings.push(...requireSection(answer, [/day|ngày|tuần|week/i], 'workout_table'));
-    warnings.push(...requireSection(answer, [/calo|kcal/i, /ðŸ¥—/i, /dinh|nutri/i], 'nutrition_summary'));
+    warnings.push(...requireSection(answer, [/calo|kcal/i, /dinh|nutri/i], 'nutrition_summary'));
     warnings.push(...requireSection(answer, [/sets?|hiệp/i], 'sets'));
     warnings.push(...requireSection(answer, [/reps?|lặp/i], 'reps'));
     warnings.push(...requireSection(answer, [/rest|nghỉ/i], 'rest'));
@@ -91,6 +122,21 @@ function validateRequiredSections(answer: string, recommendation: Recommendation
     warnings.push(...requireSection(answer, [/exercise|bài tập/i], 'exercise_list'));
     warnings.push(...requireSection(answer, [/technique|kỹ thuật/i], 'technique_notes'));
     warnings.push(...requireSection(answer, [/safety|an toàn/i], 'safety_notes'));
+
+    const sessionGoal = (recommendation.specificRoutine?.sessionGoal ?? '').toLowerCase();
+    if (/ch[aâ]n|leg/.test(sessionGoal)) {
+      warnings.push(...requireSection(answer, [/squat|deadlift|lunge|leg press/i], 'legs_compound'));
+      warnings.push(...requireSection(answer, [/romanian|rdl|gân khoeo|hamstring/i], 'legs_posterior'));
+      warnings.push(...requireSection(answer, [/calf|bắp chân|split squat|đơn chân/i], 'legs_accessory'));
+    }
+    if (/vai|shoulder/.test(sessionGoal)) {
+      warnings.push(...requireSection(answer, [/press|raise/i], 'shoulders_press_raise'));
+      warnings.push(...requireSection(answer, [/rear delt|face pull|vai sau/i], 'shoulders_rear_delt'));
+    }
+    if (/core|bụng/.test(sessionGoal)) {
+      warnings.push(...requireSection(answer, [/plank|dead bug|hollow|ab wheel/i], 'core_stability'));
+      warnings.push(...requireSection(answer, [/không.*mỡ|không.*giảm|không giảm|spot/i], 'core_spot_reduction_note'));
+    }
   }
 
   if (recommendation.detailMode) {
@@ -178,6 +224,8 @@ export const answerValidator = {
       warnings.push(...validateRequiredSections(answer, recommendation));
       warnings.push(...validateNutritionConsistency(recommendation));
       warnings.push(...validatePersonalization(answer, profile));
+    } else {
+      warnings.push(...validateGeneralFitnessAdvice(answer));
     }
 
     warnings.push(...validateSafetyLanguage(answer));
