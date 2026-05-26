@@ -184,6 +184,17 @@ exports.Prisma.FoodScalarFieldEnum = {
   imageUrl: 'imageUrl'
 };
 
+exports.Prisma.FoodAliasScalarFieldEnum = {
+  id: 'id',
+  foodId: 'foodId',
+  alias: 'alias',
+  aliasNormalized: 'aliasNormalized',
+  language: 'language',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.NutritionLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -323,6 +334,7 @@ exports.Prisma.ModelName = {
   WorkoutExercise: 'WorkoutExercise',
   WorkoutSet: 'WorkoutSet',
   Food: 'Food',
+  FoodAlias: 'FoodAlias',
   NutritionLog: 'NutritionLog',
   NutritionGoal: 'NutritionGoal',
   BodyMetrics: 'BodyMetrics',

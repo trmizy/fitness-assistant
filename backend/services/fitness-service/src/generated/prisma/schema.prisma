@@ -130,8 +130,30 @@ model Food {
   source   String // 'sr_legacy' | 'survey_fndds'
   imageUrl String? @map("image_url")
 
+  aliases FoodAlias[]
+
   @@index([name])
   @@map("foods")
+}
+
+model FoodAlias {
+  id              String   @id @default(uuid())
+  foodId          String   @map("food_id")
+  alias           String
+  aliasNormalized String   @map("alias_normalized")
+  language        String   @default("vi")
+  source          String?  @default("manual_seed")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  food Food @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@unique([foodId, alias, language])
+  @@unique([foodId, aliasNormalized, language])
+  @@index([foodId])
+  @@index([alias])
+  @@index([aliasNormalized])
+  @@map("food_aliases")
 }
 
 model NutritionLog {
@@ -156,10 +178,10 @@ model NutritionLog {
 model NutritionGoal {
   id        String   @id @default(uuid())
   userId    String   @unique @map("user_id")
-  calories  Int
-  protein   Float
-  carbs     Float
-  fat       Float
+  calories  Int      @default(2000)
+  protein   Float    @default(150)
+  carbs     Float    @default(200)
+  fat       Float    @default(65)
   waterMl   Int?     @map("water_ml")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
