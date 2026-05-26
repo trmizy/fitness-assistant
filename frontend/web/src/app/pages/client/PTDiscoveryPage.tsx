@@ -62,7 +62,7 @@ export function PTDiscoveryPage() {
       setMessagingPT(true);
       const data = await chatService.createDirectConversation(ptUserId);
       const conversationId = data?.id || data?.conversation?.id;
-      if (conversationId) navigate(`/client/chat`);
+      if (conversationId) navigate(`/client/chat?conversationId=${conversationId}`);
     } catch {
       toast.error("Không thể bắt đầu cuộc hội thoại");
     } finally {
