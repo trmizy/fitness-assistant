@@ -303,7 +303,11 @@ export function PTApplicationPage() {
   };
 
   const handleSaveDraft = () => saveMutation.mutate(formData);
-  const handleSubmit = () => submitMutation.mutate();
+  const handleSubmit = () => {
+    saveMutation.mutate(formData, {
+      onSuccess: () => submitMutation.mutate(),
+    });
+  };
 
   const validateAvailability = () => {
     if (currentStep !== 5) return true;
@@ -439,7 +443,7 @@ export function PTApplicationPage() {
             const done = i < currentStep;
             const active = i === currentStep;
             return (
-              <button key={s.key} onClick={() => setCurrentStep(i)}
+              <button key={s.key} onClick={() => { saveMutation.mutate(formData); setCurrentStep(i); }}
                 className="flex flex-col items-center gap-1.5 flex-1 min-w-[60px] group transition-all">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all flex-shrink-0 ${done ? "bg-green-500 text-black"
                     : active ? "bg-green-500 text-black shadow-lg shadow-green-500/30"
