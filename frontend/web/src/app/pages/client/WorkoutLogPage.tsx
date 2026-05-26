@@ -276,6 +276,8 @@ export function WorkoutLogPage() {
   const [workoutStats, setWorkoutStats] = useState<any>(null);
   const [daysSinceInBody, setDaysSinceInBody] = useState<number | null>(null);
   const [workoutCache, setWorkoutCache] = useState<Record<string, any>>({});
+  // Track the actual calendar date being edited (not the plan day number)
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const handlePrevMonth = () => {
     setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1));
@@ -380,7 +382,7 @@ export function WorkoutLogPage() {
     if (isSaving) return;
     setIsSaving(true);
     try {
-      const saveDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), selectedDay);
+      const saveDate = selectedDate;
       const payload = {
         name: `Workout for ${saveDate.toLocaleDateString()}`,
         date: saveDate.toISOString(),
@@ -685,7 +687,7 @@ export function WorkoutLogPage() {
               <div className="space-y-2.5">
                 {workoutDays.map((w) => (
                   <div key={`upk-${w.day}`}
-                    onClick={() => { if (!w.locked) { setTab("plan"); setPlanView("dayDetail"); setSelectedDay(w.day); } }}
+                    onClick={() => { if (!w.locked) { setTab("plan"); setPlanView("dayDetail"); setSelectedDay(w.day); setSelectedDate(new Date()); } }}
                     className={`group/item rounded-xl border p-3.5 transition-all ${
                     w.locked
                       ? "bg-zinc-900/20 border-zinc-800/25 opacity-40"
@@ -722,6 +724,7 @@ export function WorkoutLogPage() {
                   const dStr = clickedDate.toDateString();
                   const dateLabel = clickedDate.toLocaleDateString();
                   setSelectedDay(day);
+                  setSelectedDate(clickedDate);
 
                   // Check if we have this workout in cache
                   if (workoutCache[dStr]) {
@@ -966,7 +969,7 @@ export function WorkoutLogPage() {
                 {workoutDays.map((w) => (
                   <button
                     key={`td-${w.day}`}
-                    onClick={() => { if (!w.locked) { setSelectedDay(w.day); setPlanView("dayDetail"); } }}
+                    onClick={() => { if (!w.locked) { setSelectedDay(w.day); setSelectedDate(new Date()); setPlanView("dayDetail"); } }}
                     disabled={w.locked}
                     className={`group/card w-full rounded-2xl border p-5 transition-all text-left relative overflow-hidden ${
                       w.locked
@@ -1032,6 +1035,7 @@ export function WorkoutLogPage() {
                         const clickedDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
                         const dateStr = clickedDate.toLocaleDateString();
                         setSelectedDay(day);
+                        setSelectedDate(clickedDate);
                         
                         if (derivedMarkers.includes(day)) {
                           setPlanView("dayDetail");
