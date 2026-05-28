@@ -12,7 +12,7 @@ import {
   PieChart, Pie, Cell, CartesianGrid
 } from "recharts";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
-import { workoutService, inbodyService } from "../../services/api";
+import { workoutService, inbodyService, type WorkoutScheduleRecord } from "../../services/api";
 
 // Format helper
 const formatVideoUrlToImg = (videoUrl: string | null | undefined, frame: 0 | 1) => {
@@ -276,6 +276,9 @@ export function WorkoutLogPage() {
   const [workoutStats, setWorkoutStats] = useState<any>(null);
   const [daysSinceInBody, setDaysSinceInBody] = useState<number | null>(null);
   const [workoutCache, setWorkoutCache] = useState<Record<string, any>>({});
+  const [aiSchedules, setAiSchedules] = useState<WorkoutScheduleRecord[]>([]);
+  // Track the actual calendar date being edited (not the plan day number)
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const handlePrevMonth = () => {
     setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1));
@@ -290,14 +293,16 @@ export function WorkoutLogPage() {
       setIsLoading(true);
       try {
         const { inbodyService } = await import("../../services/api");
-        const [history, inbody, stats] = await Promise.all([
+        const [historyResult, inbodyResult, statsResult, schedulesResult] = await Promise.allSettled([
           workoutService.getHistory(1, 50), // Fetch last 50 workouts to fill cache
           inbodyService.getLatest(),
-          workoutService.getStats()
+          workoutService.getStats(),
+          workoutService.getSchedules(20),
         ]);
 
         // 1. Build Workout Cache
         const cache: Record<string, any> = {};
+        const history = historyResult.status === 'fulfilled' ? historyResult.value : null;
         if (history && Array.isArray(history)) {
           history.forEach((w: any) => {
             const d = new Date(w.date).toDateString();
@@ -330,12 +335,15 @@ export function WorkoutLogPage() {
         }
 
         // 3. InBody Stats
+        const inbody = inbodyResult.status === 'fulfilled' ? inbodyResult.value : null;
         if (inbody && inbody.createdAt) {
           setLatestInBody(inbody);
           const diff = Math.floor((Date.now() - new Date(inbody.createdAt).getTime()) / (1000 * 60 * 60 * 24));
           setDaysSinceInBody(diff);
         }
-        setWorkoutStats(stats);
+        setWorkoutStats(statsResult.status === 'fulfilled' ? statsResult.value : null);
+        const schedules = schedulesResult.status === 'fulfilled' ? schedulesResult.value : [];
+        setAiSchedules(Array.isArray(schedules) ? schedules : []);
       } catch (err) {
         console.error("Failed to fetch all data:", err);
       } finally {
@@ -365,6 +373,24 @@ export function WorkoutLogPage() {
     return m;
   })();
 
+  // Merge AI-imported schedule dates (for the current calendar month) into markers
+  const calendarMarkers = (() => {
+    try {
+      const aiDays: number[] = (aiSchedules || [])
+        .map(s => {
+          try { return new Date(s.date); } catch { return null; }
+        })
+        .filter((d): d is Date => d instanceof Date && !isNaN(d.getTime()))
+        .filter(d => d.getFullYear() === calendarMonth.getFullYear() && d.getMonth() === calendarMonth.getMonth())
+        .map(d => d.getDate());
+
+      const combined = Array.from(new Set([...derivedMarkers, ...aiDays]));
+      return combined.sort((a, b) => a - b);
+    } catch (err) {
+      return derivedMarkers;
+    }
+  })();
+
   // Log modal
   const [showLogModal, setShowLogModal] = useState(false);
   const [logMetric, setLogMetric] = useState<"weight" | "bodyfat" | "muscle" | "water">("weight");
@@ -380,7 +406,7 @@ export function WorkoutLogPage() {
     if (isSaving) return;
     setIsSaving(true);
     try {
-      const saveDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), selectedDay);
+      const saveDate = selectedDate;
       const payload = {
         name: `Workout for ${saveDate.toLocaleDateString()}`,
         date: saveDate.toISOString(),
@@ -683,28 +709,60 @@ export function WorkoutLogPage() {
 
             <GlassPanel title="Buổi tập sắp tới" icon={<Dumbbell className="w-4 h-4 text-emerald-400" />}>
               <div className="space-y-2.5">
-                {workoutDays.map((w) => (
-                  <div key={`upk-${w.day}`}
-                    onClick={() => { if (!w.locked) { setTab("plan"); setPlanView("dayDetail"); setSelectedDay(w.day); } }}
-                    className={`group/item rounded-xl border p-3.5 transition-all ${
-                    w.locked
-                      ? "bg-zinc-900/20 border-zinc-800/25 opacity-40"
-                      : "bg-zinc-800/20 border-zinc-700/25 hover:border-emerald-500/20 hover:bg-zinc-800/40 cursor-pointer"
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                        w.locked ? "bg-zinc-800/40 border border-zinc-700/40" : "bg-emerald-500/8 border border-emerald-500/15"
-                      }`}>
-                        {w.locked ? <Lock className="w-3.5 h-3.5 text-zinc-700" /> : <span className="text-[11px] text-emerald-400">D{w.day}</span>}
+                {aiSchedules.length > 0 ? (
+                  aiSchedules.slice(0, 5).map((schedule) => {
+                    const programDay = schedule.programDay;
+                    const programName = programDay?.program?.name || 'AI Plan';
+                    const dayTitle = programDay?.title || `Day ${programDay?.dayNumber || 1}`;
+                    const exerciseCount = programDay?.exercises?.length || 0;
+                    return (
+                      <div
+                        key={schedule.id}
+                        className="group/item rounded-xl border p-3.5 transition-all bg-zinc-800/20 border-zinc-700/25 hover:border-emerald-500/20 hover:bg-zinc-800/40"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-emerald-500/8 border border-emerald-500/15">
+                            <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm text-zinc-200 truncate">{programName}</p>
+                            <p className="text-[11px] text-zinc-500 truncate">
+                              {new Date(schedule.date).toLocaleDateString()} · {dayTitle} · {exerciseCount} bài tập
+                            </p>
+                          </div>
+                          <span className="text-[10px] px-2 py-1 rounded-full border border-emerald-500/20 text-emerald-300">
+                            AI
+                          </span>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-zinc-200">Ngày {w.day}</p>
-                        <p className="text-[11px] text-zinc-500 truncate">{w.title}</p>
+                    );
+                  })
+                ) : (
+                  workoutDays.map((w) => (
+                    <div
+                      key={`upk-${w.day}`}
+                      onClick={() => { if (!w.locked) { setTab("plan"); setPlanView("dayDetail"); setSelectedDay(w.day); setSelectedDate(new Date()); } }}
+                      className={`group/item rounded-xl border p-3.5 transition-all ${
+                        w.locked
+                          ? "bg-zinc-900/20 border-zinc-800/25 opacity-40"
+                          : "bg-zinc-800/20 border-zinc-700/25 hover:border-emerald-500/20 hover:bg-zinc-800/40 cursor-pointer"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                          w.locked ? "bg-zinc-800/40 border border-zinc-700/40" : "bg-emerald-500/8 border border-emerald-500/15"
+                        }`}>
+                          {w.locked ? <Lock className="w-3.5 h-3.5 text-zinc-700" /> : <span className="text-[11px] text-emerald-400">D{w.day}</span>}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-zinc-200">Ngày {w.day}</p>
+                          <p className="text-[11px] text-zinc-500 truncate">{w.title}</p>
+                        </div>
+                        {!w.locked && <ChevronRight className="w-3.5 h-3.5 text-zinc-700 group-hover/item:text-emerald-400 transition-colors" />}
                       </div>
-                      {!w.locked && <ChevronRight className="w-3.5 h-3.5 text-zinc-700 group-hover/item:text-emerald-400 transition-colors" />}
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </GlassPanel>
           </div>
@@ -713,7 +771,7 @@ export function WorkoutLogPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <GlassPanel title="Lịch tập" icon={<Calendar className="w-4 h-4 text-emerald-400" />} actionLabel="Thêm" onAction={() => setShowCalendarAdd(true)}>
               <CalendarGrid 
-                markers={derivedMarkers} 
+                markers={calendarMarkers} 
                 month={calendarMonth} 
                 onPrevMonth={handlePrevMonth} 
                 onNextMonth={handleNextMonth}
@@ -722,6 +780,7 @@ export function WorkoutLogPage() {
                   const dStr = clickedDate.toDateString();
                   const dateLabel = clickedDate.toLocaleDateString();
                   setSelectedDay(day);
+                  setSelectedDate(clickedDate);
 
                   // Check if we have this workout in cache
                   if (workoutCache[dStr]) {
@@ -966,7 +1025,7 @@ export function WorkoutLogPage() {
                 {workoutDays.map((w) => (
                   <button
                     key={`td-${w.day}`}
-                    onClick={() => { if (!w.locked) { setSelectedDay(w.day); setPlanView("dayDetail"); } }}
+                    onClick={() => { if (!w.locked) { setSelectedDay(w.day); setSelectedDate(new Date()); setPlanView("dayDetail"); } }}
                     disabled={w.locked}
                     className={`group/card w-full rounded-2xl border p-5 transition-all text-left relative overflow-hidden ${
                       w.locked
@@ -1024,7 +1083,7 @@ export function WorkoutLogPage() {
                   </div>
                   {calendarExpanded && (
                     <CalendarGrid 
-                      markers={derivedMarkers} 
+                      markers={calendarMarkers} 
                       month={calendarMonth} 
                       onPrevMonth={handlePrevMonth} 
                       onNextMonth={handleNextMonth}
@@ -1032,6 +1091,7 @@ export function WorkoutLogPage() {
                         const clickedDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
                         const dateStr = clickedDate.toLocaleDateString();
                         setSelectedDay(day);
+                        setSelectedDate(clickedDate);
                         
                         if (derivedMarkers.includes(day)) {
                           setPlanView("dayDetail");

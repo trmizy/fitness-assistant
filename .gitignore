@@ -51,14 +51,7 @@ Thumbs.db
 .vscode/
 .claude/
 
-# ------------------------------
-# Runtime / local data artifacts
-# ------------------------------
-*.db
-*.sqlite
-*.sqlite3
-*.pid
-*.seed
+
 
 # Docker / compose local overrides
 docker-compose.override.yml

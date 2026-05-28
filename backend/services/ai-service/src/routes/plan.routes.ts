@@ -6,6 +6,7 @@ import {
   GeneratePlanRequestSchema,
   ExplainPlanRequestSchema,
   AdjustPlanRequestSchema,
+  SavePlanToWorkoutLogRequestSchema,
 } from '../schemas/plan.schemas';
 
 const router = Router();
@@ -57,6 +58,16 @@ router.post(
   '/adjust',
   validateBody(AdjustPlanRequestSchema),
   planController.adjustPlan,
+);
+
+/**
+ * POST /plans/:planId/save-to-workout-log
+ * Persist a COMPLETED AI plan into the user's workout schedule.
+ */
+router.post(
+  '/:planId/save-to-workout-log',
+  validateBody(SavePlanToWorkoutLogRequestSchema),
+  planController.savePlanToWorkoutLog,
 );
 
 /**

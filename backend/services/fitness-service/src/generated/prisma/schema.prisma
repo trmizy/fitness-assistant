@@ -152,13 +152,14 @@ model NutritionLog {
   @@map("nutrition_logs")
 }
 
+// 🎯 Nutrition Goals (one per user, upserted)
 model NutritionGoal {
   id        String   @id @default(uuid())
   userId    String   @unique @map("user_id")
-  calories  Int
-  protein   Float
-  carbs     Float
-  fat       Float
+  calories  Int      @default(2000)
+  protein   Float    @default(150)
+  carbs     Float    @default(200)
+  fat       Float    @default(65)
   waterMl   Int?     @map("water_ml")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -185,16 +186,21 @@ model BodyMetrics {
 
 // 💪 Workout Program Templates
 model WorkoutProgram {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  name        String // "Muscle Gain", "Cutting", etc.
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  name          String // "Muscle Gain", "Cutting", etc.
+  description   String?
+  sourcePlanId  String?  @map("source_plan_id")
+  sourceType    String?  @map("source_type")
+  aiPlanVersion Int?     @map("ai_plan_version")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   days WorkoutProgramDay[]
 
+  @@unique([userId, sourcePlanId])
   @@index([userId])
+  @@index([userId, sourcePlanId])
   @@map("workout_programs")
 }
 
@@ -247,6 +253,8 @@ model WorkoutSchedule {
   date         DateTime
   programDayId String?  @map("program_day_id") // optional: which program day is scheduled
   workoutId    String?  @map("workout_id") // optional: completed workout
+  sourcePlanId String?  @map("source_plan_id")
+  sourceType   String?  @map("source_type")
   notes        String?
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -256,6 +264,7 @@ model WorkoutSchedule {
 
   @@unique([userId, date])
   @@index([userId, date])
+  @@index([userId, sourcePlanId])
   @@index([programDayId])
   @@index([workoutId])
   @@map("workout_schedules")

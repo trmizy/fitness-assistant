@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
+import axios, { AxiosError } from 'axios';
 import { logger, aiPlanGenerationsTotal } from '@gym-coach/shared';
 import { aiQueue } from '../workers/ai.worker';
 import { conversationService } from '../services/conversation.service';
 import { conversationRepository, PlanStatus } from '../repositories/conversation.repository';
 import { llmService } from '../services/llm.service';
 import { LlmError, ApiError, formatSuccessResponse, formatErrorResponse } from '../errors/api-error';
-import type { GeneratePlanRequest, ExplainPlanRequest, AdjustPlanRequest } from '../schemas/plan.schemas';
+import type { GeneratePlanRequest, ExplainPlanRequest, AdjustPlanRequest, SavePlanToWorkoutLogRequest } from '../schemas/plan.schemas';
 import type { PlanContent } from '../schemas/plan.schemas';
 
 function buildExplanationPrompt(plan: PlanContent, language: string): string {
@@ -237,6 +238,103 @@ export const planController = {
         return;
       }
       logger.error({ err, planId, userId }, 'Error adjusting plan');
+      next(err);
+    }
+  },
+
+  /**
+   * POST /plans/:planId/save-to-workout-log
+   * Save a completed AI plan into the authenticated user's workout schedule.
+   */
+  async savePlanToWorkoutLog(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { userId } = req.context;
+    const { planId } = req.params;
+    const { startDate, repeatWeeks } = req.body as SavePlanToWorkoutLogRequest;
+
+    try {
+      const plan = await conversationRepository.findPlanById(planId);
+      if (!plan) {
+        res.status(404).json(formatErrorResponse('PLAN_NOT_FOUND', `Plan ${planId} not found`));
+        return;
+      }
+
+      if (plan.userId !== userId) {
+        res.status(403).json(formatErrorResponse('FORBIDDEN', 'You do not have access to this plan'));
+        return;
+      }
+
+      if (plan.status !== PlanStatus.COMPLETED) {
+        res.status(409).json(
+          formatErrorResponse('PLAN_NOT_COMPLETED', `Plan is ${plan.status} — only COMPLETED plans can be saved`),
+        );
+        return;
+      }
+
+      const planContent = plan.plan as unknown as PlanContent;
+      if (!Array.isArray(planContent.weeklySchedule) || planContent.weeklySchedule.length === 0) {
+        res.status(422).json(
+          formatErrorResponse('VALIDATION_ERROR', 'Plan weeklySchedule is empty or invalid'),
+        );
+        return;
+      }
+
+      const fitnessServiceUrl = process.env.FITNESS_SERVICE_URL || 'http://localhost:3002';
+      const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
+
+      const response = await axios.post(
+        `${fitnessServiceUrl}/workouts/from-ai-plan`,
+        {
+          sourcePlanId: plan.id,
+          sourcePlanVersion: plan.version,
+          sourcePlanName: plan.name,
+          goal: plan.goal,
+          durationWeeks: plan.duration,
+          daysPerWeek: plan.daysPerWeek,
+          startDate,
+          repeatWeeks: repeatWeeks ?? plan.duration,
+          weeklySchedule: planContent.weeklySchedule,
+        },
+        {
+          timeout: 20000,
+          headers: {
+            'x-user-id': userId,
+            'x-user-email': req.headers['x-user-email'] as string | undefined,
+            'x-user-role': req.headers['x-user-role'] as string | undefined,
+            ...(internalSecret ? { 'x-internal-token': internalSecret } : {}),
+          },
+        },
+      );
+
+      const fitnessPayload = response.data?.success ? response.data.data ?? response.data : response.data;
+
+      res.status(response.status >= 400 ? response.status : response.data?.alreadyExists ? 200 : 201).json(
+        formatSuccessResponse({
+          sourcePlanId: plan.id,
+          createdProgramId: fitnessPayload.createdProgramId,
+          createdScheduleCount: fitnessPayload.createdScheduleCount ?? 0,
+          skippedDuplicateCount: fitnessPayload.skippedDuplicateCount ?? 0,
+          alreadyExists: Boolean(fitnessPayload.alreadyExists),
+          message: fitnessPayload.message || 'Đã lưu kế hoạch AI vào lịch tập',
+        }),
+      );
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        const status = err.response?.status || 500;
+        const data = err.response?.data as any;
+        res.status(status).json(
+          data?.success === false && data?.error
+            ? data
+            : formatErrorResponse('INTERNAL_ERROR', data?.error || data?.message || 'Failed to save AI plan'),
+        );
+        return;
+      }
+
+      if (err instanceof ApiError) {
+        res.status(err.statusCode).json(err.toJSON());
+        return;
+      }
+
+      logger.error({ err, planId, userId }, 'Error saving plan to workout log');
       next(err);
     }
   },

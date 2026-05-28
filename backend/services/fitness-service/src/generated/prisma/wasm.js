@@ -229,6 +229,9 @@ exports.Prisma.WorkoutProgramScalarFieldEnum = {
   userId: 'userId',
   name: 'name',
   description: 'description',
+  sourcePlanId: 'sourcePlanId',
+  sourceType: 'sourceType',
+  aiPlanVersion: 'aiPlanVersion',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -264,6 +267,8 @@ exports.Prisma.WorkoutScheduleScalarFieldEnum = {
   date: 'date',
   programDayId: 'programDayId',
   workoutId: 'workoutId',
+  sourcePlanId: 'sourcePlanId',
+  sourceType: 'sourceType',
   notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

@@ -3,6 +3,43 @@ import { WORKOUT_LIMITS } from '../utils/workout-validation';
 
 const L = WORKOUT_LIMITS;
 
+export const aiPlanExerciseSchema = z.object({
+  order: z.number().int().min(1).max(30).optional(),
+  name: z.string().min(1, 'Exercise name is required').max(200),
+  sets: z.number().int().min(1).max(10),
+  reps: z.union([z.number().int().positive(), z.string().min(1).max(50)]).transform(String),
+  restSeconds: z.number().int().min(0).max(600),
+  note: z.string().max(300).optional(),
+  muscleGroup: z.string().max(120).optional(),
+  equipment: z.string().max(120).optional(),
+  intensity: z.string().max(120).optional(),
+});
+
+export const aiPlanDaySchema = z.object({
+  day: z.union([z.string().min(1).max(50), z.number().int().min(1).max(31)]).optional(),
+  goal: z.string().max(200).optional(),
+  focus: z.string().max(200).optional(),
+  notes: z.string().max(500).optional(),
+  cardio: z.string().max(300).optional(),
+  exercises: z.array(aiPlanExerciseSchema).min(1, 'each day must have at least one exercise'),
+});
+
+export const importAiPlanSchema = z.object({
+  sourcePlanId: z.string().uuid('sourcePlanId must be a valid UUID'),
+  sourcePlanVersion: z.number().int().min(1).optional(),
+  sourcePlanName: z.string().min(1).max(200).optional(),
+  goal: z.string().min(1).max(200),
+  durationWeeks: z.number().int().min(1).max(52),
+  daysPerWeek: z.number().int().min(1).max(7),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate must be YYYY-MM-DD').optional(),
+  repeatWeeks: z.number().int().min(1).max(52).optional(),
+  weeklySchedule: z.array(aiPlanDaySchema).min(1, 'weeklySchedule must not be empty'),
+});
+
+export type AiPlanExerciseDto = z.infer<typeof aiPlanExerciseSchema>;
+export type AiPlanDayDto = z.infer<typeof aiPlanDaySchema>;
+export type ImportAiPlanDto = z.infer<typeof importAiPlanSchema>;
+
 export const createWorkoutSchema = z.object({
   name: z.string().min(1, 'Workout name is required'),
   description: z.string().optional(),
