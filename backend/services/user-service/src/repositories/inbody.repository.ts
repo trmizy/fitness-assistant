@@ -39,6 +39,14 @@ export const inbodyRepository = {
     });
   },
 
+  async upsertByUserAndDate(userId: string, dateOnly: Date, createData: any, updateData: any) {
+    return prisma.inBodyEntry.upsert({
+      where: { inbody_entries_user_id_date_only_key: { userId, dateOnly } },
+      create: { ...createData, userId },
+      update: updateData,
+    });
+  },
+
   async delete(id: string) {
     return prisma.inBodyEntry.delete({
       where: { id },

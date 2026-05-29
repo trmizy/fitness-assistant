@@ -64,6 +64,21 @@ export type PTAvailability = $Result.DefaultSelection<Prisma.$PTAvailabilityPayl
  */
 export type PTScheduleException = $Result.DefaultSelection<Prisma.$PTScheduleExceptionPayload>
 /**
+ * Model VietnamProvince
+ * 
+ */
+export type VietnamProvince = $Result.DefaultSelection<Prisma.$VietnamProvincePayload>
+/**
+ * Model VietnamWard
+ * 
+ */
+export type VietnamWard = $Result.DefaultSelection<Prisma.$VietnamWardPayload>
+/**
+ * Model PTTrainingLocation
+ * 
+ */
+export type PTTrainingLocation = $Result.DefaultSelection<Prisma.$PTTrainingLocationPayload>
+/**
  * Model InBodyEntry
  * 
  */
@@ -499,6 +514,36 @@ export class PrismaClient<
     * ```
     */
   get pTScheduleException(): Prisma.PTScheduleExceptionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.vietnamProvince`: Exposes CRUD operations for the **VietnamProvince** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more VietnamProvinces
+    * const vietnamProvinces = await prisma.vietnamProvince.findMany()
+    * ```
+    */
+  get vietnamProvince(): Prisma.VietnamProvinceDelegate<ExtArgs>;
+
+  /**
+   * `prisma.vietnamWard`: Exposes CRUD operations for the **VietnamWard** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more VietnamWards
+    * const vietnamWards = await prisma.vietnamWard.findMany()
+    * ```
+    */
+  get vietnamWard(): Prisma.VietnamWardDelegate<ExtArgs>;
+
+  /**
+   * `prisma.pTTrainingLocation`: Exposes CRUD operations for the **PTTrainingLocation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PTTrainingLocations
+    * const pTTrainingLocations = await prisma.pTTrainingLocation.findMany()
+    * ```
+    */
+  get pTTrainingLocation(): Prisma.PTTrainingLocationDelegate<ExtArgs>;
 
   /**
    * `prisma.inBodyEntry`: Exposes CRUD operations for the **InBodyEntry** model.
@@ -960,6 +1005,9 @@ export namespace Prisma {
     Notification: 'Notification',
     PTAvailability: 'PTAvailability',
     PTScheduleException: 'PTScheduleException',
+    VietnamProvince: 'VietnamProvince',
+    VietnamWard: 'VietnamWard',
+    PTTrainingLocation: 'PTTrainingLocation',
     InBodyEntry: 'InBodyEntry'
   };
 
@@ -976,7 +1024,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "notification" | "pTAvailability" | "pTScheduleException" | "inBodyEntry"
+      modelProps: "userProfile" | "pTApplication" | "pTApplicationCertificate" | "pTApplicationMedia" | "contract" | "session" | "sessionReview" | "notification" | "pTAvailability" | "pTScheduleException" | "vietnamProvince" | "vietnamWard" | "pTTrainingLocation" | "inBodyEntry"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1680,6 +1728,216 @@ export namespace Prisma {
           }
         }
       }
+      VietnamProvince: {
+        payload: Prisma.$VietnamProvincePayload<ExtArgs>
+        fields: Prisma.VietnamProvinceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.VietnamProvinceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamProvincePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.VietnamProvinceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamProvincePayload>
+          }
+          findFirst: {
+            args: Prisma.VietnamProvinceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamProvincePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.VietnamProvinceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamProvincePayload>
+          }
+          findMany: {
+            args: Prisma.VietnamProvinceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamProvincePayload>[]
+          }
+          create: {
+            args: Prisma.VietnamProvinceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamProvincePayload>
+          }
+          createMany: {
+            args: Prisma.VietnamProvinceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.VietnamProvinceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamProvincePayload>[]
+          }
+          delete: {
+            args: Prisma.VietnamProvinceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamProvincePayload>
+          }
+          update: {
+            args: Prisma.VietnamProvinceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamProvincePayload>
+          }
+          deleteMany: {
+            args: Prisma.VietnamProvinceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.VietnamProvinceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.VietnamProvinceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamProvincePayload>
+          }
+          aggregate: {
+            args: Prisma.VietnamProvinceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateVietnamProvince>
+          }
+          groupBy: {
+            args: Prisma.VietnamProvinceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<VietnamProvinceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.VietnamProvinceCountArgs<ExtArgs>
+            result: $Utils.Optional<VietnamProvinceCountAggregateOutputType> | number
+          }
+        }
+      }
+      VietnamWard: {
+        payload: Prisma.$VietnamWardPayload<ExtArgs>
+        fields: Prisma.VietnamWardFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.VietnamWardFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.VietnamWardFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardPayload>
+          }
+          findFirst: {
+            args: Prisma.VietnamWardFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.VietnamWardFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardPayload>
+          }
+          findMany: {
+            args: Prisma.VietnamWardFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardPayload>[]
+          }
+          create: {
+            args: Prisma.VietnamWardCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardPayload>
+          }
+          createMany: {
+            args: Prisma.VietnamWardCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.VietnamWardCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardPayload>[]
+          }
+          delete: {
+            args: Prisma.VietnamWardDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardPayload>
+          }
+          update: {
+            args: Prisma.VietnamWardUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardPayload>
+          }
+          deleteMany: {
+            args: Prisma.VietnamWardDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.VietnamWardUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.VietnamWardUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$VietnamWardPayload>
+          }
+          aggregate: {
+            args: Prisma.VietnamWardAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateVietnamWard>
+          }
+          groupBy: {
+            args: Prisma.VietnamWardGroupByArgs<ExtArgs>
+            result: $Utils.Optional<VietnamWardGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.VietnamWardCountArgs<ExtArgs>
+            result: $Utils.Optional<VietnamWardCountAggregateOutputType> | number
+          }
+        }
+      }
+      PTTrainingLocation: {
+        payload: Prisma.$PTTrainingLocationPayload<ExtArgs>
+        fields: Prisma.PTTrainingLocationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PTTrainingLocationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTTrainingLocationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PTTrainingLocationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTTrainingLocationPayload>
+          }
+          findFirst: {
+            args: Prisma.PTTrainingLocationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTTrainingLocationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PTTrainingLocationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTTrainingLocationPayload>
+          }
+          findMany: {
+            args: Prisma.PTTrainingLocationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTTrainingLocationPayload>[]
+          }
+          create: {
+            args: Prisma.PTTrainingLocationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTTrainingLocationPayload>
+          }
+          createMany: {
+            args: Prisma.PTTrainingLocationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PTTrainingLocationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTTrainingLocationPayload>[]
+          }
+          delete: {
+            args: Prisma.PTTrainingLocationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTTrainingLocationPayload>
+          }
+          update: {
+            args: Prisma.PTTrainingLocationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTTrainingLocationPayload>
+          }
+          deleteMany: {
+            args: Prisma.PTTrainingLocationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PTTrainingLocationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PTTrainingLocationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PTTrainingLocationPayload>
+          }
+          aggregate: {
+            args: Prisma.PTTrainingLocationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePTTrainingLocation>
+          }
+          groupBy: {
+            args: Prisma.PTTrainingLocationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PTTrainingLocationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PTTrainingLocationCountArgs<ExtArgs>
+            result: $Utils.Optional<PTTrainingLocationCountAggregateOutputType> | number
+          }
+        }
+      }
       InBodyEntry: {
         payload: Prisma.$InBodyEntryPayload<ExtArgs>
         fields: Prisma.InBodyEntryFieldRefs
@@ -1907,6 +2165,37 @@ export namespace Prisma {
 
 
   /**
+   * Count Type UserProfileCountOutputType
+   */
+
+  export type UserProfileCountOutputType = {
+    trainingLocations: number
+  }
+
+  export type UserProfileCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    trainingLocations?: boolean | UserProfileCountOutputTypeCountTrainingLocationsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * UserProfileCountOutputType without action
+   */
+  export type UserProfileCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserProfileCountOutputType
+     */
+    select?: UserProfileCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * UserProfileCountOutputType without action
+   */
+  export type UserProfileCountOutputTypeCountTrainingLocationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PTTrainingLocationWhereInput
+  }
+
+
+  /**
    * Count Type PTApplicationCountOutputType
    */
 
@@ -1983,6 +2272,77 @@ export namespace Prisma {
    */
   export type ContractCountOutputTypeCountReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: SessionReviewWhereInput
+  }
+
+
+  /**
+   * Count Type VietnamProvinceCountOutputType
+   */
+
+  export type VietnamProvinceCountOutputType = {
+    wards: number
+    trainingLocations: number
+  }
+
+  export type VietnamProvinceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    wards?: boolean | VietnamProvinceCountOutputTypeCountWardsArgs
+    trainingLocations?: boolean | VietnamProvinceCountOutputTypeCountTrainingLocationsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * VietnamProvinceCountOutputType without action
+   */
+  export type VietnamProvinceCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvinceCountOutputType
+     */
+    select?: VietnamProvinceCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * VietnamProvinceCountOutputType without action
+   */
+  export type VietnamProvinceCountOutputTypeCountWardsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: VietnamWardWhereInput
+  }
+
+  /**
+   * VietnamProvinceCountOutputType without action
+   */
+  export type VietnamProvinceCountOutputTypeCountTrainingLocationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PTTrainingLocationWhereInput
+  }
+
+
+  /**
+   * Count Type VietnamWardCountOutputType
+   */
+
+  export type VietnamWardCountOutputType = {
+    trainingLocations: number
+  }
+
+  export type VietnamWardCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    trainingLocations?: boolean | VietnamWardCountOutputTypeCountTrainingLocationsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * VietnamWardCountOutputType without action
+   */
+  export type VietnamWardCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWardCountOutputType
+     */
+    select?: VietnamWardCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * VietnamWardCountOutputType without action
+   */
+  export type VietnamWardCountOutputTypeCountTrainingLocationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PTTrainingLocationWhereInput
   }
 
 
@@ -2333,6 +2693,8 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     ptApplication?: boolean | UserProfile$ptApplicationArgs<ExtArgs>
+    trainingLocations?: boolean | UserProfile$trainingLocationsArgs<ExtArgs>
+    _count?: boolean | UserProfileCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["userProfile"]>
 
   export type UserProfileSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -2387,6 +2749,8 @@ export namespace Prisma {
 
   export type UserProfileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     ptApplication?: boolean | UserProfile$ptApplicationArgs<ExtArgs>
+    trainingLocations?: boolean | UserProfile$trainingLocationsArgs<ExtArgs>
+    _count?: boolean | UserProfileCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserProfileIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
@@ -2394,6 +2758,7 @@ export namespace Prisma {
     name: "UserProfile"
     objects: {
       ptApplication: Prisma.$PTApplicationPayload<ExtArgs> | null
+      trainingLocations: Prisma.$PTTrainingLocationPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2783,6 +3148,7 @@ export namespace Prisma {
   export interface Prisma__UserProfileClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     ptApplication<T extends UserProfile$ptApplicationArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$ptApplicationArgs<ExtArgs>>): Prisma__PTApplicationClient<$Result.GetResult<Prisma.$PTApplicationPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    trainingLocations<T extends UserProfile$trainingLocationsArgs<ExtArgs> = {}>(args?: Subset<T, UserProfile$trainingLocationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3163,6 +3529,26 @@ export namespace Prisma {
   }
 
   /**
+   * UserProfile.trainingLocations
+   */
+  export type UserProfile$trainingLocationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    where?: PTTrainingLocationWhereInput
+    orderBy?: PTTrainingLocationOrderByWithRelationInput | PTTrainingLocationOrderByWithRelationInput[]
+    cursor?: PTTrainingLocationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PTTrainingLocationScalarFieldEnum | PTTrainingLocationScalarFieldEnum[]
+  }
+
+  /**
    * UserProfile without action
    */
   export type UserProfileDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3199,6 +3585,8 @@ export namespace Prisma {
     offlinePricePerSession: number | null
     onlinePackagePrice: number | null
     offlinePackagePrice: number | null
+    residenceProvinceCode: number | null
+    residenceWardCode: number | null
   }
 
   export type PTApplicationSumAggregateOutputType = {
@@ -3211,6 +3599,8 @@ export namespace Prisma {
     offlinePricePerSession: number | null
     onlinePackagePrice: number | null
     offlinePackagePrice: number | null
+    residenceProvinceCode: number | null
+    residenceWardCode: number | null
   }
 
   export type PTApplicationMinAggregateOutputType = {
@@ -3247,6 +3637,10 @@ export namespace Prisma {
     onlinePackagePrice: number | null
     offlinePackagePrice: number | null
     otherReferences: string | null
+    residenceProvinceCode: number | null
+    residenceWardCode: number | null
+    residenceAddressLine: string | null
+    residenceLegacyDistrictName: string | null
     adminNote: string | null
     rejectionReason: string | null
     submittedAt: Date | null
@@ -3290,6 +3684,10 @@ export namespace Prisma {
     onlinePackagePrice: number | null
     offlinePackagePrice: number | null
     otherReferences: string | null
+    residenceProvinceCode: number | null
+    residenceWardCode: number | null
+    residenceAddressLine: string | null
+    residenceLegacyDistrictName: string | null
     adminNote: string | null
     rejectionReason: string | null
     submittedAt: Date | null
@@ -3341,6 +3739,11 @@ export namespace Prisma {
     onlinePackagePrice: number
     offlinePackagePrice: number
     otherReferences: number
+    residenceProvinceCode: number
+    residenceWardCode: number
+    residenceAddressLine: number
+    residenceLegacyDistrictName: number
+    applicationTrainingLocations: number
     adminNote: number
     rejectionReason: number
     submittedAt: number
@@ -3362,6 +3765,8 @@ export namespace Prisma {
     offlinePricePerSession?: true
     onlinePackagePrice?: true
     offlinePackagePrice?: true
+    residenceProvinceCode?: true
+    residenceWardCode?: true
   }
 
   export type PTApplicationSumAggregateInputType = {
@@ -3374,6 +3779,8 @@ export namespace Prisma {
     offlinePricePerSession?: true
     onlinePackagePrice?: true
     offlinePackagePrice?: true
+    residenceProvinceCode?: true
+    residenceWardCode?: true
   }
 
   export type PTApplicationMinAggregateInputType = {
@@ -3410,6 +3817,10 @@ export namespace Prisma {
     onlinePackagePrice?: true
     offlinePackagePrice?: true
     otherReferences?: true
+    residenceProvinceCode?: true
+    residenceWardCode?: true
+    residenceAddressLine?: true
+    residenceLegacyDistrictName?: true
     adminNote?: true
     rejectionReason?: true
     submittedAt?: true
@@ -3453,6 +3864,10 @@ export namespace Prisma {
     onlinePackagePrice?: true
     offlinePackagePrice?: true
     otherReferences?: true
+    residenceProvinceCode?: true
+    residenceWardCode?: true
+    residenceAddressLine?: true
+    residenceLegacyDistrictName?: true
     adminNote?: true
     rejectionReason?: true
     submittedAt?: true
@@ -3504,6 +3919,11 @@ export namespace Prisma {
     onlinePackagePrice?: true
     offlinePackagePrice?: true
     otherReferences?: true
+    residenceProvinceCode?: true
+    residenceWardCode?: true
+    residenceAddressLine?: true
+    residenceLegacyDistrictName?: true
+    applicationTrainingLocations?: true
     adminNote?: true
     rejectionReason?: true
     submittedAt?: true
@@ -3642,6 +4062,11 @@ export namespace Prisma {
     onlinePackagePrice: number | null
     offlinePackagePrice: number | null
     otherReferences: string | null
+    residenceProvinceCode: number | null
+    residenceWardCode: number | null
+    residenceAddressLine: string | null
+    residenceLegacyDistrictName: string | null
+    applicationTrainingLocations: JsonValue | null
     adminNote: string | null
     rejectionReason: string | null
     submittedAt: Date | null
@@ -3712,6 +4137,11 @@ export namespace Prisma {
     onlinePackagePrice?: boolean
     offlinePackagePrice?: boolean
     otherReferences?: boolean
+    residenceProvinceCode?: boolean
+    residenceWardCode?: boolean
+    residenceAddressLine?: boolean
+    residenceLegacyDistrictName?: boolean
+    applicationTrainingLocations?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
     submittedAt?: boolean
@@ -3767,6 +4197,11 @@ export namespace Prisma {
     onlinePackagePrice?: boolean
     offlinePackagePrice?: boolean
     otherReferences?: boolean
+    residenceProvinceCode?: boolean
+    residenceWardCode?: boolean
+    residenceAddressLine?: boolean
+    residenceLegacyDistrictName?: boolean
+    applicationTrainingLocations?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
     submittedAt?: boolean
@@ -3819,6 +4254,11 @@ export namespace Prisma {
     onlinePackagePrice?: boolean
     offlinePackagePrice?: boolean
     otherReferences?: boolean
+    residenceProvinceCode?: boolean
+    residenceWardCode?: boolean
+    residenceAddressLine?: boolean
+    residenceLegacyDistrictName?: boolean
+    applicationTrainingLocations?: boolean
     adminNote?: boolean
     rejectionReason?: boolean
     submittedAt?: boolean
@@ -3887,6 +4327,11 @@ export namespace Prisma {
       onlinePackagePrice: number | null
       offlinePackagePrice: number | null
       otherReferences: string | null
+      residenceProvinceCode: number | null
+      residenceWardCode: number | null
+      residenceAddressLine: string | null
+      residenceLegacyDistrictName: string | null
+      applicationTrainingLocations: Prisma.JsonValue | null
       adminNote: string | null
       rejectionReason: string | null
       submittedAt: Date | null
@@ -4331,6 +4776,11 @@ export namespace Prisma {
     readonly onlinePackagePrice: FieldRef<"PTApplication", 'Float'>
     readonly offlinePackagePrice: FieldRef<"PTApplication", 'Float'>
     readonly otherReferences: FieldRef<"PTApplication", 'String'>
+    readonly residenceProvinceCode: FieldRef<"PTApplication", 'Int'>
+    readonly residenceWardCode: FieldRef<"PTApplication", 'Int'>
+    readonly residenceAddressLine: FieldRef<"PTApplication", 'String'>
+    readonly residenceLegacyDistrictName: FieldRef<"PTApplication", 'String'>
+    readonly applicationTrainingLocations: FieldRef<"PTApplication", 'Json'>
     readonly adminNote: FieldRef<"PTApplication", 'String'>
     readonly rejectionReason: FieldRef<"PTApplication", 'String'>
     readonly submittedAt: FieldRef<"PTApplication", 'DateTime'>
@@ -12894,6 +13344,3179 @@ export namespace Prisma {
 
 
   /**
+   * Model VietnamProvince
+   */
+
+  export type AggregateVietnamProvince = {
+    _count: VietnamProvinceCountAggregateOutputType | null
+    _avg: VietnamProvinceAvgAggregateOutputType | null
+    _sum: VietnamProvinceSumAggregateOutputType | null
+    _min: VietnamProvinceMinAggregateOutputType | null
+    _max: VietnamProvinceMaxAggregateOutputType | null
+  }
+
+  export type VietnamProvinceAvgAggregateOutputType = {
+    code: number | null
+    phoneCode: number | null
+  }
+
+  export type VietnamProvinceSumAggregateOutputType = {
+    code: number | null
+    phoneCode: number | null
+  }
+
+  export type VietnamProvinceMinAggregateOutputType = {
+    code: number | null
+    name: string | null
+    nameNormalized: string | null
+    codename: string | null
+    divisionType: string | null
+    phoneCode: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type VietnamProvinceMaxAggregateOutputType = {
+    code: number | null
+    name: string | null
+    nameNormalized: string | null
+    codename: string | null
+    divisionType: string | null
+    phoneCode: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type VietnamProvinceCountAggregateOutputType = {
+    code: number
+    name: number
+    nameNormalized: number
+    codename: number
+    divisionType: number
+    phoneCode: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type VietnamProvinceAvgAggregateInputType = {
+    code?: true
+    phoneCode?: true
+  }
+
+  export type VietnamProvinceSumAggregateInputType = {
+    code?: true
+    phoneCode?: true
+  }
+
+  export type VietnamProvinceMinAggregateInputType = {
+    code?: true
+    name?: true
+    nameNormalized?: true
+    codename?: true
+    divisionType?: true
+    phoneCode?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type VietnamProvinceMaxAggregateInputType = {
+    code?: true
+    name?: true
+    nameNormalized?: true
+    codename?: true
+    divisionType?: true
+    phoneCode?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type VietnamProvinceCountAggregateInputType = {
+    code?: true
+    name?: true
+    nameNormalized?: true
+    codename?: true
+    divisionType?: true
+    phoneCode?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type VietnamProvinceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which VietnamProvince to aggregate.
+     */
+    where?: VietnamProvinceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamProvinces to fetch.
+     */
+    orderBy?: VietnamProvinceOrderByWithRelationInput | VietnamProvinceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: VietnamProvinceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamProvinces from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamProvinces.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned VietnamProvinces
+    **/
+    _count?: true | VietnamProvinceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: VietnamProvinceAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: VietnamProvinceSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: VietnamProvinceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: VietnamProvinceMaxAggregateInputType
+  }
+
+  export type GetVietnamProvinceAggregateType<T extends VietnamProvinceAggregateArgs> = {
+        [P in keyof T & keyof AggregateVietnamProvince]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateVietnamProvince[P]>
+      : GetScalarType<T[P], AggregateVietnamProvince[P]>
+  }
+
+
+
+
+  export type VietnamProvinceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: VietnamProvinceWhereInput
+    orderBy?: VietnamProvinceOrderByWithAggregationInput | VietnamProvinceOrderByWithAggregationInput[]
+    by: VietnamProvinceScalarFieldEnum[] | VietnamProvinceScalarFieldEnum
+    having?: VietnamProvinceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: VietnamProvinceCountAggregateInputType | true
+    _avg?: VietnamProvinceAvgAggregateInputType
+    _sum?: VietnamProvinceSumAggregateInputType
+    _min?: VietnamProvinceMinAggregateInputType
+    _max?: VietnamProvinceMaxAggregateInputType
+  }
+
+  export type VietnamProvinceGroupByOutputType = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename: string | null
+    divisionType: string | null
+    phoneCode: number | null
+    createdAt: Date
+    updatedAt: Date
+    _count: VietnamProvinceCountAggregateOutputType | null
+    _avg: VietnamProvinceAvgAggregateOutputType | null
+    _sum: VietnamProvinceSumAggregateOutputType | null
+    _min: VietnamProvinceMinAggregateOutputType | null
+    _max: VietnamProvinceMaxAggregateOutputType | null
+  }
+
+  type GetVietnamProvinceGroupByPayload<T extends VietnamProvinceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<VietnamProvinceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof VietnamProvinceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], VietnamProvinceGroupByOutputType[P]>
+            : GetScalarType<T[P], VietnamProvinceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type VietnamProvinceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    code?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    codename?: boolean
+    divisionType?: boolean
+    phoneCode?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    wards?: boolean | VietnamProvince$wardsArgs<ExtArgs>
+    trainingLocations?: boolean | VietnamProvince$trainingLocationsArgs<ExtArgs>
+    _count?: boolean | VietnamProvinceCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["vietnamProvince"]>
+
+  export type VietnamProvinceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    code?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    codename?: boolean
+    divisionType?: boolean
+    phoneCode?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["vietnamProvince"]>
+
+  export type VietnamProvinceSelectScalar = {
+    code?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    codename?: boolean
+    divisionType?: boolean
+    phoneCode?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type VietnamProvinceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    wards?: boolean | VietnamProvince$wardsArgs<ExtArgs>
+    trainingLocations?: boolean | VietnamProvince$trainingLocationsArgs<ExtArgs>
+    _count?: boolean | VietnamProvinceCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type VietnamProvinceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $VietnamProvincePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "VietnamProvince"
+    objects: {
+      wards: Prisma.$VietnamWardPayload<ExtArgs>[]
+      trainingLocations: Prisma.$PTTrainingLocationPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      code: number
+      name: string
+      nameNormalized: string
+      codename: string | null
+      divisionType: string | null
+      phoneCode: number | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["vietnamProvince"]>
+    composites: {}
+  }
+
+  type VietnamProvinceGetPayload<S extends boolean | null | undefined | VietnamProvinceDefaultArgs> = $Result.GetResult<Prisma.$VietnamProvincePayload, S>
+
+  type VietnamProvinceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<VietnamProvinceFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: VietnamProvinceCountAggregateInputType | true
+    }
+
+  export interface VietnamProvinceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['VietnamProvince'], meta: { name: 'VietnamProvince' } }
+    /**
+     * Find zero or one VietnamProvince that matches the filter.
+     * @param {VietnamProvinceFindUniqueArgs} args - Arguments to find a VietnamProvince
+     * @example
+     * // Get one VietnamProvince
+     * const vietnamProvince = await prisma.vietnamProvince.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends VietnamProvinceFindUniqueArgs>(args: SelectSubset<T, VietnamProvinceFindUniqueArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one VietnamProvince that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {VietnamProvinceFindUniqueOrThrowArgs} args - Arguments to find a VietnamProvince
+     * @example
+     * // Get one VietnamProvince
+     * const vietnamProvince = await prisma.vietnamProvince.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends VietnamProvinceFindUniqueOrThrowArgs>(args: SelectSubset<T, VietnamProvinceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first VietnamProvince that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamProvinceFindFirstArgs} args - Arguments to find a VietnamProvince
+     * @example
+     * // Get one VietnamProvince
+     * const vietnamProvince = await prisma.vietnamProvince.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends VietnamProvinceFindFirstArgs>(args?: SelectSubset<T, VietnamProvinceFindFirstArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first VietnamProvince that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamProvinceFindFirstOrThrowArgs} args - Arguments to find a VietnamProvince
+     * @example
+     * // Get one VietnamProvince
+     * const vietnamProvince = await prisma.vietnamProvince.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends VietnamProvinceFindFirstOrThrowArgs>(args?: SelectSubset<T, VietnamProvinceFindFirstOrThrowArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more VietnamProvinces that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamProvinceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all VietnamProvinces
+     * const vietnamProvinces = await prisma.vietnamProvince.findMany()
+     * 
+     * // Get first 10 VietnamProvinces
+     * const vietnamProvinces = await prisma.vietnamProvince.findMany({ take: 10 })
+     * 
+     * // Only select the `code`
+     * const vietnamProvinceWithCodeOnly = await prisma.vietnamProvince.findMany({ select: { code: true } })
+     * 
+     */
+    findMany<T extends VietnamProvinceFindManyArgs>(args?: SelectSubset<T, VietnamProvinceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a VietnamProvince.
+     * @param {VietnamProvinceCreateArgs} args - Arguments to create a VietnamProvince.
+     * @example
+     * // Create one VietnamProvince
+     * const VietnamProvince = await prisma.vietnamProvince.create({
+     *   data: {
+     *     // ... data to create a VietnamProvince
+     *   }
+     * })
+     * 
+     */
+    create<T extends VietnamProvinceCreateArgs>(args: SelectSubset<T, VietnamProvinceCreateArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many VietnamProvinces.
+     * @param {VietnamProvinceCreateManyArgs} args - Arguments to create many VietnamProvinces.
+     * @example
+     * // Create many VietnamProvinces
+     * const vietnamProvince = await prisma.vietnamProvince.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends VietnamProvinceCreateManyArgs>(args?: SelectSubset<T, VietnamProvinceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many VietnamProvinces and returns the data saved in the database.
+     * @param {VietnamProvinceCreateManyAndReturnArgs} args - Arguments to create many VietnamProvinces.
+     * @example
+     * // Create many VietnamProvinces
+     * const vietnamProvince = await prisma.vietnamProvince.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many VietnamProvinces and only return the `code`
+     * const vietnamProvinceWithCodeOnly = await prisma.vietnamProvince.createManyAndReturn({ 
+     *   select: { code: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends VietnamProvinceCreateManyAndReturnArgs>(args?: SelectSubset<T, VietnamProvinceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a VietnamProvince.
+     * @param {VietnamProvinceDeleteArgs} args - Arguments to delete one VietnamProvince.
+     * @example
+     * // Delete one VietnamProvince
+     * const VietnamProvince = await prisma.vietnamProvince.delete({
+     *   where: {
+     *     // ... filter to delete one VietnamProvince
+     *   }
+     * })
+     * 
+     */
+    delete<T extends VietnamProvinceDeleteArgs>(args: SelectSubset<T, VietnamProvinceDeleteArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one VietnamProvince.
+     * @param {VietnamProvinceUpdateArgs} args - Arguments to update one VietnamProvince.
+     * @example
+     * // Update one VietnamProvince
+     * const vietnamProvince = await prisma.vietnamProvince.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends VietnamProvinceUpdateArgs>(args: SelectSubset<T, VietnamProvinceUpdateArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more VietnamProvinces.
+     * @param {VietnamProvinceDeleteManyArgs} args - Arguments to filter VietnamProvinces to delete.
+     * @example
+     * // Delete a few VietnamProvinces
+     * const { count } = await prisma.vietnamProvince.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends VietnamProvinceDeleteManyArgs>(args?: SelectSubset<T, VietnamProvinceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more VietnamProvinces.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamProvinceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many VietnamProvinces
+     * const vietnamProvince = await prisma.vietnamProvince.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends VietnamProvinceUpdateManyArgs>(args: SelectSubset<T, VietnamProvinceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one VietnamProvince.
+     * @param {VietnamProvinceUpsertArgs} args - Arguments to update or create a VietnamProvince.
+     * @example
+     * // Update or create a VietnamProvince
+     * const vietnamProvince = await prisma.vietnamProvince.upsert({
+     *   create: {
+     *     // ... data to create a VietnamProvince
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the VietnamProvince we want to update
+     *   }
+     * })
+     */
+    upsert<T extends VietnamProvinceUpsertArgs>(args: SelectSubset<T, VietnamProvinceUpsertArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of VietnamProvinces.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamProvinceCountArgs} args - Arguments to filter VietnamProvinces to count.
+     * @example
+     * // Count the number of VietnamProvinces
+     * const count = await prisma.vietnamProvince.count({
+     *   where: {
+     *     // ... the filter for the VietnamProvinces we want to count
+     *   }
+     * })
+    **/
+    count<T extends VietnamProvinceCountArgs>(
+      args?: Subset<T, VietnamProvinceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], VietnamProvinceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a VietnamProvince.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamProvinceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends VietnamProvinceAggregateArgs>(args: Subset<T, VietnamProvinceAggregateArgs>): Prisma.PrismaPromise<GetVietnamProvinceAggregateType<T>>
+
+    /**
+     * Group by VietnamProvince.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamProvinceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends VietnamProvinceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: VietnamProvinceGroupByArgs['orderBy'] }
+        : { orderBy?: VietnamProvinceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, VietnamProvinceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetVietnamProvinceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the VietnamProvince model
+   */
+  readonly fields: VietnamProvinceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for VietnamProvince.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__VietnamProvinceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    wards<T extends VietnamProvince$wardsArgs<ExtArgs> = {}>(args?: Subset<T, VietnamProvince$wardsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "findMany"> | Null>
+    trainingLocations<T extends VietnamProvince$trainingLocationsArgs<ExtArgs> = {}>(args?: Subset<T, VietnamProvince$trainingLocationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the VietnamProvince model
+   */ 
+  interface VietnamProvinceFieldRefs {
+    readonly code: FieldRef<"VietnamProvince", 'Int'>
+    readonly name: FieldRef<"VietnamProvince", 'String'>
+    readonly nameNormalized: FieldRef<"VietnamProvince", 'String'>
+    readonly codename: FieldRef<"VietnamProvince", 'String'>
+    readonly divisionType: FieldRef<"VietnamProvince", 'String'>
+    readonly phoneCode: FieldRef<"VietnamProvince", 'Int'>
+    readonly createdAt: FieldRef<"VietnamProvince", 'DateTime'>
+    readonly updatedAt: FieldRef<"VietnamProvince", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * VietnamProvince findUnique
+   */
+  export type VietnamProvinceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvince
+     */
+    select?: VietnamProvinceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamProvinceInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamProvince to fetch.
+     */
+    where: VietnamProvinceWhereUniqueInput
+  }
+
+  /**
+   * VietnamProvince findUniqueOrThrow
+   */
+  export type VietnamProvinceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvince
+     */
+    select?: VietnamProvinceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamProvinceInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamProvince to fetch.
+     */
+    where: VietnamProvinceWhereUniqueInput
+  }
+
+  /**
+   * VietnamProvince findFirst
+   */
+  export type VietnamProvinceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvince
+     */
+    select?: VietnamProvinceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamProvinceInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamProvince to fetch.
+     */
+    where?: VietnamProvinceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamProvinces to fetch.
+     */
+    orderBy?: VietnamProvinceOrderByWithRelationInput | VietnamProvinceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for VietnamProvinces.
+     */
+    cursor?: VietnamProvinceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamProvinces from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamProvinces.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of VietnamProvinces.
+     */
+    distinct?: VietnamProvinceScalarFieldEnum | VietnamProvinceScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamProvince findFirstOrThrow
+   */
+  export type VietnamProvinceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvince
+     */
+    select?: VietnamProvinceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamProvinceInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamProvince to fetch.
+     */
+    where?: VietnamProvinceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamProvinces to fetch.
+     */
+    orderBy?: VietnamProvinceOrderByWithRelationInput | VietnamProvinceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for VietnamProvinces.
+     */
+    cursor?: VietnamProvinceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamProvinces from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamProvinces.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of VietnamProvinces.
+     */
+    distinct?: VietnamProvinceScalarFieldEnum | VietnamProvinceScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamProvince findMany
+   */
+  export type VietnamProvinceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvince
+     */
+    select?: VietnamProvinceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamProvinceInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamProvinces to fetch.
+     */
+    where?: VietnamProvinceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamProvinces to fetch.
+     */
+    orderBy?: VietnamProvinceOrderByWithRelationInput | VietnamProvinceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing VietnamProvinces.
+     */
+    cursor?: VietnamProvinceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamProvinces from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamProvinces.
+     */
+    skip?: number
+    distinct?: VietnamProvinceScalarFieldEnum | VietnamProvinceScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamProvince create
+   */
+  export type VietnamProvinceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvince
+     */
+    select?: VietnamProvinceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamProvinceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a VietnamProvince.
+     */
+    data: XOR<VietnamProvinceCreateInput, VietnamProvinceUncheckedCreateInput>
+  }
+
+  /**
+   * VietnamProvince createMany
+   */
+  export type VietnamProvinceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many VietnamProvinces.
+     */
+    data: VietnamProvinceCreateManyInput | VietnamProvinceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * VietnamProvince createManyAndReturn
+   */
+  export type VietnamProvinceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvince
+     */
+    select?: VietnamProvinceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many VietnamProvinces.
+     */
+    data: VietnamProvinceCreateManyInput | VietnamProvinceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * VietnamProvince update
+   */
+  export type VietnamProvinceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvince
+     */
+    select?: VietnamProvinceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamProvinceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a VietnamProvince.
+     */
+    data: XOR<VietnamProvinceUpdateInput, VietnamProvinceUncheckedUpdateInput>
+    /**
+     * Choose, which VietnamProvince to update.
+     */
+    where: VietnamProvinceWhereUniqueInput
+  }
+
+  /**
+   * VietnamProvince updateMany
+   */
+  export type VietnamProvinceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update VietnamProvinces.
+     */
+    data: XOR<VietnamProvinceUpdateManyMutationInput, VietnamProvinceUncheckedUpdateManyInput>
+    /**
+     * Filter which VietnamProvinces to update
+     */
+    where?: VietnamProvinceWhereInput
+  }
+
+  /**
+   * VietnamProvince upsert
+   */
+  export type VietnamProvinceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvince
+     */
+    select?: VietnamProvinceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamProvinceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the VietnamProvince to update in case it exists.
+     */
+    where: VietnamProvinceWhereUniqueInput
+    /**
+     * In case the VietnamProvince found by the `where` argument doesn't exist, create a new VietnamProvince with this data.
+     */
+    create: XOR<VietnamProvinceCreateInput, VietnamProvinceUncheckedCreateInput>
+    /**
+     * In case the VietnamProvince was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<VietnamProvinceUpdateInput, VietnamProvinceUncheckedUpdateInput>
+  }
+
+  /**
+   * VietnamProvince delete
+   */
+  export type VietnamProvinceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvince
+     */
+    select?: VietnamProvinceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamProvinceInclude<ExtArgs> | null
+    /**
+     * Filter which VietnamProvince to delete.
+     */
+    where: VietnamProvinceWhereUniqueInput
+  }
+
+  /**
+   * VietnamProvince deleteMany
+   */
+  export type VietnamProvinceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which VietnamProvinces to delete
+     */
+    where?: VietnamProvinceWhereInput
+  }
+
+  /**
+   * VietnamProvince.wards
+   */
+  export type VietnamProvince$wardsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+    where?: VietnamWardWhereInput
+    orderBy?: VietnamWardOrderByWithRelationInput | VietnamWardOrderByWithRelationInput[]
+    cursor?: VietnamWardWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: VietnamWardScalarFieldEnum | VietnamWardScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamProvince.trainingLocations
+   */
+  export type VietnamProvince$trainingLocationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    where?: PTTrainingLocationWhereInput
+    orderBy?: PTTrainingLocationOrderByWithRelationInput | PTTrainingLocationOrderByWithRelationInput[]
+    cursor?: PTTrainingLocationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PTTrainingLocationScalarFieldEnum | PTTrainingLocationScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamProvince without action
+   */
+  export type VietnamProvinceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamProvince
+     */
+    select?: VietnamProvinceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamProvinceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model VietnamWard
+   */
+
+  export type AggregateVietnamWard = {
+    _count: VietnamWardCountAggregateOutputType | null
+    _avg: VietnamWardAvgAggregateOutputType | null
+    _sum: VietnamWardSumAggregateOutputType | null
+    _min: VietnamWardMinAggregateOutputType | null
+    _max: VietnamWardMaxAggregateOutputType | null
+  }
+
+  export type VietnamWardAvgAggregateOutputType = {
+    code: number | null
+    provinceCode: number | null
+  }
+
+  export type VietnamWardSumAggregateOutputType = {
+    code: number | null
+    provinceCode: number | null
+  }
+
+  export type VietnamWardMinAggregateOutputType = {
+    code: number | null
+    provinceCode: number | null
+    name: string | null
+    nameNormalized: string | null
+    codename: string | null
+    divisionType: string | null
+    shortCodename: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type VietnamWardMaxAggregateOutputType = {
+    code: number | null
+    provinceCode: number | null
+    name: string | null
+    nameNormalized: string | null
+    codename: string | null
+    divisionType: string | null
+    shortCodename: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type VietnamWardCountAggregateOutputType = {
+    code: number
+    provinceCode: number
+    name: number
+    nameNormalized: number
+    codename: number
+    divisionType: number
+    shortCodename: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type VietnamWardAvgAggregateInputType = {
+    code?: true
+    provinceCode?: true
+  }
+
+  export type VietnamWardSumAggregateInputType = {
+    code?: true
+    provinceCode?: true
+  }
+
+  export type VietnamWardMinAggregateInputType = {
+    code?: true
+    provinceCode?: true
+    name?: true
+    nameNormalized?: true
+    codename?: true
+    divisionType?: true
+    shortCodename?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type VietnamWardMaxAggregateInputType = {
+    code?: true
+    provinceCode?: true
+    name?: true
+    nameNormalized?: true
+    codename?: true
+    divisionType?: true
+    shortCodename?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type VietnamWardCountAggregateInputType = {
+    code?: true
+    provinceCode?: true
+    name?: true
+    nameNormalized?: true
+    codename?: true
+    divisionType?: true
+    shortCodename?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type VietnamWardAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which VietnamWard to aggregate.
+     */
+    where?: VietnamWardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamWards to fetch.
+     */
+    orderBy?: VietnamWardOrderByWithRelationInput | VietnamWardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: VietnamWardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamWards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamWards.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned VietnamWards
+    **/
+    _count?: true | VietnamWardCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: VietnamWardAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: VietnamWardSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: VietnamWardMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: VietnamWardMaxAggregateInputType
+  }
+
+  export type GetVietnamWardAggregateType<T extends VietnamWardAggregateArgs> = {
+        [P in keyof T & keyof AggregateVietnamWard]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateVietnamWard[P]>
+      : GetScalarType<T[P], AggregateVietnamWard[P]>
+  }
+
+
+
+
+  export type VietnamWardGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: VietnamWardWhereInput
+    orderBy?: VietnamWardOrderByWithAggregationInput | VietnamWardOrderByWithAggregationInput[]
+    by: VietnamWardScalarFieldEnum[] | VietnamWardScalarFieldEnum
+    having?: VietnamWardScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: VietnamWardCountAggregateInputType | true
+    _avg?: VietnamWardAvgAggregateInputType
+    _sum?: VietnamWardSumAggregateInputType
+    _min?: VietnamWardMinAggregateInputType
+    _max?: VietnamWardMaxAggregateInputType
+  }
+
+  export type VietnamWardGroupByOutputType = {
+    code: number
+    provinceCode: number
+    name: string
+    nameNormalized: string
+    codename: string | null
+    divisionType: string | null
+    shortCodename: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: VietnamWardCountAggregateOutputType | null
+    _avg: VietnamWardAvgAggregateOutputType | null
+    _sum: VietnamWardSumAggregateOutputType | null
+    _min: VietnamWardMinAggregateOutputType | null
+    _max: VietnamWardMaxAggregateOutputType | null
+  }
+
+  type GetVietnamWardGroupByPayload<T extends VietnamWardGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<VietnamWardGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof VietnamWardGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], VietnamWardGroupByOutputType[P]>
+            : GetScalarType<T[P], VietnamWardGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type VietnamWardSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    code?: boolean
+    provinceCode?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    codename?: boolean
+    divisionType?: boolean
+    shortCodename?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+    trainingLocations?: boolean | VietnamWard$trainingLocationsArgs<ExtArgs>
+    _count?: boolean | VietnamWardCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["vietnamWard"]>
+
+  export type VietnamWardSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    code?: boolean
+    provinceCode?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    codename?: boolean
+    divisionType?: boolean
+    shortCodename?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["vietnamWard"]>
+
+  export type VietnamWardSelectScalar = {
+    code?: boolean
+    provinceCode?: boolean
+    name?: boolean
+    nameNormalized?: boolean
+    codename?: boolean
+    divisionType?: boolean
+    shortCodename?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type VietnamWardInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+    trainingLocations?: boolean | VietnamWard$trainingLocationsArgs<ExtArgs>
+    _count?: boolean | VietnamWardCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type VietnamWardIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+  }
+
+  export type $VietnamWardPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "VietnamWard"
+    objects: {
+      province: Prisma.$VietnamProvincePayload<ExtArgs>
+      trainingLocations: Prisma.$PTTrainingLocationPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      code: number
+      provinceCode: number
+      name: string
+      nameNormalized: string
+      codename: string | null
+      divisionType: string | null
+      shortCodename: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["vietnamWard"]>
+    composites: {}
+  }
+
+  type VietnamWardGetPayload<S extends boolean | null | undefined | VietnamWardDefaultArgs> = $Result.GetResult<Prisma.$VietnamWardPayload, S>
+
+  type VietnamWardCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<VietnamWardFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: VietnamWardCountAggregateInputType | true
+    }
+
+  export interface VietnamWardDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['VietnamWard'], meta: { name: 'VietnamWard' } }
+    /**
+     * Find zero or one VietnamWard that matches the filter.
+     * @param {VietnamWardFindUniqueArgs} args - Arguments to find a VietnamWard
+     * @example
+     * // Get one VietnamWard
+     * const vietnamWard = await prisma.vietnamWard.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends VietnamWardFindUniqueArgs>(args: SelectSubset<T, VietnamWardFindUniqueArgs<ExtArgs>>): Prisma__VietnamWardClient<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one VietnamWard that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {VietnamWardFindUniqueOrThrowArgs} args - Arguments to find a VietnamWard
+     * @example
+     * // Get one VietnamWard
+     * const vietnamWard = await prisma.vietnamWard.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends VietnamWardFindUniqueOrThrowArgs>(args: SelectSubset<T, VietnamWardFindUniqueOrThrowArgs<ExtArgs>>): Prisma__VietnamWardClient<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first VietnamWard that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardFindFirstArgs} args - Arguments to find a VietnamWard
+     * @example
+     * // Get one VietnamWard
+     * const vietnamWard = await prisma.vietnamWard.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends VietnamWardFindFirstArgs>(args?: SelectSubset<T, VietnamWardFindFirstArgs<ExtArgs>>): Prisma__VietnamWardClient<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first VietnamWard that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardFindFirstOrThrowArgs} args - Arguments to find a VietnamWard
+     * @example
+     * // Get one VietnamWard
+     * const vietnamWard = await prisma.vietnamWard.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends VietnamWardFindFirstOrThrowArgs>(args?: SelectSubset<T, VietnamWardFindFirstOrThrowArgs<ExtArgs>>): Prisma__VietnamWardClient<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more VietnamWards that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all VietnamWards
+     * const vietnamWards = await prisma.vietnamWard.findMany()
+     * 
+     * // Get first 10 VietnamWards
+     * const vietnamWards = await prisma.vietnamWard.findMany({ take: 10 })
+     * 
+     * // Only select the `code`
+     * const vietnamWardWithCodeOnly = await prisma.vietnamWard.findMany({ select: { code: true } })
+     * 
+     */
+    findMany<T extends VietnamWardFindManyArgs>(args?: SelectSubset<T, VietnamWardFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a VietnamWard.
+     * @param {VietnamWardCreateArgs} args - Arguments to create a VietnamWard.
+     * @example
+     * // Create one VietnamWard
+     * const VietnamWard = await prisma.vietnamWard.create({
+     *   data: {
+     *     // ... data to create a VietnamWard
+     *   }
+     * })
+     * 
+     */
+    create<T extends VietnamWardCreateArgs>(args: SelectSubset<T, VietnamWardCreateArgs<ExtArgs>>): Prisma__VietnamWardClient<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many VietnamWards.
+     * @param {VietnamWardCreateManyArgs} args - Arguments to create many VietnamWards.
+     * @example
+     * // Create many VietnamWards
+     * const vietnamWard = await prisma.vietnamWard.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends VietnamWardCreateManyArgs>(args?: SelectSubset<T, VietnamWardCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many VietnamWards and returns the data saved in the database.
+     * @param {VietnamWardCreateManyAndReturnArgs} args - Arguments to create many VietnamWards.
+     * @example
+     * // Create many VietnamWards
+     * const vietnamWard = await prisma.vietnamWard.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many VietnamWards and only return the `code`
+     * const vietnamWardWithCodeOnly = await prisma.vietnamWard.createManyAndReturn({ 
+     *   select: { code: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends VietnamWardCreateManyAndReturnArgs>(args?: SelectSubset<T, VietnamWardCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a VietnamWard.
+     * @param {VietnamWardDeleteArgs} args - Arguments to delete one VietnamWard.
+     * @example
+     * // Delete one VietnamWard
+     * const VietnamWard = await prisma.vietnamWard.delete({
+     *   where: {
+     *     // ... filter to delete one VietnamWard
+     *   }
+     * })
+     * 
+     */
+    delete<T extends VietnamWardDeleteArgs>(args: SelectSubset<T, VietnamWardDeleteArgs<ExtArgs>>): Prisma__VietnamWardClient<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one VietnamWard.
+     * @param {VietnamWardUpdateArgs} args - Arguments to update one VietnamWard.
+     * @example
+     * // Update one VietnamWard
+     * const vietnamWard = await prisma.vietnamWard.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends VietnamWardUpdateArgs>(args: SelectSubset<T, VietnamWardUpdateArgs<ExtArgs>>): Prisma__VietnamWardClient<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more VietnamWards.
+     * @param {VietnamWardDeleteManyArgs} args - Arguments to filter VietnamWards to delete.
+     * @example
+     * // Delete a few VietnamWards
+     * const { count } = await prisma.vietnamWard.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends VietnamWardDeleteManyArgs>(args?: SelectSubset<T, VietnamWardDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more VietnamWards.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many VietnamWards
+     * const vietnamWard = await prisma.vietnamWard.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends VietnamWardUpdateManyArgs>(args: SelectSubset<T, VietnamWardUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one VietnamWard.
+     * @param {VietnamWardUpsertArgs} args - Arguments to update or create a VietnamWard.
+     * @example
+     * // Update or create a VietnamWard
+     * const vietnamWard = await prisma.vietnamWard.upsert({
+     *   create: {
+     *     // ... data to create a VietnamWard
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the VietnamWard we want to update
+     *   }
+     * })
+     */
+    upsert<T extends VietnamWardUpsertArgs>(args: SelectSubset<T, VietnamWardUpsertArgs<ExtArgs>>): Prisma__VietnamWardClient<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of VietnamWards.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardCountArgs} args - Arguments to filter VietnamWards to count.
+     * @example
+     * // Count the number of VietnamWards
+     * const count = await prisma.vietnamWard.count({
+     *   where: {
+     *     // ... the filter for the VietnamWards we want to count
+     *   }
+     * })
+    **/
+    count<T extends VietnamWardCountArgs>(
+      args?: Subset<T, VietnamWardCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], VietnamWardCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a VietnamWard.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends VietnamWardAggregateArgs>(args: Subset<T, VietnamWardAggregateArgs>): Prisma.PrismaPromise<GetVietnamWardAggregateType<T>>
+
+    /**
+     * Group by VietnamWard.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {VietnamWardGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends VietnamWardGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: VietnamWardGroupByArgs['orderBy'] }
+        : { orderBy?: VietnamWardGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, VietnamWardGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetVietnamWardGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the VietnamWard model
+   */
+  readonly fields: VietnamWardFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for VietnamWard.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__VietnamWardClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    province<T extends VietnamProvinceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, VietnamProvinceDefaultArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    trainingLocations<T extends VietnamWard$trainingLocationsArgs<ExtArgs> = {}>(args?: Subset<T, VietnamWard$trainingLocationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the VietnamWard model
+   */ 
+  interface VietnamWardFieldRefs {
+    readonly code: FieldRef<"VietnamWard", 'Int'>
+    readonly provinceCode: FieldRef<"VietnamWard", 'Int'>
+    readonly name: FieldRef<"VietnamWard", 'String'>
+    readonly nameNormalized: FieldRef<"VietnamWard", 'String'>
+    readonly codename: FieldRef<"VietnamWard", 'String'>
+    readonly divisionType: FieldRef<"VietnamWard", 'String'>
+    readonly shortCodename: FieldRef<"VietnamWard", 'String'>
+    readonly createdAt: FieldRef<"VietnamWard", 'DateTime'>
+    readonly updatedAt: FieldRef<"VietnamWard", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * VietnamWard findUnique
+   */
+  export type VietnamWardFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamWard to fetch.
+     */
+    where: VietnamWardWhereUniqueInput
+  }
+
+  /**
+   * VietnamWard findUniqueOrThrow
+   */
+  export type VietnamWardFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamWard to fetch.
+     */
+    where: VietnamWardWhereUniqueInput
+  }
+
+  /**
+   * VietnamWard findFirst
+   */
+  export type VietnamWardFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamWard to fetch.
+     */
+    where?: VietnamWardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamWards to fetch.
+     */
+    orderBy?: VietnamWardOrderByWithRelationInput | VietnamWardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for VietnamWards.
+     */
+    cursor?: VietnamWardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamWards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamWards.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of VietnamWards.
+     */
+    distinct?: VietnamWardScalarFieldEnum | VietnamWardScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamWard findFirstOrThrow
+   */
+  export type VietnamWardFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamWard to fetch.
+     */
+    where?: VietnamWardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamWards to fetch.
+     */
+    orderBy?: VietnamWardOrderByWithRelationInput | VietnamWardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for VietnamWards.
+     */
+    cursor?: VietnamWardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamWards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamWards.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of VietnamWards.
+     */
+    distinct?: VietnamWardScalarFieldEnum | VietnamWardScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamWard findMany
+   */
+  export type VietnamWardFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+    /**
+     * Filter, which VietnamWards to fetch.
+     */
+    where?: VietnamWardWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of VietnamWards to fetch.
+     */
+    orderBy?: VietnamWardOrderByWithRelationInput | VietnamWardOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing VietnamWards.
+     */
+    cursor?: VietnamWardWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` VietnamWards from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` VietnamWards.
+     */
+    skip?: number
+    distinct?: VietnamWardScalarFieldEnum | VietnamWardScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamWard create
+   */
+  export type VietnamWardCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+    /**
+     * The data needed to create a VietnamWard.
+     */
+    data: XOR<VietnamWardCreateInput, VietnamWardUncheckedCreateInput>
+  }
+
+  /**
+   * VietnamWard createMany
+   */
+  export type VietnamWardCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many VietnamWards.
+     */
+    data: VietnamWardCreateManyInput | VietnamWardCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * VietnamWard createManyAndReturn
+   */
+  export type VietnamWardCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many VietnamWards.
+     */
+    data: VietnamWardCreateManyInput | VietnamWardCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * VietnamWard update
+   */
+  export type VietnamWardUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+    /**
+     * The data needed to update a VietnamWard.
+     */
+    data: XOR<VietnamWardUpdateInput, VietnamWardUncheckedUpdateInput>
+    /**
+     * Choose, which VietnamWard to update.
+     */
+    where: VietnamWardWhereUniqueInput
+  }
+
+  /**
+   * VietnamWard updateMany
+   */
+  export type VietnamWardUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update VietnamWards.
+     */
+    data: XOR<VietnamWardUpdateManyMutationInput, VietnamWardUncheckedUpdateManyInput>
+    /**
+     * Filter which VietnamWards to update
+     */
+    where?: VietnamWardWhereInput
+  }
+
+  /**
+   * VietnamWard upsert
+   */
+  export type VietnamWardUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+    /**
+     * The filter to search for the VietnamWard to update in case it exists.
+     */
+    where: VietnamWardWhereUniqueInput
+    /**
+     * In case the VietnamWard found by the `where` argument doesn't exist, create a new VietnamWard with this data.
+     */
+    create: XOR<VietnamWardCreateInput, VietnamWardUncheckedCreateInput>
+    /**
+     * In case the VietnamWard was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<VietnamWardUpdateInput, VietnamWardUncheckedUpdateInput>
+  }
+
+  /**
+   * VietnamWard delete
+   */
+  export type VietnamWardDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+    /**
+     * Filter which VietnamWard to delete.
+     */
+    where: VietnamWardWhereUniqueInput
+  }
+
+  /**
+   * VietnamWard deleteMany
+   */
+  export type VietnamWardDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which VietnamWards to delete
+     */
+    where?: VietnamWardWhereInput
+  }
+
+  /**
+   * VietnamWard.trainingLocations
+   */
+  export type VietnamWard$trainingLocationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    where?: PTTrainingLocationWhereInput
+    orderBy?: PTTrainingLocationOrderByWithRelationInput | PTTrainingLocationOrderByWithRelationInput[]
+    cursor?: PTTrainingLocationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PTTrainingLocationScalarFieldEnum | PTTrainingLocationScalarFieldEnum[]
+  }
+
+  /**
+   * VietnamWard without action
+   */
+  export type VietnamWardDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PTTrainingLocation
+   */
+
+  export type AggregatePTTrainingLocation = {
+    _count: PTTrainingLocationCountAggregateOutputType | null
+    _avg: PTTrainingLocationAvgAggregateOutputType | null
+    _sum: PTTrainingLocationSumAggregateOutputType | null
+    _min: PTTrainingLocationMinAggregateOutputType | null
+    _max: PTTrainingLocationMaxAggregateOutputType | null
+  }
+
+  export type PTTrainingLocationAvgAggregateOutputType = {
+    provinceCode: number | null
+    wardCode: number | null
+  }
+
+  export type PTTrainingLocationSumAggregateOutputType = {
+    provinceCode: number | null
+    wardCode: number | null
+  }
+
+  export type PTTrainingLocationMinAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    provinceCode: number | null
+    wardCode: number | null
+    gymName: string | null
+    addressLine: string | null
+    legacyDistrictName: string | null
+    isPrimary: boolean | null
+    isActive: boolean | null
+    note: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PTTrainingLocationMaxAggregateOutputType = {
+    id: string | null
+    ptUserId: string | null
+    provinceCode: number | null
+    wardCode: number | null
+    gymName: string | null
+    addressLine: string | null
+    legacyDistrictName: string | null
+    isPrimary: boolean | null
+    isActive: boolean | null
+    note: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PTTrainingLocationCountAggregateOutputType = {
+    id: number
+    ptUserId: number
+    provinceCode: number
+    wardCode: number
+    gymName: number
+    addressLine: number
+    legacyDistrictName: number
+    isPrimary: number
+    isActive: number
+    note: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PTTrainingLocationAvgAggregateInputType = {
+    provinceCode?: true
+    wardCode?: true
+  }
+
+  export type PTTrainingLocationSumAggregateInputType = {
+    provinceCode?: true
+    wardCode?: true
+  }
+
+  export type PTTrainingLocationMinAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    provinceCode?: true
+    wardCode?: true
+    gymName?: true
+    addressLine?: true
+    legacyDistrictName?: true
+    isPrimary?: true
+    isActive?: true
+    note?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PTTrainingLocationMaxAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    provinceCode?: true
+    wardCode?: true
+    gymName?: true
+    addressLine?: true
+    legacyDistrictName?: true
+    isPrimary?: true
+    isActive?: true
+    note?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PTTrainingLocationCountAggregateInputType = {
+    id?: true
+    ptUserId?: true
+    provinceCode?: true
+    wardCode?: true
+    gymName?: true
+    addressLine?: true
+    legacyDistrictName?: true
+    isPrimary?: true
+    isActive?: true
+    note?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PTTrainingLocationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PTTrainingLocation to aggregate.
+     */
+    where?: PTTrainingLocationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTTrainingLocations to fetch.
+     */
+    orderBy?: PTTrainingLocationOrderByWithRelationInput | PTTrainingLocationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PTTrainingLocationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTTrainingLocations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTTrainingLocations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PTTrainingLocations
+    **/
+    _count?: true | PTTrainingLocationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PTTrainingLocationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PTTrainingLocationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PTTrainingLocationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PTTrainingLocationMaxAggregateInputType
+  }
+
+  export type GetPTTrainingLocationAggregateType<T extends PTTrainingLocationAggregateArgs> = {
+        [P in keyof T & keyof AggregatePTTrainingLocation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePTTrainingLocation[P]>
+      : GetScalarType<T[P], AggregatePTTrainingLocation[P]>
+  }
+
+
+
+
+  export type PTTrainingLocationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PTTrainingLocationWhereInput
+    orderBy?: PTTrainingLocationOrderByWithAggregationInput | PTTrainingLocationOrderByWithAggregationInput[]
+    by: PTTrainingLocationScalarFieldEnum[] | PTTrainingLocationScalarFieldEnum
+    having?: PTTrainingLocationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PTTrainingLocationCountAggregateInputType | true
+    _avg?: PTTrainingLocationAvgAggregateInputType
+    _sum?: PTTrainingLocationSumAggregateInputType
+    _min?: PTTrainingLocationMinAggregateInputType
+    _max?: PTTrainingLocationMaxAggregateInputType
+  }
+
+  export type PTTrainingLocationGroupByOutputType = {
+    id: string
+    ptUserId: string
+    provinceCode: number
+    wardCode: number | null
+    gymName: string | null
+    addressLine: string | null
+    legacyDistrictName: string | null
+    isPrimary: boolean
+    isActive: boolean
+    note: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PTTrainingLocationCountAggregateOutputType | null
+    _avg: PTTrainingLocationAvgAggregateOutputType | null
+    _sum: PTTrainingLocationSumAggregateOutputType | null
+    _min: PTTrainingLocationMinAggregateOutputType | null
+    _max: PTTrainingLocationMaxAggregateOutputType | null
+  }
+
+  type GetPTTrainingLocationGroupByPayload<T extends PTTrainingLocationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PTTrainingLocationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PTTrainingLocationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PTTrainingLocationGroupByOutputType[P]>
+            : GetScalarType<T[P], PTTrainingLocationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PTTrainingLocationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    provinceCode?: boolean
+    wardCode?: boolean
+    gymName?: boolean
+    addressLine?: boolean
+    legacyDistrictName?: boolean
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+    ward?: boolean | PTTrainingLocation$wardArgs<ExtArgs>
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["pTTrainingLocation"]>
+
+  export type PTTrainingLocationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ptUserId?: boolean
+    provinceCode?: boolean
+    wardCode?: boolean
+    gymName?: boolean
+    addressLine?: boolean
+    legacyDistrictName?: boolean
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+    ward?: boolean | PTTrainingLocation$wardArgs<ExtArgs>
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["pTTrainingLocation"]>
+
+  export type PTTrainingLocationSelectScalar = {
+    id?: boolean
+    ptUserId?: boolean
+    provinceCode?: boolean
+    wardCode?: boolean
+    gymName?: boolean
+    addressLine?: boolean
+    legacyDistrictName?: boolean
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PTTrainingLocationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+    ward?: boolean | PTTrainingLocation$wardArgs<ExtArgs>
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+  export type PTTrainingLocationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    province?: boolean | VietnamProvinceDefaultArgs<ExtArgs>
+    ward?: boolean | PTTrainingLocation$wardArgs<ExtArgs>
+    ptProfile?: boolean | UserProfileDefaultArgs<ExtArgs>
+  }
+
+  export type $PTTrainingLocationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PTTrainingLocation"
+    objects: {
+      province: Prisma.$VietnamProvincePayload<ExtArgs>
+      ward: Prisma.$VietnamWardPayload<ExtArgs> | null
+      ptProfile: Prisma.$UserProfilePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ptUserId: string
+      provinceCode: number
+      wardCode: number | null
+      gymName: string | null
+      addressLine: string | null
+      legacyDistrictName: string | null
+      isPrimary: boolean
+      isActive: boolean
+      note: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["pTTrainingLocation"]>
+    composites: {}
+  }
+
+  type PTTrainingLocationGetPayload<S extends boolean | null | undefined | PTTrainingLocationDefaultArgs> = $Result.GetResult<Prisma.$PTTrainingLocationPayload, S>
+
+  type PTTrainingLocationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PTTrainingLocationFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PTTrainingLocationCountAggregateInputType | true
+    }
+
+  export interface PTTrainingLocationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PTTrainingLocation'], meta: { name: 'PTTrainingLocation' } }
+    /**
+     * Find zero or one PTTrainingLocation that matches the filter.
+     * @param {PTTrainingLocationFindUniqueArgs} args - Arguments to find a PTTrainingLocation
+     * @example
+     * // Get one PTTrainingLocation
+     * const pTTrainingLocation = await prisma.pTTrainingLocation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PTTrainingLocationFindUniqueArgs>(args: SelectSubset<T, PTTrainingLocationFindUniqueArgs<ExtArgs>>): Prisma__PTTrainingLocationClient<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PTTrainingLocation that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PTTrainingLocationFindUniqueOrThrowArgs} args - Arguments to find a PTTrainingLocation
+     * @example
+     * // Get one PTTrainingLocation
+     * const pTTrainingLocation = await prisma.pTTrainingLocation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PTTrainingLocationFindUniqueOrThrowArgs>(args: SelectSubset<T, PTTrainingLocationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PTTrainingLocationClient<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PTTrainingLocation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTTrainingLocationFindFirstArgs} args - Arguments to find a PTTrainingLocation
+     * @example
+     * // Get one PTTrainingLocation
+     * const pTTrainingLocation = await prisma.pTTrainingLocation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PTTrainingLocationFindFirstArgs>(args?: SelectSubset<T, PTTrainingLocationFindFirstArgs<ExtArgs>>): Prisma__PTTrainingLocationClient<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PTTrainingLocation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTTrainingLocationFindFirstOrThrowArgs} args - Arguments to find a PTTrainingLocation
+     * @example
+     * // Get one PTTrainingLocation
+     * const pTTrainingLocation = await prisma.pTTrainingLocation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PTTrainingLocationFindFirstOrThrowArgs>(args?: SelectSubset<T, PTTrainingLocationFindFirstOrThrowArgs<ExtArgs>>): Prisma__PTTrainingLocationClient<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PTTrainingLocations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTTrainingLocationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PTTrainingLocations
+     * const pTTrainingLocations = await prisma.pTTrainingLocation.findMany()
+     * 
+     * // Get first 10 PTTrainingLocations
+     * const pTTrainingLocations = await prisma.pTTrainingLocation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const pTTrainingLocationWithIdOnly = await prisma.pTTrainingLocation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PTTrainingLocationFindManyArgs>(args?: SelectSubset<T, PTTrainingLocationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PTTrainingLocation.
+     * @param {PTTrainingLocationCreateArgs} args - Arguments to create a PTTrainingLocation.
+     * @example
+     * // Create one PTTrainingLocation
+     * const PTTrainingLocation = await prisma.pTTrainingLocation.create({
+     *   data: {
+     *     // ... data to create a PTTrainingLocation
+     *   }
+     * })
+     * 
+     */
+    create<T extends PTTrainingLocationCreateArgs>(args: SelectSubset<T, PTTrainingLocationCreateArgs<ExtArgs>>): Prisma__PTTrainingLocationClient<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PTTrainingLocations.
+     * @param {PTTrainingLocationCreateManyArgs} args - Arguments to create many PTTrainingLocations.
+     * @example
+     * // Create many PTTrainingLocations
+     * const pTTrainingLocation = await prisma.pTTrainingLocation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PTTrainingLocationCreateManyArgs>(args?: SelectSubset<T, PTTrainingLocationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PTTrainingLocations and returns the data saved in the database.
+     * @param {PTTrainingLocationCreateManyAndReturnArgs} args - Arguments to create many PTTrainingLocations.
+     * @example
+     * // Create many PTTrainingLocations
+     * const pTTrainingLocation = await prisma.pTTrainingLocation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PTTrainingLocations and only return the `id`
+     * const pTTrainingLocationWithIdOnly = await prisma.pTTrainingLocation.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PTTrainingLocationCreateManyAndReturnArgs>(args?: SelectSubset<T, PTTrainingLocationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PTTrainingLocation.
+     * @param {PTTrainingLocationDeleteArgs} args - Arguments to delete one PTTrainingLocation.
+     * @example
+     * // Delete one PTTrainingLocation
+     * const PTTrainingLocation = await prisma.pTTrainingLocation.delete({
+     *   where: {
+     *     // ... filter to delete one PTTrainingLocation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PTTrainingLocationDeleteArgs>(args: SelectSubset<T, PTTrainingLocationDeleteArgs<ExtArgs>>): Prisma__PTTrainingLocationClient<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PTTrainingLocation.
+     * @param {PTTrainingLocationUpdateArgs} args - Arguments to update one PTTrainingLocation.
+     * @example
+     * // Update one PTTrainingLocation
+     * const pTTrainingLocation = await prisma.pTTrainingLocation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PTTrainingLocationUpdateArgs>(args: SelectSubset<T, PTTrainingLocationUpdateArgs<ExtArgs>>): Prisma__PTTrainingLocationClient<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PTTrainingLocations.
+     * @param {PTTrainingLocationDeleteManyArgs} args - Arguments to filter PTTrainingLocations to delete.
+     * @example
+     * // Delete a few PTTrainingLocations
+     * const { count } = await prisma.pTTrainingLocation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PTTrainingLocationDeleteManyArgs>(args?: SelectSubset<T, PTTrainingLocationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PTTrainingLocations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTTrainingLocationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PTTrainingLocations
+     * const pTTrainingLocation = await prisma.pTTrainingLocation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PTTrainingLocationUpdateManyArgs>(args: SelectSubset<T, PTTrainingLocationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PTTrainingLocation.
+     * @param {PTTrainingLocationUpsertArgs} args - Arguments to update or create a PTTrainingLocation.
+     * @example
+     * // Update or create a PTTrainingLocation
+     * const pTTrainingLocation = await prisma.pTTrainingLocation.upsert({
+     *   create: {
+     *     // ... data to create a PTTrainingLocation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PTTrainingLocation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PTTrainingLocationUpsertArgs>(args: SelectSubset<T, PTTrainingLocationUpsertArgs<ExtArgs>>): Prisma__PTTrainingLocationClient<$Result.GetResult<Prisma.$PTTrainingLocationPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PTTrainingLocations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTTrainingLocationCountArgs} args - Arguments to filter PTTrainingLocations to count.
+     * @example
+     * // Count the number of PTTrainingLocations
+     * const count = await prisma.pTTrainingLocation.count({
+     *   where: {
+     *     // ... the filter for the PTTrainingLocations we want to count
+     *   }
+     * })
+    **/
+    count<T extends PTTrainingLocationCountArgs>(
+      args?: Subset<T, PTTrainingLocationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PTTrainingLocationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PTTrainingLocation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTTrainingLocationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PTTrainingLocationAggregateArgs>(args: Subset<T, PTTrainingLocationAggregateArgs>): Prisma.PrismaPromise<GetPTTrainingLocationAggregateType<T>>
+
+    /**
+     * Group by PTTrainingLocation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PTTrainingLocationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PTTrainingLocationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PTTrainingLocationGroupByArgs['orderBy'] }
+        : { orderBy?: PTTrainingLocationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PTTrainingLocationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPTTrainingLocationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PTTrainingLocation model
+   */
+  readonly fields: PTTrainingLocationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PTTrainingLocation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PTTrainingLocationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    province<T extends VietnamProvinceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, VietnamProvinceDefaultArgs<ExtArgs>>): Prisma__VietnamProvinceClient<$Result.GetResult<Prisma.$VietnamProvincePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    ward<T extends PTTrainingLocation$wardArgs<ExtArgs> = {}>(args?: Subset<T, PTTrainingLocation$wardArgs<ExtArgs>>): Prisma__VietnamWardClient<$Result.GetResult<Prisma.$VietnamWardPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    ptProfile<T extends UserProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserProfileDefaultArgs<ExtArgs>>): Prisma__UserProfileClient<$Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PTTrainingLocation model
+   */ 
+  interface PTTrainingLocationFieldRefs {
+    readonly id: FieldRef<"PTTrainingLocation", 'String'>
+    readonly ptUserId: FieldRef<"PTTrainingLocation", 'String'>
+    readonly provinceCode: FieldRef<"PTTrainingLocation", 'Int'>
+    readonly wardCode: FieldRef<"PTTrainingLocation", 'Int'>
+    readonly gymName: FieldRef<"PTTrainingLocation", 'String'>
+    readonly addressLine: FieldRef<"PTTrainingLocation", 'String'>
+    readonly legacyDistrictName: FieldRef<"PTTrainingLocation", 'String'>
+    readonly isPrimary: FieldRef<"PTTrainingLocation", 'Boolean'>
+    readonly isActive: FieldRef<"PTTrainingLocation", 'Boolean'>
+    readonly note: FieldRef<"PTTrainingLocation", 'String'>
+    readonly createdAt: FieldRef<"PTTrainingLocation", 'DateTime'>
+    readonly updatedAt: FieldRef<"PTTrainingLocation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PTTrainingLocation findUnique
+   */
+  export type PTTrainingLocationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    /**
+     * Filter, which PTTrainingLocation to fetch.
+     */
+    where: PTTrainingLocationWhereUniqueInput
+  }
+
+  /**
+   * PTTrainingLocation findUniqueOrThrow
+   */
+  export type PTTrainingLocationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    /**
+     * Filter, which PTTrainingLocation to fetch.
+     */
+    where: PTTrainingLocationWhereUniqueInput
+  }
+
+  /**
+   * PTTrainingLocation findFirst
+   */
+  export type PTTrainingLocationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    /**
+     * Filter, which PTTrainingLocation to fetch.
+     */
+    where?: PTTrainingLocationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTTrainingLocations to fetch.
+     */
+    orderBy?: PTTrainingLocationOrderByWithRelationInput | PTTrainingLocationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PTTrainingLocations.
+     */
+    cursor?: PTTrainingLocationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTTrainingLocations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTTrainingLocations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PTTrainingLocations.
+     */
+    distinct?: PTTrainingLocationScalarFieldEnum | PTTrainingLocationScalarFieldEnum[]
+  }
+
+  /**
+   * PTTrainingLocation findFirstOrThrow
+   */
+  export type PTTrainingLocationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    /**
+     * Filter, which PTTrainingLocation to fetch.
+     */
+    where?: PTTrainingLocationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTTrainingLocations to fetch.
+     */
+    orderBy?: PTTrainingLocationOrderByWithRelationInput | PTTrainingLocationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PTTrainingLocations.
+     */
+    cursor?: PTTrainingLocationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTTrainingLocations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTTrainingLocations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PTTrainingLocations.
+     */
+    distinct?: PTTrainingLocationScalarFieldEnum | PTTrainingLocationScalarFieldEnum[]
+  }
+
+  /**
+   * PTTrainingLocation findMany
+   */
+  export type PTTrainingLocationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    /**
+     * Filter, which PTTrainingLocations to fetch.
+     */
+    where?: PTTrainingLocationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PTTrainingLocations to fetch.
+     */
+    orderBy?: PTTrainingLocationOrderByWithRelationInput | PTTrainingLocationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PTTrainingLocations.
+     */
+    cursor?: PTTrainingLocationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PTTrainingLocations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PTTrainingLocations.
+     */
+    skip?: number
+    distinct?: PTTrainingLocationScalarFieldEnum | PTTrainingLocationScalarFieldEnum[]
+  }
+
+  /**
+   * PTTrainingLocation create
+   */
+  export type PTTrainingLocationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PTTrainingLocation.
+     */
+    data: XOR<PTTrainingLocationCreateInput, PTTrainingLocationUncheckedCreateInput>
+  }
+
+  /**
+   * PTTrainingLocation createMany
+   */
+  export type PTTrainingLocationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PTTrainingLocations.
+     */
+    data: PTTrainingLocationCreateManyInput | PTTrainingLocationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PTTrainingLocation createManyAndReturn
+   */
+  export type PTTrainingLocationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PTTrainingLocations.
+     */
+    data: PTTrainingLocationCreateManyInput | PTTrainingLocationCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PTTrainingLocation update
+   */
+  export type PTTrainingLocationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PTTrainingLocation.
+     */
+    data: XOR<PTTrainingLocationUpdateInput, PTTrainingLocationUncheckedUpdateInput>
+    /**
+     * Choose, which PTTrainingLocation to update.
+     */
+    where: PTTrainingLocationWhereUniqueInput
+  }
+
+  /**
+   * PTTrainingLocation updateMany
+   */
+  export type PTTrainingLocationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PTTrainingLocations.
+     */
+    data: XOR<PTTrainingLocationUpdateManyMutationInput, PTTrainingLocationUncheckedUpdateManyInput>
+    /**
+     * Filter which PTTrainingLocations to update
+     */
+    where?: PTTrainingLocationWhereInput
+  }
+
+  /**
+   * PTTrainingLocation upsert
+   */
+  export type PTTrainingLocationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PTTrainingLocation to update in case it exists.
+     */
+    where: PTTrainingLocationWhereUniqueInput
+    /**
+     * In case the PTTrainingLocation found by the `where` argument doesn't exist, create a new PTTrainingLocation with this data.
+     */
+    create: XOR<PTTrainingLocationCreateInput, PTTrainingLocationUncheckedCreateInput>
+    /**
+     * In case the PTTrainingLocation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PTTrainingLocationUpdateInput, PTTrainingLocationUncheckedUpdateInput>
+  }
+
+  /**
+   * PTTrainingLocation delete
+   */
+  export type PTTrainingLocationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+    /**
+     * Filter which PTTrainingLocation to delete.
+     */
+    where: PTTrainingLocationWhereUniqueInput
+  }
+
+  /**
+   * PTTrainingLocation deleteMany
+   */
+  export type PTTrainingLocationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PTTrainingLocations to delete
+     */
+    where?: PTTrainingLocationWhereInput
+  }
+
+  /**
+   * PTTrainingLocation.ward
+   */
+  export type PTTrainingLocation$wardArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the VietnamWard
+     */
+    select?: VietnamWardSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: VietnamWardInclude<ExtArgs> | null
+    where?: VietnamWardWhereInput
+  }
+
+  /**
+   * PTTrainingLocation without action
+   */
+  export type PTTrainingLocationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PTTrainingLocation
+     */
+    select?: PTTrainingLocationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PTTrainingLocationInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model InBodyEntry
    */
 
@@ -12947,6 +16570,7 @@ export namespace Prisma {
     id: string | null
     userId: string | null
     date: Date | null
+    dateOnly: Date | null
     weight: number | null
     height: number | null
     bmi: number | null
@@ -12973,6 +16597,7 @@ export namespace Prisma {
     id: string | null
     userId: string | null
     date: Date | null
+    dateOnly: Date | null
     weight: number | null
     height: number | null
     bmi: number | null
@@ -12999,6 +16624,7 @@ export namespace Prisma {
     id: number
     userId: number
     date: number
+    dateOnly: number
     weight: number
     height: number
     bmi: number
@@ -13065,6 +16691,7 @@ export namespace Prisma {
     id?: true
     userId?: true
     date?: true
+    dateOnly?: true
     weight?: true
     height?: true
     bmi?: true
@@ -13091,6 +16718,7 @@ export namespace Prisma {
     id?: true
     userId?: true
     date?: true
+    dateOnly?: true
     weight?: true
     height?: true
     bmi?: true
@@ -13117,6 +16745,7 @@ export namespace Prisma {
     id?: true
     userId?: true
     date?: true
+    dateOnly?: true
     weight?: true
     height?: true
     bmi?: true
@@ -13230,6 +16859,7 @@ export namespace Prisma {
     id: string
     userId: string
     date: Date
+    dateOnly: Date
     weight: number
     height: number | null
     bmi: number | null
@@ -13275,6 +16905,7 @@ export namespace Prisma {
     id?: boolean
     userId?: boolean
     date?: boolean
+    dateOnly?: boolean
     weight?: boolean
     height?: boolean
     bmi?: boolean
@@ -13301,6 +16932,7 @@ export namespace Prisma {
     id?: boolean
     userId?: boolean
     date?: boolean
+    dateOnly?: boolean
     weight?: boolean
     height?: boolean
     bmi?: boolean
@@ -13327,6 +16959,7 @@ export namespace Prisma {
     id?: boolean
     userId?: boolean
     date?: boolean
+    dateOnly?: boolean
     weight?: boolean
     height?: boolean
     bmi?: boolean
@@ -13357,6 +16990,7 @@ export namespace Prisma {
       id: string
       userId: string
       date: Date
+      dateOnly: Date
       weight: number
       height: number | null
       bmi: number | null
@@ -13773,6 +17407,7 @@ export namespace Prisma {
     readonly id: FieldRef<"InBodyEntry", 'String'>
     readonly userId: FieldRef<"InBodyEntry", 'String'>
     readonly date: FieldRef<"InBodyEntry", 'DateTime'>
+    readonly dateOnly: FieldRef<"InBodyEntry", 'DateTime'>
     readonly weight: FieldRef<"InBodyEntry", 'Float'>
     readonly height: FieldRef<"InBodyEntry", 'Float'>
     readonly bmi: FieldRef<"InBodyEntry", 'Float'>
@@ -14165,6 +17800,11 @@ export namespace Prisma {
     onlinePackagePrice: 'onlinePackagePrice',
     offlinePackagePrice: 'offlinePackagePrice',
     otherReferences: 'otherReferences',
+    residenceProvinceCode: 'residenceProvinceCode',
+    residenceWardCode: 'residenceWardCode',
+    residenceAddressLine: 'residenceAddressLine',
+    residenceLegacyDistrictName: 'residenceLegacyDistrictName',
+    applicationTrainingLocations: 'applicationTrainingLocations',
     adminNote: 'adminNote',
     rejectionReason: 'rejectionReason',
     submittedAt: 'submittedAt',
@@ -14326,10 +17966,58 @@ export namespace Prisma {
   export type PTScheduleExceptionScalarFieldEnum = (typeof PTScheduleExceptionScalarFieldEnum)[keyof typeof PTScheduleExceptionScalarFieldEnum]
 
 
+  export const VietnamProvinceScalarFieldEnum: {
+    code: 'code',
+    name: 'name',
+    nameNormalized: 'nameNormalized',
+    codename: 'codename',
+    divisionType: 'divisionType',
+    phoneCode: 'phoneCode',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type VietnamProvinceScalarFieldEnum = (typeof VietnamProvinceScalarFieldEnum)[keyof typeof VietnamProvinceScalarFieldEnum]
+
+
+  export const VietnamWardScalarFieldEnum: {
+    code: 'code',
+    provinceCode: 'provinceCode',
+    name: 'name',
+    nameNormalized: 'nameNormalized',
+    codename: 'codename',
+    divisionType: 'divisionType',
+    shortCodename: 'shortCodename',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type VietnamWardScalarFieldEnum = (typeof VietnamWardScalarFieldEnum)[keyof typeof VietnamWardScalarFieldEnum]
+
+
+  export const PTTrainingLocationScalarFieldEnum: {
+    id: 'id',
+    ptUserId: 'ptUserId',
+    provinceCode: 'provinceCode',
+    wardCode: 'wardCode',
+    gymName: 'gymName',
+    addressLine: 'addressLine',
+    legacyDistrictName: 'legacyDistrictName',
+    isPrimary: 'isPrimary',
+    isActive: 'isActive',
+    note: 'note',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PTTrainingLocationScalarFieldEnum = (typeof PTTrainingLocationScalarFieldEnum)[keyof typeof PTTrainingLocationScalarFieldEnum]
+
+
   export const InBodyEntryScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
     date: 'date',
+    dateOnly: 'dateOnly',
     weight: 'weight',
     height: 'height',
     bmi: 'bmi',
@@ -14697,6 +18385,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
     ptApplication?: XOR<PTApplicationNullableRelationFilter, PTApplicationWhereInput> | null
+    trainingLocations?: PTTrainingLocationListRelationFilter
   }
 
   export type UserProfileOrderByWithRelationInput = {
@@ -14723,6 +18412,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     ptApplication?: PTApplicationOrderByWithRelationInput
+    trainingLocations?: PTTrainingLocationOrderByRelationAggregateInput
   }
 
   export type UserProfileWhereUniqueInput = Prisma.AtLeast<{
@@ -14752,6 +18442,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"UserProfile"> | Date | string
     updatedAt?: DateTimeFilter<"UserProfile"> | Date | string
     ptApplication?: XOR<PTApplicationNullableRelationFilter, PTApplicationWhereInput> | null
+    trainingLocations?: PTTrainingLocationListRelationFilter
   }, "id" | "userId">
 
   export type UserProfileOrderByWithAggregationInput = {
@@ -14857,6 +18548,11 @@ export namespace Prisma {
     onlinePackagePrice?: FloatNullableFilter<"PTApplication"> | number | null
     offlinePackagePrice?: FloatNullableFilter<"PTApplication"> | number | null
     otherReferences?: StringNullableFilter<"PTApplication"> | string | null
+    residenceProvinceCode?: IntNullableFilter<"PTApplication"> | number | null
+    residenceWardCode?: IntNullableFilter<"PTApplication"> | number | null
+    residenceAddressLine?: StringNullableFilter<"PTApplication"> | string | null
+    residenceLegacyDistrictName?: StringNullableFilter<"PTApplication"> | string | null
+    applicationTrainingLocations?: JsonNullableFilter<"PTApplication">
     adminNote?: StringNullableFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableFilter<"PTApplication"> | string | null
     submittedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
@@ -14911,6 +18607,11 @@ export namespace Prisma {
     onlinePackagePrice?: SortOrderInput | SortOrder
     offlinePackagePrice?: SortOrderInput | SortOrder
     otherReferences?: SortOrderInput | SortOrder
+    residenceProvinceCode?: SortOrderInput | SortOrder
+    residenceWardCode?: SortOrderInput | SortOrder
+    residenceAddressLine?: SortOrderInput | SortOrder
+    residenceLegacyDistrictName?: SortOrderInput | SortOrder
+    applicationTrainingLocations?: SortOrderInput | SortOrder
     adminNote?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
     submittedAt?: SortOrderInput | SortOrder
@@ -14968,6 +18669,11 @@ export namespace Prisma {
     onlinePackagePrice?: FloatNullableFilter<"PTApplication"> | number | null
     offlinePackagePrice?: FloatNullableFilter<"PTApplication"> | number | null
     otherReferences?: StringNullableFilter<"PTApplication"> | string | null
+    residenceProvinceCode?: IntNullableFilter<"PTApplication"> | number | null
+    residenceWardCode?: IntNullableFilter<"PTApplication"> | number | null
+    residenceAddressLine?: StringNullableFilter<"PTApplication"> | string | null
+    residenceLegacyDistrictName?: StringNullableFilter<"PTApplication"> | string | null
+    applicationTrainingLocations?: JsonNullableFilter<"PTApplication">
     adminNote?: StringNullableFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableFilter<"PTApplication"> | string | null
     submittedAt?: DateTimeNullableFilter<"PTApplication"> | Date | string | null
@@ -15022,6 +18728,11 @@ export namespace Prisma {
     onlinePackagePrice?: SortOrderInput | SortOrder
     offlinePackagePrice?: SortOrderInput | SortOrder
     otherReferences?: SortOrderInput | SortOrder
+    residenceProvinceCode?: SortOrderInput | SortOrder
+    residenceWardCode?: SortOrderInput | SortOrder
+    residenceAddressLine?: SortOrderInput | SortOrder
+    residenceLegacyDistrictName?: SortOrderInput | SortOrder
+    applicationTrainingLocations?: SortOrderInput | SortOrder
     adminNote?: SortOrderInput | SortOrder
     rejectionReason?: SortOrderInput | SortOrder
     submittedAt?: SortOrderInput | SortOrder
@@ -15081,6 +18792,11 @@ export namespace Prisma {
     onlinePackagePrice?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
     offlinePackagePrice?: FloatNullableWithAggregatesFilter<"PTApplication"> | number | null
     otherReferences?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
+    residenceProvinceCode?: IntNullableWithAggregatesFilter<"PTApplication"> | number | null
+    residenceWardCode?: IntNullableWithAggregatesFilter<"PTApplication"> | number | null
+    residenceAddressLine?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
+    residenceLegacyDistrictName?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
+    applicationTrainingLocations?: JsonNullableWithAggregatesFilter<"PTApplication">
     adminNote?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     rejectionReason?: StringNullableWithAggregatesFilter<"PTApplication"> | string | null
     submittedAt?: DateTimeNullableWithAggregatesFilter<"PTApplication"> | Date | string | null
@@ -15839,6 +19555,259 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"PTScheduleException"> | Date | string
   }
 
+  export type VietnamProvinceWhereInput = {
+    AND?: VietnamProvinceWhereInput | VietnamProvinceWhereInput[]
+    OR?: VietnamProvinceWhereInput[]
+    NOT?: VietnamProvinceWhereInput | VietnamProvinceWhereInput[]
+    code?: IntFilter<"VietnamProvince"> | number
+    name?: StringFilter<"VietnamProvince"> | string
+    nameNormalized?: StringFilter<"VietnamProvince"> | string
+    codename?: StringNullableFilter<"VietnamProvince"> | string | null
+    divisionType?: StringNullableFilter<"VietnamProvince"> | string | null
+    phoneCode?: IntNullableFilter<"VietnamProvince"> | number | null
+    createdAt?: DateTimeFilter<"VietnamProvince"> | Date | string
+    updatedAt?: DateTimeFilter<"VietnamProvince"> | Date | string
+    wards?: VietnamWardListRelationFilter
+    trainingLocations?: PTTrainingLocationListRelationFilter
+  }
+
+  export type VietnamProvinceOrderByWithRelationInput = {
+    code?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    codename?: SortOrderInput | SortOrder
+    divisionType?: SortOrderInput | SortOrder
+    phoneCode?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    wards?: VietnamWardOrderByRelationAggregateInput
+    trainingLocations?: PTTrainingLocationOrderByRelationAggregateInput
+  }
+
+  export type VietnamProvinceWhereUniqueInput = Prisma.AtLeast<{
+    code?: number
+    AND?: VietnamProvinceWhereInput | VietnamProvinceWhereInput[]
+    OR?: VietnamProvinceWhereInput[]
+    NOT?: VietnamProvinceWhereInput | VietnamProvinceWhereInput[]
+    name?: StringFilter<"VietnamProvince"> | string
+    nameNormalized?: StringFilter<"VietnamProvince"> | string
+    codename?: StringNullableFilter<"VietnamProvince"> | string | null
+    divisionType?: StringNullableFilter<"VietnamProvince"> | string | null
+    phoneCode?: IntNullableFilter<"VietnamProvince"> | number | null
+    createdAt?: DateTimeFilter<"VietnamProvince"> | Date | string
+    updatedAt?: DateTimeFilter<"VietnamProvince"> | Date | string
+    wards?: VietnamWardListRelationFilter
+    trainingLocations?: PTTrainingLocationListRelationFilter
+  }, "code">
+
+  export type VietnamProvinceOrderByWithAggregationInput = {
+    code?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    codename?: SortOrderInput | SortOrder
+    divisionType?: SortOrderInput | SortOrder
+    phoneCode?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: VietnamProvinceCountOrderByAggregateInput
+    _avg?: VietnamProvinceAvgOrderByAggregateInput
+    _max?: VietnamProvinceMaxOrderByAggregateInput
+    _min?: VietnamProvinceMinOrderByAggregateInput
+    _sum?: VietnamProvinceSumOrderByAggregateInput
+  }
+
+  export type VietnamProvinceScalarWhereWithAggregatesInput = {
+    AND?: VietnamProvinceScalarWhereWithAggregatesInput | VietnamProvinceScalarWhereWithAggregatesInput[]
+    OR?: VietnamProvinceScalarWhereWithAggregatesInput[]
+    NOT?: VietnamProvinceScalarWhereWithAggregatesInput | VietnamProvinceScalarWhereWithAggregatesInput[]
+    code?: IntWithAggregatesFilter<"VietnamProvince"> | number
+    name?: StringWithAggregatesFilter<"VietnamProvince"> | string
+    nameNormalized?: StringWithAggregatesFilter<"VietnamProvince"> | string
+    codename?: StringNullableWithAggregatesFilter<"VietnamProvince"> | string | null
+    divisionType?: StringNullableWithAggregatesFilter<"VietnamProvince"> | string | null
+    phoneCode?: IntNullableWithAggregatesFilter<"VietnamProvince"> | number | null
+    createdAt?: DateTimeWithAggregatesFilter<"VietnamProvince"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"VietnamProvince"> | Date | string
+  }
+
+  export type VietnamWardWhereInput = {
+    AND?: VietnamWardWhereInput | VietnamWardWhereInput[]
+    OR?: VietnamWardWhereInput[]
+    NOT?: VietnamWardWhereInput | VietnamWardWhereInput[]
+    code?: IntFilter<"VietnamWard"> | number
+    provinceCode?: IntFilter<"VietnamWard"> | number
+    name?: StringFilter<"VietnamWard"> | string
+    nameNormalized?: StringFilter<"VietnamWard"> | string
+    codename?: StringNullableFilter<"VietnamWard"> | string | null
+    divisionType?: StringNullableFilter<"VietnamWard"> | string | null
+    shortCodename?: StringNullableFilter<"VietnamWard"> | string | null
+    createdAt?: DateTimeFilter<"VietnamWard"> | Date | string
+    updatedAt?: DateTimeFilter<"VietnamWard"> | Date | string
+    province?: XOR<VietnamProvinceRelationFilter, VietnamProvinceWhereInput>
+    trainingLocations?: PTTrainingLocationListRelationFilter
+  }
+
+  export type VietnamWardOrderByWithRelationInput = {
+    code?: SortOrder
+    provinceCode?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    codename?: SortOrderInput | SortOrder
+    divisionType?: SortOrderInput | SortOrder
+    shortCodename?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    province?: VietnamProvinceOrderByWithRelationInput
+    trainingLocations?: PTTrainingLocationOrderByRelationAggregateInput
+  }
+
+  export type VietnamWardWhereUniqueInput = Prisma.AtLeast<{
+    code?: number
+    AND?: VietnamWardWhereInput | VietnamWardWhereInput[]
+    OR?: VietnamWardWhereInput[]
+    NOT?: VietnamWardWhereInput | VietnamWardWhereInput[]
+    provinceCode?: IntFilter<"VietnamWard"> | number
+    name?: StringFilter<"VietnamWard"> | string
+    nameNormalized?: StringFilter<"VietnamWard"> | string
+    codename?: StringNullableFilter<"VietnamWard"> | string | null
+    divisionType?: StringNullableFilter<"VietnamWard"> | string | null
+    shortCodename?: StringNullableFilter<"VietnamWard"> | string | null
+    createdAt?: DateTimeFilter<"VietnamWard"> | Date | string
+    updatedAt?: DateTimeFilter<"VietnamWard"> | Date | string
+    province?: XOR<VietnamProvinceRelationFilter, VietnamProvinceWhereInput>
+    trainingLocations?: PTTrainingLocationListRelationFilter
+  }, "code">
+
+  export type VietnamWardOrderByWithAggregationInput = {
+    code?: SortOrder
+    provinceCode?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    codename?: SortOrderInput | SortOrder
+    divisionType?: SortOrderInput | SortOrder
+    shortCodename?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: VietnamWardCountOrderByAggregateInput
+    _avg?: VietnamWardAvgOrderByAggregateInput
+    _max?: VietnamWardMaxOrderByAggregateInput
+    _min?: VietnamWardMinOrderByAggregateInput
+    _sum?: VietnamWardSumOrderByAggregateInput
+  }
+
+  export type VietnamWardScalarWhereWithAggregatesInput = {
+    AND?: VietnamWardScalarWhereWithAggregatesInput | VietnamWardScalarWhereWithAggregatesInput[]
+    OR?: VietnamWardScalarWhereWithAggregatesInput[]
+    NOT?: VietnamWardScalarWhereWithAggregatesInput | VietnamWardScalarWhereWithAggregatesInput[]
+    code?: IntWithAggregatesFilter<"VietnamWard"> | number
+    provinceCode?: IntWithAggregatesFilter<"VietnamWard"> | number
+    name?: StringWithAggregatesFilter<"VietnamWard"> | string
+    nameNormalized?: StringWithAggregatesFilter<"VietnamWard"> | string
+    codename?: StringNullableWithAggregatesFilter<"VietnamWard"> | string | null
+    divisionType?: StringNullableWithAggregatesFilter<"VietnamWard"> | string | null
+    shortCodename?: StringNullableWithAggregatesFilter<"VietnamWard"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"VietnamWard"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"VietnamWard"> | Date | string
+  }
+
+  export type PTTrainingLocationWhereInput = {
+    AND?: PTTrainingLocationWhereInput | PTTrainingLocationWhereInput[]
+    OR?: PTTrainingLocationWhereInput[]
+    NOT?: PTTrainingLocationWhereInput | PTTrainingLocationWhereInput[]
+    id?: StringFilter<"PTTrainingLocation"> | string
+    ptUserId?: StringFilter<"PTTrainingLocation"> | string
+    provinceCode?: IntFilter<"PTTrainingLocation"> | number
+    wardCode?: IntNullableFilter<"PTTrainingLocation"> | number | null
+    gymName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    addressLine?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    legacyDistrictName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    isPrimary?: BoolFilter<"PTTrainingLocation"> | boolean
+    isActive?: BoolFilter<"PTTrainingLocation"> | boolean
+    note?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    createdAt?: DateTimeFilter<"PTTrainingLocation"> | Date | string
+    updatedAt?: DateTimeFilter<"PTTrainingLocation"> | Date | string
+    province?: XOR<VietnamProvinceRelationFilter, VietnamProvinceWhereInput>
+    ward?: XOR<VietnamWardNullableRelationFilter, VietnamWardWhereInput> | null
+    ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }
+
+  export type PTTrainingLocationOrderByWithRelationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    provinceCode?: SortOrder
+    wardCode?: SortOrderInput | SortOrder
+    gymName?: SortOrderInput | SortOrder
+    addressLine?: SortOrderInput | SortOrder
+    legacyDistrictName?: SortOrderInput | SortOrder
+    isPrimary?: SortOrder
+    isActive?: SortOrder
+    note?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    province?: VietnamProvinceOrderByWithRelationInput
+    ward?: VietnamWardOrderByWithRelationInput
+    ptProfile?: UserProfileOrderByWithRelationInput
+  }
+
+  export type PTTrainingLocationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PTTrainingLocationWhereInput | PTTrainingLocationWhereInput[]
+    OR?: PTTrainingLocationWhereInput[]
+    NOT?: PTTrainingLocationWhereInput | PTTrainingLocationWhereInput[]
+    ptUserId?: StringFilter<"PTTrainingLocation"> | string
+    provinceCode?: IntFilter<"PTTrainingLocation"> | number
+    wardCode?: IntNullableFilter<"PTTrainingLocation"> | number | null
+    gymName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    addressLine?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    legacyDistrictName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    isPrimary?: BoolFilter<"PTTrainingLocation"> | boolean
+    isActive?: BoolFilter<"PTTrainingLocation"> | boolean
+    note?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    createdAt?: DateTimeFilter<"PTTrainingLocation"> | Date | string
+    updatedAt?: DateTimeFilter<"PTTrainingLocation"> | Date | string
+    province?: XOR<VietnamProvinceRelationFilter, VietnamProvinceWhereInput>
+    ward?: XOR<VietnamWardNullableRelationFilter, VietnamWardWhereInput> | null
+    ptProfile?: XOR<UserProfileRelationFilter, UserProfileWhereInput>
+  }, "id">
+
+  export type PTTrainingLocationOrderByWithAggregationInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    provinceCode?: SortOrder
+    wardCode?: SortOrderInput | SortOrder
+    gymName?: SortOrderInput | SortOrder
+    addressLine?: SortOrderInput | SortOrder
+    legacyDistrictName?: SortOrderInput | SortOrder
+    isPrimary?: SortOrder
+    isActive?: SortOrder
+    note?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PTTrainingLocationCountOrderByAggregateInput
+    _avg?: PTTrainingLocationAvgOrderByAggregateInput
+    _max?: PTTrainingLocationMaxOrderByAggregateInput
+    _min?: PTTrainingLocationMinOrderByAggregateInput
+    _sum?: PTTrainingLocationSumOrderByAggregateInput
+  }
+
+  export type PTTrainingLocationScalarWhereWithAggregatesInput = {
+    AND?: PTTrainingLocationScalarWhereWithAggregatesInput | PTTrainingLocationScalarWhereWithAggregatesInput[]
+    OR?: PTTrainingLocationScalarWhereWithAggregatesInput[]
+    NOT?: PTTrainingLocationScalarWhereWithAggregatesInput | PTTrainingLocationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PTTrainingLocation"> | string
+    ptUserId?: StringWithAggregatesFilter<"PTTrainingLocation"> | string
+    provinceCode?: IntWithAggregatesFilter<"PTTrainingLocation"> | number
+    wardCode?: IntNullableWithAggregatesFilter<"PTTrainingLocation"> | number | null
+    gymName?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
+    addressLine?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
+    legacyDistrictName?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
+    isPrimary?: BoolWithAggregatesFilter<"PTTrainingLocation"> | boolean
+    isActive?: BoolWithAggregatesFilter<"PTTrainingLocation"> | boolean
+    note?: StringNullableWithAggregatesFilter<"PTTrainingLocation"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PTTrainingLocation"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PTTrainingLocation"> | Date | string
+  }
+
   export type InBodyEntryWhereInput = {
     AND?: InBodyEntryWhereInput | InBodyEntryWhereInput[]
     OR?: InBodyEntryWhereInput[]
@@ -15846,6 +19815,7 @@ export namespace Prisma {
     id?: StringFilter<"InBodyEntry"> | string
     userId?: StringFilter<"InBodyEntry"> | string
     date?: DateTimeFilter<"InBodyEntry"> | Date | string
+    dateOnly?: DateTimeFilter<"InBodyEntry"> | Date | string
     weight?: FloatFilter<"InBodyEntry"> | number
     height?: FloatNullableFilter<"InBodyEntry"> | number | null
     bmi?: FloatNullableFilter<"InBodyEntry"> | number | null
@@ -15872,6 +19842,7 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     date?: SortOrder
+    dateOnly?: SortOrder
     weight?: SortOrder
     height?: SortOrderInput | SortOrder
     bmi?: SortOrderInput | SortOrder
@@ -15896,11 +19867,13 @@ export namespace Prisma {
 
   export type InBodyEntryWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    inbody_entries_user_id_date_only_key?: InBodyEntryInbody_entries_user_id_date_only_keyCompoundUniqueInput
     AND?: InBodyEntryWhereInput | InBodyEntryWhereInput[]
     OR?: InBodyEntryWhereInput[]
     NOT?: InBodyEntryWhereInput | InBodyEntryWhereInput[]
     userId?: StringFilter<"InBodyEntry"> | string
     date?: DateTimeFilter<"InBodyEntry"> | Date | string
+    dateOnly?: DateTimeFilter<"InBodyEntry"> | Date | string
     weight?: FloatFilter<"InBodyEntry"> | number
     height?: FloatNullableFilter<"InBodyEntry"> | number | null
     bmi?: FloatNullableFilter<"InBodyEntry"> | number | null
@@ -15921,12 +19894,13 @@ export namespace Prisma {
     notes?: StringNullableFilter<"InBodyEntry"> | string | null
     createdAt?: DateTimeFilter<"InBodyEntry"> | Date | string
     updatedAt?: DateTimeFilter<"InBodyEntry"> | Date | string
-  }, "id">
+  }, "id" | "inbody_entries_user_id_date_only_key">
 
   export type InBodyEntryOrderByWithAggregationInput = {
     id?: SortOrder
     userId?: SortOrder
     date?: SortOrder
+    dateOnly?: SortOrder
     weight?: SortOrder
     height?: SortOrderInput | SortOrder
     bmi?: SortOrderInput | SortOrder
@@ -15961,6 +19935,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"InBodyEntry"> | string
     userId?: StringWithAggregatesFilter<"InBodyEntry"> | string
     date?: DateTimeWithAggregatesFilter<"InBodyEntry"> | Date | string
+    dateOnly?: DateTimeWithAggregatesFilter<"InBodyEntry"> | Date | string
     weight?: FloatWithAggregatesFilter<"InBodyEntry"> | number
     height?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
     bmi?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
@@ -16007,6 +19982,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateInput = {
@@ -16033,6 +20009,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUpdateInput = {
@@ -16059,6 +20036,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateInput = {
@@ -16085,6 +20063,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileCreateManyInput = {
@@ -16203,6 +20182,11 @@ export namespace Prisma {
     onlinePackagePrice?: number | null
     offlinePackagePrice?: number | null
     otherReferences?: string | null
+    residenceProvinceCode?: number | null
+    residenceWardCode?: number | null
+    residenceAddressLine?: string | null
+    residenceLegacyDistrictName?: string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -16257,6 +20241,11 @@ export namespace Prisma {
     onlinePackagePrice?: number | null
     offlinePackagePrice?: number | null
     otherReferences?: string | null
+    residenceProvinceCode?: number | null
+    residenceWardCode?: number | null
+    residenceAddressLine?: string | null
+    residenceLegacyDistrictName?: string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -16309,6 +20298,11 @@ export namespace Prisma {
     onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceAddressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceLegacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16363,6 +20357,11 @@ export namespace Prisma {
     onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceAddressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceLegacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16416,6 +20415,11 @@ export namespace Prisma {
     onlinePackagePrice?: number | null
     offlinePackagePrice?: number | null
     otherReferences?: string | null
+    residenceProvinceCode?: number | null
+    residenceWardCode?: number | null
+    residenceAddressLine?: string | null
+    residenceLegacyDistrictName?: string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -16466,6 +20470,11 @@ export namespace Prisma {
     onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceAddressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceLegacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -16517,6 +20526,11 @@ export namespace Prisma {
     onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceAddressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceLegacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -17408,10 +21422,285 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type VietnamProvinceCreateInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    phoneCode?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    wards?: VietnamWardCreateNestedManyWithoutProvinceInput
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutProvinceInput
+  }
+
+  export type VietnamProvinceUncheckedCreateInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    phoneCode?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    wards?: VietnamWardUncheckedCreateNestedManyWithoutProvinceInput
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutProvinceInput
+  }
+
+  export type VietnamProvinceUpdateInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    wards?: VietnamWardUpdateManyWithoutProvinceNestedInput
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutProvinceNestedInput
+  }
+
+  export type VietnamProvinceUncheckedUpdateInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    wards?: VietnamWardUncheckedUpdateManyWithoutProvinceNestedInput
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutProvinceNestedInput
+  }
+
+  export type VietnamProvinceCreateManyInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    phoneCode?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type VietnamProvinceUpdateManyMutationInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type VietnamProvinceUncheckedUpdateManyInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type VietnamWardCreateInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    shortCodename?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    province: VietnamProvinceCreateNestedOneWithoutWardsInput
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutWardInput
+  }
+
+  export type VietnamWardUncheckedCreateInput = {
+    code: number
+    provinceCode: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    shortCodename?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutWardInput
+  }
+
+  export type VietnamWardUpdateInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    province?: VietnamProvinceUpdateOneRequiredWithoutWardsNestedInput
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutWardNestedInput
+  }
+
+  export type VietnamWardUncheckedUpdateInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutWardNestedInput
+  }
+
+  export type VietnamWardCreateManyInput = {
+    code: number
+    provinceCode: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    shortCodename?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type VietnamWardUpdateManyMutationInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type VietnamWardUncheckedUpdateManyInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTTrainingLocationCreateInput = {
+    id?: string
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    province: VietnamProvinceCreateNestedOneWithoutTrainingLocationsInput
+    ward?: VietnamWardCreateNestedOneWithoutTrainingLocationsInput
+    ptProfile: UserProfileCreateNestedOneWithoutTrainingLocationsInput
+  }
+
+  export type PTTrainingLocationUncheckedCreateInput = {
+    id?: string
+    ptUserId: string
+    provinceCode: number
+    wardCode?: number | null
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTTrainingLocationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    province?: VietnamProvinceUpdateOneRequiredWithoutTrainingLocationsNestedInput
+    ward?: VietnamWardUpdateOneWithoutTrainingLocationsNestedInput
+    ptProfile?: UserProfileUpdateOneRequiredWithoutTrainingLocationsNestedInput
+  }
+
+  export type PTTrainingLocationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTTrainingLocationCreateManyInput = {
+    id?: string
+    ptUserId: string
+    provinceCode: number
+    wardCode?: number | null
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTTrainingLocationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTTrainingLocationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type InBodyEntryCreateInput = {
     id?: string
     userId: string
     date?: Date | string
+    dateOnly: Date | string
     weight: number
     height?: number | null
     bmi?: number | null
@@ -17438,6 +21727,7 @@ export namespace Prisma {
     id?: string
     userId: string
     date?: Date | string
+    dateOnly: Date | string
     weight: number
     height?: number | null
     bmi?: number | null
@@ -17464,6 +21754,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
+    dateOnly?: DateTimeFieldUpdateOperationsInput | Date | string
     weight?: FloatFieldUpdateOperationsInput | number
     height?: NullableFloatFieldUpdateOperationsInput | number | null
     bmi?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -17490,6 +21781,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
+    dateOnly?: DateTimeFieldUpdateOperationsInput | Date | string
     weight?: FloatFieldUpdateOperationsInput | number
     height?: NullableFloatFieldUpdateOperationsInput | number | null
     bmi?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -17516,6 +21808,7 @@ export namespace Prisma {
     id?: string
     userId: string
     date?: Date | string
+    dateOnly: Date | string
     weight: number
     height?: number | null
     bmi?: number | null
@@ -17542,6 +21835,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
+    dateOnly?: DateTimeFieldUpdateOperationsInput | Date | string
     weight?: FloatFieldUpdateOperationsInput | number
     height?: NullableFloatFieldUpdateOperationsInput | number | null
     bmi?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -17568,6 +21862,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
+    dateOnly?: DateTimeFieldUpdateOperationsInput | Date | string
     weight?: FloatFieldUpdateOperationsInput | number
     height?: NullableFloatFieldUpdateOperationsInput | number | null
     bmi?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -17718,9 +22013,19 @@ export namespace Prisma {
     isNot?: PTApplicationWhereInput | null
   }
 
+  export type PTTrainingLocationListRelationFilter = {
+    every?: PTTrainingLocationWhereInput
+    some?: PTTrainingLocationWhereInput
+    none?: PTTrainingLocationWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
+  }
+
+  export type PTTrainingLocationOrderByRelationAggregateInput = {
+    _count?: SortOrder
   }
 
   export type UserProfileCountOrderByAggregateInput = {
@@ -18070,6 +22375,11 @@ export namespace Prisma {
     onlinePackagePrice?: SortOrder
     offlinePackagePrice?: SortOrder
     otherReferences?: SortOrder
+    residenceProvinceCode?: SortOrder
+    residenceWardCode?: SortOrder
+    residenceAddressLine?: SortOrder
+    residenceLegacyDistrictName?: SortOrder
+    applicationTrainingLocations?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
     submittedAt?: SortOrder
@@ -18089,6 +22399,8 @@ export namespace Prisma {
     offlinePricePerSession?: SortOrder
     onlinePackagePrice?: SortOrder
     offlinePackagePrice?: SortOrder
+    residenceProvinceCode?: SortOrder
+    residenceWardCode?: SortOrder
   }
 
   export type PTApplicationMaxOrderByAggregateInput = {
@@ -18125,6 +22437,10 @@ export namespace Prisma {
     onlinePackagePrice?: SortOrder
     offlinePackagePrice?: SortOrder
     otherReferences?: SortOrder
+    residenceProvinceCode?: SortOrder
+    residenceWardCode?: SortOrder
+    residenceAddressLine?: SortOrder
+    residenceLegacyDistrictName?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
     submittedAt?: SortOrder
@@ -18168,6 +22484,10 @@ export namespace Prisma {
     onlinePackagePrice?: SortOrder
     offlinePackagePrice?: SortOrder
     otherReferences?: SortOrder
+    residenceProvinceCode?: SortOrder
+    residenceWardCode?: SortOrder
+    residenceAddressLine?: SortOrder
+    residenceLegacyDistrictName?: SortOrder
     adminNote?: SortOrder
     rejectionReason?: SortOrder
     submittedAt?: SortOrder
@@ -18187,6 +22507,8 @@ export namespace Prisma {
     offlinePricePerSession?: SortOrder
     onlinePackagePrice?: SortOrder
     offlinePackagePrice?: SortOrder
+    residenceProvinceCode?: SortOrder
+    residenceWardCode?: SortOrder
   }
 
   export type EnumPTApplicationStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -18842,6 +23164,170 @@ export namespace Prisma {
     createdAt?: SortOrder
   }
 
+  export type VietnamWardListRelationFilter = {
+    every?: VietnamWardWhereInput
+    some?: VietnamWardWhereInput
+    none?: VietnamWardWhereInput
+  }
+
+  export type VietnamWardOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type VietnamProvinceCountOrderByAggregateInput = {
+    code?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    codename?: SortOrder
+    divisionType?: SortOrder
+    phoneCode?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type VietnamProvinceAvgOrderByAggregateInput = {
+    code?: SortOrder
+    phoneCode?: SortOrder
+  }
+
+  export type VietnamProvinceMaxOrderByAggregateInput = {
+    code?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    codename?: SortOrder
+    divisionType?: SortOrder
+    phoneCode?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type VietnamProvinceMinOrderByAggregateInput = {
+    code?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    codename?: SortOrder
+    divisionType?: SortOrder
+    phoneCode?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type VietnamProvinceSumOrderByAggregateInput = {
+    code?: SortOrder
+    phoneCode?: SortOrder
+  }
+
+  export type VietnamProvinceRelationFilter = {
+    is?: VietnamProvinceWhereInput
+    isNot?: VietnamProvinceWhereInput
+  }
+
+  export type VietnamWardCountOrderByAggregateInput = {
+    code?: SortOrder
+    provinceCode?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    codename?: SortOrder
+    divisionType?: SortOrder
+    shortCodename?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type VietnamWardAvgOrderByAggregateInput = {
+    code?: SortOrder
+    provinceCode?: SortOrder
+  }
+
+  export type VietnamWardMaxOrderByAggregateInput = {
+    code?: SortOrder
+    provinceCode?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    codename?: SortOrder
+    divisionType?: SortOrder
+    shortCodename?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type VietnamWardMinOrderByAggregateInput = {
+    code?: SortOrder
+    provinceCode?: SortOrder
+    name?: SortOrder
+    nameNormalized?: SortOrder
+    codename?: SortOrder
+    divisionType?: SortOrder
+    shortCodename?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type VietnamWardSumOrderByAggregateInput = {
+    code?: SortOrder
+    provinceCode?: SortOrder
+  }
+
+  export type VietnamWardNullableRelationFilter = {
+    is?: VietnamWardWhereInput | null
+    isNot?: VietnamWardWhereInput | null
+  }
+
+  export type PTTrainingLocationCountOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    provinceCode?: SortOrder
+    wardCode?: SortOrder
+    gymName?: SortOrder
+    addressLine?: SortOrder
+    legacyDistrictName?: SortOrder
+    isPrimary?: SortOrder
+    isActive?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PTTrainingLocationAvgOrderByAggregateInput = {
+    provinceCode?: SortOrder
+    wardCode?: SortOrder
+  }
+
+  export type PTTrainingLocationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    provinceCode?: SortOrder
+    wardCode?: SortOrder
+    gymName?: SortOrder
+    addressLine?: SortOrder
+    legacyDistrictName?: SortOrder
+    isPrimary?: SortOrder
+    isActive?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PTTrainingLocationMinOrderByAggregateInput = {
+    id?: SortOrder
+    ptUserId?: SortOrder
+    provinceCode?: SortOrder
+    wardCode?: SortOrder
+    gymName?: SortOrder
+    addressLine?: SortOrder
+    legacyDistrictName?: SortOrder
+    isPrimary?: SortOrder
+    isActive?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PTTrainingLocationSumOrderByAggregateInput = {
+    provinceCode?: SortOrder
+    wardCode?: SortOrder
+  }
+
   export type FloatFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -18853,10 +23339,16 @@ export namespace Prisma {
     not?: NestedFloatFilter<$PrismaModel> | number
   }
 
+  export type InBodyEntryInbody_entries_user_id_date_only_keyCompoundUniqueInput = {
+    userId: string
+    dateOnly: Date | string
+  }
+
   export type InBodyEntryCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
     date?: SortOrder
+    dateOnly?: SortOrder
     weight?: SortOrder
     height?: SortOrder
     bmi?: SortOrder
@@ -18902,6 +23394,7 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     date?: SortOrder
+    dateOnly?: SortOrder
     weight?: SortOrder
     height?: SortOrder
     bmi?: SortOrder
@@ -18928,6 +23421,7 @@ export namespace Prisma {
     id?: SortOrder
     userId?: SortOrder
     date?: SortOrder
+    dateOnly?: SortOrder
     weight?: SortOrder
     height?: SortOrder
     bmi?: SortOrder
@@ -19003,10 +23497,24 @@ export namespace Prisma {
     connect?: PTApplicationWhereUniqueInput
   }
 
+  export type PTTrainingLocationCreateNestedManyWithoutPtProfileInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutPtProfileInput, PTTrainingLocationUncheckedCreateWithoutPtProfileInput> | PTTrainingLocationCreateWithoutPtProfileInput[] | PTTrainingLocationUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutPtProfileInput | PTTrainingLocationCreateOrConnectWithoutPtProfileInput[]
+    createMany?: PTTrainingLocationCreateManyPtProfileInputEnvelope
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+  }
+
   export type PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput = {
     create?: XOR<PTApplicationCreateWithoutUserProfileInput, PTApplicationUncheckedCreateWithoutUserProfileInput>
     connectOrCreate?: PTApplicationCreateOrConnectWithoutUserProfileInput
     connect?: PTApplicationWhereUniqueInput
+  }
+
+  export type PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutPtProfileInput, PTTrainingLocationUncheckedCreateWithoutPtProfileInput> | PTTrainingLocationCreateWithoutPtProfileInput[] | PTTrainingLocationUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutPtProfileInput | PTTrainingLocationCreateOrConnectWithoutPtProfileInput[]
+    createMany?: PTTrainingLocationCreateManyPtProfileInputEnvelope
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -19090,6 +23598,20 @@ export namespace Prisma {
     update?: XOR<XOR<PTApplicationUpdateToOneWithWhereWithoutUserProfileInput, PTApplicationUpdateWithoutUserProfileInput>, PTApplicationUncheckedUpdateWithoutUserProfileInput>
   }
 
+  export type PTTrainingLocationUpdateManyWithoutPtProfileNestedInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutPtProfileInput, PTTrainingLocationUncheckedCreateWithoutPtProfileInput> | PTTrainingLocationCreateWithoutPtProfileInput[] | PTTrainingLocationUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutPtProfileInput | PTTrainingLocationCreateOrConnectWithoutPtProfileInput[]
+    upsert?: PTTrainingLocationUpsertWithWhereUniqueWithoutPtProfileInput | PTTrainingLocationUpsertWithWhereUniqueWithoutPtProfileInput[]
+    createMany?: PTTrainingLocationCreateManyPtProfileInputEnvelope
+    set?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    disconnect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    delete?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    update?: PTTrainingLocationUpdateWithWhereUniqueWithoutPtProfileInput | PTTrainingLocationUpdateWithWhereUniqueWithoutPtProfileInput[]
+    updateMany?: PTTrainingLocationUpdateManyWithWhereWithoutPtProfileInput | PTTrainingLocationUpdateManyWithWhereWithoutPtProfileInput[]
+    deleteMany?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
+  }
+
   export type PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput = {
     create?: XOR<PTApplicationCreateWithoutUserProfileInput, PTApplicationUncheckedCreateWithoutUserProfileInput>
     connectOrCreate?: PTApplicationCreateOrConnectWithoutUserProfileInput
@@ -19098,6 +23620,20 @@ export namespace Prisma {
     delete?: PTApplicationWhereInput | boolean
     connect?: PTApplicationWhereUniqueInput
     update?: XOR<XOR<PTApplicationUpdateToOneWithWhereWithoutUserProfileInput, PTApplicationUpdateWithoutUserProfileInput>, PTApplicationUncheckedUpdateWithoutUserProfileInput>
+  }
+
+  export type PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutPtProfileInput, PTTrainingLocationUncheckedCreateWithoutPtProfileInput> | PTTrainingLocationCreateWithoutPtProfileInput[] | PTTrainingLocationUncheckedCreateWithoutPtProfileInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutPtProfileInput | PTTrainingLocationCreateOrConnectWithoutPtProfileInput[]
+    upsert?: PTTrainingLocationUpsertWithWhereUniqueWithoutPtProfileInput | PTTrainingLocationUpsertWithWhereUniqueWithoutPtProfileInput[]
+    createMany?: PTTrainingLocationCreateManyPtProfileInputEnvelope
+    set?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    disconnect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    delete?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    update?: PTTrainingLocationUpdateWithWhereUniqueWithoutPtProfileInput | PTTrainingLocationUpdateWithWhereUniqueWithoutPtProfileInput[]
+    updateMany?: PTTrainingLocationUpdateManyWithWhereWithoutPtProfileInput | PTTrainingLocationUpdateManyWithWhereWithoutPtProfileInput[]
+    deleteMany?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
   }
 
   export type PTApplicationCreatemainSpecialtiesInput = {
@@ -19475,6 +24011,190 @@ export namespace Prisma {
 
   export type EnumDayOfWeekFieldUpdateOperationsInput = {
     set?: $Enums.DayOfWeek
+  }
+
+  export type VietnamWardCreateNestedManyWithoutProvinceInput = {
+    create?: XOR<VietnamWardCreateWithoutProvinceInput, VietnamWardUncheckedCreateWithoutProvinceInput> | VietnamWardCreateWithoutProvinceInput[] | VietnamWardUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: VietnamWardCreateOrConnectWithoutProvinceInput | VietnamWardCreateOrConnectWithoutProvinceInput[]
+    createMany?: VietnamWardCreateManyProvinceInputEnvelope
+    connect?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
+  }
+
+  export type PTTrainingLocationCreateNestedManyWithoutProvinceInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutProvinceInput, PTTrainingLocationUncheckedCreateWithoutProvinceInput> | PTTrainingLocationCreateWithoutProvinceInput[] | PTTrainingLocationUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutProvinceInput | PTTrainingLocationCreateOrConnectWithoutProvinceInput[]
+    createMany?: PTTrainingLocationCreateManyProvinceInputEnvelope
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+  }
+
+  export type VietnamWardUncheckedCreateNestedManyWithoutProvinceInput = {
+    create?: XOR<VietnamWardCreateWithoutProvinceInput, VietnamWardUncheckedCreateWithoutProvinceInput> | VietnamWardCreateWithoutProvinceInput[] | VietnamWardUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: VietnamWardCreateOrConnectWithoutProvinceInput | VietnamWardCreateOrConnectWithoutProvinceInput[]
+    createMany?: VietnamWardCreateManyProvinceInputEnvelope
+    connect?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
+  }
+
+  export type PTTrainingLocationUncheckedCreateNestedManyWithoutProvinceInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutProvinceInput, PTTrainingLocationUncheckedCreateWithoutProvinceInput> | PTTrainingLocationCreateWithoutProvinceInput[] | PTTrainingLocationUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutProvinceInput | PTTrainingLocationCreateOrConnectWithoutProvinceInput[]
+    createMany?: PTTrainingLocationCreateManyProvinceInputEnvelope
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+  }
+
+  export type VietnamWardUpdateManyWithoutProvinceNestedInput = {
+    create?: XOR<VietnamWardCreateWithoutProvinceInput, VietnamWardUncheckedCreateWithoutProvinceInput> | VietnamWardCreateWithoutProvinceInput[] | VietnamWardUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: VietnamWardCreateOrConnectWithoutProvinceInput | VietnamWardCreateOrConnectWithoutProvinceInput[]
+    upsert?: VietnamWardUpsertWithWhereUniqueWithoutProvinceInput | VietnamWardUpsertWithWhereUniqueWithoutProvinceInput[]
+    createMany?: VietnamWardCreateManyProvinceInputEnvelope
+    set?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
+    disconnect?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
+    delete?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
+    connect?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
+    update?: VietnamWardUpdateWithWhereUniqueWithoutProvinceInput | VietnamWardUpdateWithWhereUniqueWithoutProvinceInput[]
+    updateMany?: VietnamWardUpdateManyWithWhereWithoutProvinceInput | VietnamWardUpdateManyWithWhereWithoutProvinceInput[]
+    deleteMany?: VietnamWardScalarWhereInput | VietnamWardScalarWhereInput[]
+  }
+
+  export type PTTrainingLocationUpdateManyWithoutProvinceNestedInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutProvinceInput, PTTrainingLocationUncheckedCreateWithoutProvinceInput> | PTTrainingLocationCreateWithoutProvinceInput[] | PTTrainingLocationUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutProvinceInput | PTTrainingLocationCreateOrConnectWithoutProvinceInput[]
+    upsert?: PTTrainingLocationUpsertWithWhereUniqueWithoutProvinceInput | PTTrainingLocationUpsertWithWhereUniqueWithoutProvinceInput[]
+    createMany?: PTTrainingLocationCreateManyProvinceInputEnvelope
+    set?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    disconnect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    delete?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    update?: PTTrainingLocationUpdateWithWhereUniqueWithoutProvinceInput | PTTrainingLocationUpdateWithWhereUniqueWithoutProvinceInput[]
+    updateMany?: PTTrainingLocationUpdateManyWithWhereWithoutProvinceInput | PTTrainingLocationUpdateManyWithWhereWithoutProvinceInput[]
+    deleteMany?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
+  }
+
+  export type VietnamWardUncheckedUpdateManyWithoutProvinceNestedInput = {
+    create?: XOR<VietnamWardCreateWithoutProvinceInput, VietnamWardUncheckedCreateWithoutProvinceInput> | VietnamWardCreateWithoutProvinceInput[] | VietnamWardUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: VietnamWardCreateOrConnectWithoutProvinceInput | VietnamWardCreateOrConnectWithoutProvinceInput[]
+    upsert?: VietnamWardUpsertWithWhereUniqueWithoutProvinceInput | VietnamWardUpsertWithWhereUniqueWithoutProvinceInput[]
+    createMany?: VietnamWardCreateManyProvinceInputEnvelope
+    set?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
+    disconnect?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
+    delete?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
+    connect?: VietnamWardWhereUniqueInput | VietnamWardWhereUniqueInput[]
+    update?: VietnamWardUpdateWithWhereUniqueWithoutProvinceInput | VietnamWardUpdateWithWhereUniqueWithoutProvinceInput[]
+    updateMany?: VietnamWardUpdateManyWithWhereWithoutProvinceInput | VietnamWardUpdateManyWithWhereWithoutProvinceInput[]
+    deleteMany?: VietnamWardScalarWhereInput | VietnamWardScalarWhereInput[]
+  }
+
+  export type PTTrainingLocationUncheckedUpdateManyWithoutProvinceNestedInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutProvinceInput, PTTrainingLocationUncheckedCreateWithoutProvinceInput> | PTTrainingLocationCreateWithoutProvinceInput[] | PTTrainingLocationUncheckedCreateWithoutProvinceInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutProvinceInput | PTTrainingLocationCreateOrConnectWithoutProvinceInput[]
+    upsert?: PTTrainingLocationUpsertWithWhereUniqueWithoutProvinceInput | PTTrainingLocationUpsertWithWhereUniqueWithoutProvinceInput[]
+    createMany?: PTTrainingLocationCreateManyProvinceInputEnvelope
+    set?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    disconnect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    delete?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    update?: PTTrainingLocationUpdateWithWhereUniqueWithoutProvinceInput | PTTrainingLocationUpdateWithWhereUniqueWithoutProvinceInput[]
+    updateMany?: PTTrainingLocationUpdateManyWithWhereWithoutProvinceInput | PTTrainingLocationUpdateManyWithWhereWithoutProvinceInput[]
+    deleteMany?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
+  }
+
+  export type VietnamProvinceCreateNestedOneWithoutWardsInput = {
+    create?: XOR<VietnamProvinceCreateWithoutWardsInput, VietnamProvinceUncheckedCreateWithoutWardsInput>
+    connectOrCreate?: VietnamProvinceCreateOrConnectWithoutWardsInput
+    connect?: VietnamProvinceWhereUniqueInput
+  }
+
+  export type PTTrainingLocationCreateNestedManyWithoutWardInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutWardInput, PTTrainingLocationUncheckedCreateWithoutWardInput> | PTTrainingLocationCreateWithoutWardInput[] | PTTrainingLocationUncheckedCreateWithoutWardInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutWardInput | PTTrainingLocationCreateOrConnectWithoutWardInput[]
+    createMany?: PTTrainingLocationCreateManyWardInputEnvelope
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+  }
+
+  export type PTTrainingLocationUncheckedCreateNestedManyWithoutWardInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutWardInput, PTTrainingLocationUncheckedCreateWithoutWardInput> | PTTrainingLocationCreateWithoutWardInput[] | PTTrainingLocationUncheckedCreateWithoutWardInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutWardInput | PTTrainingLocationCreateOrConnectWithoutWardInput[]
+    createMany?: PTTrainingLocationCreateManyWardInputEnvelope
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+  }
+
+  export type VietnamProvinceUpdateOneRequiredWithoutWardsNestedInput = {
+    create?: XOR<VietnamProvinceCreateWithoutWardsInput, VietnamProvinceUncheckedCreateWithoutWardsInput>
+    connectOrCreate?: VietnamProvinceCreateOrConnectWithoutWardsInput
+    upsert?: VietnamProvinceUpsertWithoutWardsInput
+    connect?: VietnamProvinceWhereUniqueInput
+    update?: XOR<XOR<VietnamProvinceUpdateToOneWithWhereWithoutWardsInput, VietnamProvinceUpdateWithoutWardsInput>, VietnamProvinceUncheckedUpdateWithoutWardsInput>
+  }
+
+  export type PTTrainingLocationUpdateManyWithoutWardNestedInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutWardInput, PTTrainingLocationUncheckedCreateWithoutWardInput> | PTTrainingLocationCreateWithoutWardInput[] | PTTrainingLocationUncheckedCreateWithoutWardInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutWardInput | PTTrainingLocationCreateOrConnectWithoutWardInput[]
+    upsert?: PTTrainingLocationUpsertWithWhereUniqueWithoutWardInput | PTTrainingLocationUpsertWithWhereUniqueWithoutWardInput[]
+    createMany?: PTTrainingLocationCreateManyWardInputEnvelope
+    set?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    disconnect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    delete?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    update?: PTTrainingLocationUpdateWithWhereUniqueWithoutWardInput | PTTrainingLocationUpdateWithWhereUniqueWithoutWardInput[]
+    updateMany?: PTTrainingLocationUpdateManyWithWhereWithoutWardInput | PTTrainingLocationUpdateManyWithWhereWithoutWardInput[]
+    deleteMany?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
+  }
+
+  export type PTTrainingLocationUncheckedUpdateManyWithoutWardNestedInput = {
+    create?: XOR<PTTrainingLocationCreateWithoutWardInput, PTTrainingLocationUncheckedCreateWithoutWardInput> | PTTrainingLocationCreateWithoutWardInput[] | PTTrainingLocationUncheckedCreateWithoutWardInput[]
+    connectOrCreate?: PTTrainingLocationCreateOrConnectWithoutWardInput | PTTrainingLocationCreateOrConnectWithoutWardInput[]
+    upsert?: PTTrainingLocationUpsertWithWhereUniqueWithoutWardInput | PTTrainingLocationUpsertWithWhereUniqueWithoutWardInput[]
+    createMany?: PTTrainingLocationCreateManyWardInputEnvelope
+    set?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    disconnect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    delete?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    connect?: PTTrainingLocationWhereUniqueInput | PTTrainingLocationWhereUniqueInput[]
+    update?: PTTrainingLocationUpdateWithWhereUniqueWithoutWardInput | PTTrainingLocationUpdateWithWhereUniqueWithoutWardInput[]
+    updateMany?: PTTrainingLocationUpdateManyWithWhereWithoutWardInput | PTTrainingLocationUpdateManyWithWhereWithoutWardInput[]
+    deleteMany?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
+  }
+
+  export type VietnamProvinceCreateNestedOneWithoutTrainingLocationsInput = {
+    create?: XOR<VietnamProvinceCreateWithoutTrainingLocationsInput, VietnamProvinceUncheckedCreateWithoutTrainingLocationsInput>
+    connectOrCreate?: VietnamProvinceCreateOrConnectWithoutTrainingLocationsInput
+    connect?: VietnamProvinceWhereUniqueInput
+  }
+
+  export type VietnamWardCreateNestedOneWithoutTrainingLocationsInput = {
+    create?: XOR<VietnamWardCreateWithoutTrainingLocationsInput, VietnamWardUncheckedCreateWithoutTrainingLocationsInput>
+    connectOrCreate?: VietnamWardCreateOrConnectWithoutTrainingLocationsInput
+    connect?: VietnamWardWhereUniqueInput
+  }
+
+  export type UserProfileCreateNestedOneWithoutTrainingLocationsInput = {
+    create?: XOR<UserProfileCreateWithoutTrainingLocationsInput, UserProfileUncheckedCreateWithoutTrainingLocationsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutTrainingLocationsInput
+    connect?: UserProfileWhereUniqueInput
+  }
+
+  export type VietnamProvinceUpdateOneRequiredWithoutTrainingLocationsNestedInput = {
+    create?: XOR<VietnamProvinceCreateWithoutTrainingLocationsInput, VietnamProvinceUncheckedCreateWithoutTrainingLocationsInput>
+    connectOrCreate?: VietnamProvinceCreateOrConnectWithoutTrainingLocationsInput
+    upsert?: VietnamProvinceUpsertWithoutTrainingLocationsInput
+    connect?: VietnamProvinceWhereUniqueInput
+    update?: XOR<XOR<VietnamProvinceUpdateToOneWithWhereWithoutTrainingLocationsInput, VietnamProvinceUpdateWithoutTrainingLocationsInput>, VietnamProvinceUncheckedUpdateWithoutTrainingLocationsInput>
+  }
+
+  export type VietnamWardUpdateOneWithoutTrainingLocationsNestedInput = {
+    create?: XOR<VietnamWardCreateWithoutTrainingLocationsInput, VietnamWardUncheckedCreateWithoutTrainingLocationsInput>
+    connectOrCreate?: VietnamWardCreateOrConnectWithoutTrainingLocationsInput
+    upsert?: VietnamWardUpsertWithoutTrainingLocationsInput
+    disconnect?: VietnamWardWhereInput | boolean
+    delete?: VietnamWardWhereInput | boolean
+    connect?: VietnamWardWhereUniqueInput
+    update?: XOR<XOR<VietnamWardUpdateToOneWithWhereWithoutTrainingLocationsInput, VietnamWardUpdateWithoutTrainingLocationsInput>, VietnamWardUncheckedUpdateWithoutTrainingLocationsInput>
+  }
+
+  export type UserProfileUpdateOneRequiredWithoutTrainingLocationsNestedInput = {
+    create?: XOR<UserProfileCreateWithoutTrainingLocationsInput, UserProfileUncheckedCreateWithoutTrainingLocationsInput>
+    connectOrCreate?: UserProfileCreateOrConnectWithoutTrainingLocationsInput
+    upsert?: UserProfileUpsertWithoutTrainingLocationsInput
+    connect?: UserProfileWhereUniqueInput
+    update?: XOR<XOR<UserProfileUpdateToOneWithWhereWithoutTrainingLocationsInput, UserProfileUpdateWithoutTrainingLocationsInput>, UserProfileUncheckedUpdateWithoutTrainingLocationsInput>
   }
 
   export type FloatFieldUpdateOperationsInput = {
@@ -20036,6 +24756,11 @@ export namespace Prisma {
     onlinePackagePrice?: number | null
     offlinePackagePrice?: number | null
     otherReferences?: string | null
+    residenceProvinceCode?: number | null
+    residenceWardCode?: number | null
+    residenceAddressLine?: string | null
+    residenceLegacyDistrictName?: string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -20088,6 +24813,11 @@ export namespace Prisma {
     onlinePackagePrice?: number | null
     offlinePackagePrice?: number | null
     otherReferences?: string | null
+    residenceProvinceCode?: number | null
+    residenceWardCode?: number | null
+    residenceAddressLine?: string | null
+    residenceLegacyDistrictName?: string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -20102,6 +24832,44 @@ export namespace Prisma {
   export type PTApplicationCreateOrConnectWithoutUserProfileInput = {
     where: PTApplicationWhereUniqueInput
     create: XOR<PTApplicationCreateWithoutUserProfileInput, PTApplicationUncheckedCreateWithoutUserProfileInput>
+  }
+
+  export type PTTrainingLocationCreateWithoutPtProfileInput = {
+    id?: string
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    province: VietnamProvinceCreateNestedOneWithoutTrainingLocationsInput
+    ward?: VietnamWardCreateNestedOneWithoutTrainingLocationsInput
+  }
+
+  export type PTTrainingLocationUncheckedCreateWithoutPtProfileInput = {
+    id?: string
+    provinceCode: number
+    wardCode?: number | null
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTTrainingLocationCreateOrConnectWithoutPtProfileInput = {
+    where: PTTrainingLocationWhereUniqueInput
+    create: XOR<PTTrainingLocationCreateWithoutPtProfileInput, PTTrainingLocationUncheckedCreateWithoutPtProfileInput>
+  }
+
+  export type PTTrainingLocationCreateManyPtProfileInputEnvelope = {
+    data: PTTrainingLocationCreateManyPtProfileInput | PTTrainingLocationCreateManyPtProfileInput[]
+    skipDuplicates?: boolean
   }
 
   export type PTApplicationUpsertWithoutUserProfileInput = {
@@ -20156,6 +24924,11 @@ export namespace Prisma {
     onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceAddressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceLegacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20208,6 +24981,11 @@ export namespace Prisma {
     onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceAddressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceLegacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20217,6 +24995,40 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     certificates?: PTApplicationCertificateUncheckedUpdateManyWithoutApplicationNestedInput
     media?: PTApplicationMediaUncheckedUpdateManyWithoutApplicationNestedInput
+  }
+
+  export type PTTrainingLocationUpsertWithWhereUniqueWithoutPtProfileInput = {
+    where: PTTrainingLocationWhereUniqueInput
+    update: XOR<PTTrainingLocationUpdateWithoutPtProfileInput, PTTrainingLocationUncheckedUpdateWithoutPtProfileInput>
+    create: XOR<PTTrainingLocationCreateWithoutPtProfileInput, PTTrainingLocationUncheckedCreateWithoutPtProfileInput>
+  }
+
+  export type PTTrainingLocationUpdateWithWhereUniqueWithoutPtProfileInput = {
+    where: PTTrainingLocationWhereUniqueInput
+    data: XOR<PTTrainingLocationUpdateWithoutPtProfileInput, PTTrainingLocationUncheckedUpdateWithoutPtProfileInput>
+  }
+
+  export type PTTrainingLocationUpdateManyWithWhereWithoutPtProfileInput = {
+    where: PTTrainingLocationScalarWhereInput
+    data: XOR<PTTrainingLocationUpdateManyMutationInput, PTTrainingLocationUncheckedUpdateManyWithoutPtProfileInput>
+  }
+
+  export type PTTrainingLocationScalarWhereInput = {
+    AND?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
+    OR?: PTTrainingLocationScalarWhereInput[]
+    NOT?: PTTrainingLocationScalarWhereInput | PTTrainingLocationScalarWhereInput[]
+    id?: StringFilter<"PTTrainingLocation"> | string
+    ptUserId?: StringFilter<"PTTrainingLocation"> | string
+    provinceCode?: IntFilter<"PTTrainingLocation"> | number
+    wardCode?: IntNullableFilter<"PTTrainingLocation"> | number | null
+    gymName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    addressLine?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    legacyDistrictName?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    isPrimary?: BoolFilter<"PTTrainingLocation"> | boolean
+    isActive?: BoolFilter<"PTTrainingLocation"> | boolean
+    note?: StringNullableFilter<"PTTrainingLocation"> | string | null
+    createdAt?: DateTimeFilter<"PTTrainingLocation"> | Date | string
+    updatedAt?: DateTimeFilter<"PTTrainingLocation"> | Date | string
   }
 
   export type PTApplicationCertificateCreateWithoutApplicationInput = {
@@ -20302,6 +25114,7 @@ export namespace Prisma {
     sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileUncheckedCreateWithoutPtApplicationInput = {
@@ -20327,6 +25140,7 @@ export namespace Prisma {
     sessionDurationMinutes?: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutPtProfileInput
   }
 
   export type UserProfileCreateOrConnectWithoutPtApplicationInput = {
@@ -20428,6 +25242,7 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutPtProfileNestedInput
   }
 
   export type UserProfileUncheckedUpdateWithoutPtApplicationInput = {
@@ -20453,6 +25268,7 @@ export namespace Prisma {
     sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutPtProfileNestedInput
   }
 
   export type PTApplicationCreateWithoutCertificatesInput = {
@@ -20496,6 +25312,11 @@ export namespace Prisma {
     onlinePackagePrice?: number | null
     offlinePackagePrice?: number | null
     otherReferences?: string | null
+    residenceProvinceCode?: number | null
+    residenceWardCode?: number | null
+    residenceAddressLine?: string | null
+    residenceLegacyDistrictName?: string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -20549,6 +25370,11 @@ export namespace Prisma {
     onlinePackagePrice?: number | null
     offlinePackagePrice?: number | null
     otherReferences?: string | null
+    residenceProvinceCode?: number | null
+    residenceWardCode?: number | null
+    residenceAddressLine?: string | null
+    residenceLegacyDistrictName?: string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -20616,6 +25442,11 @@ export namespace Prisma {
     onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceAddressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceLegacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20669,6 +25500,11 @@ export namespace Prisma {
     onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceAddressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceLegacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20720,6 +25556,11 @@ export namespace Prisma {
     onlinePackagePrice?: number | null
     offlinePackagePrice?: number | null
     otherReferences?: string | null
+    residenceProvinceCode?: number | null
+    residenceWardCode?: number | null
+    residenceAddressLine?: string | null
+    residenceLegacyDistrictName?: string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -20773,6 +25614,11 @@ export namespace Prisma {
     onlinePackagePrice?: number | null
     offlinePackagePrice?: number | null
     otherReferences?: string | null
+    residenceProvinceCode?: number | null
+    residenceWardCode?: number | null
+    residenceAddressLine?: string | null
+    residenceLegacyDistrictName?: string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: string | null
     rejectionReason?: string | null
     submittedAt?: Date | string | null
@@ -20840,6 +25686,11 @@ export namespace Prisma {
     onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceAddressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceLegacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20893,6 +25744,11 @@ export namespace Prisma {
     onlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     offlinePackagePrice?: NullableFloatFieldUpdateOperationsInput | number | null
     otherReferences?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceProvinceCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceWardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    residenceAddressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    residenceLegacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    applicationTrainingLocations?: NullableJsonNullValueInput | InputJsonValue
     adminNote?: NullableStringFieldUpdateOperationsInput | string | null
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     submittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21565,6 +26421,547 @@ export namespace Prisma {
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
   }
 
+  export type VietnamWardCreateWithoutProvinceInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    shortCodename?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutWardInput
+  }
+
+  export type VietnamWardUncheckedCreateWithoutProvinceInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    shortCodename?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutWardInput
+  }
+
+  export type VietnamWardCreateOrConnectWithoutProvinceInput = {
+    where: VietnamWardWhereUniqueInput
+    create: XOR<VietnamWardCreateWithoutProvinceInput, VietnamWardUncheckedCreateWithoutProvinceInput>
+  }
+
+  export type VietnamWardCreateManyProvinceInputEnvelope = {
+    data: VietnamWardCreateManyProvinceInput | VietnamWardCreateManyProvinceInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PTTrainingLocationCreateWithoutProvinceInput = {
+    id?: string
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    ward?: VietnamWardCreateNestedOneWithoutTrainingLocationsInput
+    ptProfile: UserProfileCreateNestedOneWithoutTrainingLocationsInput
+  }
+
+  export type PTTrainingLocationUncheckedCreateWithoutProvinceInput = {
+    id?: string
+    ptUserId: string
+    wardCode?: number | null
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTTrainingLocationCreateOrConnectWithoutProvinceInput = {
+    where: PTTrainingLocationWhereUniqueInput
+    create: XOR<PTTrainingLocationCreateWithoutProvinceInput, PTTrainingLocationUncheckedCreateWithoutProvinceInput>
+  }
+
+  export type PTTrainingLocationCreateManyProvinceInputEnvelope = {
+    data: PTTrainingLocationCreateManyProvinceInput | PTTrainingLocationCreateManyProvinceInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type VietnamWardUpsertWithWhereUniqueWithoutProvinceInput = {
+    where: VietnamWardWhereUniqueInput
+    update: XOR<VietnamWardUpdateWithoutProvinceInput, VietnamWardUncheckedUpdateWithoutProvinceInput>
+    create: XOR<VietnamWardCreateWithoutProvinceInput, VietnamWardUncheckedCreateWithoutProvinceInput>
+  }
+
+  export type VietnamWardUpdateWithWhereUniqueWithoutProvinceInput = {
+    where: VietnamWardWhereUniqueInput
+    data: XOR<VietnamWardUpdateWithoutProvinceInput, VietnamWardUncheckedUpdateWithoutProvinceInput>
+  }
+
+  export type VietnamWardUpdateManyWithWhereWithoutProvinceInput = {
+    where: VietnamWardScalarWhereInput
+    data: XOR<VietnamWardUpdateManyMutationInput, VietnamWardUncheckedUpdateManyWithoutProvinceInput>
+  }
+
+  export type VietnamWardScalarWhereInput = {
+    AND?: VietnamWardScalarWhereInput | VietnamWardScalarWhereInput[]
+    OR?: VietnamWardScalarWhereInput[]
+    NOT?: VietnamWardScalarWhereInput | VietnamWardScalarWhereInput[]
+    code?: IntFilter<"VietnamWard"> | number
+    provinceCode?: IntFilter<"VietnamWard"> | number
+    name?: StringFilter<"VietnamWard"> | string
+    nameNormalized?: StringFilter<"VietnamWard"> | string
+    codename?: StringNullableFilter<"VietnamWard"> | string | null
+    divisionType?: StringNullableFilter<"VietnamWard"> | string | null
+    shortCodename?: StringNullableFilter<"VietnamWard"> | string | null
+    createdAt?: DateTimeFilter<"VietnamWard"> | Date | string
+    updatedAt?: DateTimeFilter<"VietnamWard"> | Date | string
+  }
+
+  export type PTTrainingLocationUpsertWithWhereUniqueWithoutProvinceInput = {
+    where: PTTrainingLocationWhereUniqueInput
+    update: XOR<PTTrainingLocationUpdateWithoutProvinceInput, PTTrainingLocationUncheckedUpdateWithoutProvinceInput>
+    create: XOR<PTTrainingLocationCreateWithoutProvinceInput, PTTrainingLocationUncheckedCreateWithoutProvinceInput>
+  }
+
+  export type PTTrainingLocationUpdateWithWhereUniqueWithoutProvinceInput = {
+    where: PTTrainingLocationWhereUniqueInput
+    data: XOR<PTTrainingLocationUpdateWithoutProvinceInput, PTTrainingLocationUncheckedUpdateWithoutProvinceInput>
+  }
+
+  export type PTTrainingLocationUpdateManyWithWhereWithoutProvinceInput = {
+    where: PTTrainingLocationScalarWhereInput
+    data: XOR<PTTrainingLocationUpdateManyMutationInput, PTTrainingLocationUncheckedUpdateManyWithoutProvinceInput>
+  }
+
+  export type VietnamProvinceCreateWithoutWardsInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    phoneCode?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    trainingLocations?: PTTrainingLocationCreateNestedManyWithoutProvinceInput
+  }
+
+  export type VietnamProvinceUncheckedCreateWithoutWardsInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    phoneCode?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    trainingLocations?: PTTrainingLocationUncheckedCreateNestedManyWithoutProvinceInput
+  }
+
+  export type VietnamProvinceCreateOrConnectWithoutWardsInput = {
+    where: VietnamProvinceWhereUniqueInput
+    create: XOR<VietnamProvinceCreateWithoutWardsInput, VietnamProvinceUncheckedCreateWithoutWardsInput>
+  }
+
+  export type PTTrainingLocationCreateWithoutWardInput = {
+    id?: string
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    province: VietnamProvinceCreateNestedOneWithoutTrainingLocationsInput
+    ptProfile: UserProfileCreateNestedOneWithoutTrainingLocationsInput
+  }
+
+  export type PTTrainingLocationUncheckedCreateWithoutWardInput = {
+    id?: string
+    ptUserId: string
+    provinceCode: number
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTTrainingLocationCreateOrConnectWithoutWardInput = {
+    where: PTTrainingLocationWhereUniqueInput
+    create: XOR<PTTrainingLocationCreateWithoutWardInput, PTTrainingLocationUncheckedCreateWithoutWardInput>
+  }
+
+  export type PTTrainingLocationCreateManyWardInputEnvelope = {
+    data: PTTrainingLocationCreateManyWardInput | PTTrainingLocationCreateManyWardInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type VietnamProvinceUpsertWithoutWardsInput = {
+    update: XOR<VietnamProvinceUpdateWithoutWardsInput, VietnamProvinceUncheckedUpdateWithoutWardsInput>
+    create: XOR<VietnamProvinceCreateWithoutWardsInput, VietnamProvinceUncheckedCreateWithoutWardsInput>
+    where?: VietnamProvinceWhereInput
+  }
+
+  export type VietnamProvinceUpdateToOneWithWhereWithoutWardsInput = {
+    where?: VietnamProvinceWhereInput
+    data: XOR<VietnamProvinceUpdateWithoutWardsInput, VietnamProvinceUncheckedUpdateWithoutWardsInput>
+  }
+
+  export type VietnamProvinceUpdateWithoutWardsInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutProvinceNestedInput
+  }
+
+  export type VietnamProvinceUncheckedUpdateWithoutWardsInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutProvinceNestedInput
+  }
+
+  export type PTTrainingLocationUpsertWithWhereUniqueWithoutWardInput = {
+    where: PTTrainingLocationWhereUniqueInput
+    update: XOR<PTTrainingLocationUpdateWithoutWardInput, PTTrainingLocationUncheckedUpdateWithoutWardInput>
+    create: XOR<PTTrainingLocationCreateWithoutWardInput, PTTrainingLocationUncheckedCreateWithoutWardInput>
+  }
+
+  export type PTTrainingLocationUpdateWithWhereUniqueWithoutWardInput = {
+    where: PTTrainingLocationWhereUniqueInput
+    data: XOR<PTTrainingLocationUpdateWithoutWardInput, PTTrainingLocationUncheckedUpdateWithoutWardInput>
+  }
+
+  export type PTTrainingLocationUpdateManyWithWhereWithoutWardInput = {
+    where: PTTrainingLocationScalarWhereInput
+    data: XOR<PTTrainingLocationUpdateManyMutationInput, PTTrainingLocationUncheckedUpdateManyWithoutWardInput>
+  }
+
+  export type VietnamProvinceCreateWithoutTrainingLocationsInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    phoneCode?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    wards?: VietnamWardCreateNestedManyWithoutProvinceInput
+  }
+
+  export type VietnamProvinceUncheckedCreateWithoutTrainingLocationsInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    phoneCode?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    wards?: VietnamWardUncheckedCreateNestedManyWithoutProvinceInput
+  }
+
+  export type VietnamProvinceCreateOrConnectWithoutTrainingLocationsInput = {
+    where: VietnamProvinceWhereUniqueInput
+    create: XOR<VietnamProvinceCreateWithoutTrainingLocationsInput, VietnamProvinceUncheckedCreateWithoutTrainingLocationsInput>
+  }
+
+  export type VietnamWardCreateWithoutTrainingLocationsInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    shortCodename?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    province: VietnamProvinceCreateNestedOneWithoutWardsInput
+  }
+
+  export type VietnamWardUncheckedCreateWithoutTrainingLocationsInput = {
+    code: number
+    provinceCode: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    shortCodename?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type VietnamWardCreateOrConnectWithoutTrainingLocationsInput = {
+    where: VietnamWardWhereUniqueInput
+    create: XOR<VietnamWardCreateWithoutTrainingLocationsInput, VietnamWardUncheckedCreateWithoutTrainingLocationsInput>
+  }
+
+  export type UserProfileCreateWithoutTrainingLocationsInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    currentWeight?: number | null
+    targetWeight?: number | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    sessionDurationMinutes?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    ptApplication?: PTApplicationCreateNestedOneWithoutUserProfileInput
+  }
+
+  export type UserProfileUncheckedCreateWithoutTrainingLocationsInput = {
+    id?: string
+    userId: string
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+    isPT?: boolean
+    age?: number | null
+    gender?: $Enums.Gender | null
+    heightCm?: number | null
+    goal?: $Enums.Goal | null
+    activityLevel?: $Enums.ActivityLevel | null
+    experienceLevel?: $Enums.ExperienceLevel | null
+    preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
+    injuries?: UserProfileCreateinjuriesInput | string[]
+    currentWeight?: number | null
+    targetWeight?: number | null
+    dietaryPreference?: string | null
+    photoUrl?: string | null
+    sessionDurationMinutes?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    ptApplication?: PTApplicationUncheckedCreateNestedOneWithoutUserProfileInput
+  }
+
+  export type UserProfileCreateOrConnectWithoutTrainingLocationsInput = {
+    where: UserProfileWhereUniqueInput
+    create: XOR<UserProfileCreateWithoutTrainingLocationsInput, UserProfileUncheckedCreateWithoutTrainingLocationsInput>
+  }
+
+  export type VietnamProvinceUpsertWithoutTrainingLocationsInput = {
+    update: XOR<VietnamProvinceUpdateWithoutTrainingLocationsInput, VietnamProvinceUncheckedUpdateWithoutTrainingLocationsInput>
+    create: XOR<VietnamProvinceCreateWithoutTrainingLocationsInput, VietnamProvinceUncheckedCreateWithoutTrainingLocationsInput>
+    where?: VietnamProvinceWhereInput
+  }
+
+  export type VietnamProvinceUpdateToOneWithWhereWithoutTrainingLocationsInput = {
+    where?: VietnamProvinceWhereInput
+    data: XOR<VietnamProvinceUpdateWithoutTrainingLocationsInput, VietnamProvinceUncheckedUpdateWithoutTrainingLocationsInput>
+  }
+
+  export type VietnamProvinceUpdateWithoutTrainingLocationsInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    wards?: VietnamWardUpdateManyWithoutProvinceNestedInput
+  }
+
+  export type VietnamProvinceUncheckedUpdateWithoutTrainingLocationsInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneCode?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    wards?: VietnamWardUncheckedUpdateManyWithoutProvinceNestedInput
+  }
+
+  export type VietnamWardUpsertWithoutTrainingLocationsInput = {
+    update: XOR<VietnamWardUpdateWithoutTrainingLocationsInput, VietnamWardUncheckedUpdateWithoutTrainingLocationsInput>
+    create: XOR<VietnamWardCreateWithoutTrainingLocationsInput, VietnamWardUncheckedCreateWithoutTrainingLocationsInput>
+    where?: VietnamWardWhereInput
+  }
+
+  export type VietnamWardUpdateToOneWithWhereWithoutTrainingLocationsInput = {
+    where?: VietnamWardWhereInput
+    data: XOR<VietnamWardUpdateWithoutTrainingLocationsInput, VietnamWardUncheckedUpdateWithoutTrainingLocationsInput>
+  }
+
+  export type VietnamWardUpdateWithoutTrainingLocationsInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    province?: VietnamProvinceUpdateOneRequiredWithoutWardsNestedInput
+  }
+
+  export type VietnamWardUncheckedUpdateWithoutTrainingLocationsInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserProfileUpsertWithoutTrainingLocationsInput = {
+    update: XOR<UserProfileUpdateWithoutTrainingLocationsInput, UserProfileUncheckedUpdateWithoutTrainingLocationsInput>
+    create: XOR<UserProfileCreateWithoutTrainingLocationsInput, UserProfileUncheckedCreateWithoutTrainingLocationsInput>
+    where?: UserProfileWhereInput
+  }
+
+  export type UserProfileUpdateToOneWithWhereWithoutTrainingLocationsInput = {
+    where?: UserProfileWhereInput
+    data: XOR<UserProfileUpdateWithoutTrainingLocationsInput, UserProfileUncheckedUpdateWithoutTrainingLocationsInput>
+  }
+
+  export type UserProfileUpdateWithoutTrainingLocationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ptApplication?: PTApplicationUpdateOneWithoutUserProfileNestedInput
+  }
+
+  export type UserProfileUncheckedUpdateWithoutTrainingLocationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstName?: NullableStringFieldUpdateOperationsInput | string | null
+    lastName?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    isPT?: BoolFieldUpdateOperationsInput | boolean
+    age?: NullableIntFieldUpdateOperationsInput | number | null
+    gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
+    heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
+    goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
+    activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
+    experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
+    availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
+    injuries?: UserProfileUpdateinjuriesInput | string[]
+    currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
+    dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
+    photoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionDurationMinutes?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ptApplication?: PTApplicationUncheckedUpdateOneWithoutUserProfileNestedInput
+  }
+
+  export type PTTrainingLocationCreateManyPtProfileInput = {
+    id?: string
+    provinceCode: number
+    wardCode?: number | null
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTTrainingLocationUpdateWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    province?: VietnamProvinceUpdateOneRequiredWithoutTrainingLocationsNestedInput
+    ward?: VietnamWardUpdateOneWithoutTrainingLocationsNestedInput
+  }
+
+  export type PTTrainingLocationUncheckedUpdateWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTTrainingLocationUncheckedUpdateManyWithoutPtProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type PTApplicationCertificateCreateManyApplicationInput = {
     id?: string
     certificateName: string
@@ -21759,11 +27156,173 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type VietnamWardCreateManyProvinceInput = {
+    code: number
+    name: string
+    nameNormalized: string
+    codename?: string | null
+    divisionType?: string | null
+    shortCodename?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTTrainingLocationCreateManyProvinceInput = {
+    id?: string
+    ptUserId: string
+    wardCode?: number | null
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type VietnamWardUpdateWithoutProvinceInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    trainingLocations?: PTTrainingLocationUpdateManyWithoutWardNestedInput
+  }
+
+  export type VietnamWardUncheckedUpdateWithoutProvinceInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    trainingLocations?: PTTrainingLocationUncheckedUpdateManyWithoutWardNestedInput
+  }
+
+  export type VietnamWardUncheckedUpdateManyWithoutProvinceInput = {
+    code?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    nameNormalized?: StringFieldUpdateOperationsInput | string
+    codename?: NullableStringFieldUpdateOperationsInput | string | null
+    divisionType?: NullableStringFieldUpdateOperationsInput | string | null
+    shortCodename?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTTrainingLocationUpdateWithoutProvinceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    ward?: VietnamWardUpdateOneWithoutTrainingLocationsNestedInput
+    ptProfile?: UserProfileUpdateOneRequiredWithoutTrainingLocationsNestedInput
+  }
+
+  export type PTTrainingLocationUncheckedUpdateWithoutProvinceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTTrainingLocationUncheckedUpdateManyWithoutProvinceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    wardCode?: NullableIntFieldUpdateOperationsInput | number | null
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTTrainingLocationCreateManyWardInput = {
+    id?: string
+    ptUserId: string
+    provinceCode: number
+    gymName?: string | null
+    addressLine?: string | null
+    legacyDistrictName?: string | null
+    isPrimary?: boolean
+    isActive?: boolean
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PTTrainingLocationUpdateWithoutWardInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    province?: VietnamProvinceUpdateOneRequiredWithoutTrainingLocationsNestedInput
+    ptProfile?: UserProfileUpdateOneRequiredWithoutTrainingLocationsNestedInput
+  }
+
+  export type PTTrainingLocationUncheckedUpdateWithoutWardInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PTTrainingLocationUncheckedUpdateManyWithoutWardInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    provinceCode?: IntFieldUpdateOperationsInput | number
+    gymName?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    legacyDistrictName?: NullableStringFieldUpdateOperationsInput | string | null
+    isPrimary?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
    * Aliases for legacy arg types
    */
+    /**
+     * @deprecated Use UserProfileCountOutputTypeDefaultArgs instead
+     */
+    export type UserProfileCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = UserProfileCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use PTApplicationCountOutputTypeDefaultArgs instead
      */
@@ -21772,6 +27331,14 @@ export namespace Prisma {
      * @deprecated Use ContractCountOutputTypeDefaultArgs instead
      */
     export type ContractCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ContractCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use VietnamProvinceCountOutputTypeDefaultArgs instead
+     */
+    export type VietnamProvinceCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = VietnamProvinceCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use VietnamWardCountOutputTypeDefaultArgs instead
+     */
+    export type VietnamWardCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = VietnamWardCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use UserProfileDefaultArgs instead
      */
@@ -21812,6 +27379,18 @@ export namespace Prisma {
      * @deprecated Use PTScheduleExceptionDefaultArgs instead
      */
     export type PTScheduleExceptionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PTScheduleExceptionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use VietnamProvinceDefaultArgs instead
+     */
+    export type VietnamProvinceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = VietnamProvinceDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use VietnamWardDefaultArgs instead
+     */
+    export type VietnamWardArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = VietnamWardDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PTTrainingLocationDefaultArgs instead
+     */
+    export type PTTrainingLocationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PTTrainingLocationDefaultArgs<ExtArgs>
     /**
      * @deprecated Use InBodyEntryDefaultArgs instead
      */

@@ -42,15 +42,10 @@ export const inbodyService = {
   async createEntry(userId: string, data: any) {
     inbodyUploadsTotal.inc({ method: 'manual' });
     const measuredDate = data.date ? new Date(data.date) : new Date();
-    const payload = { ...data, date: measuredDate, dateOnly: startOfUtcDay(measuredDate) };
-    try {
-      return await inbodyRepository.create(userId, payload);
-    } catch (e: any) {
-      if (isUniqueViolation(e)) {
-        throw err('Bản ghi InBody trong ngày đã tồn tại', 409);
-      }
-      throw e;
-    }
+    const dateOnly = startOfUtcDay(measuredDate);
+    const payload = { ...data, date: measuredDate, dateOnly };
+    const { dateOnly: _d, userId: _u, ...updatePayload } = payload;
+    return inbodyRepository.upsertByUserAndDate(userId, dateOnly, payload, updatePayload);
   },
 
   // BR-06: client may edit an InBody entry (e.g. tweak OCR results before confirming).
