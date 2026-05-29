@@ -157,7 +157,7 @@ export function NutritionPage() {
   const [foodQuery, setFoodQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
-  const [addQty, setAddQty] = useState(100);
+  const [addQty, setAddQty] = useState("100");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Edit Log modal
@@ -322,7 +322,8 @@ export function NutritionPage() {
   const isDefaultGoal = !goal?.id;
 
   // Add food preview
-  const addScale = addQty / 100;
+  const addQtyNum = parseFloat(addQty) || 0;
+  const addScale = addQtyNum / 100;
   const addPreview = selectedFood
     ? {
         calories: Math.round(selectedFood.calories * addScale),
@@ -397,7 +398,7 @@ export function NutritionPage() {
     setFoodQuery("");
     setDebouncedQuery("");
     setSelectedFood(null);
-    setAddQty(100);
+    setAddQty("100");
     clearTimeout(debounceRef.current);
   }
 
@@ -413,11 +414,12 @@ export function NutritionPage() {
       toast.error("Chọn một món ăn trước");
       return;
     }
-    if (isNaN(addQty) || addQty <= 0 || addQty > 5000) {
+    const addQtyNum = parseFloat(addQty);
+    if (isNaN(addQtyNum) || addQtyNum <= 0 || addQtyNum > 5000) {
       toast.error("Khối lượng không hợp lệ (1–5000g)");
       return;
     }
-    const scale = addQty / 100;
+    const scale = addQtyNum / 100;
     const cal = Math.round(selectedFood.calories * scale);
     const prot = parseFloat(((selectedFood.protein ?? 0) * scale).toFixed(1));
     const carbs = parseFloat(((selectedFood.carbs ?? 0) * scale).toFixed(1));
@@ -432,7 +434,7 @@ export function NutritionPage() {
       mealType: addMealType,
       foodId: selectedFood.id,
       foodName: selectedFood.name,
-      quantity: addQty,
+      quantity: addQtyNum,
       unit: "g",
       calories: cal,
       protein: prot,
@@ -1024,7 +1026,7 @@ export function NutritionPage() {
                       min={1}
                       max={5000}
                       value={addQty}
-                      onChange={(e) => setAddQty(Math.max(1, parseFloat(e.target.value) || 1))}
+                      onChange={(e) => setAddQty(e.target.value)}
                       className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
                     />
                     <p className="text-[10px] text-zinc-600 mt-1">
