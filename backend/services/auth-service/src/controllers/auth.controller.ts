@@ -242,13 +242,45 @@ export const authController = {
     }
   },
 
+  async batchGetUsersInternal(req: Request, res: Response): Promise<void> {
+    try {
+      const serviceSecret = req.headers['x-service-secret'];
+      const secret = Array.isArray(serviceSecret) ? serviceSecret[0] : serviceSecret;
+      if (!INTERNAL_SERVICE_SECRET) {
+        res.status(503).json({ error: 'Internal endpoint disabled' });
+        return;
+      }
+      if (!secret || secret !== INTERNAL_SERVICE_SECRET) {
+        res.status(401).json({ error: 'Invalid service secret' });
+        return;
+      }
+      const { userIds } = req.body;
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        res.status(400).json({ error: 'userIds must be a non-empty array' });
+        return;
+      }
+      const users = await authRepository.findUsersByIds(userIds as string[]);
+      res.json({ users });
+    } catch (error: any) {
+      logger.error(error, 'Batch get users internal error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
   async getUserInternal(req: Request, res: Response): Promise<void> {
     try {
       const serviceSecret = req.headers['x-service-secret'];
       const secret = Array.isArray(serviceSecret) ? serviceSecret[0] : serviceSecret;
 
+      // Defense-in-depth: server.ts already fails to start without
+      // INTERNAL_SERVICE_SECRET, but we re-check here so a future code path can't
+      // accidentally bypass it.
+      if (!INTERNAL_SERVICE_SECRET) {
+        res.status(503).json({ error: 'Internal endpoint disabled' });
+        return;
+      }
       if (!secret || secret !== INTERNAL_SERVICE_SECRET) {
-        res.status(403).json({ error: 'Forbidden: invalid service secret' });
+        res.status(401).json({ error: 'Invalid service secret' });
         return;
       }
 
@@ -257,9 +289,46 @@ export const authController = {
         res.status(404).json({ error: 'User not found' });
         return;
       }
-      res.json({ user });
+      // Minimal response shape — never leak password/refresh-token.
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName ?? null,
+          lastName: user.lastName ?? null,
+          role: user.role,
+          isActive: (user as any).isActive ?? true,
+        },
+      });
     } catch (error: any) {
       logger.error(error, 'Internal get user error');
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  // Admin disable/enable user (BUG-002, BUG-025, BUG-026).
+  // Admin token-protected (route attaches no service-secret); we check role via JWT
+  // — reuse the existing verify-token middleware pattern by calling authService.verify.
+  async setUserActive(req: Request, res: Response): Promise<void> {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        res.status(401).json({ error: 'No token provided' });
+        return;
+      }
+      const token = authHeader.substring(7);
+      const verified = await authService.verifyToken(token);
+      if (!verified || verified.role !== 'ADMIN') {
+        res.status(403).json({ error: 'Admin role required' });
+        return;
+      }
+      const desired = req.body?.isActive;
+      const isActive = desired !== undefined ? !!desired : (req.path.endsWith('/disable') ? false : true);
+      const updated = await authService.setUserActive(req.params.userId, isActive);
+      res.json({ user: updated });
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error(error, 'setUserActive error');
       res.status(500).json({ error: 'Internal server error' });
     }
   },

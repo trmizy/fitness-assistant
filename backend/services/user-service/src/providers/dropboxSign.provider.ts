@@ -1,5 +1,6 @@
 import * as DropboxSign from '@dropbox/sign';
 import fs from 'fs';
+import path from 'path';
 import { ESignProvider, ESignSendRequest, ESignSendResult } from '../types/esign.types';
 
 export class DropboxSignProvider implements ESignProvider {
@@ -14,6 +15,15 @@ export class DropboxSignProvider implements ESignProvider {
   }
 
   async send(req: ESignSendRequest): Promise<ESignSendResult> {
+    const absPath = path.isAbsolute(req.pdfPath)
+      ? req.pdfPath
+      : path.join(process.cwd(), req.pdfPath);
+
+    // In test mode, Dropbox Sign only allows sending to the account owner's email.
+    // Set DROPBOX_SIGN_TEST_SIGNER_EMAIL to override all signer addresses (use your
+    // Dropbox Sign account email so you can sign both requests from one inbox).
+    const testOverrideEmail = req.testMode ? process.env.DROPBOX_SIGN_TEST_SIGNER_EMAIL : undefined;
+
     const response = await this.api.signatureRequestSend({
       testMode: req.testMode,
       title: req.title,
@@ -21,10 +31,10 @@ export class DropboxSignProvider implements ESignProvider {
       message: req.message,
       signers: req.signers.map((s, i) => ({
         name: s.name,
-        emailAddress: s.email,
+        emailAddress: testOverrideEmail ?? s.email,
         order: i,
       })),
-      files: [fs.createReadStream(req.pdfPath)],
+      files: [fs.createReadStream(absPath)],
     });
 
     const signatureRequestId = response.body.signatureRequest?.signatureRequestId;

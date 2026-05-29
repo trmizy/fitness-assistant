@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { planController } from '../controllers/plan.controller';
 import { requireAuth } from '../middleware/auth.middleware';
+import { requireRole } from '../middleware/requireRole.middleware';
 import { validateBody } from '../middleware/validate.middleware';
 import {
   GeneratePlanRequestSchema,
@@ -58,6 +59,19 @@ router.post(
   validateBody(AdjustPlanRequestSchema),
   planController.adjustPlan,
 );
+
+/**
+ * GET /plans/pt/pending-review
+ * PT fetches plans pending their review.
+ * MUST be before /:planId to avoid "pt" being matched as a planId.
+ */
+router.get('/pt/pending-review', requireRole(['PT']), planController.getPTPendingReviews);
+
+/**
+ * POST /plans/:planId/pt-review
+ * PT submits approve/reject decision on a plan.
+ */
+router.post('/:planId/pt-review', requireRole(['PT']), planController.submitPTReview);
 
 /**
  * GET /plans/:planId

@@ -142,4 +142,43 @@ export const workoutRepository = {
       where: { userId, date: { gte: startDate } },
       include: { exercises: true },
     }),
+
+  // Append a set to an existing workout's exercise. If the WorkoutExercise pair
+  // (workoutId, exerciseId) doesn't exist, create it first with the next `order`.
+  async appendSet(
+    workoutId: string,
+    exerciseId: string,
+    setData: { setNumber?: number; weight?: number; reps?: number; rpe?: number },
+  ) {
+    let workoutExercise = await prisma.workoutExercise.findFirst({
+      where: { workoutId, exerciseId },
+      include: { workoutSets: { orderBy: { setNumber: 'desc' as const }, take: 1 } },
+    });
+    if (!workoutExercise) {
+      const maxOrder = await prisma.workoutExercise.findFirst({
+        where: { workoutId },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+      });
+      workoutExercise = await prisma.workoutExercise.create({
+        data: {
+          workoutId,
+          exerciseId,
+          order: (maxOrder?.order ?? -1) + 1,
+        },
+        include: { workoutSets: true },
+      });
+    }
+    const nextSetNumber =
+      setData.setNumber ?? ((workoutExercise.workoutSets[0]?.setNumber ?? 0) + 1);
+    return prisma.workoutSet.create({
+      data: {
+        workoutExerciseId: workoutExercise.id,
+        setNumber: nextSetNumber,
+        weight: setData.weight,
+        reps: setData.reps,
+        rpe: setData.rpe,
+      },
+    });
+  },
 };

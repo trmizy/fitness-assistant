@@ -80,4 +80,14 @@ export const chatRepository = {
     });
     return !!row;
   },
+
+  // Mark every unread message in this conversation that was NOT sent by `userId`
+  // as read NOW. Uses the existing Message.readAt — no new column needed.
+  markConversationRead: async (conversationId: string, userId: string) => {
+    const result = await prisma.message.updateMany({
+      where: { conversationId, readAt: null, senderId: { not: userId } },
+      data: { readAt: new Date() },
+    });
+    return result.count;
+  },
 };

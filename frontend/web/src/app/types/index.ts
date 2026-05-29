@@ -114,7 +114,7 @@ export interface Conversation {
 }
 
 // ── Contract types ───────────────────────────────────────────────
-export type ContractStatus = 'PENDING_REVIEW' | 'ACTIVE' | 'COMPLETED' | 'EXPIRED' | 'CANCELLED' | 'REJECTED';
+export type ContractStatus = 'PENDING_REVIEW' | 'PENDING_SIGNATURE' | 'ACTIVE' | 'COMPLETED' | 'EXPIRED' | 'CANCELLED' | 'REJECTED';
 export type PackageType = 'PER_SESSION' | 'PACKAGE';
 
 export interface Contract {
@@ -123,6 +123,7 @@ export interface Contract {
   clientUserId: string;
   status: ContractStatus;
   packageType: PackageType;
+  sessionMode?: 'ONLINE' | 'OFFLINE' | 'HYBRID';
   packageName: string;
   description?: string;
   totalSessions: number;

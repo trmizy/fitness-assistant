@@ -4,8 +4,33 @@ import { availabilityService } from './availability.service';
 import type { ProfileDto } from '../models/profile.models';
 
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:3006';
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
+
+/** Batch-fetch names from auth-service for profiles with missing firstName/lastName. Fail-safe. */
+export async function enrichProfilesWithAuthNames(
+  profiles: Array<{ userId: string; firstName: string | null; lastName: string | null; [key: string]: any }>,
+): Promise<void> {
+  const missing = profiles.filter(p => !p.firstName && !p.lastName);
+  if (missing.length === 0) return;
+  try {
+    const { data } = await axios.post(
+      `${AUTH_SERVICE_URL}/auth/internal/users/batch`,
+      { userIds: missing.map(p => p.userId) },
+      { headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET }, timeout: 3000 },
+    );
+    const nameMap = new Map<string, { firstName: string | null; lastName: string | null }>(
+      (data?.users ?? []).map((u: any) => [u.id, { firstName: u.firstName ?? null, lastName: u.lastName ?? null }]),
+    );
+    for (const p of profiles) {
+      if (!p.firstName && !p.lastName) {
+        const n = nameMap.get(p.userId);
+        if (n) { p.firstName = n.firstName; p.lastName = n.lastName; }
+      }
+    }
+  } catch { /* fail-safe: profiles returned without names */ }
+}
 
 async function syncRoleToPT(userId: string): Promise<void> {
   await axios.patch(
@@ -68,6 +93,11 @@ export const profileService = {
 
   async deleteProfile(userId: string) {
     await profileRepository.deleteByUserId(userId);
+    // BR-34B: cascade delete AI conversations (fire-and-forget — profile deletion is not blocked)
+    axios.delete(`${AI_SERVICE_URL}/internal/users/${userId}`, {
+      headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET },
+      timeout: 5000,
+    }).catch(() => {});
     return { message: 'Profile deleted successfully' };
   },
 

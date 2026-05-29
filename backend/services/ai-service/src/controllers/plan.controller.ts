@@ -1,12 +1,17 @@
+import axios from 'axios';
 import { Request, Response, NextFunction } from 'express';
 import { logger, aiPlanGenerationsTotal } from '@gym-coach/shared';
 import { aiQueue } from '../workers/ai.worker';
 import { conversationService } from '../services/conversation.service';
-import { conversationRepository, PlanStatus } from '../repositories/conversation.repository';
+import { conversationRepository, prisma, PlanStatus } from '../repositories/conversation.repository';
 import { llmService } from '../services/llm.service';
 import { LlmError, ApiError, formatSuccessResponse, formatErrorResponse } from '../errors/api-error';
 import type { GeneratePlanRequest, ExplainPlanRequest, AdjustPlanRequest } from '../schemas/plan.schemas';
 import type { PlanContent } from '../schemas/plan.schemas';
+
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://user-service:3004';
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 
 function buildExplanationPrompt(plan: PlanContent, language: string): string {
   const schedule = plan.weeklySchedule
@@ -53,14 +58,48 @@ Please explain:
 export const planController = {
   async generatePlan(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { userId } = req.context;
-    const { goal, durationWeeks, daysPerWeek } = req.body as GeneratePlanRequest;
+    const { goal, durationWeeks, daysPerWeek, contractId } = req.body as GeneratePlanRequest & { contractId?: string };
 
     try {
+      let ptUserId: string | null = null;
+      let clientName: string | null = null;
+
+      // Verify contractId via user-service (fail-closed: contractId sent but invalid → 400)
+      if (contractId) {
+        const verifyRes = await axios.get(
+          `${USER_SERVICE_URL}/internal/contracts/active-pt`,
+          {
+            params: { clientId: userId, contractId },
+            headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET },
+            timeout: 3000,
+          },
+        );
+        ptUserId = verifyRes.data?.ptUserId ?? null;
+        if (!ptUserId) {
+          res.status(400).json({ error: 'contractId không hợp lệ hoặc không còn ACTIVE' });
+          return;
+        }
+      }
+
+      // Fetch clientName from auth-service (fail-safe — empty name is fine)
+      try {
+        const authRes = await axios.get(
+          `${AUTH_SERVICE_URL}/auth/internal/users/${userId}`,
+          { headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET }, timeout: 3000 },
+        );
+        const u = authRes.data?.user ?? authRes.data;
+        clientName = [u?.firstName, u?.lastName].filter(Boolean).join(' ') || u?.email || null;
+      } catch {
+        // fail-safe: clientName stays null
+      }
+
       const result = await conversationService.queuePlanGeneration({
         userId,
         goal,
         durationWeeks,
         daysPerWeek,
+        ptUserId,
+        clientName,
       });
       aiPlanGenerationsTotal.inc({ status: 'queued' });
       // 202 Accepted: the plan is queued, not yet complete.
@@ -74,13 +113,33 @@ export const planController = {
 
   /**
    * GET /plans/current
-   * Returns the user's most recent COMPLETED plans (up to 10).
+   * Returns the user's most recent COMPLETED plans (up to 10), including plans pending PT review.
+   * Each plan has a computed `displayStatus` and `approvedBy` field for the client UI.
    */
   async getCurrentPlans(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { userId } = req.context;
 
     try {
-      const plans = await conversationRepository.findPlansByUser(userId, PlanStatus.COMPLETED, 10);
+      const rawPlans = await prisma.workoutPlan.findMany({
+        where: { userId, status: PlanStatus.COMPLETED },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      });
+
+      const plans = rawPlans.map((p) => ({
+        ...p,
+        displayStatus:
+          !p.ptUserId ? 'active' :
+          p.ptReviewStatus === 'PENDING_PT_REVIEW' ? 'pending_review' :
+          p.ptReviewStatus === 'PT_APPROVED' ? 'active' :
+          p.ptReviewStatus === 'PT_REJECTED' ? 'rejected' : 'active',
+        approvedBy:
+          !p.ptUserId ? 'AI Engine' :
+          p.ptReviewStatus === 'PENDING_PT_REVIEW' ? null :
+          p.ptReviewStatus === 'PT_APPROVED' ? (p.ptName ?? 'PT') :
+          p.ptReviewStatus === 'PT_REJECTED' ? (p.ptName ?? 'PT') : 'AI Engine',
+      }));
+
       res.json(formatSuccessResponse({ plans }));
     } catch (err) {
       logger.error({ err, userId }, 'Error fetching current plans');
@@ -208,6 +267,97 @@ export const planController = {
         return;
       }
       logger.error({ err, planId }, 'Error explaining plan');
+      next(err);
+    }
+  },
+
+  /**
+   * GET /plans/pt/pending-review
+   * Returns all COMPLETED plans assigned to this PT that are pending review.
+   * Requires role=PT.
+   */
+  async getPTPendingReviews(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { userId: ptUserId } = req.context;
+
+    try {
+      const plans = await prisma.workoutPlan.findMany({
+        where: {
+          ptUserId,
+          status: PlanStatus.COMPLETED,
+          ptReviewStatus: 'PENDING_PT_REVIEW',
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+      res.json(formatSuccessResponse({ plans }));
+    } catch (err) {
+      logger.error({ err, ptUserId }, 'Error fetching PT pending reviews');
+      next(err);
+    }
+  },
+
+  /**
+   * POST /plans/:planId/pt-review
+   * PT approves or rejects a plan. Action: 'APPROVE' | 'REJECT'. Note: max 1000 chars.
+   * Requires role=PT and ownership of the plan.
+   */
+  async submitPTReview(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { userId: ptUserId } = req.context;
+    const { planId } = req.params;
+    const { action, note } = req.body;
+
+    try {
+      if (!['APPROVE', 'REJECT'].includes(action)) {
+        res.status(400).json({ error: 'action phải là APPROVE hoặc REJECT' });
+        return;
+      }
+
+      const trimmedNote = note ? String(note).trim() : null;
+      if (trimmedNote && trimmedNote.length > 1000) {
+        res.status(400).json({ error: 'note tối đa 1000 ký tự' });
+        return;
+      }
+
+      const plan = await prisma.workoutPlan.findUnique({ where: { id: planId } });
+
+      if (!plan || plan.ptUserId !== ptUserId) {
+        res.status(403).json({ error: 'Không có quyền review plan này' });
+        return;
+      }
+      if (plan.status !== PlanStatus.COMPLETED) {
+        res.status(409).json({ error: 'Plan chưa hoàn thành generate' });
+        return;
+      }
+      if (plan.ptReviewStatus !== 'PENDING_PT_REVIEW') {
+        res.status(409).json({ error: 'Plan này đã được review rồi' });
+        return;
+      }
+
+      // Fetch PT name from auth-service (fail-safe)
+      let ptName: string | null = null;
+      try {
+        const authRes = await axios.get(
+          `${AUTH_SERVICE_URL}/auth/internal/users/${ptUserId}`,
+          { headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET }, timeout: 3000 },
+        );
+        const u = authRes.data?.user ?? authRes.data;
+        ptName = [u?.firstName, u?.lastName].filter(Boolean).join(' ') || null;
+      } catch {
+        // fail-safe: ptName stays null
+      }
+
+      const newStatus = action === 'APPROVE' ? 'PT_APPROVED' : 'PT_REJECTED';
+      const updated = await prisma.workoutPlan.update({
+        where: { id: planId },
+        data: {
+          ptReviewStatus: newStatus as any,
+          ptNote: trimmedNote || null,
+          ptName,
+          ptReviewedAt: new Date(),
+        },
+      });
+      res.json(formatSuccessResponse({ plan: updated }));
+    } catch (err) {
+      logger.error({ err, planId, ptUserId }, 'Error submitting PT review');
       next(err);
     }
   },

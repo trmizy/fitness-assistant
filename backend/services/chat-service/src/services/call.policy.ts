@@ -56,7 +56,7 @@ export async function canInitiateCallFromSession(
 ): Promise<{ allowed: boolean; reason?: string; calleeId?: string; conversationId?: string }> {
   try {
     const { data: session } = await axios.get(
-      `${USER_SERVICE_URL}/booking/sessions/${coachingSessionId}`,
+      `${USER_SERVICE_URL}/sessions/${coachingSessionId}`,
       {
         headers: { Authorization: `Bearer ${authToken}` },
         timeout: 3000,
@@ -74,13 +74,9 @@ export async function canInitiateCallFromSession(
       return { allowed: false, reason: 'You are not a participant of this session' };
     }
 
-    // Time window check: startAt - 15min to endAt + 15min
     const now = Date.now();
-    const start = new Date(session.scheduledStartAt).getTime();
-    const end = new Date(session.scheduledEndAt).getTime();
-    const windowStart = start - 15 * 60 * 1000;
-    const windowEnd = end + 15 * 60 * 1000;
-
+    const windowStart = new Date(session.scheduledStartAt).getTime() - 10 * 60 * 1000;
+    const windowEnd   = new Date(session.scheduledEndAt).getTime()   + 15 * 60 * 1000;
     if (now < windowStart || now > windowEnd) {
       return { allowed: false, reason: 'Outside the call time window for this session' };
     }

@@ -62,7 +62,9 @@ export const authService = {
 
   async register(data: RegisterStartDto) {
     const existing = await authRepository.findUserByEmail(data.email);
-    if (existing) throw { status: 400, message: 'Email already registered' };
+    // BUG-001 / TC-AUTH-02: must be a hard 409 conflict, not 400 — clearer for
+    // the frontend to distinguish "already verified" from "validation error".
+    if (existing) throw { status: 409, message: 'Email đã đăng ký' };
 
     const previous = await authRepository.findEmailVerificationByEmail(data.email);
     if (previous?.sentAt) {
@@ -181,6 +183,13 @@ export const authService = {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) throw { status: 401, message: 'Invalid credentials' };
 
+    // BUG-002 / TC-AUTH-10: disabled accounts cannot log in. `isActive` is added
+    // by the `users_isactive` migration; if the column doesn't exist yet (e.g. pre-
+    // migration container), the value is undefined → treat as active.
+    if ((user as any).isActive === false) {
+      throw { status: 403, message: 'Tài khoản đã bị vô hiệu hóa' };
+    }
+
     const accessToken = generateAccessToken(user.id, user.role, user.email);
     const refreshToken = generateRefreshToken(user.id);
     await authRepository.createRefreshToken({
@@ -199,6 +208,17 @@ export const authService = {
       },
       accessToken,
       refreshToken,
+    };
+  },
+
+  // Admin disable/enable. Returns the updated user (without password).
+  async setUserActive(userId: string, isActive: boolean) {
+    const updated = await authRepository.updateUser(userId, { isActive } as any);
+    return {
+      id: updated.id,
+      email: updated.email,
+      role: updated.role,
+      isActive: (updated as any).isActive ?? true,
     };
   },
 

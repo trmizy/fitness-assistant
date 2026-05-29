@@ -40,6 +40,15 @@ export const nutritionService = {
     return { message: 'Nutrition log deleted' };
   },
 
+  // PATCH /nutrition/:id — owner-only partial update of a snapshot row.
+  // NutritionLog stores macros directly (not auto-computed from Food), so we accept
+  // edits on the snapshot fields consistent with create. We do NOT recompute macros.
+  async updateLog(id: string, userId: string, data: any) {
+    const existing = await nutritionRepository.findOne(id, userId);
+    if (!existing) throw { status: 404, message: 'Nutrition log not found' };
+    return nutritionRepository.update(id, data);
+  },
+
   async getGoal(userId: string) {
     const goal = await nutritionRepository.findGoalByUserId(userId);
     return goal ?? DEFAULT_NUTRITION_GOAL;

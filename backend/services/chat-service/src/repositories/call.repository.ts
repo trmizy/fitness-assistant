@@ -11,7 +11,14 @@ export const callRepository = {
     origin?: CallOrigin;
     coachingSessionId?: string;
   }) =>
-    prisma.callSession.create({ data }),
+    prisma.callSession.create({
+      data: {
+        ...data,
+        // Prisma v5 requires explicit null (not undefined) for optional relation scalars;
+        // undefined triggers a "Argument `conversation` is missing" validation error.
+        conversationId: data.conversationId ?? null,
+      },
+    }),
 
   findById: (id: string) =>
     prisma.callSession.findUnique({ where: { id } }),

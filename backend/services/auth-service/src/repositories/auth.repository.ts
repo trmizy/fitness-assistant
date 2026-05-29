@@ -24,7 +24,22 @@ export const authRepository = {
   findUserById: (id: string) =>
     prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, firstName: true, lastName: true, role: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        // isActive added by users_isactive migration. Returned to internal callers
+        // (chat-eligibility) so they can deny chat when a user is disabled.
+        isActive: true,
+      },
+    }),
+
+  findUsersByIds: (ids: string[]) =>
+    prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, firstName: true, lastName: true, email: true },
     }),
 
   updateUserById: (
@@ -46,6 +61,13 @@ export const authRepository = {
       data: { role },
       select: { id: true, email: true, firstName: true, lastName: true, role: true },
     }),
+
+  updateUser: (id: string, data: { isActive?: boolean }) =>
+    prisma.user.update({
+      where: { id },
+      data: { ...(data.isActive !== undefined ? ({ isActive: data.isActive } as any) : {}) },
+      select: { id: true, email: true, role: true, isActive: true },
+    }) as any,
 
   createUser: (data: {
     email: string;

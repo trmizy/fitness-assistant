@@ -2,14 +2,129 @@ import axios from 'axios';
 import { logger } from '@gym-coach/shared';
 import { ptApplicationRepository } from '../repositories/pt_application.repository';
 import { profileRepository } from '../repositories/profile.repository';
-import { PTApplicationStatus } from '../generated/prisma';
+import { PrismaClient, PTApplicationStatus } from '../generated/prisma';
 import { ptApplicationsTotal } from '@gym-coach/shared';
+
+const prisma = new PrismaClient();
 
 const CHAT_SERVICE_URL = process.env.CHAT_SERVICE_URL || 'http://chat-service:3005';
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || '';
 
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
 const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
+
+/**
+ * Fetch user basic info (firstName, lastName, email) from auth-service by userId.
+ * Returns null on any error (fail-safe: don't break the main response).
+ */
+async function fetchAuthUserInfo(userId: string): Promise<{ firstName: string | null; lastName: string | null; email: string } | null> {
+  try {
+    const { data } = await axios.get(
+      `${AUTH_SERVICE_URL}/auth/internal/users/${userId}`,
+      {
+        headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET },
+        timeout: 3000,
+      },
+    );
+    const u = data?.user ?? data;
+    return {
+      firstName: u?.firstName ?? u?.first_name ?? null,
+      lastName: u?.lastName ?? u?.last_name ?? null,
+      email: u?.email ?? '',
+    };
+  } catch (err: any) {
+    logger.warn({ err: err?.message, userId }, 'fetchAuthUserInfo: could not fetch from auth-service');
+    return null;
+  }
+}
+
+/**
+ * Enrich a PTApplication record with user display info.
+ * Priority: auth-service data > cached userProfile fields.
+ */
+async function enrichWithUserInfo(app: any): Promise<any> {
+  const userId = app.userProfile?.userId;
+  if (!userId) return app;
+
+  // Use cached profile fields if both firstName and email are already present
+  if (app.userProfile?.firstName && app.userProfile?.email) {
+    return app;
+  }
+
+  const authInfo = await fetchAuthUserInfo(userId);
+  if (!authInfo) return app;
+
+  return {
+    ...app,
+    userProfile: {
+      ...app.userProfile,
+      firstName: app.userProfile?.firstName || authInfo.firstName,
+      lastName: app.userProfile?.lastName || authInfo.lastName,
+      email: app.userProfile?.email || authInfo.email,
+    },
+  };
+}
+
+async function validateLocationData(data: any): Promise<void> {
+  const {
+    residenceProvinceCode, residenceWardCode,
+    applicationTrainingLocations, serviceMode,
+  } = data;
+
+  // Validate residence location if provided
+  if (residenceProvinceCode) {
+    const p = await prisma.vietnamProvince.findUnique({ where: { code: Number(residenceProvinceCode) } });
+    if (!p) throw new Error(`residenceProvinceCode ${residenceProvinceCode} không hợp lệ`);
+    if (residenceWardCode) {
+      const w = await prisma.vietnamWard.findUnique({ where: { code: Number(residenceWardCode) } });
+      if (!w || w.provinceCode !== Number(residenceProvinceCode)) {
+        throw new Error('residenceWardCode không thuộc tỉnh đã chọn');
+      }
+    }
+  }
+
+  // Sanitize training locations: filter out completely empty rows
+  const rawLocations: any[] = applicationTrainingLocations ?? [];
+  const normalizedLocations = rawLocations.filter(
+    (loc: any) => loc?.provinceCode || loc?.gymName?.trim() || loc?.addressLine?.trim()
+  );
+
+  // Validate each non-empty location
+  for (const loc of normalizedLocations) {
+    if (!loc.provinceCode) throw new Error('provinceCode bắt buộc trong training location');
+    const p = await prisma.vietnamProvince.findUnique({ where: { code: Number(loc.provinceCode) } });
+    if (!p) throw new Error(`provinceCode ${loc.provinceCode} trong training location không hợp lệ`);
+    if (loc.wardCode) {
+      const w = await prisma.vietnamWard.findUnique({ where: { code: Number(loc.wardCode) } });
+      if (!w || w.provinceCode !== Number(loc.provinceCode)) {
+        throw new Error(`wardCode ${loc.wardCode} không thuộc tỉnh ${loc.provinceCode}`);
+      }
+    }
+    if (loc.gymName && String(loc.gymName).length > 120) {
+      throw new Error('gymName tối đa 120 ký tự');
+    }
+    if (loc.addressLine && String(loc.addressLine).length > 255) {
+      throw new Error('addressLine tối đa 255 ký tự');
+    }
+  }
+
+}
+
+async function validatePriceFields(data: any): Promise<void> {
+  const priceFields = [
+    'onlinePricePerSession', 'offlinePricePerSession', 'onlinePackagePrice',
+    'offlinePackagePrice', 'packagePrice', 'monthlyProgramPrice', 'desiredSessionPrice',
+  ];
+  for (const field of priceFields) {
+    const raw = data[field];
+    if (raw !== undefined && raw !== null && raw !== '') {
+      const num = Number(raw);
+      if (Number.isNaN(num) || num < 0) {
+        throw new Error(`${field} phải là số không âm`);
+      }
+    }
+  }
+}
 
 async function syncRoleToPT(userId: string): Promise<void> {
   await axios.patch(
@@ -39,6 +154,10 @@ export const ptApplicationService = {
     if (existing && !['DRAFT', 'NEEDS_MORE_INFO'].includes(existing.status)) {
       throw new Error(`Cannot save draft while application is in ${existing.status} status`);
     }
+
+    // Validate location data if provided
+    await validateLocationData(data);
+    await validatePriceFields(data);
 
     return ptApplicationRepository.upsertDraft(profile.id, data);
   },
@@ -99,6 +218,17 @@ export const ptApplicationService = {
       || (app.packagePrice ?? 0) > 0;
     if (hasAnyPkg && (!app.sessionsPerPackage || app.sessionsPerPackage <= 0)) {
       throw new Error('sessionsPerPackage phải > 0 khi có package price');
+    }
+
+    // OFFLINE/HYBRID: require at least 1 valid training location at submit time
+    if (mode === 'OFFLINE' || mode === 'HYBRID') {
+      const rawLocs: any[] = (app as any).applicationTrainingLocations ?? [];
+      const validLocs = rawLocs.filter(
+        (loc: any) => loc?.provinceCode && (loc?.gymName?.trim() || loc?.addressLine?.trim())
+      );
+      if (validLocs.length === 0) {
+        throw new Error('Dịch vụ Offline/Hybrid cần ít nhất 1 nơi luyện tập hợp lệ (chọn tỉnh và tên phòng gym hoặc địa chỉ)');
+      }
     }
 
     const updated = await ptApplicationRepository.updateStatus(app.id, PTApplicationStatus.SUBMITTED, {
@@ -168,17 +298,52 @@ export const ptApplicationService = {
       // Perform role sync and profile update
       await syncRoleToPT(app.userProfile.userId);
       await profileRepository.setIsPT(app.userProfile.userId, true);
+
+      // Create PTTrainingLocation records from application (idempotent)
+      const rawLocations: any[] = (app as any).applicationTrainingLocations ?? [];
+      if (rawLocations.length > 0) {
+        await prisma.$transaction(async (tx) => {
+          // MVP: hard delete locations generated from previous approve retries
+          await tx.pTTrainingLocation.deleteMany({ where: { ptUserId: app.userProfile.userId } });
+
+          // Normalize primary: only one isPrimary=true
+          const primaryIdx = rawLocations.findIndex((l: any) => l.isPrimary === true);
+          const resolvedPrimaryIdx = primaryIdx >= 0 ? primaryIdx : 0;
+
+          await tx.pTTrainingLocation.createMany({
+            data: rawLocations.map((loc: any, i: number) => ({
+              ptUserId: app.userProfile.userId,
+              provinceCode: Number(loc.provinceCode),
+              wardCode: loc.wardCode ? Number(loc.wardCode) : null,
+              gymName: loc.gymName ?? null,
+              addressLine: loc.addressLine ?? null,
+              legacyDistrictName: loc.legacyDistrictName ?? null,
+              isPrimary: i === resolvedPrimaryIdx,
+              isActive: true,
+              note: loc.note ?? null,
+            })),
+          });
+        });
+      }
     }
 
     ptApplicationsTotal.inc({ status: normalizedAction });
-    return ptApplicationRepository.updateStatus(id, status, extra);
+    await ptApplicationRepository.updateStatus(id, status, extra);
+    // Fetch full application with userProfile and enrich with auth-service data
+    const updated = await ptApplicationRepository.findById(id);
+    if (!updated) throw new Error('Application not found after update');
+    return enrichWithUserInfo(updated);
   },
 
   async listApplications(filters: any) {
-    return ptApplicationRepository.findAll(filters);
+    const apps = await ptApplicationRepository.findAll(filters);
+    // Enrich all applications with user info from auth-service (in parallel)
+    return Promise.all(apps.map(enrichWithUserInfo));
   },
 
   async getById(id: string) {
-    return ptApplicationRepository.findById(id);
+    const app = await ptApplicationRepository.findById(id);
+    if (!app) return null;
+    return enrichWithUserInfo(app);
   }
 };

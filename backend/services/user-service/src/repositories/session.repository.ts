@@ -51,14 +51,15 @@ export const sessionRepository = {
       },
     }),
 
-  /** Check for overlapping sessions for a PT at a given time range */
-  findConflict: (ptUserId: string, startAt: Date, endAt: Date, excludeId?: string) =>
+  /** Check for overlapping sessions for a PT at a given time range.
+   *  statuses defaults to [REQUESTED, CONFIRMED] for booking.
+   *  Pass [CONFIRMED] only when confirming a session (BR-31). */
+  findConflict: (ptUserId: string, startAt: Date, endAt: Date, excludeId?: string, statuses?: SessionStatus[]) =>
     prisma.session.findFirst({
       where: {
         ptUserId,
-        status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+        status: { in: statuses ?? [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
         ...(excludeId && { id: { not: excludeId } }),
-        // Overlap: existing.start < new.end AND existing.end > new.start
         scheduledStartAt: { lt: endAt },
         scheduledEndAt: { gt: startAt },
       },

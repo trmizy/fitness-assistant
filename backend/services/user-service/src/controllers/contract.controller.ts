@@ -5,6 +5,7 @@ import { logger } from '@gym-coach/shared';
 import { contractService } from '../services/contract.service';
 import { contractRepository } from '../repositories/contract.repository';
 import { ContractStatus } from '../generated/prisma';
+import { prisma } from '../repositories/profile.repository';
 
 export const contractController = {
   // Client requests a contract with a PT
@@ -114,8 +115,9 @@ export const contractController = {
   async updateStatus(req: any, res: Response) {
     try {
       const userId = req.headers['x-user-id'] as string;
+      const userRole = req.headers['x-user-role'] as string;
       const { status } = req.body;
-      const contract = await contractService.updateStatus(req.params.id, userId, status);
+      const contract = await contractService.updateStatus(req.params.id, userId, status, userRole);
       res.json(contract);
     } catch (error: any) {
       logger.error(error, 'Update contract status error');
@@ -160,6 +162,65 @@ export const contractController = {
     } catch (error: any) {
       logger.error(error, 'Check relationship error');
       res.status(500).json({ error: 'Failed to check relationship' });
+    }
+  },
+
+  // INTERNAL — called by ai-service to verify that a contract is ACTIVE and get the PT user ID.
+  // Security: validates clientId owns this contract and it is currently ACTIVE.
+  // Response: minimal { ptUserId, contractId } — no full contract object.
+  async getActivePTForClient(req: any, res: Response) {
+    try {
+      const { clientId, contractId } = req.query;
+      if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
+        res.status(400).json({ error: 'clientId is required' });
+        return;
+      }
+      if (contractId !== undefined && (typeof contractId !== 'string' || contractId.trim() === '')) {
+        res.status(400).json({ error: 'contractId must be a non-empty string' });
+        return;
+      }
+
+      const where: any = {
+        clientUserId: clientId.trim(),
+        status: ContractStatus.ACTIVE,
+      };
+      if (contractId) where.id = contractId.trim();
+
+      const contract = await prisma.contract.findFirst({
+        where,
+        select: { id: true, ptUserId: true },
+        orderBy: { startDate: 'desc' },
+      });
+
+      if (!contract) {
+        res.json({ ptUserId: null });
+        return;
+      }
+      res.json({ ptUserId: contract.ptUserId, contractId: contract.id });
+    } catch (error: any) {
+      logger.error(error, 'getActivePTForClient error');
+      res.status(500).json({ error: 'Failed to verify contract' });
+    }
+  },
+
+  // INTERNAL — called by chat-service to decide whether two users can chat.
+  // BR-29 (loosened): client → APPROVED PT can chat for pre-contract discovery.
+  // Protected by serviceSecretMiddleware (mounted under /internal).
+  async chatEligibility(req: any, res: Response) {
+    try {
+      const { fromUserId, toUserId } = req.query;
+      if (!fromUserId || !toUserId) {
+        res.status(400).json({ error: 'fromUserId and toUserId are required' });
+        return;
+      }
+      const result = await contractService.computeChatEligibility(
+        String(fromUserId),
+        String(toUserId),
+      );
+      res.json(result);
+    } catch (error: any) {
+      logger.error(error, 'Chat-eligibility error');
+      res.status(500).json({ error: 'Failed to compute chat eligibility' });
     }
   },
 

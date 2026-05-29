@@ -56,6 +56,18 @@ export const nutritionController = {
     }
   },
 
+  // PATCH /nutrition/:id — owner-only partial update (snapshot model).
+  async updateLog(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const log = await nutritionService.updateLog(req.params.id, req.user!.id, req.body);
+      res.json(log);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error('Error updating nutrition log:', error);
+      res.status(500).json({ error: 'Failed to update nutrition log' });
+    }
+  },
+
   async getGoal(req: AuthRequest, res: Response): Promise<void> {
     try {
       const goal = await nutritionService.getGoal(req.user!.id);

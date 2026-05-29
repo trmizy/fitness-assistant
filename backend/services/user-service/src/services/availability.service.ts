@@ -22,6 +22,17 @@ const DAY_ORDER: Record<string, number> = {
   FRIDAY: 5, SATURDAY: 6, SUNDAY: 7,
 };
 
+// Normalize abbreviated or mixed-case day names from PTApplication to DayOfWeek enum values.
+const DAY_NAME_NORMALIZE: Record<string, DayOfWeek> = {
+  MONDAY: DayOfWeek.MONDAY, Monday: DayOfWeek.MONDAY, Mon: DayOfWeek.MONDAY,
+  TUESDAY: DayOfWeek.TUESDAY, Tuesday: DayOfWeek.TUESDAY, Tue: DayOfWeek.TUESDAY,
+  WEDNESDAY: DayOfWeek.WEDNESDAY, Wednesday: DayOfWeek.WEDNESDAY, Wed: DayOfWeek.WEDNESDAY,
+  THURSDAY: DayOfWeek.THURSDAY, Thursday: DayOfWeek.THURSDAY, Thu: DayOfWeek.THURSDAY,
+  FRIDAY: DayOfWeek.FRIDAY, Friday: DayOfWeek.FRIDAY, Fri: DayOfWeek.FRIDAY,
+  SATURDAY: DayOfWeek.SATURDAY, Saturday: DayOfWeek.SATURDAY, Sat: DayOfWeek.SATURDAY,
+  SUNDAY: DayOfWeek.SUNDAY, Sunday: DayOfWeek.SUNDAY, Sun: DayOfWeek.SUNDAY,
+};
+
 function timeToMinutes(time: string): number {
   const [hours, minutes] = time.split(':').map(Number);
   return hours * 60 + minutes;
@@ -117,12 +128,16 @@ export const availabilityService = {
     }
 
     if (blocks.length > 0) {
-      const typed = blocks.map(b => ({
-        dayOfWeek: b.dayOfWeek as DayOfWeek,
-        startTime: b.startTime,
-        endTime: b.endTime
-      }));
-      await availabilityRepository.replaceAll(ptUserId, typed);
+      const typed = blocks
+        .map(b => {
+          const day = DAY_NAME_NORMALIZE[b.dayOfWeek as string];
+          if (!day) return null;
+          return { dayOfWeek: day, startTime: b.startTime as string, endTime: b.endTime as string };
+        })
+        .filter((b): b is { dayOfWeek: DayOfWeek; startTime: string; endTime: string } => b !== null);
+      if (typed.length > 0) {
+        await availabilityRepository.replaceAll(ptUserId, typed);
+      }
     }
   },
 
@@ -164,8 +179,14 @@ export const availabilityService = {
     const exceptions = await availabilityRepository.findExceptions(ptUserId, dayStart, dayEnd);
     if (exceptions.length > 0) return [];
 
-    // 3. Get PT's availability for this day of week
-    const availability = await availabilityRepository.findByPT(ptUserId);
+    // 3. Get PT's availability for this day of week.
+    // Lazy-seed from PTApplication if no records exist yet (handles PTs approved before
+    // the PTAvailability system was in place, or those with abbreviated day names in PTApplication).
+    let availability = await availabilityRepository.findByPT(ptUserId);
+    if (availability.length === 0) {
+      await this.seedInitialAvailability(ptUserId);
+      availability = await availabilityRepository.findByPT(ptUserId);
+    }
     const dayBlocks = availability.filter(a => a.dayOfWeek === dayOfWeek && a.isActive);
 
     if (dayBlocks.length === 0) return [];

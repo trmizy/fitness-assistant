@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "react-router";
 import { ChevronLeft, MessageSquare, Calendar, FileText, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { contractService, sessionService } from "../../services/api";
+import { formatVND } from "../../utils/currency";
 
 function getInitials(name: string | null | undefined) {
   if (!name) return "?";
@@ -197,7 +198,7 @@ export function PTClientDetail() {
                 { label: "Gói dịch vụ",  value: contract.packageName ?? "–",      valueClass: "text-zinc-300" },
                 { label: "Buổi tập", value: `${sessionsUsed} / ${sessionsTotal}`, valueClass: "text-zinc-300" },
                 { label: "Hết hạn",  value: formatDate(contract.endDate),     valueClass: "text-zinc-300" },
-                ...(contract.price != null ? [{ label: "Giá", value: `฿${Number(contract.price).toLocaleString()}`, valueClass: "text-zinc-300" }] : []),
+                ...(contract.price != null ? [{ label: "Giá", value: formatVND(Number(contract.price)), valueClass: "text-zinc-300" }] : []),
               ].map(r => (
                 <div key={r.label} className="flex justify-between">
                   <span className="text-zinc-500">{r.label}</span>

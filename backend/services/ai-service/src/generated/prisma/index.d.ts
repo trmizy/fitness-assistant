@@ -37,11 +37,24 @@ export namespace $Enums {
 
 export type PlanStatus = (typeof PlanStatus)[keyof typeof PlanStatus]
 
+
+export const PtReviewStatus: {
+  PENDING_PT_REVIEW: 'PENDING_PT_REVIEW',
+  PT_APPROVED: 'PT_APPROVED',
+  PT_REJECTED: 'PT_REJECTED'
+};
+
+export type PtReviewStatus = (typeof PtReviewStatus)[keyof typeof PtReviewStatus]
+
 }
 
 export type PlanStatus = $Enums.PlanStatus
 
 export const PlanStatus: typeof $Enums.PlanStatus
+
+export type PtReviewStatus = $Enums.PtReviewStatus
+
+export const PtReviewStatus: typeof $Enums.PtReviewStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -2112,6 +2125,12 @@ export namespace Prisma {
     version: number | null
     jobId: string | null
     failReason: string | null
+    ptUserId: string | null
+    ptName: string | null
+    clientName: string | null
+    ptReviewStatus: $Enums.PtReviewStatus | null
+    ptNote: string | null
+    ptReviewedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2128,6 +2147,12 @@ export namespace Prisma {
     version: number | null
     jobId: string | null
     failReason: string | null
+    ptUserId: string | null
+    ptName: string | null
+    clientName: string | null
+    ptReviewStatus: $Enums.PtReviewStatus | null
+    ptNote: string | null
+    ptReviewedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2145,6 +2170,12 @@ export namespace Prisma {
     version: number
     jobId: number
     failReason: number
+    ptUserId: number
+    ptName: number
+    clientName: number
+    ptReviewStatus: number
+    ptNote: number
+    ptReviewedAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -2175,6 +2206,12 @@ export namespace Prisma {
     version?: true
     jobId?: true
     failReason?: true
+    ptUserId?: true
+    ptName?: true
+    clientName?: true
+    ptReviewStatus?: true
+    ptNote?: true
+    ptReviewedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2191,6 +2228,12 @@ export namespace Prisma {
     version?: true
     jobId?: true
     failReason?: true
+    ptUserId?: true
+    ptName?: true
+    clientName?: true
+    ptReviewStatus?: true
+    ptNote?: true
+    ptReviewedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2208,6 +2251,12 @@ export namespace Prisma {
     version?: true
     jobId?: true
     failReason?: true
+    ptUserId?: true
+    ptName?: true
+    clientName?: true
+    ptReviewStatus?: true
+    ptNote?: true
+    ptReviewedAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -2312,6 +2361,12 @@ export namespace Prisma {
     version: number
     jobId: string | null
     failReason: string | null
+    ptUserId: string | null
+    ptName: string | null
+    clientName: string | null
+    ptReviewStatus: $Enums.PtReviewStatus | null
+    ptNote: string | null
+    ptReviewedAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: WorkoutPlanCountAggregateOutputType | null
@@ -2348,6 +2403,12 @@ export namespace Prisma {
     version?: boolean
     jobId?: boolean
     failReason?: boolean
+    ptUserId?: boolean
+    ptName?: boolean
+    clientName?: boolean
+    ptReviewStatus?: boolean
+    ptNote?: boolean
+    ptReviewedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workoutPlan"]>
@@ -2365,6 +2426,12 @@ export namespace Prisma {
     version?: boolean
     jobId?: boolean
     failReason?: boolean
+    ptUserId?: boolean
+    ptName?: boolean
+    clientName?: boolean
+    ptReviewStatus?: boolean
+    ptNote?: boolean
+    ptReviewedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workoutPlan"]>
@@ -2382,6 +2449,12 @@ export namespace Prisma {
     version?: boolean
     jobId?: boolean
     failReason?: boolean
+    ptUserId?: boolean
+    ptName?: boolean
+    clientName?: boolean
+    ptReviewStatus?: boolean
+    ptNote?: boolean
+    ptReviewedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -2409,6 +2482,12 @@ export namespace Prisma {
        */
       jobId: string | null
       failReason: string | null
+      ptUserId: string | null
+      ptName: string | null
+      clientName: string | null
+      ptReviewStatus: $Enums.PtReviewStatus | null
+      ptNote: string | null
+      ptReviewedAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["workoutPlan"]>
@@ -2816,6 +2895,12 @@ export namespace Prisma {
     readonly version: FieldRef<"WorkoutPlan", 'Int'>
     readonly jobId: FieldRef<"WorkoutPlan", 'String'>
     readonly failReason: FieldRef<"WorkoutPlan", 'String'>
+    readonly ptUserId: FieldRef<"WorkoutPlan", 'String'>
+    readonly ptName: FieldRef<"WorkoutPlan", 'String'>
+    readonly clientName: FieldRef<"WorkoutPlan", 'String'>
+    readonly ptReviewStatus: FieldRef<"WorkoutPlan", 'PtReviewStatus'>
+    readonly ptNote: FieldRef<"WorkoutPlan", 'String'>
+    readonly ptReviewedAt: FieldRef<"WorkoutPlan", 'DateTime'>
     readonly createdAt: FieldRef<"WorkoutPlan", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkoutPlan", 'DateTime'>
   }
@@ -3160,6 +3245,12 @@ export namespace Prisma {
     version: 'version',
     jobId: 'jobId',
     failReason: 'failReason',
+    ptUserId: 'ptUserId',
+    ptName: 'ptName',
+    clientName: 'clientName',
+    ptReviewStatus: 'ptReviewStatus',
+    ptNote: 'ptNote',
+    ptReviewedAt: 'ptReviewedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -3293,6 +3384,20 @@ export namespace Prisma {
    * Reference to a field of type 'PlanStatus[]'
    */
   export type ListEnumPlanStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PlanStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtReviewStatus'
+   */
+  export type EnumPtReviewStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtReviewStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PtReviewStatus[]'
+   */
+  export type ListEnumPtReviewStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtReviewStatus[]'>
     
   /**
    * Deep Input Types
@@ -3449,6 +3554,12 @@ export namespace Prisma {
     version?: IntFilter<"WorkoutPlan"> | number
     jobId?: StringNullableFilter<"WorkoutPlan"> | string | null
     failReason?: StringNullableFilter<"WorkoutPlan"> | string | null
+    ptUserId?: StringNullableFilter<"WorkoutPlan"> | string | null
+    ptName?: StringNullableFilter<"WorkoutPlan"> | string | null
+    clientName?: StringNullableFilter<"WorkoutPlan"> | string | null
+    ptReviewStatus?: EnumPtReviewStatusNullableFilter<"WorkoutPlan"> | $Enums.PtReviewStatus | null
+    ptNote?: StringNullableFilter<"WorkoutPlan"> | string | null
+    ptReviewedAt?: DateTimeNullableFilter<"WorkoutPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
   }
@@ -3466,6 +3577,12 @@ export namespace Prisma {
     version?: SortOrder
     jobId?: SortOrderInput | SortOrder
     failReason?: SortOrderInput | SortOrder
+    ptUserId?: SortOrderInput | SortOrder
+    ptName?: SortOrderInput | SortOrder
+    clientName?: SortOrderInput | SortOrder
+    ptReviewStatus?: SortOrderInput | SortOrder
+    ptNote?: SortOrderInput | SortOrder
+    ptReviewedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -3486,6 +3603,12 @@ export namespace Prisma {
     version?: IntFilter<"WorkoutPlan"> | number
     jobId?: StringNullableFilter<"WorkoutPlan"> | string | null
     failReason?: StringNullableFilter<"WorkoutPlan"> | string | null
+    ptUserId?: StringNullableFilter<"WorkoutPlan"> | string | null
+    ptName?: StringNullableFilter<"WorkoutPlan"> | string | null
+    clientName?: StringNullableFilter<"WorkoutPlan"> | string | null
+    ptReviewStatus?: EnumPtReviewStatusNullableFilter<"WorkoutPlan"> | $Enums.PtReviewStatus | null
+    ptNote?: StringNullableFilter<"WorkoutPlan"> | string | null
+    ptReviewedAt?: DateTimeNullableFilter<"WorkoutPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
   }, "id">
@@ -3503,6 +3626,12 @@ export namespace Prisma {
     version?: SortOrder
     jobId?: SortOrderInput | SortOrder
     failReason?: SortOrderInput | SortOrder
+    ptUserId?: SortOrderInput | SortOrder
+    ptName?: SortOrderInput | SortOrder
+    clientName?: SortOrderInput | SortOrder
+    ptReviewStatus?: SortOrderInput | SortOrder
+    ptNote?: SortOrderInput | SortOrder
+    ptReviewedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: WorkoutPlanCountOrderByAggregateInput
@@ -3528,6 +3657,12 @@ export namespace Prisma {
     version?: IntWithAggregatesFilter<"WorkoutPlan"> | number
     jobId?: StringNullableWithAggregatesFilter<"WorkoutPlan"> | string | null
     failReason?: StringNullableWithAggregatesFilter<"WorkoutPlan"> | string | null
+    ptUserId?: StringNullableWithAggregatesFilter<"WorkoutPlan"> | string | null
+    ptName?: StringNullableWithAggregatesFilter<"WorkoutPlan"> | string | null
+    clientName?: StringNullableWithAggregatesFilter<"WorkoutPlan"> | string | null
+    ptReviewStatus?: EnumPtReviewStatusNullableWithAggregatesFilter<"WorkoutPlan"> | $Enums.PtReviewStatus | null
+    ptNote?: StringNullableWithAggregatesFilter<"WorkoutPlan"> | string | null
+    ptReviewedAt?: DateTimeNullableWithAggregatesFilter<"WorkoutPlan"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"WorkoutPlan"> | Date | string
   }
@@ -3713,6 +3848,12 @@ export namespace Prisma {
     version?: number
     jobId?: string | null
     failReason?: string | null
+    ptUserId?: string | null
+    ptName?: string | null
+    clientName?: string | null
+    ptReviewStatus?: $Enums.PtReviewStatus | null
+    ptNote?: string | null
+    ptReviewedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3730,6 +3871,12 @@ export namespace Prisma {
     version?: number
     jobId?: string | null
     failReason?: string | null
+    ptUserId?: string | null
+    ptName?: string | null
+    clientName?: string | null
+    ptReviewStatus?: $Enums.PtReviewStatus | null
+    ptNote?: string | null
+    ptReviewedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3747,6 +3894,12 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     jobId?: NullableStringFieldUpdateOperationsInput | string | null
     failReason?: NullableStringFieldUpdateOperationsInput | string | null
+    ptUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientName?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewStatus?: NullableEnumPtReviewStatusFieldUpdateOperationsInput | $Enums.PtReviewStatus | null
+    ptNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3764,6 +3917,12 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     jobId?: NullableStringFieldUpdateOperationsInput | string | null
     failReason?: NullableStringFieldUpdateOperationsInput | string | null
+    ptUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientName?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewStatus?: NullableEnumPtReviewStatusFieldUpdateOperationsInput | $Enums.PtReviewStatus | null
+    ptNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3781,6 +3940,12 @@ export namespace Prisma {
     version?: number
     jobId?: string | null
     failReason?: string | null
+    ptUserId?: string | null
+    ptName?: string | null
+    clientName?: string | null
+    ptReviewStatus?: $Enums.PtReviewStatus | null
+    ptNote?: string | null
+    ptReviewedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3798,6 +3963,12 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     jobId?: NullableStringFieldUpdateOperationsInput | string | null
     failReason?: NullableStringFieldUpdateOperationsInput | string | null
+    ptUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientName?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewStatus?: NullableEnumPtReviewStatusFieldUpdateOperationsInput | $Enums.PtReviewStatus | null
+    ptNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3815,6 +3986,12 @@ export namespace Prisma {
     version?: IntFieldUpdateOperationsInput | number
     jobId?: NullableStringFieldUpdateOperationsInput | string | null
     failReason?: NullableStringFieldUpdateOperationsInput | string | null
+    ptUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientName?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewStatus?: NullableEnumPtReviewStatusFieldUpdateOperationsInput | $Enums.PtReviewStatus | null
+    ptNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -4155,6 +4332,13 @@ export namespace Prisma {
     not?: NestedEnumPlanStatusFilter<$PrismaModel> | $Enums.PlanStatus
   }
 
+  export type EnumPtReviewStatusNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtReviewStatus | EnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PtReviewStatus[] | ListEnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PtReviewStatus[] | ListEnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel> | $Enums.PtReviewStatus | null
+  }
+
   export type WorkoutPlanCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
@@ -4168,6 +4352,12 @@ export namespace Prisma {
     version?: SortOrder
     jobId?: SortOrder
     failReason?: SortOrder
+    ptUserId?: SortOrder
+    ptName?: SortOrder
+    clientName?: SortOrder
+    ptReviewStatus?: SortOrder
+    ptNote?: SortOrder
+    ptReviewedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -4190,6 +4380,12 @@ export namespace Prisma {
     version?: SortOrder
     jobId?: SortOrder
     failReason?: SortOrder
+    ptUserId?: SortOrder
+    ptName?: SortOrder
+    clientName?: SortOrder
+    ptReviewStatus?: SortOrder
+    ptNote?: SortOrder
+    ptReviewedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -4206,6 +4402,12 @@ export namespace Prisma {
     version?: SortOrder
     jobId?: SortOrder
     failReason?: SortOrder
+    ptUserId?: SortOrder
+    ptName?: SortOrder
+    clientName?: SortOrder
+    ptReviewStatus?: SortOrder
+    ptNote?: SortOrder
+    ptReviewedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -4249,6 +4451,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPlanStatusFilter<$PrismaModel>
     _max?: NestedEnumPlanStatusFilter<$PrismaModel>
+  }
+
+  export type EnumPtReviewStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtReviewStatus | EnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PtReviewStatus[] | ListEnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PtReviewStatus[] | ListEnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPtReviewStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.PtReviewStatus | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel>
+    _max?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel>
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -4297,6 +4509,10 @@ export namespace Prisma {
 
   export type EnumPlanStatusFieldUpdateOperationsInput = {
     set?: $Enums.PlanStatus
+  }
+
+  export type NullableEnumPtReviewStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PtReviewStatus | null
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -4522,6 +4738,13 @@ export namespace Prisma {
     notIn?: $Enums.PlanStatus[] | ListEnumPlanStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumPlanStatusFilter<$PrismaModel> | $Enums.PlanStatus
   }
+
+  export type NestedEnumPtReviewStatusNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtReviewStatus | EnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PtReviewStatus[] | ListEnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PtReviewStatus[] | ListEnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel> | $Enums.PtReviewStatus | null
+  }
   export type NestedJsonFilter<$PrismaModel = never> = 
     | PatchUndefined<
         Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -4553,6 +4776,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumPlanStatusFilter<$PrismaModel>
     _max?: NestedEnumPlanStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPtReviewStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PtReviewStatus | EnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    in?: $Enums.PtReviewStatus[] | ListEnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.PtReviewStatus[] | ListEnumPtReviewStatusFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumPtReviewStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.PtReviewStatus | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel>
+    _max?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel>
   }
 
 

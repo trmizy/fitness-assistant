@@ -143,4 +143,16 @@ export const workoutController = {
       res.status(500).json({ error: 'Failed to start workout generation' });
     }
   },
+
+  // POST /workouts/:id/sets — append a single set to a workout's exercise.
+  async addSet(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.addSet(req.params.id, req.user!.id, req.body);
+      res.status(201).json(result);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error('Error adding set:', error);
+      res.status(500).json({ error: 'Failed to add set' });
+    }
+  },
 };

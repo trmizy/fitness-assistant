@@ -8,6 +8,7 @@ import {
   User, ShieldCheck, History as HistoryIcon,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { formatVND } from "../../utils/currency";
 import { ptApplicationService, PTApplication } from "../../services/ptApplicationService";
 const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3000';
 
@@ -61,7 +62,7 @@ function PriceItem({ label, value }: { label: string; value?: number | null }) {
     <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/30">
       <span className="text-xs text-zinc-500 font-medium">{label}</span>
       <span className="text-sm text-zinc-100 font-bold">
-        {value ? `${value.toLocaleString()} THB` : <span className="text-zinc-600 font-normal">Contact for price</span>}
+        {value != null ? formatVND(value) : <span className="text-zinc-600 font-normal">Liên hệ</span>}
       </span>
     </div>
   );
@@ -191,10 +192,10 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
 
           {section === 3 && (
             <div className="grid grid-cols-2 gap-3">
-              {app.media?.filter(m => m.mediaGroup === "PORTFOLIO").map((m, i) => (
+              {app.media?.filter(m => m.groupType === "PORTFOLIO" || m.mediaGroup === "PORTFOLIO").map((m, i) => (
                 <DocThumb key={i} label={`Portfolio ${i + 1}`} url={m.fileUrl} tag="Media" />
               ))}
-              {(!app.media || app.media.length === 0) && (
+              {(!app.media || app.media.filter(m => m.groupType === "PORTFOLIO" || m.mediaGroup === "PORTFOLIO").length === 0) && (
                 <div className="col-span-2 text-center py-10">
                   <ImageIcon className="w-10 h-10 text-zinc-700 mx-auto mb-2" />
                   <p className="text-sm text-zinc-500">No portfolio media uploaded.</p>
@@ -367,27 +368,51 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                   </div>
                   <div className="pt-2">
                     <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Schedule</p>
-                    <div className="flex flex-wrap gap-1.5 overflow-hidden">
-                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
-                        <span key={d} className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors ${
-                          app.availableDays?.includes(d) ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-zinc-950 text-zinc-700 border-zinc-800/40"
-                        }`}>{d}</span>
-                      ))}
+                    <div className="flex flex-wrap gap-1.5 overflow-hidden mb-3">
+                      {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => {
+                        const isAvailable = app.availableDays?.includes(d) || app.availabilityBlocks?.some((b: any) => b.dayOfWeek?.startsWith(d.substring(0, 3)));
+                        return (
+                          <span key={d} className={`px-2 py-1 rounded-md text-[10px] font-bold border transition-colors ${
+                            isAvailable ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-zinc-950 text-zinc-700 border-zinc-800/40"
+                          }`}>{d}</span>
+                        );
+                      })}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/40">
-                    <Clock className="w-4 h-4 text-zinc-600" />
-                    <div className="text-xs text-zinc-300">
-                      {app.availableFrom || app.availableUntil ? (
-                        `${app.availableFrom || "??:??"} — ${app.availableUntil || "??:??"}`
-                      ) : (
-                        "Variable schedule"
-                      )}
-                    </div>
+                    {app.availabilityBlocks && app.availabilityBlocks.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {app.availabilityBlocks.map((b: any, i: number) => (
+                          <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-zinc-950/50 border border-zinc-800/40">
+                            <Clock className="w-3.5 h-3.5 text-green-400" />
+                            <div className="text-xs text-zinc-300 font-medium">
+                              <span className="text-zinc-500 w-10 inline-block">{b.dayOfWeek}</span> {b.startTime} — {b.endTime}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-950/50 border border-zinc-800/40">
+                        <Clock className="w-4 h-4 text-zinc-600" />
+                        <div className="text-xs text-zinc-300">
+                          {app.availableFrom || app.availableUntil ? (
+                            `${app.availableFrom || "??:??"} — ${app.availableUntil || "??:??"}`
+                          ) : (
+                            "Variable schedule"
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="text-[10px] text-zinc-500 italic flex items-start gap-2 px-1">
                     <MapPin className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{app.operatingAreas?.join(", ") || "Client address / Online"}</span>
+                    <span className="truncate">
+                      {(() => {
+                        const locs: any[] = app.applicationTrainingLocations ?? [];
+                        const names = locs.map((l: any) => l.gymName).filter(Boolean);
+                        if (names.length > 0) return names.join(', ');
+                        if (app.operatingAreas?.length) return app.operatingAreas.join(', ');
+                        return 'Online';
+                      })()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -504,12 +529,25 @@ export function PTManagement() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<App | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ['admin-pt-applications', filter],
     queryFn: () => ptApplicationService.listApplications(filter === "all" ? {} : { status: filter })
   });
 
+  const handleSelectApp = async (app: App) => {
+    setLoadingId(app.id);
+    try {
+      const detail = await ptApplicationService.getById(app.id);
+      setSelected(detail);
+    } catch {
+      // Fallback to list data if getById fails
+      setSelected(app);
+    } finally {
+      setLoadingId(null);
+    }
+  };
 
   if (selected) {
     return <DetailView app={selected} onBack={() => setSelected(null)} />;
@@ -557,16 +595,22 @@ export function PTManagement() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(app => (
-            <button key={app.id} onClick={() => setSelected(app)}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-left hover:border-green-500/30 transition-all group relative overflow-hidden">
+            <button key={app.id} onClick={() => handleSelectApp(app)}
+              disabled={loadingId === app.id}
+              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-left hover:border-green-500/30 transition-all group relative overflow-hidden disabled:opacity-70">
+              {loadingId === app.id && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-zinc-900/70 rounded-2xl">
+                  <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
+                </div>
+              )}
               <div className="flex items-start justify-between relative z-10">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-zinc-800 rounded-xl flex items-center justify-center text-sm font-bold text-zinc-400 group-hover:text-green-400 transition-colors">
-                    {app.user?.firstName?.[0]}
+                    {app.user?.firstName?.[0] || '?'}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-zinc-200">{app.user?.firstName} {app.user?.lastName}</h3>
-                    <p className="text-xs text-zinc-500">{app.user?.email}</p>
+                    <h3 className="text-sm font-bold text-zinc-200">{app.user?.firstName || 'N/A'} {app.user?.lastName || ''}</h3>
+                    <p className="text-xs text-zinc-500">{app.user?.email || 'No email'}</p>
                   </div>
                 </div>
                 <div className={`w-2 h-2 rounded-full ${statusConfig[app.status || "DRAFT"].dot}`} />
@@ -574,7 +618,7 @@ export function PTManagement() {
 
               <div className="mt-4 grid grid-cols-2 gap-3 relative z-10">
                 <div className="flex items-center gap-2 text-[10px] text-zinc-500">
-                  <Briefcase className="w-3 h-3" /> {app.yearsOfExperience}y Exp
+                  <Briefcase className="w-3 h-3" /> {app.yearsOfExperience ? `${app.yearsOfExperience}y` : '?y'} Exp
                 </div>
                 <div className="flex items-center gap-2 text-[10px] text-zinc-500">
                   <Calendar className="w-3 h-3" /> {new Date(app.createdAt).toLocaleDateString()}

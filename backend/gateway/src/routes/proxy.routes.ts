@@ -630,6 +630,35 @@ router.patch('/admin/users/:userId/role', authMiddleware, requireRoles('ADMIN'),
   }
 });
 
+// Admin disable/enable user (BUG-002, BUG-025, BUG-026). Proxies to auth-service.
+for (const action of ['disable', 'enable'] as const) {
+  router.patch(`/admin/users/:userId/${action}`, authMiddleware, requireRoles('ADMIN'), async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const { userId } = req.params;
+      const response = await axios.patch(
+        `${AUTH_SERVICE_URL}/auth/users/${userId}/${action}`,
+        {},
+        {
+          headers: authHeader ? { Authorization: authHeader } : undefined,
+          timeout: 5000,
+        },
+      );
+      res.json({ success: true, data: response.data });
+    } catch (error: any) {
+      logger.error({ error: error?.message }, `Admin ${action} user failed`);
+      const status = error?.response?.status || 500;
+      res.status(status).json({
+        success: false,
+        error: {
+          code: action === 'disable' ? 'DISABLE_USER_FAILED' : 'ENABLE_USER_FAILED',
+          message: error?.response?.data?.error || `Failed to ${action} user`,
+        },
+      });
+    }
+  });
+}
+
 router.get('/admin/workflows/meta', authMiddleware, requireRoles('ADMIN'), async (_req, res) => {
   try {
     const healthResponse = await requestN8n('/healthz');

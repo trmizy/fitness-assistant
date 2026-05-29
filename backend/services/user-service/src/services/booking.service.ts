@@ -1,3 +1,4 @@
+import { createHmac } from 'crypto';
 import { SessionStatus, SessionMode, ContractStatus, DayOfWeek } from '../generated/prisma';
 import { sessionRepository } from '../repositories/session.repository';
 import { contractRepository } from '../repositories/contract.repository';
@@ -40,6 +41,15 @@ export const bookingService = {
       throw err('Contract is not active', 400);
     }
 
+    // BR-28: session mode must match contract mode
+    if (contract.sessionMode) {
+      if (!data.sessionMode) {
+        data.sessionMode = contract.sessionMode as string;
+      } else if (data.sessionMode !== contract.sessionMode) {
+        throw err(`Session mode must match contract: expected ${contract.sessionMode}`, 400);
+      }
+    }
+
     // Check session limit: usedSessions + pending/confirmed < totalSessions
     const activeSessionCount = await sessionRepository.countActiveByContract(contractId);
     if (contract.usedSessions + activeSessionCount >= contract.totalSessions) {
@@ -57,6 +67,11 @@ export const bookingService = {
     // Must be in the future
     if (startAt <= new Date()) {
       throw err('Cannot book a session in the past', 400);
+    }
+
+    // BR-30: must be booked at least 24 hours in advance
+    if (startAt.getTime() - Date.now() < CANCEL_WINDOW_MS) {
+      throw err('Sessions must be booked at least 24 hours in advance', 400);
     }
 
     // Check contract date range
@@ -124,6 +139,18 @@ export const bookingService = {
     if (session.ptUserId !== ptUserId) throw err('Not authorized', 403);
     if (session.status !== SessionStatus.REQUESTED) {
       throw err(`Cannot confirm session in ${session.status} status`, 400);
+    }
+
+    // BR-31: block if PT already has a CONFIRMED session in same slot
+    const conflict = await sessionRepository.findConflict(
+      session.ptUserId,
+      session.scheduledStartAt,
+      session.scheduledEndAt,
+      session.id,
+      [SessionStatus.CONFIRMED],
+    );
+    if (conflict) {
+      throw err('PT has a conflicting session in this time slot', 409);
     }
 
     const updated = await sessionRepository.updateStatus(sessionId, SessionStatus.CONFIRMED);
@@ -302,6 +329,58 @@ export const bookingService = {
       throw err('Not authorized', 403);
     }
     return sessionRepository.findByContract(contractId);
+  },
+
+  // ── Get single session (used by chat-service to verify call permissions) ─
+  async getSessionById(sessionId: string, userId: string) {
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err('Session not found', 404);
+    if (session.clientUserId !== userId && session.ptUserId !== userId) {
+      throw err('Not authorized', 403);
+    }
+    return session;
+  },
+
+  // ── Generate join token for a coaching session call ─────────────
+  async joinSession(sessionId: string, userId: string) {
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err('Session not found', 404);
+
+    const isParticipant = session.clientUserId === userId || session.ptUserId === userId;
+    if (!isParticipant) throw err('Not authorized', 403);
+
+    if (session.status !== SessionStatus.CONFIRMED) {
+      throw err('Session must be confirmed before joining', 400);
+    }
+    if (session.sessionMode !== SessionMode.ONLINE) {
+      throw err('Session is not online — no call needed', 400);
+    }
+
+    const otherUserId = session.ptUserId === userId ? session.clientUserId : session.ptUserId;
+
+    const secret = process.env.INTERNAL_API_SECRET;
+    if (!secret) throw err('Server misconfiguration: missing INTERNAL_API_SECRET', 500);
+
+    const payload = {
+      sessionId,
+      userId,
+      otherUserId,
+      purpose: 'JOIN_COACHING_SESSION',
+      exp: Date.now() + 10 * 60 * 1000, // 10 minutes
+    };
+    const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const sig = createHmac('sha256', secret).update(encoded).digest('base64url');
+    const joinToken = `${encoded}.${sig}`;
+
+    return {
+      sessionId,
+      otherUserId,
+      joinToken,
+      sessionMode: session.sessionMode,
+      status: session.status,
+      scheduledStartAt: session.scheduledStartAt,
+      scheduledEndAt: session.scheduledEndAt,
+    };
   },
 
   // ── Get my upcoming sessions ────────────────────────────────────

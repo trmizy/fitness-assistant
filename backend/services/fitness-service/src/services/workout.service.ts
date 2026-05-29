@@ -74,6 +74,28 @@ export const workoutService = {
     return workoutRepository.updateSet(setId, data);
   },
 
+  // POST /workouts/:id/sets — append a single set to an existing workout. Finds or
+  // creates the WorkoutExercise(workoutId, exerciseId), then appends a new WorkoutSet
+  // with the next set_number for that exercise.
+  async addSet(workoutId: string, userId: string, body: {
+    exerciseId: string;
+    setNumber?: number;
+    weight?: number;
+    reps?: number;
+    rpe?: number;
+  }) {
+    if (body.rpe !== undefined && (body.rpe < 1 || body.rpe > 10)) {
+      throw { status: 400, message: 'rpe must be between 1 and 10' };
+    }
+    if (!body.exerciseId) throw { status: 400, message: 'exerciseId is required' };
+
+    const workout = await workoutRepository.findOne(workoutId, userId);
+    if (!workout) throw { status: 404, message: 'Workout not found' };
+
+    await validateExerciseIds([body.exerciseId]);
+    return workoutRepository.appendSet(workoutId, body.exerciseId, body);
+  },
+
   async queueWorkoutGeneration(userId: string, params: any) {
     const job = await workoutQueue.add('generate-workout', { userId, ...params });
     return { message: 'Workout generation started', jobId: job.id };

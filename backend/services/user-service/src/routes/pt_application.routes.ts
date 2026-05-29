@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -36,7 +36,22 @@ const upload = multer({
 router.get('/me', authMiddleware, ptApplicationController.getMe as any);
 router.post('/me/draft', authMiddleware, ptApplicationController.saveDraft as any);
 router.post('/me/submit', authMiddleware, ptApplicationController.submit as any);
-router.post('/me/upload', authMiddleware, upload.single('document'), ptApplicationController.upload as any);
+// Wrap multer so file-too-large → 413 and bad-format → 400 instead of leaking 500.
+function handleDocumentUpload(req: Request, res: Response, next: NextFunction): void {
+  upload.single('document')(req, res, (err: any) => {
+    if (err?.code === 'LIMIT_FILE_SIZE') {
+      res.status(413).json({ error: 'File too large. Maximum allowed size is 10 MB.' });
+      return;
+    }
+    if (err instanceof Error) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    next();
+  });
+}
+
+router.post('/me/upload', authMiddleware, handleDocumentUpload, ptApplicationController.upload as any);
 
 // Admin routes
 router.get('/admin', authMiddleware, roleMiddleware(['ADMIN']), ptApplicationController.listApplications as any);

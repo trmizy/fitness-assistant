@@ -2,7 +2,7 @@ import axios from 'axios';
 import { makeRefreshOnce } from './refresh-once';
 
 // @ts-ignore - ImportMeta.env is provided by Vite
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -161,9 +161,30 @@ export const profileService = {
     return data;
   },
 
-  listPTs: async () => {
-    const { data } = await api.get('/profile/pts');
+  listPTs: async (filters?: {
+    q?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sessionMode?: string;
+    provinceCode?: number;
+    wardCode?: number;
+    sortBy?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const { data } = await api.get('/profile/pts', { params: filters });
     return data;
+  },
+};
+
+export const locationService = {
+  getProvinces: async () => {
+    const { data } = await api.get('/locations/provinces');
+    return data as { code: number; name: string; codename?: string; divisionType?: string }[];
+  },
+  getWards: async (provinceCode: number) => {
+    const { data } = await api.get(`/locations/provinces/${provinceCode}/wards`);
+    return data as { code: number; name: string; codename?: string }[];
   },
 };
 
@@ -239,7 +260,12 @@ export const workoutService = {
 };
 
 export const planService = {
-  generateWorkoutPlan: async (params: any) => {
+  generateWorkoutPlan: async (params: {
+    goal: string;
+    durationWeeks: number;
+    daysPerWeek: number;
+    contractId?: string;
+  }) => {
     const { data } = await api.post('/plans/workout/generate', params);
     return data;
   },
@@ -723,6 +749,56 @@ export const notificationService = {
   getUnreadCount: async () => {
     const { data } = await api.get('/notifications/unread-count');
     return data;
+  },
+};
+
+export const ptPlanReviewService = {
+  getPendingReviews: async () => {
+    const { data } = await api.get('/plans/pt/pending-review');
+    return data?.data?.plans ?? [];
+  },
+  submitReview: async (planId: string, body: { action: 'APPROVE' | 'REJECT'; note?: string }) => {
+    const { data } = await api.post(`/plans/${planId}/pt-review`, body);
+    return data;
+  },
+};
+
+export const trainingLocationService = {
+  getMyLocations: async () => {
+    const { data } = await api.get('/pt/training-locations/me');
+    return data as {
+      id: string;
+      provinceCode: number;
+      wardCode?: number;
+      gymName?: string;
+      addressLine?: string;
+      legacyDistrictName?: string;
+      isPrimary: boolean;
+      isActive: boolean;
+      note?: string;
+      province: { name: string };
+      ward?: { name: string };
+    }[];
+  },
+  create: async (data: {
+    provinceCode: number;
+    wardCode?: number;
+    gymName?: string;
+    addressLine?: string;
+    legacyDistrictName?: string;
+    isPrimary?: boolean;
+    note?: string;
+  }) => {
+    const { data: res } = await api.post('/pt/training-locations/me', data);
+    return res;
+  },
+  update: async (id: string, data: Record<string, any>) => {
+    const { data: res } = await api.patch(`/pt/training-locations/me/${id}`, data);
+    return res;
+  },
+  delete: async (id: string) => {
+    const { data: res } = await api.delete(`/pt/training-locations/me/${id}`);
+    return res;
   },
 };
 

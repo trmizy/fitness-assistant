@@ -8,7 +8,9 @@ export { validateUploadFilename, validateUploadMime };
 
 const router = Router();
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+// BR: InBody photo uploads capped at 5 MB. Anything bigger should fail with a clean
+// 413 (Payload Too Large) — not bubble up as 500.
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
 const upload = multer({
   dest: 'uploads/',
@@ -25,7 +27,7 @@ const upload = multer({
 function handleUpload(req: Request, res: Response, next: NextFunction): void {
   upload.single('image')(req, res, (err: any) => {
     if (err?.code === 'LIMIT_FILE_SIZE') {
-      res.status(400).json({ error: 'File too large. Maximum allowed size is 10 MB.' });
+      res.status(413).json({ error: 'File too large. Maximum allowed size is 5 MB.' });
       return;
     }
     if (err instanceof Error) {
@@ -36,9 +38,11 @@ function handleUpload(req: Request, res: Response, next: NextFunction): void {
   });
 }
 
+router.get('/client/:clientUserId', authMiddleware, inbodyController.getClientHistory as any);
 router.get('/', authMiddleware, inbodyController.getHistory as any);
 router.get('/latest', authMiddleware, inbodyController.getLatest as any);
 router.post('/', authMiddleware, inbodyController.create as any);
+router.patch('/:id', authMiddleware, inbodyController.update as any);
 router.post('/upload', authMiddleware, handleUpload, inbodyController.upload as any);
 
 export default router;

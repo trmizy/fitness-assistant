@@ -34,4 +34,14 @@ export const exerciseRepository = {
       select: { id: true },
     });
   },
+
+  async create(data: any) {
+    const created = await prisma.exercise.create({ data });
+    // Best-effort cache invalidation — keyspace is small, easier to nuke patterns.
+    try {
+      const keys = await redisClient.keys('exercises:*');
+      if (keys.length) await redisClient.del(keys);
+    } catch {}
+    return created;
+  },
 };

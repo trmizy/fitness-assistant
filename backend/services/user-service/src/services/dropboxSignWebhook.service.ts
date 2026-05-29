@@ -15,9 +15,37 @@ export const dropboxSignWebhookService = {
     if (!contract) return; // unknown requestId — ignore for security
 
     if (eventType === 'signature_request_signed') {
-      const updates: Record<string, unknown> = { eSignStatus: 'PARTIALLY_SIGNED' };
       const signatures: any[] = event.signatureRequest?.signatures || [];
 
+      // Dropbox Sign doesn't fire all_signed when two signers share the same email address.
+      // Detect this case: if every signature slot is signed, activate immediately.
+      const allSigned =
+        signatures.length > 0 &&
+        signatures.every((s: any) => s.statusCode === 'signed') &&
+        contract.status === ContractStatus.PENDING_SIGNATURE;
+
+      if (allSigned) {
+        const updates: Record<string, unknown> = {
+          eSignStatus: 'SIGNED',
+          status: ContractStatus.ACTIVE,
+          fullySignedAt: new Date(),
+          ...(contract.startDate ? {} : { startDate: new Date() }),
+        };
+        for (const sig of signatures) {
+          const signedAt = sig.signedAt ? new Date(sig.signedAt * 1000) : new Date();
+          const sigEmail = normalizeEmail(sig.signerEmailAddress);
+          if (sigEmail === normalizeEmail(contract.clientSignerEmail) && !contract.clientSignedAt) {
+            updates.clientSignedAt = signedAt;
+          }
+          if (sigEmail === normalizeEmail(contract.ptSignerEmail) && !contract.ptSignedAt) {
+            updates.ptSignedAt = signedAt;
+          }
+        }
+        await contractRepository.updateESignFields(contract.id, updates);
+        return;
+      }
+
+      const updates: Record<string, unknown> = { eSignStatus: 'PARTIALLY_SIGNED' };
       for (const sig of signatures) {
         if (sig.statusCode !== 'signed') continue;
         const signedAt = sig.signedAt ? new Date(sig.signedAt * 1000) : new Date();
@@ -34,10 +62,18 @@ export const dropboxSignWebhookService = {
     }
 
     if (eventType === 'signature_request_all_signed') {
+      // Idempotency: skip if already ACTIVE (webhook may fire more than once)
+      if (contract.status === ContractStatus.ACTIVE) return;
+      // Safety: only transition from PENDING_SIGNATURE → ACTIVE
+      // TODO: add Dropbox Sign HMAC event hash verification for production hardening
+      if (contract.status !== ContractStatus.PENDING_SIGNATURE) return;
+
       const updates: Record<string, unknown> = {
         eSignStatus: 'SIGNED',
         status: ContractStatus.ACTIVE,
         fullySignedAt: new Date(),
+        // Set startDate only if not already specified in contract terms
+        ...(contract.startDate ? {} : { startDate: new Date() }),
       };
 
       // Backfill individual signedAt if not already recorded

@@ -1,9 +1,97 @@
 import { useState } from "react";
-import { Award, Edit3, Check, Plus, Star } from "lucide-react";
+import { Award, Edit3, Check, Plus, Star, MapPin, Pencil, Trash2, X, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { formatVND } from "../../utils/currency";
+import { trainingLocationService, locationService } from "../../services/api";
+
+type TrainingLoc = {
+  id: string; provinceCode: number; wardCode?: number; gymName?: string;
+  addressLine?: string; legacyDistrictName?: string; isPrimary: boolean;
+  isActive: boolean; note?: string;
+  province: { name: string }; ward?: { name: string };
+};
+
+const emptyLocForm = { provinceCode: '', wardCode: '', gymName: '', addressLine: '', isPrimary: false, note: '' };
 
 export function PTProfilePage() {
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [verificationStatus] = useState<"pending" | "approved">("approved");
+
+  // Training location management
+  const [locFormOpen, setLocFormOpen] = useState(false);
+  const [editingLocId, setEditingLocId] = useState<string | null>(null);
+  const [locForm, setLocForm] = useState({ ...emptyLocForm });
+  const [provinces, setProvinces] = useState<{ code: number; name: string }[]>([]);
+  const [locWards, setLocWards] = useState<{ code: number; name: string }[]>([]);
+
+  const { data: locations = [], isLoading: locsLoading } = useQuery({
+    queryKey: ['pt-training-locations'],
+    queryFn: trainingLocationService.getMyLocations,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: trainingLocationService.create,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['pt-training-locations'] }); setLocFormOpen(false); setLocForm({ ...emptyLocForm }); setLocWards([]); toast.success('Đã thêm địa điểm'); },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Lỗi thêm địa điểm'),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => trainingLocationService.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['pt-training-locations'] }); setEditingLocId(null); setLocFormOpen(false); setLocForm({ ...emptyLocForm }); setLocWards([]); toast.success('Đã cập nhật địa điểm'); },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Lỗi cập nhật địa điểm'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => trainingLocationService.delete(id),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['pt-training-locations'] }); toast.success('Đã ẩn địa điểm'); },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Lỗi xóa địa điểm'),
+  });
+
+  const openAddForm = async () => {
+    setEditingLocId(null);
+    setLocForm({ ...emptyLocForm });
+    setLocWards([]);
+    if (!provinces.length) {
+      const ps = await locationService.getProvinces().catch(() => []);
+      setProvinces(ps);
+    }
+    setLocFormOpen(true);
+  };
+
+  const openEditForm = async (loc: TrainingLoc) => {
+    setEditingLocId(loc.id);
+    setLocForm({ provinceCode: String(loc.provinceCode), wardCode: String(loc.wardCode ?? ''), gymName: loc.gymName ?? '', addressLine: loc.addressLine ?? '', isPrimary: loc.isPrimary, note: loc.note ?? '' });
+    if (!provinces.length) {
+      const ps = await locationService.getProvinces().catch(() => []);
+      setProvinces(ps);
+    }
+    if (loc.provinceCode) {
+      const ws = await locationService.getWards(loc.provinceCode).catch(() => []);
+      setLocWards(ws);
+    }
+    setLocFormOpen(true);
+  };
+
+  const handleLocProvinceChange = async (code: string) => {
+    setLocForm(prev => ({ ...prev, provinceCode: code, wardCode: '' }));
+    setLocWards(code ? await locationService.getWards(Number(code)).catch(() => []) : []);
+  };
+
+  const submitLocForm = () => {
+    if (!locForm.provinceCode) { toast.error('Chọn tỉnh/thành'); return; }
+    const payload = {
+      provinceCode: Number(locForm.provinceCode),
+      wardCode: locForm.wardCode ? Number(locForm.wardCode) : undefined,
+      gymName: locForm.gymName.trim() || undefined,
+      addressLine: locForm.addressLine.trim() || undefined,
+      isPrimary: locForm.isPrimary,
+      note: locForm.note.trim() || undefined,
+    };
+    if (editingLocId) updateMutation.mutate({ id: editingLocId, data: payload });
+    else createMutation.mutate(payload);
+  };
 
   const verificationConfig = {
     not_pt: { label: "Not PT", color: "bg-zinc-700/50 text-zinc-400 border-zinc-700" },
@@ -107,7 +195,7 @@ export function PTProfilePage() {
                     {editing ? (
                       <input defaultValue={pkg.price} className="w-24 px-2 py-1 border border-zinc-700/60 rounded text-sm text-right font-bold text-green-400 bg-zinc-800/60" />
                     ) : (
-                      <span className="text-base font-bold text-green-400">฿{pkg.price.toLocaleString()}</span>
+                      <span className="text-base font-bold text-green-400">{formatVND(pkg.price)}</span>
                     )}
                   </div>
                   <ul className="space-y-1">
@@ -165,6 +253,91 @@ export function PTProfilePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Training Locations */}
+      <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-bold text-zinc-200 flex items-center gap-2"><MapPin className="w-4 h-4 text-green-400" /> Nơi luyện tập</h4>
+          <button onClick={openAddForm} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-semibold rounded-lg hover:bg-green-500/20 transition-all">
+            <Plus className="w-3.5 h-3.5" /> Thêm
+          </button>
+        </div>
+
+        {locsLoading ? (
+          <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 text-green-400 animate-spin" /></div>
+        ) : locations.length === 0 ? (
+          <p className="text-xs text-zinc-600 text-center py-6">Chưa có địa điểm luyện tập. Thêm địa điểm để hiện trên trang tìm kiếm PT.</p>
+        ) : (
+          <div className="space-y-2">
+            {locations.map((loc) => {
+              const parts = [loc.gymName, loc.ward?.name, loc.province.name].filter(Boolean);
+              return (
+                <div key={loc.id} className="flex items-center justify-between p-3 bg-zinc-800/40 border border-zinc-700/40 rounded-xl">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm text-zinc-200">{parts.join(', ')}</span>
+                      {loc.isPrimary && <span className="text-[10px] px-1.5 py-0.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-full font-semibold">Chính</span>}
+                      {!loc.isActive && <span className="text-[10px] px-1.5 py-0.5 bg-zinc-700/50 border border-zinc-600 text-zinc-500 rounded-full">Ngừng</span>}
+                    </div>
+                    {loc.addressLine && <p className="text-xs text-zinc-500 mt-0.5">{loc.addressLine}</p>}
+                  </div>
+                  <div className="flex items-center gap-1.5 ml-3 flex-shrink-0">
+                    <button onClick={() => openEditForm(loc)} className="p-1.5 text-zinc-500 hover:text-zinc-300 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => deleteMutation.mutate(loc.id)} disabled={deleteMutation.isPending} className="p-1.5 text-zinc-600 hover:text-red-400 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Add/Edit form */}
+        {locFormOpen && (
+          <div className="mt-4 border-t border-zinc-800/60 pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-zinc-400">{editingLocId ? 'Sửa địa điểm' : 'Thêm địa điểm'}</span>
+              <button onClick={() => { setLocFormOpen(false); setLocForm({ ...emptyLocForm }); setLocWards([]); }} className="text-zinc-500 hover:text-zinc-300"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Tỉnh/Thành *</label>
+                <select value={locForm.provinceCode} onChange={e => handleLocProvinceChange(e.target.value)} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none">
+                  <option value="">-- Chọn --</option>
+                  {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
+                </select>
+              </div>
+              {locWards.length > 0 && (
+                <div>
+                  <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Phường/Xã</label>
+                  <select value={locForm.wardCode} onChange={e => setLocForm(prev => ({ ...prev, wardCode: e.target.value }))} className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none">
+                    <option value="">-- Chọn --</option>
+                    {locWards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Tên phòng gym</label>
+                <input type="text" maxLength={120} value={locForm.gymName} onChange={e => setLocForm(prev => ({ ...prev, gymName: e.target.value }))} placeholder="VD: California Fitness" className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none" />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Địa chỉ chi tiết</label>
+                <input type="text" maxLength={255} value={locForm.addressLine} onChange={e => setLocForm(prev => ({ ...prev, addressLine: e.target.value }))} placeholder="Số nhà, tên đường..." className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none" />
+              </div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" checked={locForm.isPrimary} onChange={e => setLocForm(prev => ({ ...prev, isPrimary: e.target.checked }))} className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-green-500" />
+              <span className="text-sm text-zinc-400">Đặt làm địa điểm chính</span>
+            </label>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => { setLocFormOpen(false); setLocForm({ ...emptyLocForm }); setLocWards([]); }} className="flex-1 py-2 border border-zinc-700/60 text-zinc-400 text-sm rounded-lg hover:bg-zinc-800 transition-colors">Hủy</button>
+              <button onClick={submitLocForm} disabled={createMutation.isPending || updateMutation.isPending} className="flex-1 py-2 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5">
+                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {editingLocId ? 'Lưu' : 'Thêm'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
