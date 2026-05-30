@@ -247,6 +247,41 @@ export const workoutService = {
     const { data } = await api.patch(`/workouts/sets/${setId}`, patch);
     return data;
   },
+
+  getCurrentProgram: async () => {
+    const { data } = await api.get('/workouts/programs/current');
+    return data;
+  },
+
+  updateProgram: async (id: string, patch: any) => {
+    const { data } = await api.patch(`/workouts/programs/${id}`, patch);
+    return data;
+  },
+
+  deleteProgram: async (id: string) => {
+    const { data } = await api.delete(`/workouts/programs/${id}`);
+    return data;
+  },
+
+  updateProgramDay: async (id: string, patch: any) => {
+    const { data } = await api.patch(`/workouts/program-days/${id}`, patch);
+    return data;
+  },
+
+  updateProgramExercise: async (id: string, patch: any) => {
+    const { data } = await api.patch(`/workouts/program-exercises/${id}`, patch);
+    return data;
+  },
+
+  deleteProgramExercise: async (id: string) => {
+    const { data } = await api.delete(`/workouts/program-exercises/${id}`);
+    return data;
+  },
+
+  deleteSchedule: async (id: string) => {
+    const { data } = await api.delete(`/workouts/schedules/${id}`);
+    return data;
+  },
 };
 
 export type PlanStatusBackend = 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';

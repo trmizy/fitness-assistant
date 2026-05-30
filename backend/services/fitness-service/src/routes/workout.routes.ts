@@ -9,6 +9,17 @@ router.post('/generate', authMiddleware, workoutController.generateWorkout as an
 router.post('/from-ai-plan', internalAuthMiddleware, workoutController.importAiPlan as any);
 router.get('/prs', authMiddleware, workoutController.getPRs as any);
 router.get('/schedules', authMiddleware, workoutController.listSchedules as any);
+router.delete('/schedules/:id', authMiddleware, workoutController.deleteSchedule as any);
+
+router.get('/programs/current', authMiddleware, workoutController.getCurrentProgram as any);
+router.patch('/programs/:id', authMiddleware, workoutController.updateProgram as any);
+router.delete('/programs/:id', authMiddleware, workoutController.deleteProgram as any);
+
+router.patch('/program-days/:id', authMiddleware, workoutController.updateProgramDay as any);
+
+router.patch('/program-exercises/:id', authMiddleware, workoutController.updateProgramExercise as any);
+router.delete('/program-exercises/:id', authMiddleware, workoutController.deleteProgramExercise as any);
+
 router.patch('/sets/:setId', authMiddleware, workoutController.updateSet as any);
 router.get('/', authMiddleware, workoutController.listWorkouts as any);
 router.get('/:id', authMiddleware, workoutController.getWorkout as any);

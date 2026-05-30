@@ -243,6 +243,12 @@ exports.Prisma.WorkoutProgramScalarFieldEnum = {
   sourcePlanId: 'sourcePlanId',
   sourceType: 'sourceType',
   aiPlanVersion: 'aiPlanVersion',
+  goal: 'goal',
+  durationWeeks: 'durationWeeks',
+  daysPerWeek: 'daysPerWeek',
+  status: 'status',
+  archivedAt: 'archivedAt',
+  version: 'version',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

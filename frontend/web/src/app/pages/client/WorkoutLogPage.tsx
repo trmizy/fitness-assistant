@@ -274,6 +274,8 @@ export function WorkoutLogPage() {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [latestInBody, setLatestInBody] = useState<any>(null);
   const [workoutStats, setWorkoutStats] = useState<any>(null);
+  const [currentProgram, setCurrentProgram] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [daysSinceInBody, setDaysSinceInBody] = useState<number | null>(null);
   const [workoutCache, setWorkoutCache] = useState<Record<string, any>>({});
   const [aiSchedules, setAiSchedules] = useState<WorkoutScheduleRecord[]>([]);
@@ -292,13 +294,22 @@ export function WorkoutLogPage() {
     const fetchAllData = async () => {
       setIsLoading(true);
       try {
-        const { inbodyService } = await import("../../services/api");
-        const [historyResult, inbodyResult, statsResult, schedulesResult] = await Promise.allSettled([
+        const { inbodyService, profileService } = await import("../../services/api");
+        const [historyResult, inbodyResult, statsResult, schedulesResult, programResult, profileResult] = await Promise.allSettled([
           workoutService.getHistory(1, 50), // Fetch last 50 workouts to fill cache
           inbodyService.getLatest(),
           workoutService.getStats(),
           workoutService.getSchedules(20),
+          workoutService.getCurrentProgram(),
+          profileService.getProfile(),
         ]);
+
+        if (programResult.status === 'fulfilled') {
+          setCurrentProgram(programResult.value);
+        }
+        if (profileResult.status === 'fulfilled') {
+          setUserProfile(profileResult.value);
+        }
 
         // 1. Build Workout Cache
         const cache: Record<string, any> = {};
@@ -690,14 +701,24 @@ export function WorkoutLogPage() {
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-6">
                 <span className="text-[10px] text-emerald-400/60 uppercase tracking-[0.2em] mb-1.5 block">Chương trình hiện tại</span>
-                <h2 className="text-2xl text-white mb-2 tracking-tight">General Muscle Gain</h2>
-                <div className="flex items-center gap-4 text-xs text-zinc-400">
-                  <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3 text-zinc-600" /> 12 tuần</span>
-                  <span className="text-zinc-700">·</span>
-                  <span>{workoutStats?.workoutsPerWeek || "3.0"} buổi/tuần</span>
-                  <span className="text-zinc-700">·</span>
-                  <span>Đã hoàn thành: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
-                </div>
+                <h2 className="text-2xl text-white mb-2 tracking-tight">{currentProgram ? currentProgram.name : "Chưa có chương trình"}</h2>
+                {userProfile?.goal && currentProgram?.goal && userProfile.goal !== currentProgram.goal && (
+                  <div className="mb-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 inline-block">
+                    <p className="text-[11px] text-amber-400 flex items-center gap-1.5">
+                      <AlertCircle className="w-3 h-3" />
+                      Mục tiêu trong Hồ sơ ({userProfile.goal}) khác với Chương trình hiện tại ({currentProgram.goal})
+                    </p>
+                  </div>
+                )}
+                {currentProgram && (
+                  <div className="flex items-center gap-4 text-xs text-zinc-400">
+                    <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3 text-zinc-600" /> {currentProgram.durationWeeks || 4} tuần</span>
+                    <span className="text-zinc-700">·</span>
+                    <span>{currentProgram.daysPerWeek || workoutStats?.workoutsPerWeek || 3} buổi/tuần</span>
+                    <span className="text-zinc-700">·</span>
+                    <span>Đã hoàn thành: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
+                  </div>
+                )}
                 <div className="mt-3 h-1.5 bg-white/[0.06] rounded-full overflow-hidden max-w-sm">
                   <div 
                     className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-1000" 
@@ -999,14 +1020,16 @@ export function WorkoutLogPage() {
 
             <div className="absolute bottom-0 left-0 right-0 p-6">
               <span className="text-[10px] text-emerald-400/50 uppercase tracking-[0.2em] mb-1.5 block">Chương trình</span>
-              <h2 className="text-2xl text-white mb-2 tracking-tight">General Muscle Gain</h2>
-              <div className="flex items-center gap-4 text-xs text-zinc-400">
-                <span className="flex items-center gap-1.5"><Dumbbell className="w-3 h-3 text-emerald-500/50" /> 12 tuần</span>
-                <span className="text-zinc-700">·</span>
-                <span>{workoutStats?.workoutsPerWeek || "3.0"} buổi/tuần</span>
-                <span className="text-zinc-700">·</span>
-                <span>Đã hoàn thành: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
-              </div>
+              <h2 className="text-2xl text-white mb-2 tracking-tight">{currentProgram ? currentProgram.name : "Chưa có chương trình"}</h2>
+              {currentProgram && (
+                <div className="flex items-center gap-4 text-xs text-zinc-400">
+                  <span className="flex items-center gap-1.5"><Dumbbell className="w-3 h-3 text-emerald-500/50" /> {currentProgram.durationWeeks || 4} tuần</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>{currentProgram.daysPerWeek || workoutStats?.workoutsPerWeek || 3} buổi/tuần</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>Đã hoàn thành: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
+                </div>
+              )}
               <div className="mt-3 h-1.5 bg-white/[0.05] rounded-full overflow-hidden max-w-md">
                 <div 
                   className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.35)] transition-all duration-1000" 
@@ -1022,10 +1045,10 @@ export function WorkoutLogPage() {
             <div className="xl:col-span-2">
               <SectionTitle title="Ngày tập" />
               <div className="space-y-3 mt-4">
-                {workoutDays.map((w) => (
+                {(currentProgram?.days || workoutDays).map((w: any) => (
                   <button
-                    key={`td-${w.day}`}
-                    onClick={() => { if (!w.locked) { setSelectedDay(w.day); setSelectedDate(new Date()); setPlanView("dayDetail"); } }}
+                    key={`td-${w.day || w.dayNumber}`}
+                    onClick={() => { if (!w.locked) { setSelectedDay(w.day || w.dayNumber); setSelectedDate(new Date()); setPlanView("dayDetail"); } }}
                     disabled={w.locked}
                     className={`group/card w-full rounded-2xl border p-5 transition-all text-left relative overflow-hidden ${
                       w.locked
@@ -1051,12 +1074,12 @@ export function WorkoutLogPage() {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-zinc-100">Ngày {w.day}</p>
+                        <p className="text-sm text-zinc-100">Ngày {w.day || w.dayNumber}</p>
                         <p className="text-xs text-zinc-500 mt-0.5 truncate">{w.title}</p>
                         {!w.locked && (
                           <div className="flex items-center gap-3 mt-2">
-                            <span className="text-[10px] text-zinc-600 flex items-center gap-1"><Clock className="w-3 h-3" /> {w.duration}</span>
-                            <span className="text-[10px] text-zinc-600">{w.exercises} bài tập</span>
+                            <span className="text-[10px] text-zinc-600 flex items-center gap-1"><Clock className="w-3 h-3" /> {w.duration || '1h'}</span>
+                            <span className="text-[10px] text-zinc-600">{w.exercises?.length || w.exercises || 0} bài tập</span>
                           </div>
                         )}
                       </div>
@@ -1158,7 +1181,8 @@ export function WorkoutLogPage() {
 
       {/* ═══════════════ DAY DETAIL ═══════════════ */}
       {tab === "plan" && planView === "dayDetail" && (() => {
-        const wd = workoutDays.find(d => d.day === selectedDay) || workoutDays[0];
+        const programDays = currentProgram?.days || workoutDays;
+        const wd = programDays.find((d: any) => (d.day || d.dayNumber) === selectedDay) || programDays[0] || workoutDays[0];
         return (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -1198,12 +1222,12 @@ export function WorkoutLogPage() {
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <div className="bg-zinc-800/25 rounded-xl border border-zinc-700/20 p-3.5 text-center">
                       <Clock className="w-4 h-4 text-emerald-500/50 mx-auto mb-1" />
-                      <p className="text-sm text-zinc-200">{wd.duration}</p>
+                      <p className="text-sm text-zinc-200">{wd.duration || '1h'}</p>
                       <p className="text-[10px] text-zinc-600">Thời gian</p>
                     </div>
                     <div className="bg-zinc-800/25 rounded-xl border border-zinc-700/20 p-3.5 text-center">
                       <Dumbbell className="w-4 h-4 text-emerald-500/50 mx-auto mb-1" />
-                      <p className="text-sm text-zinc-200">{wd.exercises}</p>
+                      <p className="text-sm text-zinc-200">{wd.exercises?.length || wd.exercises || 0}</p>
                       <p className="text-[10px] text-zinc-600">Bài tập</p>
                     </div>
                   </div>

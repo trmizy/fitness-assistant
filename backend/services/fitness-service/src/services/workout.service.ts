@@ -145,6 +145,85 @@ export const workoutService = {
     });
   },
 
+  async getCurrentProgram(userId: string) {
+    return prisma.workoutProgram.findFirst({
+      where: { userId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        days: {
+          include: {
+            exercises: {
+              include: { exercise: true },
+              orderBy: { order: 'asc' },
+            },
+          },
+          orderBy: { dayNumber: 'asc' },
+        },
+      },
+    });
+  },
+
+  async updateProgram(id: string, userId: string, data: any) {
+    const existing = await prisma.workoutProgram.findFirst({ where: { id, userId } });
+    if (!existing) throw { status: 404, message: 'Program not found' };
+    return prisma.workoutProgram.update({
+      where: { id },
+      data,
+    });
+  },
+
+  async deleteProgram(id: string, userId: string) {
+    const existing = await prisma.workoutProgram.findFirst({ where: { id, userId } });
+    if (!existing) throw { status: 404, message: 'Program not found' };
+    return prisma.workoutProgram.update({
+      where: { id },
+      data: { status: 'ARCHIVED', archivedAt: new Date() },
+    });
+  },
+
+  async updateProgramDay(id: string, userId: string, data: any) {
+    const existing = await prisma.workoutProgramDay.findFirst({
+      where: { id, program: { userId } },
+    });
+    if (!existing) throw { status: 404, message: 'Program day not found' };
+    return prisma.workoutProgramDay.update({
+      where: { id },
+      data,
+    });
+  },
+
+  async updateProgramExercise(id: string, userId: string, data: any) {
+    const existing = await prisma.workoutProgramExercise.findFirst({
+      where: { id, programDay: { program: { userId } } },
+    });
+    if (!existing) throw { status: 404, message: 'Program exercise not found' };
+    
+    if (data.exerciseId) {
+      await validateExerciseIds([data.exerciseId]);
+    }
+    
+    return prisma.workoutProgramExercise.update({
+      where: { id },
+      data,
+    });
+  },
+
+  async deleteProgramExercise(id: string, userId: string) {
+    const existing = await prisma.workoutProgramExercise.findFirst({
+      where: { id, programDay: { program: { userId } } },
+    });
+    if (!existing) throw { status: 404, message: 'Program exercise not found' };
+    return prisma.workoutProgramExercise.delete({
+      where: { id },
+    });
+  },
+
+  async deleteSchedule(id: string, userId: string) {
+    const existing = await prisma.workoutSchedule.findFirst({ where: { id, userId } });
+    if (!existing) throw { status: 404, message: 'Schedule not found' };
+    return prisma.workoutSchedule.delete({ where: { id } });
+  },
+
   async importAiPlanToSchedule(userId: string, input: ImportAiPlanDto) {
     const existingProgram = await (prisma.workoutProgram as any).findFirst({
       where: {
@@ -249,6 +328,12 @@ export const workoutService = {
     const startDate = parseDateOnly(input.startDate);
 
     const result = await prisma.$transaction(async (tx) => {
+      // Archive existing active programs
+      await (tx.workoutProgram as any).updateMany({
+        where: { userId, status: 'ACTIVE' },
+        data: { status: 'ARCHIVED', archivedAt: new Date() },
+      });
+
       const createdProgram = await (tx.workoutProgram as any).create({
         data: {
           userId,
@@ -257,6 +342,10 @@ export const workoutService = {
           sourcePlanId: input.sourcePlanId,
           sourceType: 'AI_PLAN',
           aiPlanVersion: input.sourcePlanVersion ?? null,
+          goal: input.goal,
+          durationWeeks: input.durationWeeks,
+          daysPerWeek: input.daysPerWeek,
+          status: 'ACTIVE',
           days: {
             create: mappedDays.map((day, dayIndex) => ({
               dayNumber: dayIndex + 1,

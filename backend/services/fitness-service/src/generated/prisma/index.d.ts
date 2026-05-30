@@ -11335,10 +11335,16 @@ export namespace Prisma {
 
   export type WorkoutProgramAvgAggregateOutputType = {
     aiPlanVersion: number | null
+    durationWeeks: number | null
+    daysPerWeek: number | null
+    version: number | null
   }
 
   export type WorkoutProgramSumAggregateOutputType = {
     aiPlanVersion: number | null
+    durationWeeks: number | null
+    daysPerWeek: number | null
+    version: number | null
   }
 
   export type WorkoutProgramMinAggregateOutputType = {
@@ -11349,6 +11355,12 @@ export namespace Prisma {
     sourcePlanId: string | null
     sourceType: string | null
     aiPlanVersion: number | null
+    goal: string | null
+    durationWeeks: number | null
+    daysPerWeek: number | null
+    status: string | null
+    archivedAt: Date | null
+    version: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -11361,6 +11373,12 @@ export namespace Prisma {
     sourcePlanId: string | null
     sourceType: string | null
     aiPlanVersion: number | null
+    goal: string | null
+    durationWeeks: number | null
+    daysPerWeek: number | null
+    status: string | null
+    archivedAt: Date | null
+    version: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -11373,6 +11391,12 @@ export namespace Prisma {
     sourcePlanId: number
     sourceType: number
     aiPlanVersion: number
+    goal: number
+    durationWeeks: number
+    daysPerWeek: number
+    status: number
+    archivedAt: number
+    version: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -11381,10 +11405,16 @@ export namespace Prisma {
 
   export type WorkoutProgramAvgAggregateInputType = {
     aiPlanVersion?: true
+    durationWeeks?: true
+    daysPerWeek?: true
+    version?: true
   }
 
   export type WorkoutProgramSumAggregateInputType = {
     aiPlanVersion?: true
+    durationWeeks?: true
+    daysPerWeek?: true
+    version?: true
   }
 
   export type WorkoutProgramMinAggregateInputType = {
@@ -11395,6 +11425,12 @@ export namespace Prisma {
     sourcePlanId?: true
     sourceType?: true
     aiPlanVersion?: true
+    goal?: true
+    durationWeeks?: true
+    daysPerWeek?: true
+    status?: true
+    archivedAt?: true
+    version?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -11407,6 +11443,12 @@ export namespace Prisma {
     sourcePlanId?: true
     sourceType?: true
     aiPlanVersion?: true
+    goal?: true
+    durationWeeks?: true
+    daysPerWeek?: true
+    status?: true
+    archivedAt?: true
+    version?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -11419,6 +11461,12 @@ export namespace Prisma {
     sourcePlanId?: true
     sourceType?: true
     aiPlanVersion?: true
+    goal?: true
+    durationWeeks?: true
+    daysPerWeek?: true
+    status?: true
+    archivedAt?: true
+    version?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -11518,6 +11566,12 @@ export namespace Prisma {
     sourcePlanId: string | null
     sourceType: string | null
     aiPlanVersion: number | null
+    goal: string | null
+    durationWeeks: number | null
+    daysPerWeek: number | null
+    status: string
+    archivedAt: Date | null
+    version: number
     createdAt: Date
     updatedAt: Date
     _count: WorkoutProgramCountAggregateOutputType | null
@@ -11549,6 +11603,12 @@ export namespace Prisma {
     sourcePlanId?: boolean
     sourceType?: boolean
     aiPlanVersion?: boolean
+    goal?: boolean
+    durationWeeks?: boolean
+    daysPerWeek?: boolean
+    status?: boolean
+    archivedAt?: boolean
+    version?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     days?: boolean | WorkoutProgram$daysArgs<ExtArgs>
@@ -11563,6 +11623,12 @@ export namespace Prisma {
     sourcePlanId?: boolean
     sourceType?: boolean
     aiPlanVersion?: boolean
+    goal?: boolean
+    durationWeeks?: boolean
+    daysPerWeek?: boolean
+    status?: boolean
+    archivedAt?: boolean
+    version?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workoutProgram"]>
@@ -11575,6 +11641,12 @@ export namespace Prisma {
     sourcePlanId?: boolean
     sourceType?: boolean
     aiPlanVersion?: boolean
+    goal?: boolean
+    durationWeeks?: boolean
+    daysPerWeek?: boolean
+    status?: boolean
+    archivedAt?: boolean
+    version?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -11598,6 +11670,12 @@ export namespace Prisma {
       sourcePlanId: string | null
       sourceType: string | null
       aiPlanVersion: number | null
+      goal: string | null
+      durationWeeks: number | null
+      daysPerWeek: number | null
+      status: string
+      archivedAt: Date | null
+      version: number
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["workoutProgram"]>
@@ -12001,6 +12079,12 @@ export namespace Prisma {
     readonly sourcePlanId: FieldRef<"WorkoutProgram", 'String'>
     readonly sourceType: FieldRef<"WorkoutProgram", 'String'>
     readonly aiPlanVersion: FieldRef<"WorkoutProgram", 'Int'>
+    readonly goal: FieldRef<"WorkoutProgram", 'String'>
+    readonly durationWeeks: FieldRef<"WorkoutProgram", 'Int'>
+    readonly daysPerWeek: FieldRef<"WorkoutProgram", 'Int'>
+    readonly status: FieldRef<"WorkoutProgram", 'String'>
+    readonly archivedAt: FieldRef<"WorkoutProgram", 'DateTime'>
+    readonly version: FieldRef<"WorkoutProgram", 'Int'>
     readonly createdAt: FieldRef<"WorkoutProgram", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkoutProgram", 'DateTime'>
   }
@@ -15664,6 +15748,12 @@ export namespace Prisma {
     sourcePlanId: 'sourcePlanId',
     sourceType: 'sourceType',
     aiPlanVersion: 'aiPlanVersion',
+    goal: 'goal',
+    durationWeeks: 'durationWeeks',
+    daysPerWeek: 'daysPerWeek',
+    status: 'status',
+    archivedAt: 'archivedAt',
+    version: 'version',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -16599,6 +16689,12 @@ export namespace Prisma {
     sourcePlanId?: StringNullableFilter<"WorkoutProgram"> | string | null
     sourceType?: StringNullableFilter<"WorkoutProgram"> | string | null
     aiPlanVersion?: IntNullableFilter<"WorkoutProgram"> | number | null
+    goal?: StringNullableFilter<"WorkoutProgram"> | string | null
+    durationWeeks?: IntNullableFilter<"WorkoutProgram"> | number | null
+    daysPerWeek?: IntNullableFilter<"WorkoutProgram"> | number | null
+    status?: StringFilter<"WorkoutProgram"> | string
+    archivedAt?: DateTimeNullableFilter<"WorkoutProgram"> | Date | string | null
+    version?: IntFilter<"WorkoutProgram"> | number
     createdAt?: DateTimeFilter<"WorkoutProgram"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutProgram"> | Date | string
     days?: WorkoutProgramDayListRelationFilter
@@ -16612,6 +16708,12 @@ export namespace Prisma {
     sourcePlanId?: SortOrderInput | SortOrder
     sourceType?: SortOrderInput | SortOrder
     aiPlanVersion?: SortOrderInput | SortOrder
+    goal?: SortOrderInput | SortOrder
+    durationWeeks?: SortOrderInput | SortOrder
+    daysPerWeek?: SortOrderInput | SortOrder
+    status?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    version?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     days?: WorkoutProgramDayOrderByRelationAggregateInput
@@ -16629,6 +16731,12 @@ export namespace Prisma {
     sourcePlanId?: StringNullableFilter<"WorkoutProgram"> | string | null
     sourceType?: StringNullableFilter<"WorkoutProgram"> | string | null
     aiPlanVersion?: IntNullableFilter<"WorkoutProgram"> | number | null
+    goal?: StringNullableFilter<"WorkoutProgram"> | string | null
+    durationWeeks?: IntNullableFilter<"WorkoutProgram"> | number | null
+    daysPerWeek?: IntNullableFilter<"WorkoutProgram"> | number | null
+    status?: StringFilter<"WorkoutProgram"> | string
+    archivedAt?: DateTimeNullableFilter<"WorkoutProgram"> | Date | string | null
+    version?: IntFilter<"WorkoutProgram"> | number
     createdAt?: DateTimeFilter<"WorkoutProgram"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutProgram"> | Date | string
     days?: WorkoutProgramDayListRelationFilter
@@ -16642,6 +16750,12 @@ export namespace Prisma {
     sourcePlanId?: SortOrderInput | SortOrder
     sourceType?: SortOrderInput | SortOrder
     aiPlanVersion?: SortOrderInput | SortOrder
+    goal?: SortOrderInput | SortOrder
+    durationWeeks?: SortOrderInput | SortOrder
+    daysPerWeek?: SortOrderInput | SortOrder
+    status?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    version?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: WorkoutProgramCountOrderByAggregateInput
@@ -16662,6 +16776,12 @@ export namespace Prisma {
     sourcePlanId?: StringNullableWithAggregatesFilter<"WorkoutProgram"> | string | null
     sourceType?: StringNullableWithAggregatesFilter<"WorkoutProgram"> | string | null
     aiPlanVersion?: IntNullableWithAggregatesFilter<"WorkoutProgram"> | number | null
+    goal?: StringNullableWithAggregatesFilter<"WorkoutProgram"> | string | null
+    durationWeeks?: IntNullableWithAggregatesFilter<"WorkoutProgram"> | number | null
+    daysPerWeek?: IntNullableWithAggregatesFilter<"WorkoutProgram"> | number | null
+    status?: StringWithAggregatesFilter<"WorkoutProgram"> | string
+    archivedAt?: DateTimeNullableWithAggregatesFilter<"WorkoutProgram"> | Date | string | null
+    version?: IntWithAggregatesFilter<"WorkoutProgram"> | number
     createdAt?: DateTimeWithAggregatesFilter<"WorkoutProgram"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"WorkoutProgram"> | Date | string
   }
@@ -17738,6 +17858,12 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     aiPlanVersion?: number | null
+    goal?: string | null
+    durationWeeks?: number | null
+    daysPerWeek?: number | null
+    status?: string
+    archivedAt?: Date | string | null
+    version?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     days?: WorkoutProgramDayCreateNestedManyWithoutProgramInput
@@ -17751,6 +17877,12 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     aiPlanVersion?: number | null
+    goal?: string | null
+    durationWeeks?: number | null
+    daysPerWeek?: number | null
+    status?: string
+    archivedAt?: Date | string | null
+    version?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     days?: WorkoutProgramDayUncheckedCreateNestedManyWithoutProgramInput
@@ -17764,6 +17896,12 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     aiPlanVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    daysPerWeek?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     days?: WorkoutProgramDayUpdateManyWithoutProgramNestedInput
@@ -17777,6 +17915,12 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     aiPlanVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    daysPerWeek?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     days?: WorkoutProgramDayUncheckedUpdateManyWithoutProgramNestedInput
@@ -17790,6 +17934,12 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     aiPlanVersion?: number | null
+    goal?: string | null
+    durationWeeks?: number | null
+    daysPerWeek?: number | null
+    status?: string
+    archivedAt?: Date | string | null
+    version?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -17802,6 +17952,12 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     aiPlanVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    daysPerWeek?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -17814,6 +17970,12 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     aiPlanVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    daysPerWeek?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18897,6 +19059,17 @@ export namespace Prisma {
     bodyWater?: SortOrder
   }
 
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type WorkoutProgramDayListRelationFilter = {
     every?: WorkoutProgramDayWhereInput
     some?: WorkoutProgramDayWhereInput
@@ -18920,12 +19093,21 @@ export namespace Prisma {
     sourcePlanId?: SortOrder
     sourceType?: SortOrder
     aiPlanVersion?: SortOrder
+    goal?: SortOrder
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+    status?: SortOrder
+    archivedAt?: SortOrder
+    version?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type WorkoutProgramAvgOrderByAggregateInput = {
     aiPlanVersion?: SortOrder
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+    version?: SortOrder
   }
 
   export type WorkoutProgramMaxOrderByAggregateInput = {
@@ -18936,6 +19118,12 @@ export namespace Prisma {
     sourcePlanId?: SortOrder
     sourceType?: SortOrder
     aiPlanVersion?: SortOrder
+    goal?: SortOrder
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+    status?: SortOrder
+    archivedAt?: SortOrder
+    version?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -18948,12 +19136,35 @@ export namespace Prisma {
     sourcePlanId?: SortOrder
     sourceType?: SortOrder
     aiPlanVersion?: SortOrder
+    goal?: SortOrder
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+    status?: SortOrder
+    archivedAt?: SortOrder
+    version?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type WorkoutProgramSumOrderByAggregateInput = {
     aiPlanVersion?: SortOrder
+    durationWeeks?: SortOrder
+    daysPerWeek?: SortOrder
+    version?: SortOrder
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type WorkoutProgramRelationFilter = {
@@ -19523,6 +19734,10 @@ export namespace Prisma {
     connect?: WorkoutProgramDayWhereUniqueInput | WorkoutProgramDayWhereUniqueInput[]
   }
 
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
   export type WorkoutProgramDayUpdateManyWithoutProgramNestedInput = {
     create?: XOR<WorkoutProgramDayCreateWithoutProgramInput, WorkoutProgramDayUncheckedCreateWithoutProgramInput> | WorkoutProgramDayCreateWithoutProgramInput[] | WorkoutProgramDayUncheckedCreateWithoutProgramInput[]
     connectOrCreate?: WorkoutProgramDayCreateOrConnectWithoutProgramInput | WorkoutProgramDayCreateOrConnectWithoutProgramInput[]
@@ -19983,6 +20198,31 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type WorkoutExerciseCreateWithoutExerciseInput = {
@@ -20708,6 +20948,12 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     aiPlanVersion?: number | null
+    goal?: string | null
+    durationWeeks?: number | null
+    daysPerWeek?: number | null
+    status?: string
+    archivedAt?: Date | string | null
+    version?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20720,6 +20966,12 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     aiPlanVersion?: number | null
+    goal?: string | null
+    durationWeeks?: number | null
+    daysPerWeek?: number | null
+    status?: string
+    archivedAt?: Date | string | null
+    version?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20818,6 +21070,12 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     aiPlanVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    daysPerWeek?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20830,6 +21088,12 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     aiPlanVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    daysPerWeek?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

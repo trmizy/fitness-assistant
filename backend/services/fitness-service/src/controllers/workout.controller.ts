@@ -185,4 +185,80 @@ export const workoutController = {
       res.status(500).json({ error: 'Failed to add set' });
     }
   },
+
+  async getCurrentProgram(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const program = await workoutService.getCurrentProgram(req.user!.id);
+      res.json(program || null);
+    } catch (error) {
+      logger.error({ err: error }, 'Error fetching current program');
+      res.status(500).json({ error: 'Failed to fetch current program' });
+    }
+  },
+
+  async updateProgram(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const program = await workoutService.updateProgram(req.params.id, req.user!.id, req.body);
+      res.json(program);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error updating program');
+      res.status(500).json({ error: 'Failed to update program' });
+    }
+  },
+
+  async deleteProgram(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.deleteProgram(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error deleting program');
+      res.status(500).json({ error: 'Failed to delete program' });
+    }
+  },
+
+  async updateProgramDay(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const day = await workoutService.updateProgramDay(req.params.id, req.user!.id, req.body);
+      res.json(day);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error updating program day');
+      res.status(500).json({ error: 'Failed to update program day' });
+    }
+  },
+
+  async updateProgramExercise(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const exercise = await workoutService.updateProgramExercise(req.params.id, req.user!.id, req.body);
+      res.json(exercise);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error updating program exercise');
+      res.status(500).json({ error: 'Failed to update program exercise' });
+    }
+  },
+
+  async deleteProgramExercise(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.deleteProgramExercise(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error deleting program exercise');
+      res.status(500).json({ error: 'Failed to delete program exercise' });
+    }
+  },
+
+  async deleteSchedule(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.deleteSchedule(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error deleting schedule');
+      res.status(500).json({ error: 'Failed to delete schedule' });
+    }
+  },
 };

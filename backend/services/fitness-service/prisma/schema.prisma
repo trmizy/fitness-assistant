@@ -215,6 +215,14 @@ model WorkoutProgram {
   sourcePlanId    String?  @map("source_plan_id")
   sourceType      String?  @map("source_type")
   aiPlanVersion   Int?     @map("ai_plan_version")
+  
+  goal            String?
+  durationWeeks   Int?     @map("duration_weeks")
+  daysPerWeek     Int?     @map("days_per_week")
+  status          String   @default("ACTIVE")
+  archivedAt      DateTime? @map("archived_at")
+  version         Int      @default(1)
+
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
