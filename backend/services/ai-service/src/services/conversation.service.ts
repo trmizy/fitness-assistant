@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { conversationRepository, PlanStatus } from '../repositories/conversation.repository';
@@ -5,6 +6,11 @@ import { llmService } from './llm.service';
 import { aiQueue } from '../workers/ai.worker';
 import type { GenerateWorkoutRequest, GeneratePlanRequest } from '../schemas/ai.schemas';
 import { ApiError, LlmGenerationError } from '../errors/api-error';
+
+// ── Service URLs for internal calls ──────────────────────────────────────────
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://user-service:3004';
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 
 // ── Quick-workout exercise schema (simpler than full plan) ────────────────────
 const QuickExerciseSchema = z.object({
@@ -95,10 +101,15 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     };
   },
 
-  async queuePlanGeneration(params: GeneratePlanRequest & { userId: string }) {
-    const { userId, goal, durationWeeks, daysPerWeek } = params;
+  async queuePlanGeneration(params: GeneratePlanRequest & {
+    userId: string;
+    ptUserId?: string | null;
+    clientName?: string | null;
+  }) {
+    const { userId, goal, durationWeeks, daysPerWeek, ptUserId = null, clientName = null } = params;
 
-    // Create the plan record immediately so the user can poll its status.
+    // Create the plan record immediately — persist ptUserId/clientName so the worker
+    // can read them from DB (worker does not trust job-data for PT assignment).
     const plan = await conversationRepository.createWorkoutPlan({
       userId,
       name: `${goal} Plan`,
@@ -106,6 +117,8 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       goal,
       duration: durationWeeks,
       daysPerWeek,
+      ptUserId,
+      clientName,
     });
 
     const job = await aiQueue.add('generate-plan', {
@@ -119,7 +132,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     // Link the job ID so the plan record is discoverable by jobId.
     await conversationRepository.updatePlanJob(plan.id, job.id!);
 
-    logger.info({ planId: plan.id, jobId: job.id, userId }, 'Plan generation queued');
+    logger.info({ planId: plan.id, jobId: job.id, userId, ptUserId }, 'Plan generation queued');
     return { planId: plan.id, jobId: job.id!, status: PlanStatus.QUEUED };
   },
 

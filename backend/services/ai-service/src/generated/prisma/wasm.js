@@ -159,6 +159,12 @@ exports.Prisma.WorkoutPlanScalarFieldEnum = {
   version: 'version',
   jobId: 'jobId',
   failReason: 'failReason',
+  ptUserId: 'ptUserId',
+  ptName: 'ptName',
+  clientName: 'clientName',
+  ptReviewStatus: 'ptReviewStatus',
+  ptNote: 'ptNote',
+  ptReviewedAt: 'ptReviewedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -192,6 +198,12 @@ exports.PlanStatus = exports.$Enums.PlanStatus = {
   PROCESSING: 'PROCESSING',
   COMPLETED: 'COMPLETED',
   FAILED: 'FAILED'
+};
+
+exports.PtReviewStatus = exports.$Enums.PtReviewStatus = {
+  PENDING_PT_REVIEW: 'PENDING_PT_REVIEW',
+  PT_APPROVED: 'PT_APPROVED',
+  PT_REJECTED: 'PT_REJECTED'
 };
 
 exports.Prisma.ModelName = {

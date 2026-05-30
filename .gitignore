@@ -51,7 +51,13 @@ Thumbs.db
 .vscode/
 .claude/
 
-
+# ------------------------------
+# Runtime / local data artifacts
+# ------------------------------
+*.db
+*.sqlite
+*.sqlite3
+*.pids
 
 # Docker / compose local overrides
 docker-compose.override.yml
@@ -81,6 +87,8 @@ tmp-ai-request.json
 
 # USDA FoodData Central raw downloads (large, not committed)
 # Generate foods_seed.csv locally with: pnpm --filter @gym-coach/fitness-service db:process-usda
-data/nutrition/*.csv
-data/nutrition/*.zip
-data/nutrition/*.xlsx
+data/nutrition/
+data/nutrition.zip
+
+# Local test/scratch files
+FitnessAssistant_TestPrompt_v2.md

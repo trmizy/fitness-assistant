@@ -35,7 +35,7 @@ export interface PTApplication {
   availabilityNotes?: string;
   availableTimeSlots?: any;
   serviceMode?: 'ONLINE' | 'OFFLINE' | 'HYBRID';
-  operatingAreas: string[];
+  operatingAreas?: string[];
   desiredSessionPrice?: number;
   availableDays: string[];
   availableFrom?: string;
@@ -51,6 +51,19 @@ export interface PTApplication {
   offlinePricePerSession?: number;
   onlinePackagePrice?: number;
   offlinePackagePrice?: number;
+  residenceProvinceCode?: number;
+  residenceWardCode?: number;
+  residenceAddressLine?: string;
+  residenceLegacyDistrictName?: string;
+  applicationTrainingLocations?: {
+    provinceCode: number;
+    wardCode?: number;
+    gymName?: string;
+    addressLine?: string;
+    legacyDistrictName?: string;
+    isPrimary?: boolean;
+    note?: string;
+  }[];
   otherReferences?: string;
   adminNote?: string;
   rejectionReason?: string;
@@ -101,16 +114,16 @@ export const ptApplicationService = {
   // Admin methods
   listApplications: async (params: any = {}): Promise<PTApplication[]> => {
     const { data } = await api.get('/pt-applications/admin', { params });
-    return data;
+    return data.map((app: any) => ({ ...app, user: app.user ?? app.userProfile }));
   },
 
   getById: async (id: string): Promise<PTApplication> => {
     const { data } = await api.get(`/pt-applications/admin/${id}`);
-    return data;
+    return { ...data, user: data.user ?? data.userProfile };
   },
 
   reviewAction: async (id: string, action: string, payload: any = {}): Promise<PTApplication> => {
     const { data } = await api.post(`/pt-applications/admin/${id}/review/${action}`, payload);
-    return data;
+    return { ...data, user: data.user ?? data.userProfile };
   }
 };

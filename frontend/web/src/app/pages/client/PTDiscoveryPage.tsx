@@ -1,16 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Search, Award, Filter, Check, Loader2, Users, MessageSquare, Clock, X, Globe, MapPin, Linkedin, Instagram } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { profileService, chatService, contractService } from "../../services/api";
+import { profileService, chatService, contractService, locationService } from "../../services/api";
 import { toast } from "sonner";
-
-function formatPrice(price?: number | null) {
-  if (!price) return null;
-  return `฿${price.toLocaleString()}`;
-}
+import { formatVND } from "../../utils/currency";
 
 const isValidPrice = (p: unknown): p is number => typeof p === 'number' && p > 0;
+
+const emptyFilters = { q: '', minPrice: '', maxPrice: '', sessionMode: '', provinceCode: '', wardCode: '' };
 
 function serviceModeLabel(mode?: string) {
   if (mode === 'ONLINE') return 'Online qua video call';
@@ -43,10 +41,16 @@ const filterValues = ["All", "Fat Loss", "Muscle Gain", "Strength", "Yoga", "HII
 export function PTDiscoveryPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messagingPT, setMessagingPT] = useState(false);
+
+  // Filter panel state
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState(emptyFilters);
+  const [pendingFilters, setPendingFilters] = useState(emptyFilters);
+  const [provinces, setProvinces] = useState<{ code: number; name: string }[]>([]);
+  const [wards, setWards] = useState<{ code: number; name: string }[]>([]);
 
   // Request coaching modal state
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -57,12 +61,37 @@ export function PTDiscoveryPage() {
   const [extraSessions, setExtraSessions] = useState(0);
   const [requestMessage, setRequestMessage] = useState("");
 
+  useEffect(() => {
+    locationService.getProvinces().then(setProvinces).catch(() => {});
+  }, []);
+
+  const handleProvinceChange = async (code: string) => {
+    setPendingFilters(prev => ({ ...prev, provinceCode: code, wardCode: '' }));
+    if (code) {
+      const ws = await locationService.getWards(Number(code)).catch(() => []);
+      setWards(ws);
+    } else {
+      setWards([]);
+    }
+  };
+
+  const applyFilters = () => {
+    setActiveFilters(pendingFilters);
+    setFilterOpen(false);
+  };
+
+  const clearFilters = () => {
+    setPendingFilters(emptyFilters);
+    setActiveFilters(emptyFilters);
+    setWards([]);
+  };
+
   const handleMessage = async (ptUserId: string) => {
     try {
       setMessagingPT(true);
       const data = await chatService.createDirectConversation(ptUserId);
       const conversationId = data?.id || data?.conversation?.id;
-      if (conversationId) navigate(`/client/chat`);
+      if (conversationId) navigate(`/client/chat?conversationId=${conversationId}`);
     } catch {
       toast.error("Không thể bắt đầu cuộc hội thoại");
     } finally {
@@ -109,8 +138,15 @@ export function PTDiscoveryPage() {
   };
 
   const { data: ptsData, isLoading } = useQuery({
-    queryKey: ["pts-list"],
-    queryFn: profileService.listPTs,
+    queryKey: ["pts-list", activeFilters],
+    queryFn: () => profileService.listPTs({
+      q: activeFilters.q || undefined,
+      minPrice: activeFilters.minPrice ? Number(activeFilters.minPrice) : undefined,
+      maxPrice: activeFilters.maxPrice ? Number(activeFilters.maxPrice) : undefined,
+      sessionMode: activeFilters.sessionMode || undefined,
+      provinceCode: activeFilters.provinceCode ? Number(activeFilters.provinceCode) : undefined,
+      wardCode: activeFilters.wardCode ? Number(activeFilters.wardCode) : undefined,
+    }),
   });
 
   if (isLoading) {
@@ -124,15 +160,9 @@ export function PTDiscoveryPage() {
   const ptsList = ptsData?.pts || [];
 
   const filtered = ptsList.filter((pt: any) => {
-    const fullName = `${pt.firstName ?? ""} ${pt.lastName ?? ""}`.toLowerCase();
     const specialties: string[] = pt.ptApplication?.mainSpecialties || [];
-    const matchesSearch = !search ||
-      fullName.includes(search.toLowerCase()) ||
-      specialties.some((s: string) => s.toLowerCase().includes(search.toLowerCase()));
     const filterValue = filterValues[filters.indexOf(activeFilter)] ?? activeFilter;
-    const matchesFilter = filterValue === "All" ||
-      specialties.some((s: string) => s.toLowerCase().includes(filterValue.toLowerCase()));
-    return matchesSearch && matchesFilter;
+    return filterValue === "All" || specialties.some((s: string) => s.toLowerCase().includes(filterValue.toLowerCase()));
   });
 
   const selectedPT = ptsList.find((pt: any) => pt.userId === selectedId);
@@ -148,12 +178,101 @@ export function PTDiscoveryPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700/60 rounded-xl px-4 py-2.5 flex-1">
           <Search className="w-4 h-4 text-zinc-500" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm theo tên hoặc chuyên môn…" className="flex-1 text-sm outline-none text-zinc-300 placeholder-zinc-600 bg-transparent" />
+          <input
+            value={pendingFilters.q}
+            onChange={e => setPendingFilters(prev => ({ ...prev, q: e.target.value }))}
+            onKeyDown={e => e.key === 'Enter' && applyFilters()}
+            placeholder="Tìm theo tên hoặc chuyên môn…"
+            className="flex-1 text-sm outline-none text-zinc-300 placeholder-zinc-600 bg-transparent"
+          />
+          {pendingFilters.q && (
+            <button onClick={() => { setPendingFilters(prev => ({ ...prev, q: '' })); setActiveFilters(prev => ({ ...prev, q: '' })); }} className="text-zinc-600 hover:text-zinc-400">
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 border border-zinc-700/60 rounded-xl text-sm text-zinc-400 bg-zinc-900 hover:bg-zinc-800 hover:text-zinc-200 transition-colors">
+        <button
+          onClick={() => { setPendingFilters(activeFilters); setFilterOpen(true); }}
+          className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-sm transition-colors ${Object.values(activeFilters).some(v => v && v !== activeFilters.q) ? "border-green-500/60 bg-green-500/10 text-green-400" : "border-zinc-700/60 bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"}`}
+        >
           <Filter className="w-4 h-4" /> Lọc
         </button>
       </div>
+
+      {/* Filter panel */}
+      {filterOpen && (
+        <div className="bg-zinc-900 border border-zinc-700/60 rounded-xl p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-zinc-200">Bộ lọc</span>
+            <button onClick={() => setFilterOpen(false)} className="text-zinc-500 hover:text-zinc-300"><X className="w-4 h-4" /></button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Hình thức</label>
+              <select
+                value={pendingFilters.sessionMode}
+                onChange={e => setPendingFilters(prev => ({ ...prev, sessionMode: e.target.value }))}
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
+              >
+                <option value="">Tất cả</option>
+                <option value="ONLINE">Online</option>
+                <option value="OFFLINE">Offline</option>
+                <option value="HYBRID">Hybrid</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Giá tối thiểu (VND)</label>
+              <input
+                type="number"
+                min={0}
+                placeholder="0"
+                value={pendingFilters.minPrice}
+                onChange={e => setPendingFilters(prev => ({ ...prev, minPrice: e.target.value }))}
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Giá tối đa (VND)</label>
+              <input
+                type="number"
+                min={0}
+                placeholder="Không giới hạn"
+                value={pendingFilters.maxPrice}
+                onChange={e => setPendingFilters(prev => ({ ...prev, maxPrice: e.target.value }))}
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Tỉnh/Thành phố</label>
+              <select
+                value={pendingFilters.provinceCode}
+                onChange={e => handleProvinceChange(e.target.value)}
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
+              >
+                <option value="">Tất cả</option>
+                {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
+              </select>
+            </div>
+            {wards.length > 0 && (
+              <div>
+                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Phường/Xã</label>
+                <select
+                  value={pendingFilters.wardCode}
+                  onChange={e => setPendingFilters(prev => ({ ...prev, wardCode: e.target.value }))}
+                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
+                >
+                  <option value="">Tất cả</option>
+                  {wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={clearFilters} className="flex-1 py-2 border border-zinc-700/60 text-zinc-400 text-sm rounded-lg hover:bg-zinc-800 transition-colors">Xóa bộ lọc</button>
+            <button onClick={applyFilters} className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all">Áp dụng</button>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {filters.map((f, i) => (
@@ -168,6 +287,11 @@ export function PTDiscoveryPage() {
         <div className={`space-y-3 ${selectedId ? "lg:w-96 flex-shrink-0" : "flex-1"}`}>
           {filtered.length > 0 ? filtered.map((pt: any) => {
             const lowestPrice = getLowestPerSessionPrice(pt.ptApplication);
+            const primaryLoc = pt.trainingLocations?.find((l: any) => l.isPrimary) ?? pt.trainingLocations?.[0];
+            const otherLocCount = Math.max(0, (pt.trainingLocations?.length ?? 0) - 1);
+            const locationText = primaryLoc
+              ? [primaryLoc.gymName, primaryLoc.ward?.name, primaryLoc.province?.name].filter(Boolean).join(', ')
+              : pt.ptApplication?.serviceMode === 'ONLINE' ? 'Coaching online' : undefined;
             return (
               <button
                 key={pt.userId}
@@ -186,14 +310,13 @@ export function PTDiscoveryPage() {
                           <Award className="w-3.5 h-3.5 text-green-400" />
                         </div>
                         <div className="flex items-center gap-1 text-xs text-zinc-600 mt-0.5">
-                          <MapPin className="w-3 h-3" />
-                          {pt.ptApplication?.operatingAreas?.[0] || "Bangkok"}
-                          {pt.ptApplication?.yearsOfExperience ? ` · ${pt.ptApplication.yearsOfExperience} kinh nghiệm` : " · Chứng nhận"}
+                          {locationText && <><MapPin className="w-3 h-3" />{locationText}{otherLocCount > 0 && ` +${otherLocCount} địa điểm khác`}</>}
+                          {pt.ptApplication?.yearsOfExperience ? ` · ${pt.ptApplication.yearsOfExperience} kinh nghiệm` : ""}
                         </div>
                       </div>
                       {lowestPrice && (
                         <span className="text-xs font-bold text-green-400 whitespace-nowrap">
-                          từ {formatPrice(lowestPrice)}
+                          từ {formatVND(lowestPrice)}
                         </span>
                       )}
                     </div>
@@ -211,7 +334,7 @@ export function PTDiscoveryPage() {
           }) : (
             <div className="py-20 text-center bg-zinc-900/50 rounded-2xl border border-zinc-800/60">
               <Users className="w-12 h-12 text-zinc-800 mx-auto mb-3" />
-              <p className="text-zinc-500">Không tìm thấy huấn luyện viên phù hợp.</p>
+              <p className="text-zinc-500">Không tìm thấy PT phù hợp với bộ lọc hiện tại.</p>
             </div>
           )}
         </div>
@@ -277,7 +400,13 @@ export function PTDiscoveryPage() {
                       <span className="flex items-center gap-1 text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20"><Award className="w-3 h-3" /> Đã xác minh</span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1 flex-wrap">
-                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {app?.operatingAreas?.[0] || "Bangkok"}</span>
+                      {(() => {
+                        const pLoc = selectedPT.trainingLocations?.find((l: any) => l.isPrimary) ?? selectedPT.trainingLocations?.[0];
+                        const locStr = pLoc
+                          ? [pLoc.gymName, pLoc.ward?.name, pLoc.province?.name].filter(Boolean).join(', ')
+                          : ptMode === 'ONLINE' ? 'Coaching online' : undefined;
+                        return locStr ? <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {locStr}</span> : null;
+                      })()}
                       {app?.yearsOfExperience && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {app.yearsOfExperience} kinh nghiệm</span>}
                       {serviceModeLabel(ptMode) && <span className="text-blue-400">{serviceModeLabel(ptMode)}</span>}
                     </div>
@@ -416,7 +545,7 @@ export function PTDiscoveryPage() {
                               </div>
                               <div className="text-xs text-zinc-500">Đặt lịch theo từng buổi</div>
                             </div>
-                            <span className="text-base font-bold text-green-400">{formatPrice(opt.price)}</span>
+                            <span className="text-base font-bold text-green-400">{formatVND(opt.price)}</span>
                           </div>
                           <ul className="space-y-1 mb-3">
                             <li className="flex items-center gap-1.5 text-xs text-zinc-400"><Check className="w-3.5 h-3.5 text-green-500" /> Kế hoạch tập luyện từ AI cá nhân hóa</li>
@@ -447,9 +576,9 @@ export function PTDiscoveryPage() {
                                 <span className="text-sm font-bold text-zinc-200">{opt.label}</span>
                                 {isBest && <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-bold">Tiết kiệm nhất</span>}
                               </div>
-                              <div className="text-xs text-zinc-500">{formatPrice(opt.pricePerSess)}/buổi · Gói nhiều buổi</div>
+                              <div className="text-xs text-zinc-500">{formatVND(opt.pricePerSess)}/buổi · Gói nhiều buổi</div>
                             </div>
-                            <span className="text-base font-bold text-green-400">{formatPrice(opt.price)}</span>
+                            <span className="text-base font-bold text-green-400">{formatVND(opt.price)}</span>
                           </div>
                           {opt.mode !== null ? (
                             <button
@@ -595,7 +724,7 @@ export function PTDiscoveryPage() {
                     </div>
                     <div className="flex justify-between text-sm pt-1 border-t border-zinc-700/30 mt-1">
                       <span className="text-zinc-400 font-medium">Dự kiến tổng</span>
-                      <span className="font-bold text-green-400">{formatPrice(totalPrice)}</span>
+                      <span className="font-bold text-green-400">{formatVND(totalPrice)}</span>
                     </div>
                   </div>
                 ) : null;

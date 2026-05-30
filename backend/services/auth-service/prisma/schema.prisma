@@ -22,6 +22,10 @@ model User {
   firstName String?
   lastName  String?
   role      Role     @default(CUSTOMER)
+  // BUG-002: enable admin disable/enable. camelCase column to match existing
+  // table convention (firstName/lastName/createdAt). Default true keeps existing
+  // rows enabled after the users_isactive migration.
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

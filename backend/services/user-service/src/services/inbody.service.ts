@@ -1,10 +1,38 @@
 import { inbodyRepository } from '../repositories/inbody.repository';
+import { contractRepository } from '../repositories/contract.repository';
 import { extractInBodyVision } from './inbody-vision.service';
 import { ocrExtractionsTotal, ocrExtractionDuration, inbodyUploadsTotal } from '@gym-coach/shared';
+
+function startOfUtcDay(d: Date): Date {
+  const x = new Date(d);
+  x.setUTCHours(0, 0, 0, 0);
+  return x;
+}
+
+function err(message: string, status: number) {
+  return Object.assign(new Error(message), { status });
+}
+
+// BR-07: max one InBody entry per user per calendar day. The `dateOnly` field
+// (added in migration inbody_unique_per_day) is the unique key. Catch Prisma's
+// P2002 violation and re-throw as a clean 409 rather than letting the controller
+// see a raw Prisma error and return 500.
+function isUniqueViolation(e: any): boolean {
+  return e?.code === 'P2002' || /unique constraint/i.test(String(e?.message || ''));
+}
 
 export const inbodyService = {
   async getHistory(userId: string) {
     return inbodyRepository.findByUserId(userId);
+  },
+
+  // BR-32: PT views a client's InBody — requires ACTIVE or COMPLETED contract
+  async getClientHistory(ptUserId: string, clientUserId: string) {
+    const contract = await contractRepository.findActiveOrCompletedByPair(ptUserId, clientUserId);
+    if (!contract) {
+      throw err('No contract relationship with this client', 403);
+    }
+    return inbodyRepository.findByUserId(clientUserId);
   },
 
   async getLatest(userId: string) {
@@ -13,7 +41,35 @@ export const inbodyService = {
 
   async createEntry(userId: string, data: any) {
     inbodyUploadsTotal.inc({ method: 'manual' });
-    return inbodyRepository.create(userId, data);
+    const measuredDate = data.date ? new Date(data.date) : new Date();
+    const dateOnly = startOfUtcDay(measuredDate);
+    const payload = { ...data, date: measuredDate, dateOnly };
+    const { dateOnly: _d, userId: _u, ...updatePayload } = payload;
+    return inbodyRepository.upsertByUserAndDate(userId, dateOnly, payload, updatePayload);
+  },
+
+  // BR-06: client may edit an InBody entry (e.g. tweak OCR results before confirming).
+  // Only the owner can update. If `date` is changed, `dateOnly` is recomputed so the
+  // unique-per-day constraint keeps making sense.
+  async updateEntry(userId: string, id: string, data: any) {
+    const existing = await inbodyRepository.findById(id);
+    if (!existing || existing.userId !== userId) {
+      throw err('InBody entry not found', 404);
+    }
+    const patch: Record<string, any> = { ...data };
+    if (data.date !== undefined) {
+      const newDate = new Date(data.date);
+      patch.date = newDate;
+      patch.dateOnly = startOfUtcDay(newDate);
+    }
+    try {
+      return await inbodyRepository.update(id, patch);
+    } catch (e: any) {
+      if (isUniqueViolation(e)) {
+        throw err('Bản ghi InBody trong ngày đã tồn tại', 409);
+      }
+      throw e;
+    }
   },
 
   async extractFromImage(_userId: string, imagePath: string) {

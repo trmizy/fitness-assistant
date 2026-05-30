@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { profileController } from '../controllers/profile.controller';
@@ -14,9 +14,25 @@ const photoUpload = multer({
   },
 });
 
+// Wrapper around multer.single so the upload-error paths produce 413/400 instead of
+// bubbling up to the global error handler and becoming 500 (BUG-022 / BUG-023).
+function handlePhotoUpload(req: Request, res: Response, next: NextFunction): void {
+  photoUpload.single('photo')(req, res, (err: any) => {
+    if (err?.code === 'LIMIT_FILE_SIZE') {
+      res.status(413).json({ error: 'Photo too large. Maximum allowed size is 5 MB.' });
+      return;
+    }
+    if (err instanceof Error) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    next();
+  });
+}
+
 router.get('/me', authMiddleware, profileController.getProfile as any);
 router.put('/me', authMiddleware, profileController.upsertProfile as any);
-router.post('/me/photo', authMiddleware, photoUpload.single('photo'), profileController.uploadPhoto as any);
+router.post('/me/photo', authMiddleware, handlePhotoUpload, profileController.uploadPhoto as any);
 router.patch('/me/become-pt', authMiddleware, profileController.becomePT as any);
 router.delete('/me', authMiddleware, profileController.deleteProfile as any);
 

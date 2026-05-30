@@ -13,7 +13,10 @@ const WRITABLE_FIELDS = new Set([
   'desiredSessionPrice', 'availableDays', 'availableFrom', 'availableUntil',
   'gymAffiliation', 'packagePrice', 'sessionsPerPackage', 'monthlyProgramPrice', 'additionalPricingNotes',
   'onlinePricePerSession', 'offlinePricePerSession', 'onlinePackagePrice', 'offlinePackagePrice',
-  'otherReferences',
+  'otherReferences', 'availabilityBlocks', 'sessionDurationMinutes',
+  // Location fields
+  'residenceProvinceCode', 'residenceWardCode', 'residenceAddressLine', 'residenceLegacyDistrictName',
+  'applicationTrainingLocations',
 ]);
 
 const CERT_WRITABLE_FIELDS = new Set([

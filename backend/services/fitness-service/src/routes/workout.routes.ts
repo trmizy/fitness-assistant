@@ -15,5 +15,7 @@ router.get('/:id', authMiddleware, workoutController.getWorkout as any);
 router.post('/', authMiddleware, workoutController.createWorkout as any);
 router.put('/:id', authMiddleware, workoutController.updateWorkout as any);
 router.delete('/:id', authMiddleware, workoutController.deleteWorkout as any);
+// Append a single set to an existing workout (BUG-007 / BR-WK-02).
+router.post('/:id/sets', authMiddleware, workoutController.addSet as any);
 
 export default router;

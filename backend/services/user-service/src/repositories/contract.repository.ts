@@ -55,13 +55,35 @@ export const contractRepository = {
       },
     }),
 
-  /** Find active/pending contract between specific PT and client */
+  /** Find active/pending contract between specific PT and client (BR-27) */
   findActiveByPair: (ptUserId: string, clientUserId: string) =>
     prisma.contract.findFirst({
       where: {
         ptUserId,
         clientUserId,
-        status: { in: [ContractStatus.ACTIVE, ContractStatus.PENDING_REVIEW] },
+        status: { in: [ContractStatus.PENDING_REVIEW, ContractStatus.PENDING_SIGNATURE, ContractStatus.ACTIVE] },
+      },
+    }),
+
+  /** Find ACTIVE or COMPLETED contract between PT and client (BR-32) */
+  findActiveOrCompletedByPair: (ptUserId: string, clientUserId: string) =>
+    prisma.contract.findFirst({
+      where: {
+        ptUserId,
+        clientUserId,
+        status: { in: [ContractStatus.ACTIVE, ContractStatus.COMPLETED] },
+      },
+    }),
+
+  /** Check if any PT-Client contract relationship exists between two users in either direction (BR-29) */
+  findRelationshipByPair: (userAId: string, userBId: string) =>
+    prisma.contract.findFirst({
+      where: {
+        OR: [
+          { ptUserId: userAId, clientUserId: userBId },
+          { ptUserId: userBId, clientUserId: userAId },
+        ],
+        status: { in: [ContractStatus.ACTIVE, ContractStatus.PENDING_SIGNATURE, ContractStatus.COMPLETED] },
       },
     }),
 
@@ -132,4 +154,15 @@ export const contractRepository = {
 
   findByESignRequestId: (eSignRequestId: string) =>
     prisma.contract.findFirst({ where: { eSignRequestId } }),
+
+  updateWhereStatus: (
+    id: string,
+    expectedStatus: ContractStatus,
+    newStatus: ContractStatus,
+    data?: Record<string, any>,
+  ) =>
+    prisma.contract.updateMany({
+      where: { id, status: expectedStatus },
+      data: { ...data, status: newStatus },
+    }),
 };

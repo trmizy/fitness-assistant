@@ -417,9 +417,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const cancelCall = useCallback(() => {
     const s = stateRef.current;
-    if (!s.callInfo?.callSessionId) return;
-    const socket = connectSocket();
-    socket.emit('call:cancel', { callSessionId: s.callInfo.callSessionId });
+    if (s.callInfo?.callSessionId) {
+      const socket = connectSocket();
+      socket.emit('call:cancel', { callSessionId: s.callInfo.callSessionId });
+    }
     doCleanup();
   }, [doCleanup]);
 

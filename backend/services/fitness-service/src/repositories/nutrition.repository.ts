@@ -39,6 +39,20 @@ export const nutritionRepository = {
 
   delete: (id: string) => prisma.nutritionLog.delete({ where: { id } }),
 
+  // Partial update — only mutable snapshot fields are accepted.
+  update: (id: string, data: any) => {
+    const patch: Record<string, any> = {};
+    if (data.mealType !== undefined) patch.mealType = data.mealType;
+    if (data.foodName !== undefined) patch.foodName = data.foodName;
+    if (data.calories !== undefined) patch.calories = data.calories;
+    if (data.protein !== undefined) patch.protein = data.protein;
+    if (data.carbs !== undefined) patch.carbs = data.carbs;
+    if (data.fats !== undefined) patch.fats = data.fats;
+    if (data.notes !== undefined) patch.notes = data.notes;
+    if (data.date !== undefined) patch.date = new Date(data.date);
+    return prisma.nutritionLog.update({ where: { id }, data: patch });
+  },
+
   findForStats: (userId: string, startDate: Date) =>
     prisma.nutritionLog.findMany({
       where: { userId, date: { gte: startDate } },

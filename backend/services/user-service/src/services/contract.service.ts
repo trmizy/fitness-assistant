@@ -1,10 +1,62 @@
-import { ContractStatus, PackageType } from '../generated/prisma';
+import { logger } from '@gym-coach/shared';
+import { ContractStatus, PackageType, SessionMode } from '../generated/prisma';
 import { contractRepository } from '../repositories/contract.repository';
 import { profileRepository } from '../repositories/profile.repository';
 import { notificationService } from './notification.service';
+import { eSignService } from './esign.service';
+import { generateContractPdf } from './contractPdf.service';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
+}
+
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
+const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || '';
+
+async function getUserInfo(userId: string): Promise<{ email: string; firstName: string | null; lastName: string | null } | null> {
+  try {
+    const { default: axios } = await import('axios');
+    const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/internal/users/${userId}`, {
+      headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET },
+      timeout: 3000,
+    });
+    const u = data?.user;
+    if (!u?.email) return null;
+    return { email: u.email, firstName: u.firstName ?? null, lastName: u.lastName ?? null };
+  } catch (e: any) {
+    const status = e?.response?.status;
+    if (status !== 404) {
+      logger.warn({ status, code: e?.code }, 'getUserInfo: auth-service lookup failed');
+    }
+    return null;
+  }
+}
+
+function fullName(info: { firstName: string | null; lastName: string | null } | null, fallback: string): string {
+  if (!info) return fallback;
+  return [info.firstName, info.lastName].filter(Boolean).join(' ') || fallback;
+}
+
+/**
+ * Best-effort check whether a user is active (auth.users.isActive).
+ * Returns `true` if the column does not yet exist (pre-migration) or if auth
+ * is unreachable — i.e. fail-open for compatibility, but log so admins notice.
+ * After the migration BUG-002 lands, this becomes the source of truth.
+ */
+async function isUserActive(userId: string): Promise<boolean> {
+  try {
+    const { default: axios } = await import('axios');
+    const { data } = await axios.get(`${AUTH_SERVICE_URL}/auth/internal/users/${userId}`, {
+      headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET },
+      timeout: 3000,
+    });
+    const u = data?.user;
+    if (!u) return true;
+    if (typeof u.isActive === 'boolean') return u.isActive;
+    return true; // pre-migration: treat as active
+  } catch {
+    return true; // fail-open; alternative would block everything on auth outage
+  }
 }
 
 export const contractService = {
@@ -19,6 +71,7 @@ export const contractService = {
     totalSessions?: number; // Ignored if calculations are performed
     price?: number;         // Ignored if calculations are performed
     pricePerSession?: number;
+    sessionMode?: string;
     startDate?: string;
     endDate?: string;
     message?: string;
@@ -50,10 +103,10 @@ export const contractService = {
       finalPrice = finalSessions * unitPrice;
     }
 
-    // MVP rule: one active/pending contract per client
-    const existing = await contractRepository.findActiveOrPendingByClient(clientUserId);
+    // BR-27: no duplicate active/pending contract with same PT
+    const existing = await contractRepository.findActiveByPair(data.ptUserId, clientUserId);
     if (existing) {
-      throw err('You already have an active or pending contract. Cancel or complete it first.', 409);
+      throw err('You already have an active or pending contract with this PT', 409);
     }
 
     const contract = await contractRepository.create({
@@ -68,6 +121,7 @@ export const contractService = {
       totalSessions: finalSessions,
       price: finalPrice,
       pricePerSession: unitPrice,
+      sessionMode: data.sessionMode ? (data.sessionMode as SessionMode) : undefined,
       startDate: data.startDate ? new Date(data.startDate) : undefined,
       endDate: data.endDate ? new Date(data.endDate) : undefined,
       clientMessage: data.message,
@@ -97,20 +151,101 @@ export const contractService = {
       throw err(`Cannot accept contract in ${contract.status} status`, 400);
     }
 
-    const updated = await contractRepository.updateStatus(contractId, ContractStatus.ACTIVE, {
-      startDate: contract.startDate || new Date(),
-    });
+    // 1. Fetch real emails + names (fail-fast: e-sign requires real emails)
+    const [ptInfo, clientInfo] = await Promise.all([
+      getUserInfo(ptUserId),
+      getUserInfo(contract.clientUserId),
+    ]);
+    if (!ptInfo?.email) throw err('PT account not found or email unavailable', 500);
+    if (!clientInfo?.email) throw err('Client account not found or email unavailable', 500);
 
+    const ptName = fullName(ptInfo, 'Personal Trainer');
+    const clientName = fullName(clientInfo, 'Client');
+
+    // 2. Atomic claim: PENDING_REVIEW → PENDING_SIGNATURE (BEFORE generating PDF)
+    // Prevents double PDF generation on concurrent requests. No startDate — not ACTIVE yet.
+    const affected = await contractRepository.updateWhereStatus(
+      contractId,
+      ContractStatus.PENDING_REVIEW,
+      ContractStatus.PENDING_SIGNATURE,
+      {
+        clientSignerEmail: clientInfo.email,
+        ptSignerEmail: ptInfo.email,
+        eSignTestMode: process.env.DROPBOX_SIGN_TEST_MODE === 'true',
+      },
+    );
+    if (affected.count === 0) {
+      throw err('Contract already being processed by another request', 409);
+    }
+
+    // 3. Generate PDF (after claim — only 1 request reaches here)
+    let relativePdfPath: string;
+    try {
+      relativePdfPath = await generateContractPdf({
+        contractId,
+        packageName: contract.packageName,
+        totalSessions: contract.totalSessions,
+        price: contract.price ?? null,
+        pricePerSession: contract.pricePerSession ?? null,
+        startDate: contract.startDate ?? null,
+        endDate: contract.endDate ?? null,
+        terms: contract.terms ?? null,
+        notes: contract.notes ?? null,
+        clientName,
+        clientEmail: clientInfo.email,
+        ptName,
+        ptEmail: ptInfo.email,
+        createdAt: contract.createdAt,
+      });
+      await contractRepository.update(contractId, { contractPdfPath: relativePdfPath });
+    } catch (e: any) {
+      const shortMsg = (e?.message || 'PDF generation failed').toString().slice(0, 240);
+      logger.error({ contractId, message: shortMsg }, 'PDF generation failed in acceptContract');
+      await contractRepository.update(contractId, { eSignStatus: 'ERROR', eSignError: shortMsg }).catch(() => {});
+      throw err('Failed to generate contract PDF', 500);
+    }
+
+    // 4. Send e-sign (fail-safe: stays PENDING_SIGNATURE, eSignStatus=ERROR if send fails)
+    try {
+      const result = await eSignService.send({
+        contractId,
+        title: `Coaching Contract - ${contract.packageName}`,
+        subject: 'Please sign your coaching contract',
+        message: 'Your coaching contract is ready. Please review and sign to activate.',
+        testMode: process.env.DROPBOX_SIGN_TEST_MODE === 'true',
+        signers: [
+          { name: ptName,     email: ptInfo.email,     role: 'pt' },
+          { name: clientName, email: clientInfo.email, role: 'client' },
+        ],
+        pdfPath: relativePdfPath,
+      });
+      await contractRepository.update(contractId, {
+        eSignProvider: result.provider,
+        eSignRequestId: result.requestId,
+        eSignStatus: 'SENT',
+        eSignSentAt: new Date(),
+        eSignError: null,
+      });
+    } catch (e: any) {
+      const shortMsg = (e?.message || 'unknown e-sign error').toString().slice(0, 240);
+      logger.error({ contractId, message: shortMsg }, 'e-sign send failed in acceptContract');
+      await contractRepository.update(contractId, {
+        eSignStatus: 'ERROR',
+        eSignError: shortMsg,
+      }).catch(() => {});
+    }
+
+    // 5. Notify client
     await notificationService.create({
       userId: contract.clientUserId,
-      text: 'Your coaching request has been accepted!',
+      text: 'Your coaching request was accepted! Please check your email to sign the contract.',
       eventType: 'CONTRACT_ACCEPTED',
       entityType: 'CONTRACT',
       entityId: contractId,
-      link: '/client/contracts',
+      link: '/client/schedule',
     }).catch(() => {});
 
-    return updated;
+    return contractRepository.findById(contractId);
   },
 
   // ── PT rejects a pending contract ─────────────────────────────────
@@ -240,12 +375,30 @@ export const contractService = {
     return contractRepository.findByIdWithSessions(id);
   },
 
-  async updateStatus(id: string, userId: string, newStatus: string) {
+  async updateStatus(id: string, userId: string, newStatus: string, userRole?: string) {
     const contract = await contractRepository.findById(id);
     if (!contract) throw err('Contract not found', 404);
 
-    if (contract.ptUserId !== userId && contract.clientUserId !== userId) {
+    const isAdmin = userRole === 'ADMIN';
+    if (!isAdmin && contract.ptUserId !== userId && contract.clientUserId !== userId) {
       throw err('Not authorized', 403);
+    }
+
+    // Admin fail-safe: force activate when e-sign hỏng (PENDING_SIGNATURE → ACTIVE).
+    // NOT a replacement for the real e-sign flow — emit audit log so this manual
+    // activation is traceable. Frontend should warn admin about manual override.
+    if (
+      isAdmin &&
+      newStatus === 'ACTIVE' &&
+      (contract.status === ContractStatus.PENDING_SIGNATURE || contract.status === ContractStatus.PENDING_REVIEW)
+    ) {
+      logger.warn(
+        { event: 'CONTRACT_FORCE_ACTIVATED', contractId: id, adminUserId: userId, prevStatus: contract.status },
+        'Admin manually activated contract (e-sign bypass)',
+      );
+      return contractRepository.updateStatus(id, ContractStatus.ACTIVE, {
+        startDate: contract.startDate || new Date(),
+      });
     }
 
     // PT accepts a PENDING_REVIEW contract → ACTIVE
@@ -253,17 +406,83 @@ export const contractService = {
       return this.acceptContract(id, userId);
     }
 
-    // Either party can cancel
+    // Either party can cancel; admin can also force-cancel.
     if (newStatus === 'CANCELLED') {
       return this.cancelContract(id, userId, 'Status changed to cancelled');
     }
 
-    // PT can mark expired
-    if (newStatus === 'EXPIRED' && contract.ptUserId === userId) {
+    // PT or admin can mark expired
+    if (newStatus === 'EXPIRED' && (contract.ptUserId === userId || isAdmin)) {
       return contractRepository.updateStatus(id, ContractStatus.EXPIRED);
     }
 
     throw err(`Invalid status transition: ${contract.status} → ${newStatus}`, 400);
+  },
+
+  /**
+   * Resend (or send) the e-sign request for a contract in PENDING_SIGNATURE.
+   * The MVP build simplifies acceptContract to set status=ACTIVE directly, so this
+   * method is rarely reached. When it IS reached:
+   *  - if provider throws upstream error → persist eSignStatus='ERROR' + eSignError,
+   *    return err with status=502 (Bad Gateway).
+   *  - if local/config error → persist eSignStatus='ERROR', return err with status=500.
+   *  - logs are sanitized: only short error message + provider/status, never API key/URL/PII.
+   */
+  async resendESign(contractId: string): Promise<{ requestId: string; provider: string }> {
+    const contract = await contractRepository.findById(contractId);
+    if (!contract) throw err('Contract not found', 404);
+    if (contract.status !== ContractStatus.PENDING_SIGNATURE) {
+      throw err('Contract is not in PENDING_SIGNATURE state', 400);
+    }
+    // Controller already guards ERROR/EXPIRED, but service enforces for defense-in-depth
+    if (!['ERROR', 'EXPIRED'].includes(contract.eSignStatus || '')) {
+      throw err('E-sign is not eligible for resend — status must be ERROR or EXPIRED', 400);
+    }
+    if (!contract.clientSignerEmail || !contract.ptSignerEmail) {
+      throw err('Signer emails not set — please contact admin to reset the contract', 400);
+    }
+    if (!contract.contractPdfPath) {
+      throw err('Contract PDF missing — please contact admin to regenerate', 400);
+    }
+
+    try {
+      const result = await eSignService.send({
+        contractId,
+        title: `Coaching Contract - ${contract.packageName}`,
+        subject: 'Please sign your coaching contract',
+        message: 'Your coaching contract is ready. Please review and sign to activate.',
+        testMode: process.env.DROPBOX_SIGN_TEST_MODE === 'true',
+        signers: [
+          { name: 'Client', email: contract.clientSignerEmail, role: 'client' },
+          { name: 'PT',     email: contract.ptSignerEmail,     role: 'pt' },
+        ],
+        pdfPath: contract.contractPdfPath,
+      });
+
+      await contractRepository.update(contractId, {
+        eSignProvider: result.provider,
+        eSignRequestId: result.requestId,
+        eSignStatus: 'SENT',
+        eSignSentAt: new Date(),
+        eSignError: null,
+      });
+
+      return result;
+    } catch (e: any) {
+      const shortMsg = (e?.message || 'unknown e-sign error').toString().slice(0, 240);
+      const upstreamStatus = e?.response?.status || e?.statusCode;
+      const isUpstream = typeof upstreamStatus === 'number' && upstreamStatus >= 400;
+      await contractRepository.update(contractId, {
+        eSignStatus: 'ERROR',
+        eSignError: shortMsg,
+      }).catch(() => {});
+      logger.error(
+        { eSignProvider: process.env.ESIGN_PROVIDER || 'DROPBOX_SIGN', upstreamStatus, code: e?.code, message: shortMsg },
+        'e-sign resend failed',
+      );
+      if (isUpstream) throw err(`E-sign provider error (${upstreamStatus})`, 502);
+      throw err(`E-sign error: ${shortMsg}`, 500);
+    }
   },
 
   async update(id: string, ptUserId: string, data: any) {
@@ -300,31 +519,54 @@ export const contractService = {
     return count;
   },
 
-  // ── Check relationship (for call permission) ──────────────────────
+  // ── Check relationship (BR-29: chat/call only with contract) ─────────
   async checkRelationship(userAId: string, userBId: string) {
-    // Check if either user is a PT
-    const [profileA, profileB] = await Promise.all([
-      profileRepository.findByUserId(userAId),
-      profileRepository.findByUserId(userBId),
-    ]);
+    const contract = await contractRepository.findRelationshipByPair(userAId, userBId);
+    return { allowed: !!contract };
+  },
 
-    if (profileA?.isPT || profileB?.isPT) {
-      return { allowed: true };
-    }
-
-    // Check for active contract between them
-    const contract = await contractRepository.findActiveByPair(userAId, userBId);
+  /**
+   * BR-29 (loosened): a CUSTOMER may chat with an APPROVED PT even before signing
+   * a contract (discovery / pre-sale consultation). Returns a structured verdict so
+   * the caller (chat-service) can show a clear reason but cannot deduce private
+   * state when denied.
+   */
+  async computeChatEligibility(fromUserId: string, toUserId: string): Promise<{
+    allowed: boolean;
+    reason: 'ACTIVE_CONTRACT' | 'APPROVED_PT_DISCOVERY' | 'INACTIVE_USER' | 'NO_RELATIONSHIP_OR_NOT_APPROVED_PT';
+  }> {
+    // 1) Any existing contract relationship between the two parties is always allowed.
+    //    findRelationshipByPair matches both directions and any non-terminal status.
+    const contract = await contractRepository.findRelationshipByPair(fromUserId, toUserId);
     if (contract) {
-      return { allowed: true };
+      // Honor isActive on both sides if known. We import the auth helper lazily to
+      // avoid a circular module load at startup.
+      const [fromActive, toActive] = await Promise.all([
+        isUserActive(fromUserId),
+        isUserActive(toUserId),
+      ]);
+      if (fromActive === false || toActive === false) {
+        return { allowed: false, reason: 'INACTIVE_USER' };
+      }
+      return { allowed: true, reason: 'ACTIVE_CONTRACT' };
     }
 
-    // Also check reverse direction
-    const contractReverse = await contractRepository.findActiveByPair(userBId, userAId);
-    if (contractReverse) {
-      return { allowed: true };
+    // 2) No contract — only allow if toUser is an APPROVED PT and both users are active.
+    const toApp = await profileRepository.findPTApplicationByUserId(toUserId);
+    const toProfile = await profileRepository.findByUserId(toUserId);
+    const isApprovedPT = !!toProfile?.isPT && toApp?.status === 'APPROVED';
+    if (!isApprovedPT) {
+      return { allowed: false, reason: 'NO_RELATIONSHIP_OR_NOT_APPROVED_PT' };
     }
 
-    return { allowed: false };
+    const [fromActive, toActive] = await Promise.all([
+      isUserActive(fromUserId),
+      isUserActive(toUserId),
+    ]);
+    if (fromActive === false || toActive === false) {
+      return { allowed: false, reason: 'INACTIVE_USER' };
+    }
+    return { allowed: true, reason: 'APPROVED_PT_DISCOVERY' };
   },
 
   // ── PT earnings aggregate ──────────────────────────────────────────

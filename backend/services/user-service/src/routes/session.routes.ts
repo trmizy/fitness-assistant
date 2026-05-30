@@ -8,6 +8,7 @@ const router = Router();
 router.post('/', authMiddleware, bookingController.bookSession as any);
 router.get('/upcoming', authMiddleware, bookingController.getMyUpcoming as any);
 router.get('/contract/:contractId', authMiddleware, bookingController.getContractSessions as any);
+router.get('/:id', authMiddleware, bookingController.getSessionById as any);
 
 // ── Session actions ──────────────────────────────────────────────────
 router.post('/:id/join', authMiddleware, bookingController.joinSession as any);

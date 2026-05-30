@@ -176,8 +176,6 @@ export const conversationRepository = {
         take: limit,
         select: {
           id: true,
-          userId: true,
-          question: true,
           modelUsed: true,
           responseTime: true,
           responseLanguage: true,
@@ -200,10 +198,37 @@ export const conversationRepository = {
 
   /**
    * Full conversation detail for the trace drawer.
+   * BR-34A: question, answer, userId excluded from admin response.
    */
   adminGetRequest(id: string) {
-    return prisma.conversation.findUnique({ where: { id } });
+    return prisma.conversation.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        modelUsed: true,
+        responseTime: true,
+        responseLanguage: true,
+        routeIntent: true,
+        usedFallback: true,
+        usedDeterministicFallback: true,
+        warningCount: true,
+        traceId: true,
+        totalTokens: true,
+        promptTokens: true,
+        completionTokens: true,
+        cost: true,
+        feedback: true,
+        feedbackTimestamp: true,
+        relevance: true,
+        relevanceExplanation: true,
+        createdAt: true,
+      },
+    });
   },
+
+  /** BR-34B: Delete all conversations for a user (cascade on account deletion) */
+  deleteByUserId: (userId: string) =>
+    prisma.conversation.deleteMany({ where: { userId } }),
 
   /**
    * Recent workout plans for the queue panel.
@@ -262,6 +287,8 @@ export const conversationRepository = {
     goal: string;
     duration: number;
     daysPerWeek: number;
+    ptUserId?: string | null;
+    clientName?: string | null;
   }) {
     return prisma.workoutPlan.create({
       data: { ...data, plan: {}, status: PlanStatus.QUEUED, version: 1 },
@@ -283,7 +310,13 @@ export const conversationRepository = {
     });
   },
 
-  updatePlanCompletion(planId: string, content: PlanContent) {
+  async updatePlanCompletion(planId: string, content: PlanContent) {
+    // Read ptUserId first — worker reads from DB, not job data, to prevent job-data tampering.
+    // MVP: 2 queries acceptable because BullMQ worker processes plans sequentially.
+    const existing = await prisma.workoutPlan.findUnique({
+      where: { id: planId },
+      select: { ptUserId: true },
+    });
     return prisma.workoutPlan.update({
       where: { id: planId },
       data: {
@@ -292,6 +325,7 @@ export const conversationRepository = {
         plan: content as unknown as Parameters<
           (typeof prisma.workoutPlan)['update']
         >[0]['data']['plan'],
+        ...(existing?.ptUserId ? { ptReviewStatus: 'PENDING_PT_REVIEW' } : {}),
       },
     });
   },

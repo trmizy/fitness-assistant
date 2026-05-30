@@ -5,8 +5,8 @@ export interface JoinSessionState {
   reason?: string;
 }
 
-const JOIN_BEFORE_MS = 10 * 60 * 1000;
-const JOIN_AFTER_MS  = 15 * 60 * 1000;
+const JOIN_BEFORE_MS = 10 * 60 * 1000;  // button appears 10 min before start
+const JOIN_AFTER_MS  = 15 * 60 * 1000;  // button disappears 15 min after end
 
 export function getJoinSessionState(
   session: {
@@ -26,21 +26,16 @@ export function getJoinSessionState(
   if (session.clientUserId !== userId && session.ptUserId !== userId) return HIDDEN;
   if (session.status !== 'CONFIRMED') return HIDDEN;
 
-  const startTs = new Date(session.scheduledStartAt).getTime();
-  const endTs   = new Date(session.scheduledEndAt).getTime();
-  if (Number.isNaN(startTs) || Number.isNaN(endTs)) {
-    return { visible: true, enabled: false, label: 'Tham gia buổi học', reason: 'Thiếu thông tin thời gian' };
+  const now = Date.now();
+  const windowStart = new Date(session.scheduledStartAt).getTime() - JOIN_BEFORE_MS;
+  const windowEnd   = new Date(session.scheduledEndAt).getTime()   + JOIN_AFTER_MS;
+
+  if (now < windowStart) {
+    return { visible: true, enabled: false, label: 'Tham gia buổi học', reason: 'Chưa đến giờ học' };
   }
-  if (endTs <= startTs) {
-    return { visible: true, enabled: false, label: 'Tham gia buổi học', reason: 'Thời gian buổi học không hợp lệ' };
+  if (now > windowEnd) {
+    return { visible: true, enabled: false, label: 'Tham gia buổi học', reason: 'Buổi học đã kết thúc' };
   }
 
-  const now = Date.now();
-  if (now < startTs - JOIN_BEFORE_MS) {
-    return { visible: true, enabled: false, label: 'Tham gia buổi học', reason: 'Có thể tham gia trước giờ học 10 phút' };
-  }
-  if (now > endTs + JOIN_AFTER_MS) {
-    return { visible: true, enabled: false, label: 'Buổi học đã kết thúc', reason: 'Buổi học đã kết thúc' };
-  }
   return { visible: true, enabled: true, label: 'Tham gia buổi học' };
 }

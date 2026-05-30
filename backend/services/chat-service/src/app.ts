@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import { logger, register, metricsMiddleware } from '@gym-coach/shared';
 import chatRoutes from './routes/chat.routes';
+import callRoutes from './routes/call.routes';
 import { getIo } from './socket/index';
 
 const app: Express = express();
@@ -38,6 +39,9 @@ app.get('/metrics', async (_req, res) => {
 });
 
 app.use('/chat', chatRoutes);
+// REST signaling for video/voice calls; mount under the same /chat prefix so the
+// gateway proxy for /chat catches it automatically.
+app.use('/chat/calls', callRoutes);
 
 // Internal notification push — validated by shared secret (Docker-internal only)
 app.post('/internal/push-notification', (req: Request, res: Response) => {

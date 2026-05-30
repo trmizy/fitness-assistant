@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { planController } from '../controllers/plan.controller';
 import { requireAuth } from '../middleware/auth.middleware';
+import { requireRole } from '../middleware/requireRole.middleware';
 import { validateBody } from '../middleware/validate.middleware';
 import {
   GeneratePlanRequestSchema,
   ExplainPlanRequestSchema,
   AdjustPlanRequestSchema,
-  SavePlanToWorkoutLogRequestSchema,
 } from '../schemas/plan.schemas';
 
 const router = Router();
@@ -61,14 +61,17 @@ router.post(
 );
 
 /**
- * POST /plans/:planId/save-to-workout-log
- * Persist a COMPLETED AI plan into the user's workout schedule.
+ * GET /plans/pt/pending-review
+ * PT fetches plans pending their review.
+ * MUST be before /:planId to avoid "pt" being matched as a planId.
  */
-router.post(
-  '/:planId/save-to-workout-log',
-  validateBody(SavePlanToWorkoutLogRequestSchema),
-  planController.savePlanToWorkoutLog,
-);
+router.get('/pt/pending-review', requireRole(['PT']), planController.getPTPendingReviews);
+
+/**
+ * POST /plans/:planId/pt-review
+ * PT submits approve/reject decision on a plan.
+ */
+router.post('/:planId/pt-review', requireRole(['PT']), planController.submitPTReview);
 
 /**
  * GET /plans/:planId

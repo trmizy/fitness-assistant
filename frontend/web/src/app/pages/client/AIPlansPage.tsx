@@ -1,893 +1,370 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Brain,
-  Loader2,
-  RefreshCw,
-  Sparkles,
-  Clock3,
-  CircleCheck,
-  CircleX,
-  Plus,
-  Wand2,
-  SlidersHorizontal,
-  CalendarDays,
-  Dumbbell,
-  Target,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import {
-  planService,
-  type PlanContent,
-  type PlanJobStatusResponse,
-  type PlanStatusBackend,
-  type WeeklyScheduleItem,
-  type WorkoutPlanRecord,
-  type ExerciseItem,
-} from '../../services/api';
+import { useState } from "react";
+import { Brain, ChevronDown, ChevronRight, Clock, Archive, MessageSquare, Zap, Loader2, Sparkles, CheckCircle, XCircle, Plus, Users } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { planService, contractService } from "../../services/api";
 
-type JobActionType = 'generate' | 'adjust';
+type DisplayStatus = "active" | "pending_review" | "rejected" | "archived";
 
-type ActiveJob = {
-  jobId: string;
-  action: JobActionType;
+const statusConfig: Record<string, { label: string; color: string; dot: string; icon: React.ElementType }> = {
+  active:         { label: "Đang dùng",    color: "bg-green-500/10 text-green-400 border-green-500/20",  dot: "bg-green-500",  icon: CheckCircle },
+  pending_review: { label: "Chờ PT duyệt", color: "bg-amber-500/10 text-amber-400 border-amber-500/20",  dot: "bg-amber-500",  icon: Clock },
+  rejected:       { label: "PT từ chối",   color: "bg-red-500/10 text-red-400 border-red-500/20",         dot: "bg-red-400",    icon: XCircle },
+  archived:       { label: "Đã lưu trữ",  color: "bg-zinc-700/50 text-zinc-400 border-zinc-700",         dot: "bg-zinc-500",   icon: Archive },
 };
 
-type UnknownRecord = Record<string, unknown>;
-
-function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === 'object' && value !== null;
-}
-
-function toTimestamp(value?: string): number {
-  if (!value) return 0;
-  const ms = Date.parse(value);
-  return Number.isNaN(ms) ? 0 : ms;
-}
-
-function statusLabel(status: PlanStatusBackend): string {
-  if (status === 'QUEUED') return 'Đang chờ';
-  if (status === 'PROCESSING') return 'Đang xử lý';
-  if (status === 'COMPLETED') return 'Hoàn thành';
-  return 'Thất bại';
-}
-
-function statusClass(status: PlanStatusBackend): string {
-  if (status === 'COMPLETED') return 'bg-green-500/10 text-green-400 border-green-500/30';
-  if (status === 'FAILED') return 'bg-red-500/10 text-red-400 border-red-500/30';
-  if (status === 'PROCESSING') return 'bg-blue-500/10 text-blue-400 border-blue-500/30';
-  return 'bg-amber-500/10 text-amber-300 border-amber-500/30';
-}
-
-function chooseLatestPlan(plans: WorkoutPlanRecord[]): WorkoutPlanRecord | null {
-  if (!plans.length) return null;
-
-  const completed = plans.filter((p) => p.status === 'COMPLETED');
-  const source = completed.length > 0 ? completed : plans;
-
-  const sorted = [...source].sort((a, b) => {
-    const tsA = Math.max(toTimestamp(a.updatedAt), toTimestamp(a.createdAt));
-    const tsB = Math.max(toTimestamp(b.updatedAt), toTimestamp(b.createdAt));
-    if (tsA !== tsB) return tsB - tsA;
-
-    const verA = a.version ?? 0;
-    const verB = b.version ?? 0;
-    if (verA !== verB) return verB - verA;
-
-    return (b.id || '').localeCompare(a.id || '');
-  });
-
-  return sorted[0] ?? null;
-}
-
-function toPlanContent(value: unknown): PlanContent | null {
-  if (!isRecord(value)) return null;
-  return value as PlanContent;
-}
-
-function toExerciseList(value: unknown): ExerciseItem[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((item) => isRecord(item)) as ExerciseItem[];
-}
-
-function toWeeklySchedule(value: unknown): WeeklyScheduleItem[] | null {
-  if (!Array.isArray(value)) return null;
-  return value.filter((item) => isRecord(item)) as WeeklyScheduleItem[];
-}
-
-function asExplanationText(value: string | UnknownRecord): string {
-  if (typeof value === 'string') return value;
-  if (typeof value.explanation === 'string') return value.explanation;
-  return JSON.stringify(value, null, 2);
-}
-
-function summarizeApiError(error: unknown, fallback: string): string {
-  if (isRecord(error) && isRecord(error.response) && isRecord(error.response.data)) {
-    const responseData = error.response.data;
-    if (typeof responseData.error === 'string') {
-      return responseData.error;
-    }
-    if (isRecord(responseData.error) && typeof responseData.error.message === 'string') {
-      return responseData.error.message;
-    }
-    if (typeof responseData.message === 'string') {
-      return responseData.message;
-    }
+function getPTDisplayName(contract: any): string {
+  const profile = contract?.ptProfile;
+  if (profile) {
+    const name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim();
+    return name || "PT";
   }
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-  return fallback;
-}
-
-function formatDate(dateValue?: string): string {
-  if (!dateValue) return '--';
-  const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) return '--';
-  return date.toLocaleString('vi-VN');
+  return contract?.ptName || `PT #${contract?.id?.slice(0, 8) ?? ""}`;
 }
 
 export function AIPlansPage() {
   const queryClient = useQueryClient();
-
-  const [goal, setGoal] = useState('Giảm mỡ tăng cơ');
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [selectedPlanIdx, setSelectedPlanIdx] = useState(0);
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+  const [showContractPicker, setShowContractPicker] = useState(false);
+  const [goal, setGoal] = useState("Tăng cơ giảm mỡ");
   const [durationWeeks, setDurationWeeks] = useState(8);
   const [daysPerWeek, setDaysPerWeek] = useState(4);
+  const [showGenerateForm, setShowGenerateForm] = useState(false);
 
-  const [activeJob, setActiveJob] = useState<ActiveJob | null>(null);
-  const [latestJobStatus, setLatestJobStatus] = useState<PlanJobStatusResponse | null>(null);
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-
-  const [explanation, setExplanation] = useState<string>('');
-
-  const [showAdjustPanel, setShowAdjustPanel] = useState(false);
-  const [adjustments, setAdjustments] = useState('');
-  const [adjustDaysPerWeekInput, setAdjustDaysPerWeekInput] = useState('');
-
-  const [showSavePanel, setShowSavePanel] = useState(false);
-  const [saveStartDate, setSaveStartDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [saveRepeatWeeksInput, setSaveRepeatWeeksInput] = useState('');
-
-  const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null);
-
-  const {
-    data: plans,
-    isLoading: loadingPlans,
-    isFetching: fetchingPlans,
-    isError: loadPlansError,
-    error: plansError,
-    refetch: refetchPlans,
-  } = useQuery<WorkoutPlanRecord[]>({
-    queryKey: ['ai-plans', 'current'],
-    queryFn: () => planService.getCurrentPlans(),
+  const { data: plansData, isLoading: plansLoading } = useQuery({
+    queryKey: ["current-plans"],
+    queryFn: planService.getCurrentPlans,
   });
 
-  const sortedPlans = useMemo(() => {
-    const list = plans ?? [];
-    return [...list].sort((a, b) => {
-      const tsA = Math.max(toTimestamp(a.updatedAt), toTimestamp(a.createdAt));
-      const tsB = Math.max(toTimestamp(b.updatedAt), toTimestamp(b.createdAt));
-      if (tsA !== tsB) return tsB - tsA;
-      return (b.version ?? 0) - (a.version ?? 0);
-    });
-  }, [plans]);
+  const { data: contractsData = [] } = useQuery({
+    queryKey: ["my-contracts-active"],
+    queryFn: () => contractService.getByClient("ACTIVE"),
+  });
 
-  const defaultPlan = useMemo(() => chooseLatestPlan(sortedPlans), [sortedPlans]);
-
-  useEffect(() => {
-    if (!sortedPlans.length) {
-      setSelectedPlanId(null);
-      return;
-    }
-
-    if (selectedPlanId && sortedPlans.some((plan) => plan.id === selectedPlanId)) {
-      return;
-    }
-
-    setSelectedPlanId(defaultPlan?.id ?? sortedPlans[0]?.id ?? null);
-  }, [defaultPlan, selectedPlanId, sortedPlans]);
-
-  const currentPlan = useMemo(() => {
-    if (!sortedPlans.length) return null;
-    if (!selectedPlanId) return defaultPlan;
-    return sortedPlans.find((plan) => plan.id === selectedPlanId) ?? defaultPlan;
-  }, [defaultPlan, selectedPlanId, sortedPlans]);
-
-  const currentContent = useMemo(() => toPlanContent(currentPlan?.plan), [currentPlan]);
-  const weeklySchedule = useMemo(
-    () => toWeeklySchedule(currentContent?.weeklySchedule),
-    [currentContent],
-  );
+  const activeContracts: any[] = Array.isArray(contractsData)
+    ? contractsData.filter((c: any) => c.status === "ACTIVE")
+    : [];
 
   const generateMutation = useMutation({
-    mutationFn: (payload: { goal: string; durationWeeks: number; daysPerWeek: number }) =>
-      planService.generateWorkoutPlan(payload),
-    onSuccess: (result) => {
-      setLatestJobStatus({ jobId: result.jobId, planId: result.planId, status: result.status });
-      setActiveJob({ jobId: result.jobId, action: 'generate' });
-      toast.success('Đã gửi yêu cầu tạo kế hoạch AI');
+    mutationFn: (contractId?: string) =>
+      planService.generateWorkoutPlan({ goal, durationWeeks, daysPerWeek, contractId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["current-plans"] });
+      setShowGenerateForm(false);
+      setShowContractPicker(false);
+      setSelectedContractId(null);
+      alert("Đang tạo kế hoạch... Quay lại sau vài phút để xem kết quả.");
     },
-    onError: (error: unknown) => {
-      toast.error(summarizeApiError(error, 'Không thể tạo kế hoạch AI'));
-    },
-  });
-
-  const explainMutation = useMutation({
-    mutationFn: (planId: string) => planService.explainPlan(planId, 'vi'),
-    onSuccess: (result) => {
-      setExplanation(asExplanationText(result));
-      toast.success('Đã tạo giải thích kế hoạch');
-    },
-    onError: (error: unknown) => {
-      toast.error(summarizeApiError(error, 'Không thể giải thích kế hoạch'));
+    onError: (err: any) => {
+      alert(err?.response?.data?.error || "Lỗi khi tạo kế hoạch. Vui lòng thử lại.");
     },
   });
-
-  const adjustMutation = useMutation({
-    mutationFn: (payload: { planId: string; adjustments: string; daysPerWeek?: number }) =>
-      planService.adjustPlan(payload.planId, payload.adjustments, payload.daysPerWeek),
-    onSuccess: (result) => {
-      setLatestJobStatus({ jobId: result.jobId, planId: result.planId, status: result.status });
-      setActiveJob({ jobId: result.jobId, action: 'adjust' });
-      setShowAdjustPanel(false);
-      setAdjustments('');
-      setAdjustDaysPerWeekInput('');
-      toast.success('Đã gửi yêu cầu điều chỉnh kế hoạch');
-    },
-    onError: (error: unknown) => {
-      toast.error(summarizeApiError(error, 'Không thể điều chỉnh kế hoạch'));
-    },
-  });
-
-  const saveMutation = useMutation({
-    mutationFn: (payload: { planId: string; startDate?: string; repeatWeeks?: number }) =>
-      planService.savePlanToWorkoutLog(payload.planId, {
-        startDate: payload.startDate,
-        repeatWeeks: payload.repeatWeeks,
-      }),
-    onSuccess: (result) => {
-      setShowSavePanel(false);
-      setSaveRepeatWeeksInput('');
-      toast.success(result.alreadyExists ? 'Kế hoạch này đã được lưu trước đó' : 'Đã lưu vào lịch tập');
-      window.location.assign('/client/workout');
-    },
-    onError: (error: unknown) => {
-      toast.error(summarizeApiError(error, 'Không thể lưu kế hoạch vào lịch tập'));
-    },
-  });
-
-  useEffect(() => {
-    if (!activeJob?.jobId) return;
-
-    let cancelled = false;
-    let inFlight = false;
-
-    const poll = async () => {
-      if (cancelled || inFlight) return;
-      inFlight = true;
-      try {
-        const statusResult = await planService.getJobStatus(activeJob.jobId);
-        if (cancelled) return;
-
-        setLatestJobStatus(statusResult);
-
-        if (statusResult.status === 'COMPLETED') {
-          setActiveJob(null);
-          await queryClient.invalidateQueries({ queryKey: ['ai-plans', 'current'] });
-          await refetchPlans();
-          toast.success(
-            activeJob.action === 'generate'
-              ? 'Kế hoạch AI đã tạo xong'
-              : 'Đã tạo phiên bản kế hoạch mới',
-          );
-          return;
-        }
-
-        if (statusResult.status === 'FAILED') {
-          setActiveJob(null);
-          const reason = statusResult.failReason || 'Job tạo kế hoạch thất bại';
-          toast.error(reason);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setActiveJob(null);
-          toast.error(summarizeApiError(error, 'Không thể theo dõi trạng thái tạo kế hoạch'));
-        }
-      } finally {
-        inFlight = false;
-      }
-    };
-
-    void poll();
-    const timer = setInterval(() => {
-      void poll();
-    }, 2500);
-
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [activeJob, queryClient, refetchPlans]);
-
-  const isBusy =
-    generateMutation.isPending ||
-    explainMutation.isPending ||
-    adjustMutation.isPending ||
-    saveMutation.isPending ||
-    Boolean(activeJob);
 
   const handleGenerate = () => {
-    const trimmedGoal = goal.trim();
-    if (!trimmedGoal) {
-      toast.error('Mục tiêu không được để trống');
-      return;
-    }
-    if (!Number.isFinite(durationWeeks) || durationWeeks < 1 || durationWeeks > 52) {
-      toast.error('durationWeeks phải trong khoảng 1-52');
-      return;
-    }
-    if (!Number.isFinite(daysPerWeek) || daysPerWeek < 1 || daysPerWeek > 7) {
-      toast.error('daysPerWeek phải trong khoảng 1-7');
-      return;
-    }
-
-    generateMutation.mutate({
-      goal: trimmedGoal,
-      durationWeeks,
-      daysPerWeek,
-    });
-  };
-
-  const handleExplain = () => {
-    if (!currentPlan?.id || currentPlan.status !== 'COMPLETED') {
-      toast.error('Chỉ có thể giải thích plan đã hoàn thành');
-      return;
-    }
-    explainMutation.mutate(currentPlan.id);
-  };
-
-  const handleAdjust = () => {
-    if (!currentPlan?.id || currentPlan.status !== 'COMPLETED') {
-      toast.error('Chỉ có thể điều chỉnh plan đã hoàn thành');
-      return;
-    }
-
-    const trimmedAdjustments = adjustments.trim();
-    if (!trimmedAdjustments) {
-      toast.error('Nội dung điều chỉnh không được để trống');
-      return;
-    }
-
-    let nextDaysPerWeek: number | undefined;
-    if (adjustDaysPerWeekInput.trim()) {
-      const parsed = Number(adjustDaysPerWeekInput);
-      if (!Number.isFinite(parsed) || parsed < 1 || parsed > 7) {
-        toast.error('daysPerWeek mới phải trong khoảng 1-7');
+    if (activeContracts.length === 0) {
+      generateMutation.mutate(undefined);
+    } else if (activeContracts.length === 1) {
+      generateMutation.mutate(activeContracts[0].id);
+    } else {
+      if (!selectedContractId) {
+        setShowContractPicker(true);
         return;
       }
-      nextDaysPerWeek = parsed;
+      generateMutation.mutate(selectedContractId);
     }
-
-    adjustMutation.mutate({
-      planId: currentPlan.id,
-      adjustments: trimmedAdjustments,
-      daysPerWeek: nextDaysPerWeek,
-    });
   };
 
-  const handleSaveToWorkoutLog = () => {
-    if (!currentPlan?.id || currentPlan.status !== 'COMPLETED') {
-      toast.error('Chỉ có thể lưu plan đã hoàn thành');
-      return;
-    }
+  const plans: any[] = plansData?.data?.plans ?? [];
+  const plan = plans[selectedPlanIdx] ?? null;
+  const weeklySchedule: any[] = plan?.plan?.weeklySchedule ?? [];
+  const displayStatus: string = plan?.displayStatus ?? "active";
+  const cfg = statusConfig[displayStatus] || statusConfig.active;
+  const StatusIcon = cfg.icon;
 
-    const trimmedRepeatWeeks = saveRepeatWeeksInput.trim();
-    const parsedRepeatWeeks = trimmedRepeatWeeks ? Number(trimmedRepeatWeeks) : undefined;
-    if (trimmedRepeatWeeks && (!Number.isFinite(parsedRepeatWeeks) || parsedRepeatWeeks < 1 || parsedRepeatWeeks > 52)) {
-      toast.error('repeatWeeks phải trong khoảng 1-52');
-      return;
-    }
-
-    saveMutation.mutate({
-      planId: currentPlan.id,
-      startDate: saveStartDate || undefined,
-      repeatWeeks: parsedRepeatWeeks,
-    });
-  };
-
-  const headerGoal = currentPlan?.goal || currentContent?.goal || '--';
-  const headerDuration = currentContent?.durationWeeks ?? currentPlan?.duration ?? '--';
-  const headerDays = currentContent?.daysPerWeek ?? currentPlan?.daysPerWeek ?? '--';
+  if (plansLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5">
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-zinc-100 text-xl font-bold flex items-center gap-2">
-            <Brain className="w-5 h-5 text-green-400" />
-            AI Plans
+          <h1 className="text-zinc-100 flex items-center gap-2">
+            <Brain className="w-5 h-5 text-green-400" /> Kế hoạch AI
           </h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            Tạo và quản lý kế hoạch tập luyện bằng AI, theo dõi job, giải thích và điều chỉnh theo nhu cầu.
-          </p>
+          <p className="text-zinc-500 text-sm mt-0.5">Kế hoạch tập luyện AI tạo ra — có thể được PT xem xét trước khi kích hoạt</p>
         </div>
-
         <button
-          type="button"
-          onClick={() => {
-            void refetchPlans();
-          }}
-          disabled={fetchingPlans}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed"
+          onClick={() => setShowGenerateForm(!showGenerateForm)}
+          className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/20"
         >
-          {fetchingPlans ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          Refresh
+          <Plus className="w-4 h-4" /> Tạo kế hoạch mới
         </button>
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-5 space-y-4">
-        <div className="flex items-center gap-2 text-zinc-200 font-semibold">
-          <Sparkles className="w-4 h-4 text-green-400" />
-          Tạo kế hoạch mới
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-zinc-400">Mục tiêu</label>
-            <input
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              placeholder="Ví dụ: giảm mỡ tăng cơ"
-              className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-green-500/50"
-            />
-            <div className="flex flex-wrap gap-1.5">
-              {['Giảm mỡ', 'Tăng cơ', 'Giảm mỡ tăng cơ', 'Duy trì sức khỏe', 'Tăng sức bền'].map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setGoal(preset)}
-                  className="px-2 py-1 text-[11px] rounded-full border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
-                >
-                  {preset}
-                </button>
-              ))}
+      {/* Generate form */}
+      {showGenerateForm && (
+        <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-3">
+          <h4 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-green-400" /> Tạo kế hoạch tập luyện mới
+          </h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-zinc-500 mb-1 block">Mục tiêu</label>
+              <input
+                value={goal}
+                onChange={(e) => setGoal(e.target.value)}
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-zinc-500 mb-1 block">Số tuần</label>
+              <select
+                value={durationWeeks}
+                onChange={(e) => setDurationWeeks(Number(e.target.value))}
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+              >
+                {[4, 6, 8, 10, 12].map((n) => <option key={n} value={n}>{n} tuần</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-zinc-500 mb-1 block">Buổi/tuần</label>
+              <select
+                value={daysPerWeek}
+                onChange={(e) => setDaysPerWeek(Number(e.target.value))}
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+              >
+                {[2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n} buổi</option>)}
+              </select>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-zinc-400">Số tuần (1-52)</label>
-            <input
-              type="number"
-              min={1}
-              max={52}
-              value={durationWeeks}
-              onChange={(e) => setDurationWeeks(Number(e.target.value))}
-              className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-green-500/50"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-zinc-400">Buổi/tuần (1-7)</label>
-            <input
-              type="number"
-              min={1}
-              max={7}
-              value={daysPerWeek}
-              onChange={(e) => setDaysPerWeek(Number(e.target.value))}
-              className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-green-500/50"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={isBusy}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 text-black font-semibold hover:bg-green-400 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {generateMutation.isPending || activeJob?.action === 'generate' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Plus className="w-4 h-4" />
-            )}
-            Tạo kế hoạch tập luyện bằng AI
-          </button>
-
-          {activeJob && (
-            <div className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300">
-              <Clock3 className="w-3.5 h-3.5" />
-              Đang polling job: {activeJob.jobId}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {loadPlansError && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 p-3 text-sm">
-          Không thể tải danh sách kế hoạch: {summarizeApiError(plansError, 'Lỗi không xác định')}
-        </div>
-      )}
-
-      {latestJobStatus && (
-        <div className={`rounded-xl border p-3 text-sm ${statusClass(latestJobStatus.status)}`}>
-          <div className="font-semibold">Trạng thái job: {statusLabel(latestJobStatus.status)}</div>
-          <div className="text-xs mt-1 opacity-90">
-            jobId: {latestJobStatus.jobId || '--'} | planId: {latestJobStatus.planId || '--'}
-          </div>
-          {latestJobStatus.failReason && (
-            <div className="text-xs mt-1">Lý do thất bại: {latestJobStatus.failReason}</div>
-          )}
-        </div>
-      )}
-
-      {loadingPlans ? (
-        <div className="flex items-center justify-center min-h-[220px] bg-zinc-900/50 border border-zinc-800 rounded-2xl">
-          <Loader2 className="w-7 h-7 text-green-500 animate-spin" />
-        </div>
-      ) : sortedPlans.length === 0 ? (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8 text-center">
-          <p className="text-zinc-300 font-semibold">Chưa có kế hoạch nào.</p>
-          <p className="text-zinc-500 text-sm mt-1">Hãy tạo kế hoạch đầu tiên bằng form phía trên.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <aside className="lg:col-span-4 bg-zinc-900 border border-zinc-800 rounded-2xl p-3 space-y-2 h-fit">
-            <div className="text-sm font-semibold text-zinc-200 px-1">Danh sách plans</div>
-            {sortedPlans.map((plan) => {
-              const selected = plan.id === currentPlan?.id;
-              return (
+          {/* Contract picker (2+ active contracts) */}
+          {activeContracts.length > 1 && (
+            <div>
+              <label className="text-xs text-zinc-500 mb-1 block flex items-center gap-1">
+                <Users className="w-3 h-3" /> Chọn PT xem kế hoạch (tùy chọn)
+              </label>
+              <div className="flex flex-wrap gap-2">
                 <button
-                  type="button"
-                  key={plan.id}
-                  onClick={() => setSelectedPlanId(plan.id)}
-                  className={`w-full text-left rounded-xl border p-3 transition-all ${
-                    selected
-                      ? 'border-green-500/50 bg-green-500/10'
-                      : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'
+                  onClick={() => setSelectedContractId(null)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                    !selectedContractId
+                      ? "bg-green-500/15 border-green-500/30 text-green-400"
+                      : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600"
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-sm font-semibold text-zinc-100 truncate">
-                      {plan.name || 'Workout Plan'}
-                    </div>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full border ${statusClass(plan.status)}`}>
-                      {statusLabel(plan.status)}
-                    </span>
-                  </div>
-                  <div className="text-xs text-zinc-500 mt-1 truncate">
-                    Goal: {plan.goal || '--'} | v{plan.version ?? 1}
-                  </div>
-                  <div className="text-[11px] text-zinc-600 mt-1">{formatDate(plan.updatedAt || plan.createdAt)}</div>
+                  Không cần PT duyệt
                 </button>
-              );
-            })}
-          </aside>
-
-          <section className="lg:col-span-8 space-y-4">
-            {currentPlan && (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-5 space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div>
-                    <h2 className="text-zinc-100 text-lg font-bold">{currentPlan.name || 'Workout Plan'}</h2>
-                    <p className="text-zinc-500 text-sm">{currentPlan.description || 'Kế hoạch được tạo bởi AI'}</p>
-                  </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full border h-fit ${statusClass(currentPlan.status)}`}>
-                    {statusLabel(currentPlan.status)}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                    <div className="text-[11px] text-zinc-500">Goal</div>
-                    <div className="text-sm text-zinc-100 mt-1">{headerGoal}</div>
-                  </div>
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                    <div className="text-[11px] text-zinc-500">Duration</div>
-                    <div className="text-sm text-zinc-100 mt-1">{String(headerDuration)} tuần</div>
-                  </div>
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                    <div className="text-[11px] text-zinc-500">Days / Week</div>
-                    <div className="text-sm text-zinc-100 mt-1">{String(headerDays)} buổi</div>
-                  </div>
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                    <div className="text-[11px] text-zinc-500">Version</div>
-                    <div className="text-sm text-zinc-100 mt-1">v{currentPlan.version ?? 1}</div>
-                  </div>
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                    <div className="text-[11px] text-zinc-500">Created</div>
-                    <div className="text-sm text-zinc-100 mt-1">{formatDate(currentPlan.createdAt)}</div>
-                  </div>
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                    <div className="text-[11px] text-zinc-500">Updated</div>
-                    <div className="text-sm text-zinc-100 mt-1">{formatDate(currentPlan.updatedAt)}</div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
+                {activeContracts.map((c: any) => (
                   <button
-                    type="button"
-                    onClick={handleExplain}
-                    disabled={
-                      explainMutation.isPending ||
-                      !currentPlan.id ||
-                      currentPlan.status !== 'COMPLETED'
-                    }
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                    key={c.id}
+                    onClick={() => setSelectedContractId(c.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      selectedContractId === c.id
+                        ? "bg-green-500/15 border-green-500/30 text-green-400"
+                        : "bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                    }`}
                   >
-                    {explainMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Wand2 className="w-4 h-4" />
-                    )}
-                    Giải thích kế hoạch
+                    {getPTDisplayName(c)}
+                    <span className="ml-1 text-zinc-600">(ACTIVE)</span>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowAdjustPanel((v) => !v)}
-                    disabled={!currentPlan.id || currentPlan.status !== 'COMPLETED' || adjustMutation.isPending}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <SlidersHorizontal className="w-4 h-4" />
-                    Điều chỉnh kế hoạch
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowSavePanel((v) => !v)}
-                    disabled={!currentPlan.id || currentPlan.status !== 'COMPLETED' || saveMutation.isPending}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <CalendarDays className="w-4 h-4" />
-                    Lưu vào lịch tập
-                  </button>
-                </div>
-
-                {showSavePanel && (
-                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="block text-xs font-semibold text-zinc-400">Ngày bắt đầu</label>
-                        <input
-                          type="date"
-                          value={saveStartDate}
-                          onChange={(e) => setSaveStartDate(e.target.value)}
-                          className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="block text-xs font-semibold text-zinc-400">Số tuần áp dụng (optional)</label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={52}
-                          value={saveRepeatWeeksInput}
-                          onChange={(e) => setSaveRepeatWeeksInput(e.target.value)}
-                          placeholder={String(currentContent?.durationWeeks ?? currentPlan.duration ?? 1)}
-                          className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleSaveToWorkoutLog}
-                        disabled={saveMutation.isPending}
-                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-400 text-black font-semibold hover:bg-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarDays className="w-4 h-4" />}
-                        Lưu lịch tập
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowSavePanel(false)}
-                        className="px-3.5 py-2 rounded-xl border border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-                      >
-                        Đóng
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {showAdjustPanel && (
-                  <div className="rounded-xl border border-zinc-700 bg-zinc-950 p-3 space-y-3">
-                    <label className="block text-xs font-semibold text-zinc-400">Yêu cầu điều chỉnh</label>
-                    <textarea
-                      value={adjustments}
-                      onChange={(e) => setAdjustments(e.target.value)}
-                      rows={4}
-                      placeholder="Ví dụ: Tăng bài chân, giảm cardio, ưu tiên ngực vai tay sau"
-                      className="w-full rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-amber-500/50"
-                    />
-                    <div className="w-full md:w-48 space-y-1">
-                      <label className="block text-xs font-semibold text-zinc-400">daysPerWeek mới (optional)</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={7}
-                        value={adjustDaysPerWeekInput}
-                        onChange={(e) => setAdjustDaysPerWeekInput(e.target.value)}
-                        className="w-full rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-amber-500/50"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleAdjust}
-                        disabled={adjustMutation.isPending}
-                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-400 text-black font-semibold hover:bg-amber-300 disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {adjustMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
-                        Gửi điều chỉnh
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowAdjustPanel(false)}
-                        className="px-3.5 py-2 rounded-xl border border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-                      >
-                        Đóng
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {explanation && (
-                  <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-3">
-                    <div className="text-xs font-semibold text-blue-300 mb-1">Giải thích từ AI</div>
-                    <pre className="whitespace-pre-wrap text-sm text-zinc-200 leading-relaxed">{explanation}</pre>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-5 space-y-3">
-              <div className="text-zinc-100 font-semibold flex items-center gap-2">
-                <CalendarDays className="w-4 h-4 text-green-400" />
-                Lịch tập theo tuần
-              </div>
-
-              {!weeklySchedule ? (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-sm p-3">
-                  Kế hoạch đã được tạo nhưng dữ liệu lịch tập chưa đúng định dạng.
-                </div>
-              ) : weeklySchedule.length === 0 ? (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 text-sm p-3">
-                  Chưa có buổi tập trong weeklySchedule.
-                </div>
-              ) : (
-                weeklySchedule.map((day, dayIndex) => {
-                  const key = `${day.day ?? dayIndex}`;
-                  const expanded = expandedDayKey === key;
-                  const exercises = toExerciseList(day.exercises);
-                  const title = day.goal || day.focus || 'Workout Day';
-
-                  return (
-                    <div key={key} className="rounded-xl border border-zinc-800 overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedDayKey((prev) => (prev === key ? null : key))}
-                        className="w-full flex items-center justify-between gap-3 p-3 bg-zinc-950 hover:bg-zinc-900"
-                      >
-                        <div className="flex items-center gap-3 text-left">
-                          <span className="w-9 h-9 rounded-lg bg-green-500/10 border border-green-500/20 text-green-300 flex items-center justify-center text-xs font-bold">
-                            {String(day.day ?? dayIndex + 1)}
-                          </span>
-                          <div>
-                            <div className="text-sm text-zinc-100 font-semibold">{title}</div>
-                            <div className="text-xs text-zinc-500">{exercises.length} bài tập</div>
-                          </div>
-                        </div>
-                        {expanded ? (
-                          <ChevronDown className="w-4 h-4 text-zinc-500" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-zinc-500" />
-                        )}
-                      </button>
-
-                      {expanded && (
-                        <div className="p-3 bg-zinc-900 border-t border-zinc-800 space-y-2">
-                          {day.notes && (
-                            <div className="text-xs text-zinc-400 rounded-lg bg-zinc-950 border border-zinc-800 p-2">
-                              Ghi chú ngày tập: {day.notes}
-                            </div>
-                          )}
-                          {day.cardio && (
-                            <div className="text-xs text-zinc-400 rounded-lg bg-zinc-950 border border-zinc-800 p-2">
-                              Cardio: {day.cardio}
-                            </div>
-                          )}
-
-                          {exercises.length === 0 ? (
-                            <div className="text-xs text-zinc-500">Không có dữ liệu bài tập.</div>
-                          ) : (
-                            <div className="space-y-2">
-                              {exercises.map((exercise, index) => (
-                                <div key={`${exercise.name ?? 'ex'}-${index}`} className="rounded-lg border border-zinc-800 bg-zinc-950 p-2.5">
-                                  <div className="flex items-center gap-2 text-sm text-zinc-100 font-medium">
-                                    <Dumbbell className="w-4 h-4 text-green-400" />
-                                    <span>{exercise.order ?? index + 1}.</span>
-                                    <span>{exercise.name ?? 'Exercise'}</span>
-                                  </div>
-                                  <div className="mt-1.5 text-xs text-zinc-400 grid grid-cols-2 md:grid-cols-4 gap-y-1">
-                                    <div>Sets: {exercise.sets ?? '--'}</div>
-                                    <div>Reps: {exercise.reps ?? '--'}</div>
-                                    <div>Rest: {exercise.restSeconds ?? '--'}s</div>
-                                    <div>Intensity: {exercise.intensity ?? '--'}</div>
-                                    <div>Muscle: {exercise.muscleGroup ?? '--'}</div>
-                                    <div>Equipment: {exercise.equipment ?? '--'}</div>
-                                    <div className="md:col-span-2">Note: {exercise.note ?? '--'}</div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-5 space-y-3">
-              <div className="text-zinc-100 font-semibold">Ghi chú kế hoạch</div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                  <div className="text-xs font-semibold text-zinc-400 mb-1">Progression Notes</div>
-                  {(currentContent?.progressionNotes ?? []).length > 0 ? (
-                    <ul className="text-sm text-zinc-300 space-y-1">
-                      {(currentContent?.progressionNotes ?? []).map((note, i) => (
-                        <li key={`prog-${i}`} className="flex gap-2">
-                          <CircleCheck className="w-4 h-4 text-green-400 mt-0.5" />
-                          <span>{note}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-zinc-500">Chưa có progression notes.</p>
-                  )}
-                </div>
-
-                <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                  <div className="text-xs font-semibold text-zinc-400 mb-1">Recovery Notes</div>
-                  {(currentContent?.recoveryNotes ?? []).length > 0 ? (
-                    <ul className="text-sm text-zinc-300 space-y-1">
-                      {(currentContent?.recoveryNotes ?? []).map((note, i) => (
-                        <li key={`rec-${i}`} className="flex gap-2">
-                          <CircleCheck className="w-4 h-4 text-blue-400 mt-0.5" />
-                          <span>{note}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-zinc-500">Chưa có recovery notes.</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                <div className="text-xs font-semibold text-zinc-400 mb-1">Nutrition Summary</div>
-                <p className="text-sm text-zinc-300">
-                  {currentContent?.nutritionSummary || 'Chưa có nutrition summary.'}
-                </p>
+                ))}
               </div>
             </div>
-          </section>
+          )}
+
+          {activeContracts.length === 1 && (
+            <p className="text-xs text-zinc-500 flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              Kế hoạch sẽ được gửi cho <span className="text-zinc-300 font-medium">{getPTDisplayName(activeContracts[0])}</span> duyệt trước khi kích hoạt
+            </p>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={handleGenerate}
+              disabled={generateMutation.isPending}
+              className="flex items-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-5 py-2 rounded-xl text-sm font-bold transition-all"
+            >
+              {generateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              Tạo kế hoạch
+            </button>
+            <button
+              onClick={() => setShowGenerateForm(false)}
+              className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-sm text-zinc-400 hover:bg-zinc-700 transition-colors"
+            >
+              Hủy
+            </button>
+          </div>
         </div>
       )}
 
-      {currentPlan && currentPlan.status === 'FAILED' && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300 flex items-start gap-2">
-          <CircleX className="w-4 h-4 mt-0.5" />
+      {/* Plan list selector (multiple plans) */}
+      {plans.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {plans.map((p: any, idx: number) => {
+            const s = statusConfig[p.displayStatus] || statusConfig.active;
+            return (
+              <button
+                key={p.id}
+                onClick={() => { setSelectedPlanIdx(idx); setExpandedDay(null); }}
+                className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                  idx === selectedPlanIdx
+                    ? "border-green-500/40 bg-green-500/10 text-green-400"
+                    : "border-zinc-700/60 bg-zinc-800/60 text-zinc-400 hover:border-zinc-600"
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+                  v{p.version} — {p.goal.slice(0, 20)}
+                </div>
+                <div className="text-zinc-600 mt-0.5">{new Date(p.createdAt).toLocaleDateString("vi-VN")}</div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* No plans state */}
+      {plans.length === 0 && (
+        <div className="flex flex-col items-center gap-4 py-20 bg-zinc-900/50 rounded-2xl border border-zinc-800/60 text-center">
+          <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center">
+            <Sparkles className="w-8 h-8 text-green-400" />
+          </div>
           <div>
-            <div className="font-semibold">Plan hiện tại đang ở trạng thái thất bại</div>
-            <div>{currentPlan.failReason || 'Không có fail reason từ backend.'}</div>
+            <h2 className="text-xl font-bold text-zinc-100">Chưa có kế hoạch tập luyện</h2>
+            <p className="text-zinc-500 mt-1 max-w-xs mx-auto">
+              Nhấn "Tạo kế hoạch mới" để AI tạo chương trình tập phù hợp với bạn.
+            </p>
           </div>
         </div>
+      )}
+
+      {/* Plan detail */}
+      {plan && (
+        <>
+          {/* Plan header card */}
+          <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <h2 className="text-zinc-100">{plan.name || plan.goal}</h2>
+                  <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-semibold border ${cfg.color}`}>
+                    <StatusIcon className="w-3 h-3" />
+                    {cfg.label}
+                  </span>
+                </div>
+                <p className="text-sm text-zinc-500">
+                  Tạo ngày {new Date(plan.createdAt).toLocaleDateString("vi-VN")}
+                  {plan.approvedBy ? ` · Phê duyệt bởi ${plan.approvedBy}` : ""}
+                  {displayStatus === "pending_review" ? " · Đang chờ PT duyệt" : ""}
+                  {" "}· {plan.duration} tuần · {plan.daysPerWeek} buổi/tuần
+                </p>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button className="flex items-center gap-1.5 px-3 py-1.5 border border-zinc-700/60 rounded-lg text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors">
+                  <MessageSquare className="w-3.5 h-3.5" /> Hỏi PT
+                </button>
+              </div>
+            </div>
+
+            {/* PT Note */}
+            {plan.ptNote && (
+              <div className="mt-3 p-3 bg-blue-500/8 rounded-lg border border-blue-500/20">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="text-xs font-semibold text-blue-300">
+                    Ghi chú PT {plan.ptName ? `(${plan.ptName})` : ""}
+                  </span>
+                </div>
+                <p className="text-xs text-blue-400/80">{plan.ptNote}</p>
+              </div>
+            )}
+
+            {/* Rejected notice */}
+            {displayStatus === "rejected" && (
+              <div className="mt-3 p-3 bg-red-500/8 rounded-lg border border-red-500/20">
+                <p className="text-xs text-red-400">
+                  PT đã từ chối kế hoạch này{plan.ptNote ? "" : " mà không để lại ghi chú"}. Bạn có thể tạo kế hoạch mới.
+                </p>
+              </div>
+            )}
+
+            {/* Pending review notice */}
+            {displayStatus === "pending_review" && (
+              <div className="mt-3 p-3 bg-amber-500/8 rounded-lg border border-amber-500/20">
+                <p className="text-xs text-amber-400">
+                  Kế hoạch này đang chờ PT xem xét. Bạn có thể xem trước lịch tập bên dưới.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Workout weekly schedule */}
+          {weeklySchedule.length > 0 ? (
+            <div className="space-y-2">
+              <h4 className="text-xs text-zinc-600 uppercase tracking-wider font-bold px-1">
+                Lịch tập tuần ({weeklySchedule.length} buổi)
+              </h4>
+              {weeklySchedule.map((day: any, i: number) => {
+                const key = `day-${i}`;
+                const isExpanded = expandedDay === key;
+                return (
+                  <div key={key} className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
+                    <button
+                      onClick={() => setExpandedDay(isExpanded ? null : key)}
+                      className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-zinc-800/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 text-xs font-bold flex items-center justify-center border border-zinc-700">
+                          {day.day?.slice(0, 2) || String(i + 1)}
+                        </span>
+                        <div>
+                          <div className="text-sm font-semibold text-zinc-200">{day.day}</div>
+                          <div className="text-xs text-zinc-500">{day.goal}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-600">{Array.isArray(day.exercises) ? day.exercises.length : 0} bài</span>
+                        {isExpanded ? <ChevronDown className="w-4 h-4 text-zinc-500" /> : <ChevronRight className="w-4 h-4 text-zinc-500" />}
+                      </div>
+                    </button>
+                    {isExpanded && Array.isArray(day.exercises) && day.exercises.length > 0 && (
+                      <div className="border-t border-zinc-800/60 px-4 pb-3 pt-2">
+                        <div className="ml-11 pl-3 border-l-2 border-green-500/30 space-y-1.5">
+                          {day.exercises.map((ex: any, j: number) => (
+                            <div key={j} className="flex items-start gap-2 text-sm text-zinc-400">
+                              <div className="w-5 h-5 bg-green-500/10 text-green-400 border border-green-500/20 rounded text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{j + 1}</div>
+                              <span>
+                                {ex.name}
+                                {ex.sets && ex.reps ? ` — ${ex.sets}×${ex.reps}` : ""}
+                                {ex.weight ? ` @${ex.weight}kg` : ""}
+                                {ex.restSeconds ? <span className="text-zinc-600"> (nghỉ {ex.restSeconds}s)</span> : null}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            plan.status === "COMPLETED" && (
+              <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-6 text-center text-zinc-500 text-sm">
+                Không có dữ liệu lịch tập
+              </div>
+            )
+          )}
+        </>
       )}
     </div>
   );

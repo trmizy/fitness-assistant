@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Users, Calendar, FileText, TrendingUp, AlertCircle, Clock } from "lucide-react";
+import { Users, Calendar, FileText, TrendingUp, AlertCircle, Clock, Brain } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, LineChart, Line } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useApp } from "../../context/AppContext";
 import { useCall } from "../../context/CallContext";
-import { contractService, sessionService } from "../../services/api";
+import { contractService, sessionService, ptPlanReviewService } from "../../services/api";
 import { getJoinSessionState } from "../../utils/sessionUtils";
+import { formatVND } from "../../utils/currency";
 
 // clientProfile (from testai-v4 service) or clientName string (legacy compat)
 type ClientRef = {
@@ -88,6 +89,11 @@ export function PTDashboard() {
     queryFn: () => sessionService.getMyUpcoming(),
   });
 
+  const { data: pendingPlans = [] } = useQuery({
+    queryKey: ["pt-pending-plans-count"],
+    queryFn: () => ptPlanReviewService.getPendingReviews(),
+  });
+
   const isLoading = earningsLoading || contractsLoading || sessionsLoading;
 
   const { joinCoachingSession } = useCall();
@@ -117,7 +123,7 @@ export function PTDashboard() {
     { label: "Học viên", value: isLoading ? "–" : String(activeContracts), change: "Hợp đồng", icon: Users, color: "text-green-400", bg: "bg-green-500/10", iconBg: "bg-green-500/15", border: "border-green-500/20" },
     { label: "Buổi tập sắp tới", value: isLoading ? "–" : String(upcomingCount), change: "Tuần này", icon: Calendar, color: "text-blue-400", bg: "bg-blue-500/10", iconBg: "bg-blue-500/15", border: "border-blue-500/20" },
     { label: "Hợp đồng đang hoạt động", value: isLoading ? "–" : String(activeContracts), change: "Đang hoạt động", icon: FileText, color: "text-violet-400", bg: "bg-violet-500/10", iconBg: "bg-violet-500/15", border: "border-violet-500/20" },
-    { label: "Tổng thu nhập", value: isLoading ? "–" : `฿${totalEarned.toLocaleString()}`, change: "Tổng cộng", icon: TrendingUp, color: "text-amber-400", bg: "bg-amber-500/10", iconBg: "bg-amber-500/15", border: "border-amber-500/20" },
+    { label: "Tổng thu nhập", value: isLoading ? "–" : formatVND(totalEarned), change: "Tổng cộng", icon: TrendingUp, color: "text-amber-400", bg: "bg-amber-500/10", iconBg: "bg-amber-500/15", border: "border-amber-500/20" },
   ];
 
   const revenueData = [
@@ -204,7 +210,7 @@ export function PTDashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#71717a" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #27272a", backgroundColor: "#111111", color: "#f4f4f5" }} formatter={(v: number) => [`฿${v.toLocaleString()}`]} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #27272a", backgroundColor: "#111111", color: "#f4f4f5" }} formatter={(v: number) => [formatVND(v)]} />
                 <Bar dataKey="revenue" fill="#22c55e" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -306,10 +312,26 @@ export function PTDashboard() {
             <div className="px-4 py-8 flex items-center justify-center">
               <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : alerts.length === 0 ? (
+          ) : (pendingPlans as any[]).length === 0 && alerts.length === 0 ? (
             <div className="px-4 py-8 text-center text-zinc-500 text-sm">Không có cảnh báo</div>
           ) : (
             <div className="divide-y divide-zinc-800/40">
+              {(pendingPlans as any[]).length > 0 && (
+                <div className="px-4 py-3 bg-violet-500/5">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-violet-400 flex-shrink-0" />
+                    <p className="text-xs text-zinc-300 leading-relaxed flex-1">
+                      {(pendingPlans as any[]).length} kế hoạch AI đang chờ bạn duyệt
+                    </p>
+                    <button
+                      onClick={() => navigate("/pt/plans")}
+                      className="text-xs text-violet-400 hover:text-violet-300 font-semibold whitespace-nowrap"
+                    >
+                      Xem ngay →
+                    </button>
+                  </div>
+                </div>
+              )}
               {alerts.map((a, i) => (
                 <div key={i} className={`px-4 py-3 ${a.type === "warning" ? "bg-amber-500/5" : "bg-blue-500/5"}`}>
                   <p className="text-xs text-zinc-400 leading-relaxed">{a.text}</p>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Calendar, Clock, ChevronLeft, ChevronRight, CheckCircle, AlertCircle,
   XCircle, Loader2, Star, MapPin, MessageSquare, FileText, RefreshCw,
@@ -109,6 +109,14 @@ export function BookingPage() {
   if (activeContracts.length > 0 && !selectedContractId) {
     setSelectedContractId(activeContracts[0].id);
   }
+
+  // Lock session mode to match contract when contract has a specific mode
+  useEffect(() => {
+    if (!selectedContract) return;
+    const cm = selectedContract.sessionMode;
+    if (cm === 'ONLINE') setSessionMode('ONLINE');
+    else if (cm === 'OFFLINE') setSessionMode('OFFLINE');
+  }, [selectedContract?.id]);
 
   // Fetch upcoming sessions
   const { data: upcomingSessions = [], isLoading: loadingUpcoming } = useQuery({
@@ -408,21 +416,34 @@ export function BookingPage() {
                         <div className="mt-4 space-y-3">
                           {/* Session mode */}
                           <div>
-                            <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Hình thức</label>
+                            <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">
+                              Hình thức
+                              {selectedContract?.sessionMode && selectedContract.sessionMode !== 'HYBRID' && (
+                                <span className="ml-1.5 text-zinc-600 font-normal">(theo gói)</span>
+                              )}
+                            </label>
                             <div className="flex gap-2">
-                              {(["OFFLINE", "ONLINE"] as const).map(mode => (
-                                <button
-                                  key={mode}
-                                  onClick={() => setSessionMode(mode)}
-                                  className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all border ${
-                                    sessionMode === mode
-                                      ? "bg-green-500/10 border-green-500/30 text-green-400"
-                                      : "border-zinc-700/60 text-zinc-500 hover:text-zinc-300"
-                                  }`}
-                                >
-                                  {mode === "OFFLINE" ? "Trực tiếp" : "Trực tuyến"}
-                                </button>
-                              ))}
+                              {(["OFFLINE", "ONLINE"] as const).map(mode => {
+                                const contractMode = selectedContract?.sessionMode;
+                                const isLocked = contractMode === 'ONLINE' || contractMode === 'OFFLINE';
+                                const isDisabled = isLocked && contractMode !== mode;
+                                return (
+                                  <button
+                                    key={mode}
+                                    onClick={() => !isDisabled && setSessionMode(mode)}
+                                    disabled={isDisabled}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all border ${
+                                      sessionMode === mode
+                                        ? "bg-green-500/10 border-green-500/30 text-green-400"
+                                        : isDisabled
+                                          ? "border-zinc-800 text-zinc-700 cursor-not-allowed"
+                                          : "border-zinc-700/60 text-zinc-500 hover:text-zinc-300"
+                                    }`}
+                                  >
+                                    {mode === "OFFLINE" ? "Trực tiếp" : "Trực tuyến"}
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
 

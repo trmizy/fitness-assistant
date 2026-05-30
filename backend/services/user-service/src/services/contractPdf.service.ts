@@ -2,125 +2,121 @@ import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 
-const FONT_PATH =
-  process.env.PDF_FONT_PATH ||
-  '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf';
+// Service runs via `tsx watch src/server.ts` — __dirname = source dir (src/services/)
+// '../assets/fonts/' resolves to src/assets/fonts/ ✓
+const FONT_PATH = path.join(__dirname, '../assets/fonts/NotoSans-Regular.ttf');
+const FONT_BOLD_PATH = path.join(__dirname, '../assets/fonts/NotoSans-Bold.ttf');
 
-export interface ContractPdfData {
-  id: string;
-  packageName?: string | null;
-  sessionMode?: string | null;
-  pricePerSession?: number | null;
-  price?: number | null;
-  totalSessions?: number;
-  packageType?: string;
-  startDate?: Date | null;
-  clientInfo: { firstName: string; lastName: string; email: string };
-  ptInfo: { firstName: string; lastName: string; email: string };
+function useFont(doc: PDFKit.PDFDocument, bold = false) {
+  const fontPath = bold ? FONT_BOLD_PATH : FONT_PATH;
+  try {
+    if (fs.existsSync(fontPath)) {
+      doc.font(fontPath);
+      return;
+    }
+  } catch {
+    // font file exists but invalid (e.g. corrupt/wrong format) — fall through
+  }
+  doc.font(bold ? 'Helvetica-Bold' : 'Helvetica');
 }
 
-export async function generateContractPdf(contract: ContractPdfData): Promise<string> {
-  const dir = path.join(process.cwd(), 'uploads', 'contracts');
-  await fs.promises.mkdir(dir, { recursive: true });
-  const filePath = path.join(dir, `${contract.id}.pdf`);
+export interface ContractPdfData {
+  contractId: string;
+  packageName: string;
+  totalSessions: number;
+  price: number | null;
+  pricePerSession: number | null;
+  startDate: Date | null;
+  endDate: Date | null;
+  terms: string | null;
+  notes: string | null;
+  clientName: string;
+  clientEmail: string;
+  ptName: string;
+  ptEmail: string;
+  createdAt: Date;
+}
+
+export async function generateContractPdf(data: ContractPdfData): Promise<string> {
+  // Returns relative path stored in DB; provider resolves to absolute at send time
+  const relativePath = path.join('uploads', 'contracts', `${data.contractId}.pdf`);
+  const absDir = path.join(process.cwd(), 'uploads', 'contracts');
+  if (!fs.existsSync(absDir)) fs.mkdirSync(absDir, { recursive: true });
+  const absPath = path.join(process.cwd(), relativePath);
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50 });
+    const stream = fs.createWriteStream(absPath);
+    doc.pipe(stream);
 
-    // Use Unicode font if available; fall back to built-in if font file is missing
-    try {
-      if (fs.existsSync(FONT_PATH)) {
-        doc.registerFont('Regular', FONT_PATH);
-        doc.font('Regular');
-      }
-    } catch {
-      // built-in Helvetica — Vietnamese characters may not render
-    }
-
-    const writeStream = fs.createWriteStream(filePath);
-    doc.pipe(writeStream);
-
-    const testMode = process.env.DROPBOX_SIGN_TEST_MODE !== 'false';
-
+    const testMode = process.env.DROPBOX_SIGN_TEST_MODE === 'true';
     if (testMode) {
-      doc
-        .fontSize(9)
-        .fillColor('red')
-        .text(
-          '⚠ CHU KY THU NGHIEM - KHONG CO GIA TRI PHAP LY PRODUCTION',
-          { align: 'center' },
-        )
-        .fillColor('black')
-        .moveDown(0.5);
+      doc.fontSize(9).fillColor('red')
+        .text('[TEST MODE] - Chu ky nay khong co hieu luc phap ly', { align: 'center' })
+        .fillColor('black').moveDown(0.5);
     }
 
-    doc.fontSize(18).text('HOP DONG HUAN LUYEN CA NHAN', { align: 'center' });
-    doc.moveDown();
+    useFont(doc, true);
+    doc.fontSize(18).text('COACHING CONTRACT', { align: 'center' });
+    doc.moveDown(0.5);
+    useFont(doc);
+    doc.fontSize(10).text(`Contract ID: ${data.contractId}`, { align: 'center' });
+    doc.text(`Date: ${data.createdAt.toISOString().split('T')[0]}`, { align: 'center' });
+    doc.moveDown(1.5);
 
-    doc
-      .fontSize(12)
-      .text('BEN A (KHACH HANG):')
-      .text(`  Ho va ten: ${contract.clientInfo.firstName} ${contract.clientInfo.lastName}`)
-      .text(`  Email: ${contract.clientInfo.email}`)
-      .moveDown()
-      .text('BEN B (HUAN LUYEN VIEN):')
-      .text(`  Ho va ten: ${contract.ptInfo.firstName} ${contract.ptInfo.lastName}`)
-      .text(`  Email: ${contract.ptInfo.email}`)
-      .moveDown();
+    useFont(doc, true);
+    doc.fontSize(12).text('PARTIES');
+    useFont(doc);
+    doc.fontSize(10);
+    doc.text(`Personal Trainer: ${data.ptName} (${data.ptEmail})`);
+    doc.text(`Client: ${data.clientName} (${data.clientEmail})`);
+    doc.moveDown(1);
 
-    doc.text('DIEU KHOAN HOP DONG:');
-    doc.text(`  Goi tap: ${contract.packageName || 'Theo buoi'}`);
+    useFont(doc, true);
+    doc.fontSize(12).text('PACKAGE DETAILS');
+    useFont(doc);
+    doc.fontSize(10);
+    doc.text(`Package: ${data.packageName}`);
+    doc.text(`Total Sessions: ${data.totalSessions}`);
+    if (data.price != null) doc.text(`Total Price: ${data.price.toLocaleString()} VND`);
+    if (data.pricePerSession != null) doc.text(`Price Per Session: ${data.pricePerSession.toLocaleString()} VND`);
+    if (data.startDate) doc.text(`Start Date: ${data.startDate.toISOString().split('T')[0]}`);
+    if (data.endDate) doc.text(`End Date: ${data.endDate.toISOString().split('T')[0]}`);
+    doc.moveDown(1);
 
-    const modeLabel =
-      contract.sessionMode === 'ONLINE'
-        ? 'Online qua video call'
-        : contract.sessionMode === 'OFFLINE'
-          ? 'Offline tai phong gym'
-          : contract.sessionMode || 'Chua xac dinh';
-    doc.text(`  Hinh thuc: ${modeLabel}`);
-
-    if (contract.packageType === 'PACKAGE' && contract.price && contract.price > 0) {
-      doc.text(`  Gia goi: ${contract.price.toLocaleString()} THB`);
-      if (contract.totalSessions) {
-        const perSess = contract.price / contract.totalSessions;
-        doc.text(`  Gia moi buoi (tinh ra): ${Math.round(perSess).toLocaleString()} THB/buoi`);
-      }
-    } else if (contract.pricePerSession && contract.pricePerSession > 0) {
-      doc.text(`  Gia moi buoi: ${contract.pricePerSession.toLocaleString()} THB/buoi`);
+    if (data.terms) {
+      useFont(doc, true);
+      doc.fontSize(12).text('TERMS & CONDITIONS');
+      useFont(doc);
+      doc.fontSize(10).text(data.terms, { width: 495 });
+      doc.moveDown(1);
     }
-
-    if (contract.totalSessions) {
-      doc.text(`  So buoi: ${contract.totalSessions} buoi`);
-    }
-
-    if (contract.startDate) {
-      doc.text(
-        `  Ngay bat dau: ${new Date(contract.startDate).toLocaleDateString('vi-VN')}`,
-      );
+    if (data.notes) {
+      useFont(doc, true);
+      doc.fontSize(12).text('NOTES');
+      useFont(doc);
+      doc.fontSize(10).text(data.notes, { width: 495 });
+      doc.moveDown(1);
     }
 
     doc.moveDown(2);
-    doc
-      .fontSize(10)
-      .text(
-        'Hai ben da doc, hieu ro va dong y voi cac dieu khoan tren.',
-        { align: 'center' },
-      )
-      .moveDown();
-
-    if (testMode) {
-      doc
-        .fontSize(9)
-        .fillColor('red')
-        .text(
-          '[TEST MODE] Chu ky nay khong co hieu luc phap ly. Chi su dung cho muc dich thu nghiem.',
-          { align: 'center' },
-        )
-        .fillColor('black');
-    }
+    useFont(doc, true);
+    doc.fontSize(12).text('SIGNATURES');
+    doc.moveDown(1);
+    const sigY = doc.y;
+    useFont(doc);
+    doc.fontSize(10);
+    doc.text('Personal Trainer:', 50, sigY);
+    doc.text('____________________________', 50, sigY + 20);
+    doc.text(data.ptName, 50, sigY + 35);
+    doc.text(`Email: ${data.ptEmail}`, 50, sigY + 48);
+    doc.text('Client:', 300, sigY);
+    doc.text('____________________________', 300, sigY + 20);
+    doc.text(data.clientName, 300, sigY + 35);
+    doc.text(`Email: ${data.clientEmail}`, 300, sigY + 48);
 
     doc.end();
-    writeStream.on('finish', () => resolve(filePath));
-    writeStream.on('error', reject);
+    stream.on('finish', () => resolve(relativePath));
+    stream.on('error', reject);
   });
 }

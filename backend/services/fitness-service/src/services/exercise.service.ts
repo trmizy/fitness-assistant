@@ -29,4 +29,8 @@ export const exerciseService = {
     if (!exercise) throw { status: 404, message: 'Exercise not found' };
     return exercise;
   },
+
+  async create(data: any) {
+    return exerciseRepository.create(data);
+  },
 };

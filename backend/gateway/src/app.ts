@@ -24,6 +24,9 @@ app.use(
           'http://localhost:3000', // gateway itself — needed for n8n studio asset requests
           'http://localhost:5173',
           'http://localhost:5678',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:5173',
+          'http://127.0.0.1:5678',
           ...envOrigins,
         ]),
       );

@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { contractService, sessionService } from "../../services/api";
 import { toast } from "sonner";
 import type { Contract, ContractStatus, Session, SessionStatus } from "../../types";
+import { formatVND } from "../../utils/currency";
 
 const SESSION_STATUS: Record<SessionStatus, { label: string; color: string; bg: string }> = {
   REQUESTED: { label: "Pending", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" },
@@ -23,12 +24,13 @@ function formatSessionTime(iso: string) {
 }
 
 const STATUS_CONFIG: Record<ContractStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
-  PENDING_REVIEW: { label: "Pending Review", color: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", icon: Clock },
-  ACTIVE:         { label: "Active",         color: "text-green-400", bg: "bg-green-500/10 border-green-500/20", icon: CheckCircle },
-  COMPLETED:      { label: "Completed",      color: "text-blue-400",  bg: "bg-blue-500/10 border-blue-500/20",  icon: CheckCircle },
-  EXPIRED:        { label: "Expired",        color: "text-zinc-400",  bg: "bg-zinc-700/50 border-zinc-700",     icon: AlertTriangle },
-  CANCELLED:      { label: "Cancelled",      color: "text-red-400",   bg: "bg-red-500/10 border-red-500/20",    icon: XCircle },
-  REJECTED:       { label: "Rejected",       color: "text-red-400",   bg: "bg-red-500/10 border-red-500/20",    icon: XCircle },
+  PENDING_REVIEW:     { label: "Pending Review",  color: "text-amber-400",  bg: "bg-amber-500/10 border-amber-500/20",   icon: Clock },
+  PENDING_SIGNATURE:  { label: "Pending Sign",    color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20", icon: FileText },
+  ACTIVE:             { label: "Active",          color: "text-green-400",  bg: "bg-green-500/10 border-green-500/20",   icon: CheckCircle },
+  COMPLETED:          { label: "Completed",       color: "text-blue-400",   bg: "bg-blue-500/10 border-blue-500/20",     icon: CheckCircle },
+  EXPIRED:            { label: "Expired",         color: "text-zinc-400",   bg: "bg-zinc-700/50 border-zinc-700",        icon: AlertTriangle },
+  CANCELLED:          { label: "Cancelled",       color: "text-red-400",    bg: "bg-red-500/10 border-red-500/20",       icon: XCircle },
+  REJECTED:           { label: "Rejected",        color: "text-red-400",    bg: "bg-red-500/10 border-red-500/20",       icon: XCircle },
 };
 
 const TABS: { label: string; value: string }[] = [
@@ -45,8 +47,8 @@ function formatDate(d?: string | null) {
 }
 
 function formatPrice(p?: number | null) {
-  if (!p) return "—";
-  return `฿${p.toLocaleString()}`;
+  if (p == null) return "—";
+  return formatVND(p);
 }
 
 export function PTContractsPage() {

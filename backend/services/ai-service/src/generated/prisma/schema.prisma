@@ -47,26 +47,39 @@ enum PlanStatus {
   FAILED
 }
 
+enum PtReviewStatus {
+  PENDING_PT_REVIEW
+  PT_APPROVED
+  PT_REJECTED
+}
+
 model WorkoutPlan {
-  id          String     @id @default(uuid())
-  userId      String     @map("user_id")
-  name        String
-  description String?
-  goal        String
-  duration    Int
-  daysPerWeek Int        @map("days_per_week")
+  id             String          @id @default(uuid())
+  userId         String          @map("user_id")
+  name           String
+  description    String?
+  goal           String
+  duration       Int
+  daysPerWeek    Int             @map("days_per_week")
   /// Structured JSON matching PlanContentSchema once COMPLETED; empty object while QUEUED/PROCESSING
-  plan        Json
-  status      PlanStatus @default(QUEUED)
-  version     Int        @default(1)
+  plan           Json
+  status         PlanStatus      @default(QUEUED)
+  version        Int             @default(1)
   /// BullMQ job ID — used for polling via GET /plans/job/:jobId
-  jobId       String?    @map("job_id")
-  failReason  String?    @map("fail_reason")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  jobId          String?         @map("job_id")
+  failReason     String?         @map("fail_reason")
+  ptUserId       String?         @map("pt_user_id")
+  ptName         String?         @map("pt_name")
+  clientName     String?         @map("client_name")
+  ptReviewStatus PtReviewStatus? @map("pt_review_status")
+  ptNote         String?         @map("pt_note")
+  ptReviewedAt   DateTime?       @map("pt_reviewed_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
 
   @@index([userId])
   @@index([jobId])
   @@index([userId, status])
+  @@index([ptUserId, ptReviewStatus])
   @@map("workout_plans")
 }

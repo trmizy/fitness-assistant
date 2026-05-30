@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
-import { profileService } from '../services/profile.service';
+import { profileService, enrichProfilesWithAuthNames } from '../services/profile.service';
 import { profileRepository, prisma } from '../repositories/profile.repository';
 import { contractRepository } from '../repositories/contract.repository';
 import { adminPTStatusSchema, profileSchema } from '../models/profile.models';
@@ -48,9 +48,65 @@ export const profileController = {
     }
   },
 
-  async listPTs(_req: AuthRequest, res: Response): Promise<void> {
+  async listPTs(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const profiles = await profileRepository.findPTs();
+      const q = req.query.q as string | undefined;
+      const sessionMode = req.query.sessionMode as string | undefined;
+      const sortBy = req.query.sortBy as string | undefined;
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+
+      // Parse and validate numeric filters
+      let minPrice: number | undefined;
+      let maxPrice: number | undefined;
+      let provinceCode: number | undefined;
+      let wardCode: number | undefined;
+
+      if (req.query.minPrice !== undefined) {
+        minPrice = Number(req.query.minPrice);
+        if (isNaN(minPrice) || minPrice < 0) {
+          res.status(400).json({ error: 'minPrice phải là số không âm' });
+          return;
+        }
+      }
+      if (req.query.maxPrice !== undefined) {
+        maxPrice = Number(req.query.maxPrice);
+        if (isNaN(maxPrice) || maxPrice < 0) {
+          res.status(400).json({ error: 'maxPrice phải là số không âm' });
+          return;
+        }
+      }
+      if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+        res.status(400).json({ error: 'minPrice phải <= maxPrice' });
+        return;
+      }
+      if (req.query.provinceCode !== undefined) {
+        provinceCode = Number(req.query.provinceCode);
+        if (isNaN(provinceCode)) {
+          res.status(400).json({ error: 'provinceCode phải là số nguyên' });
+          return;
+        }
+      }
+      if (req.query.wardCode !== undefined) {
+        wardCode = Number(req.query.wardCode);
+        if (isNaN(wardCode)) {
+          res.status(400).json({ error: 'wardCode phải là số nguyên' });
+          return;
+        }
+      }
+
+      const profiles = await profileRepository.findPTs({
+        q: q?.trim() || undefined,
+        minPrice,
+        maxPrice,
+        sessionMode,
+        provinceCode,
+        wardCode,
+        sortBy,
+        page,
+        limit,
+      });
+      await enrichProfilesWithAuthNames(profiles as any[]);
       res.json({ pts: profiles });
     } catch (error) {
       logger.error(error, 'List PTs error');

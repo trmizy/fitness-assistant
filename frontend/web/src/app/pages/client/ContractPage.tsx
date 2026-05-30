@@ -5,14 +5,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { contractService } from "../../services/api";
 import { toast } from "sonner";
 import type { Contract, ContractStatus } from "../../types";
+import { formatVND } from "../../utils/currency";
 
 const statusConfig: Record<ContractStatus, { label: string; color: string; dot: string }> = {
-  PENDING_REVIEW: { label: "Pending Review", color: "bg-amber-500/10 text-amber-400 border-amber-500/20", dot: "bg-amber-500" },
-  ACTIVE: { label: "Active", color: "bg-green-500/10 text-green-400 border-green-500/20", dot: "bg-green-500" },
-  COMPLETED: { label: "Completed", color: "bg-blue-500/10 text-blue-400 border-blue-500/20", dot: "bg-blue-500" },
-  EXPIRED: { label: "Expired", color: "bg-zinc-700/50 text-zinc-400 border-zinc-700", dot: "bg-zinc-500" },
-  CANCELLED: { label: "Cancelled", color: "bg-red-500/10 text-red-400 border-red-500/20", dot: "bg-red-400" },
-  REJECTED: { label: "Rejected", color: "bg-red-500/10 text-red-400 border-red-500/20", dot: "bg-red-400" },
+  PENDING_REVIEW:    { label: "Pending Review",  color: "bg-amber-500/10 text-amber-400 border-amber-500/20",   dot: "bg-amber-500" },
+  PENDING_SIGNATURE: { label: "Awaiting Sign",   color: "bg-purple-500/10 text-purple-400 border-purple-500/20", dot: "bg-purple-500" },
+  ACTIVE:            { label: "Active",          color: "bg-green-500/10 text-green-400 border-green-500/20",   dot: "bg-green-500" },
+  COMPLETED:         { label: "Completed",       color: "bg-blue-500/10 text-blue-400 border-blue-500/20",     dot: "bg-blue-500" },
+  EXPIRED:           { label: "Expired",         color: "bg-zinc-700/50 text-zinc-400 border-zinc-700",        dot: "bg-zinc-500" },
+  CANCELLED:         { label: "Cancelled",       color: "bg-red-500/10 text-red-400 border-red-500/20",        dot: "bg-red-400" },
+  REJECTED:          { label: "Rejected",        color: "bg-red-500/10 text-red-400 border-red-500/20",        dot: "bg-red-400" },
 };
 
 const tabs: { label: string; value: string }[] = [
@@ -28,8 +30,8 @@ function formatDate(d?: string | null) {
 }
 
 function formatPrice(price?: number | null) {
-  if (!price) return "—";
-  return `฿${price.toLocaleString()}`;
+  if (price == null) return "—";
+  return formatVND(price);
 }
 
 export function ContractPage() {

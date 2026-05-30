@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router";
 import { Send, Paperclip, Search, MoreVertical, Phone, Video, FileText, Calendar, ChevronLeft, AlertCircle, User, Loader2, Plus, MessageSquare } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { chatService } from "../../services/api";
@@ -7,13 +8,18 @@ import { useApp } from "../../context/AppContext";
 import { useCall } from "../../context/CallContext";
 
 export function ChatPage() {
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { user } = useApp();
   const { initiateCall } = useCall();
-  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [activeConvId, setActiveConvId] = useState<string | null>(
+    searchParams.get("conversationId"),
+  );
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  const [mobileView, setMobileView] = useState<"list" | "chat">(
+    searchParams.get("conversationId") ? "chat" : "list",
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevConvRef = useRef<string | null>(null);
 

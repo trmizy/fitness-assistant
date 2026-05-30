@@ -189,6 +189,11 @@ exports.Prisma.PTApplicationScalarFieldEnum = {
   onlinePackagePrice: 'onlinePackagePrice',
   offlinePackagePrice: 'offlinePackagePrice',
   otherReferences: 'otherReferences',
+  residenceProvinceCode: 'residenceProvinceCode',
+  residenceWardCode: 'residenceWardCode',
+  residenceAddressLine: 'residenceAddressLine',
+  residenceLegacyDistrictName: 'residenceLegacyDistrictName',
+  applicationTrainingLocations: 'applicationTrainingLocations',
   adminNote: 'adminNote',
   rejectionReason: 'rejectionReason',
   submittedAt: 'submittedAt',
@@ -323,10 +328,49 @@ exports.Prisma.PTScheduleExceptionScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.VietnamProvinceScalarFieldEnum = {
+  code: 'code',
+  name: 'name',
+  nameNormalized: 'nameNormalized',
+  codename: 'codename',
+  divisionType: 'divisionType',
+  phoneCode: 'phoneCode',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.VietnamWardScalarFieldEnum = {
+  code: 'code',
+  provinceCode: 'provinceCode',
+  name: 'name',
+  nameNormalized: 'nameNormalized',
+  codename: 'codename',
+  divisionType: 'divisionType',
+  shortCodename: 'shortCodename',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTTrainingLocationScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  provinceCode: 'provinceCode',
+  wardCode: 'wardCode',
+  gymName: 'gymName',
+  addressLine: 'addressLine',
+  legacyDistrictName: 'legacyDistrictName',
+  isPrimary: 'isPrimary',
+  isActive: 'isActive',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.InBodyEntryScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   date: 'date',
+  dateOnly: 'dateOnly',
   weight: 'weight',
   height: 'height',
   bmi: 'bmi',
@@ -490,6 +534,9 @@ exports.Prisma.ModelName = {
   Notification: 'Notification',
   PTAvailability: 'PTAvailability',
   PTScheduleException: 'PTScheduleException',
+  VietnamProvince: 'VietnamProvince',
+  VietnamWard: 'VietnamWard',
+  PTTrainingLocation: 'PTTrainingLocation',
   InBodyEntry: 'InBodyEntry'
 };
 

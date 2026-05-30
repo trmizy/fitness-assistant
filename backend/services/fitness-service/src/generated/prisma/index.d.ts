@@ -39,6 +39,11 @@ export type WorkoutSet = $Result.DefaultSelection<Prisma.$WorkoutSetPayload>
  */
 export type Food = $Result.DefaultSelection<Prisma.$FoodPayload>
 /**
+ * Model FoodAlias
+ * 
+ */
+export type FoodAlias = $Result.DefaultSelection<Prisma.$FoodAliasPayload>
+/**
  * Model NutritionLog
  * 
  */
@@ -313,6 +318,16 @@ export class PrismaClient<
     * ```
     */
   get food(): Prisma.FoodDelegate<ExtArgs>;
+
+  /**
+   * `prisma.foodAlias`: Exposes CRUD operations for the **FoodAlias** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more FoodAliases
+    * const foodAliases = await prisma.foodAlias.findMany()
+    * ```
+    */
+  get foodAlias(): Prisma.FoodAliasDelegate<ExtArgs>;
 
   /**
    * `prisma.nutritionLog`: Exposes CRUD operations for the **NutritionLog** model.
@@ -829,6 +844,7 @@ export namespace Prisma {
     WorkoutExercise: 'WorkoutExercise',
     WorkoutSet: 'WorkoutSet',
     Food: 'Food',
+    FoodAlias: 'FoodAlias',
     NutritionLog: 'NutritionLog',
     NutritionGoal: 'NutritionGoal',
     BodyMetrics: 'BodyMetrics',
@@ -851,7 +867,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule"
+      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1202,6 +1218,76 @@ export namespace Prisma {
           count: {
             args: Prisma.FoodCountArgs<ExtArgs>
             result: $Utils.Optional<FoodCountAggregateOutputType> | number
+          }
+        }
+      }
+      FoodAlias: {
+        payload: Prisma.$FoodAliasPayload<ExtArgs>
+        fields: Prisma.FoodAliasFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.FoodAliasFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FoodAliasPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.FoodAliasFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FoodAliasPayload>
+          }
+          findFirst: {
+            args: Prisma.FoodAliasFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FoodAliasPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.FoodAliasFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FoodAliasPayload>
+          }
+          findMany: {
+            args: Prisma.FoodAliasFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FoodAliasPayload>[]
+          }
+          create: {
+            args: Prisma.FoodAliasCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FoodAliasPayload>
+          }
+          createMany: {
+            args: Prisma.FoodAliasCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.FoodAliasCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FoodAliasPayload>[]
+          }
+          delete: {
+            args: Prisma.FoodAliasDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FoodAliasPayload>
+          }
+          update: {
+            args: Prisma.FoodAliasUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FoodAliasPayload>
+          }
+          deleteMany: {
+            args: Prisma.FoodAliasDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.FoodAliasUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.FoodAliasUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FoodAliasPayload>
+          }
+          aggregate: {
+            args: Prisma.FoodAliasAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateFoodAlias>
+          }
+          groupBy: {
+            args: Prisma.FoodAliasGroupByArgs<ExtArgs>
+            result: $Utils.Optional<FoodAliasGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.FoodAliasCountArgs<ExtArgs>
+            result: $Utils.Optional<FoodAliasCountAggregateOutputType> | number
           }
         }
       }
@@ -1959,6 +2045,37 @@ export namespace Prisma {
    */
   export type WorkoutExerciseCountOutputTypeCountWorkoutSetsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: WorkoutSetWhereInput
+  }
+
+
+  /**
+   * Count Type FoodCountOutputType
+   */
+
+  export type FoodCountOutputType = {
+    aliases: number
+  }
+
+  export type FoodCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    aliases?: boolean | FoodCountOutputTypeCountAliasesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * FoodCountOutputType without action
+   */
+  export type FoodCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodCountOutputType
+     */
+    select?: FoodCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * FoodCountOutputType without action
+   */
+  export type FoodCountOutputTypeCountAliasesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FoodAliasWhereInput
   }
 
 
@@ -6467,6 +6584,8 @@ export namespace Prisma {
     fats?: boolean
     source?: boolean
     imageUrl?: boolean
+    aliases?: boolean | Food$aliasesArgs<ExtArgs>
+    _count?: boolean | FoodCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["food"]>
 
   export type FoodSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -6493,10 +6612,17 @@ export namespace Prisma {
     imageUrl?: boolean
   }
 
+  export type FoodInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    aliases?: boolean | Food$aliasesArgs<ExtArgs>
+    _count?: boolean | FoodCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type FoodIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $FoodPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Food"
-    objects: {}
+    objects: {
+      aliases: Prisma.$FoodAliasPayload<ExtArgs>[]
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       fdcId: number
@@ -6871,6 +6997,7 @@ export namespace Prisma {
    */
   export interface Prisma__FoodClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    aliases<T extends Food$aliasesArgs<ExtArgs> = {}>(args?: Subset<T, Food$aliasesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -6922,6 +7049,10 @@ export namespace Prisma {
      */
     select?: FoodSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodInclude<ExtArgs> | null
+    /**
      * Filter, which Food to fetch.
      */
     where: FoodWhereUniqueInput
@@ -6936,6 +7067,10 @@ export namespace Prisma {
      */
     select?: FoodSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodInclude<ExtArgs> | null
+    /**
      * Filter, which Food to fetch.
      */
     where: FoodWhereUniqueInput
@@ -6949,6 +7084,10 @@ export namespace Prisma {
      * Select specific fields to fetch from the Food
      */
     select?: FoodSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodInclude<ExtArgs> | null
     /**
      * Filter, which Food to fetch.
      */
@@ -6994,6 +7133,10 @@ export namespace Prisma {
      */
     select?: FoodSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodInclude<ExtArgs> | null
+    /**
      * Filter, which Food to fetch.
      */
     where?: FoodWhereInput
@@ -7038,6 +7181,10 @@ export namespace Prisma {
      */
     select?: FoodSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodInclude<ExtArgs> | null
+    /**
      * Filter, which Foods to fetch.
      */
     where?: FoodWhereInput
@@ -7076,6 +7223,10 @@ export namespace Prisma {
      * Select specific fields to fetch from the Food
      */
     select?: FoodSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodInclude<ExtArgs> | null
     /**
      * The data needed to create a Food.
      */
@@ -7117,6 +7268,10 @@ export namespace Prisma {
      */
     select?: FoodSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodInclude<ExtArgs> | null
+    /**
      * The data needed to update a Food.
      */
     data: XOR<FoodUpdateInput, FoodUncheckedUpdateInput>
@@ -7149,6 +7304,10 @@ export namespace Prisma {
      */
     select?: FoodSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodInclude<ExtArgs> | null
+    /**
      * The filter to search for the Food to update in case it exists.
      */
     where: FoodWhereUniqueInput
@@ -7171,6 +7330,10 @@ export namespace Prisma {
      */
     select?: FoodSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodInclude<ExtArgs> | null
+    /**
      * Filter which Food to delete.
      */
     where: FoodWhereUniqueInput
@@ -7187,6 +7350,26 @@ export namespace Prisma {
   }
 
   /**
+   * Food.aliases
+   */
+  export type Food$aliasesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasInclude<ExtArgs> | null
+    where?: FoodAliasWhereInput
+    orderBy?: FoodAliasOrderByWithRelationInput | FoodAliasOrderByWithRelationInput[]
+    cursor?: FoodAliasWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: FoodAliasScalarFieldEnum | FoodAliasScalarFieldEnum[]
+  }
+
+  /**
    * Food without action
    */
   export type FoodDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -7194,6 +7377,979 @@ export namespace Prisma {
      * Select specific fields to fetch from the Food
      */
     select?: FoodSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model FoodAlias
+   */
+
+  export type AggregateFoodAlias = {
+    _count: FoodAliasCountAggregateOutputType | null
+    _min: FoodAliasMinAggregateOutputType | null
+    _max: FoodAliasMaxAggregateOutputType | null
+  }
+
+  export type FoodAliasMinAggregateOutputType = {
+    id: string | null
+    foodId: string | null
+    alias: string | null
+    aliasNormalized: string | null
+    language: string | null
+    source: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type FoodAliasMaxAggregateOutputType = {
+    id: string | null
+    foodId: string | null
+    alias: string | null
+    aliasNormalized: string | null
+    language: string | null
+    source: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type FoodAliasCountAggregateOutputType = {
+    id: number
+    foodId: number
+    alias: number
+    aliasNormalized: number
+    language: number
+    source: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type FoodAliasMinAggregateInputType = {
+    id?: true
+    foodId?: true
+    alias?: true
+    aliasNormalized?: true
+    language?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type FoodAliasMaxAggregateInputType = {
+    id?: true
+    foodId?: true
+    alias?: true
+    aliasNormalized?: true
+    language?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type FoodAliasCountAggregateInputType = {
+    id?: true
+    foodId?: true
+    alias?: true
+    aliasNormalized?: true
+    language?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type FoodAliasAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FoodAlias to aggregate.
+     */
+    where?: FoodAliasWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FoodAliases to fetch.
+     */
+    orderBy?: FoodAliasOrderByWithRelationInput | FoodAliasOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: FoodAliasWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FoodAliases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FoodAliases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned FoodAliases
+    **/
+    _count?: true | FoodAliasCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: FoodAliasMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: FoodAliasMaxAggregateInputType
+  }
+
+  export type GetFoodAliasAggregateType<T extends FoodAliasAggregateArgs> = {
+        [P in keyof T & keyof AggregateFoodAlias]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateFoodAlias[P]>
+      : GetScalarType<T[P], AggregateFoodAlias[P]>
+  }
+
+
+
+
+  export type FoodAliasGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FoodAliasWhereInput
+    orderBy?: FoodAliasOrderByWithAggregationInput | FoodAliasOrderByWithAggregationInput[]
+    by: FoodAliasScalarFieldEnum[] | FoodAliasScalarFieldEnum
+    having?: FoodAliasScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: FoodAliasCountAggregateInputType | true
+    _min?: FoodAliasMinAggregateInputType
+    _max?: FoodAliasMaxAggregateInputType
+  }
+
+  export type FoodAliasGroupByOutputType = {
+    id: string
+    foodId: string
+    alias: string
+    aliasNormalized: string
+    language: string
+    source: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: FoodAliasCountAggregateOutputType | null
+    _min: FoodAliasMinAggregateOutputType | null
+    _max: FoodAliasMaxAggregateOutputType | null
+  }
+
+  type GetFoodAliasGroupByPayload<T extends FoodAliasGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<FoodAliasGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof FoodAliasGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], FoodAliasGroupByOutputType[P]>
+            : GetScalarType<T[P], FoodAliasGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type FoodAliasSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    foodId?: boolean
+    alias?: boolean
+    aliasNormalized?: boolean
+    language?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    food?: boolean | FoodDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["foodAlias"]>
+
+  export type FoodAliasSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    foodId?: boolean
+    alias?: boolean
+    aliasNormalized?: boolean
+    language?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    food?: boolean | FoodDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["foodAlias"]>
+
+  export type FoodAliasSelectScalar = {
+    id?: boolean
+    foodId?: boolean
+    alias?: boolean
+    aliasNormalized?: boolean
+    language?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type FoodAliasInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    food?: boolean | FoodDefaultArgs<ExtArgs>
+  }
+  export type FoodAliasIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    food?: boolean | FoodDefaultArgs<ExtArgs>
+  }
+
+  export type $FoodAliasPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "FoodAlias"
+    objects: {
+      food: Prisma.$FoodPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      foodId: string
+      alias: string
+      aliasNormalized: string
+      language: string
+      source: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["foodAlias"]>
+    composites: {}
+  }
+
+  type FoodAliasGetPayload<S extends boolean | null | undefined | FoodAliasDefaultArgs> = $Result.GetResult<Prisma.$FoodAliasPayload, S>
+
+  type FoodAliasCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<FoodAliasFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: FoodAliasCountAggregateInputType | true
+    }
+
+  export interface FoodAliasDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['FoodAlias'], meta: { name: 'FoodAlias' } }
+    /**
+     * Find zero or one FoodAlias that matches the filter.
+     * @param {FoodAliasFindUniqueArgs} args - Arguments to find a FoodAlias
+     * @example
+     * // Get one FoodAlias
+     * const foodAlias = await prisma.foodAlias.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends FoodAliasFindUniqueArgs>(args: SelectSubset<T, FoodAliasFindUniqueArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one FoodAlias that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {FoodAliasFindUniqueOrThrowArgs} args - Arguments to find a FoodAlias
+     * @example
+     * // Get one FoodAlias
+     * const foodAlias = await prisma.foodAlias.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends FoodAliasFindUniqueOrThrowArgs>(args: SelectSubset<T, FoodAliasFindUniqueOrThrowArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first FoodAlias that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FoodAliasFindFirstArgs} args - Arguments to find a FoodAlias
+     * @example
+     * // Get one FoodAlias
+     * const foodAlias = await prisma.foodAlias.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends FoodAliasFindFirstArgs>(args?: SelectSubset<T, FoodAliasFindFirstArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first FoodAlias that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FoodAliasFindFirstOrThrowArgs} args - Arguments to find a FoodAlias
+     * @example
+     * // Get one FoodAlias
+     * const foodAlias = await prisma.foodAlias.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends FoodAliasFindFirstOrThrowArgs>(args?: SelectSubset<T, FoodAliasFindFirstOrThrowArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more FoodAliases that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FoodAliasFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all FoodAliases
+     * const foodAliases = await prisma.foodAlias.findMany()
+     * 
+     * // Get first 10 FoodAliases
+     * const foodAliases = await prisma.foodAlias.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const foodAliasWithIdOnly = await prisma.foodAlias.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends FoodAliasFindManyArgs>(args?: SelectSubset<T, FoodAliasFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a FoodAlias.
+     * @param {FoodAliasCreateArgs} args - Arguments to create a FoodAlias.
+     * @example
+     * // Create one FoodAlias
+     * const FoodAlias = await prisma.foodAlias.create({
+     *   data: {
+     *     // ... data to create a FoodAlias
+     *   }
+     * })
+     * 
+     */
+    create<T extends FoodAliasCreateArgs>(args: SelectSubset<T, FoodAliasCreateArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many FoodAliases.
+     * @param {FoodAliasCreateManyArgs} args - Arguments to create many FoodAliases.
+     * @example
+     * // Create many FoodAliases
+     * const foodAlias = await prisma.foodAlias.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends FoodAliasCreateManyArgs>(args?: SelectSubset<T, FoodAliasCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many FoodAliases and returns the data saved in the database.
+     * @param {FoodAliasCreateManyAndReturnArgs} args - Arguments to create many FoodAliases.
+     * @example
+     * // Create many FoodAliases
+     * const foodAlias = await prisma.foodAlias.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many FoodAliases and only return the `id`
+     * const foodAliasWithIdOnly = await prisma.foodAlias.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends FoodAliasCreateManyAndReturnArgs>(args?: SelectSubset<T, FoodAliasCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a FoodAlias.
+     * @param {FoodAliasDeleteArgs} args - Arguments to delete one FoodAlias.
+     * @example
+     * // Delete one FoodAlias
+     * const FoodAlias = await prisma.foodAlias.delete({
+     *   where: {
+     *     // ... filter to delete one FoodAlias
+     *   }
+     * })
+     * 
+     */
+    delete<T extends FoodAliasDeleteArgs>(args: SelectSubset<T, FoodAliasDeleteArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one FoodAlias.
+     * @param {FoodAliasUpdateArgs} args - Arguments to update one FoodAlias.
+     * @example
+     * // Update one FoodAlias
+     * const foodAlias = await prisma.foodAlias.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends FoodAliasUpdateArgs>(args: SelectSubset<T, FoodAliasUpdateArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more FoodAliases.
+     * @param {FoodAliasDeleteManyArgs} args - Arguments to filter FoodAliases to delete.
+     * @example
+     * // Delete a few FoodAliases
+     * const { count } = await prisma.foodAlias.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends FoodAliasDeleteManyArgs>(args?: SelectSubset<T, FoodAliasDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FoodAliases.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FoodAliasUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many FoodAliases
+     * const foodAlias = await prisma.foodAlias.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends FoodAliasUpdateManyArgs>(args: SelectSubset<T, FoodAliasUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one FoodAlias.
+     * @param {FoodAliasUpsertArgs} args - Arguments to update or create a FoodAlias.
+     * @example
+     * // Update or create a FoodAlias
+     * const foodAlias = await prisma.foodAlias.upsert({
+     *   create: {
+     *     // ... data to create a FoodAlias
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the FoodAlias we want to update
+     *   }
+     * })
+     */
+    upsert<T extends FoodAliasUpsertArgs>(args: SelectSubset<T, FoodAliasUpsertArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of FoodAliases.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FoodAliasCountArgs} args - Arguments to filter FoodAliases to count.
+     * @example
+     * // Count the number of FoodAliases
+     * const count = await prisma.foodAlias.count({
+     *   where: {
+     *     // ... the filter for the FoodAliases we want to count
+     *   }
+     * })
+    **/
+    count<T extends FoodAliasCountArgs>(
+      args?: Subset<T, FoodAliasCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], FoodAliasCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a FoodAlias.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FoodAliasAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends FoodAliasAggregateArgs>(args: Subset<T, FoodAliasAggregateArgs>): Prisma.PrismaPromise<GetFoodAliasAggregateType<T>>
+
+    /**
+     * Group by FoodAlias.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FoodAliasGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends FoodAliasGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: FoodAliasGroupByArgs['orderBy'] }
+        : { orderBy?: FoodAliasGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, FoodAliasGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetFoodAliasGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the FoodAlias model
+   */
+  readonly fields: FoodAliasFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for FoodAlias.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__FoodAliasClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    food<T extends FoodDefaultArgs<ExtArgs> = {}>(args?: Subset<T, FoodDefaultArgs<ExtArgs>>): Prisma__FoodClient<$Result.GetResult<Prisma.$FoodPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the FoodAlias model
+   */ 
+  interface FoodAliasFieldRefs {
+    readonly id: FieldRef<"FoodAlias", 'String'>
+    readonly foodId: FieldRef<"FoodAlias", 'String'>
+    readonly alias: FieldRef<"FoodAlias", 'String'>
+    readonly aliasNormalized: FieldRef<"FoodAlias", 'String'>
+    readonly language: FieldRef<"FoodAlias", 'String'>
+    readonly source: FieldRef<"FoodAlias", 'String'>
+    readonly createdAt: FieldRef<"FoodAlias", 'DateTime'>
+    readonly updatedAt: FieldRef<"FoodAlias", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * FoodAlias findUnique
+   */
+  export type FoodAliasFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasInclude<ExtArgs> | null
+    /**
+     * Filter, which FoodAlias to fetch.
+     */
+    where: FoodAliasWhereUniqueInput
+  }
+
+  /**
+   * FoodAlias findUniqueOrThrow
+   */
+  export type FoodAliasFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasInclude<ExtArgs> | null
+    /**
+     * Filter, which FoodAlias to fetch.
+     */
+    where: FoodAliasWhereUniqueInput
+  }
+
+  /**
+   * FoodAlias findFirst
+   */
+  export type FoodAliasFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasInclude<ExtArgs> | null
+    /**
+     * Filter, which FoodAlias to fetch.
+     */
+    where?: FoodAliasWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FoodAliases to fetch.
+     */
+    orderBy?: FoodAliasOrderByWithRelationInput | FoodAliasOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FoodAliases.
+     */
+    cursor?: FoodAliasWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FoodAliases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FoodAliases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FoodAliases.
+     */
+    distinct?: FoodAliasScalarFieldEnum | FoodAliasScalarFieldEnum[]
+  }
+
+  /**
+   * FoodAlias findFirstOrThrow
+   */
+  export type FoodAliasFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasInclude<ExtArgs> | null
+    /**
+     * Filter, which FoodAlias to fetch.
+     */
+    where?: FoodAliasWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FoodAliases to fetch.
+     */
+    orderBy?: FoodAliasOrderByWithRelationInput | FoodAliasOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FoodAliases.
+     */
+    cursor?: FoodAliasWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FoodAliases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FoodAliases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FoodAliases.
+     */
+    distinct?: FoodAliasScalarFieldEnum | FoodAliasScalarFieldEnum[]
+  }
+
+  /**
+   * FoodAlias findMany
+   */
+  export type FoodAliasFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasInclude<ExtArgs> | null
+    /**
+     * Filter, which FoodAliases to fetch.
+     */
+    where?: FoodAliasWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FoodAliases to fetch.
+     */
+    orderBy?: FoodAliasOrderByWithRelationInput | FoodAliasOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing FoodAliases.
+     */
+    cursor?: FoodAliasWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FoodAliases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FoodAliases.
+     */
+    skip?: number
+    distinct?: FoodAliasScalarFieldEnum | FoodAliasScalarFieldEnum[]
+  }
+
+  /**
+   * FoodAlias create
+   */
+  export type FoodAliasCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasInclude<ExtArgs> | null
+    /**
+     * The data needed to create a FoodAlias.
+     */
+    data: XOR<FoodAliasCreateInput, FoodAliasUncheckedCreateInput>
+  }
+
+  /**
+   * FoodAlias createMany
+   */
+  export type FoodAliasCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many FoodAliases.
+     */
+    data: FoodAliasCreateManyInput | FoodAliasCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FoodAlias createManyAndReturn
+   */
+  export type FoodAliasCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many FoodAliases.
+     */
+    data: FoodAliasCreateManyInput | FoodAliasCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * FoodAlias update
+   */
+  export type FoodAliasUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasInclude<ExtArgs> | null
+    /**
+     * The data needed to update a FoodAlias.
+     */
+    data: XOR<FoodAliasUpdateInput, FoodAliasUncheckedUpdateInput>
+    /**
+     * Choose, which FoodAlias to update.
+     */
+    where: FoodAliasWhereUniqueInput
+  }
+
+  /**
+   * FoodAlias updateMany
+   */
+  export type FoodAliasUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update FoodAliases.
+     */
+    data: XOR<FoodAliasUpdateManyMutationInput, FoodAliasUncheckedUpdateManyInput>
+    /**
+     * Filter which FoodAliases to update
+     */
+    where?: FoodAliasWhereInput
+  }
+
+  /**
+   * FoodAlias upsert
+   */
+  export type FoodAliasUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasInclude<ExtArgs> | null
+    /**
+     * The filter to search for the FoodAlias to update in case it exists.
+     */
+    where: FoodAliasWhereUniqueInput
+    /**
+     * In case the FoodAlias found by the `where` argument doesn't exist, create a new FoodAlias with this data.
+     */
+    create: XOR<FoodAliasCreateInput, FoodAliasUncheckedCreateInput>
+    /**
+     * In case the FoodAlias was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<FoodAliasUpdateInput, FoodAliasUncheckedUpdateInput>
+  }
+
+  /**
+   * FoodAlias delete
+   */
+  export type FoodAliasDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasInclude<ExtArgs> | null
+    /**
+     * Filter which FoodAlias to delete.
+     */
+    where: FoodAliasWhereUniqueInput
+  }
+
+  /**
+   * FoodAlias deleteMany
+   */
+  export type FoodAliasDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FoodAliases to delete
+     */
+    where?: FoodAliasWhereInput
+  }
+
+  /**
+   * FoodAlias without action
+   */
+  export type FoodAliasDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FoodAlias
+     */
+    select?: FoodAliasSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodAliasInclude<ExtArgs> | null
   }
 
 
@@ -14437,6 +15593,20 @@ export namespace Prisma {
   export type FoodScalarFieldEnum = (typeof FoodScalarFieldEnum)[keyof typeof FoodScalarFieldEnum]
 
 
+  export const FoodAliasScalarFieldEnum: {
+    id: 'id',
+    foodId: 'foodId',
+    alias: 'alias',
+    aliasNormalized: 'aliasNormalized',
+    language: 'language',
+    source: 'source',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type FoodAliasScalarFieldEnum = (typeof FoodAliasScalarFieldEnum)[keyof typeof FoodAliasScalarFieldEnum]
+
+
   export const NutritionLogScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -15040,6 +16210,7 @@ export namespace Prisma {
     fats?: FloatFilter<"Food"> | number
     source?: StringFilter<"Food"> | string
     imageUrl?: StringNullableFilter<"Food"> | string | null
+    aliases?: FoodAliasListRelationFilter
   }
 
   export type FoodOrderByWithRelationInput = {
@@ -15052,6 +16223,7 @@ export namespace Prisma {
     fats?: SortOrder
     source?: SortOrder
     imageUrl?: SortOrderInput | SortOrder
+    aliases?: FoodAliasOrderByRelationAggregateInput
   }
 
   export type FoodWhereUniqueInput = Prisma.AtLeast<{
@@ -15067,6 +16239,7 @@ export namespace Prisma {
     fats?: FloatFilter<"Food"> | number
     source?: StringFilter<"Food"> | string
     imageUrl?: StringNullableFilter<"Food"> | string | null
+    aliases?: FoodAliasListRelationFilter
   }, "id" | "fdcId">
 
   export type FoodOrderByWithAggregationInput = {
@@ -15099,6 +16272,78 @@ export namespace Prisma {
     fats?: FloatWithAggregatesFilter<"Food"> | number
     source?: StringWithAggregatesFilter<"Food"> | string
     imageUrl?: StringNullableWithAggregatesFilter<"Food"> | string | null
+  }
+
+  export type FoodAliasWhereInput = {
+    AND?: FoodAliasWhereInput | FoodAliasWhereInput[]
+    OR?: FoodAliasWhereInput[]
+    NOT?: FoodAliasWhereInput | FoodAliasWhereInput[]
+    id?: StringFilter<"FoodAlias"> | string
+    foodId?: StringFilter<"FoodAlias"> | string
+    alias?: StringFilter<"FoodAlias"> | string
+    aliasNormalized?: StringFilter<"FoodAlias"> | string
+    language?: StringFilter<"FoodAlias"> | string
+    source?: StringNullableFilter<"FoodAlias"> | string | null
+    createdAt?: DateTimeFilter<"FoodAlias"> | Date | string
+    updatedAt?: DateTimeFilter<"FoodAlias"> | Date | string
+    food?: XOR<FoodRelationFilter, FoodWhereInput>
+  }
+
+  export type FoodAliasOrderByWithRelationInput = {
+    id?: SortOrder
+    foodId?: SortOrder
+    alias?: SortOrder
+    aliasNormalized?: SortOrder
+    language?: SortOrder
+    source?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    food?: FoodOrderByWithRelationInput
+  }
+
+  export type FoodAliasWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    foodId_alias_language?: FoodAliasFoodIdAliasLanguageCompoundUniqueInput
+    foodId_aliasNormalized_language?: FoodAliasFoodIdAliasNormalizedLanguageCompoundUniqueInput
+    AND?: FoodAliasWhereInput | FoodAliasWhereInput[]
+    OR?: FoodAliasWhereInput[]
+    NOT?: FoodAliasWhereInput | FoodAliasWhereInput[]
+    foodId?: StringFilter<"FoodAlias"> | string
+    alias?: StringFilter<"FoodAlias"> | string
+    aliasNormalized?: StringFilter<"FoodAlias"> | string
+    language?: StringFilter<"FoodAlias"> | string
+    source?: StringNullableFilter<"FoodAlias"> | string | null
+    createdAt?: DateTimeFilter<"FoodAlias"> | Date | string
+    updatedAt?: DateTimeFilter<"FoodAlias"> | Date | string
+    food?: XOR<FoodRelationFilter, FoodWhereInput>
+  }, "id" | "foodId_alias_language" | "foodId_aliasNormalized_language">
+
+  export type FoodAliasOrderByWithAggregationInput = {
+    id?: SortOrder
+    foodId?: SortOrder
+    alias?: SortOrder
+    aliasNormalized?: SortOrder
+    language?: SortOrder
+    source?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: FoodAliasCountOrderByAggregateInput
+    _max?: FoodAliasMaxOrderByAggregateInput
+    _min?: FoodAliasMinOrderByAggregateInput
+  }
+
+  export type FoodAliasScalarWhereWithAggregatesInput = {
+    AND?: FoodAliasScalarWhereWithAggregatesInput | FoodAliasScalarWhereWithAggregatesInput[]
+    OR?: FoodAliasScalarWhereWithAggregatesInput[]
+    NOT?: FoodAliasScalarWhereWithAggregatesInput | FoodAliasScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"FoodAlias"> | string
+    foodId?: StringWithAggregatesFilter<"FoodAlias"> | string
+    alias?: StringWithAggregatesFilter<"FoodAlias"> | string
+    aliasNormalized?: StringWithAggregatesFilter<"FoodAlias"> | string
+    language?: StringWithAggregatesFilter<"FoodAlias"> | string
+    source?: StringNullableWithAggregatesFilter<"FoodAlias"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"FoodAlias"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"FoodAlias"> | Date | string
   }
 
   export type NutritionLogWhereInput = {
@@ -16051,6 +17296,7 @@ export namespace Prisma {
     fats?: number
     source: string
     imageUrl?: string | null
+    aliases?: FoodAliasCreateNestedManyWithoutFoodInput
   }
 
   export type FoodUncheckedCreateInput = {
@@ -16063,6 +17309,7 @@ export namespace Prisma {
     fats?: number
     source: string
     imageUrl?: string | null
+    aliases?: FoodAliasUncheckedCreateNestedManyWithoutFoodInput
   }
 
   export type FoodUpdateInput = {
@@ -16075,6 +17322,7 @@ export namespace Prisma {
     fats?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    aliases?: FoodAliasUpdateManyWithoutFoodNestedInput
   }
 
   export type FoodUncheckedUpdateInput = {
@@ -16087,6 +17335,7 @@ export namespace Prisma {
     fats?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    aliases?: FoodAliasUncheckedUpdateManyWithoutFoodNestedInput
   }
 
   export type FoodCreateManyInput = {
@@ -16123,6 +17372,82 @@ export namespace Prisma {
     fats?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type FoodAliasCreateInput = {
+    id?: string
+    alias: string
+    aliasNormalized: string
+    language?: string
+    source?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    food: FoodCreateNestedOneWithoutAliasesInput
+  }
+
+  export type FoodAliasUncheckedCreateInput = {
+    id?: string
+    foodId: string
+    alias: string
+    aliasNormalized: string
+    language?: string
+    source?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FoodAliasUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    aliasNormalized?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    food?: FoodUpdateOneRequiredWithoutAliasesNestedInput
+  }
+
+  export type FoodAliasUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    foodId?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    aliasNormalized?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FoodAliasCreateManyInput = {
+    id?: string
+    foodId: string
+    alias: string
+    aliasNormalized: string
+    language?: string
+    source?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FoodAliasUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    aliasNormalized?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FoodAliasUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    foodId?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    aliasNormalized?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type NutritionLogCreateInput = {
@@ -17280,6 +18605,16 @@ export namespace Prisma {
     not?: NestedFloatFilter<$PrismaModel> | number
   }
 
+  export type FoodAliasListRelationFilter = {
+    every?: FoodAliasWhereInput
+    some?: FoodAliasWhereInput
+    none?: FoodAliasWhereInput
+  }
+
+  export type FoodAliasOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type FoodCountOrderByAggregateInput = {
     id?: SortOrder
     fdcId?: SortOrder
@@ -17346,6 +18681,56 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type FoodRelationFilter = {
+    is?: FoodWhereInput
+    isNot?: FoodWhereInput
+  }
+
+  export type FoodAliasFoodIdAliasLanguageCompoundUniqueInput = {
+    foodId: string
+    alias: string
+    language: string
+  }
+
+  export type FoodAliasFoodIdAliasNormalizedLanguageCompoundUniqueInput = {
+    foodId: string
+    aliasNormalized: string
+    language: string
+  }
+
+  export type FoodAliasCountOrderByAggregateInput = {
+    id?: SortOrder
+    foodId?: SortOrder
+    alias?: SortOrder
+    aliasNormalized?: SortOrder
+    language?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FoodAliasMaxOrderByAggregateInput = {
+    id?: SortOrder
+    foodId?: SortOrder
+    alias?: SortOrder
+    aliasNormalized?: SortOrder
+    language?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FoodAliasMinOrderByAggregateInput = {
+    id?: SortOrder
+    foodId?: SortOrder
+    alias?: SortOrder
+    aliasNormalized?: SortOrder
+    language?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type NutritionLogCountOrderByAggregateInput = {
@@ -18060,12 +19445,68 @@ export namespace Prisma {
     update?: XOR<XOR<WorkoutExerciseUpdateToOneWithWhereWithoutWorkoutSetsInput, WorkoutExerciseUpdateWithoutWorkoutSetsInput>, WorkoutExerciseUncheckedUpdateWithoutWorkoutSetsInput>
   }
 
+  export type FoodAliasCreateNestedManyWithoutFoodInput = {
+    create?: XOR<FoodAliasCreateWithoutFoodInput, FoodAliasUncheckedCreateWithoutFoodInput> | FoodAliasCreateWithoutFoodInput[] | FoodAliasUncheckedCreateWithoutFoodInput[]
+    connectOrCreate?: FoodAliasCreateOrConnectWithoutFoodInput | FoodAliasCreateOrConnectWithoutFoodInput[]
+    createMany?: FoodAliasCreateManyFoodInputEnvelope
+    connect?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
+  }
+
+  export type FoodAliasUncheckedCreateNestedManyWithoutFoodInput = {
+    create?: XOR<FoodAliasCreateWithoutFoodInput, FoodAliasUncheckedCreateWithoutFoodInput> | FoodAliasCreateWithoutFoodInput[] | FoodAliasUncheckedCreateWithoutFoodInput[]
+    connectOrCreate?: FoodAliasCreateOrConnectWithoutFoodInput | FoodAliasCreateOrConnectWithoutFoodInput[]
+    createMany?: FoodAliasCreateManyFoodInputEnvelope
+    connect?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
+  }
+
   export type FloatFieldUpdateOperationsInput = {
     set?: number
     increment?: number
     decrement?: number
     multiply?: number
     divide?: number
+  }
+
+  export type FoodAliasUpdateManyWithoutFoodNestedInput = {
+    create?: XOR<FoodAliasCreateWithoutFoodInput, FoodAliasUncheckedCreateWithoutFoodInput> | FoodAliasCreateWithoutFoodInput[] | FoodAliasUncheckedCreateWithoutFoodInput[]
+    connectOrCreate?: FoodAliasCreateOrConnectWithoutFoodInput | FoodAliasCreateOrConnectWithoutFoodInput[]
+    upsert?: FoodAliasUpsertWithWhereUniqueWithoutFoodInput | FoodAliasUpsertWithWhereUniqueWithoutFoodInput[]
+    createMany?: FoodAliasCreateManyFoodInputEnvelope
+    set?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
+    disconnect?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
+    delete?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
+    connect?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
+    update?: FoodAliasUpdateWithWhereUniqueWithoutFoodInput | FoodAliasUpdateWithWhereUniqueWithoutFoodInput[]
+    updateMany?: FoodAliasUpdateManyWithWhereWithoutFoodInput | FoodAliasUpdateManyWithWhereWithoutFoodInput[]
+    deleteMany?: FoodAliasScalarWhereInput | FoodAliasScalarWhereInput[]
+  }
+
+  export type FoodAliasUncheckedUpdateManyWithoutFoodNestedInput = {
+    create?: XOR<FoodAliasCreateWithoutFoodInput, FoodAliasUncheckedCreateWithoutFoodInput> | FoodAliasCreateWithoutFoodInput[] | FoodAliasUncheckedCreateWithoutFoodInput[]
+    connectOrCreate?: FoodAliasCreateOrConnectWithoutFoodInput | FoodAliasCreateOrConnectWithoutFoodInput[]
+    upsert?: FoodAliasUpsertWithWhereUniqueWithoutFoodInput | FoodAliasUpsertWithWhereUniqueWithoutFoodInput[]
+    createMany?: FoodAliasCreateManyFoodInputEnvelope
+    set?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
+    disconnect?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
+    delete?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
+    connect?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
+    update?: FoodAliasUpdateWithWhereUniqueWithoutFoodInput | FoodAliasUpdateWithWhereUniqueWithoutFoodInput[]
+    updateMany?: FoodAliasUpdateManyWithWhereWithoutFoodInput | FoodAliasUpdateManyWithWhereWithoutFoodInput[]
+    deleteMany?: FoodAliasScalarWhereInput | FoodAliasScalarWhereInput[]
+  }
+
+  export type FoodCreateNestedOneWithoutAliasesInput = {
+    create?: XOR<FoodCreateWithoutAliasesInput, FoodUncheckedCreateWithoutAliasesInput>
+    connectOrCreate?: FoodCreateOrConnectWithoutAliasesInput
+    connect?: FoodWhereUniqueInput
+  }
+
+  export type FoodUpdateOneRequiredWithoutAliasesNestedInput = {
+    create?: XOR<FoodCreateWithoutAliasesInput, FoodUncheckedCreateWithoutAliasesInput>
+    connectOrCreate?: FoodCreateOrConnectWithoutAliasesInput
+    upsert?: FoodUpsertWithoutAliasesInput
+    connect?: FoodWhereUniqueInput
+    update?: XOR<XOR<FoodUpdateToOneWithWhereWithoutAliasesInput, FoodUpdateWithoutAliasesInput>, FoodUncheckedUpdateWithoutAliasesInput>
   }
 
   export type WorkoutProgramDayCreateNestedManyWithoutProgramInput = {
@@ -19071,6 +20512,130 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type FoodAliasCreateWithoutFoodInput = {
+    id?: string
+    alias: string
+    aliasNormalized: string
+    language?: string
+    source?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FoodAliasUncheckedCreateWithoutFoodInput = {
+    id?: string
+    alias: string
+    aliasNormalized: string
+    language?: string
+    source?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FoodAliasCreateOrConnectWithoutFoodInput = {
+    where: FoodAliasWhereUniqueInput
+    create: XOR<FoodAliasCreateWithoutFoodInput, FoodAliasUncheckedCreateWithoutFoodInput>
+  }
+
+  export type FoodAliasCreateManyFoodInputEnvelope = {
+    data: FoodAliasCreateManyFoodInput | FoodAliasCreateManyFoodInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type FoodAliasUpsertWithWhereUniqueWithoutFoodInput = {
+    where: FoodAliasWhereUniqueInput
+    update: XOR<FoodAliasUpdateWithoutFoodInput, FoodAliasUncheckedUpdateWithoutFoodInput>
+    create: XOR<FoodAliasCreateWithoutFoodInput, FoodAliasUncheckedCreateWithoutFoodInput>
+  }
+
+  export type FoodAliasUpdateWithWhereUniqueWithoutFoodInput = {
+    where: FoodAliasWhereUniqueInput
+    data: XOR<FoodAliasUpdateWithoutFoodInput, FoodAliasUncheckedUpdateWithoutFoodInput>
+  }
+
+  export type FoodAliasUpdateManyWithWhereWithoutFoodInput = {
+    where: FoodAliasScalarWhereInput
+    data: XOR<FoodAliasUpdateManyMutationInput, FoodAliasUncheckedUpdateManyWithoutFoodInput>
+  }
+
+  export type FoodAliasScalarWhereInput = {
+    AND?: FoodAliasScalarWhereInput | FoodAliasScalarWhereInput[]
+    OR?: FoodAliasScalarWhereInput[]
+    NOT?: FoodAliasScalarWhereInput | FoodAliasScalarWhereInput[]
+    id?: StringFilter<"FoodAlias"> | string
+    foodId?: StringFilter<"FoodAlias"> | string
+    alias?: StringFilter<"FoodAlias"> | string
+    aliasNormalized?: StringFilter<"FoodAlias"> | string
+    language?: StringFilter<"FoodAlias"> | string
+    source?: StringNullableFilter<"FoodAlias"> | string | null
+    createdAt?: DateTimeFilter<"FoodAlias"> | Date | string
+    updatedAt?: DateTimeFilter<"FoodAlias"> | Date | string
+  }
+
+  export type FoodCreateWithoutAliasesInput = {
+    id?: string
+    fdcId: number
+    name: string
+    calories: number
+    protein?: number
+    carbs?: number
+    fats?: number
+    source: string
+    imageUrl?: string | null
+  }
+
+  export type FoodUncheckedCreateWithoutAliasesInput = {
+    id?: string
+    fdcId: number
+    name: string
+    calories: number
+    protein?: number
+    carbs?: number
+    fats?: number
+    source: string
+    imageUrl?: string | null
+  }
+
+  export type FoodCreateOrConnectWithoutAliasesInput = {
+    where: FoodWhereUniqueInput
+    create: XOR<FoodCreateWithoutAliasesInput, FoodUncheckedCreateWithoutAliasesInput>
+  }
+
+  export type FoodUpsertWithoutAliasesInput = {
+    update: XOR<FoodUpdateWithoutAliasesInput, FoodUncheckedUpdateWithoutAliasesInput>
+    create: XOR<FoodCreateWithoutAliasesInput, FoodUncheckedCreateWithoutAliasesInput>
+    where?: FoodWhereInput
+  }
+
+  export type FoodUpdateToOneWithWhereWithoutAliasesInput = {
+    where?: FoodWhereInput
+    data: XOR<FoodUpdateWithoutAliasesInput, FoodUncheckedUpdateWithoutAliasesInput>
+  }
+
+  export type FoodUpdateWithoutAliasesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fdcId?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    calories?: FloatFieldUpdateOperationsInput | number
+    protein?: FloatFieldUpdateOperationsInput | number
+    carbs?: FloatFieldUpdateOperationsInput | number
+    fats?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type FoodUncheckedUpdateWithoutAliasesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fdcId?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    calories?: FloatFieldUpdateOperationsInput | number
+    protein?: FloatFieldUpdateOperationsInput | number
+    carbs?: FloatFieldUpdateOperationsInput | number
+    fats?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
   export type WorkoutProgramDayCreateWithoutProgramInput = {
     id?: string
     dayNumber: number
@@ -19813,6 +21378,46 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type FoodAliasCreateManyFoodInput = {
+    id?: string
+    alias: string
+    aliasNormalized: string
+    language?: string
+    source?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FoodAliasUpdateWithoutFoodInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    aliasNormalized?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FoodAliasUncheckedUpdateWithoutFoodInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    aliasNormalized?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FoodAliasUncheckedUpdateManyWithoutFoodInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    aliasNormalized?: StringFieldUpdateOperationsInput | string
+    language?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type WorkoutProgramDayCreateManyProgramInput = {
     id?: string
     dayNumber: number
@@ -19975,6 +21580,10 @@ export namespace Prisma {
      */
     export type WorkoutExerciseCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutExerciseCountOutputTypeDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use FoodCountOutputTypeDefaultArgs instead
+     */
+    export type FoodCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = FoodCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use WorkoutProgramCountOutputTypeDefaultArgs instead
      */
     export type WorkoutProgramCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutProgramCountOutputTypeDefaultArgs<ExtArgs>
@@ -20002,6 +21611,10 @@ export namespace Prisma {
      * @deprecated Use FoodDefaultArgs instead
      */
     export type FoodArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = FoodDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use FoodAliasDefaultArgs instead
+     */
+    export type FoodAliasArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = FoodAliasDefaultArgs<ExtArgs>
     /**
      * @deprecated Use NutritionLogDefaultArgs instead
      */

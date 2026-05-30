@@ -32,6 +32,8 @@ declare global {
     interface Request {
       context: {
         userId: string;
+        /** Role injected by the API gateway via x-user-role header */
+        role: string;
         /** Original Authorization header — forwarded to profile/fitness calls */
         authorizationHeader?: string;
       };
@@ -67,6 +69,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
     );
     req.context = {
       userId: rawUserId,
+      role: (extractHeader(req, 'x-user-role') ?? '').trim(),
       authorizationHeader: extractHeader(req, 'authorization'),
     };
     return next();
@@ -87,6 +90,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
 
   req.context = {
     userId: rawUserId.trim(),
+    role: (extractHeader(req, 'x-user-role') ?? '').trim(),
     authorizationHeader: extractHeader(req, 'authorization'),
   };
   next();

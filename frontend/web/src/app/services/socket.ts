@@ -6,9 +6,8 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    const token = localStorage.getItem('accessToken');
     socket = io(CHAT_WS_URL, {
-      auth: { token },
+      auth: (cb) => cb({ token: localStorage.getItem('accessToken') }),
       autoConnect: false,
       // WebSocket-only: skip HTTP long-polling which triggers the browser tab loading
       // indicator and hangs indefinitely when the chat service is unavailable.

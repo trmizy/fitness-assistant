@@ -13,6 +13,9 @@ import notificationRoutes from './routes/notification.routes';
 import sessionRoutes from './routes/session.routes';
 import availabilityRoutes from './routes/availability.routes';
 import dropboxSignWebhookRouter from './routes/dropboxSignWebhook.routes';
+import internalRoutes from './routes/internal.routes';
+import locationRoutes from './routes/location.routes';
+import trainingLocationRoutes from './routes/training_location.routes';
 
 const app = express();
 
@@ -27,7 +30,7 @@ app.use(pinoHttp({ logger }));
 app.use(metricsMiddleware());
 
 // Ensure upload directories exist
-for (const dir of ['uploads/pt-applications', 'uploads/profile-photos']) {
+for (const dir of ['uploads/pt-applications', 'uploads/profile-photos', 'uploads/contracts']) {
   const p = path.join(process.cwd(), dir);
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 }
@@ -54,5 +57,15 @@ app.use('/contracts', contractRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/sessions', sessionRoutes);
 app.use('/availability', availabilityRoutes);
+
+// Public location data (provinces/wards) — no auth required
+app.use('/locations', locationRoutes);
+
+// PT training location management — requires auth (handled in route middleware)
+app.use('/pt/training-locations', trainingLocationRoutes);
+
+// Service-to-service only. Protected by serviceSecretMiddleware inside the router.
+// NOT exposed via gateway public routing.
+app.use('/internal', internalRoutes);
 
 export default app;

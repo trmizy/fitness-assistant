@@ -16,6 +16,18 @@ export const bookingController = {
     }
   },
 
+  // Get a single session by ID (used by chat-service call policy)
+  async getSessionById(req: any, res: Response) {
+    try {
+      // x-user-id is set by gateway; req.user.id is set by auth middleware (direct calls)
+      const userId = (req.headers['x-user-id'] as string) || req.user?.id;
+      const session = await bookingService.getSessionById(req.params.id, userId);
+      res.json(session);
+    } catch (error: any) {
+      res.status(error.status || 500).json({ error: error.message || 'Failed to get session' });
+    }
+  },
+
   // Get sessions for a contract
   async getContractSessions(req: any, res: Response) {
     try {

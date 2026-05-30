@@ -21,7 +21,7 @@ const inputClass  = "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-
 const selectClass = "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 bg-zinc-800/60 text-zinc-200";
 
 export function ProfilePage() {
-  const { user, isPT, setActiveView } = useApp();
+  const { user, isPT, setActiveView, updateUser } = useApp();
   const navigate = useNavigate();
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,6 +43,13 @@ export function ProfilePage() {
   const [gender, setGender] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
+
+  // Sync isPT from profile API into context/localStorage when user is approved
+  useEffect(() => {
+    if (profileData?.isPT && !isPT) {
+      updateUser({ isPT: true, role: 'PT' });
+    }
+  }, [profileData?.isPT]);
 
   useEffect(() => {
     if (profileData) {

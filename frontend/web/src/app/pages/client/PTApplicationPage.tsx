@@ -6,10 +6,12 @@ import {
   Globe, CheckCircle, ChevronLeft, ChevronRight,
   Upload, X, Check, AlertCircle, Clock, FileText,
   Instagram, Youtube, Linkedin, ArrowLeft, Loader2,
-  Facebook, Plus, Trash2
+  Facebook, Plus, Trash2, MapPin
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { ptApplicationService, PTApplication, PTApplicationCertificate } from "../../services/ptApplicationService";
+import { formatVND } from "../../utils/currency";
+import { locationService } from "../../services/api";
 
 const inp = "w-full px-3 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 placeholder-zinc-600 transition-all";
 const lbl = "text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold";
@@ -193,18 +195,27 @@ export function PTApplicationPage() {
     mainSpecialties: [],
     targetClientGroups: [],
     primaryTrainingGoals: [],
-    operatingAreas: [],
     availableDays: [],
     availabilityBlocks: [],
     sessionDurationMinutes: 60,
     certificates: [{ ...emptyCert }],
     media: [],
+    applicationTrainingLocations: [],
   });
+
+  const emptyTrainingLoc = { provinceCode: '', wardCode: '', gymName: '', addressLine: '', legacyDistrictName: '', isPrimary: false, note: '', wards: [] as { code: number; name: string }[] };
+  const [provinces, setProvinces] = useState<{ code: number; name: string }[]>([]);
+  const [residenceWards, setResidenceWards] = useState<{ code: number; name: string }[]>([]);
+  const [trainingLocations, setTrainingLocations] = useState([{ ...emptyTrainingLoc, isPrimary: true }]);
 
   const { data: appData, isLoading } = useQuery({
     queryKey: ['pt-application-me'],
     queryFn: () => ptApplicationService.getMe()
   });
+
+  useEffect(() => {
+    locationService.getProvinces().then(setProvinces).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (appData) {
@@ -214,19 +225,76 @@ export function PTApplicationPage() {
         mainSpecialties: appData.mainSpecialties || [],
         targetClientGroups: appData.targetClientGroups || [],
         primaryTrainingGoals: appData.primaryTrainingGoals || [],
-        operatingAreas: appData.operatingAreas || [],
         availableDays: appData.availableDays || [],
         availabilityBlocks: appData.availabilityBlocks || [],
         sessionDurationMinutes: appData.sessionDurationMinutes || 60,
         certificates: appData.certificates?.length > 0 ? appData.certificates : [{ ...emptyCert }],
         media: appData.media || [],
+        applicationTrainingLocations: appData.applicationTrainingLocations || [],
       }));
+      // Restore training location UI state from saved data
+      if (appData.applicationTrainingLocations?.length) {
+        const saved = appData.applicationTrainingLocations;
+        setTrainingLocations(saved.map((loc, i) => ({
+          provinceCode: String(loc.provinceCode ?? ''),
+          wardCode: String(loc.wardCode ?? ''),
+          gymName: loc.gymName ?? '',
+          addressLine: loc.addressLine ?? '',
+          legacyDistrictName: loc.legacyDistrictName ?? '',
+          isPrimary: loc.isPrimary ?? (i === 0),
+          note: loc.note ?? '',
+          wards: [],
+        })));
+      }
+      // Restore residence wards
+      if (appData.residenceProvinceCode) {
+        locationService.getWards(appData.residenceProvinceCode).then(setResidenceWards).catch(() => {});
+      }
     }
   }, [appData]);
 
+  const handleResidenceProvinceChange = async (code: string) => {
+    updateField('residenceProvinceCode', code ? Number(code) : undefined);
+    updateField('residenceWardCode', undefined);
+    setResidenceWards(code ? await locationService.getWards(Number(code)).catch(() => []) : []);
+  };
+
+  const handleTrainingProvinceChange = async (idx: number, code: string) => {
+    const updated = [...trainingLocations];
+    updated[idx] = { ...updated[idx], provinceCode: code, wardCode: '', wards: [] };
+    setTrainingLocations(updated);
+    if (code) {
+      const ws = await locationService.getWards(Number(code)).catch(() => []);
+      setTrainingLocations(prev => { const u = [...prev]; u[idx] = { ...u[idx], wards: ws }; return u; });
+    }
+  };
+
+  const updateTrainingLoc = (idx: number, field: string, value: any) => {
+    setTrainingLocations(prev => { const u = [...prev]; u[idx] = { ...u[idx], [field]: value }; return u; });
+  };
+
+  const addTrainingLoc = () => setTrainingLocations(prev => [...prev, { ...emptyTrainingLoc }]);
+
+  const removeTrainingLoc = (idx: number) => setTrainingLocations(prev => prev.filter((_, i) => i !== idx));
+
+  const getValidTrainingLocations = () => trainingLocations.filter(
+    loc => loc.provinceCode && (loc.gymName.trim() || loc.addressLine.trim())
+  ).map((loc, i, arr) => ({
+    provinceCode: Number(loc.provinceCode),
+    wardCode: loc.wardCode ? Number(loc.wardCode) : undefined,
+    gymName: loc.gymName.trim() || undefined,
+    addressLine: loc.addressLine.trim() || undefined,
+    legacyDistrictName: loc.legacyDistrictName.trim() || undefined,
+    isPrimary: arr.findIndex(l => l.isPrimary) === i || i === 0,
+    note: loc.note.trim() || undefined,
+  }));
+
   const saveMutation = useMutation({
     mutationFn: (data: Partial<PTApplication>) => ptApplicationService.saveDraft(data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pt-application-me'] })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pt-application-me'] }),
+    onError: (err: any) => {
+      alert(err.response?.data?.error || err.message || 'Lưu thất bại. Vui lòng thử lại.');
+    }
   });
 
   const submitMutation = useMutation({
@@ -302,8 +370,13 @@ export function PTApplicationPage() {
     updateField('media', allMedia);
   };
 
-  const handleSaveDraft = () => saveMutation.mutate(formData);
-  const handleSubmit = () => submitMutation.mutate();
+  const handleSaveDraft = () => saveMutation.mutate({ ...formData, applicationTrainingLocations: getValidTrainingLocations() });
+  const handleSubmit = () => {
+    saveMutation.mutate(
+      { ...formData, applicationTrainingLocations: getValidTrainingLocations() },
+      { onSuccess: () => submitMutation.mutate() },
+    );
+  };
 
   const validateAvailability = () => {
     if (currentStep !== 5) return true;
@@ -340,6 +413,13 @@ export function PTApplicationPage() {
 
   const goNext = () => {
     if (currentStep === 5 && !validateAvailability()) return;
+    if (currentStep === 5) {
+      const mode = formData.serviceMode;
+      if ((mode === 'OFFLINE' || mode === 'HYBRID') && getValidTrainingLocations().length === 0) {
+        alert('Dịch vụ Offline/Hybrid cần ít nhất 1 nơi luyện tập hợp lệ (chọn tỉnh/thành và tên phòng gym hoặc địa chỉ).');
+        return;
+      }
+    }
     handleSaveDraft();
     setCurrentStep(s => Math.min(s + 1, steps.length - 1));
   };
@@ -439,7 +519,7 @@ export function PTApplicationPage() {
             const done = i < currentStep;
             const active = i === currentStep;
             return (
-              <button key={s.key} onClick={() => setCurrentStep(i)}
+              <button key={s.key} onClick={() => { saveMutation.mutate(formData); setCurrentStep(i); }}
                 className="flex flex-col items-center gap-1.5 flex-1 min-w-[60px] group transition-all">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all flex-shrink-0 ${done ? "bg-green-500 text-black"
                     : active ? "bg-green-500 text-black shadow-lg shadow-green-500/30"
@@ -482,6 +562,36 @@ export function PTApplicationPage() {
               <div>
                 <label className={lbl}>Địa chỉ hiện tại</label>
                 <input type="text" className={inp} placeholder="Số nhà, Thành phố, Quốc gia..." value={formData.currentAddress || ""} onChange={e => updateField("currentAddress", e.target.value)} />
+              </div>
+
+              <div className="border-t border-zinc-800/60 pt-4">
+                <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3 font-semibold flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5" /> Địa chỉ nơi cư trú (chỉ admin thấy)
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className={lbl}>Tỉnh/Thành phố</label>
+                    <select className={inp} value={formData.residenceProvinceCode ?? ''} onChange={e => handleResidenceProvinceChange(e.target.value)}>
+                      <option value="">-- Chọn tỉnh/thành --</option>
+                      {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>Phường/Xã</label>
+                    <select className={inp} value={formData.residenceWardCode ?? ''} onChange={e => updateField('residenceWardCode', e.target.value ? Number(e.target.value) : undefined)} disabled={!formData.residenceProvinceCode}>
+                      <option value="">-- Chọn phường/xã --</option>
+                      {residenceWards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={lbl}>Địa chỉ chi tiết</label>
+                    <input type="text" className={inp} placeholder="Số nhà, tên đường..." maxLength={255} value={formData.residenceAddressLine || ''} onChange={e => updateField('residenceAddressLine', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={lbl}>Quận/Huyện (nếu cần)</label>
+                    <input type="text" className={inp} placeholder="VD: Quận Bình Thạnh" value={formData.residenceLegacyDistrictName || ''} onChange={e => updateField('residenceLegacyDistrictName', e.target.value)} />
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -775,15 +885,9 @@ export function PTApplicationPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={lbl}>Khu vực hoạt động *</label>
-                  <input type="text" className={inp} placeholder="VD: Quận 1, TP.HCM" value={formData.operatingAreas?.[0] || ""} onChange={e => updateField("operatingAreas", [e.target.value])} />
-                </div>
-                <div>
-                  <label className={lbl}>Phòng gym / Cơ sở</label>
-                  <input type="text" className={inp} placeholder="VD: California Fitness, freelance" value={formData.gymAffiliation || ""} onChange={e => updateField("gymAffiliation", e.target.value)} />
-                </div>
+              <div>
+                <label className={lbl}>Phòng gym / Cơ sở</label>
+                <input type="text" className={inp} placeholder="VD: California Fitness, freelance" value={formData.gymAffiliation || ""} onChange={e => updateField("gymAffiliation", e.target.value)} />
               </div>
 
               <div>
@@ -815,11 +919,11 @@ export function PTApplicationPage() {
                         <p className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider mb-2">Giá Online qua video call</p>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <p className="text-[10px] text-zinc-600 mb-1">Giá theo buổi (THB) *</p>
+                            <p className="text-[10px] text-zinc-600 mb-1">Giá theo buổi (VND) *</p>
                             <input type="number" className={inp} placeholder="VD: 500" value={formData.onlinePricePerSession ?? ""} onChange={e => updateField("onlinePricePerSession", e.target.value ? parseFloat(e.target.value) : null)} />
                           </div>
                           <div>
-                            <p className="text-[10px] text-zinc-600 mb-1">Giá gói (THB)</p>
+                            <p className="text-[10px] text-zinc-600 mb-1">Giá gói (VND)</p>
                             <input type="number" className={inp} placeholder="VD: 4500" value={formData.onlinePackagePrice ?? ""} onChange={e => updateField("onlinePackagePrice", e.target.value ? parseFloat(e.target.value) : null)} />
                           </div>
                         </div>
@@ -830,11 +934,11 @@ export function PTApplicationPage() {
                         <p className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider mb-2">Giá Offline tại phòng gym</p>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <p className="text-[10px] text-zinc-600 mb-1">Giá theo buổi (THB) *</p>
+                            <p className="text-[10px] text-zinc-600 mb-1">Giá theo buổi (VND) *</p>
                             <input type="number" className={inp} placeholder="VD: 800" value={formData.offlinePricePerSession ?? ""} onChange={e => updateField("offlinePricePerSession", e.target.value ? parseFloat(e.target.value) : null)} />
                           </div>
                           <div>
-                            <p className="text-[10px] text-zinc-600 mb-1">Giá gói (THB)</p>
+                            <p className="text-[10px] text-zinc-600 mb-1">Giá gói (VND)</p>
                             <input type="number" className={inp} placeholder="VD: 7000" value={formData.offlinePackagePrice ?? ""} onChange={e => updateField("offlinePackagePrice", e.target.value ? parseFloat(e.target.value) : null)} />
                           </div>
                         </div>
@@ -846,7 +950,7 @@ export function PTApplicationPage() {
                         <input type="number" className={inp} placeholder="VD: 10" value={formData.sessionsPerPackage ?? ""} onChange={e => updateField("sessionsPerPackage", e.target.value ? parseInt(e.target.value) : null)} />
                       </div>
                       <div>
-                        <p className="text-[10px] text-zinc-600 mb-1">Gói tháng (THB)</p>
+                        <p className="text-[10px] text-zinc-600 mb-1">Gói tháng (VND)</p>
                         <input type="number" className={inp} placeholder="VD: 3500" value={formData.monthlyProgramPrice ?? ""} onChange={e => updateField("monthlyProgramPrice", e.target.value ? parseFloat(e.target.value) : null)} />
                       </div>
                     </div>
@@ -858,6 +962,63 @@ export function PTApplicationPage() {
                 <label className={lbl}>Ghi chú thêm về giá</label>
                 <textarea className={`${inp} min-h-[80px] resize-none`} placeholder="Giảm giá, gói đặc biệt, buổi thử..." value={formData.additionalPricingNotes || ""} onChange={e => updateField("additionalPricingNotes", e.target.value)} />
               </div>
+
+              {/* Training locations */}
+              {(formData.serviceMode === 'OFFLINE' || formData.serviceMode === 'HYBRID') && (
+                <div className="border-t border-zinc-800/60 pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5" /> Nơi luyện tập *
+                    </p>
+                    <button type="button" onClick={addTrainingLoc} className="flex items-center gap-1.5 px-3 py-1 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-green-400 hover:bg-zinc-700 transition-all">
+                      <Plus className="w-3.5 h-3.5" /> Thêm địa điểm
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    {trainingLocations.map((loc, idx) => (
+                      <div key={idx} className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-zinc-400">Địa điểm {idx + 1}{loc.isPrimary ? ' · Chính' : ''}</span>
+                          <div className="flex items-center gap-2">
+                            {!loc.isPrimary && (
+                              <button type="button" onClick={() => { setTrainingLocations(prev => prev.map((l, i) => ({ ...l, isPrimary: i === idx }))); }} className="text-[11px] text-zinc-500 hover:text-green-400 transition-colors">Đặt làm chính</button>
+                            )}
+                            {idx > 0 && (
+                              <button type="button" onClick={() => removeTrainingLoc(idx)} className="text-zinc-600 hover:text-red-400 transition-colors"><X className="w-3.5 h-3.5" /></button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className={lbl}>Tỉnh/Thành phố *</label>
+                            <select className={inp} value={loc.provinceCode} onChange={e => handleTrainingProvinceChange(idx, e.target.value)}>
+                              <option value="">-- Chọn tỉnh/thành --</option>
+                              {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
+                            </select>
+                          </div>
+                          {loc.wards.length > 0 && (
+                            <div>
+                              <label className={lbl}>Phường/Xã</label>
+                              <select className={inp} value={loc.wardCode} onChange={e => updateTrainingLoc(idx, 'wardCode', e.target.value)}>
+                                <option value="">-- Chọn phường/xã --</option>
+                                {loc.wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
+                              </select>
+                            </div>
+                          )}
+                          <div>
+                            <label className={lbl}>Tên phòng gym</label>
+                            <input type="text" className={inp} placeholder="VD: California Fitness" maxLength={120} value={loc.gymName} onChange={e => updateTrainingLoc(idx, 'gymName', e.target.value)} />
+                          </div>
+                          <div>
+                            <label className={lbl}>Địa chỉ chi tiết</label>
+                            <input type="text" className={inp} placeholder="Số nhà, tên đường..." maxLength={255} value={loc.addressLine} onChange={e => updateTrainingLoc(idx, 'addressLine', e.target.value)} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1036,15 +1197,14 @@ export function PTApplicationPage() {
                   ))}
                   {(formData.availabilityBlocks || []).length === 0 && <p className="text-xs text-zinc-600">Chưa có khung giờ</p>}
                 </div>
-                <ReviewRow label="Khu vực" value={formData.operatingAreas?.[0]} />
                 {(formData.serviceMode === 'ONLINE' || formData.serviceMode === 'HYBRID') && (
-                  <ReviewRow label="Giá Online / buổi" value={formData.onlinePricePerSession ? `฿${formData.onlinePricePerSession}` : undefined} />
+                  <ReviewRow label="Giá Online / buổi" value={formData.onlinePricePerSession ? formatVND(Number(formData.onlinePricePerSession)) : undefined} />
                 )}
                 {(formData.serviceMode === 'OFFLINE' || formData.serviceMode === 'HYBRID') && (
-                  <ReviewRow label="Giá Offline / buổi" value={formData.offlinePricePerSession ? `฿${formData.offlinePricePerSession}` : undefined} />
+                  <ReviewRow label="Giá Offline / buổi" value={formData.offlinePricePerSession ? formatVND(Number(formData.offlinePricePerSession)) : undefined} />
                 )}
                 {!formData.serviceMode && (
-                  <ReviewRow label="Giá" value={formData.desiredSessionPrice ? `฿${formData.desiredSessionPrice} / buổi` : undefined} />
+                  <ReviewRow label="Giá" value={formData.desiredSessionPrice ? `${formatVND(Number(formData.desiredSessionPrice))} / buổi` : undefined} />
                 )}
                 {formData.sessionsPerPackage && <ReviewRow label="Buổi trong gói" value={`${formData.sessionsPerPackage} buổi`} />}
               </ReviewSection>

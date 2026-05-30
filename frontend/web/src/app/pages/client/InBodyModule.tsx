@@ -175,10 +175,14 @@ export function InBodyModule() {
     );
   }
 
-  const confirmExtraction = () => {
+  const confirmExtraction = async () => {
     if (extractedData) {
-      createMutation.mutate(extractedData);
-      setUploadStep("done");
+      try {
+        await createMutation.mutateAsync(extractedData);
+        setUploadStep("done");
+      } catch {
+        // stays on review step; createMutation.isError shows the error inline
+      }
     }
   };
 

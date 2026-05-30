@@ -80,7 +80,8 @@ model UserProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  ptApplication PTApplication?
+  ptApplication     PTApplication?
+  trainingLocations PTTrainingLocation[]
 
   @@map("user_profiles")
 }
@@ -158,6 +159,15 @@ model PTApplication {
   onlinePackagePrice     Float?       @map("online_package_price")
   offlinePackagePrice    Float?       @map("offline_package_price")
   otherReferences        String?      @map("other_references")
+
+  // Residence info (Admin only — not public to Client)
+  residenceProvinceCode       Int?    @map("residence_province_code")
+  residenceWardCode           Int?    @map("residence_ward_code")
+  residenceAddressLine        String? @map("residence_address_line")
+  residenceLegacyDistrictName String? @map("residence_legacy_district_name")
+
+  // Training locations submitted with application (JSON); promoted to PTTrainingLocation on approve
+  applicationTrainingLocations Json? @map("application_training_locations")
 
   // Admin interaction
   adminNote       String? @map("admin_note")
@@ -432,10 +442,82 @@ model PTScheduleException {
   @@map("pt_schedule_exceptions")
 }
 
+// ─── Vietnam Administrative Locations ────────────────────────────
+
+model VietnamProvince {
+  code           Int      @id
+  name           String
+  nameNormalized String   @map("name_normalized")
+  codename       String?
+  divisionType   String?  @map("division_type")
+  phoneCode      Int?     @map("phone_code")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  wards             VietnamWard[]
+  trainingLocations PTTrainingLocation[]
+
+  @@index([name])
+  @@index([nameNormalized])
+  @@index([codename])
+  @@map("vietnam_provinces")
+}
+
+model VietnamWard {
+  code           Int      @id
+  provinceCode   Int      @map("province_code")
+  name           String
+  nameNormalized String   @map("name_normalized")
+  codename       String?
+  divisionType   String?  @map("division_type")
+  shortCodename  String?  @map("short_codename")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  province          VietnamProvince      @relation(fields: [provinceCode], references: [code], onDelete: Cascade)
+  trainingLocations PTTrainingLocation[]
+
+  @@index([provinceCode])
+  @@index([name])
+  @@index([nameNormalized])
+  @@index([codename])
+  @@map("vietnam_wards")
+}
+
+// ─── PT Training Locations ────────────────────────────────────────
+
+model PTTrainingLocation {
+  id                 String   @id @default(uuid())
+  ptUserId           String   @map("pt_user_id")
+  provinceCode       Int      @map("province_code")
+  wardCode           Int?     @map("ward_code")
+  gymName            String?  @map("gym_name")
+  addressLine        String?  @map("address_line")
+  legacyDistrictName String?  @map("legacy_district_name")
+  isPrimary          Boolean  @default(false) @map("is_primary")
+  isActive           Boolean  @default(true) @map("is_active")
+  note               String?
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  province  VietnamProvince @relation(fields: [provinceCode], references: [code])
+  ward      VietnamWard?    @relation(fields: [wardCode], references: [code])
+  ptProfile UserProfile     @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+
+  @@index([ptUserId])
+  @@index([provinceCode])
+  @@index([wardCode])
+  @@index([isActive])
+  @@map("pt_training_locations")
+}
+
 model InBodyEntry {
-  id     String   @id @default(uuid())
-  userId String   @map("user_id")
-  date   DateTime @default(now())
+  id       String   @id @default(uuid())
+  userId   String   @map("user_id")
+  date     DateTime @default(now())
+  // BR-07: at most one InBody entry per user per calendar day. `dateOnly` is the
+  // UTC day component of `date`. The service sets this on every create/update.
+  dateOnly DateTime @map("date_only") @db.Date
 
   // Basic metrics
   weight     Float
@@ -464,6 +546,7 @@ model InBodyEntry {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@unique([userId, dateOnly], name: "inbody_entries_user_id_date_only_key")
   @@index([userId, date])
   @@map("inbody_entries")
 }
