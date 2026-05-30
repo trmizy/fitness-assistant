@@ -518,7 +518,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/app/backend/services/user-service/src/generated/prisma",
+      "value": "D:\\project_personal\\fitness-assistant\\backend\\services\\user-service\\src\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -527,7 +527,7 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "debian-openssl-3.0.x",
+        "value": "windows",
         "native": true
       },
       {
@@ -536,11 +536,12 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/app/backend/services/user-service/prisma/schema.prisma",
+    "sourceFilePath": "D:\\project_personal\\fitness-assistant\\backend\\services\\user-service\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null
+    "rootEnvPath": null,
+    "schemaEnvPath": "../../../.env"
   },
   "relativePath": "../../../prisma",
   "clientVersion": "5.22.0",
@@ -549,6 +550,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {

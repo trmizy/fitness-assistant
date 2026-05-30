@@ -164,10 +164,14 @@ export const workoutRepository = {
         data: {
           workoutId,
           exerciseId,
+          sets: 0,
           order: (maxOrder?.order ?? -1) + 1,
         },
         include: { workoutSets: true },
       });
+    }
+    if (!workoutExercise) {
+      throw new Error('Workout exercise could not be created');
     }
     const nextSetNumber =
       setData.setNumber ?? ((workoutExercise.workoutSets[0]?.setNumber ?? 0) + 1);

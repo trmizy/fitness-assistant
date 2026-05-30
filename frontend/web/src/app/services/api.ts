@@ -1,8 +1,14 @@
+export interface PlanExplanationResponse {
+  planId: string;
+  explanation: string;
+  source: 'llm' | 'fallback';
+  warnings: string[];
+}
 import axios from 'axios';
 import { makeRefreshOnce } from './refresh-once';
 
 // @ts-ignore - ImportMeta.env is provided by Vite
-export const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -161,30 +167,9 @@ export const profileService = {
     return data;
   },
 
-  listPTs: async (filters?: {
-    q?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    sessionMode?: string;
-    provinceCode?: number;
-    wardCode?: number;
-    sortBy?: string;
-    page?: number;
-    limit?: number;
-  }) => {
-    const { data } = await api.get('/profile/pts', { params: filters });
+  listPTs: async () => {
+    const { data } = await api.get('/profile/pts');
     return data;
-  },
-};
-
-export const locationService = {
-  getProvinces: async () => {
-    const { data } = await api.get('/locations/provinces');
-    return data as { code: number; name: string; codename?: string; divisionType?: string }[];
-  },
-  getWards: async (provinceCode: number) => {
-    const { data } = await api.get(`/locations/provinces/${provinceCode}/wards`);
-    return data as { code: number; name: string; codename?: string }[];
   },
 };
 
@@ -247,6 +232,11 @@ export const workoutService = {
     return data;
   },
 
+  getSchedules: async (limit = 20) => {
+    const { data } = await api.get(`/workouts/schedules?limit=${limit}`);
+    return data;
+  },
+
   getPRs: async (exerciseId?: string) => {
     const url = exerciseId ? `/workouts/prs?exerciseId=${exerciseId}` : '/workouts/prs';
     const { data } = await api.get(url);
@@ -259,35 +249,368 @@ export const workoutService = {
   },
 };
 
+export type PlanStatusBackend = 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export interface ExerciseItem {
+  exerciseId?: string;
+  order?: number;
+  name?: string;
+  sets?: number | string;
+  reps?: number | string;
+  restSeconds?: number;
+  note?: string;
+  muscleGroup?: string;
+  equipment?: string;
+  intensity?: string;
+}
+
+export interface WeeklyScheduleItem {
+  day?: string | number;
+  focus?: string;
+  goal?: string;
+  exercises?: ExerciseItem[];
+  notes?: string;
+  cardio?: string;
+}
+
+export interface PlanContent {
+  goal?: string;
+  durationWeeks?: number;
+  daysPerWeek?: number;
+  exercisesPerDay?: number;
+  weeklySchedule?: WeeklyScheduleItem[];
+  progressionNotes?: string[];
+  recoveryNotes?: string[];
+  nutritionSummary?: string;
+}
+
+export interface WorkoutPlanRecord {
+  id: string;
+  userId?: string;
+  name?: string;
+  description?: string;
+  goal?: string;
+  duration?: number;
+  daysPerWeek?: number;
+  plan?: PlanContent | unknown;
+  status: PlanStatusBackend;
+  version?: number;
+  jobId?: string | null;
+  failReason?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  archivedAt?: string | null;
+}
+
+export interface WorkoutScheduleExerciseRecord {
+  order: number;
+  sets: number;
+  reps: number | null;
+  restSeconds?: number | null;
+  notes?: string | null;
+  exercise?: {
+    id: string;
+    exerciseName: string;
+    typeOfActivity?: string;
+    muscleGroupsActivated?: string[];
+  };
+}
+
+export interface WorkoutScheduleProgramDayRecord {
+  id: string;
+  dayNumber: number;
+  title: string;
+  description?: string | null;
+  program?: {
+    id: string;
+    name: string;
+    sourcePlanId?: string | null;
+    sourceType?: string | null;
+    aiPlanVersion?: number | null;
+  };
+  exercises?: WorkoutScheduleExerciseRecord[];
+}
+
+export interface WorkoutScheduleRecord {
+  id: string;
+  userId: string;
+  date: string;
+  sourcePlanId?: string | null;
+  sourceType?: string | null;
+  notes?: string | null;
+  programDay?: WorkoutScheduleProgramDayRecord | null;
+  workout?: unknown | null;
+}
+
+export interface PlanJobResponse {
+  planId: string;
+  jobId: string;
+  status: PlanStatusBackend;
+}
+
+export interface PlanJobStatusResponse {
+  jobId?: string;
+  planId?: string | null;
+  status: PlanStatusBackend;
+  failReason?: string | null;
+}
+
+export interface LlmHealthStatus {
+  llmAvailable: boolean;
+  llmProvider: string;
+  llmUrl: string;
+  model: string;
+  embeddingModel: string;
+  checkedAt: string;
+  error?: string;
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null;
+}
+
+function unwrapApiPayload<T = unknown>(payload: unknown): T {
+  if (isRecord(payload) && 'data' in payload) {
+    return payload.data as T;
+  }
+  return payload as T;
+}
+
+function normalizePlanStatus(value: unknown): PlanStatusBackend {
+  if (typeof value === 'string') {
+    const upper = value.toUpperCase();
+    if (upper === 'QUEUED' || upper === 'PROCESSING' || upper === 'COMPLETED' || upper === 'FAILED') {
+      return upper;
+    }
+    if (upper === 'WAITING' || upper === 'DELAYED') return 'QUEUED';
+    if (upper === 'ACTIVE') return 'PROCESSING';
+  }
+  return 'QUEUED';
+}
+
+function extractPlanJobResponse(payload: unknown): PlanJobResponse {
+  const data = unwrapApiPayload<unknown>(payload);
+  if (!isRecord(data)) {
+    throw new Error('Invalid generate/adjust response payload');
+  }
+
+  const planId = typeof data.planId === 'string' ? data.planId : '';
+  const jobId = typeof data.jobId === 'string' ? data.jobId : '';
+  const status = normalizePlanStatus(data.status);
+
+  if (!planId || !jobId) {
+    throw new Error('Missing planId/jobId in generate/adjust response');
+  }
+
+  return { planId, jobId, status };
+}
+
+function extractCurrentPlans(payload: unknown): WorkoutPlanRecord[] {
+  const unwrapped = unwrapApiPayload<unknown>(payload);
+
+  if (Array.isArray(unwrapped)) {
+    return unwrapped as WorkoutPlanRecord[];
+  }
+
+  if (isRecord(unwrapped)) {
+    if (Array.isArray(unwrapped.plans)) {
+      return unwrapped.plans as WorkoutPlanRecord[];
+    }
+    if (Array.isArray(unwrapped.data)) {
+      return unwrapped.data as WorkoutPlanRecord[];
+    }
+  }
+
+  return [];
+}
+
+function extractPlanRecord(payload: unknown): WorkoutPlanRecord {
+  const unwrapped = unwrapApiPayload<unknown>(payload);
+
+  if (isRecord(unwrapped) && isRecord(unwrapped.plan)) {
+    return unwrapped.plan as WorkoutPlanRecord;
+  }
+  if (isRecord(unwrapped)) {
+    return unwrapped as WorkoutPlanRecord;
+  }
+
+  throw new Error('Invalid plan detail response');
+}
+
+function extractJobStatus(payload: unknown): PlanJobStatusResponse {
+  const data = unwrapApiPayload<unknown>(payload);
+  if (!isRecord(data)) {
+    throw new Error('Invalid job status response payload');
+  }
+
+  return {
+    jobId: typeof data.jobId === 'string' ? data.jobId : undefined,
+    planId: typeof data.planId === 'string' ? data.planId : null,
+    status: normalizePlanStatus(data.status),
+    failReason: typeof data.failReason === 'string' ? data.failReason : null,
+  };
+}
+
+function extractExplanation(payload: unknown): PlanExplanationResponse {
+  const unwrapped = unwrapApiPayload<unknown>(payload);
+  if (typeof unwrapped === 'string') {
+    return { planId: '', explanation: unwrapped, source: 'llm', warnings: [] };
+  }
+
+  if (isRecord(unwrapped)) {
+    if (typeof unwrapped.explanation === 'string') {
+      return {
+        planId: typeof unwrapped.planId === 'string' ? unwrapped.planId : '',
+        explanation: unwrapped.explanation,
+        source: unwrapped.source === 'fallback' ? 'fallback' : 'llm',
+        warnings: Array.isArray(unwrapped.warnings) ? unwrapped.warnings.filter((item): item is string => typeof item === 'string') : [],
+      };
+    }
+    if (isRecord(unwrapped.data) && typeof unwrapped.data.explanation === 'string') {
+      return {
+        planId: typeof unwrapped.data.planId === 'string' ? unwrapped.data.planId : '',
+        explanation: unwrapped.data.explanation,
+        source: unwrapped.data.source === 'fallback' ? 'fallback' : 'llm',
+        warnings: Array.isArray(unwrapped.data.warnings) ? unwrapped.data.warnings.filter((item): item is string => typeof item === 'string') : [],
+      };
+    }
+    return {
+      planId: '',
+      explanation: JSON.stringify(unwrapped, null, 2),
+      source: 'llm',
+      warnings: [],
+    };
+  }
+
+  return { planId: '', explanation: String(unwrapped ?? ''), source: 'llm', warnings: [] };
+}
+
+function extractLlmHealth(payload: unknown): LlmHealthStatus {
+  const unwrapped = unwrapApiPayload<unknown>(payload);
+  if (isRecord(unwrapped) && typeof unwrapped.llmAvailable === 'boolean') {
+    return {
+      llmAvailable: unwrapped.llmAvailable,
+      llmProvider: typeof unwrapped.llmProvider === 'string' ? unwrapped.llmProvider : 'unknown',
+      llmUrl: typeof unwrapped.llmUrl === 'string' ? unwrapped.llmUrl : '',
+      model: typeof unwrapped.model === 'string' ? unwrapped.model : '',
+      embeddingModel: typeof unwrapped.embeddingModel === 'string' ? unwrapped.embeddingModel : '',
+      checkedAt: typeof unwrapped.checkedAt === 'string' ? unwrapped.checkedAt : new Date().toISOString(),
+      error: typeof unwrapped.error === 'string' ? unwrapped.error : undefined,
+    };
+  }
+
+  return {
+    llmAvailable: false,
+    llmProvider: 'unknown',
+    llmUrl: '',
+    model: '',
+    embeddingModel: '',
+    checkedAt: new Date().toISOString(),
+    error: 'Invalid LLM health response',
+  };
+}
+
 export const planService = {
-  generateWorkoutPlan: async (params: {
+  getLlmHealth: async (): Promise<LlmHealthStatus> => {
+    const { data } = await api.get('/plans/llm-health', {
+      timeout: 5000,
+      validateStatus: () => true,
+    });
+    return extractLlmHealth(data);
+  },
+
+  generateWorkoutPlan: async (input: {
     goal: string;
     durationWeeks: number;
     daysPerWeek: number;
+    exercisesPerDay?: number;
     contractId?: string;
-  }) => {
-    const { data } = await api.post('/plans/workout/generate', params);
-    return data;
+  }): Promise<PlanJobResponse> => {
+    const { data } = await api.post('/plans/workout/generate', input);
+    return extractPlanJobResponse(data);
   },
 
-  explainPlan: async (planType: 'workout' | 'meal') => {
-    const { data } = await api.post('/plans/explain', { planType });
-    return data;
+  getCurrentPlans: async (includeArchived = false): Promise<WorkoutPlanRecord[]> => {
+    const { data } = await api.get(`/plans/current${includeArchived ? '?includeArchived=true' : ''}`);
+    return extractCurrentPlans(data);
   },
 
-  adjustPlan: async (planType: 'workout' | 'meal', adjustments: any) => {
-    const { data } = await api.post('/plans/adjust', { planType, adjustments });
-    return data;
+  getPlanById: async (planId: string): Promise<WorkoutPlanRecord> => {
+    const { data } = await api.get(`/plans/${planId}`);
+    return extractPlanRecord(data);
   },
 
-  getShoppingList: async () => {
-    const { data } = await api.get('/plans/shopping-list');
-    return data;
+  getJobStatus: async (jobId: string): Promise<PlanJobStatusResponse> => {
+    const { data } = await api.get(`/plans/job/${jobId}`);
+    return extractJobStatus(data);
   },
 
-  getCurrentPlans: async () => {
-    const { data } = await api.get('/plans/current');
-    return data;
+  explainPlan: async (planId: string, lang = 'vi'): Promise<PlanExplanationResponse> => {
+    const { data } = await api.post(
+      `/plans/explain?lang=${encodeURIComponent(lang)}`,
+      { planId },
+      { timeout: 30000 },
+    );
+    return extractExplanation(data);
+  },
+
+  archivePlan: async (planId: string) => {
+    const { data } = await api.delete(`/plans/${planId}`);
+    return unwrapApiPayload<unknown>(data);
+  },
+
+  savePlanToWorkoutLog: async (
+    planId: string,
+    input: { startDate?: string; repeatWeeks?: number },
+  ): Promise<{
+    sourcePlanId: string;
+    createdProgramId?: string;
+    createdScheduleCount: number;
+    skippedDuplicateCount: number;
+    alreadyExists?: boolean;
+    message?: string;
+  }> => {
+    const { data } = await api.post(`/plans/${planId}/save-to-workout-log`, input);
+    const unwrapped = unwrapApiPayload<unknown>(data);
+
+    if (isRecord(unwrapped)) {
+      return {
+        sourcePlanId: typeof unwrapped.sourcePlanId === 'string' ? unwrapped.sourcePlanId : planId,
+        createdProgramId: typeof unwrapped.createdProgramId === 'string' ? unwrapped.createdProgramId : undefined,
+        createdScheduleCount: typeof unwrapped.createdScheduleCount === 'number' ? unwrapped.createdScheduleCount : 0,
+        skippedDuplicateCount: typeof unwrapped.skippedDuplicateCount === 'number' ? unwrapped.skippedDuplicateCount : 0,
+        alreadyExists: typeof unwrapped.alreadyExists === 'boolean' ? unwrapped.alreadyExists : undefined,
+        message: typeof unwrapped.message === 'string' ? unwrapped.message : undefined,
+      };
+    }
+
+    return {
+      sourcePlanId: planId,
+      createdScheduleCount: 0,
+      skippedDuplicateCount: 0,
+    };
+  },
+
+  adjustPlan: async (
+    planId: string,
+    adjustments: string,
+    daysPerWeek?: number,
+    exercisesPerDay?: number,
+  ): Promise<PlanJobResponse> => {
+    const body: { planId: string; adjustments: string; daysPerWeek?: number; exercisesPerDay?: number } = {
+      planId,
+      adjustments,
+    };
+    if (typeof daysPerWeek === 'number') {
+      body.daysPerWeek = daysPerWeek;
+    }
+    if (typeof exercisesPerDay === 'number') {
+      body.exercisesPerDay = exercisesPerDay;
+    }
+    const { data } = await api.post('/plans/adjust', body);
+    return extractPlanJobResponse(data);
   },
 };
 
@@ -760,6 +1083,17 @@ export const ptPlanReviewService = {
   submitReview: async (planId: string, body: { action: 'APPROVE' | 'REJECT'; note?: string }) => {
     const { data } = await api.post(`/plans/${planId}/pt-review`, body);
     return data;
+  },
+};
+
+export const locationService = {
+  getProvinces: async () => {
+    const { data } = await api.get('/locations/provinces');
+    return data as { code: number; name: string; codename?: string; divisionType?: string }[];
+  },
+  getWards: async (provinceCode: number) => {
+    const { data } = await api.get(`/locations/provinces/${provinceCode}/wards`);
+    return data as { code: number; name: string; codename?: string }[];
   },
 };
 

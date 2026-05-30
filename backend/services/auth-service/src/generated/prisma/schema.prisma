@@ -22,10 +22,9 @@ model User {
   firstName String?
   lastName  String?
   role      Role     @default(CUSTOMER)
-  // BUG-002: enable admin disable/enable. camelCase column to match existing
-  // table convention (firstName/lastName/createdAt). Default true keeps existing
-  // rows enabled after the users_isactive migration.
-  isActive  Boolean  @default(true)
+  // BUG-002: the live table currently stores this as isactive.
+  // Map the Prisma field to the existing column so login works without a data migration.
+  isActive  Boolean  @default(true) @map("isactive")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

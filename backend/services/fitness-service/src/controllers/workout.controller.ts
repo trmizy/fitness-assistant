@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { workoutService } from '../services/workout.service';
-import { createWorkoutSchema, updateWorkoutSetSchema } from '../models/fitness.models';
+import { createWorkoutSchema, importAiPlanSchema, updateWorkoutSetSchema } from '../models/fitness.models';
 import { formatZodErrors } from '../utils/workout-validation';
 import type { AuthRequest } from '../middleware/auth.middleware';
 
@@ -145,6 +145,36 @@ export const workoutController = {
   },
 
   // POST /workouts/:id/sets — append a single set to a workout's exercise.
+  async listSchedules(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const limit = req.query.limit ? Number(req.query.limit) : undefined;
+      const schedules = await workoutService.listSchedules(req.user!.id, limit);
+      res.json(schedules);
+    } catch (error) {
+      logger.error({ err: error }, 'Error fetching workout schedules');
+      res.status(500).json({ error: 'Failed to fetch workout schedules' });
+    }
+  },
+
+  async importAiPlan(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const data = importAiPlanSchema.parse(req.body);
+      const result = await workoutService.importAiPlanToSchedule(req.user!.id, data);
+      res.status(201).json(result);
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Invalid AI plan data', details: formatZodErrors(error.errors) });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, 'Error importing AI plan');
+      res.status(500).json({ error: 'Failed to import AI plan' });
+    }
+  },
+
   async addSet(req: AuthRequest, res: Response): Promise<void> {
     try {
       const result = await workoutService.addSet(req.params.id, req.user!.id, req.body);

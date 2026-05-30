@@ -116,7 +116,7 @@ test('gateway forwards x-internal-token and user identity to AI service', async 
     body: JSON.stringify({ question: 'create my workout plan' }),
   });
 
-  const responseBody = await res.json();
+  const responseBody = (await res.json()) as { success: boolean };
 
   assert.equal(res.status, 200);
   assert.equal(responseBody.success, true);

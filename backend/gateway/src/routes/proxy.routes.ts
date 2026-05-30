@@ -414,7 +414,7 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
   try {
     const authHeader = req.headers.authorization;
 
-    const [usersRes, ptsRes, statsRes, probes] = await Promise.all([
+    const [usersResult, ptsResult, statsResult, probesResult] = await Promise.allSettled([
       axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
         headers: authHeader ? { Authorization: authHeader } : undefined,
         timeout: 6000,
@@ -430,9 +430,27 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
       probeServices(),
     ]);
 
-    const users = ((usersRes.data?.users || []) as AuthUser[]).filter((u) => u.role !== 'ADMIN');
-    const ptProfiles = (ptsRes.data?.pts || []) as PTProfile[];
-    const activeContracts = statsRes.data?.activeContracts || 0;
+    const usersRes = usersResult.status === 'fulfilled' ? usersResult.value : null;
+    const ptsRes = ptsResult.status === 'fulfilled' ? ptsResult.value : null;
+    const statsRes = statsResult.status === 'fulfilled' ? statsResult.value : null;
+    const probes = probesResult.status === 'fulfilled' ? probesResult.value : [];
+
+    if (usersResult.status === 'rejected') {
+      logger.error({ error: usersResult.reason?.message }, 'Admin dashboard users upstream failed');
+    }
+    if (ptsResult.status === 'rejected') {
+      logger.error({ error: ptsResult.reason?.message }, 'Admin dashboard PT upstream failed');
+    }
+    if (statsResult.status === 'rejected') {
+      logger.error({ error: statsResult.reason?.message }, 'Admin dashboard stats upstream failed');
+    }
+    if (probesResult.status === 'rejected') {
+      logger.error({ error: probesResult.reason?.message }, 'Admin dashboard monitor probe failed');
+    }
+
+    const users = ((usersRes?.data?.users || []) as AuthUser[]).filter((u) => u.role !== 'ADMIN');
+    const ptProfiles = (ptsRes?.data?.pts || []) as PTProfile[];
+    const activeContracts = statsRes?.data?.activeContracts || 0;
     const ptSet = new Set(ptProfiles.filter((p) => p.isPT).map((p) => p.userId));
 
     const totalUsers = users.length;
@@ -469,6 +487,32 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
     const trainerCount = users.filter((u) => u.role === 'PT' || ptSet.has(u.id)).length;
 
     const monitorSummary = buildMonitorSummary(probes);
+    const upstreamWarnings = [
+      usersResult.status === 'rejected'
+        ? {
+            level: 'warning',
+            service: 'Auth Service',
+            message: 'Unable to fetch user list for dashboard. Showing partial data.',
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          }
+        : null,
+      ptsResult.status === 'rejected'
+        ? {
+            level: 'warning',
+            service: 'User Service',
+            message: 'Unable to fetch PT profiles for dashboard. Showing partial data.',
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          }
+        : null,
+      statsResult.status === 'rejected'
+        ? {
+            level: 'warning',
+            service: 'User Service',
+            message: 'Unable to fetch admin stats for dashboard. Showing partial data.',
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          }
+        : null,
+    ].filter(Boolean);
 
     const recentUsers = users
       .slice(0, 4)
@@ -482,6 +526,7 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
 
     const alerts = [
       ...monitorSummary.recentErrors,
+      ...upstreamWarnings,
       pendingPT > 0
         ? {
             level: 'info',
@@ -511,7 +556,7 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
         ],
         systemAlerts: alerts,
         recentUsers,
-        ocrStats: statsRes.data?.ocrStats || { total: 0, extracted: 0, manual: 0, pending: 0 },
+        ocrStats: statsRes?.data?.ocrStats || { total: 0, extracted: 0, manual: 0, pending: 0 },
         monitor: {
           healthScore: monitorSummary.healthScore,
           healthyCount: monitorSummary.healthyCount,

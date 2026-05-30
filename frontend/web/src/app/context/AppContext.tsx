@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { User } from "../types";
 import { authService } from "../services/api";
+import { clearPendingAiState } from "../stores/pendingAiTasks";
 
 export type UserRole = "client" | "pt" | "admin";
 export type WorkspaceView = "client" | "pt";
@@ -28,6 +30,7 @@ function hasUsableToken(token: string | null): token is string {
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
   const [isAuthenticated, setIsAuth]  = useState(() => hasUsableToken(localStorage.getItem("accessToken")));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeView, setActiveView]   = useState<WorkspaceView>("client");
@@ -53,6 +56,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await authService.login(email, password);
       if (res.success && res.user) {
+        queryClient.clear();
         localStorage.setItem("user", JSON.stringify(res.user));
         setUser(res.user);
         setIsAuth(true);
@@ -66,6 +70,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    if (user?.id) {
+      clearPendingAiState(user.id);
+    }
+    queryClient.clear();
     authService.logout(); // Clears localStorage and redirects to /login in the old code
     // But since we want to handle it here too:
     localStorage.removeItem("accessToken");

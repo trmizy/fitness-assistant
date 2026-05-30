@@ -236,6 +236,7 @@ services:
       FITNESS_SERVICE_URL: http://fitness-service:3002
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       LLM_BASE_URL: http://ollama:11434
+      OLLAMA_BASE_URL: http://ollama:11434
       LLM_MODEL: llama3.2:3b
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
@@ -254,7 +255,7 @@ services:
       qdrant:
         condition: service_started
       ollama:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
       interval: 20s
@@ -355,6 +356,12 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     deploy:
       resources:
         reservations:

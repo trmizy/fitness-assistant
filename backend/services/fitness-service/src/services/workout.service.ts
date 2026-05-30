@@ -189,6 +189,26 @@ export const workoutService = {
       const exercises: MappedAiExercise[] = [];
 
       for (const exercise of day.exercises) {
+        // If the AI provided an exerciseId, prefer it and DO NOT fallback to name matching.
+        if (exercise.exerciseId && typeof exercise.exerciseId === 'string' && exercise.exerciseId.trim()) {
+          const found = catalog.find((c) => c.id === exercise.exerciseId);
+          if (!found) {
+            unmatchedExercises.add(exercise.exerciseId);
+            continue;
+          }
+          const parsedReps = Number.parseInt(String(exercise.reps).match(/\d+/)?.[0] ?? '', 10);
+          exercises.push({
+            exerciseId: found.id,
+            order: exercise.order ?? exercises.length + 1,
+            sets: exercise.sets,
+            reps: Number.isFinite(parsedReps) ? parsedReps : null,
+            restSeconds: exercise.restSeconds,
+            notes: exercise.note,
+          });
+          continue;
+        }
+
+        // No exerciseId provided: fallback to name matching (legacy support)
         const match = findExerciseMatch(catalog, exercise.name);
         if (!match) {
           unmatchedExercises.add(exercise.name);

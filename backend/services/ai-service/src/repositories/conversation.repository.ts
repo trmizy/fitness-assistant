@@ -162,7 +162,7 @@ export const conversationRepository = {
     const { filter = 'all', intent, page = 1, limit = 20 } = query;
     const skip = (page - 1) * limit;
 
-    const where: Parameters<typeof prisma.conversation.findMany>[0]['where'] = {};
+    const where: any = {};
     if (filter === 'fallback') where.usedFallback = true;
     if (filter === 'slow')     where.responseTime = { gt: 10 };
     if (filter === 'warnings') where.warningCount = { gt: 0 };
@@ -176,6 +176,8 @@ export const conversationRepository = {
         take: limit,
         select: {
           id: true,
+          userId: true,
+          question: true,
           modelUsed: true,
           responseTime: true,
           responseLanguage: true,
@@ -205,6 +207,9 @@ export const conversationRepository = {
       where: { id },
       select: {
         id: true,
+        userId: true,
+        question: true,
+        answer: true,
         modelUsed: true,
         responseTime: true,
         responseLanguage: true,
@@ -246,6 +251,7 @@ export const conversationRepository = {
         version: true,
         jobId: true,
         failReason: true,
+        archivedAt: true,
         createdAt: true,
         updatedAt: true,
         duration: true,
@@ -291,7 +297,7 @@ export const conversationRepository = {
     clientName?: string | null;
   }) {
     return prisma.workoutPlan.create({
-      data: { ...data, plan: {}, status: PlanStatus.QUEUED, version: 1 },
+      data: { ...data, plan: {}, status: PlanStatus.QUEUED, version: 1, archivedAt: null },
     });
   },
 
@@ -339,6 +345,14 @@ export const conversationRepository = {
 
   findPlansByUser(userId: string, status?: PlanStatus, limit = 10) {
     return prisma.workoutPlan.findMany({
+      where: { userId, ...(status !== undefined ? { status } : {}), archivedAt: null },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  },
+
+  findPlansByUserIncludingArchived(userId: string, status?: PlanStatus, limit = 10) {
+    return prisma.workoutPlan.findMany({
       where: { userId, ...(status !== undefined ? { status } : {}) },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -347,6 +361,13 @@ export const conversationRepository = {
 
   findPlanById(planId: string) {
     return prisma.workoutPlan.findUnique({ where: { id: planId } });
+  },
+
+  archivePlan(planId: string) {
+    return prisma.workoutPlan.update({
+      where: { id: planId },
+      data: { archivedAt: new Date() },
+    });
   },
 
   findPlanByJobId(jobId: string) {

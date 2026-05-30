@@ -1,16 +1,13 @@
-import axios from 'axios';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { conversationRepository, PlanStatus } from '../repositories/conversation.repository';
 import { llmService } from './llm.service';
 import { aiQueue } from '../workers/ai.worker';
-import type { GenerateWorkoutRequest, GeneratePlanRequest } from '../schemas/ai.schemas';
+import type { GenerateWorkoutRequest } from '../schemas/ai.schemas';
+import type { GeneratePlanRequest as PlanGenerateRequest } from '../schemas/plan.schemas';
 import { ApiError, LlmGenerationError } from '../errors/api-error';
 
 // ── Service URLs for internal calls ──────────────────────────────────────────
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://user-service:3004';
-const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
-const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 
 // ── Quick-workout exercise schema (simpler than full plan) ────────────────────
 const QuickExerciseSchema = z.object({
@@ -101,12 +98,13 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     };
   },
 
-  async queuePlanGeneration(params: GeneratePlanRequest & {
+  async queuePlanGeneration(params: PlanGenerateRequest & {
     userId: string;
     ptUserId?: string | null;
     clientName?: string | null;
+    exercisesPerDay?: number;
   }) {
-    const { userId, goal, durationWeeks, daysPerWeek, ptUserId = null, clientName = null } = params;
+    const { userId, goal, durationWeeks, daysPerWeek, exercisesPerDay, ptUserId = null, clientName = null } = params;
 
     // Create the plan record immediately — persist ptUserId/clientName so the worker
     // can read them from DB (worker does not trust job-data for PT assignment).
@@ -127,6 +125,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       goal,
       durationWeeks,
       daysPerWeek,
+      exercisesPerDay,
     });
 
     // Link the job ID so the plan record is discoverable by jobId.
@@ -141,6 +140,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     userId: string;
     adjustments: string;
     daysPerWeek?: number;
+    exercisesPerDay?: number;
   }) {
     const original = await conversationRepository.findPlanById(params.originalPlanId);
     if (!original) {
@@ -158,7 +158,9 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     }
 
     const newVersion = original.version + 1;
+    const originalPlanContent = original.plan as { exercisesPerDay?: number } | null;
     const daysPerWeek = params.daysPerWeek ?? original.daysPerWeek;
+    const exercisesPerDay = params.exercisesPerDay ?? originalPlanContent?.exercisesPerDay ?? 4;
 
     const newPlan = await conversationRepository.createAdjustedPlan({
       userId: params.userId,
@@ -176,6 +178,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       goal: original.goal,
       durationWeeks: original.duration,
       daysPerWeek,
+      exercisesPerDay,
       adjustmentContext: params.adjustments,
     });
 

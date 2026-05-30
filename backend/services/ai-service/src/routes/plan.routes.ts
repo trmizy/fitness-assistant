@@ -7,12 +7,19 @@ import {
   GeneratePlanRequestSchema,
   ExplainPlanRequestSchema,
   AdjustPlanRequestSchema,
+  SavePlanToWorkoutLogRequestSchema,
 } from '../schemas/plan.schemas';
 
 const router = Router();
 
 // All /plans/* routes require a verified user identity.
 router.use(requireAuth);
+
+/**
+ * GET /plans/llm-health
+ * Preflight check used by the UI before starting LLM-backed actions.
+ */
+router.get('/llm-health', planController.getLlmHealth);
 
 /**
  * POST /plans/workout/generate
@@ -72,6 +79,22 @@ router.get('/pt/pending-review', requireRole(['PT']), planController.getPTPendin
  * PT submits approve/reject decision on a plan.
  */
 router.post('/:planId/pt-review', requireRole(['PT']), planController.submitPTReview);
+
+/**
+ * DELETE /plans/:planId
+ * Soft-archive a plan without removing workout history.
+ */
+router.delete('/:planId', planController.archivePlan);
+
+/**
+ * POST /plans/:planId/save-to-workout-log
+ * Persist a COMPLETED AI plan into the user's workout schedule.
+ */
+router.post(
+  '/:planId/save-to-workout-log',
+  validateBody(SavePlanToWorkoutLogRequestSchema),
+  planController.savePlanToWorkoutLog,
+);
 
 /**
  * GET /plans/:planId

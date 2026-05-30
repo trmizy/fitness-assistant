@@ -92,3 +92,7 @@ data/nutrition.zip
 
 # Local test/scratch files
 FitnessAssistant_TestPrompt_v2.md
+data/nutrition/*.csv
+data/nutrition/*.zip
+data/nutrition/*.xlsx
+data/nutrition/FoodData_Central_csv_2026-04-30

@@ -31,4 +31,4 @@ RUN mkdir -p /app/backend/services/user-service/uploads/pt-applications
 WORKDIR /app/backend/services/user-service
 EXPOSE 3004
 
-CMD ["sh", "-c", "node_modules/.bin/prisma db push --accept-data-loss && pnpm run dev"]
+CMD ["sh", "-c", "pnpm run dev"]

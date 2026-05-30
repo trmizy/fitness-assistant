@@ -44,27 +44,36 @@ app.use('/chat', chatRoutes);
 app.use('/chat/calls', callRoutes);
 
 // Internal notification push — validated by shared secret (Docker-internal only)
-app.post('/internal/push-notification', (req: Request, res: Response) => {
+app.post('/internal/push-notification', (req: Request, res: Response): void => {
   const secret = req.headers['x-internal-secret'];
   if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
   }
 
   const io = getIo();
-  if (!io) return res.status(503).json({ error: 'Socket not ready' });
+  if (!io) {
+    res.status(503).json({ error: 'Socket not ready' });
+    return;
+  }
 
   const { userId, adminBroadcast, notification } = req.body;
-  if (!notification) return res.status(400).json({ error: 'Missing notification' });
+  if (!notification) {
+    res.status(400).json({ error: 'Missing notification' });
+    return;
+  }
 
   if (adminBroadcast) {
     io.to('admin:notifications').emit('notification:new', notification);
   } else if (userId) {
     io.to(`user:${userId}`).emit('notification:new', notification);
   } else {
-    return res.status(400).json({ error: 'Missing userId or adminBroadcast' });
+    res.status(400).json({ error: 'Missing userId or adminBroadcast' });
+    return;
   }
 
   res.json({ ok: true });
+  return;
 });
 
 // 404 handler

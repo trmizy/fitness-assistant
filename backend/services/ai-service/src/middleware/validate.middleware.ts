@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
+import { ZodSchema, ZodError, ZodTypeAny } from 'zod';
 import { formatErrorResponse } from '../errors/api-error';
 
 /**
@@ -24,7 +24,7 @@ export function validateBody<T>(schema: ZodSchema<T>) {
 /**
  * Returns an Express middleware that validates `req.query` against the given Zod schema.
  */
-export function validateQuery<T>(schema: ZodSchema<T>) {
+export function validateQuery(schema: ZodTypeAny) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req.query);
     if (!result.success) {
@@ -34,7 +34,7 @@ export function validateQuery<T>(schema: ZodSchema<T>) {
       return;
     }
     // Cast: callers access validated query through req.query after this middleware.
-    (req as Request & { query: T }).query = result.data as unknown as typeof req.query;
+    (req as any).query = result.data;
     next();
   };
 }

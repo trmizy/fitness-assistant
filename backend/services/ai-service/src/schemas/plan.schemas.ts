@@ -29,8 +29,11 @@ function normalizePlanCandidate(parsed: unknown): unknown {
 
   const normalizedGoal = asNonEmptyString(parsed.goal, 'General fitness');
   normalized.goal = normalizedGoal;
-  normalized.durationWeeks = asBoundedInt(parsed.durationWeeks, 4, 1, 52);
+  normalized.durationWeeks = asBoundedInt(parsed.durationWeeks ?? parsed.duration, 4, 1, 52);
   normalized.daysPerWeek = asBoundedInt(parsed.daysPerWeek, 3, 1, 7);
+  if (parsed.exercisesPerDay !== undefined) {
+    normalized.exercisesPerDay = asBoundedInt(parsed.exercisesPerDay, 4, 1, 8);
+  }
 
   const schedule = Array.isArray(parsed.weeklySchedule) ? parsed.weeklySchedule : [];
   normalized.weeklySchedule = schedule
@@ -43,6 +46,7 @@ function normalizePlanCandidate(parsed: unknown): unknown {
       const normalizedExercises = exercises
         .filter((exercise) => isRecord(exercise))
         .map((exercise, exerciseIndex) => ({
+          exerciseId: asNonEmptyString((exercise as any).exerciseId || (exercise as any).id, ''),
           order: asBoundedInt(exercise.order, exerciseIndex + 1, 1, 30),
           name: asNonEmptyString(exercise.name, `Exercise ${exerciseIndex + 1}`),
           sets: asBoundedInt(exercise.sets, 3, 1, 10),
@@ -50,17 +54,6 @@ function normalizePlanCandidate(parsed: unknown): unknown {
           restSeconds: asBoundedInt(exercise.restSeconds, 60, 0, 600),
           note: typeof exercise.note === 'string' && exercise.note.trim() ? exercise.note.trim() : undefined,
         }));
-
-      if (normalizedExercises.length === 0) {
-        normalizedExercises.push({
-          order: 1,
-          name: 'Bodyweight Squat',
-          sets: 3,
-          reps: '10-12',
-          restSeconds: 60,
-          note: 'Auto-filled fallback exercise due to missing LLM exercise list.',
-        });
-      }
 
       return {
         day: dayLabel,
@@ -112,6 +105,13 @@ export const GeneratePlanRequestSchema = z.object({
     .int()
     .min(1, 'daysPerWeek must be at least 1')
     .max(7, 'daysPerWeek must be at most 7'),
+  exercisesPerDay: z
+    .number()
+    .int()
+    .min(1, 'exercisesPerDay must be at least 1')
+    .max(8, 'exercisesPerDay must be at most 8')
+    .default(4),
+  contractId: z.string().uuid('contractId must be a valid UUID').optional(),
 });
 export type GeneratePlanRequest = z.infer<typeof GeneratePlanRequestSchema>;
 
@@ -136,6 +136,12 @@ export const AdjustPlanRequestSchema = z.object({
     .min(1)
     .max(7)
     .optional(),
+  exercisesPerDay: z
+    .number()
+    .int()
+    .min(1)
+    .max(8)
+    .optional(),
 });
 export type AdjustPlanRequest = z.infer<typeof AdjustPlanRequestSchema>;
 
@@ -156,6 +162,7 @@ export type SavePlanToWorkoutLogRequest = z.infer<typeof SavePlanToWorkoutLogReq
 // ── Plan content schema (validated against LLM output) ────────────────────────
 
 export const ExerciseItemSchema = z.object({
+  exerciseId: z.string().min(1, 'exerciseId is required'),
   order: z.number().int().min(1).max(30),
   name: z.string().min(1).max(200),
   sets: z.number().int().min(1).max(10),
@@ -185,12 +192,16 @@ export const PlanContentSchema = z.object({
   goal: z.string().min(1).max(200),
   durationWeeks: z.number().int().min(1).max(52),
   daysPerWeek: z.number().int().min(1).max(7),
+  exercisesPerDay: z.number().int().min(1).max(8).optional(),
   weeklySchedule: z
     .array(WorkoutDaySchema)
     .min(1, 'weeklySchedule must not be empty'),
   progressionNotes: z.array(z.string().max(500)).max(20),
   recoveryNotes: z.array(z.string().max(500)).max(20),
   nutritionSummary: z.string().max(2000).optional(),
+}).refine((content) => content.weeklySchedule.length === content.daysPerWeek, {
+  message: 'weeklySchedule must contain exactly daysPerWeek day objects',
+  path: ['weeklySchedule'],
 });
 export type PlanContent = z.infer<typeof PlanContentSchema>;
 
@@ -199,25 +210,57 @@ export type PlanContent = z.infer<typeof PlanContentSchema>;
  * Returns the parsed content on success, or an error string on failure.
  */
 export function parsePlanContent(raw: string): { ok: true; content: PlanContent } | { ok: false; reason: string } {
-  // Pass 1: direct parse
+  // Robust JSON extraction: handle code fences and surrounding explanation text
+  function stripCodeFences(s: string) {
+    return s.replace(/```\s*json\s*/i, '').replace(/```/g, '');
+  }
+
+  function extractFirstJsonObject(s: string): string | null {
+    const start = s.indexOf('{');
+    if (start < 0) return null;
+    let inString = false;
+    let escape = false;
+    let depth = 0;
+    for (let i = start; i < s.length; i++) {
+      const ch = s[i];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escape = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) continue;
+      if (ch === '{') depth += 1;
+      if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          return s.slice(start, i + 1);
+        }
+      }
+    }
+    return null;
+  }
+
   let parsed: unknown;
+  const cleaned = stripCodeFences(raw);
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(cleaned);
   } catch {
-    // Pass 2: try to extract the JSON object from surrounding text
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    const extracted = extractFirstJsonObject(cleaned);
+    if (!extracted) {
       return { ok: false, reason: 'LLM did not return any JSON object' };
     }
     try {
-      parsed = JSON.parse(jsonMatch[0]);
+      parsed = JSON.parse(extracted);
     } catch {
-      // Pass 3: attempt minor repairs (trailing commas, single quotes)
       try {
-        const repaired = jsonMatch[0]
-          .replace(/,\s*}/g, '}')
-          .replace(/,\s*]/g, ']')
-          .replace(/'/g, '"');
+        const repaired = extracted.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']').replace(/'/g, '"');
         parsed = JSON.parse(repaired);
       } catch {
         return { ok: false, reason: 'JSON is malformed and could not be repaired' };
@@ -243,18 +286,83 @@ export function buildPlanPrompt(
   goal: string,
   durationWeeks: number,
   daysPerWeek: number,
+  exercisesPerDay = 4,
   adjustmentContext?: string,
+  allowedExercises?: Array<{
+    id: string;
+    exerciseName: string;
+    bodyPart?: string;
+    typeOfActivity?: string;
+    typeOfEquipment?: string;
+    muscleGroupsActivated?: string[];
+  }>,
 ): string {
   const adjustNote = adjustmentContext
     ? `\nAdjustment request from user: "${adjustmentContext}"\nApply this adjustment to the plan while keeping the goal and duration the same.\n`
     : '';
+
+  const allowedListText = allowedExercises && allowedExercises.length
+    ? `\nAllowed exercises (id | name | body | muscles | equipment):\n${allowedExercises
+        .map((e) => `${e.id} | ${e.exerciseName} | ${e.bodyPart ?? 'ANY'} | ${(e.muscleGroupsActivated ?? []).join(', ') || 'general'} | ${e.typeOfEquipment ?? 'ANY'}`)
+        .join('\n')}\n\n`
+    : '';
+  const exampleExerciseA = allowedExercises?.[0];
+  const exampleExerciseB = allowedExercises?.[1] ?? allowedExercises?.[0];
+  const exampleIdA = exampleExerciseA?.id ?? 'use-an-allowed-exercise-id';
+  const exampleNameA = exampleExerciseA?.exerciseName ?? 'Bench Press';
+  const exampleIdB = exampleExerciseB?.id ?? 'use-another-allowed-exercise-id';
+  const exampleNameB = exampleExerciseB?.exerciseName ?? 'Overhead Press';
+
+  return `You are an expert personal trainer.
+Return ONLY one compact JSON object. No markdown, no explanation.
+Goal: ${goal}
+Duration weeks: ${durationWeeks}
+Training days per week: ${daysPerWeek}
+Exercises per training day: ${exercisesPerDay}
+${adjustNote}
+${allowedListText}Use only exerciseId values from the allowed exercises above.
+Do not output an "allowedExercises" key. Do not use placeholder ids.
+Use descriptive Vietnamese day goals/splits instead of generic labels.
+For muscle gain/hypertrophy, prefer splits like "Nguc + Vai + Tay sau", "Lung + Tay truoc", "Chan + Mong", "Vai + Tay", "Upper Body", "Lower Body".
+For fat-loss goals, use names like "Full Body Strength", "Lower Body + Conditioning", "Upper Body + Core".
+
+Required JSON shape:
+{
+  "goal": "${goal}",
+  "durationWeeks": ${durationWeeks},
+  "daysPerWeek": ${daysPerWeek},
+  "exercisesPerDay": ${exercisesPerDay},
+  "weeklySchedule": [
+    {
+      "day": "Day 1",
+      "goal": "Nguc + Vai + Tay sau",
+      "exercises": [
+        { "exerciseId": "${exampleIdA}", "order": 1, "name": "${exampleNameA}", "sets": 4, "reps": "8-12", "restSeconds": 90, "note": "Main lift" },
+        { "exerciseId": "${exampleIdB}", "order": 2, "name": "${exampleNameB}", "sets": 3, "reps": "10-12", "restSeconds": 75, "note": "Accessory lift" }
+      ],
+      "cardio": "Optional 10 min easy warm-up"
+    }
+  ],
+  "progressionNotes": ["Add load or reps gradually when all sets feel controlled."],
+  "recoveryNotes": ["Sleep 7-9 hours and keep at least one recovery day weekly."],
+  "nutritionSummary": "Protein 1.8-2.2 g/kg/day and calories aligned with the goal."
+}
+
+Rules:
+- weeklySchedule length must be exactly ${daysPerWeek}.
+- Each scheduled day must contain exactly ${exercisesPerDay} exercises.
+- Day goal must describe the body-part split, not "Training focus" or "Workout Day".
+- Every exerciseId must exactly match an allowed id.
+- Choose exercises that fit each day goal/body-part split when possible.
+- Return raw JSON only.`.trim();
 
   return `You are an expert personal trainer.
 Generate a ${durationWeeks}-week workout plan for the following goal:
 - Goal: ${goal}
 - Training days per week: ${daysPerWeek}
 ${adjustNote}
-IMPORTANT: Return ONLY a valid JSON object. No markdown, no explanation, no code blocks.
+${allowedListText}IMPORTANT: Return ONLY a valid JSON object. No markdown, no explanation, no code blocks.
+DO NOT include any explanatory text before or after the JSON. Do NOT wrap the JSON in triple-backticks (three backticks), do NOT prepend labels such as "JSON:" or "Response:", and do NOT output any comments or markdown. The output MUST be raw JSON only.
 The JSON must match this EXACT structure:
 
 {
@@ -266,8 +374,8 @@ The JSON must match this EXACT structure:
       "day": "Day 1 — Push",
       "goal": "Chest, shoulders, triceps",
       "exercises": [
-        { "order": 1, "name": "Bench Press", "sets": 4, "reps": "8-10", "restSeconds": 90, "note": "Control the descent" },
-        { "order": 2, "name": "Overhead Press", "sets": 3, "reps": "10-12", "restSeconds": 75 }
+        { "exerciseId": "${exampleIdA}", "order": 1, "name": "${exampleNameA}", "sets": 4, "reps": "8-10", "restSeconds": 90, "note": "Control the descent" },
+        { "exerciseId": "${exampleIdB}", "order": 2, "name": "${exampleNameB}", "sets": 3, "reps": "10-12", "restSeconds": 75 }
       ],
       "cardio": "10 min treadmill warm-up"
     }
@@ -283,7 +391,9 @@ The JSON must match this EXACT structure:
 
 RULES:
 - weeklySchedule must contain exactly ${daysPerWeek} day objects
-- Each day must have 4–8 exercises
+- Every scheduled day must contain at least 1 exercise. Do not create a rest day inside weeklySchedule.
+- If the plan needs rest or recovery, place that guidance in recoveryNotes, not as an empty day.
+- For each exercise object: 'exerciseId' (string) is REQUIRED and MUST match one of the allowed exercise ids provided above; 'name' must match the canonical exercise name but may be repeated for clarity.
 - sets: integer 1–8
 - reps: a string like "10", "8-12", "AMRAP", or "30 sec"
 - restSeconds: integer 30–600

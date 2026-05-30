@@ -81,7 +81,7 @@ export function registerCallHandlers(
           return;
         }
       } else {
-        const perm = await canInitiateCallFromChat(user.id, calleeId, conversationId, authToken);
+        const perm = await canInitiateCallFromChat(user.id, calleeId, conversationId!, authToken);
         if (!perm.allowed) {
           socket.emit('call:error', { message: perm.reason || 'Not allowed' });
           return;

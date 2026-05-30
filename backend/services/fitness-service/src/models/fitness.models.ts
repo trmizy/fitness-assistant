@@ -4,6 +4,7 @@ import { WORKOUT_LIMITS } from '../utils/workout-validation';
 const L = WORKOUT_LIMITS;
 
 export const aiPlanExerciseSchema = z.object({
+  exerciseId: z.string().min(1, 'Exercise ID is required'),
   order: z.number().int().min(1).max(30).optional(),
   name: z.string().min(1, 'Exercise name is required').max(200),
   sets: z.number().int().min(1).max(10),

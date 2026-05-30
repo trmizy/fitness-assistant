@@ -5,10 +5,9 @@
  * All tests use pure in-memory data — no network calls, no disk I/O.
  */
 
-import { describe, it, before } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { mergeFoodDetails, deduplicateExercises } from '../utils/sourceRanker';
 import { mapUsdaFoodDetail, type UsdaFoodDetail } from '../providers/usda/usda.mapper';
@@ -17,7 +16,7 @@ import { mapWgerExercise, type WgerExercise } from '../providers/wger/wger.mappe
 import { mapFreeExercise, type FreeExerciseEntry } from '../providers/free-exercise-db/free-exercise.mapper';
 import { freeExerciseDbProvider } from '../providers/free-exercise-db/free-exercise.provider';
 import { getDatasetConfig, getProviderRegistry } from '../utils/datasetConfig';
-import type { FoodDetail, ExerciseItem } from '../types';
+import type { ExerciseItem } from '../types';
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 

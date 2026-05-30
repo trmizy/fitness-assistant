@@ -5,6 +5,7 @@ import planRoutes from './routes/plan.routes';
 import adminAiRoutes from './routes/admin.routes';
 import internalRoutes from './routes/internal.routes';
 import { ApiError, formatErrorResponse } from './errors/api-error';
+import { llmService } from './services/llm.service';
 
 const app = express();
 
@@ -19,11 +20,16 @@ export function setQdrantAvailable(available: boolean): void {
   logger.info({ available }, 'Qdrant availability state updated');
 }
 
-app.get('/health', (_req, res) => {
+app.get('/health', async (_req, res) => {
+  const llm = await llmService.getHealthStatus();
   res.json({
     status: 'ok',
     service: 'ai-service',
     retrieval: qdrantAvailable ? 'available' : 'degraded',
+    llmAvailable: llm.llmAvailable,
+    llmProvider: llm.llmProvider,
+    llmUrl: llm.llmUrl,
+    llm,
   });
 });
 

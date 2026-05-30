@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { internalController } from '../controllers/internal.controller';
+import { internalAuthMiddleware } from '../middleware/auth.middleware';
+
+const router = Router();
+
+// Only internal services with the internal token may call these endpoints
+router.get('/exercises/for-ai-plans', internalAuthMiddleware, internalController.exercisesForAiPlans as any);
+
+export default router;

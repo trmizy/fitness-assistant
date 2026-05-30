@@ -2131,6 +2131,7 @@ export namespace Prisma {
     ptReviewStatus: $Enums.PtReviewStatus | null
     ptNote: string | null
     ptReviewedAt: Date | null
+    archivedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2153,6 +2154,7 @@ export namespace Prisma {
     ptReviewStatus: $Enums.PtReviewStatus | null
     ptNote: string | null
     ptReviewedAt: Date | null
+    archivedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2176,6 +2178,7 @@ export namespace Prisma {
     ptReviewStatus: number
     ptNote: number
     ptReviewedAt: number
+    archivedAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -2212,6 +2215,7 @@ export namespace Prisma {
     ptReviewStatus?: true
     ptNote?: true
     ptReviewedAt?: true
+    archivedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2234,6 +2238,7 @@ export namespace Prisma {
     ptReviewStatus?: true
     ptNote?: true
     ptReviewedAt?: true
+    archivedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2257,6 +2262,7 @@ export namespace Prisma {
     ptReviewStatus?: true
     ptNote?: true
     ptReviewedAt?: true
+    archivedAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -2367,6 +2373,7 @@ export namespace Prisma {
     ptReviewStatus: $Enums.PtReviewStatus | null
     ptNote: string | null
     ptReviewedAt: Date | null
+    archivedAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: WorkoutPlanCountAggregateOutputType | null
@@ -2409,6 +2416,7 @@ export namespace Prisma {
     ptReviewStatus?: boolean
     ptNote?: boolean
     ptReviewedAt?: boolean
+    archivedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workoutPlan"]>
@@ -2432,6 +2440,7 @@ export namespace Prisma {
     ptReviewStatus?: boolean
     ptNote?: boolean
     ptReviewedAt?: boolean
+    archivedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workoutPlan"]>
@@ -2455,6 +2464,7 @@ export namespace Prisma {
     ptReviewStatus?: boolean
     ptNote?: boolean
     ptReviewedAt?: boolean
+    archivedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -2488,6 +2498,7 @@ export namespace Prisma {
       ptReviewStatus: $Enums.PtReviewStatus | null
       ptNote: string | null
       ptReviewedAt: Date | null
+      archivedAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["workoutPlan"]>
@@ -2901,6 +2912,7 @@ export namespace Prisma {
     readonly ptReviewStatus: FieldRef<"WorkoutPlan", 'PtReviewStatus'>
     readonly ptNote: FieldRef<"WorkoutPlan", 'String'>
     readonly ptReviewedAt: FieldRef<"WorkoutPlan", 'DateTime'>
+    readonly archivedAt: FieldRef<"WorkoutPlan", 'DateTime'>
     readonly createdAt: FieldRef<"WorkoutPlan", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkoutPlan", 'DateTime'>
   }
@@ -3251,6 +3263,7 @@ export namespace Prisma {
     ptReviewStatus: 'ptReviewStatus',
     ptNote: 'ptNote',
     ptReviewedAt: 'ptReviewedAt',
+    archivedAt: 'archivedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -3560,6 +3573,7 @@ export namespace Prisma {
     ptReviewStatus?: EnumPtReviewStatusNullableFilter<"WorkoutPlan"> | $Enums.PtReviewStatus | null
     ptNote?: StringNullableFilter<"WorkoutPlan"> | string | null
     ptReviewedAt?: DateTimeNullableFilter<"WorkoutPlan"> | Date | string | null
+    archivedAt?: DateTimeNullableFilter<"WorkoutPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
   }
@@ -3583,6 +3597,7 @@ export namespace Prisma {
     ptReviewStatus?: SortOrderInput | SortOrder
     ptNote?: SortOrderInput | SortOrder
     ptReviewedAt?: SortOrderInput | SortOrder
+    archivedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -3609,6 +3624,7 @@ export namespace Prisma {
     ptReviewStatus?: EnumPtReviewStatusNullableFilter<"WorkoutPlan"> | $Enums.PtReviewStatus | null
     ptNote?: StringNullableFilter<"WorkoutPlan"> | string | null
     ptReviewedAt?: DateTimeNullableFilter<"WorkoutPlan"> | Date | string | null
+    archivedAt?: DateTimeNullableFilter<"WorkoutPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
   }, "id">
@@ -3632,6 +3648,7 @@ export namespace Prisma {
     ptReviewStatus?: SortOrderInput | SortOrder
     ptNote?: SortOrderInput | SortOrder
     ptReviewedAt?: SortOrderInput | SortOrder
+    archivedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: WorkoutPlanCountOrderByAggregateInput
@@ -3663,6 +3680,7 @@ export namespace Prisma {
     ptReviewStatus?: EnumPtReviewStatusNullableWithAggregatesFilter<"WorkoutPlan"> | $Enums.PtReviewStatus | null
     ptNote?: StringNullableWithAggregatesFilter<"WorkoutPlan"> | string | null
     ptReviewedAt?: DateTimeNullableWithAggregatesFilter<"WorkoutPlan"> | Date | string | null
+    archivedAt?: DateTimeNullableWithAggregatesFilter<"WorkoutPlan"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"WorkoutPlan"> | Date | string
   }
@@ -3854,6 +3872,7 @@ export namespace Prisma {
     ptReviewStatus?: $Enums.PtReviewStatus | null
     ptNote?: string | null
     ptReviewedAt?: Date | string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3877,6 +3896,7 @@ export namespace Prisma {
     ptReviewStatus?: $Enums.PtReviewStatus | null
     ptNote?: string | null
     ptReviewedAt?: Date | string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3900,6 +3920,7 @@ export namespace Prisma {
     ptReviewStatus?: NullableEnumPtReviewStatusFieldUpdateOperationsInput | $Enums.PtReviewStatus | null
     ptNote?: NullableStringFieldUpdateOperationsInput | string | null
     ptReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3923,6 +3944,7 @@ export namespace Prisma {
     ptReviewStatus?: NullableEnumPtReviewStatusFieldUpdateOperationsInput | $Enums.PtReviewStatus | null
     ptNote?: NullableStringFieldUpdateOperationsInput | string | null
     ptReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3946,6 +3968,7 @@ export namespace Prisma {
     ptReviewStatus?: $Enums.PtReviewStatus | null
     ptNote?: string | null
     ptReviewedAt?: Date | string | null
+    archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3969,6 +3992,7 @@ export namespace Prisma {
     ptReviewStatus?: NullableEnumPtReviewStatusFieldUpdateOperationsInput | $Enums.PtReviewStatus | null
     ptNote?: NullableStringFieldUpdateOperationsInput | string | null
     ptReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3992,6 +4016,7 @@ export namespace Prisma {
     ptReviewStatus?: NullableEnumPtReviewStatusFieldUpdateOperationsInput | $Enums.PtReviewStatus | null
     ptNote?: NullableStringFieldUpdateOperationsInput | string | null
     ptReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -4358,6 +4383,7 @@ export namespace Prisma {
     ptReviewStatus?: SortOrder
     ptNote?: SortOrder
     ptReviewedAt?: SortOrder
+    archivedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -4386,6 +4412,7 @@ export namespace Prisma {
     ptReviewStatus?: SortOrder
     ptNote?: SortOrder
     ptReviewedAt?: SortOrder
+    archivedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -4408,6 +4435,7 @@ export namespace Prisma {
     ptReviewStatus?: SortOrder
     ptNote?: SortOrder
     ptReviewedAt?: SortOrder
+    archivedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }

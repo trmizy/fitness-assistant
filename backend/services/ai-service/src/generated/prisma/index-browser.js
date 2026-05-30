@@ -165,6 +165,7 @@ exports.Prisma.WorkoutPlanScalarFieldEnum = {
   ptReviewStatus: 'ptReviewStatus',
   ptNote: 'ptNote',
   ptReviewedAt: 'ptReviewedAt',
+  archivedAt: 'archivedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
