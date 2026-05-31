@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { chatService } from '../services/chat.service';
+import { chatRepository } from '../repositories/chat.repository';
 import {
   createDirectConversationSchema,
   paginationSchema,
@@ -75,6 +76,22 @@ export const chatController = {
       }
       logger.error(error, 'Send message error');
       res.status(error.statusCode || 500).json({ error: error.message || 'Internal server error' });
+    }
+  },
+
+  // PATCH /chat/conversations/:id/read — only participants can mark-read.
+  async markRead(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.id;
+      if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
+      const conversationId = req.params.id;
+      const allowed = await chatRepository.isUserParticipant(conversationId, userId);
+      if (!allowed) { res.status(403).json({ error: 'Not a participant of this conversation' }); return; }
+      const updated = await chatRepository.markConversationRead(conversationId, userId);
+      res.json({ updated });
+    } catch (error: any) {
+      logger.error(error, 'Mark-read error');
+      res.status(500).json({ error: 'Internal server error' });
     }
   },
 };

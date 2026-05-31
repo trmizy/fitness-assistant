@@ -3,7 +3,12 @@ import jwt from 'jsonwebtoken';
 import type { SignOptions } from 'jsonwebtoken';
 import crypto from 'crypto';
 import { authRepository } from '../repositories/auth.repository';
-import type { RegisterStartDto, RegisterVerifyDto } from '../models/auth.models';
+import type {
+  RegisterStartDto,
+  RegisterVerifyDto,
+  UpdateMeDto,
+  UpdateUserRoleDto,
+} from '../models/auth.models';
 import { sendOtpEmail } from './email.service';
 
 const ACCESS_TOKEN_SECRET =
@@ -25,7 +30,7 @@ function generateAccessToken(userId: string, role: string, email: string): strin
 }
 
 function generateRefreshToken(userId: string): string {
-  return jwt.sign({ userId }, REFRESH_TOKEN_SECRET, {
+  return jwt.sign({ userId, jti: crypto.randomUUID() }, REFRESH_TOKEN_SECRET, {
     expiresIn: REFRESH_TOKEN_EXPIRY,
   });
 }
@@ -51,9 +56,15 @@ function generateOtp(): string {
 }
 
 export const authService = {
+  async listUsers() {
+    return authRepository.listUsers();
+  },
+
   async register(data: RegisterStartDto) {
     const existing = await authRepository.findUserByEmail(data.email);
-    if (existing) throw { status: 400, message: 'Email already registered' };
+    // BUG-001 / TC-AUTH-02: must be a hard 409 conflict, not 400 — clearer for
+    // the frontend to distinguish "already verified" from "validation error".
+    if (existing) throw { status: 409, message: 'Email đã đăng ký' };
 
     const previous = await authRepository.findEmailVerificationByEmail(data.email);
     if (previous?.sentAt) {
@@ -139,7 +150,7 @@ export const authService = {
       password: record.passwordHash,
       firstName: record.firstName ?? undefined,
       lastName: record.lastName ?? undefined,
-      role: 'USER',
+      role: 'CUSTOMER',
     });
 
     await authRepository.deleteEmailVerification(data.email);
@@ -172,6 +183,13 @@ export const authService = {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) throw { status: 401, message: 'Invalid credentials' };
 
+    // BUG-002 / TC-AUTH-10: disabled accounts cannot log in. `isActive` is added
+    // by the `users_isactive` migration; if the column doesn't exist yet (e.g. pre-
+    // migration container), the value is undefined → treat as active.
+    if ((user as any).isActive === false) {
+      throw { status: 403, message: 'Tài khoản đã bị vô hiệu hóa' };
+    }
+
     const accessToken = generateAccessToken(user.id, user.role, user.email);
     const refreshToken = generateRefreshToken(user.id);
     await authRepository.createRefreshToken({
@@ -190,6 +208,17 @@ export const authService = {
       },
       accessToken,
       refreshToken,
+    };
+  },
+
+  // Admin disable/enable. Returns the updated user (without password).
+  async setUserActive(userId: string, isActive: boolean) {
+    const updated = await authRepository.updateUser(userId, { isActive } as any);
+    return {
+      id: updated.id,
+      email: updated.email,
+      role: updated.role,
+      isActive: (updated as any).isActive ?? true,
     };
   },
 
@@ -252,5 +281,36 @@ export const authService = {
     const user = await authRepository.findUserById(decoded.userId);
     if (!user) throw { status: 401, message: 'User not found' };
     return user;
+  },
+
+  async updateMe(token: string, data: UpdateMeDto) {
+    const user = await this.verifyToken(token);
+    const updated = await authRepository.updateUserById(user.id, {
+      ...(data.firstName !== undefined ? { firstName: data.firstName } : {}),
+      ...(data.lastName !== undefined ? { lastName: data.lastName } : {}),
+    });
+
+    return {
+      user: {
+        id: updated.id,
+        email: updated.email,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        role: updated.role,
+      },
+    };
+  },
+
+  async updateUserRole(userId: string, data: UpdateUserRoleDto) {
+    const updated = await authRepository.updateUserRoleById(userId, data.role);
+    return {
+      user: {
+        id: updated.id,
+        email: updated.email,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+        role: updated.role,
+      },
+    };
   },
 };

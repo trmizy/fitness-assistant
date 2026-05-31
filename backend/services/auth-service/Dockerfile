@@ -10,6 +10,7 @@ RUN pnpm install --filter @gym-coach/auth-service --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
+RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/backend/shared/node_modules ./backend/shared/node_modules
 COPY --from=deps /app/backend/services/auth-service/node_modules ./backend/services/auth-service/node_modules
@@ -19,6 +20,7 @@ COPY tsconfig.base.json ./
 RUN pnpm --filter @gym-coach/shared build
 RUN pnpm --filter @gym-coach/auth-service db:generate
 RUN pnpm --filter @gym-coach/auth-service build
+RUN cp -R backend/services/auth-service/src/generated backend/services/auth-service/dist/
 
 FROM base AS runner
 WORKDIR /app
@@ -31,6 +33,7 @@ COPY --from=builder /app/backend/shared/dist ./backend/shared/dist
 COPY --from=builder /app/backend/shared/package.json ./backend/shared/package.json
 COPY --from=builder /app/backend/services/auth-service/node_modules ./backend/services/auth-service/node_modules
 COPY --from=builder /app/backend/services/auth-service/dist ./backend/services/auth-service/dist
+COPY --from=builder /app/backend/services/auth-service/src/generated ./backend/services/auth-service/dist/generated
 COPY --from=builder /app/backend/services/auth-service/package.json ./backend/services/auth-service/package.json
 COPY --from=builder /app/backend/services/auth-service/prisma ./backend/services/auth-service/prisma
 WORKDIR /app/backend/services/auth-service

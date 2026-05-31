@@ -137,6 +137,12 @@ exports.Prisma.ConversationScalarFieldEnum = {
   cost: 'cost',
   feedback: 'feedback',
   feedbackTimestamp: 'feedbackTimestamp',
+  traceId: 'traceId',
+  usedFallback: 'usedFallback',
+  usedDeterministicFallback: 'usedDeterministicFallback',
+  responseLanguage: 'responseLanguage',
+  routeIntent: 'routeIntent',
+  warningCount: 'warningCount',
   createdAt: 'createdAt'
 };
 
@@ -149,6 +155,33 @@ exports.Prisma.WorkoutPlanScalarFieldEnum = {
   duration: 'duration',
   daysPerWeek: 'daysPerWeek',
   plan: 'plan',
+  status: 'status',
+  version: 'version',
+  jobId: 'jobId',
+  failReason: 'failReason',
+  ptUserId: 'ptUserId',
+  ptName: 'ptName',
+  clientName: 'clientName',
+  ptReviewStatus: 'ptReviewStatus',
+  ptNote: 'ptNote',
+  ptReviewedAt: 'ptReviewedAt',
+  archivedAt: 'archivedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.NutritionPlanScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  goal: 'goal',
+  durationWeeks: 'durationWeeks',
+  mealsPerDay: 'mealsPerDay',
+  plan: 'plan',
+  status: 'status',
+  jobId: 'jobId',
+  failReason: 'failReason',
+  archivedAt: 'archivedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -177,11 +210,23 @@ exports.Prisma.JsonNullValueFilter = {
   JsonNull: Prisma.JsonNull,
   AnyNull: Prisma.AnyNull
 };
+exports.PlanStatus = exports.$Enums.PlanStatus = {
+  QUEUED: 'QUEUED',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+};
 
+exports.PtReviewStatus = exports.$Enums.PtReviewStatus = {
+  PENDING_PT_REVIEW: 'PENDING_PT_REVIEW',
+  PT_APPROVED: 'PT_APPROVED',
+  PT_REJECTED: 'PT_REJECTED'
+};
 
 exports.Prisma.ModelName = {
   Conversation: 'Conversation',
-  WorkoutPlan: 'WorkoutPlan'
+  WorkoutPlan: 'WorkoutPlan',
+  NutritionPlan: 'NutritionPlan'
 };
 
 /**

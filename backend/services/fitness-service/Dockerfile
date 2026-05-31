@@ -10,6 +10,7 @@ RUN pnpm install --filter @gym-coach/fitness-service --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
+RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/backend/shared/node_modules ./backend/shared/node_modules
 COPY --from=deps /app/backend/services/fitness-service/node_modules ./backend/services/fitness-service/node_modules
@@ -31,8 +32,9 @@ COPY --from=builder /app/backend/shared/dist ./backend/shared/dist
 COPY --from=builder /app/backend/shared/package.json ./backend/shared/package.json
 COPY --from=builder /app/backend/services/fitness-service/node_modules ./backend/services/fitness-service/node_modules
 COPY --from=builder /app/backend/services/fitness-service/dist ./backend/services/fitness-service/dist
+COPY --from=builder /app/backend/services/fitness-service/src/generated ./backend/services/fitness-service/dist/generated
 COPY --from=builder /app/backend/services/fitness-service/package.json ./backend/services/fitness-service/package.json
 COPY --from=builder /app/backend/services/fitness-service/prisma ./backend/services/fitness-service/prisma
 WORKDIR /app/backend/services/fitness-service
 EXPOSE 3002
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node dist/server.js"]
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/prisma db seed && node dist/server.js"]

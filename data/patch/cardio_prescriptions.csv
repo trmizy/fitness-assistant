@@ -1,0 +1,13 @@
+goal,cardio_type,recommended_frequency,duration_per_session,intensity_note_vi
+fat_loss,Brisk Walking,3-5 buổi/tuần,25-40 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.
+fat_loss,Cycling,3-5 buổi/tuần,25-40 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.
+fat_loss,Incline Treadmill Walk,3-5 buổi/tuần,25-40 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.
+fat_loss,Rowing,3-5 buổi/tuần,25-40 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.
+recomposition,Brisk Walking,2-3 buổi/tuần,20-30 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.
+recomposition,Cycling,2-3 buổi/tuần,20-30 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.
+recomposition,Incline Treadmill Walk,2-3 buổi/tuần,20-30 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.
+recomposition,Rowing,2-3 buổi/tuần,20-30 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.
+general_fitness,Brisk Walking,2-3 buổi/tuần,20-30 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.
+general_fitness,Cycling,2-3 buổi/tuần,20-30 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.
+general_fitness,Incline Treadmill Walk,2-3 buổi/tuần,20-30 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.
+general_fitness,Rowing,2-3 buổi/tuần,20-30 phút,Ưu tiên steady-state ở mức nói chuyện được; không cần quá nặng nếu đang tập tạ volume cao.

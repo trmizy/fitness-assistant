@@ -43,12 +43,13 @@ yarn-error.log*
 *.crt
 
 # ------------------------------
-# OS / editor
+# OS / editor / AI tools
 # ------------------------------
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
+.claude/
 
 # ------------------------------
 # Runtime / local data artifacts
@@ -56,13 +57,42 @@ Thumbs.db
 *.db
 *.sqlite
 *.sqlite3
-*.pid
-*.seed
+*.pids
 
 # Docker / compose local overrides
 docker-compose.override.yml
+
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+.venv/
+**/.venv/
+
+# InBody OCR debug output
+output_debug/
+**/output_debug/
+
+# Temp files
+tmp/
 
 # Misc backups
 *.bak
 *.old
 *.orig
+
+# Temporary / local-only files
+skills-main.zip
+tmp-ai-request.json
+
+# USDA FoodData Central raw downloads (large, not committed)
+# Generate foods_seed.csv locally with: pnpm --filter @gym-coach/fitness-service db:process-usda
+data/nutrition/
+data/nutrition.zip
+
+# Local test/scratch files
+FitnessAssistant_TestPrompt_v2.md
+data/nutrition/*.csv
+data/nutrition/*.zip
+data/nutrition/*.xlsx
+data/nutrition/FoodData_Central_csv_2026-04-30

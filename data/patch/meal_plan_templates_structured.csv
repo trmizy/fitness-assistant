@@ -1,0 +1,16 @@
+template_id,goal,diet_preference,meal_order,meal_name_vi,foods_example_en,protein_g,carbs_g,fats_g,estimated_kcal,notes_vi
+fat_loss_2200_omnivorous,fat,omnivorous,1,Bữa 1,Greek Yogurt + Oats + Banana,35g,55g,10g,~450 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+fat_loss_2200_omnivorous,fat,omnivorous,2,Bữa 2,Chicken Breast + Rice + Vegetables,40g,60g,12g,~520 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+fat_loss_2200_omnivorous,fat,omnivorous,3,Bữa 3,Whey Protein + Apple,25g,25g,3g,~220 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+fat_loss_2200_omnivorous,fat,omnivorous,4,Bữa 4,Salmon + Potatoes + Salad,40g,45g,18g,~500 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+fat_loss_2200_omnivorous,fat,omnivorous,5,Bữa 5,Egg Whites + Whole Eggs + Toast,30g,30g,12g,~380 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+fat_loss_2000_vegetarian,fat,vegetarian,1,Bữa 1,Tofu Scramble + Wholegrain Bread,28g,35g,12g,~360 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+fat_loss_2000_vegetarian,fat,vegetarian,2,Bữa 2,Tempeh + Rice + Vegetables,35g,55g,15g,~500 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+fat_loss_2000_vegetarian,fat,vegetarian,3,Bữa 3,Greek Yogurt + Berries,20g,20g,5g,~200 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+fat_loss_2000_vegetarian,fat,vegetarian,4,Bữa 4,Lentil Pasta + Cottage Cheese,35g,50g,10g,~430 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+fat_loss_2000_vegetarian,fat,vegetarian,5,Bữa 5,Protein Shake + Almonds,28g,12g,10g,~250 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+recomp_2400_omnivorous,recomp,omnivorous,1,Bữa 1,Eggs + Oats + Fruit,35g,60g,18g,~550 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+recomp_2400_omnivorous,recomp,omnivorous,2,Bữa 2,Lean Beef + Rice + Vegetables,40g,70g,15g,~600 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+recomp_2400_omnivorous,recomp,omnivorous,3,Bữa 3,Whey Protein + Rice Cakes,30g,30g,3g,~260 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+recomp_2400_omnivorous,recomp,omnivorous,4,Bữa 4,Chicken Thigh + Potatoes + Salad,40g,55g,15g,~520 kcal,Đây là template mẫu; thay món cùng macro tương đương được.
+recomp_2400_omnivorous,recomp,omnivorous,5,Bữa 5,Cottage Cheese + Peanut Butter Toast,25g,25g,14g,~420 kcal,Đây là template mẫu; thay món cùng macro tương đương được.

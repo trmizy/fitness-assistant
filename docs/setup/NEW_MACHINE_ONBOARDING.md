@@ -96,12 +96,12 @@ docker compose -f infra/compose/docker-compose.dev.yml -f infra/compose/docker-c
 
 Truy cap web dev:
 
-- Web hot reload: http://localhost:5174
+- Web hot reload: http://localhost:5173
 
 Ghi chu:
 
 - Trong hot mode, sua file frontend/backend va save se tu reload.
-- Neu 5174 bi trung port, doi mapping port trong file hot compose.
+- Neu 5173 bi trung port, doi mapping port trong file hot compose.
 
 ## 6. Test nhanh register/login sau khi chay
 

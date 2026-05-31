@@ -56,7 +56,8 @@ model Exercise {
   createdAt             DateTime       @default(now()) @map("created_at")
   updatedAt             DateTime       @updatedAt @map("updated_at")
 
-  workoutExercises      WorkoutExercise[]
+  workoutExercises        WorkoutExercise[]
+  workoutProgramExercises WorkoutProgramExercise[]
 
   @@index([bodyPart, typeOfActivity])
   @@index([typeOfEquipment])
@@ -75,6 +76,7 @@ model Workout {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   exercises   WorkoutExercise[]
+  schedules   WorkoutSchedule[]
 
   @@index([userId, date])
   @@map("workouts")
@@ -92,12 +94,67 @@ model WorkoutExercise {
   order      Int      @default(0)
   createdAt  DateTime @default(now()) @map("created_at")
 
-  workout    Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
-  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+  workout     Workout      @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise    Exercise     @relation(fields: [exerciseId], references: [id])
+  workoutSets WorkoutSet[]
 
   @@index([workoutId])
   @@index([exerciseId])
   @@map("workout_exercises")
+}
+
+model WorkoutSet {
+  id                String          @id @default(uuid())
+  workoutExerciseId String          @map("workout_exercise_id")
+  setNumber         Int             @map("set_number")
+  reps              Int?
+  weight            Float?          // kg
+  rpe               Float?          // Rate of Perceived Exertion (1-10)
+  completed         Boolean         @default(false)
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([workoutExerciseId])
+  @@map("workout_sets")
+}
+
+model Food {
+  id       String @id @default(uuid())
+  fdcId    Int    @unique @map("fdc_id")
+  name     String
+  calories Float
+  protein  Float  @default(0)
+  carbs    Float  @default(0)
+  fats     Float  @default(0)
+  source   String  // 'sr_legacy' | 'survey_fndds'
+  imageUrl String? @map("image_url")
+
+  aliases   FoodAlias[]
+  mealItems NutritionProgramMealItem[]
+
+  @@index([name])
+  @@map("foods")
+}
+
+model FoodAlias {
+  id              String   @id @default(uuid())
+  foodId          String   @map("food_id")
+  alias           String
+  aliasNormalized String   @map("alias_normalized")
+  language        String   @default("vi")
+  source          String?  @default("manual_seed")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  food Food @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@unique([foodId, alias, language])
+  @@unique([foodId, aliasNormalized, language])
+  @@index([foodId])
+  @@index([alias])
+  @@index([aliasNormalized])
+  @@map("food_aliases")
 }
 
 model NutritionLog {
@@ -116,4 +173,252 @@ model NutritionLog {
 
   @@index([userId, date])
   @@map("nutrition_logs")
+}
+
+// 🎯 Nutrition Goals (one per user, upserted)
+model NutritionGoal {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  calories  Int      @default(2000)
+  protein   Float    @default(150)
+  carbs     Float    @default(200)
+  fat       Float    @default(65)
+  waterMl   Int?     @map("water_ml")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("nutrition_goals")
+}
+
+// 📊 Body Composition Tracking
+model BodyMetrics {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  date            DateTime @default(now())
+  weight          Float?   // kg
+  bodyFat         Float?   @map("body_fat") // percentage
+  muscleMass      Float?   @map("muscle_mass") // kg
+  bodyWater       Float?   @map("body_water") // percentage
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, date])
+  @@map("body_metrics")
+}
+
+// 💪 Workout Program Templates
+model WorkoutProgram {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  name            String   // "Muscle Gain", "Cutting", etc.
+  description     String?
+  sourcePlanId    String?  @map("source_plan_id")
+  sourceType      String?  @map("source_type")
+  aiPlanVersion   Int?     @map("ai_plan_version")
+
+  goal            String?
+  durationWeeks   Int?     @map("duration_weeks")
+  daysPerWeek     Int?     @map("days_per_week")
+  status          String   @default("ACTIVE")
+  archivedAt      DateTime? @map("archived_at")
+  version         Int      @default(1)
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  days            WorkoutProgramDay[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, sourcePlanId])
+  @@unique([userId, sourcePlanId])
+  @@map("workout_programs")
+}
+
+// 📅 Individual Days within a Workout Program
+model WorkoutProgramDay {
+  id              String   @id @default(uuid())
+  programId       String   @map("program_id")
+  dayNumber       Int      @map("day_number") // 1, 2, 3...
+  title           String   // "Chest + Triceps", "Back + Biceps"
+  description     String?
+  duration        Int?     // minutes
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  program         WorkoutProgram        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercises       WorkoutProgramExercise[]
+  schedules       WorkoutSchedule[]
+
+  @@unique([programId, dayNumber])
+  @@index([programId])
+  @@map("workout_program_days")
+}
+
+// 🏋️ Exercises within a Program Day (with prescriptions)
+model WorkoutProgramExercise {
+  id              String   @id @default(uuid())
+  programDayId    String   @map("program_day_id")
+  exerciseId      String   @map("exercise_id")
+  order           Int      @default(0)
+  sets            Int?
+  reps            Int?
+  weight          Float?   // kg
+  duration        Int?     // seconds
+  restSeconds     Int?     @map("rest_seconds")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  programDay      WorkoutProgramDay @relation(fields: [programDayId], references: [id], onDelete: Cascade)
+  exercise        Exercise          @relation(fields: [exerciseId], references: [id])
+
+  @@index([programDayId])
+  @@index([exerciseId])
+  @@map("workout_program_exercises")
+}
+
+// 📆 Calendar Scheduling (links user to program days on specific dates)
+model WorkoutSchedule {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  date            DateTime
+  programDayId    String?  @map("program_day_id") // optional: which program day is scheduled
+  workoutId       String?  @map("workout_id")     // optional: completed workout
+  sourcePlanId    String?  @map("source_plan_id")
+  sourceType      String?  @map("source_type")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  programDay      WorkoutProgramDay? @relation(fields: [programDayId], references: [id], onDelete: SetNull)
+  workout         Workout?           @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@index([userId, sourcePlanId])
+  @@index([programDayId])
+  @@index([workoutId])
+  @@map("workout_schedules")
+}
+
+// 🥗 Nutrition Program (from AI plan or manual, replaces mock data)
+model NutritionProgram {
+  id                   String    @id @default(uuid())
+  userId               String    @map("user_id")
+  name                 String
+  goal                 String?
+  durationWeeks        Int?      @map("duration_weeks")
+  mealsPerDay          Int?      @map("meals_per_day")
+  dailyCaloriesTarget  Int?      @map("daily_calories_target")
+  proteinTargetGrams   Float?    @map("protein_target_grams")
+  carbTargetGrams      Float?    @map("carb_target_grams")
+  fatTargetGrams       Float?    @map("fat_target_grams")
+  sourcePlanId         String?   @map("source_plan_id")   // ai-service NutritionPlan id
+  sourceType           String?   @map("source_type")      // "AI_PLAN" | "MANUAL"
+  status               String    @default("ACTIVE")        // "ACTIVE" | "ARCHIVED"
+  startDate            DateTime? @map("start_date")
+  endDate              DateTime? @map("end_date")           // last calendar day of the plan
+  repeatEnabled        Boolean   @default(false) @map("repeat_enabled") // cycle 7-day menu beyond endDate window
+  archivedAt           DateTime? @map("archived_at")
+  notes                String?
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  days                 NutritionProgramDay[]
+
+  @@unique([userId, sourcePlanId])
+  @@index([userId])
+  @@index([userId, status])
+  @@map("nutrition_programs")
+}
+
+// 📅 Daily breakdown within a NutritionProgram
+model NutritionProgramDay {
+  id             String   @id @default(uuid())
+  programId      String   @map("program_id")
+  dayNumber      Int      @map("day_number")
+  title          String?
+  totalCalories  Int?     @map("total_calories")
+  proteinGrams   Float?   @map("protein_grams")
+  carbGrams      Float?   @map("carb_grams")
+  fatGrams       Float?   @map("fat_grams")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  program        NutritionProgram     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  meals          NutritionProgramMeal[]
+
+  @@unique([programId, dayNumber])
+  @@index([programId])
+  @@map("nutrition_program_days")
+}
+
+// 🍽️ A single meal (breakfast/lunch/dinner/snack) within a program day
+model NutritionProgramMeal {
+  id           String   @id @default(uuid())
+  dayId        String   @map("day_id")
+  mealType     String   @map("meal_type")   // "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK"
+  title        String?
+  calories     Int?
+  proteinGrams Float?   @map("protein_grams")
+  carbGrams    Float?   @map("carb_grams")
+  fatGrams     Float?   @map("fat_grams")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  day          NutritionProgramDay        @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  items        NutritionProgramMealItem[]
+  completions  NutritionMealCompletion[]
+
+  @@index([dayId])
+  @@map("nutrition_program_meals")
+}
+
+// 🥦 Individual food items within a meal
+model NutritionProgramMealItem {
+  id             String   @id @default(uuid())
+  mealId         String   @map("meal_id")
+  foodId         String?  @map("food_id")          // FK to Food (nullable if custom)
+  customFoodName String?  @map("custom_food_name") // fallback if no foodId
+  quantity       Float    @default(100)
+  unit           String   @default("g")
+  calories       Int?
+  proteinGrams   Float?   @map("protein_grams")
+  carbGrams      Float?   @map("carb_grams")
+  fatGrams       Float?   @map("fat_grams")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  meal           NutritionProgramMeal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  food           Food?                @relation(fields: [foodId], references: [id], onDelete: SetNull)
+
+  @@index([mealId])
+  @@index([foodId])
+  @@map("nutrition_program_meal_items")
+}
+
+// ✅ Tracks whether a user completed/skipped/partially ate a planned meal on a given date
+model NutritionMealCompletion {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  mealId           String    @map("meal_id")
+  logDate          DateTime  @db.Date @map("log_date")  // The actual calendar date (date-only)
+  status           String    @default("PENDING")          // PENDING | COMPLETED | PARTIAL | SKIPPED
+  percentConsumed  Int       @default(100) @map("percent_consumed") // 100 for full, 0-99 for partial
+  consumedCalories Int?      @map("consumed_calories")
+  consumedProtein  Float?    @map("consumed_protein")
+  consumedCarbs    Float?    @map("consumed_carbs")
+  consumedFat      Float?    @map("consumed_fat")
+  completedAt      DateTime? @map("completed_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  meal             NutritionProgramMeal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mealId, logDate], name: "nutrition_meal_completion_unique")
+  @@index([userId, logDate])
+  @@map("nutrition_meal_completions")
 }

@@ -5,6 +5,15 @@ import app from './app';
 import { prisma } from './repositories/auth.repository';
 import { logger } from '@gym-coach/shared';
 
+// Fail-closed: /auth/internal/* endpoints rely on x-service-secret. Refuse to start
+// without one rather than running with an unprotected internal surface.
+if (!process.env.INTERNAL_SERVICE_SECRET) {
+  logger.error(
+    'INTERNAL_SERVICE_SECRET is not set — refusing to start. /auth/internal/* endpoints would be effectively unprotected.',
+  );
+  process.exit(1);
+}
+
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {

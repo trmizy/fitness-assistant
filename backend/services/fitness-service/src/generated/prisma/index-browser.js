@@ -161,6 +161,40 @@ exports.Prisma.WorkoutExerciseScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.WorkoutSetScalarFieldEnum = {
+  id: 'id',
+  workoutExerciseId: 'workoutExerciseId',
+  setNumber: 'setNumber',
+  reps: 'reps',
+  weight: 'weight',
+  rpe: 'rpe',
+  completed: 'completed',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FoodScalarFieldEnum = {
+  id: 'id',
+  fdcId: 'fdcId',
+  name: 'name',
+  calories: 'calories',
+  protein: 'protein',
+  carbs: 'carbs',
+  fats: 'fats',
+  source: 'source',
+  imageUrl: 'imageUrl'
+};
+
+exports.Prisma.FoodAliasScalarFieldEnum = {
+  id: 'id',
+  foodId: 'foodId',
+  alias: 'alias',
+  aliasNormalized: 'aliasNormalized',
+  language: 'language',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.NutritionLogScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -172,6 +206,169 @@ exports.Prisma.NutritionLogScalarFieldEnum = {
   carbs: 'carbs',
   fats: 'fats',
   notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.NutritionGoalScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  calories: 'calories',
+  protein: 'protein',
+  carbs: 'carbs',
+  fat: 'fat',
+  waterMl: 'waterMl',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.BodyMetricsScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  date: 'date',
+  weight: 'weight',
+  bodyFat: 'bodyFat',
+  muscleMass: 'muscleMass',
+  bodyWater: 'bodyWater',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WorkoutProgramScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  description: 'description',
+  sourcePlanId: 'sourcePlanId',
+  sourceType: 'sourceType',
+  aiPlanVersion: 'aiPlanVersion',
+  goal: 'goal',
+  durationWeeks: 'durationWeeks',
+  daysPerWeek: 'daysPerWeek',
+  status: 'status',
+  archivedAt: 'archivedAt',
+  version: 'version',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WorkoutProgramDayScalarFieldEnum = {
+  id: 'id',
+  programId: 'programId',
+  dayNumber: 'dayNumber',
+  title: 'title',
+  description: 'description',
+  duration: 'duration',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.WorkoutProgramExerciseScalarFieldEnum = {
+  id: 'id',
+  programDayId: 'programDayId',
+  exerciseId: 'exerciseId',
+  order: 'order',
+  sets: 'sets',
+  reps: 'reps',
+  weight: 'weight',
+  duration: 'duration',
+  restSeconds: 'restSeconds',
+  notes: 'notes',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.WorkoutScheduleScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  date: 'date',
+  programDayId: 'programDayId',
+  workoutId: 'workoutId',
+  sourcePlanId: 'sourcePlanId',
+  sourceType: 'sourceType',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.NutritionProgramScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  goal: 'goal',
+  durationWeeks: 'durationWeeks',
+  mealsPerDay: 'mealsPerDay',
+  dailyCaloriesTarget: 'dailyCaloriesTarget',
+  proteinTargetGrams: 'proteinTargetGrams',
+  carbTargetGrams: 'carbTargetGrams',
+  fatTargetGrams: 'fatTargetGrams',
+  sourcePlanId: 'sourcePlanId',
+  sourceType: 'sourceType',
+  status: 'status',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  repeatEnabled: 'repeatEnabled',
+  archivedAt: 'archivedAt',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.NutritionProgramDayScalarFieldEnum = {
+  id: 'id',
+  programId: 'programId',
+  dayNumber: 'dayNumber',
+  title: 'title',
+  totalCalories: 'totalCalories',
+  proteinGrams: 'proteinGrams',
+  carbGrams: 'carbGrams',
+  fatGrams: 'fatGrams',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.NutritionProgramMealScalarFieldEnum = {
+  id: 'id',
+  dayId: 'dayId',
+  mealType: 'mealType',
+  title: 'title',
+  calories: 'calories',
+  proteinGrams: 'proteinGrams',
+  carbGrams: 'carbGrams',
+  fatGrams: 'fatGrams',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.NutritionProgramMealItemScalarFieldEnum = {
+  id: 'id',
+  mealId: 'mealId',
+  foodId: 'foodId',
+  customFoodName: 'customFoodName',
+  quantity: 'quantity',
+  unit: 'unit',
+  calories: 'calories',
+  proteinGrams: 'proteinGrams',
+  carbGrams: 'carbGrams',
+  fatGrams: 'fatGrams',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.NutritionMealCompletionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  mealId: 'mealId',
+  logDate: 'logDate',
+  status: 'status',
+  percentConsumed: 'percentConsumed',
+  consumedCalories: 'consumedCalories',
+  consumedProtein: 'consumedProtein',
+  consumedCarbs: 'consumedCarbs',
+  consumedFat: 'consumedFat',
+  completedAt: 'completedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -228,7 +425,21 @@ exports.Prisma.ModelName = {
   Exercise: 'Exercise',
   Workout: 'Workout',
   WorkoutExercise: 'WorkoutExercise',
-  NutritionLog: 'NutritionLog'
+  WorkoutSet: 'WorkoutSet',
+  Food: 'Food',
+  FoodAlias: 'FoodAlias',
+  NutritionLog: 'NutritionLog',
+  NutritionGoal: 'NutritionGoal',
+  BodyMetrics: 'BodyMetrics',
+  WorkoutProgram: 'WorkoutProgram',
+  WorkoutProgramDay: 'WorkoutProgramDay',
+  WorkoutProgramExercise: 'WorkoutProgramExercise',
+  WorkoutSchedule: 'WorkoutSchedule',
+  NutritionProgram: 'NutritionProgram',
+  NutritionProgramDay: 'NutritionProgramDay',
+  NutritionProgramMeal: 'NutritionProgramMeal',
+  NutritionProgramMealItem: 'NutritionProgramMealItem',
+  NutritionMealCompletion: 'NutritionMealCompletion'
 };
 
 /**

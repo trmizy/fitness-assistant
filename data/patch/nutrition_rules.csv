@@ -1,0 +1,7 @@
+goal,calorie_rule_vi,protein_rule,carb_rule,fat_rule,note_vi
+fat_loss,maintenance - 300 đến 500 kcal/ngày,1.8-2.4 g/kg,2.0-4.0 g/kg tùy activity,0.6-0.9 g/kg,"Nếu thiếu weight_kg thì chỉ đưa range hoặc template, không bịa calories tuyệt đối."
+recomposition,maintenance hoặc maintenance - 100 đến 300 kcal/ngày,1.8-2.4 g/kg,2.5-4.5 g/kg,0.6-1.0 g/kg,"Nếu thiếu weight_kg thì chỉ đưa range hoặc template, không bịa calories tuyệt đối."
+muscle_gain,maintenance + 150 đến 300 kcal/ngày,1.6-2.2 g/kg,3.0-5.5 g/kg,0.6-1.0 g/kg,"Nếu thiếu weight_kg thì chỉ đưa range hoặc template, không bịa calories tuyệt đối."
+bodyfat_modifier,high_bodyfat,protein cao,điều chỉnh theo buổi tập,không xuống quá thấp,Có thể dùng deficit lớn hơn ở đầu range nếu recovery ổn.
+bodyfat_modifier,moderate_bodyfat,protein cao,điều chỉnh theo buổi tập,không xuống quá thấp,Dùng deficit vừa phải để giữ performance.
+bodyfat_modifier,low_bodyfat,protein cao,điều chỉnh theo buổi tập,không xuống quá thấp,Tránh deficit sâu; ưu tiên maintenance hoặc cut chậm.

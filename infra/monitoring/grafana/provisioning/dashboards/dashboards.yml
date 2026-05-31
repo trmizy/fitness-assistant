@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: 'GymCoach Dashboards'
+    orgId: 1
+    folder: 'Fitness Assistant'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json
+      foldersFromFilesStructure: false

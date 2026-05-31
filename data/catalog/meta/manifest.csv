@@ -1,0 +1,18 @@
+file_name,row_count,description
+ref_muscles.csv,29,Bảng tham chiếu nhóm cơ
+ref_equipment.csv,24,Bảng tham chiếu thiết bị
+ref_goals.csv,10,Bảng tham chiếu mục tiêu tập
+ref_levels.csv,3,Bảng tham chiếu cấp độ
+ref_movement_patterns.csv,16,Bảng tham chiếu movement pattern
+gym_exercises.csv,205,Thư viện bài tập chi tiết
+gym_workout_plans.csv,57,Metadata plan tập
+gym_workout_plan_days.csv,195,Lịch ngày trong từng plan
+gym_workout_plan_exercises.csv,1137,Bài tập trong từng ngày plan
+gym_foods.csv,149,Thực phẩm và macro xấp xỉ
+gym_meal_plans.csv,120,Metadata meal plan
+gym_meal_plan_items.csv,1318,Thực phẩm trong từng meal plan
+gym_health_guidance.csv,400,"Hướng dẫn an toàn, hồi phục, cảnh báo"
+gym_faq_qa.csv,5946,FAQ hỏi đáp tiếng Việt
+gym_queries.csv,25220,Query synthetic cho RAG search/retrieval
+gym_rag_master_dataset.csv,7072,Bộ chunk chính để index vào vector DB
+gym_instruction_tuning_pairs.csv,25220,Cặp prompt-response để fine-tune/instruction-tuning

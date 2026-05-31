@@ -1,0 +1,119 @@
+{
+  "name": "Gym Test - Auth",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gym-test-auth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b0000001-0001-0001-0001-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "gym-test-auth"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { startMs: Date.now(), startTime: new Date().toISOString() } }];"
+      },
+      "id": "b0000001-0002-0002-0002-000000000001",
+      "name": "Start Timer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://api-gateway:3000/health",
+        "options": {
+          "timeout": 5000,
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "id": "b0000001-0003-0003-0003-000000000001",
+      "name": "Check Gateway",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 180],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://auth-service:3001/health",
+        "options": {
+          "timeout": 5000,
+          "response": { "response": { "neverError": true } }
+        }
+      },
+      "id": "b0000001-0004-0004-0004-000000000001",
+      "name": "Check Auth Service",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 420],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const startMs = $('Start Timer').first().json.startMs;\nconst checks = [];\nlet allPassed = true;\n\ntry {\n  const r = $('Check Gateway').first().json;\n  const ok = !!(r?.status === 'ok' || r?.status === 'healthy' || r?.uptime);\n  if (!ok) allPassed = false;\n  checks.push({ name: 'gateway', ok, detail: r?.status ?? JSON.stringify(r).slice(0, 100) });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'gateway', ok: false, detail: e.message });\n}\n\ntry {\n  const r = $('Check Auth Service').first().json;\n  const ok = !!(r?.status === 'ok' || r?.status === 'healthy' || r?.uptime);\n  if (!ok) allPassed = false;\n  checks.push({ name: 'auth-service', ok, detail: r?.status ?? JSON.stringify(r).slice(0, 100) });\n} catch(e) {\n  allPassed = false;\n  checks.push({ name: 'auth-service', ok: false, detail: e.message });\n}\n\nconst durationMs = Date.now() - startMs;\nreturn [{ json: {\n  passed: allPassed,\n  step: 'Auth',\n  statusCode: allPassed ? 200 : 503,\n  details: checks.map(c => `${c.name}: ${c.ok ? 'OK' : 'FAIL'}`).join(' | '),\n  durationMs,\n  checks\n} }];"
+      },
+      "id": "b0000001-0005-0005-0005-000000000001",
+      "name": "Build Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "b0000001-0006-0006-0006-000000000001",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Start Timer", "type": "main", "index": 0 }]]
+    },
+    "Start Timer": {
+      "main": [[{ "node": "Check Gateway", "type": "main", "index": 0 }]]
+    },
+    "Check Gateway": {
+      "main": [[{ "node": "Check Auth Service", "type": "main", "index": 0 }]]
+    },
+    "Check Auth Service": {
+      "main": [[{ "node": "Build Result", "type": "main", "index": 0 }]]
+    },
+    "Build Result": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh"
+  },
+  "tags": [{ "name": "e2e-test" }, { "name": "auth" }, { "name": "sub-workflow" }],
+  "_meta": {
+    "description": "Sub-workflow: checks API Gateway /health and auth-service /health. Called by orchestrator via POST /webhook/gym-test-auth.",
+    "webhook_path": "gym-test-auth",
+    "checks": ["http://api-gateway:3000/health", "http://auth-service:3001/health"],
+    "response_schema": {
+      "passed": "boolean",
+      "step": "Auth",
+      "statusCode": "200 | 503",
+      "details": "string",
+      "durationMs": "number",
+      "checks": "array"
+    }
+  }
+}

@@ -1,8 +1,10 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import { logger } from '@gym-coach/shared';
+import { logger, register, metricsMiddleware } from '@gym-coach/shared';
 import chatRoutes from './routes/chat.routes';
+import callRoutes from './routes/call.routes';
+import { getIo } from './socket/index';
 
 const app: Express = express();
 
@@ -14,6 +16,7 @@ app.use(
   }),
 );
 app.use(express.json());
+app.use(metricsMiddleware());
 
 // Request logging
 app.use((req: Request, _res: Response, next: NextFunction) => {
@@ -30,7 +33,48 @@ app.get('/health', (_req, res) => {
   });
 });
 
+app.get('/metrics', async (_req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
+
 app.use('/chat', chatRoutes);
+// REST signaling for video/voice calls; mount under the same /chat prefix so the
+// gateway proxy for /chat catches it automatically.
+app.use('/chat/calls', callRoutes);
+
+// Internal notification push — validated by shared secret (Docker-internal only)
+app.post('/internal/push-notification', (req: Request, res: Response): void => {
+  const secret = req.headers['x-internal-secret'];
+  if (!secret || secret !== process.env.INTERNAL_API_SECRET) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const io = getIo();
+  if (!io) {
+    res.status(503).json({ error: 'Socket not ready' });
+    return;
+  }
+
+  const { userId, adminBroadcast, notification } = req.body;
+  if (!notification) {
+    res.status(400).json({ error: 'Missing notification' });
+    return;
+  }
+
+  if (adminBroadcast) {
+    io.to('admin:notifications').emit('notification:new', notification);
+  } else if (userId) {
+    io.to(`user:${userId}`).emit('notification:new', notification);
+  } else {
+    res.status(400).json({ error: 'Missing userId or adminBroadcast' });
+    return;
+  }
+
+  res.json({ ok: true });
+  return;
+});
 
 // 404 handler
 app.use((_req, res) => {

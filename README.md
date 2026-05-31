@@ -6,7 +6,8 @@
 
 ### 1. Start Infrastructure
 ```powershell
-docker-compose -f docker-compose.dev.yml up -d
+# Chạy từ root folder
+docker-compose -f infra/compose/docker-compose.dev.yml up -d
 Start-Sleep -Seconds 10
 ```
 
@@ -208,11 +209,15 @@ curl http://localhost:3002/health  # Fitness
 curl http://localhost:3003/health  # AI
 ```
 
-## 🛑 Stop Services
+- **Infrastructure**: `docker-compose -f infra/compose/docker-compose.dev.yml down`
+- **Clean all** (⚠️ deletes data): `docker-compose -f infra/compose/docker-compose.dev.yml down -v`
 
-- **Services**: Close command windows
-- **Infrastructure**: `docker-compose -f docker-compose.dev.yml down`
-- **Clean all** (⚠️ deletes data): `docker-compose -f docker-compose.dev.yml down -v`
+### 💡 LƯU Ý CHO TEAM (Khi mới pull code)
+Nếu bạn không thấy danh sách bài tập (Empty Exercises), hãy chạy lệnh reset sau để database được seed lại:
+```powershell
+docker-compose -f infra/compose/docker-compose.dev.yml down -v
+docker-compose -f infra/compose/docker-compose.dev.yml up --build -d
+```
 
 ## 🐛 Troubleshooting
 

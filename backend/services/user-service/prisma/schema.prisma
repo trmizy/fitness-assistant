@@ -40,6 +40,11 @@ model UserProfile {
   id        String   @id @default(uuid())
   userId    String   @unique // References auth-service User.id
   
+  // Basic info (cached from auth-service or direct)
+  firstName String?
+  lastName  String?
+  email     String?
+  
   // PT Status
   // Currently a simple boolean flag. Future expansion:
   // - role: CLIENT | PT | ADMIN (enum)
@@ -65,9 +70,483 @@ model UserProfile {
   // Calculated fields (can be denormalized from InBody service)
   currentWeight Float?
   targetWeight  Float?
-  
+
+  // User preferences
+  dietaryPreference String? @map("dietary_preference")
+  photoUrl          String? @map("photo_url")
+
+  sessionDurationMinutes Int @default(60) @map("session_duration_minutes")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  ptApplication     PTApplication?
+  trainingLocations PTTrainingLocation[]
+
   @@map("user_profiles")
+}
+
+enum PTApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  NEEDS_MORE_INFO
+  APPROVED
+  REJECTED
+}
+
+enum ServiceMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum MediaGroupType {
+  IDENTITY
+  CERTIFICATE
+  PORTFOLIO
+}
+
+model PTApplication {
+  id                   String               @id @default(uuid())
+  userProfileId        String               @unique @map("user_profile_id")
+  status               PTApplicationStatus  @default(DRAFT)
+  
+  // Basic personal / verification info
+  phoneNumber          String?              @map("phone_number")
+  nationalIdNumber     String?              @map("national_id_number")
+  currentAddress       String?              @map("current_address")
+  
+  // Identity verification images (shortcut fields for the 3 required documents)
+  idCardFrontUrl       String?              @map("id_card_front_url")
+  idCardBackUrl        String?              @map("id_card_back_url")
+  portraitPhotoUrl     String?              @map("portrait_photo_url")
+  
+  // Professional background
+  yearsOfExperience       String?              @map("years_of_experience")
+  educationBackground     String?              @map("education_background")
+  previousWorkExperience  String?              @map("previous_work_experience")
+  professionalBio         String?              @map("professional_bio")
+  mainSpecialties         String[]             @map("main_specialties")
+  targetClientGroups      String[]             @map("target_client_groups")
+  primaryTrainingGoals    String[]             @map("primary_training_goals")
+  trainingMethodsApproach String?              @map("training_methods_approach")
+  
+  // Portfolio / professional links
+  portfolioUrl         String?              @map("portfolio_url")
+  linkedinUrl          String?              @map("linkedin_url")
+  websiteUrl           String?              @map("website_url")
+  socialLinks          Json?                @map("social_links") // For Instagram, YouTube, etc.
+  
+  // Service / work setup
+  availabilityNotes       String?              @map("availability_notes")
+  availableTimeSlots      Json?                @map("available_time_slots")
+  serviceMode             ServiceMode?         @map("service_mode")
+  operatingAreas          String[]             @map("operating_areas")
+  desiredSessionPrice     Float?               @map("desired_session_price")
+  availableDays           String[]             @map("available_days")
+  availableFrom           String?              @map("available_from")
+  availableUntil          String?              @map("available_until")
+  gymAffiliation          String?              @map("gym_affiliation")
+  monthlyProgramPrice     Float?               @map("monthly_program_price")
+  packagePrice            Float?               @map("package_price")
+  sessionsPerPackage      Int                  @default(10) @map("sessions_per_package")
+  sessionDurationMinutes  Int                  @default(60) @map("session_duration_minutes")
+  availabilityBlocks      Json?                @map("availability_blocks")
+  additionalPricingNotes  String?              @map("additional_pricing_notes")
+  onlinePricePerSession   Float?               @map("online_price_per_session")
+  offlinePricePerSession  Float?               @map("offline_price_per_session")
+  onlinePackagePrice      Float?               @map("online_package_price")
+  offlinePackagePrice     Float?               @map("offline_package_price")
+  otherReferences         String?              @map("other_references")
+
+  // Residence info (Admin only — not public to Client)
+  residenceProvinceCode        Int?     @map("residence_province_code")
+  residenceWardCode            Int?     @map("residence_ward_code")
+  residenceAddressLine         String?  @map("residence_address_line")
+  residenceLegacyDistrictName  String?  @map("residence_legacy_district_name")
+
+  // Training locations submitted with application (JSON); promoted to PTTrainingLocation on approve
+  applicationTrainingLocations Json?    @map("application_training_locations")
+
+  // Admin interaction
+  adminNote            String?              @map("admin_note")
+  rejectionReason      String?              @map("rejection_reason")
+  
+  // Timestamps
+  submittedAt          DateTime?            @map("submitted_at")
+  reviewedAt           DateTime?            @map("reviewed_at")
+  approvedAt           DateTime?            @map("approved_at")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+
+  certificates         PTApplicationCertificate[]
+  media                PTApplicationMedia[]
+
+  userProfile          UserProfile          @relation(fields: [userProfileId], references: [id])
+
+  @@map("pt_applications")
+}
+
+model PTApplicationCertificate {
+  id                   String        @id @default(uuid())
+  applicationId        String        @map("application_id")
+  certificateName      String        @map("certificate_name")
+  issuingOrganization  String        @map("issuing_organization")
+  isCurrentlyValid     Boolean       @map("is_currently_valid")
+  certificationStatus  String?       @map("certification_status") // Valid, Expired, Lifetime
+  issueDate            DateTime?     @map("issue_date")
+  expirationDate       DateTime?     @map("expiration_date")
+  certificateFileUrl   String?       @map("certificate_file_url")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  
+  application          PTApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("pt_application_certificates")
+}
+
+model PTApplicationMedia {
+  id                   String        @id @default(uuid())
+  applicationId        String        @map("application_id")
+  groupType            MediaGroupType @map("group_type")
+  fileUrl              String        @map("file_url")
+  label                String?       @map("label")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  
+  application          PTApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("pt_application_media")
+}
+
+// ─── Contract + Booking Enums ─────────────────────────────────────
+
+enum ContractStatus {
+  PENDING_REVIEW    // Client requested, awaiting PT decision
+  PENDING_SIGNATURE // PT accepted, waiting for both parties to e-sign
+  ACTIVE            // Contract in effect (both signed or no e-sign required)
+  COMPLETED         // All sessions used
+  EXPIRED           // Past end date
+  CANCELLED         // Terminated early by either party
+  REJECTED          // PT declined the request
+}
+
+enum PackageType {
+  PER_SESSION // Pay per session
+  PACKAGE     // Fixed number of sessions bundle
+}
+
+enum SessionStatus {
+  REQUESTED // Client booked, awaiting PT confirmation
+  CONFIRMED // PT confirmed
+  COMPLETED // PT marked complete
+  CANCELLED // Either party cancelled
+  NO_SHOW   // Client or PT did not attend
+}
+
+enum SessionMode {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum NotificationEventType {
+  CONTRACT_REQUESTED
+  CONTRACT_ACCEPTED
+  CONTRACT_REJECTED
+  CONTRACT_CANCELLED
+  SESSION_BOOKED
+  SESSION_CONFIRMED
+  SESSION_COMPLETED
+  SESSION_CANCELLED
+  SESSION_NO_SHOW_CLIENT
+  SESSION_NO_SHOW_PT
+}
+
+enum NotificationEntityType {
+  CONTRACT
+  SESSION
+}
+
+// ─── Contract ─────────────────────────────────────────────────────
+
+model Contract {
+  id                 String         @id @default(uuid())
+  ptUserId           String         @map("pt_user_id")
+  clientUserId       String         @map("client_user_id")
+  status             ContractStatus @default(PENDING_REVIEW)
+
+  // Package details
+  packageType        PackageType    @default(PACKAGE) @map("package_type")
+  packageName        String         @map("package_name")
+  // ONLINE or OFFLINE — never HYBRID for a specific contract
+  sessionMode        SessionMode?   @map("session_mode")
+  description        String?
+  packageQuantity    Int            @default(1) @map("package_quantity")
+  extraSessions      Int            @default(0) @map("extra_sessions")
+  totalSessions      Int            @map("total_sessions")
+  usedSessions       Int            @default(0) @map("used_sessions")
+  price              Float?
+  pricePerSession    Float?         @map("price_per_session")
+
+  // Timeline
+  startDate          DateTime?      @map("start_date")
+  endDate            DateTime?      @map("end_date")
+  completedAt        DateTime?      @map("completed_at")
+
+  // Request & negotiation
+  clientMessage      String?        @map("client_message")
+  rejectionReason    String?        @map("rejection_reason")
+  cancelledBy        String?        @map("cancelled_by")
+  cancellationReason String?        @map("cancellation_reason")
+
+  // Terms
+  terms              String?
+  notes              String?
+
+  // E-Signature fields
+  // eSignStatus values: 'SENT' | 'PARTIALLY_SIGNED' | 'SIGNED' | 'DECLINED' | 'EXPIRED' | 'ERROR'
+  eSignProvider      String?        @map("esign_provider")
+  eSignRequestId     String?        @map("esign_request_id")
+  eSignStatus        String?        @map("esign_status")
+  eSignTestMode      Boolean        @default(true) @map("esign_test_mode")
+  eSignSentAt        DateTime?      @map("esign_sent_at")
+  clientSignedAt     DateTime?      @map("client_signed_at")
+  ptSignedAt         DateTime?      @map("pt_signed_at")
+  fullySignedAt      DateTime?      @map("fully_signed_at")
+  contractPdfPath    String?        @map("contract_pdf_path")
+  signedPdfUrl       String?        @map("signed_pdf_url")
+  eSignError         String?        @map("esign_error")
+  clientSignerEmail  String?        @map("client_signer_email")
+  ptSignerEmail      String?        @map("pt_signer_email")
+
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  sessions           Session[]
+  reviews            SessionReview[]
+
+  @@index([ptUserId])
+  @@index([clientUserId])
+  @@index([status])
+  @@map("contracts")
+}
+
+// ─── Session (Booking) ────────────────────────────────────────────
+
+model Session {
+  id                 String        @id @default(uuid())
+  contractId         String        @map("contract_id")
+  clientUserId       String        @map("client_user_id")
+  ptUserId           String        @map("pt_user_id")
+  status             SessionStatus @default(REQUESTED)
+  sessionMode        SessionMode   @default(OFFLINE) @map("session_mode")
+
+  // Scheduling — authoritative datetime range
+  scheduledStartAt   DateTime      @map("scheduled_start_at")
+  scheduledEndAt     DateTime      @map("scheduled_end_at")
+
+  location           String?
+  notes              String?
+  ptNotes            String?       @map("pt_notes")
+  cancelledBy        String?       @map("cancelled_by")
+  cancellationReason String?       @map("cancellation_reason")
+  sessionDeducted    Boolean       @default(false) @map("session_deducted")
+  completedAt        DateTime?     @map("completed_at")
+
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  contract           Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  review             SessionReview?
+
+  @@index([contractId])
+  @@index([clientUserId])
+  @@index([ptUserId])
+  @@index([scheduledStartAt])
+  @@map("sessions")
+}
+
+// ─── Session Review ───────────────────────────────────────────────
+
+model SessionReview {
+  id           String   @id @default(uuid())
+  sessionId    String   @unique @map("session_id")
+  contractId   String   @map("contract_id")
+  clientUserId String   @map("client_user_id")
+  rating       Int      // 1–5
+  comment      String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  session      Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@map("session_reviews")
+}
+
+// ─── Notification ─────────────────────────────────────────────────
+
+model Notification {
+  id         String                  @id @default(uuid())
+  userId     String                  @map("user_id")
+  text       String
+  eventType  NotificationEventType   @map("event_type")
+  entityType NotificationEntityType  @map("entity_type")
+  entityId   String                  @map("entity_id")
+  link       String?
+  unread     Boolean                 @default(true)
+  createdAt  DateTime                @default(now()) @map("created_at")
+  updatedAt  DateTime                @updatedAt @map("updated_at")
+
+  @@index([userId, createdAt])
+  @@index([userId, unread])
+  @@map("notifications")
+}
+
+// ─── PT Availability ──────────────────────────────────────────────
+
+model PTAvailability {
+  id        String    @id @default(uuid())
+  ptUserId  String    @map("pt_user_id")
+  dayOfWeek DayOfWeek @map("day_of_week")
+  startTime String    @map("start_time") // "09:00"
+  endTime   String    @map("end_time")   // "17:00"
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([ptUserId])
+  @@map("pt_availability")
+}
+
+// ─── PT Schedule Exception ────────────────────────────────────────
+
+model PTScheduleException {
+  id        String   @id @default(uuid())
+  ptUserId  String   @map("pt_user_id")
+  date      DateTime
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ptUserId, date])
+  @@map("pt_schedule_exceptions")
+}
+
+// ─── Vietnam Administrative Locations ────────────────────────────
+
+model VietnamProvince {
+  code           Int      @id
+  name           String
+  nameNormalized String   @map("name_normalized")
+  codename       String?
+  divisionType   String?  @map("division_type")
+  phoneCode      Int?     @map("phone_code")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  wards             VietnamWard[]
+  trainingLocations PTTrainingLocation[]
+
+  @@index([name])
+  @@index([nameNormalized])
+  @@index([codename])
+  @@map("vietnam_provinces")
+}
+
+model VietnamWard {
+  code           Int      @id
+  provinceCode   Int      @map("province_code")
+  name           String
+  nameNormalized String   @map("name_normalized")
+  codename       String?
+  divisionType   String?  @map("division_type")
+  shortCodename  String?  @map("short_codename")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  province          VietnamProvince      @relation(fields: [provinceCode], references: [code], onDelete: Cascade)
+  trainingLocations PTTrainingLocation[]
+
+  @@index([provinceCode])
+  @@index([name])
+  @@index([nameNormalized])
+  @@index([codename])
+  @@map("vietnam_wards")
+}
+
+// ─── PT Training Locations ────────────────────────────────────────
+
+model PTTrainingLocation {
+  id                 String   @id @default(uuid())
+  ptUserId           String   @map("pt_user_id")
+  provinceCode       Int      @map("province_code")
+  wardCode           Int?     @map("ward_code")
+  gymName            String?  @map("gym_name")
+  addressLine        String?  @map("address_line")
+  legacyDistrictName String?  @map("legacy_district_name")
+  isPrimary          Boolean  @default(false) @map("is_primary")
+  isActive           Boolean  @default(true) @map("is_active")
+  note               String?
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  province  VietnamProvince @relation(fields: [provinceCode], references: [code])
+  ward      VietnamWard?    @relation(fields: [wardCode], references: [code])
+  ptProfile UserProfile     @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+
+  @@index([ptUserId])
+  @@index([provinceCode])
+  @@index([wardCode])
+  @@index([isActive])
+  @@map("pt_training_locations")
+}
+
+model InBodyEntry {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  date      DateTime @default(now())
+  // BR-07: at most one InBody entry per user per calendar day. `dateOnly` is the
+  // UTC day component of `date`. The service sets this on every create/update.
+  dateOnly  DateTime @db.Date @map("date_only")
+
+  // Basic metrics
+  weight     Float
+  height     Float?
+  bmi        Float?
+  bodyFat    Float    @map("body_fat")    // Mass in kg or %? Let's use mass kg
+  bodyFatPct Float?   @map("body_fat_pct") // Percentage
+  muscleMass Float    @map("muscle_mass")
+  
+  // Segmental Lean Analysis (kg)
+  rightArmMuscle Float? @map("right_arm_muscle")
+  leftArmMuscle  Float? @map("left_arm_muscle")
+  trunkMuscle    Float? @map("trunk_muscle")
+  rightLegMuscle Float? @map("right_leg_muscle")
+  leftLegMuscle  Float? @map("left_leg_muscle")
+
+  // Segmental Fat Analysis (kg)
+  rightArmFat Float? @map("right_arm_fat")
+  leftArmFat  Float? @map("left_arm_fat")
+  trunkFat    Float? @map("trunk_fat")
+  rightLegFat Float? @map("right_leg_fat")
+  leftLegFat  Float? @map("left_leg_fat")
+
+  status    String   @default("manual") // manual, extracted, pending
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, dateOnly], name: "inbody_entries_user_id_date_only_key")
+  @@index([userId, date])
+  @@map("inbody_entries")
 }

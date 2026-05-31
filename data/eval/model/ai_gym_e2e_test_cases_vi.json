@@ -1,0 +1,1239 @@
+{
+  "dataset_name": "ai_gym_e2e_test_cases_vi",
+  "version": "1.0.0",
+  "language": "vi",
+  "total_cases": 42,
+  "test_cases": [
+    {
+      "id": "EX01",
+      "group": "bai_tap",
+      "user_input": "Mình mới tập gym, hãy cho mình buổi tập thân dưới để tăng cơ mông đùi.",
+      "user_profile": {
+        "age": 24,
+        "gender": "female",
+        "goal": "hypertrophy",
+        "training_level": "beginner",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Muc tieu buoi tap",
+        "Khoi dong",
+        "Danh sach bai tap chi tiet (ten bai, set, rep, nghi)",
+        "Luu y ky thuat",
+        "Ha nhiet"
+      ],
+      "expected_response_characteristics": [
+        "Du it nhat 5 bai tap chinh",
+        "Moi bai co set rep nghi ro rang",
+        "Nguon luc phu hop nguoi moi",
+        "Van phong hoan toan bang tieng Viet"
+      ],
+      "forbidden_issues": [
+        "Chi liet ke ten bai khong co thong so",
+        "Khong co khoi dong",
+        "Goi y muc ta qua chung chung"
+      ]
+    },
+    {
+      "id": "EX02",
+      "group": "bai_tap",
+      "user_input": "Cho tôi bài tập ngực vai tay sau trong 60 phút, ưu tiên tăng sức mạnh.",
+      "user_profile": {
+        "age": 29,
+        "gender": "male",
+        "goal": "strength",
+        "training_level": "intermediate",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Phan bo thoi gian 60 phut",
+        "Bai tap compound uu tien",
+        "Bai tap phu tro",
+        "Thong so tai trong/RPE hoac %1RM",
+        "Luu y an toan"
+      ],
+      "expected_response_characteristics": [
+        "Co thu tu tu nang den nhe",
+        "Co muc tieu suc manh ro rang",
+        "Khong rut gon qua muc"
+      ],
+      "forbidden_issues": [
+        "Khong de cap khoang nghi",
+        "Tron muc tieu hypertrophy va strength vo ly",
+        "Thieu bai cho nhom tay sau"
+      ]
+    },
+    {
+      "id": "EX03",
+      "group": "bai_tap",
+      "user_input": "Tôi bị đau lưng dưới nhẹ, vẫn muốn tập lưng xô. Gợi ý buổi tập an toàn.",
+      "user_profile": {
+        "age": 34,
+        "gender": "male",
+        "goal": "muscle_gain",
+        "training_level": "intermediate",
+        "injuries": ["lower_back_sensitivity"],
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Danh gia gioi han",
+        "Bai tap thay the an toan cho lung duoi",
+        "Thong so set rep nghi",
+        "Dau hieu can dung ngay"
+      ],
+      "expected_response_characteristics": [
+        "Co dieu chinh bai tap theo chan thuong",
+        "Tranh bai co nguy co cao cho lung duoi",
+        "Huong dan ky thuat cu the"
+      ],
+      "forbidden_issues": [
+        "De xuat deadlift nang khi dang dau lung",
+        "Khong canh bao an toan",
+        "Khong ca nhan hoa theo thong tin chan thuong"
+      ]
+    },
+    {
+      "id": "EX04",
+      "group": "bai_tap",
+      "user_input": "Cho em buổi tập full body tại nhà chỉ với 2 quả dumbbell 10kg.",
+      "user_profile": {
+        "age": 21,
+        "gender": "female",
+        "goal": "fat_loss",
+        "training_level": "beginner",
+        "equipment": "home_dumbbell_10kg",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Khoi dong tai nha",
+        "Bai tap full body tai nha",
+        "Set rep nghi va tempo",
+        "Finisher dot mo",
+        "Mo ta cach tang do kho"
+      ],
+      "expected_response_characteristics": [
+        "Khong yeu cau may phong gym",
+        "So bai vua du 40-60 phut",
+        "Ro rang de thuc hien"
+      ],
+      "forbidden_issues": [
+        "De xuat may cable/leg press",
+        "Thieu thong so tung bai",
+        "Noi dung qua ngan"
+      ]
+    },
+    {
+      "id": "EX05",
+      "group": "bai_tap",
+      "user_input": "Hãy cho tôi buổi cardio đốt mỡ nhưng không chạy bộ vì đau gối.",
+      "user_profile": {
+        "age": 31,
+        "gender": "female",
+        "goal": "fat_loss",
+        "training_level": "beginner",
+        "injuries": ["knee_pain"],
+        "equipment": "gym_cardio_zone",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lua chon cardio it tac dong",
+        "Khung thoi gian va cuong do",
+        "Chi so theo doi (HR/RPE)",
+        "Luu y bao ve dau goi"
+      ],
+      "expected_response_characteristics": [
+        "Co thay the khong chay bo",
+        "Co huong dan theo muc cuong do",
+        "Ca nhan hoa theo dau goi"
+      ],
+      "forbidden_issues": [
+        "Bat buoc chay bo",
+        "Khong de cap gioi han dau goi",
+        "Huong dan mo ho"
+      ]
+    },
+    {
+      "id": "EX06",
+      "group": "bai_tap",
+      "user_input": "Viết giúp tôi buổi tập tay trước tay sau để tay to hơn, tập 45 phút.",
+      "user_profile": {
+        "age": 27,
+        "gender": "male",
+        "goal": "arm_hypertrophy",
+        "training_level": "intermediate",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Muc tieu 45 phut",
+        "Superset/straight set",
+        "Set rep nghi tung bai",
+        "Huong dan form",
+        "Ke hoach progression"
+      ],
+      "expected_response_characteristics": [
+        "Co ca tay truoc va tay sau can bang",
+        "Co tong volume hop ly",
+        "Khong bo qua nghi giua set"
+      ],
+      "forbidden_issues": [
+        "Chi co bai tay truoc",
+        "Khong co progression",
+        "Noi dung qua so sai thong so"
+      ]
+    },
+    {
+      "id": "EX07",
+      "group": "bai_tap",
+      "user_input": "Tôi nữ 42 tuổi, mới quay lại tập sau 2 năm nghỉ. Cho buổi tập nhẹ toàn thân.",
+      "user_profile": {
+        "age": 42,
+        "gender": "female",
+        "goal": "return_to_training",
+        "training_level": "detrained_beginner",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Muc tieu phuc hoi",
+        "Khoi dong dong tac co ban",
+        "Bai tap nhe toan than",
+        "Set rep nghi",
+        "Luu y tai phuc"
+      ],
+      "expected_response_characteristics": [
+        "Cuong do than trong",
+        "Co de xuat khoi luong vua suc",
+        "Ca nhan hoa theo tuoi va thoi gian nghi"
+      ],
+      "forbidden_issues": [
+        "Program qua nang ngay dau",
+        "Khong nhac den phuc hoi",
+        "Khong co huong dan giam tai"
+      ]
+    },
+    {
+      "id": "EX08",
+      "group": "bai_tap",
+      "user_input": "Cho mình bài core 20 phút tại nhà để cải thiện đau lưng do ngồi nhiều.",
+      "user_profile": {
+        "age": 26,
+        "gender": "male",
+        "goal": "core_stability",
+        "training_level": "beginner",
+        "equipment": "bodyweight",
+        "occupation": "office_worker",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Khoi dong cot song",
+        "Bai core on dinh",
+        "Set rep hoac thoi gian moi bai",
+        "Khoang nghi",
+        "Luu y tu the van phong"
+      ],
+      "expected_response_characteristics": [
+        "Phu hop 20 phut",
+        "Tap trung on dinh thay vi gap bung qua muc",
+        "Co huong dan tho"
+      ],
+      "forbidden_issues": [
+        "Chi cho crunch lien tuc",
+        "Khong co nghi giua bai",
+        "Khong lien he tinh trang ngoi nhieu"
+      ]
+    },
+    {
+      "id": "EX09",
+      "group": "bai_tap",
+      "user_input": "Hãy đề xuất buổi tập chân cho runner, ưu tiên sức bền cơ.",
+      "user_profile": {
+        "age": 30,
+        "gender": "male",
+        "goal": "running_performance",
+        "training_level": "intermediate",
+        "sport": "half_marathon",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Muc tieu ho tro chay bo",
+        "Bai tap 1 chan va on dinh",
+        "Set rep nghi",
+        "Luu y lich ket hop voi ngay chay"
+      ],
+      "expected_response_characteristics": [
+        "Co bai bo tro gân kheo-mong-bap chan",
+        "Volume hop ly de khong qua tai cho runner",
+        "Rang buoc theo lich chay"
+      ],
+      "forbidden_issues": [
+        "Program nhu bodybuilding thuần",
+        "Khong co bai 1 chan",
+        "Khong de cap recovery"
+      ]
+    },
+    {
+      "id": "EX10",
+      "group": "bai_tap",
+      "user_input": "Please give me a pull workout, but answer in Vietnamese only.",
+      "user_profile": {
+        "age": 23,
+        "gender": "male",
+        "goal": "hypertrophy",
+        "training_level": "beginner",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Muc tieu buoi pull",
+        "Danh sach bai tap pull day du",
+        "Set rep nghi",
+        "Luu y form"
+      ],
+      "expected_response_characteristics": [
+        "Tra loi 100 phan tram bang tieng Viet",
+        "Noi dung day du khong rut gon",
+        "Co bai lung sau vai tay truoc"
+      ],
+      "forbidden_issues": [
+        "Tra loi bang tieng Anh",
+        "Thieu thong so set rep nghi",
+        "Thieu nhom co chinh"
+      ]
+    },
+    {
+      "id": "EX11",
+      "group": "bai_tap",
+      "user_input": "Mình chỉ có 30 phút giờ nghỉ trưa, cho buổi tập ngực hiệu quả tối đa.",
+      "user_profile": {
+        "age": 28,
+        "gender": "male",
+        "goal": "time_efficient_hypertrophy",
+        "training_level": "intermediate",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Cau truc 30 phut",
+        "Bai tap uu tien",
+        "Set rep nghi ngan",
+        "Luu y toi uu thoi gian"
+      ],
+      "expected_response_characteristics": [
+        "Co tinh den gioi han 30 phut",
+        "Khong bo qua khoi dong toi thieu",
+        "Do cu the cao"
+      ],
+      "forbidden_issues": [
+        "Lich vuot xa 30 phut",
+        "Khong co thong so nghi",
+        "Mo ta qua dai dong khong hanh dong"
+      ]
+    },
+    {
+      "id": "EX12",
+      "group": "bai_tap",
+      "user_input": "Tôi muốn buổi tập vai tránh impingement, vai trước của tôi hay bị khó chịu.",
+      "user_profile": {
+        "age": 33,
+        "gender": "male",
+        "goal": "shoulder_hypertrophy_safe",
+        "training_level": "intermediate",
+        "injuries": ["shoulder_impingement_history"],
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Danh sach dong tac than thien khop vai",
+        "Dong tac can tranh",
+        "Set rep nghi",
+        "Luu y ROM va ky thuat"
+      ],
+      "expected_response_characteristics": [
+        "Ca nhan hoa theo van de vai",
+        "Khong goi y bai de gay kich ung",
+        "Co canh bao dau hieu dung bai"
+      ],
+      "forbidden_issues": [
+        "Khuyen nghi upright row nang",
+        "Khong de cap an toan vai",
+        "Khong thong so cu the"
+      ]
+    },
+    {
+      "id": "EX13",
+      "group": "bai_tap",
+      "user_input": "Cho em buổi HIIT 25 phút tại nhà đốt mỡ, không dụng cụ.",
+      "user_profile": {
+        "age": 20,
+        "gender": "female",
+        "goal": "fat_loss",
+        "training_level": "beginner",
+        "equipment": "bodyweight",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Khoi dong",
+        "Cac round HIIT",
+        "Thong so work/rest",
+        "Ha nhiet",
+        "Phuong an giam muc do"
+      ],
+      "expected_response_characteristics": [
+        "Dung thoi luong 25 phut",
+        "Co thong so work/rest ro rang",
+        "Phu hop nguoi moi"
+      ],
+      "forbidden_issues": [
+        "Khong co khoi dong/ha nhiet",
+        "Khong ghi work rest",
+        "Yeu cau dung cu"
+      ]
+    },
+    {
+      "id": "EX14",
+      "group": "bai_tap",
+      "user_input": "Mình tập powerlifting, cần buổi kỹ thuật squat nhẹ trong tuần deload.",
+      "user_profile": {
+        "age": 32,
+        "gender": "male",
+        "goal": "deload_technique",
+        "training_level": "advanced",
+        "sport": "powerlifting",
+        "equipment": "full_gym",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Muc tieu deload",
+        "Thong so tai trong nhe",
+        "Bai ky thuat squat va phu tro",
+        "Luu y cue ky thuat"
+      ],
+      "expected_response_characteristics": [
+        "Thuc su la deload (giam intensity/volume)",
+        "Co cue ky thuat ro",
+        "Khong de xuat buoi qua nang"
+      ],
+      "forbidden_issues": [
+        "Cho %1RM qua cao",
+        "Khong giam volume",
+        "Khong lien quan powerlifting"
+      ]
+    },
+
+    {
+      "id": "SC01",
+      "group": "lich_tap",
+      "user_input": "Lên lịch tập 4 buổi/tuần tăng cơ cho nam văn phòng.",
+      "user_profile": {
+        "age": 27,
+        "gender": "male",
+        "goal": "hypertrophy",
+        "training_level": "beginner",
+        "days_available": 4,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Tong quan lich 4 buoi",
+        "Chi tiet tung buoi theo ngay",
+        "Phan bo nhom co",
+        "Huong dan nghi giua cac buoi"
+      ],
+      "expected_response_characteristics": [
+        "Du 4 buoi khong thieu",
+        "Can bang nhom co",
+        "Khong lap lai vo ly"
+      ],
+      "forbidden_issues": [
+        "Chi dua 3 buoi",
+        "Khong co ten ngay/buoi",
+        "Lich mo ho"
+      ]
+    },
+    {
+      "id": "SC02",
+      "group": "lich_tap",
+      "user_input": "Mình chỉ rảnh thứ 2,4,6,7. Hãy thiết kế lịch tập 4 ngày phù hợp.",
+      "user_profile": {
+        "age": 30,
+        "gender": "female",
+        "goal": "fat_loss_and_tone",
+        "training_level": "intermediate",
+        "available_days": ["Mon", "Wed", "Fri", "Sat"],
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lich theo dung ngay user ranh",
+        "Noi dung moi buoi",
+        "Cardio/strength phan bo",
+        "Ghi chu phuc hoi"
+      ],
+      "expected_response_characteristics": [
+        "Dung ngay user cung cap",
+        "Du 4 buoi",
+        "Co ca nhan hoa"
+      ],
+      "forbidden_issues": [
+        "Dat buoi vao ngay khong ranh",
+        "Thieu buoi",
+        "Khong de cap phuc hoi"
+      ]
+    },
+    {
+      "id": "SC03",
+      "group": "lich_tap",
+      "user_input": "Cho tôi lịch push pull legs 6 buổi.",
+      "user_profile": {
+        "age": 25,
+        "gender": "male",
+        "goal": "hypertrophy",
+        "training_level": "intermediate",
+        "days_available": 6,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lich 6 buoi PPL",
+        "Ngay thu 1 den 6 ro rang",
+        "Khoi luong tong quan moi buoi",
+        "Ngay nghi/hoat dong nhe"
+      ],
+      "expected_response_characteristics": [
+        "Khong thieu buoi nao",
+        "PPL lap 2 vong hop ly",
+        "Noi dung day du"
+      ],
+      "forbidden_issues": [
+        "Chi ra 5 buoi",
+        "Lap lich sai logic PPL",
+        "Khong co huong dan recovery"
+      ]
+    },
+    {
+      "id": "SC04",
+      "group": "lich_tap",
+      "user_input": "Thiết kế lịch 3 buổi cho người mới, ưu tiên học kỹ thuật trước tăng tạ.",
+      "user_profile": {
+        "age": 22,
+        "gender": "female",
+        "goal": "movement_quality",
+        "training_level": "beginner",
+        "days_available": 3,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lich 3 buoi",
+        "Muc tieu ky thuat tung buoi",
+        "Bai tap co ban",
+        "Tieu chi tang tai an toan"
+      ],
+      "expected_response_characteristics": [
+        "Dinh huong hoc ky thuat dung",
+        "Cuong do phu hop nguoi moi",
+        "Co progression don gian"
+      ],
+      "forbidden_issues": [
+        "Qua nang cho nguoi moi",
+        "Khong co huong dan progression",
+        "Thieu buoi"
+      ]
+    },
+    {
+      "id": "SC05",
+      "group": "lich_tap",
+      "user_input": "Lập lịch tập cho nữ sau sinh 6 tháng, 4 buổi/tuần.",
+      "user_profile": {
+        "age": 31,
+        "gender": "female",
+        "goal": "postpartum_recovery",
+        "training_level": "beginner",
+        "special_conditions": ["postpartum_6_months"],
+        "days_available": 4,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lich 4 buoi an toan sau sinh",
+        "Bai tap core san chau",
+        "Muc do tang dan",
+        "Canh bao dau hieu qua tai"
+      ],
+      "expected_response_characteristics": [
+        "Co ca nhan hoa theo sau sinh",
+        "Tap trung phuc hoi",
+        "Khong thieu buoi"
+      ],
+      "forbidden_issues": [
+        "Bai impact cao qua som",
+        "Khong de cap an toan sau sinh",
+        "Rut gon qua muc"
+      ]
+    },
+    {
+      "id": "SC06",
+      "group": "lich_tap",
+      "user_input": "Mình có mục tiêu giảm mỡ, hãy cho lịch 5 buổi gồm cả cardio và tạ.",
+      "user_profile": {
+        "age": 35,
+        "gender": "male",
+        "goal": "fat_loss",
+        "training_level": "intermediate",
+        "days_available": 5,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lich 5 buoi ro ngay",
+        "Buoi ta va buoi cardio",
+        "Tong volume tuan",
+        "Huong dan theo doi tien do"
+      ],
+      "expected_response_characteristics": [
+        "Du 5 buoi",
+        "Can bang giua ta va cardio",
+        "Co logic giam mo"
+      ],
+      "forbidden_issues": [
+        "Khong co cardio",
+        "Thieu buoi",
+        "Khong co huong dan theo doi"
+      ]
+    },
+    {
+      "id": "SC07",
+      "group": "lich_tap",
+      "user_input": "Cho tôi lịch 2 buổi/tuần vì rất bận, vẫn muốn duy trì cơ.",
+      "user_profile": {
+        "age": 38,
+        "gender": "female",
+        "goal": "maintenance",
+        "training_level": "intermediate",
+        "days_available": 2,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lich 2 buoi full body",
+        "Bai uu tien hieu qua cao",
+        "Set rep nghi",
+        "Khuyen nghi hoat dong ngoai gio"
+      ],
+      "expected_response_characteristics": [
+        "Toi uu cho lich it ngay",
+        "Du thong tin de tap",
+        "Khong bi so sai"
+      ],
+      "forbidden_issues": [
+        "De xuat 4-5 buoi",
+        "Khong ro thong so",
+        "Khong phu hop muc tieu duy tri"
+      ]
+    },
+    {
+      "id": "SC08",
+      "group": "lich_tap",
+      "user_input": "Thiết kế lịch tập 7 ngày cho vận động viên cử tạ, có ngày phục hồi chủ động.",
+      "user_profile": {
+        "age": 24,
+        "gender": "male",
+        "goal": "performance",
+        "sport": "weightlifting",
+        "training_level": "advanced",
+        "days_available": 7,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Ke hoach 7 ngay",
+        "Ngay nang/ngay nhe",
+        "Ngay phuc hoi chu dong",
+        "Ghi chu fatigue management"
+      ],
+      "expected_response_characteristics": [
+        "Du 7 ngay",
+        "Co periodization co ban",
+        "Phu hop van dong vien"
+      ],
+      "forbidden_issues": [
+        "Khong co ngay phuc hoi",
+        "Lich 1 mau lap lai qua don gian",
+        "Thieu ngay"
+      ]
+    },
+    {
+      "id": "SC09",
+      "group": "lich_tap",
+      "user_input": "Mình muốn lịch tập cải thiện posture do ngồi máy tính 10 tiếng/ngày.",
+      "user_profile": {
+        "age": 29,
+        "gender": "female",
+        "goal": "posture_improvement",
+        "training_level": "beginner",
+        "occupation": "desk_job",
+        "days_available": 4,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lich 4 buoi",
+        "Buoi tap trung lung tren/hip mobility/core",
+        "Bai corrective",
+        "Thoi quen mini break hang ngay"
+      ],
+      "expected_response_characteristics": [
+        "Ca nhan hoa theo nguoi ngoi nhieu",
+        "Khong thieu buoi",
+        "Huong dan thuc te"
+      ],
+      "forbidden_issues": [
+        "Khong de cap posture",
+        "Lich chung chung khong lien quan",
+        "Thieu corrective work"
+      ]
+    },
+    {
+      "id": "SC10",
+      "group": "lich_tap",
+      "user_input": "Hãy cho lịch 4 tuần để tăng dần độ khó, 4 buổi/tuần.",
+      "user_profile": {
+        "age": 26,
+        "gender": "male",
+        "goal": "progressive_overload",
+        "training_level": "intermediate",
+        "days_available": 4,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lich tung tuan 1-4",
+        "Chi tiet 4 buoi moi tuan",
+        "Nguyen tac tang do kho",
+        "Tuan nhe hoac dieu chinh"
+      ],
+      "expected_response_characteristics": [
+        "Co progression theo tuan",
+        "Khong thieu buoi trong moi tuan",
+        "Thong so logic"
+      ],
+      "forbidden_issues": [
+        "Khong tach tuan ro rang",
+        "Thieu buoi",
+        "So lieu mau thuan"
+      ]
+    },
+    {
+      "id": "SC11",
+      "group": "lich_tap",
+      "user_input": "Mình yêu cầu lịch tập hoàn toàn bằng tiếng Việt, 3 buổi upper/lower/full body.",
+      "user_profile": {
+        "age": 23,
+        "gender": "female",
+        "goal": "hypertrophy",
+        "training_level": "beginner",
+        "days_available": 3,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Buoi 1 upper",
+        "Buoi 2 lower",
+        "Buoi 3 full body",
+        "Huong dan nghi va tang tai"
+      ],
+      "expected_response_characteristics": [
+        "100 phan tram tieng Viet",
+        "Du 3 buoi",
+        "Noi dung khong rut gon"
+      ],
+      "forbidden_issues": [
+        "Tra loi pha tieng Anh",
+        "Thieu buoi",
+        "Khong co thong tin huong dan"
+      ]
+    },
+    {
+      "id": "SC12",
+      "group": "lich_tap",
+      "user_input": "Lập lịch tập cho người overfat, BMI 31, chưa từng vào gym, 5 buổi/tuần.",
+      "user_profile": {
+        "age": 36,
+        "gender": "male",
+        "goal": "fat_loss_beginner",
+        "training_level": "novice",
+        "bmi": 31,
+        "days_available": 5,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lich 5 buoi than trong",
+        "Muc tieu tung giai doan",
+        "Buoi ta co ban + cardio",
+        "Luu y an toan nguoi moi"
+      ],
+      "expected_response_characteristics": [
+        "Ca nhan hoa theo profile overfat va nguoi moi",
+        "Khong thieu buoi",
+        "Khong dua yeu cau qua suc"
+      ],
+      "forbidden_issues": [
+        "Lich qua nang ngay tuan dau",
+        "Thieu buoi",
+        "Khong canh bao an toan"
+      ]
+    },
+    {
+      "id": "SC13",
+      "group": "lich_tap",
+      "user_input": "Cho tôi lịch 4 buổi ưu tiên mông và đùi sau, giảm tập đùi trước.",
+      "user_profile": {
+        "age": 28,
+        "gender": "female",
+        "goal": "glute_ham_focus",
+        "training_level": "intermediate",
+        "days_available": 4,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lich 4 buoi",
+        "2 buoi lower uu tien glute-ham",
+        "Buoi upper ho tro",
+        "Phan bo volume theo nhom co"
+      ],
+      "expected_response_characteristics": [
+        "Dung uu tien user yeu cau",
+        "Du 4 buoi",
+        "Co ly do phan bo volume"
+      ],
+      "forbidden_issues": [
+        "Volume quad qua cao",
+        "Thieu buoi",
+        "Khong ca nhan hoa"
+      ]
+    },
+    {
+      "id": "SC14",
+      "group": "lich_tap",
+      "user_input": "Tạo lịch tập kèm ngày test hiệu suất cho 8 tuần chuẩn bị giải chạy 10km.",
+      "user_profile": {
+        "age": 30,
+        "gender": "male",
+        "goal": "10k_prep",
+        "training_level": "intermediate",
+        "sport": "running",
+        "days_available": 6,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Lich 8 tuan",
+        "Phan bo ngay chay nhanh/cham/long run",
+        "Ngay bo tro suc manh",
+        "Ngay test hieu suat"
+      ],
+      "expected_response_characteristics": [
+        "Khong thieu ngay trong tuan",
+        "Co periodization",
+        "Thong tin ro rang"
+      ],
+      "forbidden_issues": [
+        "Khong co test day",
+        "Thieu buoi theo tuan",
+        "Noi dung vo cau truc"
+      ]
+    },
+
+    {
+      "id": "NU01",
+      "group": "dinh_duong",
+      "user_input": "Cho tôi thực đơn giảm mỡ 1 ngày, nêu rõ calories và macro.",
+      "user_profile": {
+        "age": 29,
+        "gender": "female",
+        "weight_kg": 62,
+        "height_cm": 162,
+        "goal": "fat_loss",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Tong calories muc tieu",
+        "Macro protein-carb-fat",
+        "Thuc don tung bua",
+        "Huong dan can do/chuan bi"
+      ],
+      "expected_response_characteristics": [
+        "Co so lieu calories va macro ro",
+        "Day du bua an",
+        "Noi dung de ap dung"
+      ],
+      "forbidden_issues": [
+        "Khong co macro",
+        "Thieu bua",
+        "Mau thuan tong calories va macro"
+      ]
+    },
+    {
+      "id": "NU02",
+      "group": "dinh_duong",
+      "user_input": "Mình muốn meal plan tăng cơ 7 ngày, có thay thế món Việt dễ nấu.",
+      "user_profile": {
+        "age": 24,
+        "gender": "male",
+        "weight_kg": 68,
+        "height_cm": 174,
+        "goal": "muscle_gain",
+        "diet_preference": "vietnamese_home_cooking",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Muc tieu calories/macro ngay",
+        "Thuc don 7 ngay",
+        "Lua chon thay the mon",
+        "Huong dan meal prep"
+      ],
+      "expected_response_characteristics": [
+        "Du 7 ngay",
+        "Co tinh dia phuong mon Viet",
+        "Khong rut gon"
+      ],
+      "forbidden_issues": [
+        "Chi dua 1-2 ngay",
+        "Khong co macro",
+        "Mon an kho tim qua muc"
+      ]
+    },
+    {
+      "id": "NU03",
+      "group": "dinh_duong",
+      "user_input": "Tôi ăn chay, cần thực đơn đủ protein để tăng cơ.",
+      "user_profile": {
+        "age": 33,
+        "gender": "female",
+        "weight_kg": 57,
+        "goal": "muscle_gain",
+        "diet_type": "vegetarian",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Target protein moi ngay",
+        "Nguon protein chay",
+        "Thuc don cac bua",
+        "Luu y vi chat"
+      ],
+      "expected_response_characteristics": [
+        "Ca nhan hoa theo an chay",
+        "Du protein de tang co",
+        "Co huong dan thay the"
+      ],
+      "forbidden_issues": [
+        "Goi y thit/ca",
+        "Khong nêu protein tong",
+        "Thieu bua an"
+      ]
+    },
+    {
+      "id": "NU04",
+      "group": "dinh_duong",
+      "user_input": "Thiết kế thực đơn 3 bữa + 2 bữa phụ cho người tập sáng sớm.",
+      "user_profile": {
+        "age": 27,
+        "gender": "male",
+        "goal": "performance",
+        "training_time": "05:30",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Khung gio an quanh buoi tap",
+        "3 bua chinh 2 bua phu",
+        "Macro theo bua",
+        "Huong dan truoc/sau tap"
+      ],
+      "expected_response_characteristics": [
+        "Du so bua user yeu cau",
+        "Phu hop tap sang som",
+        "Co timing ro"
+      ],
+      "forbidden_issues": [
+        "Thieu bua phu",
+        "Khong co macro",
+        "Khong de cap pre-post workout"
+      ]
+    },
+    {
+      "id": "NU05",
+      "group": "dinh_duong",
+      "user_input": "Tôi bị tiểu đường type 2, cần chế độ ăn giảm mỡ an toàn.",
+      "user_profile": {
+        "age": 45,
+        "gender": "male",
+        "goal": "fat_loss",
+        "medical_conditions": ["type_2_diabetes"],
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Nguyen tac an toan cho tieu duong",
+        "Tong calories va macro dieu chinh",
+        "Thuc don mau",
+        "Canh bao tham khao bac si"
+      ],
+      "expected_response_characteristics": [
+        "Than trong va an toan",
+        "Ca nhan hoa benh ly",
+        "Khong dua loi khuyen nguy hiem"
+      ],
+      "forbidden_issues": [
+        "Khuyen nghi nhin an khac nghiet",
+        "Khong canh bao y khoa",
+        "Thong tin duong huyet sai lech"
+      ]
+    },
+    {
+      "id": "NU06",
+      "group": "dinh_duong",
+      "user_input": "Hãy tính calories và macro cho tôi: nam 80kg, cao 178, tập 5 buổi/tuần, mục tiêu siết.",
+      "user_profile": {
+        "age": 30,
+        "gender": "male",
+        "weight_kg": 80,
+        "height_cm": 178,
+        "activity_level": "high",
+        "goal": "cutting",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Uoc tinh TDEE",
+        "Muc calories cat",
+        "Macro P/C/F co cong thuc",
+        "Huong dan dieu chinh theo can nang"
+      ],
+      "expected_response_characteristics": [
+        "So lieu nhat quan",
+        "Co giai thich cach tinh",
+        "Khong mo ho"
+      ],
+      "forbidden_issues": [
+        "Tong macro khong khop calories",
+        "Khong neu cach tinh",
+        "Sai don vi"
+      ]
+    },
+    {
+      "id": "NU07",
+      "group": "dinh_duong",
+      "user_input": "Cho tôi thực đơn tăng cân sạch 3500 kcal, dễ mang đi làm.",
+      "user_profile": {
+        "age": 26,
+        "gender": "male",
+        "weight_kg": 60,
+        "goal": "clean_bulk",
+        "occupation": "office_worker",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Tong kcal va macro 3500",
+        "Thuc don theo bua de meal prep",
+        "Mon de mang di lam",
+        "Huong dan chia bua"
+      ],
+      "expected_response_characteristics": [
+        "Dat muc 3500 kcal hop ly",
+        "Co tinh thuc te cho dan van phong",
+        "Du bua"
+      ],
+      "forbidden_issues": [
+        "Kcal qua xa muc tieu",
+        "Khong co macro",
+        "Mon khong phu hop mang di"
+      ]
+    },
+    {
+      "id": "NU08",
+      "group": "dinh_duong",
+      "user_input": "Mình cần thực đơn giảm mỡ 14 ngày, không ăn hải sản.",
+      "user_profile": {
+        "age": 32,
+        "gender": "female",
+        "goal": "fat_loss",
+        "food_restrictions": ["no_seafood"],
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Muc calories/macro",
+        "Thuc don 14 ngay",
+        "Thay the nguyen lieu khong hai san",
+        "Huong dan theo doi ket qua"
+      ],
+      "expected_response_characteristics": [
+        "Du 14 ngay",
+        "Ton trong han che an uong",
+        "Co tinh lien tuc"
+      ],
+      "forbidden_issues": [
+        "Co mon hai san",
+        "Thieu ngay",
+        "Khong co macro"
+      ]
+    },
+    {
+      "id": "NU09",
+      "group": "dinh_duong",
+      "user_input": "Hãy lên thực đơn keto 1 tuần và ghi rõ macro từng ngày.",
+      "user_profile": {
+        "age": 37,
+        "gender": "male",
+        "goal": "fat_loss",
+        "diet_type": "keto",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Nguyen tac keto",
+        "Macro tung ngay",
+        "Thuc don 7 ngay",
+        "Luu y dien giai/nuoc"
+      ],
+      "expected_response_characteristics": [
+        "Du 7 ngay",
+        "Macro keto nhat quan",
+        "Co canh bao thich nghi"
+      ],
+      "forbidden_issues": [
+        "Macro khong theo keto",
+        "Thieu ngay",
+        "Khong de cap dien giai"
+      ]
+    },
+    {
+      "id": "NU10",
+      "group": "dinh_duong",
+      "user_input": "Please respond entirely in Vietnamese: create a cutting meal plan with 4 meals/day.",
+      "user_profile": {
+        "age": 25,
+        "gender": "female",
+        "goal": "cutting",
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Tong kcal va macro",
+        "4 bua moi ngay",
+        "Goi y thuc pham",
+        "Huong dan dieu chinh"
+      ],
+      "expected_response_characteristics": [
+        "100 phan tram tieng Viet",
+        "Du 4 bua",
+        "Khong rut gon"
+      ],
+      "forbidden_issues": [
+        "Tra loi tieng Anh",
+        "Thieu bua",
+        "Khong co macro"
+      ]
+    },
+    {
+      "id": "NU11",
+      "group": "dinh_duong",
+      "user_input": "Mình dị ứng lactose, hãy làm thực đơn tăng cơ không sữa.",
+      "user_profile": {
+        "age": 28,
+        "gender": "male",
+        "goal": "muscle_gain",
+        "allergies": ["lactose"],
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Muc tieu kcal macro",
+        "Thuc don khong lactose",
+        "Nguon protein thay the",
+        "Huong dan doc nhan san pham"
+      ],
+      "expected_response_characteristics": [
+        "Ca nhan hoa theo di ung",
+        "Khong co thuc pham sua",
+        "Du bua an"
+      ],
+      "forbidden_issues": [
+        "De xuat whey concentrate/sua tuoi",
+        "Khong de cap di ung",
+        "Thieu macro"
+      ]
+    },
+    {
+      "id": "NU12",
+      "group": "dinh_duong",
+      "user_input": "Cho tôi thực đơn cho ngày nghỉ và ngày tập khác nhau.",
+      "user_profile": {
+        "age": 31,
+        "gender": "female",
+        "goal": "recomposition",
+        "training_days_per_week": 4,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Kcal macro ngay tap",
+        "Kcal macro ngay nghi",
+        "Thuc don mau cho 2 loai ngay",
+        "Huong dan xoay bua"
+      ],
+      "expected_response_characteristics": [
+        "Phan biet ro 2 loai ngay",
+        "So lieu nhat quan",
+        "Tinh thuc tien"
+      ],
+      "forbidden_issues": [
+        "Chi dua 1 muc kcal cho moi ngay",
+        "Khong co macro",
+        "Mau thuan so lieu"
+      ]
+    },
+    {
+      "id": "NU13",
+      "group": "dinh_duong",
+      "user_input": "Làm thực đơn 5 bữa/ngày cho người tập 2 buổi (sáng tạ, chiều cardio).",
+      "user_profile": {
+        "age": 27,
+        "gender": "male",
+        "goal": "performance_fat_loss",
+        "double_session": true,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Phan bo dinh duong quanh 2 buoi tap",
+        "5 bua/day ro rang",
+        "Macro theo khung gio",
+        "Hydration va electrolytes"
+      ],
+      "expected_response_characteristics": [
+        "Du 5 bua",
+        "Timing phu hop 2 buoi tap",
+        "Khong bi rut gon"
+      ],
+      "forbidden_issues": [
+        "Thieu bua",
+        "Khong co macro",
+        "Khong de cap bo sung nuoc dien giai"
+      ]
+    },
+    {
+      "id": "NU14",
+      "group": "dinh_duong",
+      "user_input": "Mình muốn thực đơn cho ngân sách 80k/ngày mà vẫn đủ protein.",
+      "user_profile": {
+        "age": 22,
+        "gender": "female",
+        "goal": "fat_loss",
+        "budget_vnd_per_day": 80000,
+        "language": "vi"
+      },
+      "expected_sections": [
+        "Muc tieu kcal macro",
+        "Thuc don theo ngan sach",
+        "Uoc tinh chi phi tung bua",
+        "Meo toi uu mua sam"
+      ],
+      "expected_response_characteristics": [
+        "Tinh kha thi theo ngan sach",
+        "Van dat muc protein",
+        "Chi tiet de ap dung"
+      ],
+      "forbidden_issues": [
+        "Mon an qua dat",
+        "Khong co macro/protein",
+        "Khong de cap chi phi"
+      ]
+    }
+  ]
+}

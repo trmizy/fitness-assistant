@@ -1,40 +1,93 @@
+##############################################################################
+# docker-compose.dev.yml  —  Hot-reload development environment
+#
+# Strategy
+# ─────────
+# Each application service uses a dedicated Dockerfile.dev that:
+#   1. Installs all Node (+ Python for user-service) dependencies.
+#   2. Pre-builds the @gym-coach/shared workspace package.
+#   3. Generates the Prisma client (where applicable).
+#   4. Does NOT copy src/ — that directory is bind-mounted from the host.
+#
+# When you save a .ts file inside any service's src/ folder:
+#   • Backend services  → tsx watch detects the change and restarts the server
+#                         in-process (< 1 s).
+#   • Frontend (Vite)   → Vite HMR patches the running browser tab instantly.
+#
+# Note: changes to backend/shared/src require rebuilding the affected image:
+#   docker compose -f docker-compose.dev.yml build <service>
+#   docker compose -f docker-compose.dev.yml restart <service>
+#
+# Usage
+# ─────
+#   First run (build images + start everything):
+#     docker compose -f infra/compose/docker-compose.dev.yml up --build
+#
+#   Subsequent runs (images already built):
+#     docker compose -f infra/compose/docker-compose.dev.yml up
+#
+#   Single service rebuild (e.g., after adding a package):
+#     docker compose -f infra/compose/docker-compose.dev.yml up --build auth-service
+#
+#   Tear down (keep volumes):
+#     docker compose -f infra/compose/docker-compose.dev.yml down
+#
+#   Tear down (remove volumes too):
+#     docker compose -f infra/compose/docker-compose.dev.yml down -v
+##############################################################################
+
 services:
-  # ── Frontend ──────────────────────────────────────────────────────────────
+  # ── Frontend ────────────────────────────────────────────────────────────────
   web:
     build:
-      context: ../..          # repo root (so pnpm workspace files are accessible)
-      dockerfile: frontend/web/Dockerfile
-      args:
-        VITE_API_URL: http://localhost:3000
-        VITE_CHAT_WS_URL: http://localhost:3005
-    container_name: gymcoach-web
+      context: ../..
+      dockerfile: frontend/web/Dockerfile.dev
+    container_name: gymcoach-web-dev
     ports:
-      - "5173:80"
+      - "5173:5173"        # Vite dev server (not nginx)
+    environment:
+      VITE_API_URL: http://127.0.0.1:3000
+      VITE_CHAT_WS_URL: http://127.0.0.1:3005
+      CHOKIDAR_USEPOLLING: "true"   # Required for Windows bind-mount file-watching
+    volumes:
+      # Bind-mount React source so Vite HMR picks up every save
+      - ../../frontend/web/src:/app/frontend/web/src
     depends_on:
       - api-gateway
-    restart: unless-stopped
     networks:
       - default
+    dns:
+      - 8.8.8.8
 
-  # ── API Gateway ───────────────────────────────────────────────────────────
+  # ── API Gateway ─────────────────────────────────────────────────────────────
   api-gateway:
     build:
-      context: ../..          # repo root
-      dockerfile: backend/gateway/Dockerfile
-    container_name: gymcoach-gateway
+      context: ../..
+      dockerfile: backend/gateway/Dockerfile.dev
+    container_name: gymcoach-gateway-dev
     ports:
       - "3000:3000"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3000
-      # Corrected internal Docker service URLs and ports
       AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3004
       FITNESS_SERVICE_URL: http://fitness-service:3002
       AI_SERVICE_URL: http://ai-service:3003
       CHAT_SERVICE_URL: http://chat-service:3005
+      N8N_BASE_URL: http://n8n:5678
+      N8N_EDITOR_BASE_PATH: /admin/workflows/studio
+      N8N_SMOKE_TEST_WEBHOOK_URL: http://n8n:5678/webhook/gym-smoke-test
+      N8N_E2E_WEBHOOK_URL: http://n8n:5678/webhook/gym-e2e-run
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
       JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
-      CORS_ORIGIN: http://localhost:5173
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/gateway/src:/app/backend/gateway/src
     depends_on:
       auth-service:
         condition: service_healthy
@@ -48,85 +101,107 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 15s
-    restart: unless-stopped
+      start_period: 20s
+    dns:
+      - 8.8.8.8
 
-  # ── Auth Service ──────────────────────────────────────────────────────────
+  # ── Auth Service ─────────────────────────────────────────────────────────────
   auth-service:
     build:
       context: ../..
-      dockerfile: backend/services/auth-service/Dockerfile
-    container_name: gymcoach-auth
+      dockerfile: backend/services/auth-service/Dockerfile.dev
+    container_name: gymcoach-auth-dev
     ports:
       - "3001:3001"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3001
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
-      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
       JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-7d}
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
-      SMTP_FROM: ${SMTP_FROM:-}
-      SMTP_SECURE: ${SMTP_SECURE:-}
-      OTP_EXPIRY_MINUTES: ${OTP_EXPIRY_MINUTES:-10}
-      OTP_RESEND_SECONDS: ${OTP_RESEND_SECONDS:-60}
-      OTP_MAX_ATTEMPTS: ${OTP_MAX_ATTEMPTS:-5}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/auth-service/src:/app/backend/services/auth-service/src
+      - ../../scripts:/app/scripts   # Seed scripts — shared with db-seeder
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 15s
-    restart: unless-stopped
+      start_period: 25s
+    dns:
+      - 8.8.8.8
 
-  # ── User Service ──────────────────────────────────────────────────────────
+  # ── User Service ─────────────────────────────────────────────────────────────
   user-service:
     build:
       context: ../..
-      dockerfile: backend/services/user-service/Dockerfile
-    container_name: gymcoach-user
+      dockerfile: backend/services/user-service/Dockerfile.dev
+    container_name: gymcoach-user-dev
     ports:
       - "3004:3004"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3004
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_user
       AUTH_SERVICE_URL: http://auth-service:3001
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
+      CHAT_SERVICE_URL: http://chat-service:3005
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
+    env_file:
+      - ../../.env
+    volumes:
+      # TypeScript source — hot-reloaded by tsx watch
+      - ../../backend/services/user-service/src:/app/backend/services/user-service/src
+      # Persist uploaded files across container restarts
+      - user_uploads:/app/backend/services/user-service/uploads
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 15s
-    restart: unless-stopped
+      start_period: 30s
+    dns:
+      - 8.8.8.8
 
-  # ── Fitness Service ───────────────────────────────────────────────────────
+  # ── Fitness Service ──────────────────────────────────────────────────────────
   fitness-service:
     build:
       context: ../..
-      dockerfile: backend/services/fitness-service/Dockerfile
-    container_name: gymcoach-fitness
+      dockerfile: backend/services/fitness-service/Dockerfile.dev
+    container_name: gymcoach-fitness-dev
     ports:
       - "3002:3002"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3002
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_fitness
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      AI_SERVICE_URL: http://ai-service:3003
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/fitness-service/src:/app/backend/services/fitness-service/src
+      - ../../backend/services/fitness-service/prisma:/app/backend/services/fitness-service/prisma
+      - ../../data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -134,28 +209,44 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 15s
-    restart: unless-stopped
+      start_period: 25s
+    dns:
+      - 8.8.8.8
 
-  # ── AI Service ────────────────────────────────────────────────────────────
+  # ── AI Service ───────────────────────────────────────────────────────────────
   ai-service:
     build:
       context: ../..
-      dockerfile: backend/services/ai-service/Dockerfile
-    container_name: gymcoach-ai
+      dockerfile: backend/services/ai-service/Dockerfile.dev
+    container_name: gymcoach-ai-dev
     ports:
       - "3003:3003"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3003
-      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/${POSTGRES_DB:-gymcoach}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_ai
       REDIS_HOST: redis
       REDIS_PORT: 6379
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
+      USER_SERVICE_URL: http://user-service:3004
+      FITNESS_SERVICE_URL: http://fitness-service:3002
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_BASE_URL: http://ollama:11434
+      OLLAMA_BASE_URL: http://ollama:11434
+      LLM_MODEL: llama3.2:3b
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      CHOKIDAR_USEPOLLING: "true"
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/ai-service/src:/app/backend/services/ai-service/src
+      - ../../backend/services/ai-service/prisma:/app/backend/services/ai-service/prisma
+      - ../../data:/app/data
     depends_on:
       postgres:
         condition: service_healthy
@@ -163,24 +254,27 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+      ollama:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 15s
-    restart: unless-stopped
+      start_period: 25s
+    dns:
+      - 8.8.8.8
 
-  # ── Chat Service ─────────────────────────────────────────────────────────
+  # ── Chat Service ─────────────────────────────────────────────────────────────
   chat-service:
     build:
       context: ../..
-      dockerfile: backend/services/chat-service/Dockerfile
-    container_name: gymcoach-chat
+      dockerfile: backend/services/chat-service/Dockerfile.dev
+    container_name: gymcoach-chat-dev
     ports:
       - "3005:3005"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       PORT: 3005
       CHAT_SERVICE_PORT: 3005
       CHAT_DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_chat
@@ -188,6 +282,11 @@ services:
       AUTH_SERVICE_URL: http://auth-service:3001
       USER_SERVICE_URL: http://user-service:3004
       CORS_ORIGIN: http://localhost:5173
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/chat-service/src:/app/backend/services/chat-service/src
     depends_on:
       postgres:
         condition: service_healthy
@@ -195,13 +294,14 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3005/health || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 5
-      start_period: 20s
-    restart: unless-stopped
+      start_period: 30s
+    dns:
+      - 8.8.8.8
 
-  # ── Infrastructure ────────────────────────────────────────────────────────
+  # ── Infrastructure (unchanged from production) ────────────────────────────────
   postgres:
     image: postgres:15-alpine
     container_name: gymcoach-postgres
@@ -209,9 +309,12 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-gymcoach}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gymcoach_password}
       POSTGRES_DB: ${POSTGRES_DB:-gymcoach}
+    env_file:
+      - ../../.env
     ports:
       - "5433:5432"
     volumes:
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gymcoach"]
@@ -243,11 +346,180 @@ services:
       - qdrant_data:/qdrant/storage
     environment:
       - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__SERVICE__ENABLE_UI=true
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: gymcoach-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - default
+
+  ollama-model-puller:
+    image: curlimages/curl:latest
+    container_name: gymcoach-ollama-puller
+    depends_on:
+      - ollama
+    entrypoint: [ "sh", "-c", "until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d '{\"name\": \"llama3.2:3b\"}'; curl http://ollama:11434/api/pull -d '{\"name\": \"nomic-embed-text\"}'" ]
+    networks:
+      - default
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: gymcoach-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      N8N_PATH: ${N8N_PATH:-/}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/}
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-Asia/Ho_Chi_Minh}
+      N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-admin123}
+      N8N_LICENSE_ACTIVATION_KEY: ${N8N_LICENSE_ACTIVATION_KEY:-}
+      N8N_PUBLIC_API_DISABLED: ${N8N_PUBLIC_API_DISABLED:-false}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - default
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: gymcoach-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - default
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: gymcoach-grafana
+    ports:
+      - "3100:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
+    volumes:
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - default
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: gymcoach-pg-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: gymcoach-redis-exporter
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+
+  # ── Test-data seeder ─────────────────────────────────────────────────────────
+  # Runs automatically after ALL services are healthy (= all Prisma migrations done).
+  # Idempotent: ON CONFLICT DO NOTHING — safe to re-run on every `docker compose up`.
+  # Uses node:20-alpine + installs 3 tiny pure-JS packages (cached in seeder_modules volume).
+  # Set SKIP_SEED=true in .env to disable without removing the service definition.
+  db-seeder:
+    image: node:20-alpine
+    container_name: gymcoach-db-seeder
+    restart: "no"
+    working_dir: /app
+    command: >-
+      sh -c "
+        [ \"$$SKIP_SEED\" = 'true' ] && echo '[seeder] SKIP_SEED=true, exiting.' && exit 0;
+        [ -f node_modules/.seeder-ready ] || (npm install --no-save --quiet bcryptjs pg dotenv && touch node_modules/.seeder-ready);
+        node scripts/seed-test-users.mjs
+      "
+    volumes:
+      - ../../scripts:/app/scripts
+      - seeder_modules:/app/node_modules
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-gymcoach}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gymcoach_password}
+      SKIP_SEED: ${SKIP_SEED:-false}
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      fitness-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+      chat-service:
+        condition: service_healthy
+    networks:
+      - default
 
 volumes:
+  user_uploads:
   postgres_data:
   redis_data:
   qdrant_data:
+  ollama_data:
+  n8n_data:
+  prometheus_data:
+  grafana_data:
+  seeder_modules:     # npm cache for db-seeder (bcryptjs, pg, dotenv)
 
 networks:
   default:

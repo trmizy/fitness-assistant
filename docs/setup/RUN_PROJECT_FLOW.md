@@ -48,6 +48,12 @@ Chay tu thu muc goc repo:
 docker compose -f infra/compose/docker-compose.dev.yml --env-file .env up --build -d
 ```
 
+Hoac dung script mot lenh (tu dong bat Ollama neu chua chay):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-docker-with-ollama.ps1
+```
+
 ### 2.3 Kiem tra sau khi chay
 
 ```powershell
@@ -140,10 +146,10 @@ Y nghia:
 - `frontend/web/src/main.tsx`
   - Entry point React, mount `App`
 
-- `frontend/web/src/App.tsx`
+- `frontend/web/src/app/App.tsx`
   - Router chinh, auth guard, provider (`AuthProvider`, `QueryClientProvider`)
 
-- `frontend/web/src/services/api.ts`
+- `frontend/web/src/app/services/api.ts`
   - Axios client va service methods cho auth/profile/workout/coach
   - Tu dong gan access token vao request header
 
@@ -274,6 +280,124 @@ docker compose -f infra/compose/docker-compose.dev.yml --env-file .env config
 docker compose -f infra/compose/docker-compose.dev.yml ps
 ```
 
+## 7. Bat buoc: N8N API key cho `/admin/workflows`
+
+Endpoint `GET /admin/workflows` tren gateway yeu cau:
+
+1. Header `Authorization: Bearer <admin_access_token>`
+2. Gateway env co `N8N_PUBLIC_API_KEY` hop le
+3. n8n da tao API key trong owner account
+
+### 7.1 File lien quan
+
+- `.env`:
+  - `N8N_PUBLIC_API_KEY`
+  - `N8N_BASE_URL`
+  - `N8N_BASIC_AUTH_USER`
+  - `N8N_BASIC_AUTH_PASSWORD`
+- `.env.example`:
+  - Mau bien `N8N_PUBLIC_API_KEY`, `N8N_PUBLIC_API_DISABLED`
+- `infra/compose/docker-compose.dev.yml`:
+  - `api-gateway.environment.N8N_PUBLIC_API_KEY: ${N8N_PUBLIC_API_KEY}`
+  - n8n service env (`N8N_PUBLIC_API_DISABLED`, basic auth)
+- `backend/gateway/src/routes/proxy.routes.ts`:
+  - `requestN8n()` gui header `X-N8N-API-KEY`
+  - endpoint `/admin/workflows`
+
+### 7.2 Tao API key trong n8n (local)
+
+Neu n8n chua setup owner:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri "http://localhost:5678/rest/owner/setup" -ContentType "application/json" -Body (@{
+  email = "n8n.owner.local@example.com"
+  firstName = "N8N"
+  lastName = "Owner"
+  password = "OwnerPass123!"
+} | ConvertTo-Json)
+```
+
+Dang nhap va tao API key:
+
+```powershell
+$loginBody = @{ emailOrLdapLoginId = "n8n.owner.local@example.com"; password = "OwnerPass123!" } | ConvertTo-Json
+$login = Invoke-WebRequest -Method Post -Uri "http://localhost:5678/rest/login" -ContentType "application/json" -Body $loginBody -SessionVariable n8nSession
+$createBody = @{ label = "gateway-local"; scopes = @("workflow:list", "workflow:read"); expiresAt = [int64]([DateTimeOffset]::UtcNow.AddYears(1).ToUnixTimeMilliseconds()) } | ConvertTo-Json
+$apiKeyResp = Invoke-RestMethod -Method Post -Uri "http://localhost:5678/rest/api-keys" -ContentType "application/json" -Body $createBody -WebSession $n8nSession
+$apiKeyResp.data.rawApiKey
+```
+
+Gan key vao `.env`:
+
+```dotenv
+N8N_PUBLIC_API_KEY=<rawApiKey>
+```
+
+Reload gateway:
+
+```powershell
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env up -d --build api-gateway
+```
+
+### 7.3 Test endpoint workflows qua gateway
+
+```powershell
+$adminLogin = Invoke-RestMethod -Method Post -Uri "http://localhost:3000/auth/login" -ContentType "application/json" -Body (@{ email = "admin@example.com"; password = "password123" } | ConvertTo-Json)
+$token = $adminLogin.accessToken
+Invoke-RestMethod -Method Get -Uri "http://localhost:3000/admin/workflows" -Headers @{ Authorization = "Bearer $token" }
+```
+
+Expected response shape:
+
+```json
+{
+  "success": true,
+  "data": {
+    "total": 0,
+    "active": 0,
+    "inactive": 0,
+    "workflows": []
+  }
+}
+```
+
+## 8. Bat buoc: PT application review flow (approve/reject/request info)
+
+### 8.1 Seed user test cho review flow
+
+Da them SQL test nhanh: `scripts/tmp-admin-test-users.sql`
+
+```powershell
+Get-Content scripts/tmp-admin-test-users.sql | docker exec -i gymcoach-postgres psql -U gymcoach -d gymcoach_auth
+```
+
+User test:
+
+- `pt.flow.reqinfo@example.com` / `Test@12345`
+- `pt.flow.reject@example.com` / `Test@12345`
+- `pt.flow.approve@example.com` / `Test@12345`
+
+### 8.2 Chay test E2E admin + PT review
+
+```powershell
+node scripts/test-admin-e2e.mjs
+```
+
+Script se test:
+
+1. `/admin/workflows` (n8n key path)
+2. Tao + submit PT applications
+3. Review `REQUEST_INFO`
+4. Review `REJECT`
+5. Review `APPROVE`
+6. Kiem tra detail sau review
+
+Expected state change:
+
+- `REQUEST_INFO` -> `NEEDS_MORE_INFO` + `adminNote`
+- `REJECT` -> `REJECTED` + `rejectionReason`
+- `APPROVE` -> `APPROVED`
+
 4. Xem logs theo service:
 
 ```powershell
@@ -300,3 +424,7 @@ Invoke-RestMethod -Uri "http://localhost:3003/health" | ConvertTo-Json
 - Cac service Prisma dang chay `prisma migrate deploy` luc startup container.
 - Qdrant co the start cham hon; AI service van start duoc va se canh bao neu Qdrant chua san sang.
 - Frontend trong Docker duoc serve boi nginx; route app-side van hoat dong nho SPA fallback.
+- Trong Docker, `ai-service` can dung URL noi bo de lay profile/lich su:
+  - `USER_SERVICE_URL=http://user-service:3004`
+  - `FITNESS_SERVICE_URL=http://fitness-service:3002`
+  Neu de mac dinh `localhost` thi AI se khong doc duoc profile da co san va se hoi lai thong tin co ban.

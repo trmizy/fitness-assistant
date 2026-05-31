@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import { PrismaClient } from '../src/generated/prisma';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -17,7 +17,7 @@ async function main() {
       password: hashedPassword,
       firstName: 'John',
       lastName: 'Doe',
-      role: 'USER',
+      role: 'CUSTOMER',
     },
   });
 
@@ -29,7 +29,19 @@ async function main() {
       password: hashedPassword,
       firstName: 'Jane',
       lastName: 'Smith',
-      role: 'USER',
+      role: 'CUSTOMER',
+    },
+  });
+
+  const pt = await prisma.user.upsert({
+    where: { email: 'pt@example.com' },
+    update: {},
+    create: {
+      email: 'pt@example.com',
+      password: hashedPassword,
+      firstName: 'Professional',
+      lastName: 'Trainer',
+      role: 'PT',
     },
   });
 
@@ -45,7 +57,7 @@ async function main() {
     },
   });
 
-  console.log('✅ Created users:', { john: john.id, jane: jane.id, admin: admin.id });
+  console.log('✅ Created users:', { john: john.id, jane: jane.id, pt: pt.id, admin: admin.id });
 }
 
 main()

@@ -1,0 +1,31 @@
+FROM node:20-alpine
+RUN npm install -g pnpm@8.15.0
+
+WORKDIR /app
+
+# ── Install dependencies (cached layer) ──────────────────────────────────────
+# Only package manifests first — changes to src/ won't bust this cache
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY frontend/web/package.json ./frontend/web/
+
+RUN pnpm install --filter @gym-coach/web
+
+# ── Copy non-source config files into the image ───────────────────────────────
+# src/ is bind-mounted at runtime (see docker-compose.dev.yml).
+# Changes to index.html or vite.config.ts require container restart.
+COPY frontend/web/index.html       ./frontend/web/
+COPY frontend/web/vite.config.ts   ./frontend/web/
+COPY frontend/web/postcss.config.mjs ./frontend/web/
+
+WORKDIR /app/frontend/web
+
+EXPOSE 5173
+
+# CHOKIDAR_USEPOLLING=true ensures file-change events work when the source
+# directory is a bind-mounted volume on Windows (Docker Desktop / WSL2).
+ENV CHOKIDAR_USEPOLLING=true
+ENV VITE_API_URL=http://localhost:3000
+ENV VITE_CHAT_WS_URL=http://localhost:3005
+
+# --host 0.0.0.0 exposes Vite's dev server outside the container
+CMD ["pnpm", "run", "dev", "--host", "0.0.0.0"]

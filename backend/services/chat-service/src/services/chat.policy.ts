@@ -1,41 +1,46 @@
 import axios from 'axios';
 
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
+// Historical naming inconsistency: chat-service was configured with INTERNAL_API_SECRET
+// while user/auth services use INTERNAL_SERVICE_SECRET. Accept either so the policy
+// query works without forcing a docker-compose change.
+const INTERNAL_SERVICE_SECRET =
+  process.env.INTERNAL_SERVICE_SECRET || process.env.INTERNAL_API_SECRET || '';
 
 /**
- * Returns true if either userA or userB is a PT.
+ * BR-29 (loosened): chat is allowed when either
+ *   (a) a contract relationship exists between the two users, or
+ *   (b) the conversation is from CUSTOMER → APPROVED PT (pre-contract discovery).
  *
- * TODO (Phase 2): Enforce stricter rules — e.g., require an active PT-Client contract.
- * This would involve a Contract model: Contract { ptId, clientId, status: ACTIVE | EXPIRED }
- * and checking that a valid contract exists between the two parties.
+ * The decision is computed in user-service via /internal/chat-eligibility and
+ * protected by x-service-secret so that public clients cannot probe relationships.
  */
 export async function canUsersChat(
   userAId: string,
   userBId: string,
-  authToken: string,
+  _authToken?: string,
 ): Promise<boolean> {
   try {
-    const { data } = await axios.get(
-      `${USER_SERVICE_URL}/profile/pts`,
-      { headers: { Authorization: `Bearer ${authToken}` }, timeout: 3000 },
-    );
-
-    const ptIds: string[] = (data.pts ?? []).map((p: any) => p.userId);
-    return ptIds.includes(userAId) || ptIds.includes(userBId);
+    const { data } = await axios.get(`${USER_SERVICE_URL}/internal/chat-eligibility`, {
+      params: { fromUserId: userAId, toUserId: userBId },
+      headers: { 'x-service-secret': INTERNAL_SERVICE_SECRET },
+      timeout: 3000,
+    });
+    return data?.allowed === true;
   } catch {
-    // If user-service is down, be permissive so chat doesn't fully break
-    return true;
+    return false;
   }
 }
 
 /**
  * Whether the current user is allowed to initiate a conversation with targetUserId.
- * Currently delegates to canUsersChat.
+ * Delegates to canUsersChat with the requesting user as `fromUserId` (direction matters
+ * for the APPROVED_PT_DISCOVERY rule — only CUSTOMER → PT, not PT → CUSTOMER cold).
  */
 export async function canCreateDirectChat(
   requestingUserId: string,
   targetUserId: string,
-  authToken: string,
+  authToken?: string,
 ): Promise<boolean> {
   return canUsersChat(requestingUserId, targetUserId, authToken);
 }

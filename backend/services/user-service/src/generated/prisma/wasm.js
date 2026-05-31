@@ -125,6 +125,10 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.UserProfileScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  firstName: 'firstName',
+  lastName: 'lastName',
+  email: 'email',
+  isPT: 'isPT',
   age: 'age',
   gender: 'gender',
   heightCm: 'heightCm',
@@ -136,6 +140,255 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   injuries: 'injuries',
   currentWeight: 'currentWeight',
   targetWeight: 'targetWeight',
+  dietaryPreference: 'dietaryPreference',
+  photoUrl: 'photoUrl',
+  sessionDurationMinutes: 'sessionDurationMinutes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTApplicationScalarFieldEnum = {
+  id: 'id',
+  userProfileId: 'userProfileId',
+  status: 'status',
+  phoneNumber: 'phoneNumber',
+  nationalIdNumber: 'nationalIdNumber',
+  currentAddress: 'currentAddress',
+  idCardFrontUrl: 'idCardFrontUrl',
+  idCardBackUrl: 'idCardBackUrl',
+  portraitPhotoUrl: 'portraitPhotoUrl',
+  yearsOfExperience: 'yearsOfExperience',
+  educationBackground: 'educationBackground',
+  previousWorkExperience: 'previousWorkExperience',
+  professionalBio: 'professionalBio',
+  mainSpecialties: 'mainSpecialties',
+  targetClientGroups: 'targetClientGroups',
+  primaryTrainingGoals: 'primaryTrainingGoals',
+  trainingMethodsApproach: 'trainingMethodsApproach',
+  portfolioUrl: 'portfolioUrl',
+  linkedinUrl: 'linkedinUrl',
+  websiteUrl: 'websiteUrl',
+  socialLinks: 'socialLinks',
+  availabilityNotes: 'availabilityNotes',
+  availableTimeSlots: 'availableTimeSlots',
+  serviceMode: 'serviceMode',
+  operatingAreas: 'operatingAreas',
+  desiredSessionPrice: 'desiredSessionPrice',
+  availableDays: 'availableDays',
+  availableFrom: 'availableFrom',
+  availableUntil: 'availableUntil',
+  gymAffiliation: 'gymAffiliation',
+  monthlyProgramPrice: 'monthlyProgramPrice',
+  packagePrice: 'packagePrice',
+  sessionsPerPackage: 'sessionsPerPackage',
+  sessionDurationMinutes: 'sessionDurationMinutes',
+  availabilityBlocks: 'availabilityBlocks',
+  additionalPricingNotes: 'additionalPricingNotes',
+  onlinePricePerSession: 'onlinePricePerSession',
+  offlinePricePerSession: 'offlinePricePerSession',
+  onlinePackagePrice: 'onlinePackagePrice',
+  offlinePackagePrice: 'offlinePackagePrice',
+  otherReferences: 'otherReferences',
+  residenceProvinceCode: 'residenceProvinceCode',
+  residenceWardCode: 'residenceWardCode',
+  residenceAddressLine: 'residenceAddressLine',
+  residenceLegacyDistrictName: 'residenceLegacyDistrictName',
+  applicationTrainingLocations: 'applicationTrainingLocations',
+  adminNote: 'adminNote',
+  rejectionReason: 'rejectionReason',
+  submittedAt: 'submittedAt',
+  reviewedAt: 'reviewedAt',
+  approvedAt: 'approvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTApplicationCertificateScalarFieldEnum = {
+  id: 'id',
+  applicationId: 'applicationId',
+  certificateName: 'certificateName',
+  issuingOrganization: 'issuingOrganization',
+  isCurrentlyValid: 'isCurrentlyValid',
+  certificationStatus: 'certificationStatus',
+  issueDate: 'issueDate',
+  expirationDate: 'expirationDate',
+  certificateFileUrl: 'certificateFileUrl',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PTApplicationMediaScalarFieldEnum = {
+  id: 'id',
+  applicationId: 'applicationId',
+  groupType: 'groupType',
+  fileUrl: 'fileUrl',
+  label: 'label',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ContractScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  clientUserId: 'clientUserId',
+  status: 'status',
+  packageType: 'packageType',
+  packageName: 'packageName',
+  sessionMode: 'sessionMode',
+  description: 'description',
+  packageQuantity: 'packageQuantity',
+  extraSessions: 'extraSessions',
+  totalSessions: 'totalSessions',
+  usedSessions: 'usedSessions',
+  price: 'price',
+  pricePerSession: 'pricePerSession',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  completedAt: 'completedAt',
+  clientMessage: 'clientMessage',
+  rejectionReason: 'rejectionReason',
+  cancelledBy: 'cancelledBy',
+  cancellationReason: 'cancellationReason',
+  terms: 'terms',
+  notes: 'notes',
+  eSignProvider: 'eSignProvider',
+  eSignRequestId: 'eSignRequestId',
+  eSignStatus: 'eSignStatus',
+  eSignTestMode: 'eSignTestMode',
+  eSignSentAt: 'eSignSentAt',
+  clientSignedAt: 'clientSignedAt',
+  ptSignedAt: 'ptSignedAt',
+  fullySignedAt: 'fullySignedAt',
+  contractPdfPath: 'contractPdfPath',
+  signedPdfUrl: 'signedPdfUrl',
+  eSignError: 'eSignError',
+  clientSignerEmail: 'clientSignerEmail',
+  ptSignerEmail: 'ptSignerEmail',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SessionScalarFieldEnum = {
+  id: 'id',
+  contractId: 'contractId',
+  clientUserId: 'clientUserId',
+  ptUserId: 'ptUserId',
+  status: 'status',
+  sessionMode: 'sessionMode',
+  scheduledStartAt: 'scheduledStartAt',
+  scheduledEndAt: 'scheduledEndAt',
+  location: 'location',
+  notes: 'notes',
+  ptNotes: 'ptNotes',
+  cancelledBy: 'cancelledBy',
+  cancellationReason: 'cancellationReason',
+  sessionDeducted: 'sessionDeducted',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SessionReviewScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  contractId: 'contractId',
+  clientUserId: 'clientUserId',
+  rating: 'rating',
+  comment: 'comment',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  text: 'text',
+  eventType: 'eventType',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  link: 'link',
+  unread: 'unread',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTAvailabilityScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  dayOfWeek: 'dayOfWeek',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTScheduleExceptionScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  date: 'date',
+  reason: 'reason',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.VietnamProvinceScalarFieldEnum = {
+  code: 'code',
+  name: 'name',
+  nameNormalized: 'nameNormalized',
+  codename: 'codename',
+  divisionType: 'divisionType',
+  phoneCode: 'phoneCode',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.VietnamWardScalarFieldEnum = {
+  code: 'code',
+  provinceCode: 'provinceCode',
+  name: 'name',
+  nameNormalized: 'nameNormalized',
+  codename: 'codename',
+  divisionType: 'divisionType',
+  shortCodename: 'shortCodename',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTTrainingLocationScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  provinceCode: 'provinceCode',
+  wardCode: 'wardCode',
+  gymName: 'gymName',
+  addressLine: 'addressLine',
+  legacyDistrictName: 'legacyDistrictName',
+  isPrimary: 'isPrimary',
+  isActive: 'isActive',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InBodyEntryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  date: 'date',
+  dateOnly: 'dateOnly',
+  weight: 'weight',
+  height: 'height',
+  bmi: 'bmi',
+  bodyFat: 'bodyFat',
+  bodyFatPct: 'bodyFatPct',
+  muscleMass: 'muscleMass',
+  rightArmMuscle: 'rightArmMuscle',
+  leftArmMuscle: 'leftArmMuscle',
+  trunkMuscle: 'trunkMuscle',
+  rightLegMuscle: 'rightLegMuscle',
+  leftLegMuscle: 'leftLegMuscle',
+  rightArmFat: 'rightArmFat',
+  leftArmFat: 'leftArmFat',
+  trunkFat: 'trunkFat',
+  rightLegFat: 'rightLegFat',
+  leftLegFat: 'leftLegFat',
+  status: 'status',
+  notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -143,6 +396,11 @@ exports.Prisma.UserProfileScalarFieldEnum = {
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -153,6 +411,12 @@ exports.Prisma.QueryMode = {
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
 };
 exports.Gender = exports.$Enums.Gender = {
   MALE: 'MALE',
@@ -181,8 +445,99 @@ exports.ExperienceLevel = exports.$Enums.ExperienceLevel = {
   ADVANCED: 'ADVANCED'
 };
 
+exports.PTApplicationStatus = exports.$Enums.PTApplicationStatus = {
+  DRAFT: 'DRAFT',
+  SUBMITTED: 'SUBMITTED',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  NEEDS_MORE_INFO: 'NEEDS_MORE_INFO',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+exports.ServiceMode = exports.$Enums.ServiceMode = {
+  ONLINE: 'ONLINE',
+  OFFLINE: 'OFFLINE',
+  HYBRID: 'HYBRID'
+};
+
+exports.MediaGroupType = exports.$Enums.MediaGroupType = {
+  IDENTITY: 'IDENTITY',
+  CERTIFICATE: 'CERTIFICATE',
+  PORTFOLIO: 'PORTFOLIO'
+};
+
+exports.ContractStatus = exports.$Enums.ContractStatus = {
+  PENDING_REVIEW: 'PENDING_REVIEW',
+  PENDING_SIGNATURE: 'PENDING_SIGNATURE',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  EXPIRED: 'EXPIRED',
+  CANCELLED: 'CANCELLED',
+  REJECTED: 'REJECTED'
+};
+
+exports.PackageType = exports.$Enums.PackageType = {
+  PER_SESSION: 'PER_SESSION',
+  PACKAGE: 'PACKAGE'
+};
+
+exports.SessionMode = exports.$Enums.SessionMode = {
+  ONLINE: 'ONLINE',
+  OFFLINE: 'OFFLINE',
+  HYBRID: 'HYBRID'
+};
+
+exports.SessionStatus = exports.$Enums.SessionStatus = {
+  REQUESTED: 'REQUESTED',
+  CONFIRMED: 'CONFIRMED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  NO_SHOW: 'NO_SHOW'
+};
+
+exports.NotificationEventType = exports.$Enums.NotificationEventType = {
+  CONTRACT_REQUESTED: 'CONTRACT_REQUESTED',
+  CONTRACT_ACCEPTED: 'CONTRACT_ACCEPTED',
+  CONTRACT_REJECTED: 'CONTRACT_REJECTED',
+  CONTRACT_CANCELLED: 'CONTRACT_CANCELLED',
+  SESSION_BOOKED: 'SESSION_BOOKED',
+  SESSION_CONFIRMED: 'SESSION_CONFIRMED',
+  SESSION_COMPLETED: 'SESSION_COMPLETED',
+  SESSION_CANCELLED: 'SESSION_CANCELLED',
+  SESSION_NO_SHOW_CLIENT: 'SESSION_NO_SHOW_CLIENT',
+  SESSION_NO_SHOW_PT: 'SESSION_NO_SHOW_PT'
+};
+
+exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
+  CONTRACT: 'CONTRACT',
+  SESSION: 'SESSION'
+};
+
+exports.DayOfWeek = exports.$Enums.DayOfWeek = {
+  MONDAY: 'MONDAY',
+  TUESDAY: 'TUESDAY',
+  WEDNESDAY: 'WEDNESDAY',
+  THURSDAY: 'THURSDAY',
+  FRIDAY: 'FRIDAY',
+  SATURDAY: 'SATURDAY',
+  SUNDAY: 'SUNDAY'
+};
+
 exports.Prisma.ModelName = {
-  UserProfile: 'UserProfile'
+  UserProfile: 'UserProfile',
+  PTApplication: 'PTApplication',
+  PTApplicationCertificate: 'PTApplicationCertificate',
+  PTApplicationMedia: 'PTApplicationMedia',
+  Contract: 'Contract',
+  Session: 'Session',
+  SessionReview: 'SessionReview',
+  Notification: 'Notification',
+  PTAvailability: 'PTAvailability',
+  PTScheduleException: 'PTScheduleException',
+  VietnamProvince: 'VietnamProvince',
+  VietnamWard: 'VietnamWard',
+  PTTrainingLocation: 'PTTrainingLocation',
+  InBodyEntry: 'InBodyEntry'
 };
 
 /**
