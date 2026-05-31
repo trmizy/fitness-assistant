@@ -1583,4 +1583,15 @@ router.use(
   }),
 );
 
+// Public — Vietnam location data (provinces/wards) — no auth required
+router.use(
+  '/locations',
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/locations': '/locations' },
+    onError: serviceUnavailable('User service (Locations)'),
+  }),
+);
+
 export default router;
