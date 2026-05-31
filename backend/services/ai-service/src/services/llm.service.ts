@@ -23,6 +23,24 @@ function isAxiosTimeout(err: unknown): boolean {
   return err instanceof AxiosError && (err.code === 'ECONNABORTED' || /timeout/i.test(err.message));
 }
 
+function buildOllamaMessages(prompt: string): Array<{ role: string; content: string }> {
+  const systemEnd = prompt.indexOf('Câu hỏi của user:');
+  const hasSystemSplit = systemEnd > 0;
+
+  return hasSystemSplit
+    ? [
+        { role: 'system', content: prompt.slice(0, systemEnd).trim() },
+        { role: 'user', content: prompt.slice(systemEnd).trim() },
+      ]
+    : [{ role: 'user', content: prompt }];
+}
+
+async function emitTextInChunks(text: string, onToken: (token: string) => void | Promise<void>, chunkSize = 6) {
+  for (let i = 0; i < text.length; i += chunkSize) {
+    await onToken(text.slice(i, i + chunkSize));
+  }
+}
+
 export type LlmHealthStatus = {
   llmAvailable: boolean;
   llmProvider: string;
@@ -132,22 +150,12 @@ export const llmService = {
       if (LLM_PROVIDER === 'ollama') {
         // Use /api/chat (chat format) for better instruction following.
         // The prompt is split into a system message (rules) and a user message (question + context).
-        const systemEnd = prompt.indexOf('Câu hỏi của user:');
-        const hasSystemSplit = systemEnd > 0;
-
-        const messages = hasSystemSplit
-          ? [
-              { role: 'system', content: prompt.slice(0, systemEnd).trim() },
-              { role: 'user', content: prompt.slice(systemEnd).trim() },
-            ]
-          : [{ role: 'user', content: prompt }];
-
         const payload: any = {
           model: LLM_MODEL,
-          messages,
+          messages: buildOllamaMessages(prompt),
           stream: false,
           options: {
-            num_ctx: 4096,
+            num_ctx: opts?.responseFormat === 'json' ? 8192 : 4096,
             num_predict: opts?.numPredict ?? (opts?.responseFormat === 'json' ? 2048 : 1024),
           },
         };
@@ -206,6 +214,138 @@ export const llmService = {
           : `LLM call failed: ${detail}`,
         cause,
       );
+    }
+  },
+
+  async callLLMStream(
+    prompt: string,
+    opts: {
+      responseFormat?: 'json' | 'text';
+      timeoutMs?: number;
+      temperature?: number;
+      numPredict?: number;
+      onToken: (token: string) => void | Promise<void>;
+    },
+  ): Promise<LLMResponse> {
+    if (LLM_PROVIDER !== 'ollama') {
+      const response = await this.callLLM(prompt, opts);
+      await emitTextInChunks(response.answer, opts.onToken);
+      return response;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? 120000);
+    let answer = '';
+    let promptTokens = 0;
+    let completionTokens = 0;
+
+    try {
+      const payload: any = {
+        model: LLM_MODEL,
+        messages: buildOllamaMessages(prompt),
+        stream: true,
+        options: {
+          num_ctx: opts.responseFormat === 'json' ? 8192 : 4096,
+          num_predict: opts.numPredict ?? (opts.responseFormat === 'json' ? 2048 : 1024),
+        },
+      };
+      if (typeof opts.temperature === 'number') {
+        payload.options.temperature = opts.temperature;
+      }
+      if (opts.responseFormat === 'json') {
+        payload.format = 'json';
+      }
+
+      const response = await fetch(`${LLM_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error(`LLM stream failed with status ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+
+          let event: any;
+          try {
+            event = JSON.parse(trimmed);
+          } catch {
+            continue;
+          }
+
+          const token = typeof event?.message?.content === 'string'
+            ? event.message.content
+            : typeof event?.response === 'string'
+              ? event.response
+              : '';
+          if (token) {
+            answer += token;
+            await opts.onToken(token);
+          }
+
+          if (typeof event?.prompt_eval_count === 'number') promptTokens = event.prompt_eval_count;
+          if (typeof event?.eval_count === 'number') completionTokens = event.eval_count;
+        }
+      }
+
+      const trailing = buffer.trim();
+      if (trailing) {
+        try {
+          const event = JSON.parse(trailing);
+          const token = typeof event?.message?.content === 'string'
+            ? event.message.content
+            : typeof event?.response === 'string'
+              ? event.response
+              : '';
+          if (token) {
+            answer += token;
+            await opts.onToken(token);
+          }
+          if (typeof event?.prompt_eval_count === 'number') promptTokens = event.prompt_eval_count;
+          if (typeof event?.eval_count === 'number') completionTokens = event.eval_count;
+        } catch {
+          // Ignore malformed trailing chunks.
+        }
+      }
+
+      return {
+        answer,
+        promptTokens,
+        completionTokens,
+        totalTokens: promptTokens + completionTokens,
+      };
+    } catch (err) {
+      const cause = err instanceof Error ? err : undefined;
+      const isAbort = cause?.name === 'AbortError';
+      const detail = err instanceof Error ? err.message : String(err);
+
+      logger.error({ err, llmProvider: LLM_PROVIDER, llmBaseUrl: LLM_BASE_URL }, 'LLM stream failed');
+
+      throw new LlmError(
+        isAbort
+          ? `LLM provider timed out at ${LLM_BASE_URL}. The model may be overloaded or the prompt is too large.`
+          : `LLM stream failed: ${detail}`,
+        cause,
+      );
+    } finally {
+      clearTimeout(timeout);
     }
   },
 };

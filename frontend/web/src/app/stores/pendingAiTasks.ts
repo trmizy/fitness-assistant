@@ -207,8 +207,19 @@ function startPlanPolling(userId: string, taskId: string): void {
         if (timer) clearInterval(timer);
         taskTimers.delete(timerKey);
       }
-    } catch {
-      // Keep polling; temporary network/API failures should not clear the task.
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        // Job not found means it's gone from backend (e.g. DB reset or failed to create properly)
+        updateTask(userId, taskId, {
+          status: 'FAILED',
+          error: 'Kế hoạch không tồn tại hoặc đã bị xoá.',
+          updatedAt: nowIso(),
+        });
+        const timer = taskTimers.get(timerKey);
+        if (timer) clearInterval(timer);
+        taskTimers.delete(timerKey);
+      }
+      // Keep polling for other temporary network/API failures
     }
   };
 

@@ -34,14 +34,47 @@ export const importAiPlanSchema = z.object({
   daysPerWeek: z.number().int().min(1).max(7),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate must be YYYY-MM-DD').optional(),
   repeatWeeks: z.number().int().min(1).max(52).optional(),
+  selectedWeekdays: z.array(z.number().int().min(0).max(6)).max(7).optional(),
   weeklySchedule: z.array(aiPlanDaySchema).min(1, 'weeklySchedule must not be empty'),
+  /** true (default) = archive existing programs + delete their incomplete schedules before importing */
+  replaceExisting: z.boolean().default(true).optional(),
+});
+
+export const manualProgramExerciseSchema = z.object({
+  exerciseId: z.string().min(1, 'Exercise ID is required'),
+  order: z.number().int().min(1).max(30).optional(),
+  sets: z.number().int().min(1).max(10).default(3),
+  reps: z.number().int().min(1).max(100).default(10),
+  restSeconds: z.number().int().min(0).max(600).default(90),
+  notes: z.string().max(300).optional().nullable(),
+});
+
+export const manualProgramDaySchema = z.object({
+  dayNumber: z.number().int().min(1).max(7),
+  title: z.string().min(1).max(200),
+  description: z.string().max(500).optional().nullable(),
+  exercises: z.array(manualProgramExerciseSchema).min(1, 'each day must have at least one exercise'),
+});
+
+export const createManualProgramSchema = z.object({
+  name: z.string().min(1).max(200),
+  goal: z.string().max(200).optional().nullable(),
+  durationWeeks: z.number().int().min(1).max(52),
+  daysPerWeek: z.number().int().min(1).max(7),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate must be YYYY-MM-DD'),
+  repeatWeeks: z.number().int().min(1).max(52).optional(),
+  selectedWeekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7),
+  replaceExisting: z.boolean().default(true).optional(),
+  days: z.array(manualProgramDaySchema).min(1).max(7),
 });
 
 export type AiPlanExerciseDto = z.infer<typeof aiPlanExerciseSchema>;
 export type AiPlanDayDto = z.infer<typeof aiPlanDaySchema>;
 export type ImportAiPlanDto = z.infer<typeof importAiPlanSchema>;
+export type CreateManualProgramDto = z.infer<typeof createManualProgramSchema>;
 
 export const createWorkoutSchema = z.object({
+  scheduleId: z.string().uuid().optional(),
   name: z.string().min(1, 'Workout name is required'),
   description: z.string().optional(),
   date: z

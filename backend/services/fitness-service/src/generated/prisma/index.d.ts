@@ -78,6 +78,31 @@ export type WorkoutProgramExercise = $Result.DefaultSelection<Prisma.$WorkoutPro
  * 
  */
 export type WorkoutSchedule = $Result.DefaultSelection<Prisma.$WorkoutSchedulePayload>
+/**
+ * Model NutritionProgram
+ * 
+ */
+export type NutritionProgram = $Result.DefaultSelection<Prisma.$NutritionProgramPayload>
+/**
+ * Model NutritionProgramDay
+ * 
+ */
+export type NutritionProgramDay = $Result.DefaultSelection<Prisma.$NutritionProgramDayPayload>
+/**
+ * Model NutritionProgramMeal
+ * 
+ */
+export type NutritionProgramMeal = $Result.DefaultSelection<Prisma.$NutritionProgramMealPayload>
+/**
+ * Model NutritionProgramMealItem
+ * 
+ */
+export type NutritionProgramMealItem = $Result.DefaultSelection<Prisma.$NutritionProgramMealItemPayload>
+/**
+ * Model NutritionMealCompletion
+ * 
+ */
+export type NutritionMealCompletion = $Result.DefaultSelection<Prisma.$NutritionMealCompletionPayload>
 
 /**
  * Enums
@@ -398,6 +423,56 @@ export class PrismaClient<
     * ```
     */
   get workoutSchedule(): Prisma.WorkoutScheduleDelegate<ExtArgs>;
+
+  /**
+   * `prisma.nutritionProgram`: Exposes CRUD operations for the **NutritionProgram** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more NutritionPrograms
+    * const nutritionPrograms = await prisma.nutritionProgram.findMany()
+    * ```
+    */
+  get nutritionProgram(): Prisma.NutritionProgramDelegate<ExtArgs>;
+
+  /**
+   * `prisma.nutritionProgramDay`: Exposes CRUD operations for the **NutritionProgramDay** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more NutritionProgramDays
+    * const nutritionProgramDays = await prisma.nutritionProgramDay.findMany()
+    * ```
+    */
+  get nutritionProgramDay(): Prisma.NutritionProgramDayDelegate<ExtArgs>;
+
+  /**
+   * `prisma.nutritionProgramMeal`: Exposes CRUD operations for the **NutritionProgramMeal** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more NutritionProgramMeals
+    * const nutritionProgramMeals = await prisma.nutritionProgramMeal.findMany()
+    * ```
+    */
+  get nutritionProgramMeal(): Prisma.NutritionProgramMealDelegate<ExtArgs>;
+
+  /**
+   * `prisma.nutritionProgramMealItem`: Exposes CRUD operations for the **NutritionProgramMealItem** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more NutritionProgramMealItems
+    * const nutritionProgramMealItems = await prisma.nutritionProgramMealItem.findMany()
+    * ```
+    */
+  get nutritionProgramMealItem(): Prisma.NutritionProgramMealItemDelegate<ExtArgs>;
+
+  /**
+   * `prisma.nutritionMealCompletion`: Exposes CRUD operations for the **NutritionMealCompletion** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more NutritionMealCompletions
+    * const nutritionMealCompletions = await prisma.nutritionMealCompletion.findMany()
+    * ```
+    */
+  get nutritionMealCompletion(): Prisma.NutritionMealCompletionDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -851,7 +926,12 @@ export namespace Prisma {
     WorkoutProgram: 'WorkoutProgram',
     WorkoutProgramDay: 'WorkoutProgramDay',
     WorkoutProgramExercise: 'WorkoutProgramExercise',
-    WorkoutSchedule: 'WorkoutSchedule'
+    WorkoutSchedule: 'WorkoutSchedule',
+    NutritionProgram: 'NutritionProgram',
+    NutritionProgramDay: 'NutritionProgramDay',
+    NutritionProgramMeal: 'NutritionProgramMeal',
+    NutritionProgramMealItem: 'NutritionProgramMealItem',
+    NutritionMealCompletion: 'NutritionMealCompletion'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -867,7 +947,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule"
+      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1781,6 +1861,356 @@ export namespace Prisma {
           }
         }
       }
+      NutritionProgram: {
+        payload: Prisma.$NutritionProgramPayload<ExtArgs>
+        fields: Prisma.NutritionProgramFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.NutritionProgramFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.NutritionProgramFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramPayload>
+          }
+          findFirst: {
+            args: Prisma.NutritionProgramFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.NutritionProgramFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramPayload>
+          }
+          findMany: {
+            args: Prisma.NutritionProgramFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramPayload>[]
+          }
+          create: {
+            args: Prisma.NutritionProgramCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramPayload>
+          }
+          createMany: {
+            args: Prisma.NutritionProgramCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.NutritionProgramCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramPayload>[]
+          }
+          delete: {
+            args: Prisma.NutritionProgramDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramPayload>
+          }
+          update: {
+            args: Prisma.NutritionProgramUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramPayload>
+          }
+          deleteMany: {
+            args: Prisma.NutritionProgramDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.NutritionProgramUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.NutritionProgramUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramPayload>
+          }
+          aggregate: {
+            args: Prisma.NutritionProgramAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateNutritionProgram>
+          }
+          groupBy: {
+            args: Prisma.NutritionProgramGroupByArgs<ExtArgs>
+            result: $Utils.Optional<NutritionProgramGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.NutritionProgramCountArgs<ExtArgs>
+            result: $Utils.Optional<NutritionProgramCountAggregateOutputType> | number
+          }
+        }
+      }
+      NutritionProgramDay: {
+        payload: Prisma.$NutritionProgramDayPayload<ExtArgs>
+        fields: Prisma.NutritionProgramDayFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.NutritionProgramDayFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramDayPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.NutritionProgramDayFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramDayPayload>
+          }
+          findFirst: {
+            args: Prisma.NutritionProgramDayFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramDayPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.NutritionProgramDayFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramDayPayload>
+          }
+          findMany: {
+            args: Prisma.NutritionProgramDayFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramDayPayload>[]
+          }
+          create: {
+            args: Prisma.NutritionProgramDayCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramDayPayload>
+          }
+          createMany: {
+            args: Prisma.NutritionProgramDayCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.NutritionProgramDayCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramDayPayload>[]
+          }
+          delete: {
+            args: Prisma.NutritionProgramDayDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramDayPayload>
+          }
+          update: {
+            args: Prisma.NutritionProgramDayUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramDayPayload>
+          }
+          deleteMany: {
+            args: Prisma.NutritionProgramDayDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.NutritionProgramDayUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.NutritionProgramDayUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramDayPayload>
+          }
+          aggregate: {
+            args: Prisma.NutritionProgramDayAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateNutritionProgramDay>
+          }
+          groupBy: {
+            args: Prisma.NutritionProgramDayGroupByArgs<ExtArgs>
+            result: $Utils.Optional<NutritionProgramDayGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.NutritionProgramDayCountArgs<ExtArgs>
+            result: $Utils.Optional<NutritionProgramDayCountAggregateOutputType> | number
+          }
+        }
+      }
+      NutritionProgramMeal: {
+        payload: Prisma.$NutritionProgramMealPayload<ExtArgs>
+        fields: Prisma.NutritionProgramMealFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.NutritionProgramMealFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.NutritionProgramMealFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealPayload>
+          }
+          findFirst: {
+            args: Prisma.NutritionProgramMealFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.NutritionProgramMealFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealPayload>
+          }
+          findMany: {
+            args: Prisma.NutritionProgramMealFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealPayload>[]
+          }
+          create: {
+            args: Prisma.NutritionProgramMealCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealPayload>
+          }
+          createMany: {
+            args: Prisma.NutritionProgramMealCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.NutritionProgramMealCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealPayload>[]
+          }
+          delete: {
+            args: Prisma.NutritionProgramMealDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealPayload>
+          }
+          update: {
+            args: Prisma.NutritionProgramMealUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealPayload>
+          }
+          deleteMany: {
+            args: Prisma.NutritionProgramMealDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.NutritionProgramMealUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.NutritionProgramMealUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealPayload>
+          }
+          aggregate: {
+            args: Prisma.NutritionProgramMealAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateNutritionProgramMeal>
+          }
+          groupBy: {
+            args: Prisma.NutritionProgramMealGroupByArgs<ExtArgs>
+            result: $Utils.Optional<NutritionProgramMealGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.NutritionProgramMealCountArgs<ExtArgs>
+            result: $Utils.Optional<NutritionProgramMealCountAggregateOutputType> | number
+          }
+        }
+      }
+      NutritionProgramMealItem: {
+        payload: Prisma.$NutritionProgramMealItemPayload<ExtArgs>
+        fields: Prisma.NutritionProgramMealItemFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.NutritionProgramMealItemFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealItemPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.NutritionProgramMealItemFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealItemPayload>
+          }
+          findFirst: {
+            args: Prisma.NutritionProgramMealItemFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealItemPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.NutritionProgramMealItemFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealItemPayload>
+          }
+          findMany: {
+            args: Prisma.NutritionProgramMealItemFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealItemPayload>[]
+          }
+          create: {
+            args: Prisma.NutritionProgramMealItemCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealItemPayload>
+          }
+          createMany: {
+            args: Prisma.NutritionProgramMealItemCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.NutritionProgramMealItemCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealItemPayload>[]
+          }
+          delete: {
+            args: Prisma.NutritionProgramMealItemDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealItemPayload>
+          }
+          update: {
+            args: Prisma.NutritionProgramMealItemUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealItemPayload>
+          }
+          deleteMany: {
+            args: Prisma.NutritionProgramMealItemDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.NutritionProgramMealItemUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.NutritionProgramMealItemUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionProgramMealItemPayload>
+          }
+          aggregate: {
+            args: Prisma.NutritionProgramMealItemAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateNutritionProgramMealItem>
+          }
+          groupBy: {
+            args: Prisma.NutritionProgramMealItemGroupByArgs<ExtArgs>
+            result: $Utils.Optional<NutritionProgramMealItemGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.NutritionProgramMealItemCountArgs<ExtArgs>
+            result: $Utils.Optional<NutritionProgramMealItemCountAggregateOutputType> | number
+          }
+        }
+      }
+      NutritionMealCompletion: {
+        payload: Prisma.$NutritionMealCompletionPayload<ExtArgs>
+        fields: Prisma.NutritionMealCompletionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.NutritionMealCompletionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionMealCompletionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.NutritionMealCompletionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionMealCompletionPayload>
+          }
+          findFirst: {
+            args: Prisma.NutritionMealCompletionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionMealCompletionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.NutritionMealCompletionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionMealCompletionPayload>
+          }
+          findMany: {
+            args: Prisma.NutritionMealCompletionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionMealCompletionPayload>[]
+          }
+          create: {
+            args: Prisma.NutritionMealCompletionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionMealCompletionPayload>
+          }
+          createMany: {
+            args: Prisma.NutritionMealCompletionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.NutritionMealCompletionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionMealCompletionPayload>[]
+          }
+          delete: {
+            args: Prisma.NutritionMealCompletionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionMealCompletionPayload>
+          }
+          update: {
+            args: Prisma.NutritionMealCompletionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionMealCompletionPayload>
+          }
+          deleteMany: {
+            args: Prisma.NutritionMealCompletionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.NutritionMealCompletionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.NutritionMealCompletionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NutritionMealCompletionPayload>
+          }
+          aggregate: {
+            args: Prisma.NutritionMealCompletionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateNutritionMealCompletion>
+          }
+          groupBy: {
+            args: Prisma.NutritionMealCompletionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<NutritionMealCompletionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.NutritionMealCompletionCountArgs<ExtArgs>
+            result: $Utils.Optional<NutritionMealCompletionCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -2054,10 +2484,12 @@ export namespace Prisma {
 
   export type FoodCountOutputType = {
     aliases: number
+    mealItems: number
   }
 
   export type FoodCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     aliases?: boolean | FoodCountOutputTypeCountAliasesArgs
+    mealItems?: boolean | FoodCountOutputTypeCountMealItemsArgs
   }
 
   // Custom InputTypes
@@ -2076,6 +2508,13 @@ export namespace Prisma {
    */
   export type FoodCountOutputTypeCountAliasesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: FoodAliasWhereInput
+  }
+
+  /**
+   * FoodCountOutputType without action
+   */
+  export type FoodCountOutputTypeCountMealItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NutritionProgramMealItemWhereInput
   }
 
 
@@ -2147,6 +2586,108 @@ export namespace Prisma {
    */
   export type WorkoutProgramDayCountOutputTypeCountSchedulesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: WorkoutScheduleWhereInput
+  }
+
+
+  /**
+   * Count Type NutritionProgramCountOutputType
+   */
+
+  export type NutritionProgramCountOutputType = {
+    days: number
+  }
+
+  export type NutritionProgramCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    days?: boolean | NutritionProgramCountOutputTypeCountDaysArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * NutritionProgramCountOutputType without action
+   */
+  export type NutritionProgramCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramCountOutputType
+     */
+    select?: NutritionProgramCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * NutritionProgramCountOutputType without action
+   */
+  export type NutritionProgramCountOutputTypeCountDaysArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NutritionProgramDayWhereInput
+  }
+
+
+  /**
+   * Count Type NutritionProgramDayCountOutputType
+   */
+
+  export type NutritionProgramDayCountOutputType = {
+    meals: number
+  }
+
+  export type NutritionProgramDayCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    meals?: boolean | NutritionProgramDayCountOutputTypeCountMealsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * NutritionProgramDayCountOutputType without action
+   */
+  export type NutritionProgramDayCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDayCountOutputType
+     */
+    select?: NutritionProgramDayCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * NutritionProgramDayCountOutputType without action
+   */
+  export type NutritionProgramDayCountOutputTypeCountMealsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NutritionProgramMealWhereInput
+  }
+
+
+  /**
+   * Count Type NutritionProgramMealCountOutputType
+   */
+
+  export type NutritionProgramMealCountOutputType = {
+    items: number
+    completions: number
+  }
+
+  export type NutritionProgramMealCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    items?: boolean | NutritionProgramMealCountOutputTypeCountItemsArgs
+    completions?: boolean | NutritionProgramMealCountOutputTypeCountCompletionsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * NutritionProgramMealCountOutputType without action
+   */
+  export type NutritionProgramMealCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealCountOutputType
+     */
+    select?: NutritionProgramMealCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * NutritionProgramMealCountOutputType without action
+   */
+  export type NutritionProgramMealCountOutputTypeCountItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NutritionProgramMealItemWhereInput
+  }
+
+  /**
+   * NutritionProgramMealCountOutputType without action
+   */
+  export type NutritionProgramMealCountOutputTypeCountCompletionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NutritionMealCompletionWhereInput
   }
 
 
@@ -6585,6 +7126,7 @@ export namespace Prisma {
     source?: boolean
     imageUrl?: boolean
     aliases?: boolean | Food$aliasesArgs<ExtArgs>
+    mealItems?: boolean | Food$mealItemsArgs<ExtArgs>
     _count?: boolean | FoodCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["food"]>
 
@@ -6614,6 +7156,7 @@ export namespace Prisma {
 
   export type FoodInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     aliases?: boolean | Food$aliasesArgs<ExtArgs>
+    mealItems?: boolean | Food$mealItemsArgs<ExtArgs>
     _count?: boolean | FoodCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type FoodIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -6622,6 +7165,7 @@ export namespace Prisma {
     name: "Food"
     objects: {
       aliases: Prisma.$FoodAliasPayload<ExtArgs>[]
+      mealItems: Prisma.$NutritionProgramMealItemPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -6998,6 +7542,7 @@ export namespace Prisma {
   export interface Prisma__FoodClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     aliases<T extends Food$aliasesArgs<ExtArgs> = {}>(args?: Subset<T, Food$aliasesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "findMany"> | Null>
+    mealItems<T extends Food$mealItemsArgs<ExtArgs> = {}>(args?: Subset<T, Food$mealItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7367,6 +7912,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: FoodAliasScalarFieldEnum | FoodAliasScalarFieldEnum[]
+  }
+
+  /**
+   * Food.mealItems
+   */
+  export type Food$mealItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+    where?: NutritionProgramMealItemWhereInput
+    orderBy?: NutritionProgramMealItemOrderByWithRelationInput | NutritionProgramMealItemOrderByWithRelationInput[]
+    cursor?: NutritionProgramMealItemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: NutritionProgramMealItemScalarFieldEnum | NutritionProgramMealItemScalarFieldEnum[]
   }
 
   /**
@@ -15587,6 +16152,5537 @@ export namespace Prisma {
 
 
   /**
+   * Model NutritionProgram
+   */
+
+  export type AggregateNutritionProgram = {
+    _count: NutritionProgramCountAggregateOutputType | null
+    _avg: NutritionProgramAvgAggregateOutputType | null
+    _sum: NutritionProgramSumAggregateOutputType | null
+    _min: NutritionProgramMinAggregateOutputType | null
+    _max: NutritionProgramMaxAggregateOutputType | null
+  }
+
+  export type NutritionProgramAvgAggregateOutputType = {
+    durationWeeks: number | null
+    mealsPerDay: number | null
+    dailyCaloriesTarget: number | null
+    proteinTargetGrams: number | null
+    carbTargetGrams: number | null
+    fatTargetGrams: number | null
+  }
+
+  export type NutritionProgramSumAggregateOutputType = {
+    durationWeeks: number | null
+    mealsPerDay: number | null
+    dailyCaloriesTarget: number | null
+    proteinTargetGrams: number | null
+    carbTargetGrams: number | null
+    fatTargetGrams: number | null
+  }
+
+  export type NutritionProgramMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    name: string | null
+    goal: string | null
+    durationWeeks: number | null
+    mealsPerDay: number | null
+    dailyCaloriesTarget: number | null
+    proteinTargetGrams: number | null
+    carbTargetGrams: number | null
+    fatTargetGrams: number | null
+    sourcePlanId: string | null
+    sourceType: string | null
+    status: string | null
+    startDate: Date | null
+    endDate: Date | null
+    repeatEnabled: boolean | null
+    archivedAt: Date | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionProgramMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    name: string | null
+    goal: string | null
+    durationWeeks: number | null
+    mealsPerDay: number | null
+    dailyCaloriesTarget: number | null
+    proteinTargetGrams: number | null
+    carbTargetGrams: number | null
+    fatTargetGrams: number | null
+    sourcePlanId: string | null
+    sourceType: string | null
+    status: string | null
+    startDate: Date | null
+    endDate: Date | null
+    repeatEnabled: boolean | null
+    archivedAt: Date | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionProgramCountAggregateOutputType = {
+    id: number
+    userId: number
+    name: number
+    goal: number
+    durationWeeks: number
+    mealsPerDay: number
+    dailyCaloriesTarget: number
+    proteinTargetGrams: number
+    carbTargetGrams: number
+    fatTargetGrams: number
+    sourcePlanId: number
+    sourceType: number
+    status: number
+    startDate: number
+    endDate: number
+    repeatEnabled: number
+    archivedAt: number
+    notes: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type NutritionProgramAvgAggregateInputType = {
+    durationWeeks?: true
+    mealsPerDay?: true
+    dailyCaloriesTarget?: true
+    proteinTargetGrams?: true
+    carbTargetGrams?: true
+    fatTargetGrams?: true
+  }
+
+  export type NutritionProgramSumAggregateInputType = {
+    durationWeeks?: true
+    mealsPerDay?: true
+    dailyCaloriesTarget?: true
+    proteinTargetGrams?: true
+    carbTargetGrams?: true
+    fatTargetGrams?: true
+  }
+
+  export type NutritionProgramMinAggregateInputType = {
+    id?: true
+    userId?: true
+    name?: true
+    goal?: true
+    durationWeeks?: true
+    mealsPerDay?: true
+    dailyCaloriesTarget?: true
+    proteinTargetGrams?: true
+    carbTargetGrams?: true
+    fatTargetGrams?: true
+    sourcePlanId?: true
+    sourceType?: true
+    status?: true
+    startDate?: true
+    endDate?: true
+    repeatEnabled?: true
+    archivedAt?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionProgramMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    name?: true
+    goal?: true
+    durationWeeks?: true
+    mealsPerDay?: true
+    dailyCaloriesTarget?: true
+    proteinTargetGrams?: true
+    carbTargetGrams?: true
+    fatTargetGrams?: true
+    sourcePlanId?: true
+    sourceType?: true
+    status?: true
+    startDate?: true
+    endDate?: true
+    repeatEnabled?: true
+    archivedAt?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionProgramCountAggregateInputType = {
+    id?: true
+    userId?: true
+    name?: true
+    goal?: true
+    durationWeeks?: true
+    mealsPerDay?: true
+    dailyCaloriesTarget?: true
+    proteinTargetGrams?: true
+    carbTargetGrams?: true
+    fatTargetGrams?: true
+    sourcePlanId?: true
+    sourceType?: true
+    status?: true
+    startDate?: true
+    endDate?: true
+    repeatEnabled?: true
+    archivedAt?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type NutritionProgramAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionProgram to aggregate.
+     */
+    where?: NutritionProgramWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionPrograms to fetch.
+     */
+    orderBy?: NutritionProgramOrderByWithRelationInput | NutritionProgramOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: NutritionProgramWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionPrograms from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionPrograms.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned NutritionPrograms
+    **/
+    _count?: true | NutritionProgramCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: NutritionProgramAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: NutritionProgramSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: NutritionProgramMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: NutritionProgramMaxAggregateInputType
+  }
+
+  export type GetNutritionProgramAggregateType<T extends NutritionProgramAggregateArgs> = {
+        [P in keyof T & keyof AggregateNutritionProgram]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateNutritionProgram[P]>
+      : GetScalarType<T[P], AggregateNutritionProgram[P]>
+  }
+
+
+
+
+  export type NutritionProgramGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NutritionProgramWhereInput
+    orderBy?: NutritionProgramOrderByWithAggregationInput | NutritionProgramOrderByWithAggregationInput[]
+    by: NutritionProgramScalarFieldEnum[] | NutritionProgramScalarFieldEnum
+    having?: NutritionProgramScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: NutritionProgramCountAggregateInputType | true
+    _avg?: NutritionProgramAvgAggregateInputType
+    _sum?: NutritionProgramSumAggregateInputType
+    _min?: NutritionProgramMinAggregateInputType
+    _max?: NutritionProgramMaxAggregateInputType
+  }
+
+  export type NutritionProgramGroupByOutputType = {
+    id: string
+    userId: string
+    name: string
+    goal: string | null
+    durationWeeks: number | null
+    mealsPerDay: number | null
+    dailyCaloriesTarget: number | null
+    proteinTargetGrams: number | null
+    carbTargetGrams: number | null
+    fatTargetGrams: number | null
+    sourcePlanId: string | null
+    sourceType: string | null
+    status: string
+    startDate: Date | null
+    endDate: Date | null
+    repeatEnabled: boolean
+    archivedAt: Date | null
+    notes: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: NutritionProgramCountAggregateOutputType | null
+    _avg: NutritionProgramAvgAggregateOutputType | null
+    _sum: NutritionProgramSumAggregateOutputType | null
+    _min: NutritionProgramMinAggregateOutputType | null
+    _max: NutritionProgramMaxAggregateOutputType | null
+  }
+
+  type GetNutritionProgramGroupByPayload<T extends NutritionProgramGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<NutritionProgramGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof NutritionProgramGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], NutritionProgramGroupByOutputType[P]>
+            : GetScalarType<T[P], NutritionProgramGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type NutritionProgramSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    name?: boolean
+    goal?: boolean
+    durationWeeks?: boolean
+    mealsPerDay?: boolean
+    dailyCaloriesTarget?: boolean
+    proteinTargetGrams?: boolean
+    carbTargetGrams?: boolean
+    fatTargetGrams?: boolean
+    sourcePlanId?: boolean
+    sourceType?: boolean
+    status?: boolean
+    startDate?: boolean
+    endDate?: boolean
+    repeatEnabled?: boolean
+    archivedAt?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    days?: boolean | NutritionProgram$daysArgs<ExtArgs>
+    _count?: boolean | NutritionProgramCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["nutritionProgram"]>
+
+  export type NutritionProgramSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    name?: boolean
+    goal?: boolean
+    durationWeeks?: boolean
+    mealsPerDay?: boolean
+    dailyCaloriesTarget?: boolean
+    proteinTargetGrams?: boolean
+    carbTargetGrams?: boolean
+    fatTargetGrams?: boolean
+    sourcePlanId?: boolean
+    sourceType?: boolean
+    status?: boolean
+    startDate?: boolean
+    endDate?: boolean
+    repeatEnabled?: boolean
+    archivedAt?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["nutritionProgram"]>
+
+  export type NutritionProgramSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    name?: boolean
+    goal?: boolean
+    durationWeeks?: boolean
+    mealsPerDay?: boolean
+    dailyCaloriesTarget?: boolean
+    proteinTargetGrams?: boolean
+    carbTargetGrams?: boolean
+    fatTargetGrams?: boolean
+    sourcePlanId?: boolean
+    sourceType?: boolean
+    status?: boolean
+    startDate?: boolean
+    endDate?: boolean
+    repeatEnabled?: boolean
+    archivedAt?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type NutritionProgramInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    days?: boolean | NutritionProgram$daysArgs<ExtArgs>
+    _count?: boolean | NutritionProgramCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type NutritionProgramIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $NutritionProgramPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "NutritionProgram"
+    objects: {
+      days: Prisma.$NutritionProgramDayPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      name: string
+      goal: string | null
+      durationWeeks: number | null
+      mealsPerDay: number | null
+      dailyCaloriesTarget: number | null
+      proteinTargetGrams: number | null
+      carbTargetGrams: number | null
+      fatTargetGrams: number | null
+      sourcePlanId: string | null
+      sourceType: string | null
+      status: string
+      startDate: Date | null
+      endDate: Date | null
+      repeatEnabled: boolean
+      archivedAt: Date | null
+      notes: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["nutritionProgram"]>
+    composites: {}
+  }
+
+  type NutritionProgramGetPayload<S extends boolean | null | undefined | NutritionProgramDefaultArgs> = $Result.GetResult<Prisma.$NutritionProgramPayload, S>
+
+  type NutritionProgramCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<NutritionProgramFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: NutritionProgramCountAggregateInputType | true
+    }
+
+  export interface NutritionProgramDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['NutritionProgram'], meta: { name: 'NutritionProgram' } }
+    /**
+     * Find zero or one NutritionProgram that matches the filter.
+     * @param {NutritionProgramFindUniqueArgs} args - Arguments to find a NutritionProgram
+     * @example
+     * // Get one NutritionProgram
+     * const nutritionProgram = await prisma.nutritionProgram.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends NutritionProgramFindUniqueArgs>(args: SelectSubset<T, NutritionProgramFindUniqueArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one NutritionProgram that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {NutritionProgramFindUniqueOrThrowArgs} args - Arguments to find a NutritionProgram
+     * @example
+     * // Get one NutritionProgram
+     * const nutritionProgram = await prisma.nutritionProgram.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends NutritionProgramFindUniqueOrThrowArgs>(args: SelectSubset<T, NutritionProgramFindUniqueOrThrowArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first NutritionProgram that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramFindFirstArgs} args - Arguments to find a NutritionProgram
+     * @example
+     * // Get one NutritionProgram
+     * const nutritionProgram = await prisma.nutritionProgram.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends NutritionProgramFindFirstArgs>(args?: SelectSubset<T, NutritionProgramFindFirstArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first NutritionProgram that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramFindFirstOrThrowArgs} args - Arguments to find a NutritionProgram
+     * @example
+     * // Get one NutritionProgram
+     * const nutritionProgram = await prisma.nutritionProgram.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends NutritionProgramFindFirstOrThrowArgs>(args?: SelectSubset<T, NutritionProgramFindFirstOrThrowArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more NutritionPrograms that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all NutritionPrograms
+     * const nutritionPrograms = await prisma.nutritionProgram.findMany()
+     * 
+     * // Get first 10 NutritionPrograms
+     * const nutritionPrograms = await prisma.nutritionProgram.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const nutritionProgramWithIdOnly = await prisma.nutritionProgram.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends NutritionProgramFindManyArgs>(args?: SelectSubset<T, NutritionProgramFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a NutritionProgram.
+     * @param {NutritionProgramCreateArgs} args - Arguments to create a NutritionProgram.
+     * @example
+     * // Create one NutritionProgram
+     * const NutritionProgram = await prisma.nutritionProgram.create({
+     *   data: {
+     *     // ... data to create a NutritionProgram
+     *   }
+     * })
+     * 
+     */
+    create<T extends NutritionProgramCreateArgs>(args: SelectSubset<T, NutritionProgramCreateArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many NutritionPrograms.
+     * @param {NutritionProgramCreateManyArgs} args - Arguments to create many NutritionPrograms.
+     * @example
+     * // Create many NutritionPrograms
+     * const nutritionProgram = await prisma.nutritionProgram.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends NutritionProgramCreateManyArgs>(args?: SelectSubset<T, NutritionProgramCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many NutritionPrograms and returns the data saved in the database.
+     * @param {NutritionProgramCreateManyAndReturnArgs} args - Arguments to create many NutritionPrograms.
+     * @example
+     * // Create many NutritionPrograms
+     * const nutritionProgram = await prisma.nutritionProgram.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many NutritionPrograms and only return the `id`
+     * const nutritionProgramWithIdOnly = await prisma.nutritionProgram.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends NutritionProgramCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionProgramCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a NutritionProgram.
+     * @param {NutritionProgramDeleteArgs} args - Arguments to delete one NutritionProgram.
+     * @example
+     * // Delete one NutritionProgram
+     * const NutritionProgram = await prisma.nutritionProgram.delete({
+     *   where: {
+     *     // ... filter to delete one NutritionProgram
+     *   }
+     * })
+     * 
+     */
+    delete<T extends NutritionProgramDeleteArgs>(args: SelectSubset<T, NutritionProgramDeleteArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one NutritionProgram.
+     * @param {NutritionProgramUpdateArgs} args - Arguments to update one NutritionProgram.
+     * @example
+     * // Update one NutritionProgram
+     * const nutritionProgram = await prisma.nutritionProgram.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends NutritionProgramUpdateArgs>(args: SelectSubset<T, NutritionProgramUpdateArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more NutritionPrograms.
+     * @param {NutritionProgramDeleteManyArgs} args - Arguments to filter NutritionPrograms to delete.
+     * @example
+     * // Delete a few NutritionPrograms
+     * const { count } = await prisma.nutritionProgram.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends NutritionProgramDeleteManyArgs>(args?: SelectSubset<T, NutritionProgramDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more NutritionPrograms.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many NutritionPrograms
+     * const nutritionProgram = await prisma.nutritionProgram.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends NutritionProgramUpdateManyArgs>(args: SelectSubset<T, NutritionProgramUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one NutritionProgram.
+     * @param {NutritionProgramUpsertArgs} args - Arguments to update or create a NutritionProgram.
+     * @example
+     * // Update or create a NutritionProgram
+     * const nutritionProgram = await prisma.nutritionProgram.upsert({
+     *   create: {
+     *     // ... data to create a NutritionProgram
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the NutritionProgram we want to update
+     *   }
+     * })
+     */
+    upsert<T extends NutritionProgramUpsertArgs>(args: SelectSubset<T, NutritionProgramUpsertArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of NutritionPrograms.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramCountArgs} args - Arguments to filter NutritionPrograms to count.
+     * @example
+     * // Count the number of NutritionPrograms
+     * const count = await prisma.nutritionProgram.count({
+     *   where: {
+     *     // ... the filter for the NutritionPrograms we want to count
+     *   }
+     * })
+    **/
+    count<T extends NutritionProgramCountArgs>(
+      args?: Subset<T, NutritionProgramCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], NutritionProgramCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a NutritionProgram.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends NutritionProgramAggregateArgs>(args: Subset<T, NutritionProgramAggregateArgs>): Prisma.PrismaPromise<GetNutritionProgramAggregateType<T>>
+
+    /**
+     * Group by NutritionProgram.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends NutritionProgramGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: NutritionProgramGroupByArgs['orderBy'] }
+        : { orderBy?: NutritionProgramGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, NutritionProgramGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetNutritionProgramGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the NutritionProgram model
+   */
+  readonly fields: NutritionProgramFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for NutritionProgram.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__NutritionProgramClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    days<T extends NutritionProgram$daysArgs<ExtArgs> = {}>(args?: Subset<T, NutritionProgram$daysArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the NutritionProgram model
+   */ 
+  interface NutritionProgramFieldRefs {
+    readonly id: FieldRef<"NutritionProgram", 'String'>
+    readonly userId: FieldRef<"NutritionProgram", 'String'>
+    readonly name: FieldRef<"NutritionProgram", 'String'>
+    readonly goal: FieldRef<"NutritionProgram", 'String'>
+    readonly durationWeeks: FieldRef<"NutritionProgram", 'Int'>
+    readonly mealsPerDay: FieldRef<"NutritionProgram", 'Int'>
+    readonly dailyCaloriesTarget: FieldRef<"NutritionProgram", 'Int'>
+    readonly proteinTargetGrams: FieldRef<"NutritionProgram", 'Float'>
+    readonly carbTargetGrams: FieldRef<"NutritionProgram", 'Float'>
+    readonly fatTargetGrams: FieldRef<"NutritionProgram", 'Float'>
+    readonly sourcePlanId: FieldRef<"NutritionProgram", 'String'>
+    readonly sourceType: FieldRef<"NutritionProgram", 'String'>
+    readonly status: FieldRef<"NutritionProgram", 'String'>
+    readonly startDate: FieldRef<"NutritionProgram", 'DateTime'>
+    readonly endDate: FieldRef<"NutritionProgram", 'DateTime'>
+    readonly repeatEnabled: FieldRef<"NutritionProgram", 'Boolean'>
+    readonly archivedAt: FieldRef<"NutritionProgram", 'DateTime'>
+    readonly notes: FieldRef<"NutritionProgram", 'String'>
+    readonly createdAt: FieldRef<"NutritionProgram", 'DateTime'>
+    readonly updatedAt: FieldRef<"NutritionProgram", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * NutritionProgram findUnique
+   */
+  export type NutritionProgramFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgram
+     */
+    select?: NutritionProgramSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgram to fetch.
+     */
+    where: NutritionProgramWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgram findUniqueOrThrow
+   */
+  export type NutritionProgramFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgram
+     */
+    select?: NutritionProgramSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgram to fetch.
+     */
+    where: NutritionProgramWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgram findFirst
+   */
+  export type NutritionProgramFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgram
+     */
+    select?: NutritionProgramSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgram to fetch.
+     */
+    where?: NutritionProgramWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionPrograms to fetch.
+     */
+    orderBy?: NutritionProgramOrderByWithRelationInput | NutritionProgramOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionPrograms.
+     */
+    cursor?: NutritionProgramWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionPrograms from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionPrograms.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionPrograms.
+     */
+    distinct?: NutritionProgramScalarFieldEnum | NutritionProgramScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgram findFirstOrThrow
+   */
+  export type NutritionProgramFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgram
+     */
+    select?: NutritionProgramSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgram to fetch.
+     */
+    where?: NutritionProgramWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionPrograms to fetch.
+     */
+    orderBy?: NutritionProgramOrderByWithRelationInput | NutritionProgramOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionPrograms.
+     */
+    cursor?: NutritionProgramWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionPrograms from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionPrograms.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionPrograms.
+     */
+    distinct?: NutritionProgramScalarFieldEnum | NutritionProgramScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgram findMany
+   */
+  export type NutritionProgramFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgram
+     */
+    select?: NutritionProgramSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionPrograms to fetch.
+     */
+    where?: NutritionProgramWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionPrograms to fetch.
+     */
+    orderBy?: NutritionProgramOrderByWithRelationInput | NutritionProgramOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing NutritionPrograms.
+     */
+    cursor?: NutritionProgramWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionPrograms from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionPrograms.
+     */
+    skip?: number
+    distinct?: NutritionProgramScalarFieldEnum | NutritionProgramScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgram create
+   */
+  export type NutritionProgramCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgram
+     */
+    select?: NutritionProgramSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramInclude<ExtArgs> | null
+    /**
+     * The data needed to create a NutritionProgram.
+     */
+    data: XOR<NutritionProgramCreateInput, NutritionProgramUncheckedCreateInput>
+  }
+
+  /**
+   * NutritionProgram createMany
+   */
+  export type NutritionProgramCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many NutritionPrograms.
+     */
+    data: NutritionProgramCreateManyInput | NutritionProgramCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * NutritionProgram createManyAndReturn
+   */
+  export type NutritionProgramCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgram
+     */
+    select?: NutritionProgramSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many NutritionPrograms.
+     */
+    data: NutritionProgramCreateManyInput | NutritionProgramCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * NutritionProgram update
+   */
+  export type NutritionProgramUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgram
+     */
+    select?: NutritionProgramSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramInclude<ExtArgs> | null
+    /**
+     * The data needed to update a NutritionProgram.
+     */
+    data: XOR<NutritionProgramUpdateInput, NutritionProgramUncheckedUpdateInput>
+    /**
+     * Choose, which NutritionProgram to update.
+     */
+    where: NutritionProgramWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgram updateMany
+   */
+  export type NutritionProgramUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update NutritionPrograms.
+     */
+    data: XOR<NutritionProgramUpdateManyMutationInput, NutritionProgramUncheckedUpdateManyInput>
+    /**
+     * Filter which NutritionPrograms to update
+     */
+    where?: NutritionProgramWhereInput
+  }
+
+  /**
+   * NutritionProgram upsert
+   */
+  export type NutritionProgramUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgram
+     */
+    select?: NutritionProgramSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramInclude<ExtArgs> | null
+    /**
+     * The filter to search for the NutritionProgram to update in case it exists.
+     */
+    where: NutritionProgramWhereUniqueInput
+    /**
+     * In case the NutritionProgram found by the `where` argument doesn't exist, create a new NutritionProgram with this data.
+     */
+    create: XOR<NutritionProgramCreateInput, NutritionProgramUncheckedCreateInput>
+    /**
+     * In case the NutritionProgram was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<NutritionProgramUpdateInput, NutritionProgramUncheckedUpdateInput>
+  }
+
+  /**
+   * NutritionProgram delete
+   */
+  export type NutritionProgramDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgram
+     */
+    select?: NutritionProgramSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramInclude<ExtArgs> | null
+    /**
+     * Filter which NutritionProgram to delete.
+     */
+    where: NutritionProgramWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgram deleteMany
+   */
+  export type NutritionProgramDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionPrograms to delete
+     */
+    where?: NutritionProgramWhereInput
+  }
+
+  /**
+   * NutritionProgram.days
+   */
+  export type NutritionProgram$daysArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayInclude<ExtArgs> | null
+    where?: NutritionProgramDayWhereInput
+    orderBy?: NutritionProgramDayOrderByWithRelationInput | NutritionProgramDayOrderByWithRelationInput[]
+    cursor?: NutritionProgramDayWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: NutritionProgramDayScalarFieldEnum | NutritionProgramDayScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgram without action
+   */
+  export type NutritionProgramDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgram
+     */
+    select?: NutritionProgramSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model NutritionProgramDay
+   */
+
+  export type AggregateNutritionProgramDay = {
+    _count: NutritionProgramDayCountAggregateOutputType | null
+    _avg: NutritionProgramDayAvgAggregateOutputType | null
+    _sum: NutritionProgramDaySumAggregateOutputType | null
+    _min: NutritionProgramDayMinAggregateOutputType | null
+    _max: NutritionProgramDayMaxAggregateOutputType | null
+  }
+
+  export type NutritionProgramDayAvgAggregateOutputType = {
+    dayNumber: number | null
+    totalCalories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+  }
+
+  export type NutritionProgramDaySumAggregateOutputType = {
+    dayNumber: number | null
+    totalCalories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+  }
+
+  export type NutritionProgramDayMinAggregateOutputType = {
+    id: string | null
+    programId: string | null
+    dayNumber: number | null
+    title: string | null
+    totalCalories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionProgramDayMaxAggregateOutputType = {
+    id: string | null
+    programId: string | null
+    dayNumber: number | null
+    title: string | null
+    totalCalories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionProgramDayCountAggregateOutputType = {
+    id: number
+    programId: number
+    dayNumber: number
+    title: number
+    totalCalories: number
+    proteinGrams: number
+    carbGrams: number
+    fatGrams: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type NutritionProgramDayAvgAggregateInputType = {
+    dayNumber?: true
+    totalCalories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+  }
+
+  export type NutritionProgramDaySumAggregateInputType = {
+    dayNumber?: true
+    totalCalories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+  }
+
+  export type NutritionProgramDayMinAggregateInputType = {
+    id?: true
+    programId?: true
+    dayNumber?: true
+    title?: true
+    totalCalories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionProgramDayMaxAggregateInputType = {
+    id?: true
+    programId?: true
+    dayNumber?: true
+    title?: true
+    totalCalories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionProgramDayCountAggregateInputType = {
+    id?: true
+    programId?: true
+    dayNumber?: true
+    title?: true
+    totalCalories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type NutritionProgramDayAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionProgramDay to aggregate.
+     */
+    where?: NutritionProgramDayWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramDays to fetch.
+     */
+    orderBy?: NutritionProgramDayOrderByWithRelationInput | NutritionProgramDayOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: NutritionProgramDayWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramDays from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramDays.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned NutritionProgramDays
+    **/
+    _count?: true | NutritionProgramDayCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: NutritionProgramDayAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: NutritionProgramDaySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: NutritionProgramDayMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: NutritionProgramDayMaxAggregateInputType
+  }
+
+  export type GetNutritionProgramDayAggregateType<T extends NutritionProgramDayAggregateArgs> = {
+        [P in keyof T & keyof AggregateNutritionProgramDay]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateNutritionProgramDay[P]>
+      : GetScalarType<T[P], AggregateNutritionProgramDay[P]>
+  }
+
+
+
+
+  export type NutritionProgramDayGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NutritionProgramDayWhereInput
+    orderBy?: NutritionProgramDayOrderByWithAggregationInput | NutritionProgramDayOrderByWithAggregationInput[]
+    by: NutritionProgramDayScalarFieldEnum[] | NutritionProgramDayScalarFieldEnum
+    having?: NutritionProgramDayScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: NutritionProgramDayCountAggregateInputType | true
+    _avg?: NutritionProgramDayAvgAggregateInputType
+    _sum?: NutritionProgramDaySumAggregateInputType
+    _min?: NutritionProgramDayMinAggregateInputType
+    _max?: NutritionProgramDayMaxAggregateInputType
+  }
+
+  export type NutritionProgramDayGroupByOutputType = {
+    id: string
+    programId: string
+    dayNumber: number
+    title: string | null
+    totalCalories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+    createdAt: Date
+    updatedAt: Date
+    _count: NutritionProgramDayCountAggregateOutputType | null
+    _avg: NutritionProgramDayAvgAggregateOutputType | null
+    _sum: NutritionProgramDaySumAggregateOutputType | null
+    _min: NutritionProgramDayMinAggregateOutputType | null
+    _max: NutritionProgramDayMaxAggregateOutputType | null
+  }
+
+  type GetNutritionProgramDayGroupByPayload<T extends NutritionProgramDayGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<NutritionProgramDayGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof NutritionProgramDayGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], NutritionProgramDayGroupByOutputType[P]>
+            : GetScalarType<T[P], NutritionProgramDayGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type NutritionProgramDaySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    programId?: boolean
+    dayNumber?: boolean
+    title?: boolean
+    totalCalories?: boolean
+    proteinGrams?: boolean
+    carbGrams?: boolean
+    fatGrams?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    program?: boolean | NutritionProgramDefaultArgs<ExtArgs>
+    meals?: boolean | NutritionProgramDay$mealsArgs<ExtArgs>
+    _count?: boolean | NutritionProgramDayCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["nutritionProgramDay"]>
+
+  export type NutritionProgramDaySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    programId?: boolean
+    dayNumber?: boolean
+    title?: boolean
+    totalCalories?: boolean
+    proteinGrams?: boolean
+    carbGrams?: boolean
+    fatGrams?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    program?: boolean | NutritionProgramDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["nutritionProgramDay"]>
+
+  export type NutritionProgramDaySelectScalar = {
+    id?: boolean
+    programId?: boolean
+    dayNumber?: boolean
+    title?: boolean
+    totalCalories?: boolean
+    proteinGrams?: boolean
+    carbGrams?: boolean
+    fatGrams?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type NutritionProgramDayInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    program?: boolean | NutritionProgramDefaultArgs<ExtArgs>
+    meals?: boolean | NutritionProgramDay$mealsArgs<ExtArgs>
+    _count?: boolean | NutritionProgramDayCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type NutritionProgramDayIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    program?: boolean | NutritionProgramDefaultArgs<ExtArgs>
+  }
+
+  export type $NutritionProgramDayPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "NutritionProgramDay"
+    objects: {
+      program: Prisma.$NutritionProgramPayload<ExtArgs>
+      meals: Prisma.$NutritionProgramMealPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      programId: string
+      dayNumber: number
+      title: string | null
+      totalCalories: number | null
+      proteinGrams: number | null
+      carbGrams: number | null
+      fatGrams: number | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["nutritionProgramDay"]>
+    composites: {}
+  }
+
+  type NutritionProgramDayGetPayload<S extends boolean | null | undefined | NutritionProgramDayDefaultArgs> = $Result.GetResult<Prisma.$NutritionProgramDayPayload, S>
+
+  type NutritionProgramDayCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<NutritionProgramDayFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: NutritionProgramDayCountAggregateInputType | true
+    }
+
+  export interface NutritionProgramDayDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['NutritionProgramDay'], meta: { name: 'NutritionProgramDay' } }
+    /**
+     * Find zero or one NutritionProgramDay that matches the filter.
+     * @param {NutritionProgramDayFindUniqueArgs} args - Arguments to find a NutritionProgramDay
+     * @example
+     * // Get one NutritionProgramDay
+     * const nutritionProgramDay = await prisma.nutritionProgramDay.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends NutritionProgramDayFindUniqueArgs>(args: SelectSubset<T, NutritionProgramDayFindUniqueArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one NutritionProgramDay that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {NutritionProgramDayFindUniqueOrThrowArgs} args - Arguments to find a NutritionProgramDay
+     * @example
+     * // Get one NutritionProgramDay
+     * const nutritionProgramDay = await prisma.nutritionProgramDay.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends NutritionProgramDayFindUniqueOrThrowArgs>(args: SelectSubset<T, NutritionProgramDayFindUniqueOrThrowArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first NutritionProgramDay that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramDayFindFirstArgs} args - Arguments to find a NutritionProgramDay
+     * @example
+     * // Get one NutritionProgramDay
+     * const nutritionProgramDay = await prisma.nutritionProgramDay.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends NutritionProgramDayFindFirstArgs>(args?: SelectSubset<T, NutritionProgramDayFindFirstArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first NutritionProgramDay that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramDayFindFirstOrThrowArgs} args - Arguments to find a NutritionProgramDay
+     * @example
+     * // Get one NutritionProgramDay
+     * const nutritionProgramDay = await prisma.nutritionProgramDay.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends NutritionProgramDayFindFirstOrThrowArgs>(args?: SelectSubset<T, NutritionProgramDayFindFirstOrThrowArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more NutritionProgramDays that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramDayFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all NutritionProgramDays
+     * const nutritionProgramDays = await prisma.nutritionProgramDay.findMany()
+     * 
+     * // Get first 10 NutritionProgramDays
+     * const nutritionProgramDays = await prisma.nutritionProgramDay.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const nutritionProgramDayWithIdOnly = await prisma.nutritionProgramDay.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends NutritionProgramDayFindManyArgs>(args?: SelectSubset<T, NutritionProgramDayFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a NutritionProgramDay.
+     * @param {NutritionProgramDayCreateArgs} args - Arguments to create a NutritionProgramDay.
+     * @example
+     * // Create one NutritionProgramDay
+     * const NutritionProgramDay = await prisma.nutritionProgramDay.create({
+     *   data: {
+     *     // ... data to create a NutritionProgramDay
+     *   }
+     * })
+     * 
+     */
+    create<T extends NutritionProgramDayCreateArgs>(args: SelectSubset<T, NutritionProgramDayCreateArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many NutritionProgramDays.
+     * @param {NutritionProgramDayCreateManyArgs} args - Arguments to create many NutritionProgramDays.
+     * @example
+     * // Create many NutritionProgramDays
+     * const nutritionProgramDay = await prisma.nutritionProgramDay.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends NutritionProgramDayCreateManyArgs>(args?: SelectSubset<T, NutritionProgramDayCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many NutritionProgramDays and returns the data saved in the database.
+     * @param {NutritionProgramDayCreateManyAndReturnArgs} args - Arguments to create many NutritionProgramDays.
+     * @example
+     * // Create many NutritionProgramDays
+     * const nutritionProgramDay = await prisma.nutritionProgramDay.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many NutritionProgramDays and only return the `id`
+     * const nutritionProgramDayWithIdOnly = await prisma.nutritionProgramDay.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends NutritionProgramDayCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionProgramDayCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a NutritionProgramDay.
+     * @param {NutritionProgramDayDeleteArgs} args - Arguments to delete one NutritionProgramDay.
+     * @example
+     * // Delete one NutritionProgramDay
+     * const NutritionProgramDay = await prisma.nutritionProgramDay.delete({
+     *   where: {
+     *     // ... filter to delete one NutritionProgramDay
+     *   }
+     * })
+     * 
+     */
+    delete<T extends NutritionProgramDayDeleteArgs>(args: SelectSubset<T, NutritionProgramDayDeleteArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one NutritionProgramDay.
+     * @param {NutritionProgramDayUpdateArgs} args - Arguments to update one NutritionProgramDay.
+     * @example
+     * // Update one NutritionProgramDay
+     * const nutritionProgramDay = await prisma.nutritionProgramDay.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends NutritionProgramDayUpdateArgs>(args: SelectSubset<T, NutritionProgramDayUpdateArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more NutritionProgramDays.
+     * @param {NutritionProgramDayDeleteManyArgs} args - Arguments to filter NutritionProgramDays to delete.
+     * @example
+     * // Delete a few NutritionProgramDays
+     * const { count } = await prisma.nutritionProgramDay.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends NutritionProgramDayDeleteManyArgs>(args?: SelectSubset<T, NutritionProgramDayDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more NutritionProgramDays.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramDayUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many NutritionProgramDays
+     * const nutritionProgramDay = await prisma.nutritionProgramDay.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends NutritionProgramDayUpdateManyArgs>(args: SelectSubset<T, NutritionProgramDayUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one NutritionProgramDay.
+     * @param {NutritionProgramDayUpsertArgs} args - Arguments to update or create a NutritionProgramDay.
+     * @example
+     * // Update or create a NutritionProgramDay
+     * const nutritionProgramDay = await prisma.nutritionProgramDay.upsert({
+     *   create: {
+     *     // ... data to create a NutritionProgramDay
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the NutritionProgramDay we want to update
+     *   }
+     * })
+     */
+    upsert<T extends NutritionProgramDayUpsertArgs>(args: SelectSubset<T, NutritionProgramDayUpsertArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of NutritionProgramDays.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramDayCountArgs} args - Arguments to filter NutritionProgramDays to count.
+     * @example
+     * // Count the number of NutritionProgramDays
+     * const count = await prisma.nutritionProgramDay.count({
+     *   where: {
+     *     // ... the filter for the NutritionProgramDays we want to count
+     *   }
+     * })
+    **/
+    count<T extends NutritionProgramDayCountArgs>(
+      args?: Subset<T, NutritionProgramDayCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], NutritionProgramDayCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a NutritionProgramDay.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramDayAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends NutritionProgramDayAggregateArgs>(args: Subset<T, NutritionProgramDayAggregateArgs>): Prisma.PrismaPromise<GetNutritionProgramDayAggregateType<T>>
+
+    /**
+     * Group by NutritionProgramDay.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramDayGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends NutritionProgramDayGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: NutritionProgramDayGroupByArgs['orderBy'] }
+        : { orderBy?: NutritionProgramDayGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, NutritionProgramDayGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetNutritionProgramDayGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the NutritionProgramDay model
+   */
+  readonly fields: NutritionProgramDayFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for NutritionProgramDay.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__NutritionProgramDayClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    program<T extends NutritionProgramDefaultArgs<ExtArgs> = {}>(args?: Subset<T, NutritionProgramDefaultArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    meals<T extends NutritionProgramDay$mealsArgs<ExtArgs> = {}>(args?: Subset<T, NutritionProgramDay$mealsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the NutritionProgramDay model
+   */ 
+  interface NutritionProgramDayFieldRefs {
+    readonly id: FieldRef<"NutritionProgramDay", 'String'>
+    readonly programId: FieldRef<"NutritionProgramDay", 'String'>
+    readonly dayNumber: FieldRef<"NutritionProgramDay", 'Int'>
+    readonly title: FieldRef<"NutritionProgramDay", 'String'>
+    readonly totalCalories: FieldRef<"NutritionProgramDay", 'Int'>
+    readonly proteinGrams: FieldRef<"NutritionProgramDay", 'Float'>
+    readonly carbGrams: FieldRef<"NutritionProgramDay", 'Float'>
+    readonly fatGrams: FieldRef<"NutritionProgramDay", 'Float'>
+    readonly createdAt: FieldRef<"NutritionProgramDay", 'DateTime'>
+    readonly updatedAt: FieldRef<"NutritionProgramDay", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * NutritionProgramDay findUnique
+   */
+  export type NutritionProgramDayFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramDay to fetch.
+     */
+    where: NutritionProgramDayWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramDay findUniqueOrThrow
+   */
+  export type NutritionProgramDayFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramDay to fetch.
+     */
+    where: NutritionProgramDayWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramDay findFirst
+   */
+  export type NutritionProgramDayFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramDay to fetch.
+     */
+    where?: NutritionProgramDayWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramDays to fetch.
+     */
+    orderBy?: NutritionProgramDayOrderByWithRelationInput | NutritionProgramDayOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionProgramDays.
+     */
+    cursor?: NutritionProgramDayWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramDays from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramDays.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionProgramDays.
+     */
+    distinct?: NutritionProgramDayScalarFieldEnum | NutritionProgramDayScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramDay findFirstOrThrow
+   */
+  export type NutritionProgramDayFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramDay to fetch.
+     */
+    where?: NutritionProgramDayWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramDays to fetch.
+     */
+    orderBy?: NutritionProgramDayOrderByWithRelationInput | NutritionProgramDayOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionProgramDays.
+     */
+    cursor?: NutritionProgramDayWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramDays from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramDays.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionProgramDays.
+     */
+    distinct?: NutritionProgramDayScalarFieldEnum | NutritionProgramDayScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramDay findMany
+   */
+  export type NutritionProgramDayFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramDays to fetch.
+     */
+    where?: NutritionProgramDayWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramDays to fetch.
+     */
+    orderBy?: NutritionProgramDayOrderByWithRelationInput | NutritionProgramDayOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing NutritionProgramDays.
+     */
+    cursor?: NutritionProgramDayWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramDays from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramDays.
+     */
+    skip?: number
+    distinct?: NutritionProgramDayScalarFieldEnum | NutritionProgramDayScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramDay create
+   */
+  export type NutritionProgramDayCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayInclude<ExtArgs> | null
+    /**
+     * The data needed to create a NutritionProgramDay.
+     */
+    data: XOR<NutritionProgramDayCreateInput, NutritionProgramDayUncheckedCreateInput>
+  }
+
+  /**
+   * NutritionProgramDay createMany
+   */
+  export type NutritionProgramDayCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many NutritionProgramDays.
+     */
+    data: NutritionProgramDayCreateManyInput | NutritionProgramDayCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * NutritionProgramDay createManyAndReturn
+   */
+  export type NutritionProgramDayCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many NutritionProgramDays.
+     */
+    data: NutritionProgramDayCreateManyInput | NutritionProgramDayCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * NutritionProgramDay update
+   */
+  export type NutritionProgramDayUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayInclude<ExtArgs> | null
+    /**
+     * The data needed to update a NutritionProgramDay.
+     */
+    data: XOR<NutritionProgramDayUpdateInput, NutritionProgramDayUncheckedUpdateInput>
+    /**
+     * Choose, which NutritionProgramDay to update.
+     */
+    where: NutritionProgramDayWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramDay updateMany
+   */
+  export type NutritionProgramDayUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update NutritionProgramDays.
+     */
+    data: XOR<NutritionProgramDayUpdateManyMutationInput, NutritionProgramDayUncheckedUpdateManyInput>
+    /**
+     * Filter which NutritionProgramDays to update
+     */
+    where?: NutritionProgramDayWhereInput
+  }
+
+  /**
+   * NutritionProgramDay upsert
+   */
+  export type NutritionProgramDayUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayInclude<ExtArgs> | null
+    /**
+     * The filter to search for the NutritionProgramDay to update in case it exists.
+     */
+    where: NutritionProgramDayWhereUniqueInput
+    /**
+     * In case the NutritionProgramDay found by the `where` argument doesn't exist, create a new NutritionProgramDay with this data.
+     */
+    create: XOR<NutritionProgramDayCreateInput, NutritionProgramDayUncheckedCreateInput>
+    /**
+     * In case the NutritionProgramDay was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<NutritionProgramDayUpdateInput, NutritionProgramDayUncheckedUpdateInput>
+  }
+
+  /**
+   * NutritionProgramDay delete
+   */
+  export type NutritionProgramDayDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayInclude<ExtArgs> | null
+    /**
+     * Filter which NutritionProgramDay to delete.
+     */
+    where: NutritionProgramDayWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramDay deleteMany
+   */
+  export type NutritionProgramDayDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionProgramDays to delete
+     */
+    where?: NutritionProgramDayWhereInput
+  }
+
+  /**
+   * NutritionProgramDay.meals
+   */
+  export type NutritionProgramDay$mealsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealInclude<ExtArgs> | null
+    where?: NutritionProgramMealWhereInput
+    orderBy?: NutritionProgramMealOrderByWithRelationInput | NutritionProgramMealOrderByWithRelationInput[]
+    cursor?: NutritionProgramMealWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: NutritionProgramMealScalarFieldEnum | NutritionProgramMealScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramDay without action
+   */
+  export type NutritionProgramDayDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramDay
+     */
+    select?: NutritionProgramDaySelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramDayInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model NutritionProgramMeal
+   */
+
+  export type AggregateNutritionProgramMeal = {
+    _count: NutritionProgramMealCountAggregateOutputType | null
+    _avg: NutritionProgramMealAvgAggregateOutputType | null
+    _sum: NutritionProgramMealSumAggregateOutputType | null
+    _min: NutritionProgramMealMinAggregateOutputType | null
+    _max: NutritionProgramMealMaxAggregateOutputType | null
+  }
+
+  export type NutritionProgramMealAvgAggregateOutputType = {
+    calories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+  }
+
+  export type NutritionProgramMealSumAggregateOutputType = {
+    calories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+  }
+
+  export type NutritionProgramMealMinAggregateOutputType = {
+    id: string | null
+    dayId: string | null
+    mealType: string | null
+    title: string | null
+    calories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionProgramMealMaxAggregateOutputType = {
+    id: string | null
+    dayId: string | null
+    mealType: string | null
+    title: string | null
+    calories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionProgramMealCountAggregateOutputType = {
+    id: number
+    dayId: number
+    mealType: number
+    title: number
+    calories: number
+    proteinGrams: number
+    carbGrams: number
+    fatGrams: number
+    notes: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type NutritionProgramMealAvgAggregateInputType = {
+    calories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+  }
+
+  export type NutritionProgramMealSumAggregateInputType = {
+    calories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+  }
+
+  export type NutritionProgramMealMinAggregateInputType = {
+    id?: true
+    dayId?: true
+    mealType?: true
+    title?: true
+    calories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionProgramMealMaxAggregateInputType = {
+    id?: true
+    dayId?: true
+    mealType?: true
+    title?: true
+    calories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionProgramMealCountAggregateInputType = {
+    id?: true
+    dayId?: true
+    mealType?: true
+    title?: true
+    calories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type NutritionProgramMealAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionProgramMeal to aggregate.
+     */
+    where?: NutritionProgramMealWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramMeals to fetch.
+     */
+    orderBy?: NutritionProgramMealOrderByWithRelationInput | NutritionProgramMealOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: NutritionProgramMealWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramMeals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramMeals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned NutritionProgramMeals
+    **/
+    _count?: true | NutritionProgramMealCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: NutritionProgramMealAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: NutritionProgramMealSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: NutritionProgramMealMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: NutritionProgramMealMaxAggregateInputType
+  }
+
+  export type GetNutritionProgramMealAggregateType<T extends NutritionProgramMealAggregateArgs> = {
+        [P in keyof T & keyof AggregateNutritionProgramMeal]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateNutritionProgramMeal[P]>
+      : GetScalarType<T[P], AggregateNutritionProgramMeal[P]>
+  }
+
+
+
+
+  export type NutritionProgramMealGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NutritionProgramMealWhereInput
+    orderBy?: NutritionProgramMealOrderByWithAggregationInput | NutritionProgramMealOrderByWithAggregationInput[]
+    by: NutritionProgramMealScalarFieldEnum[] | NutritionProgramMealScalarFieldEnum
+    having?: NutritionProgramMealScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: NutritionProgramMealCountAggregateInputType | true
+    _avg?: NutritionProgramMealAvgAggregateInputType
+    _sum?: NutritionProgramMealSumAggregateInputType
+    _min?: NutritionProgramMealMinAggregateInputType
+    _max?: NutritionProgramMealMaxAggregateInputType
+  }
+
+  export type NutritionProgramMealGroupByOutputType = {
+    id: string
+    dayId: string
+    mealType: string
+    title: string | null
+    calories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+    notes: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: NutritionProgramMealCountAggregateOutputType | null
+    _avg: NutritionProgramMealAvgAggregateOutputType | null
+    _sum: NutritionProgramMealSumAggregateOutputType | null
+    _min: NutritionProgramMealMinAggregateOutputType | null
+    _max: NutritionProgramMealMaxAggregateOutputType | null
+  }
+
+  type GetNutritionProgramMealGroupByPayload<T extends NutritionProgramMealGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<NutritionProgramMealGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof NutritionProgramMealGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], NutritionProgramMealGroupByOutputType[P]>
+            : GetScalarType<T[P], NutritionProgramMealGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type NutritionProgramMealSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    dayId?: boolean
+    mealType?: boolean
+    title?: boolean
+    calories?: boolean
+    proteinGrams?: boolean
+    carbGrams?: boolean
+    fatGrams?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    day?: boolean | NutritionProgramDayDefaultArgs<ExtArgs>
+    items?: boolean | NutritionProgramMeal$itemsArgs<ExtArgs>
+    completions?: boolean | NutritionProgramMeal$completionsArgs<ExtArgs>
+    _count?: boolean | NutritionProgramMealCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["nutritionProgramMeal"]>
+
+  export type NutritionProgramMealSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    dayId?: boolean
+    mealType?: boolean
+    title?: boolean
+    calories?: boolean
+    proteinGrams?: boolean
+    carbGrams?: boolean
+    fatGrams?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    day?: boolean | NutritionProgramDayDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["nutritionProgramMeal"]>
+
+  export type NutritionProgramMealSelectScalar = {
+    id?: boolean
+    dayId?: boolean
+    mealType?: boolean
+    title?: boolean
+    calories?: boolean
+    proteinGrams?: boolean
+    carbGrams?: boolean
+    fatGrams?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type NutritionProgramMealInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    day?: boolean | NutritionProgramDayDefaultArgs<ExtArgs>
+    items?: boolean | NutritionProgramMeal$itemsArgs<ExtArgs>
+    completions?: boolean | NutritionProgramMeal$completionsArgs<ExtArgs>
+    _count?: boolean | NutritionProgramMealCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type NutritionProgramMealIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    day?: boolean | NutritionProgramDayDefaultArgs<ExtArgs>
+  }
+
+  export type $NutritionProgramMealPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "NutritionProgramMeal"
+    objects: {
+      day: Prisma.$NutritionProgramDayPayload<ExtArgs>
+      items: Prisma.$NutritionProgramMealItemPayload<ExtArgs>[]
+      completions: Prisma.$NutritionMealCompletionPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      dayId: string
+      mealType: string
+      title: string | null
+      calories: number | null
+      proteinGrams: number | null
+      carbGrams: number | null
+      fatGrams: number | null
+      notes: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["nutritionProgramMeal"]>
+    composites: {}
+  }
+
+  type NutritionProgramMealGetPayload<S extends boolean | null | undefined | NutritionProgramMealDefaultArgs> = $Result.GetResult<Prisma.$NutritionProgramMealPayload, S>
+
+  type NutritionProgramMealCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<NutritionProgramMealFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: NutritionProgramMealCountAggregateInputType | true
+    }
+
+  export interface NutritionProgramMealDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['NutritionProgramMeal'], meta: { name: 'NutritionProgramMeal' } }
+    /**
+     * Find zero or one NutritionProgramMeal that matches the filter.
+     * @param {NutritionProgramMealFindUniqueArgs} args - Arguments to find a NutritionProgramMeal
+     * @example
+     * // Get one NutritionProgramMeal
+     * const nutritionProgramMeal = await prisma.nutritionProgramMeal.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends NutritionProgramMealFindUniqueArgs>(args: SelectSubset<T, NutritionProgramMealFindUniqueArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one NutritionProgramMeal that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {NutritionProgramMealFindUniqueOrThrowArgs} args - Arguments to find a NutritionProgramMeal
+     * @example
+     * // Get one NutritionProgramMeal
+     * const nutritionProgramMeal = await prisma.nutritionProgramMeal.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends NutritionProgramMealFindUniqueOrThrowArgs>(args: SelectSubset<T, NutritionProgramMealFindUniqueOrThrowArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first NutritionProgramMeal that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealFindFirstArgs} args - Arguments to find a NutritionProgramMeal
+     * @example
+     * // Get one NutritionProgramMeal
+     * const nutritionProgramMeal = await prisma.nutritionProgramMeal.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends NutritionProgramMealFindFirstArgs>(args?: SelectSubset<T, NutritionProgramMealFindFirstArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first NutritionProgramMeal that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealFindFirstOrThrowArgs} args - Arguments to find a NutritionProgramMeal
+     * @example
+     * // Get one NutritionProgramMeal
+     * const nutritionProgramMeal = await prisma.nutritionProgramMeal.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends NutritionProgramMealFindFirstOrThrowArgs>(args?: SelectSubset<T, NutritionProgramMealFindFirstOrThrowArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more NutritionProgramMeals that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all NutritionProgramMeals
+     * const nutritionProgramMeals = await prisma.nutritionProgramMeal.findMany()
+     * 
+     * // Get first 10 NutritionProgramMeals
+     * const nutritionProgramMeals = await prisma.nutritionProgramMeal.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const nutritionProgramMealWithIdOnly = await prisma.nutritionProgramMeal.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends NutritionProgramMealFindManyArgs>(args?: SelectSubset<T, NutritionProgramMealFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a NutritionProgramMeal.
+     * @param {NutritionProgramMealCreateArgs} args - Arguments to create a NutritionProgramMeal.
+     * @example
+     * // Create one NutritionProgramMeal
+     * const NutritionProgramMeal = await prisma.nutritionProgramMeal.create({
+     *   data: {
+     *     // ... data to create a NutritionProgramMeal
+     *   }
+     * })
+     * 
+     */
+    create<T extends NutritionProgramMealCreateArgs>(args: SelectSubset<T, NutritionProgramMealCreateArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many NutritionProgramMeals.
+     * @param {NutritionProgramMealCreateManyArgs} args - Arguments to create many NutritionProgramMeals.
+     * @example
+     * // Create many NutritionProgramMeals
+     * const nutritionProgramMeal = await prisma.nutritionProgramMeal.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends NutritionProgramMealCreateManyArgs>(args?: SelectSubset<T, NutritionProgramMealCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many NutritionProgramMeals and returns the data saved in the database.
+     * @param {NutritionProgramMealCreateManyAndReturnArgs} args - Arguments to create many NutritionProgramMeals.
+     * @example
+     * // Create many NutritionProgramMeals
+     * const nutritionProgramMeal = await prisma.nutritionProgramMeal.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many NutritionProgramMeals and only return the `id`
+     * const nutritionProgramMealWithIdOnly = await prisma.nutritionProgramMeal.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends NutritionProgramMealCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionProgramMealCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a NutritionProgramMeal.
+     * @param {NutritionProgramMealDeleteArgs} args - Arguments to delete one NutritionProgramMeal.
+     * @example
+     * // Delete one NutritionProgramMeal
+     * const NutritionProgramMeal = await prisma.nutritionProgramMeal.delete({
+     *   where: {
+     *     // ... filter to delete one NutritionProgramMeal
+     *   }
+     * })
+     * 
+     */
+    delete<T extends NutritionProgramMealDeleteArgs>(args: SelectSubset<T, NutritionProgramMealDeleteArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one NutritionProgramMeal.
+     * @param {NutritionProgramMealUpdateArgs} args - Arguments to update one NutritionProgramMeal.
+     * @example
+     * // Update one NutritionProgramMeal
+     * const nutritionProgramMeal = await prisma.nutritionProgramMeal.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends NutritionProgramMealUpdateArgs>(args: SelectSubset<T, NutritionProgramMealUpdateArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more NutritionProgramMeals.
+     * @param {NutritionProgramMealDeleteManyArgs} args - Arguments to filter NutritionProgramMeals to delete.
+     * @example
+     * // Delete a few NutritionProgramMeals
+     * const { count } = await prisma.nutritionProgramMeal.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends NutritionProgramMealDeleteManyArgs>(args?: SelectSubset<T, NutritionProgramMealDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more NutritionProgramMeals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many NutritionProgramMeals
+     * const nutritionProgramMeal = await prisma.nutritionProgramMeal.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends NutritionProgramMealUpdateManyArgs>(args: SelectSubset<T, NutritionProgramMealUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one NutritionProgramMeal.
+     * @param {NutritionProgramMealUpsertArgs} args - Arguments to update or create a NutritionProgramMeal.
+     * @example
+     * // Update or create a NutritionProgramMeal
+     * const nutritionProgramMeal = await prisma.nutritionProgramMeal.upsert({
+     *   create: {
+     *     // ... data to create a NutritionProgramMeal
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the NutritionProgramMeal we want to update
+     *   }
+     * })
+     */
+    upsert<T extends NutritionProgramMealUpsertArgs>(args: SelectSubset<T, NutritionProgramMealUpsertArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of NutritionProgramMeals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealCountArgs} args - Arguments to filter NutritionProgramMeals to count.
+     * @example
+     * // Count the number of NutritionProgramMeals
+     * const count = await prisma.nutritionProgramMeal.count({
+     *   where: {
+     *     // ... the filter for the NutritionProgramMeals we want to count
+     *   }
+     * })
+    **/
+    count<T extends NutritionProgramMealCountArgs>(
+      args?: Subset<T, NutritionProgramMealCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], NutritionProgramMealCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a NutritionProgramMeal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends NutritionProgramMealAggregateArgs>(args: Subset<T, NutritionProgramMealAggregateArgs>): Prisma.PrismaPromise<GetNutritionProgramMealAggregateType<T>>
+
+    /**
+     * Group by NutritionProgramMeal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends NutritionProgramMealGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: NutritionProgramMealGroupByArgs['orderBy'] }
+        : { orderBy?: NutritionProgramMealGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, NutritionProgramMealGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetNutritionProgramMealGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the NutritionProgramMeal model
+   */
+  readonly fields: NutritionProgramMealFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for NutritionProgramMeal.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__NutritionProgramMealClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    day<T extends NutritionProgramDayDefaultArgs<ExtArgs> = {}>(args?: Subset<T, NutritionProgramDayDefaultArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    items<T extends NutritionProgramMeal$itemsArgs<ExtArgs> = {}>(args?: Subset<T, NutritionProgramMeal$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "findMany"> | Null>
+    completions<T extends NutritionProgramMeal$completionsArgs<ExtArgs> = {}>(args?: Subset<T, NutritionProgramMeal$completionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the NutritionProgramMeal model
+   */ 
+  interface NutritionProgramMealFieldRefs {
+    readonly id: FieldRef<"NutritionProgramMeal", 'String'>
+    readonly dayId: FieldRef<"NutritionProgramMeal", 'String'>
+    readonly mealType: FieldRef<"NutritionProgramMeal", 'String'>
+    readonly title: FieldRef<"NutritionProgramMeal", 'String'>
+    readonly calories: FieldRef<"NutritionProgramMeal", 'Int'>
+    readonly proteinGrams: FieldRef<"NutritionProgramMeal", 'Float'>
+    readonly carbGrams: FieldRef<"NutritionProgramMeal", 'Float'>
+    readonly fatGrams: FieldRef<"NutritionProgramMeal", 'Float'>
+    readonly notes: FieldRef<"NutritionProgramMeal", 'String'>
+    readonly createdAt: FieldRef<"NutritionProgramMeal", 'DateTime'>
+    readonly updatedAt: FieldRef<"NutritionProgramMeal", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * NutritionProgramMeal findUnique
+   */
+  export type NutritionProgramMealFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramMeal to fetch.
+     */
+    where: NutritionProgramMealWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramMeal findUniqueOrThrow
+   */
+  export type NutritionProgramMealFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramMeal to fetch.
+     */
+    where: NutritionProgramMealWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramMeal findFirst
+   */
+  export type NutritionProgramMealFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramMeal to fetch.
+     */
+    where?: NutritionProgramMealWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramMeals to fetch.
+     */
+    orderBy?: NutritionProgramMealOrderByWithRelationInput | NutritionProgramMealOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionProgramMeals.
+     */
+    cursor?: NutritionProgramMealWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramMeals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramMeals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionProgramMeals.
+     */
+    distinct?: NutritionProgramMealScalarFieldEnum | NutritionProgramMealScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramMeal findFirstOrThrow
+   */
+  export type NutritionProgramMealFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramMeal to fetch.
+     */
+    where?: NutritionProgramMealWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramMeals to fetch.
+     */
+    orderBy?: NutritionProgramMealOrderByWithRelationInput | NutritionProgramMealOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionProgramMeals.
+     */
+    cursor?: NutritionProgramMealWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramMeals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramMeals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionProgramMeals.
+     */
+    distinct?: NutritionProgramMealScalarFieldEnum | NutritionProgramMealScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramMeal findMany
+   */
+  export type NutritionProgramMealFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramMeals to fetch.
+     */
+    where?: NutritionProgramMealWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramMeals to fetch.
+     */
+    orderBy?: NutritionProgramMealOrderByWithRelationInput | NutritionProgramMealOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing NutritionProgramMeals.
+     */
+    cursor?: NutritionProgramMealWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramMeals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramMeals.
+     */
+    skip?: number
+    distinct?: NutritionProgramMealScalarFieldEnum | NutritionProgramMealScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramMeal create
+   */
+  export type NutritionProgramMealCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealInclude<ExtArgs> | null
+    /**
+     * The data needed to create a NutritionProgramMeal.
+     */
+    data: XOR<NutritionProgramMealCreateInput, NutritionProgramMealUncheckedCreateInput>
+  }
+
+  /**
+   * NutritionProgramMeal createMany
+   */
+  export type NutritionProgramMealCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many NutritionProgramMeals.
+     */
+    data: NutritionProgramMealCreateManyInput | NutritionProgramMealCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * NutritionProgramMeal createManyAndReturn
+   */
+  export type NutritionProgramMealCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many NutritionProgramMeals.
+     */
+    data: NutritionProgramMealCreateManyInput | NutritionProgramMealCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * NutritionProgramMeal update
+   */
+  export type NutritionProgramMealUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealInclude<ExtArgs> | null
+    /**
+     * The data needed to update a NutritionProgramMeal.
+     */
+    data: XOR<NutritionProgramMealUpdateInput, NutritionProgramMealUncheckedUpdateInput>
+    /**
+     * Choose, which NutritionProgramMeal to update.
+     */
+    where: NutritionProgramMealWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramMeal updateMany
+   */
+  export type NutritionProgramMealUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update NutritionProgramMeals.
+     */
+    data: XOR<NutritionProgramMealUpdateManyMutationInput, NutritionProgramMealUncheckedUpdateManyInput>
+    /**
+     * Filter which NutritionProgramMeals to update
+     */
+    where?: NutritionProgramMealWhereInput
+  }
+
+  /**
+   * NutritionProgramMeal upsert
+   */
+  export type NutritionProgramMealUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealInclude<ExtArgs> | null
+    /**
+     * The filter to search for the NutritionProgramMeal to update in case it exists.
+     */
+    where: NutritionProgramMealWhereUniqueInput
+    /**
+     * In case the NutritionProgramMeal found by the `where` argument doesn't exist, create a new NutritionProgramMeal with this data.
+     */
+    create: XOR<NutritionProgramMealCreateInput, NutritionProgramMealUncheckedCreateInput>
+    /**
+     * In case the NutritionProgramMeal was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<NutritionProgramMealUpdateInput, NutritionProgramMealUncheckedUpdateInput>
+  }
+
+  /**
+   * NutritionProgramMeal delete
+   */
+  export type NutritionProgramMealDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealInclude<ExtArgs> | null
+    /**
+     * Filter which NutritionProgramMeal to delete.
+     */
+    where: NutritionProgramMealWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramMeal deleteMany
+   */
+  export type NutritionProgramMealDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionProgramMeals to delete
+     */
+    where?: NutritionProgramMealWhereInput
+  }
+
+  /**
+   * NutritionProgramMeal.items
+   */
+  export type NutritionProgramMeal$itemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+    where?: NutritionProgramMealItemWhereInput
+    orderBy?: NutritionProgramMealItemOrderByWithRelationInput | NutritionProgramMealItemOrderByWithRelationInput[]
+    cursor?: NutritionProgramMealItemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: NutritionProgramMealItemScalarFieldEnum | NutritionProgramMealItemScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramMeal.completions
+   */
+  export type NutritionProgramMeal$completionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionInclude<ExtArgs> | null
+    where?: NutritionMealCompletionWhereInput
+    orderBy?: NutritionMealCompletionOrderByWithRelationInput | NutritionMealCompletionOrderByWithRelationInput[]
+    cursor?: NutritionMealCompletionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: NutritionMealCompletionScalarFieldEnum | NutritionMealCompletionScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramMeal without action
+   */
+  export type NutritionProgramMealDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMeal
+     */
+    select?: NutritionProgramMealSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model NutritionProgramMealItem
+   */
+
+  export type AggregateNutritionProgramMealItem = {
+    _count: NutritionProgramMealItemCountAggregateOutputType | null
+    _avg: NutritionProgramMealItemAvgAggregateOutputType | null
+    _sum: NutritionProgramMealItemSumAggregateOutputType | null
+    _min: NutritionProgramMealItemMinAggregateOutputType | null
+    _max: NutritionProgramMealItemMaxAggregateOutputType | null
+  }
+
+  export type NutritionProgramMealItemAvgAggregateOutputType = {
+    quantity: number | null
+    calories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+  }
+
+  export type NutritionProgramMealItemSumAggregateOutputType = {
+    quantity: number | null
+    calories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+  }
+
+  export type NutritionProgramMealItemMinAggregateOutputType = {
+    id: string | null
+    mealId: string | null
+    foodId: string | null
+    customFoodName: string | null
+    quantity: number | null
+    unit: string | null
+    calories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionProgramMealItemMaxAggregateOutputType = {
+    id: string | null
+    mealId: string | null
+    foodId: string | null
+    customFoodName: string | null
+    quantity: number | null
+    unit: string | null
+    calories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionProgramMealItemCountAggregateOutputType = {
+    id: number
+    mealId: number
+    foodId: number
+    customFoodName: number
+    quantity: number
+    unit: number
+    calories: number
+    proteinGrams: number
+    carbGrams: number
+    fatGrams: number
+    notes: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type NutritionProgramMealItemAvgAggregateInputType = {
+    quantity?: true
+    calories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+  }
+
+  export type NutritionProgramMealItemSumAggregateInputType = {
+    quantity?: true
+    calories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+  }
+
+  export type NutritionProgramMealItemMinAggregateInputType = {
+    id?: true
+    mealId?: true
+    foodId?: true
+    customFoodName?: true
+    quantity?: true
+    unit?: true
+    calories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionProgramMealItemMaxAggregateInputType = {
+    id?: true
+    mealId?: true
+    foodId?: true
+    customFoodName?: true
+    quantity?: true
+    unit?: true
+    calories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionProgramMealItemCountAggregateInputType = {
+    id?: true
+    mealId?: true
+    foodId?: true
+    customFoodName?: true
+    quantity?: true
+    unit?: true
+    calories?: true
+    proteinGrams?: true
+    carbGrams?: true
+    fatGrams?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type NutritionProgramMealItemAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionProgramMealItem to aggregate.
+     */
+    where?: NutritionProgramMealItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramMealItems to fetch.
+     */
+    orderBy?: NutritionProgramMealItemOrderByWithRelationInput | NutritionProgramMealItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: NutritionProgramMealItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramMealItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramMealItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned NutritionProgramMealItems
+    **/
+    _count?: true | NutritionProgramMealItemCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: NutritionProgramMealItemAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: NutritionProgramMealItemSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: NutritionProgramMealItemMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: NutritionProgramMealItemMaxAggregateInputType
+  }
+
+  export type GetNutritionProgramMealItemAggregateType<T extends NutritionProgramMealItemAggregateArgs> = {
+        [P in keyof T & keyof AggregateNutritionProgramMealItem]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateNutritionProgramMealItem[P]>
+      : GetScalarType<T[P], AggregateNutritionProgramMealItem[P]>
+  }
+
+
+
+
+  export type NutritionProgramMealItemGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NutritionProgramMealItemWhereInput
+    orderBy?: NutritionProgramMealItemOrderByWithAggregationInput | NutritionProgramMealItemOrderByWithAggregationInput[]
+    by: NutritionProgramMealItemScalarFieldEnum[] | NutritionProgramMealItemScalarFieldEnum
+    having?: NutritionProgramMealItemScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: NutritionProgramMealItemCountAggregateInputType | true
+    _avg?: NutritionProgramMealItemAvgAggregateInputType
+    _sum?: NutritionProgramMealItemSumAggregateInputType
+    _min?: NutritionProgramMealItemMinAggregateInputType
+    _max?: NutritionProgramMealItemMaxAggregateInputType
+  }
+
+  export type NutritionProgramMealItemGroupByOutputType = {
+    id: string
+    mealId: string
+    foodId: string | null
+    customFoodName: string | null
+    quantity: number
+    unit: string
+    calories: number | null
+    proteinGrams: number | null
+    carbGrams: number | null
+    fatGrams: number | null
+    notes: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: NutritionProgramMealItemCountAggregateOutputType | null
+    _avg: NutritionProgramMealItemAvgAggregateOutputType | null
+    _sum: NutritionProgramMealItemSumAggregateOutputType | null
+    _min: NutritionProgramMealItemMinAggregateOutputType | null
+    _max: NutritionProgramMealItemMaxAggregateOutputType | null
+  }
+
+  type GetNutritionProgramMealItemGroupByPayload<T extends NutritionProgramMealItemGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<NutritionProgramMealItemGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof NutritionProgramMealItemGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], NutritionProgramMealItemGroupByOutputType[P]>
+            : GetScalarType<T[P], NutritionProgramMealItemGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type NutritionProgramMealItemSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    mealId?: boolean
+    foodId?: boolean
+    customFoodName?: boolean
+    quantity?: boolean
+    unit?: boolean
+    calories?: boolean
+    proteinGrams?: boolean
+    carbGrams?: boolean
+    fatGrams?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    meal?: boolean | NutritionProgramMealDefaultArgs<ExtArgs>
+    food?: boolean | NutritionProgramMealItem$foodArgs<ExtArgs>
+  }, ExtArgs["result"]["nutritionProgramMealItem"]>
+
+  export type NutritionProgramMealItemSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    mealId?: boolean
+    foodId?: boolean
+    customFoodName?: boolean
+    quantity?: boolean
+    unit?: boolean
+    calories?: boolean
+    proteinGrams?: boolean
+    carbGrams?: boolean
+    fatGrams?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    meal?: boolean | NutritionProgramMealDefaultArgs<ExtArgs>
+    food?: boolean | NutritionProgramMealItem$foodArgs<ExtArgs>
+  }, ExtArgs["result"]["nutritionProgramMealItem"]>
+
+  export type NutritionProgramMealItemSelectScalar = {
+    id?: boolean
+    mealId?: boolean
+    foodId?: boolean
+    customFoodName?: boolean
+    quantity?: boolean
+    unit?: boolean
+    calories?: boolean
+    proteinGrams?: boolean
+    carbGrams?: boolean
+    fatGrams?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type NutritionProgramMealItemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    meal?: boolean | NutritionProgramMealDefaultArgs<ExtArgs>
+    food?: boolean | NutritionProgramMealItem$foodArgs<ExtArgs>
+  }
+  export type NutritionProgramMealItemIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    meal?: boolean | NutritionProgramMealDefaultArgs<ExtArgs>
+    food?: boolean | NutritionProgramMealItem$foodArgs<ExtArgs>
+  }
+
+  export type $NutritionProgramMealItemPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "NutritionProgramMealItem"
+    objects: {
+      meal: Prisma.$NutritionProgramMealPayload<ExtArgs>
+      food: Prisma.$FoodPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      mealId: string
+      foodId: string | null
+      customFoodName: string | null
+      quantity: number
+      unit: string
+      calories: number | null
+      proteinGrams: number | null
+      carbGrams: number | null
+      fatGrams: number | null
+      notes: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["nutritionProgramMealItem"]>
+    composites: {}
+  }
+
+  type NutritionProgramMealItemGetPayload<S extends boolean | null | undefined | NutritionProgramMealItemDefaultArgs> = $Result.GetResult<Prisma.$NutritionProgramMealItemPayload, S>
+
+  type NutritionProgramMealItemCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<NutritionProgramMealItemFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: NutritionProgramMealItemCountAggregateInputType | true
+    }
+
+  export interface NutritionProgramMealItemDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['NutritionProgramMealItem'], meta: { name: 'NutritionProgramMealItem' } }
+    /**
+     * Find zero or one NutritionProgramMealItem that matches the filter.
+     * @param {NutritionProgramMealItemFindUniqueArgs} args - Arguments to find a NutritionProgramMealItem
+     * @example
+     * // Get one NutritionProgramMealItem
+     * const nutritionProgramMealItem = await prisma.nutritionProgramMealItem.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends NutritionProgramMealItemFindUniqueArgs>(args: SelectSubset<T, NutritionProgramMealItemFindUniqueArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one NutritionProgramMealItem that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {NutritionProgramMealItemFindUniqueOrThrowArgs} args - Arguments to find a NutritionProgramMealItem
+     * @example
+     * // Get one NutritionProgramMealItem
+     * const nutritionProgramMealItem = await prisma.nutritionProgramMealItem.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends NutritionProgramMealItemFindUniqueOrThrowArgs>(args: SelectSubset<T, NutritionProgramMealItemFindUniqueOrThrowArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first NutritionProgramMealItem that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealItemFindFirstArgs} args - Arguments to find a NutritionProgramMealItem
+     * @example
+     * // Get one NutritionProgramMealItem
+     * const nutritionProgramMealItem = await prisma.nutritionProgramMealItem.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends NutritionProgramMealItemFindFirstArgs>(args?: SelectSubset<T, NutritionProgramMealItemFindFirstArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first NutritionProgramMealItem that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealItemFindFirstOrThrowArgs} args - Arguments to find a NutritionProgramMealItem
+     * @example
+     * // Get one NutritionProgramMealItem
+     * const nutritionProgramMealItem = await prisma.nutritionProgramMealItem.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends NutritionProgramMealItemFindFirstOrThrowArgs>(args?: SelectSubset<T, NutritionProgramMealItemFindFirstOrThrowArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more NutritionProgramMealItems that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealItemFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all NutritionProgramMealItems
+     * const nutritionProgramMealItems = await prisma.nutritionProgramMealItem.findMany()
+     * 
+     * // Get first 10 NutritionProgramMealItems
+     * const nutritionProgramMealItems = await prisma.nutritionProgramMealItem.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const nutritionProgramMealItemWithIdOnly = await prisma.nutritionProgramMealItem.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends NutritionProgramMealItemFindManyArgs>(args?: SelectSubset<T, NutritionProgramMealItemFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a NutritionProgramMealItem.
+     * @param {NutritionProgramMealItemCreateArgs} args - Arguments to create a NutritionProgramMealItem.
+     * @example
+     * // Create one NutritionProgramMealItem
+     * const NutritionProgramMealItem = await prisma.nutritionProgramMealItem.create({
+     *   data: {
+     *     // ... data to create a NutritionProgramMealItem
+     *   }
+     * })
+     * 
+     */
+    create<T extends NutritionProgramMealItemCreateArgs>(args: SelectSubset<T, NutritionProgramMealItemCreateArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many NutritionProgramMealItems.
+     * @param {NutritionProgramMealItemCreateManyArgs} args - Arguments to create many NutritionProgramMealItems.
+     * @example
+     * // Create many NutritionProgramMealItems
+     * const nutritionProgramMealItem = await prisma.nutritionProgramMealItem.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends NutritionProgramMealItemCreateManyArgs>(args?: SelectSubset<T, NutritionProgramMealItemCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many NutritionProgramMealItems and returns the data saved in the database.
+     * @param {NutritionProgramMealItemCreateManyAndReturnArgs} args - Arguments to create many NutritionProgramMealItems.
+     * @example
+     * // Create many NutritionProgramMealItems
+     * const nutritionProgramMealItem = await prisma.nutritionProgramMealItem.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many NutritionProgramMealItems and only return the `id`
+     * const nutritionProgramMealItemWithIdOnly = await prisma.nutritionProgramMealItem.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends NutritionProgramMealItemCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionProgramMealItemCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a NutritionProgramMealItem.
+     * @param {NutritionProgramMealItemDeleteArgs} args - Arguments to delete one NutritionProgramMealItem.
+     * @example
+     * // Delete one NutritionProgramMealItem
+     * const NutritionProgramMealItem = await prisma.nutritionProgramMealItem.delete({
+     *   where: {
+     *     // ... filter to delete one NutritionProgramMealItem
+     *   }
+     * })
+     * 
+     */
+    delete<T extends NutritionProgramMealItemDeleteArgs>(args: SelectSubset<T, NutritionProgramMealItemDeleteArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one NutritionProgramMealItem.
+     * @param {NutritionProgramMealItemUpdateArgs} args - Arguments to update one NutritionProgramMealItem.
+     * @example
+     * // Update one NutritionProgramMealItem
+     * const nutritionProgramMealItem = await prisma.nutritionProgramMealItem.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends NutritionProgramMealItemUpdateArgs>(args: SelectSubset<T, NutritionProgramMealItemUpdateArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more NutritionProgramMealItems.
+     * @param {NutritionProgramMealItemDeleteManyArgs} args - Arguments to filter NutritionProgramMealItems to delete.
+     * @example
+     * // Delete a few NutritionProgramMealItems
+     * const { count } = await prisma.nutritionProgramMealItem.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends NutritionProgramMealItemDeleteManyArgs>(args?: SelectSubset<T, NutritionProgramMealItemDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more NutritionProgramMealItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealItemUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many NutritionProgramMealItems
+     * const nutritionProgramMealItem = await prisma.nutritionProgramMealItem.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends NutritionProgramMealItemUpdateManyArgs>(args: SelectSubset<T, NutritionProgramMealItemUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one NutritionProgramMealItem.
+     * @param {NutritionProgramMealItemUpsertArgs} args - Arguments to update or create a NutritionProgramMealItem.
+     * @example
+     * // Update or create a NutritionProgramMealItem
+     * const nutritionProgramMealItem = await prisma.nutritionProgramMealItem.upsert({
+     *   create: {
+     *     // ... data to create a NutritionProgramMealItem
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the NutritionProgramMealItem we want to update
+     *   }
+     * })
+     */
+    upsert<T extends NutritionProgramMealItemUpsertArgs>(args: SelectSubset<T, NutritionProgramMealItemUpsertArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of NutritionProgramMealItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealItemCountArgs} args - Arguments to filter NutritionProgramMealItems to count.
+     * @example
+     * // Count the number of NutritionProgramMealItems
+     * const count = await prisma.nutritionProgramMealItem.count({
+     *   where: {
+     *     // ... the filter for the NutritionProgramMealItems we want to count
+     *   }
+     * })
+    **/
+    count<T extends NutritionProgramMealItemCountArgs>(
+      args?: Subset<T, NutritionProgramMealItemCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], NutritionProgramMealItemCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a NutritionProgramMealItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealItemAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends NutritionProgramMealItemAggregateArgs>(args: Subset<T, NutritionProgramMealItemAggregateArgs>): Prisma.PrismaPromise<GetNutritionProgramMealItemAggregateType<T>>
+
+    /**
+     * Group by NutritionProgramMealItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionProgramMealItemGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends NutritionProgramMealItemGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: NutritionProgramMealItemGroupByArgs['orderBy'] }
+        : { orderBy?: NutritionProgramMealItemGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, NutritionProgramMealItemGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetNutritionProgramMealItemGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the NutritionProgramMealItem model
+   */
+  readonly fields: NutritionProgramMealItemFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for NutritionProgramMealItem.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__NutritionProgramMealItemClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    meal<T extends NutritionProgramMealDefaultArgs<ExtArgs> = {}>(args?: Subset<T, NutritionProgramMealDefaultArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    food<T extends NutritionProgramMealItem$foodArgs<ExtArgs> = {}>(args?: Subset<T, NutritionProgramMealItem$foodArgs<ExtArgs>>): Prisma__FoodClient<$Result.GetResult<Prisma.$FoodPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the NutritionProgramMealItem model
+   */ 
+  interface NutritionProgramMealItemFieldRefs {
+    readonly id: FieldRef<"NutritionProgramMealItem", 'String'>
+    readonly mealId: FieldRef<"NutritionProgramMealItem", 'String'>
+    readonly foodId: FieldRef<"NutritionProgramMealItem", 'String'>
+    readonly customFoodName: FieldRef<"NutritionProgramMealItem", 'String'>
+    readonly quantity: FieldRef<"NutritionProgramMealItem", 'Float'>
+    readonly unit: FieldRef<"NutritionProgramMealItem", 'String'>
+    readonly calories: FieldRef<"NutritionProgramMealItem", 'Int'>
+    readonly proteinGrams: FieldRef<"NutritionProgramMealItem", 'Float'>
+    readonly carbGrams: FieldRef<"NutritionProgramMealItem", 'Float'>
+    readonly fatGrams: FieldRef<"NutritionProgramMealItem", 'Float'>
+    readonly notes: FieldRef<"NutritionProgramMealItem", 'String'>
+    readonly createdAt: FieldRef<"NutritionProgramMealItem", 'DateTime'>
+    readonly updatedAt: FieldRef<"NutritionProgramMealItem", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * NutritionProgramMealItem findUnique
+   */
+  export type NutritionProgramMealItemFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramMealItem to fetch.
+     */
+    where: NutritionProgramMealItemWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramMealItem findUniqueOrThrow
+   */
+  export type NutritionProgramMealItemFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramMealItem to fetch.
+     */
+    where: NutritionProgramMealItemWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramMealItem findFirst
+   */
+  export type NutritionProgramMealItemFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramMealItem to fetch.
+     */
+    where?: NutritionProgramMealItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramMealItems to fetch.
+     */
+    orderBy?: NutritionProgramMealItemOrderByWithRelationInput | NutritionProgramMealItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionProgramMealItems.
+     */
+    cursor?: NutritionProgramMealItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramMealItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramMealItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionProgramMealItems.
+     */
+    distinct?: NutritionProgramMealItemScalarFieldEnum | NutritionProgramMealItemScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramMealItem findFirstOrThrow
+   */
+  export type NutritionProgramMealItemFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramMealItem to fetch.
+     */
+    where?: NutritionProgramMealItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramMealItems to fetch.
+     */
+    orderBy?: NutritionProgramMealItemOrderByWithRelationInput | NutritionProgramMealItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionProgramMealItems.
+     */
+    cursor?: NutritionProgramMealItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramMealItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramMealItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionProgramMealItems.
+     */
+    distinct?: NutritionProgramMealItemScalarFieldEnum | NutritionProgramMealItemScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramMealItem findMany
+   */
+  export type NutritionProgramMealItemFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionProgramMealItems to fetch.
+     */
+    where?: NutritionProgramMealItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionProgramMealItems to fetch.
+     */
+    orderBy?: NutritionProgramMealItemOrderByWithRelationInput | NutritionProgramMealItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing NutritionProgramMealItems.
+     */
+    cursor?: NutritionProgramMealItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionProgramMealItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionProgramMealItems.
+     */
+    skip?: number
+    distinct?: NutritionProgramMealItemScalarFieldEnum | NutritionProgramMealItemScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionProgramMealItem create
+   */
+  export type NutritionProgramMealItemCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+    /**
+     * The data needed to create a NutritionProgramMealItem.
+     */
+    data: XOR<NutritionProgramMealItemCreateInput, NutritionProgramMealItemUncheckedCreateInput>
+  }
+
+  /**
+   * NutritionProgramMealItem createMany
+   */
+  export type NutritionProgramMealItemCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many NutritionProgramMealItems.
+     */
+    data: NutritionProgramMealItemCreateManyInput | NutritionProgramMealItemCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * NutritionProgramMealItem createManyAndReturn
+   */
+  export type NutritionProgramMealItemCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many NutritionProgramMealItems.
+     */
+    data: NutritionProgramMealItemCreateManyInput | NutritionProgramMealItemCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * NutritionProgramMealItem update
+   */
+  export type NutritionProgramMealItemUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+    /**
+     * The data needed to update a NutritionProgramMealItem.
+     */
+    data: XOR<NutritionProgramMealItemUpdateInput, NutritionProgramMealItemUncheckedUpdateInput>
+    /**
+     * Choose, which NutritionProgramMealItem to update.
+     */
+    where: NutritionProgramMealItemWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramMealItem updateMany
+   */
+  export type NutritionProgramMealItemUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update NutritionProgramMealItems.
+     */
+    data: XOR<NutritionProgramMealItemUpdateManyMutationInput, NutritionProgramMealItemUncheckedUpdateManyInput>
+    /**
+     * Filter which NutritionProgramMealItems to update
+     */
+    where?: NutritionProgramMealItemWhereInput
+  }
+
+  /**
+   * NutritionProgramMealItem upsert
+   */
+  export type NutritionProgramMealItemUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+    /**
+     * The filter to search for the NutritionProgramMealItem to update in case it exists.
+     */
+    where: NutritionProgramMealItemWhereUniqueInput
+    /**
+     * In case the NutritionProgramMealItem found by the `where` argument doesn't exist, create a new NutritionProgramMealItem with this data.
+     */
+    create: XOR<NutritionProgramMealItemCreateInput, NutritionProgramMealItemUncheckedCreateInput>
+    /**
+     * In case the NutritionProgramMealItem was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<NutritionProgramMealItemUpdateInput, NutritionProgramMealItemUncheckedUpdateInput>
+  }
+
+  /**
+   * NutritionProgramMealItem delete
+   */
+  export type NutritionProgramMealItemDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+    /**
+     * Filter which NutritionProgramMealItem to delete.
+     */
+    where: NutritionProgramMealItemWhereUniqueInput
+  }
+
+  /**
+   * NutritionProgramMealItem deleteMany
+   */
+  export type NutritionProgramMealItemDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionProgramMealItems to delete
+     */
+    where?: NutritionProgramMealItemWhereInput
+  }
+
+  /**
+   * NutritionProgramMealItem.food
+   */
+  export type NutritionProgramMealItem$foodArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Food
+     */
+    select?: FoodSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FoodInclude<ExtArgs> | null
+    where?: FoodWhereInput
+  }
+
+  /**
+   * NutritionProgramMealItem without action
+   */
+  export type NutritionProgramMealItemDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionProgramMealItem
+     */
+    select?: NutritionProgramMealItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionProgramMealItemInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model NutritionMealCompletion
+   */
+
+  export type AggregateNutritionMealCompletion = {
+    _count: NutritionMealCompletionCountAggregateOutputType | null
+    _avg: NutritionMealCompletionAvgAggregateOutputType | null
+    _sum: NutritionMealCompletionSumAggregateOutputType | null
+    _min: NutritionMealCompletionMinAggregateOutputType | null
+    _max: NutritionMealCompletionMaxAggregateOutputType | null
+  }
+
+  export type NutritionMealCompletionAvgAggregateOutputType = {
+    percentConsumed: number | null
+    consumedCalories: number | null
+    consumedProtein: number | null
+    consumedCarbs: number | null
+    consumedFat: number | null
+  }
+
+  export type NutritionMealCompletionSumAggregateOutputType = {
+    percentConsumed: number | null
+    consumedCalories: number | null
+    consumedProtein: number | null
+    consumedCarbs: number | null
+    consumedFat: number | null
+  }
+
+  export type NutritionMealCompletionMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    mealId: string | null
+    logDate: Date | null
+    status: string | null
+    percentConsumed: number | null
+    consumedCalories: number | null
+    consumedProtein: number | null
+    consumedCarbs: number | null
+    consumedFat: number | null
+    completedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionMealCompletionMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    mealId: string | null
+    logDate: Date | null
+    status: string | null
+    percentConsumed: number | null
+    consumedCalories: number | null
+    consumedProtein: number | null
+    consumedCarbs: number | null
+    consumedFat: number | null
+    completedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NutritionMealCompletionCountAggregateOutputType = {
+    id: number
+    userId: number
+    mealId: number
+    logDate: number
+    status: number
+    percentConsumed: number
+    consumedCalories: number
+    consumedProtein: number
+    consumedCarbs: number
+    consumedFat: number
+    completedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type NutritionMealCompletionAvgAggregateInputType = {
+    percentConsumed?: true
+    consumedCalories?: true
+    consumedProtein?: true
+    consumedCarbs?: true
+    consumedFat?: true
+  }
+
+  export type NutritionMealCompletionSumAggregateInputType = {
+    percentConsumed?: true
+    consumedCalories?: true
+    consumedProtein?: true
+    consumedCarbs?: true
+    consumedFat?: true
+  }
+
+  export type NutritionMealCompletionMinAggregateInputType = {
+    id?: true
+    userId?: true
+    mealId?: true
+    logDate?: true
+    status?: true
+    percentConsumed?: true
+    consumedCalories?: true
+    consumedProtein?: true
+    consumedCarbs?: true
+    consumedFat?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionMealCompletionMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    mealId?: true
+    logDate?: true
+    status?: true
+    percentConsumed?: true
+    consumedCalories?: true
+    consumedProtein?: true
+    consumedCarbs?: true
+    consumedFat?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NutritionMealCompletionCountAggregateInputType = {
+    id?: true
+    userId?: true
+    mealId?: true
+    logDate?: true
+    status?: true
+    percentConsumed?: true
+    consumedCalories?: true
+    consumedProtein?: true
+    consumedCarbs?: true
+    consumedFat?: true
+    completedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type NutritionMealCompletionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionMealCompletion to aggregate.
+     */
+    where?: NutritionMealCompletionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionMealCompletions to fetch.
+     */
+    orderBy?: NutritionMealCompletionOrderByWithRelationInput | NutritionMealCompletionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: NutritionMealCompletionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionMealCompletions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionMealCompletions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned NutritionMealCompletions
+    **/
+    _count?: true | NutritionMealCompletionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: NutritionMealCompletionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: NutritionMealCompletionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: NutritionMealCompletionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: NutritionMealCompletionMaxAggregateInputType
+  }
+
+  export type GetNutritionMealCompletionAggregateType<T extends NutritionMealCompletionAggregateArgs> = {
+        [P in keyof T & keyof AggregateNutritionMealCompletion]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateNutritionMealCompletion[P]>
+      : GetScalarType<T[P], AggregateNutritionMealCompletion[P]>
+  }
+
+
+
+
+  export type NutritionMealCompletionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NutritionMealCompletionWhereInput
+    orderBy?: NutritionMealCompletionOrderByWithAggregationInput | NutritionMealCompletionOrderByWithAggregationInput[]
+    by: NutritionMealCompletionScalarFieldEnum[] | NutritionMealCompletionScalarFieldEnum
+    having?: NutritionMealCompletionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: NutritionMealCompletionCountAggregateInputType | true
+    _avg?: NutritionMealCompletionAvgAggregateInputType
+    _sum?: NutritionMealCompletionSumAggregateInputType
+    _min?: NutritionMealCompletionMinAggregateInputType
+    _max?: NutritionMealCompletionMaxAggregateInputType
+  }
+
+  export type NutritionMealCompletionGroupByOutputType = {
+    id: string
+    userId: string
+    mealId: string
+    logDate: Date
+    status: string
+    percentConsumed: number
+    consumedCalories: number | null
+    consumedProtein: number | null
+    consumedCarbs: number | null
+    consumedFat: number | null
+    completedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: NutritionMealCompletionCountAggregateOutputType | null
+    _avg: NutritionMealCompletionAvgAggregateOutputType | null
+    _sum: NutritionMealCompletionSumAggregateOutputType | null
+    _min: NutritionMealCompletionMinAggregateOutputType | null
+    _max: NutritionMealCompletionMaxAggregateOutputType | null
+  }
+
+  type GetNutritionMealCompletionGroupByPayload<T extends NutritionMealCompletionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<NutritionMealCompletionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof NutritionMealCompletionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], NutritionMealCompletionGroupByOutputType[P]>
+            : GetScalarType<T[P], NutritionMealCompletionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type NutritionMealCompletionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    mealId?: boolean
+    logDate?: boolean
+    status?: boolean
+    percentConsumed?: boolean
+    consumedCalories?: boolean
+    consumedProtein?: boolean
+    consumedCarbs?: boolean
+    consumedFat?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    meal?: boolean | NutritionProgramMealDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["nutritionMealCompletion"]>
+
+  export type NutritionMealCompletionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    mealId?: boolean
+    logDate?: boolean
+    status?: boolean
+    percentConsumed?: boolean
+    consumedCalories?: boolean
+    consumedProtein?: boolean
+    consumedCarbs?: boolean
+    consumedFat?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    meal?: boolean | NutritionProgramMealDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["nutritionMealCompletion"]>
+
+  export type NutritionMealCompletionSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    mealId?: boolean
+    logDate?: boolean
+    status?: boolean
+    percentConsumed?: boolean
+    consumedCalories?: boolean
+    consumedProtein?: boolean
+    consumedCarbs?: boolean
+    consumedFat?: boolean
+    completedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type NutritionMealCompletionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    meal?: boolean | NutritionProgramMealDefaultArgs<ExtArgs>
+  }
+  export type NutritionMealCompletionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    meal?: boolean | NutritionProgramMealDefaultArgs<ExtArgs>
+  }
+
+  export type $NutritionMealCompletionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "NutritionMealCompletion"
+    objects: {
+      meal: Prisma.$NutritionProgramMealPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      mealId: string
+      logDate: Date
+      status: string
+      percentConsumed: number
+      consumedCalories: number | null
+      consumedProtein: number | null
+      consumedCarbs: number | null
+      consumedFat: number | null
+      completedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["nutritionMealCompletion"]>
+    composites: {}
+  }
+
+  type NutritionMealCompletionGetPayload<S extends boolean | null | undefined | NutritionMealCompletionDefaultArgs> = $Result.GetResult<Prisma.$NutritionMealCompletionPayload, S>
+
+  type NutritionMealCompletionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<NutritionMealCompletionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: NutritionMealCompletionCountAggregateInputType | true
+    }
+
+  export interface NutritionMealCompletionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['NutritionMealCompletion'], meta: { name: 'NutritionMealCompletion' } }
+    /**
+     * Find zero or one NutritionMealCompletion that matches the filter.
+     * @param {NutritionMealCompletionFindUniqueArgs} args - Arguments to find a NutritionMealCompletion
+     * @example
+     * // Get one NutritionMealCompletion
+     * const nutritionMealCompletion = await prisma.nutritionMealCompletion.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends NutritionMealCompletionFindUniqueArgs>(args: SelectSubset<T, NutritionMealCompletionFindUniqueArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one NutritionMealCompletion that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {NutritionMealCompletionFindUniqueOrThrowArgs} args - Arguments to find a NutritionMealCompletion
+     * @example
+     * // Get one NutritionMealCompletion
+     * const nutritionMealCompletion = await prisma.nutritionMealCompletion.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends NutritionMealCompletionFindUniqueOrThrowArgs>(args: SelectSubset<T, NutritionMealCompletionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first NutritionMealCompletion that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionMealCompletionFindFirstArgs} args - Arguments to find a NutritionMealCompletion
+     * @example
+     * // Get one NutritionMealCompletion
+     * const nutritionMealCompletion = await prisma.nutritionMealCompletion.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends NutritionMealCompletionFindFirstArgs>(args?: SelectSubset<T, NutritionMealCompletionFindFirstArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first NutritionMealCompletion that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionMealCompletionFindFirstOrThrowArgs} args - Arguments to find a NutritionMealCompletion
+     * @example
+     * // Get one NutritionMealCompletion
+     * const nutritionMealCompletion = await prisma.nutritionMealCompletion.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends NutritionMealCompletionFindFirstOrThrowArgs>(args?: SelectSubset<T, NutritionMealCompletionFindFirstOrThrowArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more NutritionMealCompletions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionMealCompletionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all NutritionMealCompletions
+     * const nutritionMealCompletions = await prisma.nutritionMealCompletion.findMany()
+     * 
+     * // Get first 10 NutritionMealCompletions
+     * const nutritionMealCompletions = await prisma.nutritionMealCompletion.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const nutritionMealCompletionWithIdOnly = await prisma.nutritionMealCompletion.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends NutritionMealCompletionFindManyArgs>(args?: SelectSubset<T, NutritionMealCompletionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a NutritionMealCompletion.
+     * @param {NutritionMealCompletionCreateArgs} args - Arguments to create a NutritionMealCompletion.
+     * @example
+     * // Create one NutritionMealCompletion
+     * const NutritionMealCompletion = await prisma.nutritionMealCompletion.create({
+     *   data: {
+     *     // ... data to create a NutritionMealCompletion
+     *   }
+     * })
+     * 
+     */
+    create<T extends NutritionMealCompletionCreateArgs>(args: SelectSubset<T, NutritionMealCompletionCreateArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many NutritionMealCompletions.
+     * @param {NutritionMealCompletionCreateManyArgs} args - Arguments to create many NutritionMealCompletions.
+     * @example
+     * // Create many NutritionMealCompletions
+     * const nutritionMealCompletion = await prisma.nutritionMealCompletion.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends NutritionMealCompletionCreateManyArgs>(args?: SelectSubset<T, NutritionMealCompletionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many NutritionMealCompletions and returns the data saved in the database.
+     * @param {NutritionMealCompletionCreateManyAndReturnArgs} args - Arguments to create many NutritionMealCompletions.
+     * @example
+     * // Create many NutritionMealCompletions
+     * const nutritionMealCompletion = await prisma.nutritionMealCompletion.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many NutritionMealCompletions and only return the `id`
+     * const nutritionMealCompletionWithIdOnly = await prisma.nutritionMealCompletion.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends NutritionMealCompletionCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionMealCompletionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a NutritionMealCompletion.
+     * @param {NutritionMealCompletionDeleteArgs} args - Arguments to delete one NutritionMealCompletion.
+     * @example
+     * // Delete one NutritionMealCompletion
+     * const NutritionMealCompletion = await prisma.nutritionMealCompletion.delete({
+     *   where: {
+     *     // ... filter to delete one NutritionMealCompletion
+     *   }
+     * })
+     * 
+     */
+    delete<T extends NutritionMealCompletionDeleteArgs>(args: SelectSubset<T, NutritionMealCompletionDeleteArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one NutritionMealCompletion.
+     * @param {NutritionMealCompletionUpdateArgs} args - Arguments to update one NutritionMealCompletion.
+     * @example
+     * // Update one NutritionMealCompletion
+     * const nutritionMealCompletion = await prisma.nutritionMealCompletion.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends NutritionMealCompletionUpdateArgs>(args: SelectSubset<T, NutritionMealCompletionUpdateArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more NutritionMealCompletions.
+     * @param {NutritionMealCompletionDeleteManyArgs} args - Arguments to filter NutritionMealCompletions to delete.
+     * @example
+     * // Delete a few NutritionMealCompletions
+     * const { count } = await prisma.nutritionMealCompletion.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends NutritionMealCompletionDeleteManyArgs>(args?: SelectSubset<T, NutritionMealCompletionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more NutritionMealCompletions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionMealCompletionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many NutritionMealCompletions
+     * const nutritionMealCompletion = await prisma.nutritionMealCompletion.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends NutritionMealCompletionUpdateManyArgs>(args: SelectSubset<T, NutritionMealCompletionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one NutritionMealCompletion.
+     * @param {NutritionMealCompletionUpsertArgs} args - Arguments to update or create a NutritionMealCompletion.
+     * @example
+     * // Update or create a NutritionMealCompletion
+     * const nutritionMealCompletion = await prisma.nutritionMealCompletion.upsert({
+     *   create: {
+     *     // ... data to create a NutritionMealCompletion
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the NutritionMealCompletion we want to update
+     *   }
+     * })
+     */
+    upsert<T extends NutritionMealCompletionUpsertArgs>(args: SelectSubset<T, NutritionMealCompletionUpsertArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of NutritionMealCompletions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionMealCompletionCountArgs} args - Arguments to filter NutritionMealCompletions to count.
+     * @example
+     * // Count the number of NutritionMealCompletions
+     * const count = await prisma.nutritionMealCompletion.count({
+     *   where: {
+     *     // ... the filter for the NutritionMealCompletions we want to count
+     *   }
+     * })
+    **/
+    count<T extends NutritionMealCompletionCountArgs>(
+      args?: Subset<T, NutritionMealCompletionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], NutritionMealCompletionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a NutritionMealCompletion.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionMealCompletionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends NutritionMealCompletionAggregateArgs>(args: Subset<T, NutritionMealCompletionAggregateArgs>): Prisma.PrismaPromise<GetNutritionMealCompletionAggregateType<T>>
+
+    /**
+     * Group by NutritionMealCompletion.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NutritionMealCompletionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends NutritionMealCompletionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: NutritionMealCompletionGroupByArgs['orderBy'] }
+        : { orderBy?: NutritionMealCompletionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, NutritionMealCompletionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetNutritionMealCompletionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the NutritionMealCompletion model
+   */
+  readonly fields: NutritionMealCompletionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for NutritionMealCompletion.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__NutritionMealCompletionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    meal<T extends NutritionProgramMealDefaultArgs<ExtArgs> = {}>(args?: Subset<T, NutritionProgramMealDefaultArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the NutritionMealCompletion model
+   */ 
+  interface NutritionMealCompletionFieldRefs {
+    readonly id: FieldRef<"NutritionMealCompletion", 'String'>
+    readonly userId: FieldRef<"NutritionMealCompletion", 'String'>
+    readonly mealId: FieldRef<"NutritionMealCompletion", 'String'>
+    readonly logDate: FieldRef<"NutritionMealCompletion", 'DateTime'>
+    readonly status: FieldRef<"NutritionMealCompletion", 'String'>
+    readonly percentConsumed: FieldRef<"NutritionMealCompletion", 'Int'>
+    readonly consumedCalories: FieldRef<"NutritionMealCompletion", 'Int'>
+    readonly consumedProtein: FieldRef<"NutritionMealCompletion", 'Float'>
+    readonly consumedCarbs: FieldRef<"NutritionMealCompletion", 'Float'>
+    readonly consumedFat: FieldRef<"NutritionMealCompletion", 'Float'>
+    readonly completedAt: FieldRef<"NutritionMealCompletion", 'DateTime'>
+    readonly createdAt: FieldRef<"NutritionMealCompletion", 'DateTime'>
+    readonly updatedAt: FieldRef<"NutritionMealCompletion", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * NutritionMealCompletion findUnique
+   */
+  export type NutritionMealCompletionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionMealCompletion to fetch.
+     */
+    where: NutritionMealCompletionWhereUniqueInput
+  }
+
+  /**
+   * NutritionMealCompletion findUniqueOrThrow
+   */
+  export type NutritionMealCompletionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionMealCompletion to fetch.
+     */
+    where: NutritionMealCompletionWhereUniqueInput
+  }
+
+  /**
+   * NutritionMealCompletion findFirst
+   */
+  export type NutritionMealCompletionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionMealCompletion to fetch.
+     */
+    where?: NutritionMealCompletionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionMealCompletions to fetch.
+     */
+    orderBy?: NutritionMealCompletionOrderByWithRelationInput | NutritionMealCompletionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionMealCompletions.
+     */
+    cursor?: NutritionMealCompletionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionMealCompletions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionMealCompletions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionMealCompletions.
+     */
+    distinct?: NutritionMealCompletionScalarFieldEnum | NutritionMealCompletionScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionMealCompletion findFirstOrThrow
+   */
+  export type NutritionMealCompletionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionMealCompletion to fetch.
+     */
+    where?: NutritionMealCompletionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionMealCompletions to fetch.
+     */
+    orderBy?: NutritionMealCompletionOrderByWithRelationInput | NutritionMealCompletionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NutritionMealCompletions.
+     */
+    cursor?: NutritionMealCompletionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionMealCompletions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionMealCompletions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NutritionMealCompletions.
+     */
+    distinct?: NutritionMealCompletionScalarFieldEnum | NutritionMealCompletionScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionMealCompletion findMany
+   */
+  export type NutritionMealCompletionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionInclude<ExtArgs> | null
+    /**
+     * Filter, which NutritionMealCompletions to fetch.
+     */
+    where?: NutritionMealCompletionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NutritionMealCompletions to fetch.
+     */
+    orderBy?: NutritionMealCompletionOrderByWithRelationInput | NutritionMealCompletionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing NutritionMealCompletions.
+     */
+    cursor?: NutritionMealCompletionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NutritionMealCompletions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NutritionMealCompletions.
+     */
+    skip?: number
+    distinct?: NutritionMealCompletionScalarFieldEnum | NutritionMealCompletionScalarFieldEnum[]
+  }
+
+  /**
+   * NutritionMealCompletion create
+   */
+  export type NutritionMealCompletionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a NutritionMealCompletion.
+     */
+    data: XOR<NutritionMealCompletionCreateInput, NutritionMealCompletionUncheckedCreateInput>
+  }
+
+  /**
+   * NutritionMealCompletion createMany
+   */
+  export type NutritionMealCompletionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many NutritionMealCompletions.
+     */
+    data: NutritionMealCompletionCreateManyInput | NutritionMealCompletionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * NutritionMealCompletion createManyAndReturn
+   */
+  export type NutritionMealCompletionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many NutritionMealCompletions.
+     */
+    data: NutritionMealCompletionCreateManyInput | NutritionMealCompletionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * NutritionMealCompletion update
+   */
+  export type NutritionMealCompletionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a NutritionMealCompletion.
+     */
+    data: XOR<NutritionMealCompletionUpdateInput, NutritionMealCompletionUncheckedUpdateInput>
+    /**
+     * Choose, which NutritionMealCompletion to update.
+     */
+    where: NutritionMealCompletionWhereUniqueInput
+  }
+
+  /**
+   * NutritionMealCompletion updateMany
+   */
+  export type NutritionMealCompletionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update NutritionMealCompletions.
+     */
+    data: XOR<NutritionMealCompletionUpdateManyMutationInput, NutritionMealCompletionUncheckedUpdateManyInput>
+    /**
+     * Filter which NutritionMealCompletions to update
+     */
+    where?: NutritionMealCompletionWhereInput
+  }
+
+  /**
+   * NutritionMealCompletion upsert
+   */
+  export type NutritionMealCompletionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the NutritionMealCompletion to update in case it exists.
+     */
+    where: NutritionMealCompletionWhereUniqueInput
+    /**
+     * In case the NutritionMealCompletion found by the `where` argument doesn't exist, create a new NutritionMealCompletion with this data.
+     */
+    create: XOR<NutritionMealCompletionCreateInput, NutritionMealCompletionUncheckedCreateInput>
+    /**
+     * In case the NutritionMealCompletion was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<NutritionMealCompletionUpdateInput, NutritionMealCompletionUncheckedUpdateInput>
+  }
+
+  /**
+   * NutritionMealCompletion delete
+   */
+  export type NutritionMealCompletionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionInclude<ExtArgs> | null
+    /**
+     * Filter which NutritionMealCompletion to delete.
+     */
+    where: NutritionMealCompletionWhereUniqueInput
+  }
+
+  /**
+   * NutritionMealCompletion deleteMany
+   */
+  export type NutritionMealCompletionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NutritionMealCompletions to delete
+     */
+    where?: NutritionMealCompletionWhereInput
+  }
+
+  /**
+   * NutritionMealCompletion without action
+   */
+  export type NutritionMealCompletionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NutritionMealCompletion
+     */
+    select?: NutritionMealCompletionSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NutritionMealCompletionInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -15806,6 +21902,103 @@ export namespace Prisma {
   };
 
   export type WorkoutScheduleScalarFieldEnum = (typeof WorkoutScheduleScalarFieldEnum)[keyof typeof WorkoutScheduleScalarFieldEnum]
+
+
+  export const NutritionProgramScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    name: 'name',
+    goal: 'goal',
+    durationWeeks: 'durationWeeks',
+    mealsPerDay: 'mealsPerDay',
+    dailyCaloriesTarget: 'dailyCaloriesTarget',
+    proteinTargetGrams: 'proteinTargetGrams',
+    carbTargetGrams: 'carbTargetGrams',
+    fatTargetGrams: 'fatTargetGrams',
+    sourcePlanId: 'sourcePlanId',
+    sourceType: 'sourceType',
+    status: 'status',
+    startDate: 'startDate',
+    endDate: 'endDate',
+    repeatEnabled: 'repeatEnabled',
+    archivedAt: 'archivedAt',
+    notes: 'notes',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type NutritionProgramScalarFieldEnum = (typeof NutritionProgramScalarFieldEnum)[keyof typeof NutritionProgramScalarFieldEnum]
+
+
+  export const NutritionProgramDayScalarFieldEnum: {
+    id: 'id',
+    programId: 'programId',
+    dayNumber: 'dayNumber',
+    title: 'title',
+    totalCalories: 'totalCalories',
+    proteinGrams: 'proteinGrams',
+    carbGrams: 'carbGrams',
+    fatGrams: 'fatGrams',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type NutritionProgramDayScalarFieldEnum = (typeof NutritionProgramDayScalarFieldEnum)[keyof typeof NutritionProgramDayScalarFieldEnum]
+
+
+  export const NutritionProgramMealScalarFieldEnum: {
+    id: 'id',
+    dayId: 'dayId',
+    mealType: 'mealType',
+    title: 'title',
+    calories: 'calories',
+    proteinGrams: 'proteinGrams',
+    carbGrams: 'carbGrams',
+    fatGrams: 'fatGrams',
+    notes: 'notes',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type NutritionProgramMealScalarFieldEnum = (typeof NutritionProgramMealScalarFieldEnum)[keyof typeof NutritionProgramMealScalarFieldEnum]
+
+
+  export const NutritionProgramMealItemScalarFieldEnum: {
+    id: 'id',
+    mealId: 'mealId',
+    foodId: 'foodId',
+    customFoodName: 'customFoodName',
+    quantity: 'quantity',
+    unit: 'unit',
+    calories: 'calories',
+    proteinGrams: 'proteinGrams',
+    carbGrams: 'carbGrams',
+    fatGrams: 'fatGrams',
+    notes: 'notes',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type NutritionProgramMealItemScalarFieldEnum = (typeof NutritionProgramMealItemScalarFieldEnum)[keyof typeof NutritionProgramMealItemScalarFieldEnum]
+
+
+  export const NutritionMealCompletionScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    mealId: 'mealId',
+    logDate: 'logDate',
+    status: 'status',
+    percentConsumed: 'percentConsumed',
+    consumedCalories: 'consumedCalories',
+    consumedProtein: 'consumedProtein',
+    consumedCarbs: 'consumedCarbs',
+    consumedFat: 'consumedFat',
+    completedAt: 'completedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type NutritionMealCompletionScalarFieldEnum = (typeof NutritionMealCompletionScalarFieldEnum)[keyof typeof NutritionMealCompletionScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -16301,6 +22494,7 @@ export namespace Prisma {
     source?: StringFilter<"Food"> | string
     imageUrl?: StringNullableFilter<"Food"> | string | null
     aliases?: FoodAliasListRelationFilter
+    mealItems?: NutritionProgramMealItemListRelationFilter
   }
 
   export type FoodOrderByWithRelationInput = {
@@ -16314,6 +22508,7 @@ export namespace Prisma {
     source?: SortOrder
     imageUrl?: SortOrderInput | SortOrder
     aliases?: FoodAliasOrderByRelationAggregateInput
+    mealItems?: NutritionProgramMealItemOrderByRelationAggregateInput
   }
 
   export type FoodWhereUniqueInput = Prisma.AtLeast<{
@@ -16330,6 +22525,7 @@ export namespace Prisma {
     source?: StringFilter<"Food"> | string
     imageUrl?: StringNullableFilter<"Food"> | string | null
     aliases?: FoodAliasListRelationFilter
+    mealItems?: NutritionProgramMealItemListRelationFilter
   }, "id" | "fdcId">
 
   export type FoodOrderByWithAggregationInput = {
@@ -17039,6 +23235,516 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"WorkoutSchedule"> | Date | string
   }
 
+  export type NutritionProgramWhereInput = {
+    AND?: NutritionProgramWhereInput | NutritionProgramWhereInput[]
+    OR?: NutritionProgramWhereInput[]
+    NOT?: NutritionProgramWhereInput | NutritionProgramWhereInput[]
+    id?: StringFilter<"NutritionProgram"> | string
+    userId?: StringFilter<"NutritionProgram"> | string
+    name?: StringFilter<"NutritionProgram"> | string
+    goal?: StringNullableFilter<"NutritionProgram"> | string | null
+    durationWeeks?: IntNullableFilter<"NutritionProgram"> | number | null
+    mealsPerDay?: IntNullableFilter<"NutritionProgram"> | number | null
+    dailyCaloriesTarget?: IntNullableFilter<"NutritionProgram"> | number | null
+    proteinTargetGrams?: FloatNullableFilter<"NutritionProgram"> | number | null
+    carbTargetGrams?: FloatNullableFilter<"NutritionProgram"> | number | null
+    fatTargetGrams?: FloatNullableFilter<"NutritionProgram"> | number | null
+    sourcePlanId?: StringNullableFilter<"NutritionProgram"> | string | null
+    sourceType?: StringNullableFilter<"NutritionProgram"> | string | null
+    status?: StringFilter<"NutritionProgram"> | string
+    startDate?: DateTimeNullableFilter<"NutritionProgram"> | Date | string | null
+    endDate?: DateTimeNullableFilter<"NutritionProgram"> | Date | string | null
+    repeatEnabled?: BoolFilter<"NutritionProgram"> | boolean
+    archivedAt?: DateTimeNullableFilter<"NutritionProgram"> | Date | string | null
+    notes?: StringNullableFilter<"NutritionProgram"> | string | null
+    createdAt?: DateTimeFilter<"NutritionProgram"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionProgram"> | Date | string
+    days?: NutritionProgramDayListRelationFilter
+  }
+
+  export type NutritionProgramOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    name?: SortOrder
+    goal?: SortOrderInput | SortOrder
+    durationWeeks?: SortOrderInput | SortOrder
+    mealsPerDay?: SortOrderInput | SortOrder
+    dailyCaloriesTarget?: SortOrderInput | SortOrder
+    proteinTargetGrams?: SortOrderInput | SortOrder
+    carbTargetGrams?: SortOrderInput | SortOrder
+    fatTargetGrams?: SortOrderInput | SortOrder
+    sourcePlanId?: SortOrderInput | SortOrder
+    sourceType?: SortOrderInput | SortOrder
+    status?: SortOrder
+    startDate?: SortOrderInput | SortOrder
+    endDate?: SortOrderInput | SortOrder
+    repeatEnabled?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    days?: NutritionProgramDayOrderByRelationAggregateInput
+  }
+
+  export type NutritionProgramWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId_sourcePlanId?: NutritionProgramUserIdSourcePlanIdCompoundUniqueInput
+    AND?: NutritionProgramWhereInput | NutritionProgramWhereInput[]
+    OR?: NutritionProgramWhereInput[]
+    NOT?: NutritionProgramWhereInput | NutritionProgramWhereInput[]
+    userId?: StringFilter<"NutritionProgram"> | string
+    name?: StringFilter<"NutritionProgram"> | string
+    goal?: StringNullableFilter<"NutritionProgram"> | string | null
+    durationWeeks?: IntNullableFilter<"NutritionProgram"> | number | null
+    mealsPerDay?: IntNullableFilter<"NutritionProgram"> | number | null
+    dailyCaloriesTarget?: IntNullableFilter<"NutritionProgram"> | number | null
+    proteinTargetGrams?: FloatNullableFilter<"NutritionProgram"> | number | null
+    carbTargetGrams?: FloatNullableFilter<"NutritionProgram"> | number | null
+    fatTargetGrams?: FloatNullableFilter<"NutritionProgram"> | number | null
+    sourcePlanId?: StringNullableFilter<"NutritionProgram"> | string | null
+    sourceType?: StringNullableFilter<"NutritionProgram"> | string | null
+    status?: StringFilter<"NutritionProgram"> | string
+    startDate?: DateTimeNullableFilter<"NutritionProgram"> | Date | string | null
+    endDate?: DateTimeNullableFilter<"NutritionProgram"> | Date | string | null
+    repeatEnabled?: BoolFilter<"NutritionProgram"> | boolean
+    archivedAt?: DateTimeNullableFilter<"NutritionProgram"> | Date | string | null
+    notes?: StringNullableFilter<"NutritionProgram"> | string | null
+    createdAt?: DateTimeFilter<"NutritionProgram"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionProgram"> | Date | string
+    days?: NutritionProgramDayListRelationFilter
+  }, "id" | "userId_sourcePlanId">
+
+  export type NutritionProgramOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    name?: SortOrder
+    goal?: SortOrderInput | SortOrder
+    durationWeeks?: SortOrderInput | SortOrder
+    mealsPerDay?: SortOrderInput | SortOrder
+    dailyCaloriesTarget?: SortOrderInput | SortOrder
+    proteinTargetGrams?: SortOrderInput | SortOrder
+    carbTargetGrams?: SortOrderInput | SortOrder
+    fatTargetGrams?: SortOrderInput | SortOrder
+    sourcePlanId?: SortOrderInput | SortOrder
+    sourceType?: SortOrderInput | SortOrder
+    status?: SortOrder
+    startDate?: SortOrderInput | SortOrder
+    endDate?: SortOrderInput | SortOrder
+    repeatEnabled?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: NutritionProgramCountOrderByAggregateInput
+    _avg?: NutritionProgramAvgOrderByAggregateInput
+    _max?: NutritionProgramMaxOrderByAggregateInput
+    _min?: NutritionProgramMinOrderByAggregateInput
+    _sum?: NutritionProgramSumOrderByAggregateInput
+  }
+
+  export type NutritionProgramScalarWhereWithAggregatesInput = {
+    AND?: NutritionProgramScalarWhereWithAggregatesInput | NutritionProgramScalarWhereWithAggregatesInput[]
+    OR?: NutritionProgramScalarWhereWithAggregatesInput[]
+    NOT?: NutritionProgramScalarWhereWithAggregatesInput | NutritionProgramScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"NutritionProgram"> | string
+    userId?: StringWithAggregatesFilter<"NutritionProgram"> | string
+    name?: StringWithAggregatesFilter<"NutritionProgram"> | string
+    goal?: StringNullableWithAggregatesFilter<"NutritionProgram"> | string | null
+    durationWeeks?: IntNullableWithAggregatesFilter<"NutritionProgram"> | number | null
+    mealsPerDay?: IntNullableWithAggregatesFilter<"NutritionProgram"> | number | null
+    dailyCaloriesTarget?: IntNullableWithAggregatesFilter<"NutritionProgram"> | number | null
+    proteinTargetGrams?: FloatNullableWithAggregatesFilter<"NutritionProgram"> | number | null
+    carbTargetGrams?: FloatNullableWithAggregatesFilter<"NutritionProgram"> | number | null
+    fatTargetGrams?: FloatNullableWithAggregatesFilter<"NutritionProgram"> | number | null
+    sourcePlanId?: StringNullableWithAggregatesFilter<"NutritionProgram"> | string | null
+    sourceType?: StringNullableWithAggregatesFilter<"NutritionProgram"> | string | null
+    status?: StringWithAggregatesFilter<"NutritionProgram"> | string
+    startDate?: DateTimeNullableWithAggregatesFilter<"NutritionProgram"> | Date | string | null
+    endDate?: DateTimeNullableWithAggregatesFilter<"NutritionProgram"> | Date | string | null
+    repeatEnabled?: BoolWithAggregatesFilter<"NutritionProgram"> | boolean
+    archivedAt?: DateTimeNullableWithAggregatesFilter<"NutritionProgram"> | Date | string | null
+    notes?: StringNullableWithAggregatesFilter<"NutritionProgram"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"NutritionProgram"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"NutritionProgram"> | Date | string
+  }
+
+  export type NutritionProgramDayWhereInput = {
+    AND?: NutritionProgramDayWhereInput | NutritionProgramDayWhereInput[]
+    OR?: NutritionProgramDayWhereInput[]
+    NOT?: NutritionProgramDayWhereInput | NutritionProgramDayWhereInput[]
+    id?: StringFilter<"NutritionProgramDay"> | string
+    programId?: StringFilter<"NutritionProgramDay"> | string
+    dayNumber?: IntFilter<"NutritionProgramDay"> | number
+    title?: StringNullableFilter<"NutritionProgramDay"> | string | null
+    totalCalories?: IntNullableFilter<"NutritionProgramDay"> | number | null
+    proteinGrams?: FloatNullableFilter<"NutritionProgramDay"> | number | null
+    carbGrams?: FloatNullableFilter<"NutritionProgramDay"> | number | null
+    fatGrams?: FloatNullableFilter<"NutritionProgramDay"> | number | null
+    createdAt?: DateTimeFilter<"NutritionProgramDay"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionProgramDay"> | Date | string
+    program?: XOR<NutritionProgramRelationFilter, NutritionProgramWhereInput>
+    meals?: NutritionProgramMealListRelationFilter
+  }
+
+  export type NutritionProgramDayOrderByWithRelationInput = {
+    id?: SortOrder
+    programId?: SortOrder
+    dayNumber?: SortOrder
+    title?: SortOrderInput | SortOrder
+    totalCalories?: SortOrderInput | SortOrder
+    proteinGrams?: SortOrderInput | SortOrder
+    carbGrams?: SortOrderInput | SortOrder
+    fatGrams?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    program?: NutritionProgramOrderByWithRelationInput
+    meals?: NutritionProgramMealOrderByRelationAggregateInput
+  }
+
+  export type NutritionProgramDayWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    programId_dayNumber?: NutritionProgramDayProgramIdDayNumberCompoundUniqueInput
+    AND?: NutritionProgramDayWhereInput | NutritionProgramDayWhereInput[]
+    OR?: NutritionProgramDayWhereInput[]
+    NOT?: NutritionProgramDayWhereInput | NutritionProgramDayWhereInput[]
+    programId?: StringFilter<"NutritionProgramDay"> | string
+    dayNumber?: IntFilter<"NutritionProgramDay"> | number
+    title?: StringNullableFilter<"NutritionProgramDay"> | string | null
+    totalCalories?: IntNullableFilter<"NutritionProgramDay"> | number | null
+    proteinGrams?: FloatNullableFilter<"NutritionProgramDay"> | number | null
+    carbGrams?: FloatNullableFilter<"NutritionProgramDay"> | number | null
+    fatGrams?: FloatNullableFilter<"NutritionProgramDay"> | number | null
+    createdAt?: DateTimeFilter<"NutritionProgramDay"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionProgramDay"> | Date | string
+    program?: XOR<NutritionProgramRelationFilter, NutritionProgramWhereInput>
+    meals?: NutritionProgramMealListRelationFilter
+  }, "id" | "programId_dayNumber">
+
+  export type NutritionProgramDayOrderByWithAggregationInput = {
+    id?: SortOrder
+    programId?: SortOrder
+    dayNumber?: SortOrder
+    title?: SortOrderInput | SortOrder
+    totalCalories?: SortOrderInput | SortOrder
+    proteinGrams?: SortOrderInput | SortOrder
+    carbGrams?: SortOrderInput | SortOrder
+    fatGrams?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: NutritionProgramDayCountOrderByAggregateInput
+    _avg?: NutritionProgramDayAvgOrderByAggregateInput
+    _max?: NutritionProgramDayMaxOrderByAggregateInput
+    _min?: NutritionProgramDayMinOrderByAggregateInput
+    _sum?: NutritionProgramDaySumOrderByAggregateInput
+  }
+
+  export type NutritionProgramDayScalarWhereWithAggregatesInput = {
+    AND?: NutritionProgramDayScalarWhereWithAggregatesInput | NutritionProgramDayScalarWhereWithAggregatesInput[]
+    OR?: NutritionProgramDayScalarWhereWithAggregatesInput[]
+    NOT?: NutritionProgramDayScalarWhereWithAggregatesInput | NutritionProgramDayScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"NutritionProgramDay"> | string
+    programId?: StringWithAggregatesFilter<"NutritionProgramDay"> | string
+    dayNumber?: IntWithAggregatesFilter<"NutritionProgramDay"> | number
+    title?: StringNullableWithAggregatesFilter<"NutritionProgramDay"> | string | null
+    totalCalories?: IntNullableWithAggregatesFilter<"NutritionProgramDay"> | number | null
+    proteinGrams?: FloatNullableWithAggregatesFilter<"NutritionProgramDay"> | number | null
+    carbGrams?: FloatNullableWithAggregatesFilter<"NutritionProgramDay"> | number | null
+    fatGrams?: FloatNullableWithAggregatesFilter<"NutritionProgramDay"> | number | null
+    createdAt?: DateTimeWithAggregatesFilter<"NutritionProgramDay"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"NutritionProgramDay"> | Date | string
+  }
+
+  export type NutritionProgramMealWhereInput = {
+    AND?: NutritionProgramMealWhereInput | NutritionProgramMealWhereInput[]
+    OR?: NutritionProgramMealWhereInput[]
+    NOT?: NutritionProgramMealWhereInput | NutritionProgramMealWhereInput[]
+    id?: StringFilter<"NutritionProgramMeal"> | string
+    dayId?: StringFilter<"NutritionProgramMeal"> | string
+    mealType?: StringFilter<"NutritionProgramMeal"> | string
+    title?: StringNullableFilter<"NutritionProgramMeal"> | string | null
+    calories?: IntNullableFilter<"NutritionProgramMeal"> | number | null
+    proteinGrams?: FloatNullableFilter<"NutritionProgramMeal"> | number | null
+    carbGrams?: FloatNullableFilter<"NutritionProgramMeal"> | number | null
+    fatGrams?: FloatNullableFilter<"NutritionProgramMeal"> | number | null
+    notes?: StringNullableFilter<"NutritionProgramMeal"> | string | null
+    createdAt?: DateTimeFilter<"NutritionProgramMeal"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionProgramMeal"> | Date | string
+    day?: XOR<NutritionProgramDayRelationFilter, NutritionProgramDayWhereInput>
+    items?: NutritionProgramMealItemListRelationFilter
+    completions?: NutritionMealCompletionListRelationFilter
+  }
+
+  export type NutritionProgramMealOrderByWithRelationInput = {
+    id?: SortOrder
+    dayId?: SortOrder
+    mealType?: SortOrder
+    title?: SortOrderInput | SortOrder
+    calories?: SortOrderInput | SortOrder
+    proteinGrams?: SortOrderInput | SortOrder
+    carbGrams?: SortOrderInput | SortOrder
+    fatGrams?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    day?: NutritionProgramDayOrderByWithRelationInput
+    items?: NutritionProgramMealItemOrderByRelationAggregateInput
+    completions?: NutritionMealCompletionOrderByRelationAggregateInput
+  }
+
+  export type NutritionProgramMealWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: NutritionProgramMealWhereInput | NutritionProgramMealWhereInput[]
+    OR?: NutritionProgramMealWhereInput[]
+    NOT?: NutritionProgramMealWhereInput | NutritionProgramMealWhereInput[]
+    dayId?: StringFilter<"NutritionProgramMeal"> | string
+    mealType?: StringFilter<"NutritionProgramMeal"> | string
+    title?: StringNullableFilter<"NutritionProgramMeal"> | string | null
+    calories?: IntNullableFilter<"NutritionProgramMeal"> | number | null
+    proteinGrams?: FloatNullableFilter<"NutritionProgramMeal"> | number | null
+    carbGrams?: FloatNullableFilter<"NutritionProgramMeal"> | number | null
+    fatGrams?: FloatNullableFilter<"NutritionProgramMeal"> | number | null
+    notes?: StringNullableFilter<"NutritionProgramMeal"> | string | null
+    createdAt?: DateTimeFilter<"NutritionProgramMeal"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionProgramMeal"> | Date | string
+    day?: XOR<NutritionProgramDayRelationFilter, NutritionProgramDayWhereInput>
+    items?: NutritionProgramMealItemListRelationFilter
+    completions?: NutritionMealCompletionListRelationFilter
+  }, "id">
+
+  export type NutritionProgramMealOrderByWithAggregationInput = {
+    id?: SortOrder
+    dayId?: SortOrder
+    mealType?: SortOrder
+    title?: SortOrderInput | SortOrder
+    calories?: SortOrderInput | SortOrder
+    proteinGrams?: SortOrderInput | SortOrder
+    carbGrams?: SortOrderInput | SortOrder
+    fatGrams?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: NutritionProgramMealCountOrderByAggregateInput
+    _avg?: NutritionProgramMealAvgOrderByAggregateInput
+    _max?: NutritionProgramMealMaxOrderByAggregateInput
+    _min?: NutritionProgramMealMinOrderByAggregateInput
+    _sum?: NutritionProgramMealSumOrderByAggregateInput
+  }
+
+  export type NutritionProgramMealScalarWhereWithAggregatesInput = {
+    AND?: NutritionProgramMealScalarWhereWithAggregatesInput | NutritionProgramMealScalarWhereWithAggregatesInput[]
+    OR?: NutritionProgramMealScalarWhereWithAggregatesInput[]
+    NOT?: NutritionProgramMealScalarWhereWithAggregatesInput | NutritionProgramMealScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"NutritionProgramMeal"> | string
+    dayId?: StringWithAggregatesFilter<"NutritionProgramMeal"> | string
+    mealType?: StringWithAggregatesFilter<"NutritionProgramMeal"> | string
+    title?: StringNullableWithAggregatesFilter<"NutritionProgramMeal"> | string | null
+    calories?: IntNullableWithAggregatesFilter<"NutritionProgramMeal"> | number | null
+    proteinGrams?: FloatNullableWithAggregatesFilter<"NutritionProgramMeal"> | number | null
+    carbGrams?: FloatNullableWithAggregatesFilter<"NutritionProgramMeal"> | number | null
+    fatGrams?: FloatNullableWithAggregatesFilter<"NutritionProgramMeal"> | number | null
+    notes?: StringNullableWithAggregatesFilter<"NutritionProgramMeal"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"NutritionProgramMeal"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"NutritionProgramMeal"> | Date | string
+  }
+
+  export type NutritionProgramMealItemWhereInput = {
+    AND?: NutritionProgramMealItemWhereInput | NutritionProgramMealItemWhereInput[]
+    OR?: NutritionProgramMealItemWhereInput[]
+    NOT?: NutritionProgramMealItemWhereInput | NutritionProgramMealItemWhereInput[]
+    id?: StringFilter<"NutritionProgramMealItem"> | string
+    mealId?: StringFilter<"NutritionProgramMealItem"> | string
+    foodId?: StringNullableFilter<"NutritionProgramMealItem"> | string | null
+    customFoodName?: StringNullableFilter<"NutritionProgramMealItem"> | string | null
+    quantity?: FloatFilter<"NutritionProgramMealItem"> | number
+    unit?: StringFilter<"NutritionProgramMealItem"> | string
+    calories?: IntNullableFilter<"NutritionProgramMealItem"> | number | null
+    proteinGrams?: FloatNullableFilter<"NutritionProgramMealItem"> | number | null
+    carbGrams?: FloatNullableFilter<"NutritionProgramMealItem"> | number | null
+    fatGrams?: FloatNullableFilter<"NutritionProgramMealItem"> | number | null
+    notes?: StringNullableFilter<"NutritionProgramMealItem"> | string | null
+    createdAt?: DateTimeFilter<"NutritionProgramMealItem"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionProgramMealItem"> | Date | string
+    meal?: XOR<NutritionProgramMealRelationFilter, NutritionProgramMealWhereInput>
+    food?: XOR<FoodNullableRelationFilter, FoodWhereInput> | null
+  }
+
+  export type NutritionProgramMealItemOrderByWithRelationInput = {
+    id?: SortOrder
+    mealId?: SortOrder
+    foodId?: SortOrderInput | SortOrder
+    customFoodName?: SortOrderInput | SortOrder
+    quantity?: SortOrder
+    unit?: SortOrder
+    calories?: SortOrderInput | SortOrder
+    proteinGrams?: SortOrderInput | SortOrder
+    carbGrams?: SortOrderInput | SortOrder
+    fatGrams?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    meal?: NutritionProgramMealOrderByWithRelationInput
+    food?: FoodOrderByWithRelationInput
+  }
+
+  export type NutritionProgramMealItemWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: NutritionProgramMealItemWhereInput | NutritionProgramMealItemWhereInput[]
+    OR?: NutritionProgramMealItemWhereInput[]
+    NOT?: NutritionProgramMealItemWhereInput | NutritionProgramMealItemWhereInput[]
+    mealId?: StringFilter<"NutritionProgramMealItem"> | string
+    foodId?: StringNullableFilter<"NutritionProgramMealItem"> | string | null
+    customFoodName?: StringNullableFilter<"NutritionProgramMealItem"> | string | null
+    quantity?: FloatFilter<"NutritionProgramMealItem"> | number
+    unit?: StringFilter<"NutritionProgramMealItem"> | string
+    calories?: IntNullableFilter<"NutritionProgramMealItem"> | number | null
+    proteinGrams?: FloatNullableFilter<"NutritionProgramMealItem"> | number | null
+    carbGrams?: FloatNullableFilter<"NutritionProgramMealItem"> | number | null
+    fatGrams?: FloatNullableFilter<"NutritionProgramMealItem"> | number | null
+    notes?: StringNullableFilter<"NutritionProgramMealItem"> | string | null
+    createdAt?: DateTimeFilter<"NutritionProgramMealItem"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionProgramMealItem"> | Date | string
+    meal?: XOR<NutritionProgramMealRelationFilter, NutritionProgramMealWhereInput>
+    food?: XOR<FoodNullableRelationFilter, FoodWhereInput> | null
+  }, "id">
+
+  export type NutritionProgramMealItemOrderByWithAggregationInput = {
+    id?: SortOrder
+    mealId?: SortOrder
+    foodId?: SortOrderInput | SortOrder
+    customFoodName?: SortOrderInput | SortOrder
+    quantity?: SortOrder
+    unit?: SortOrder
+    calories?: SortOrderInput | SortOrder
+    proteinGrams?: SortOrderInput | SortOrder
+    carbGrams?: SortOrderInput | SortOrder
+    fatGrams?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: NutritionProgramMealItemCountOrderByAggregateInput
+    _avg?: NutritionProgramMealItemAvgOrderByAggregateInput
+    _max?: NutritionProgramMealItemMaxOrderByAggregateInput
+    _min?: NutritionProgramMealItemMinOrderByAggregateInput
+    _sum?: NutritionProgramMealItemSumOrderByAggregateInput
+  }
+
+  export type NutritionProgramMealItemScalarWhereWithAggregatesInput = {
+    AND?: NutritionProgramMealItemScalarWhereWithAggregatesInput | NutritionProgramMealItemScalarWhereWithAggregatesInput[]
+    OR?: NutritionProgramMealItemScalarWhereWithAggregatesInput[]
+    NOT?: NutritionProgramMealItemScalarWhereWithAggregatesInput | NutritionProgramMealItemScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"NutritionProgramMealItem"> | string
+    mealId?: StringWithAggregatesFilter<"NutritionProgramMealItem"> | string
+    foodId?: StringNullableWithAggregatesFilter<"NutritionProgramMealItem"> | string | null
+    customFoodName?: StringNullableWithAggregatesFilter<"NutritionProgramMealItem"> | string | null
+    quantity?: FloatWithAggregatesFilter<"NutritionProgramMealItem"> | number
+    unit?: StringWithAggregatesFilter<"NutritionProgramMealItem"> | string
+    calories?: IntNullableWithAggregatesFilter<"NutritionProgramMealItem"> | number | null
+    proteinGrams?: FloatNullableWithAggregatesFilter<"NutritionProgramMealItem"> | number | null
+    carbGrams?: FloatNullableWithAggregatesFilter<"NutritionProgramMealItem"> | number | null
+    fatGrams?: FloatNullableWithAggregatesFilter<"NutritionProgramMealItem"> | number | null
+    notes?: StringNullableWithAggregatesFilter<"NutritionProgramMealItem"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"NutritionProgramMealItem"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"NutritionProgramMealItem"> | Date | string
+  }
+
+  export type NutritionMealCompletionWhereInput = {
+    AND?: NutritionMealCompletionWhereInput | NutritionMealCompletionWhereInput[]
+    OR?: NutritionMealCompletionWhereInput[]
+    NOT?: NutritionMealCompletionWhereInput | NutritionMealCompletionWhereInput[]
+    id?: StringFilter<"NutritionMealCompletion"> | string
+    userId?: StringFilter<"NutritionMealCompletion"> | string
+    mealId?: StringFilter<"NutritionMealCompletion"> | string
+    logDate?: DateTimeFilter<"NutritionMealCompletion"> | Date | string
+    status?: StringFilter<"NutritionMealCompletion"> | string
+    percentConsumed?: IntFilter<"NutritionMealCompletion"> | number
+    consumedCalories?: IntNullableFilter<"NutritionMealCompletion"> | number | null
+    consumedProtein?: FloatNullableFilter<"NutritionMealCompletion"> | number | null
+    consumedCarbs?: FloatNullableFilter<"NutritionMealCompletion"> | number | null
+    consumedFat?: FloatNullableFilter<"NutritionMealCompletion"> | number | null
+    completedAt?: DateTimeNullableFilter<"NutritionMealCompletion"> | Date | string | null
+    createdAt?: DateTimeFilter<"NutritionMealCompletion"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionMealCompletion"> | Date | string
+    meal?: XOR<NutritionProgramMealRelationFilter, NutritionProgramMealWhereInput>
+  }
+
+  export type NutritionMealCompletionOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    mealId?: SortOrder
+    logDate?: SortOrder
+    status?: SortOrder
+    percentConsumed?: SortOrder
+    consumedCalories?: SortOrderInput | SortOrder
+    consumedProtein?: SortOrderInput | SortOrder
+    consumedCarbs?: SortOrderInput | SortOrder
+    consumedFat?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    meal?: NutritionProgramMealOrderByWithRelationInput
+  }
+
+  export type NutritionMealCompletionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    nutrition_meal_completion_unique?: NutritionMealCompletionNutrition_meal_completion_uniqueCompoundUniqueInput
+    AND?: NutritionMealCompletionWhereInput | NutritionMealCompletionWhereInput[]
+    OR?: NutritionMealCompletionWhereInput[]
+    NOT?: NutritionMealCompletionWhereInput | NutritionMealCompletionWhereInput[]
+    userId?: StringFilter<"NutritionMealCompletion"> | string
+    mealId?: StringFilter<"NutritionMealCompletion"> | string
+    logDate?: DateTimeFilter<"NutritionMealCompletion"> | Date | string
+    status?: StringFilter<"NutritionMealCompletion"> | string
+    percentConsumed?: IntFilter<"NutritionMealCompletion"> | number
+    consumedCalories?: IntNullableFilter<"NutritionMealCompletion"> | number | null
+    consumedProtein?: FloatNullableFilter<"NutritionMealCompletion"> | number | null
+    consumedCarbs?: FloatNullableFilter<"NutritionMealCompletion"> | number | null
+    consumedFat?: FloatNullableFilter<"NutritionMealCompletion"> | number | null
+    completedAt?: DateTimeNullableFilter<"NutritionMealCompletion"> | Date | string | null
+    createdAt?: DateTimeFilter<"NutritionMealCompletion"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionMealCompletion"> | Date | string
+    meal?: XOR<NutritionProgramMealRelationFilter, NutritionProgramMealWhereInput>
+  }, "id" | "nutrition_meal_completion_unique">
+
+  export type NutritionMealCompletionOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    mealId?: SortOrder
+    logDate?: SortOrder
+    status?: SortOrder
+    percentConsumed?: SortOrder
+    consumedCalories?: SortOrderInput | SortOrder
+    consumedProtein?: SortOrderInput | SortOrder
+    consumedCarbs?: SortOrderInput | SortOrder
+    consumedFat?: SortOrderInput | SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: NutritionMealCompletionCountOrderByAggregateInput
+    _avg?: NutritionMealCompletionAvgOrderByAggregateInput
+    _max?: NutritionMealCompletionMaxOrderByAggregateInput
+    _min?: NutritionMealCompletionMinOrderByAggregateInput
+    _sum?: NutritionMealCompletionSumOrderByAggregateInput
+  }
+
+  export type NutritionMealCompletionScalarWhereWithAggregatesInput = {
+    AND?: NutritionMealCompletionScalarWhereWithAggregatesInput | NutritionMealCompletionScalarWhereWithAggregatesInput[]
+    OR?: NutritionMealCompletionScalarWhereWithAggregatesInput[]
+    NOT?: NutritionMealCompletionScalarWhereWithAggregatesInput | NutritionMealCompletionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"NutritionMealCompletion"> | string
+    userId?: StringWithAggregatesFilter<"NutritionMealCompletion"> | string
+    mealId?: StringWithAggregatesFilter<"NutritionMealCompletion"> | string
+    logDate?: DateTimeWithAggregatesFilter<"NutritionMealCompletion"> | Date | string
+    status?: StringWithAggregatesFilter<"NutritionMealCompletion"> | string
+    percentConsumed?: IntWithAggregatesFilter<"NutritionMealCompletion"> | number
+    consumedCalories?: IntNullableWithAggregatesFilter<"NutritionMealCompletion"> | number | null
+    consumedProtein?: FloatNullableWithAggregatesFilter<"NutritionMealCompletion"> | number | null
+    consumedCarbs?: FloatNullableWithAggregatesFilter<"NutritionMealCompletion"> | number | null
+    consumedFat?: FloatNullableWithAggregatesFilter<"NutritionMealCompletion"> | number | null
+    completedAt?: DateTimeNullableWithAggregatesFilter<"NutritionMealCompletion"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"NutritionMealCompletion"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"NutritionMealCompletion"> | Date | string
+  }
+
   export type ExerciseCreateInput = {
     id?: string
     exerciseName: string
@@ -17417,6 +24123,7 @@ export namespace Prisma {
     source: string
     imageUrl?: string | null
     aliases?: FoodAliasCreateNestedManyWithoutFoodInput
+    mealItems?: NutritionProgramMealItemCreateNestedManyWithoutFoodInput
   }
 
   export type FoodUncheckedCreateInput = {
@@ -17430,6 +24137,7 @@ export namespace Prisma {
     source: string
     imageUrl?: string | null
     aliases?: FoodAliasUncheckedCreateNestedManyWithoutFoodInput
+    mealItems?: NutritionProgramMealItemUncheckedCreateNestedManyWithoutFoodInput
   }
 
   export type FoodUpdateInput = {
@@ -17443,6 +24151,7 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     aliases?: FoodAliasUpdateManyWithoutFoodNestedInput
+    mealItems?: NutritionProgramMealItemUpdateManyWithoutFoodNestedInput
   }
 
   export type FoodUncheckedUpdateInput = {
@@ -17456,6 +24165,7 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     aliases?: FoodAliasUncheckedUpdateManyWithoutFoodNestedInput
+    mealItems?: NutritionProgramMealItemUncheckedUpdateManyWithoutFoodNestedInput
   }
 
   export type FoodCreateManyInput = {
@@ -18249,6 +24959,591 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type NutritionProgramCreateInput = {
+    id?: string
+    userId: string
+    name: string
+    goal?: string | null
+    durationWeeks?: number | null
+    mealsPerDay?: number | null
+    dailyCaloriesTarget?: number | null
+    proteinTargetGrams?: number | null
+    carbTargetGrams?: number | null
+    fatTargetGrams?: number | null
+    sourcePlanId?: string | null
+    sourceType?: string | null
+    status?: string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    repeatEnabled?: boolean
+    archivedAt?: Date | string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    days?: NutritionProgramDayCreateNestedManyWithoutProgramInput
+  }
+
+  export type NutritionProgramUncheckedCreateInput = {
+    id?: string
+    userId: string
+    name: string
+    goal?: string | null
+    durationWeeks?: number | null
+    mealsPerDay?: number | null
+    dailyCaloriesTarget?: number | null
+    proteinTargetGrams?: number | null
+    carbTargetGrams?: number | null
+    fatTargetGrams?: number | null
+    sourcePlanId?: string | null
+    sourceType?: string | null
+    status?: string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    repeatEnabled?: boolean
+    archivedAt?: Date | string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    days?: NutritionProgramDayUncheckedCreateNestedManyWithoutProgramInput
+  }
+
+  export type NutritionProgramUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    mealsPerDay?: NullableIntFieldUpdateOperationsInput | number | null
+    dailyCaloriesTarget?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    repeatEnabled?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    days?: NutritionProgramDayUpdateManyWithoutProgramNestedInput
+  }
+
+  export type NutritionProgramUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    mealsPerDay?: NullableIntFieldUpdateOperationsInput | number | null
+    dailyCaloriesTarget?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    repeatEnabled?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    days?: NutritionProgramDayUncheckedUpdateManyWithoutProgramNestedInput
+  }
+
+  export type NutritionProgramCreateManyInput = {
+    id?: string
+    userId: string
+    name: string
+    goal?: string | null
+    durationWeeks?: number | null
+    mealsPerDay?: number | null
+    dailyCaloriesTarget?: number | null
+    proteinTargetGrams?: number | null
+    carbTargetGrams?: number | null
+    fatTargetGrams?: number | null
+    sourcePlanId?: string | null
+    sourceType?: string | null
+    status?: string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    repeatEnabled?: boolean
+    archivedAt?: Date | string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    mealsPerDay?: NullableIntFieldUpdateOperationsInput | number | null
+    dailyCaloriesTarget?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    repeatEnabled?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    mealsPerDay?: NullableIntFieldUpdateOperationsInput | number | null
+    dailyCaloriesTarget?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    repeatEnabled?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramDayCreateInput = {
+    id?: string
+    dayNumber: number
+    title?: string | null
+    totalCalories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    program: NutritionProgramCreateNestedOneWithoutDaysInput
+    meals?: NutritionProgramMealCreateNestedManyWithoutDayInput
+  }
+
+  export type NutritionProgramDayUncheckedCreateInput = {
+    id?: string
+    programId: string
+    dayNumber: number
+    title?: string | null
+    totalCalories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    meals?: NutritionProgramMealUncheckedCreateNestedManyWithoutDayInput
+  }
+
+  export type NutritionProgramDayUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dayNumber?: IntFieldUpdateOperationsInput | number
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    totalCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    program?: NutritionProgramUpdateOneRequiredWithoutDaysNestedInput
+    meals?: NutritionProgramMealUpdateManyWithoutDayNestedInput
+  }
+
+  export type NutritionProgramDayUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    programId?: StringFieldUpdateOperationsInput | string
+    dayNumber?: IntFieldUpdateOperationsInput | number
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    totalCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    meals?: NutritionProgramMealUncheckedUpdateManyWithoutDayNestedInput
+  }
+
+  export type NutritionProgramDayCreateManyInput = {
+    id?: string
+    programId: string
+    dayNumber: number
+    title?: string | null
+    totalCalories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramDayUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dayNumber?: IntFieldUpdateOperationsInput | number
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    totalCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramDayUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    programId?: StringFieldUpdateOperationsInput | string
+    dayNumber?: IntFieldUpdateOperationsInput | number
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    totalCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealCreateInput = {
+    id?: string
+    mealType: string
+    title?: string | null
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    day: NutritionProgramDayCreateNestedOneWithoutMealsInput
+    items?: NutritionProgramMealItemCreateNestedManyWithoutMealInput
+    completions?: NutritionMealCompletionCreateNestedManyWithoutMealInput
+  }
+
+  export type NutritionProgramMealUncheckedCreateInput = {
+    id?: string
+    dayId: string
+    mealType: string
+    title?: string | null
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    items?: NutritionProgramMealItemUncheckedCreateNestedManyWithoutMealInput
+    completions?: NutritionMealCompletionUncheckedCreateNestedManyWithoutMealInput
+  }
+
+  export type NutritionProgramMealUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mealType?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    day?: NutritionProgramDayUpdateOneRequiredWithoutMealsNestedInput
+    items?: NutritionProgramMealItemUpdateManyWithoutMealNestedInput
+    completions?: NutritionMealCompletionUpdateManyWithoutMealNestedInput
+  }
+
+  export type NutritionProgramMealUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dayId?: StringFieldUpdateOperationsInput | string
+    mealType?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: NutritionProgramMealItemUncheckedUpdateManyWithoutMealNestedInput
+    completions?: NutritionMealCompletionUncheckedUpdateManyWithoutMealNestedInput
+  }
+
+  export type NutritionProgramMealCreateManyInput = {
+    id?: string
+    dayId: string
+    mealType: string
+    title?: string | null
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramMealUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mealType?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dayId?: StringFieldUpdateOperationsInput | string
+    mealType?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealItemCreateInput = {
+    id?: string
+    customFoodName?: string | null
+    quantity?: number
+    unit?: string
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    meal: NutritionProgramMealCreateNestedOneWithoutItemsInput
+    food?: FoodCreateNestedOneWithoutMealItemsInput
+  }
+
+  export type NutritionProgramMealItemUncheckedCreateInput = {
+    id?: string
+    mealId: string
+    foodId?: string | null
+    customFoodName?: string | null
+    quantity?: number
+    unit?: string
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramMealItemUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customFoodName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: FloatFieldUpdateOperationsInput | number
+    unit?: StringFieldUpdateOperationsInput | string
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    meal?: NutritionProgramMealUpdateOneRequiredWithoutItemsNestedInput
+    food?: FoodUpdateOneWithoutMealItemsNestedInput
+  }
+
+  export type NutritionProgramMealItemUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mealId?: StringFieldUpdateOperationsInput | string
+    foodId?: NullableStringFieldUpdateOperationsInput | string | null
+    customFoodName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: FloatFieldUpdateOperationsInput | number
+    unit?: StringFieldUpdateOperationsInput | string
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealItemCreateManyInput = {
+    id?: string
+    mealId: string
+    foodId?: string | null
+    customFoodName?: string | null
+    quantity?: number
+    unit?: string
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramMealItemUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customFoodName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: FloatFieldUpdateOperationsInput | number
+    unit?: StringFieldUpdateOperationsInput | string
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealItemUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mealId?: StringFieldUpdateOperationsInput | string
+    foodId?: NullableStringFieldUpdateOperationsInput | string | null
+    customFoodName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: FloatFieldUpdateOperationsInput | number
+    unit?: StringFieldUpdateOperationsInput | string
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionMealCompletionCreateInput = {
+    id?: string
+    userId: string
+    logDate: Date | string
+    status?: string
+    percentConsumed?: number
+    consumedCalories?: number | null
+    consumedProtein?: number | null
+    consumedCarbs?: number | null
+    consumedFat?: number | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    meal: NutritionProgramMealCreateNestedOneWithoutCompletionsInput
+  }
+
+  export type NutritionMealCompletionUncheckedCreateInput = {
+    id?: string
+    userId: string
+    mealId: string
+    logDate: Date | string
+    status?: string
+    percentConsumed?: number
+    consumedCalories?: number | null
+    consumedProtein?: number | null
+    consumedCarbs?: number | null
+    consumedFat?: number | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionMealCompletionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    logDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    percentConsumed?: IntFieldUpdateOperationsInput | number
+    consumedCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    consumedProtein?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedCarbs?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    meal?: NutritionProgramMealUpdateOneRequiredWithoutCompletionsNestedInput
+  }
+
+  export type NutritionMealCompletionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    mealId?: StringFieldUpdateOperationsInput | string
+    logDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    percentConsumed?: IntFieldUpdateOperationsInput | number
+    consumedCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    consumedProtein?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedCarbs?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionMealCompletionCreateManyInput = {
+    id?: string
+    userId: string
+    mealId: string
+    logDate: Date | string
+    status?: string
+    percentConsumed?: number
+    consumedCalories?: number | null
+    consumedProtein?: number | null
+    consumedCarbs?: number | null
+    consumedFat?: number | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionMealCompletionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    logDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    percentConsumed?: IntFieldUpdateOperationsInput | number
+    consumedCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    consumedProtein?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedCarbs?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionMealCompletionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    mealId?: StringFieldUpdateOperationsInput | string
+    logDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    percentConsumed?: IntFieldUpdateOperationsInput | number
+    consumedCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    consumedProtein?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedCarbs?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -18773,7 +26068,17 @@ export namespace Prisma {
     none?: FoodAliasWhereInput
   }
 
+  export type NutritionProgramMealItemListRelationFilter = {
+    every?: NutritionProgramMealItemWhereInput
+    some?: NutritionProgramMealItemWhereInput
+    none?: NutritionProgramMealItemWhereInput
+  }
+
   export type FoodAliasOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type NutritionProgramMealItemOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -19339,6 +26644,398 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type NutritionProgramDayListRelationFilter = {
+    every?: NutritionProgramDayWhereInput
+    some?: NutritionProgramDayWhereInput
+    none?: NutritionProgramDayWhereInput
+  }
+
+  export type NutritionProgramDayOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type NutritionProgramUserIdSourcePlanIdCompoundUniqueInput = {
+    userId: string
+    sourcePlanId: string
+  }
+
+  export type NutritionProgramCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    name?: SortOrder
+    goal?: SortOrder
+    durationWeeks?: SortOrder
+    mealsPerDay?: SortOrder
+    dailyCaloriesTarget?: SortOrder
+    proteinTargetGrams?: SortOrder
+    carbTargetGrams?: SortOrder
+    fatTargetGrams?: SortOrder
+    sourcePlanId?: SortOrder
+    sourceType?: SortOrder
+    status?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
+    repeatEnabled?: SortOrder
+    archivedAt?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramAvgOrderByAggregateInput = {
+    durationWeeks?: SortOrder
+    mealsPerDay?: SortOrder
+    dailyCaloriesTarget?: SortOrder
+    proteinTargetGrams?: SortOrder
+    carbTargetGrams?: SortOrder
+    fatTargetGrams?: SortOrder
+  }
+
+  export type NutritionProgramMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    name?: SortOrder
+    goal?: SortOrder
+    durationWeeks?: SortOrder
+    mealsPerDay?: SortOrder
+    dailyCaloriesTarget?: SortOrder
+    proteinTargetGrams?: SortOrder
+    carbTargetGrams?: SortOrder
+    fatTargetGrams?: SortOrder
+    sourcePlanId?: SortOrder
+    sourceType?: SortOrder
+    status?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
+    repeatEnabled?: SortOrder
+    archivedAt?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    name?: SortOrder
+    goal?: SortOrder
+    durationWeeks?: SortOrder
+    mealsPerDay?: SortOrder
+    dailyCaloriesTarget?: SortOrder
+    proteinTargetGrams?: SortOrder
+    carbTargetGrams?: SortOrder
+    fatTargetGrams?: SortOrder
+    sourcePlanId?: SortOrder
+    sourceType?: SortOrder
+    status?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
+    repeatEnabled?: SortOrder
+    archivedAt?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramSumOrderByAggregateInput = {
+    durationWeeks?: SortOrder
+    mealsPerDay?: SortOrder
+    dailyCaloriesTarget?: SortOrder
+    proteinTargetGrams?: SortOrder
+    carbTargetGrams?: SortOrder
+    fatTargetGrams?: SortOrder
+  }
+
+  export type NutritionProgramRelationFilter = {
+    is?: NutritionProgramWhereInput
+    isNot?: NutritionProgramWhereInput
+  }
+
+  export type NutritionProgramMealListRelationFilter = {
+    every?: NutritionProgramMealWhereInput
+    some?: NutritionProgramMealWhereInput
+    none?: NutritionProgramMealWhereInput
+  }
+
+  export type NutritionProgramMealOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type NutritionProgramDayProgramIdDayNumberCompoundUniqueInput = {
+    programId: string
+    dayNumber: number
+  }
+
+  export type NutritionProgramDayCountOrderByAggregateInput = {
+    id?: SortOrder
+    programId?: SortOrder
+    dayNumber?: SortOrder
+    title?: SortOrder
+    totalCalories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramDayAvgOrderByAggregateInput = {
+    dayNumber?: SortOrder
+    totalCalories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+  }
+
+  export type NutritionProgramDayMaxOrderByAggregateInput = {
+    id?: SortOrder
+    programId?: SortOrder
+    dayNumber?: SortOrder
+    title?: SortOrder
+    totalCalories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramDayMinOrderByAggregateInput = {
+    id?: SortOrder
+    programId?: SortOrder
+    dayNumber?: SortOrder
+    title?: SortOrder
+    totalCalories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramDaySumOrderByAggregateInput = {
+    dayNumber?: SortOrder
+    totalCalories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+  }
+
+  export type NutritionProgramDayRelationFilter = {
+    is?: NutritionProgramDayWhereInput
+    isNot?: NutritionProgramDayWhereInput
+  }
+
+  export type NutritionMealCompletionListRelationFilter = {
+    every?: NutritionMealCompletionWhereInput
+    some?: NutritionMealCompletionWhereInput
+    none?: NutritionMealCompletionWhereInput
+  }
+
+  export type NutritionMealCompletionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type NutritionProgramMealCountOrderByAggregateInput = {
+    id?: SortOrder
+    dayId?: SortOrder
+    mealType?: SortOrder
+    title?: SortOrder
+    calories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramMealAvgOrderByAggregateInput = {
+    calories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+  }
+
+  export type NutritionProgramMealMaxOrderByAggregateInput = {
+    id?: SortOrder
+    dayId?: SortOrder
+    mealType?: SortOrder
+    title?: SortOrder
+    calories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramMealMinOrderByAggregateInput = {
+    id?: SortOrder
+    dayId?: SortOrder
+    mealType?: SortOrder
+    title?: SortOrder
+    calories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramMealSumOrderByAggregateInput = {
+    calories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+  }
+
+  export type NutritionProgramMealRelationFilter = {
+    is?: NutritionProgramMealWhereInput
+    isNot?: NutritionProgramMealWhereInput
+  }
+
+  export type FoodNullableRelationFilter = {
+    is?: FoodWhereInput | null
+    isNot?: FoodWhereInput | null
+  }
+
+  export type NutritionProgramMealItemCountOrderByAggregateInput = {
+    id?: SortOrder
+    mealId?: SortOrder
+    foodId?: SortOrder
+    customFoodName?: SortOrder
+    quantity?: SortOrder
+    unit?: SortOrder
+    calories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramMealItemAvgOrderByAggregateInput = {
+    quantity?: SortOrder
+    calories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+  }
+
+  export type NutritionProgramMealItemMaxOrderByAggregateInput = {
+    id?: SortOrder
+    mealId?: SortOrder
+    foodId?: SortOrder
+    customFoodName?: SortOrder
+    quantity?: SortOrder
+    unit?: SortOrder
+    calories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramMealItemMinOrderByAggregateInput = {
+    id?: SortOrder
+    mealId?: SortOrder
+    foodId?: SortOrder
+    customFoodName?: SortOrder
+    quantity?: SortOrder
+    unit?: SortOrder
+    calories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionProgramMealItemSumOrderByAggregateInput = {
+    quantity?: SortOrder
+    calories?: SortOrder
+    proteinGrams?: SortOrder
+    carbGrams?: SortOrder
+    fatGrams?: SortOrder
+  }
+
+  export type NutritionMealCompletionNutrition_meal_completion_uniqueCompoundUniqueInput = {
+    userId: string
+    mealId: string
+    logDate: Date | string
+  }
+
+  export type NutritionMealCompletionCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    mealId?: SortOrder
+    logDate?: SortOrder
+    status?: SortOrder
+    percentConsumed?: SortOrder
+    consumedCalories?: SortOrder
+    consumedProtein?: SortOrder
+    consumedCarbs?: SortOrder
+    consumedFat?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionMealCompletionAvgOrderByAggregateInput = {
+    percentConsumed?: SortOrder
+    consumedCalories?: SortOrder
+    consumedProtein?: SortOrder
+    consumedCarbs?: SortOrder
+    consumedFat?: SortOrder
+  }
+
+  export type NutritionMealCompletionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    mealId?: SortOrder
+    logDate?: SortOrder
+    status?: SortOrder
+    percentConsumed?: SortOrder
+    consumedCalories?: SortOrder
+    consumedProtein?: SortOrder
+    consumedCarbs?: SortOrder
+    consumedFat?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionMealCompletionMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    mealId?: SortOrder
+    logDate?: SortOrder
+    status?: SortOrder
+    percentConsumed?: SortOrder
+    consumedCalories?: SortOrder
+    consumedProtein?: SortOrder
+    consumedCarbs?: SortOrder
+    consumedFat?: SortOrder
+    completedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NutritionMealCompletionSumOrderByAggregateInput = {
+    percentConsumed?: SortOrder
+    consumedCalories?: SortOrder
+    consumedProtein?: SortOrder
+    consumedCarbs?: SortOrder
+    consumedFat?: SortOrder
+  }
+
   export type ExerciseCreatemuscleGroupsActivatedInput = {
     set: string[]
   }
@@ -19663,11 +27360,25 @@ export namespace Prisma {
     connect?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
   }
 
+  export type NutritionProgramMealItemCreateNestedManyWithoutFoodInput = {
+    create?: XOR<NutritionProgramMealItemCreateWithoutFoodInput, NutritionProgramMealItemUncheckedCreateWithoutFoodInput> | NutritionProgramMealItemCreateWithoutFoodInput[] | NutritionProgramMealItemUncheckedCreateWithoutFoodInput[]
+    connectOrCreate?: NutritionProgramMealItemCreateOrConnectWithoutFoodInput | NutritionProgramMealItemCreateOrConnectWithoutFoodInput[]
+    createMany?: NutritionProgramMealItemCreateManyFoodInputEnvelope
+    connect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+  }
+
   export type FoodAliasUncheckedCreateNestedManyWithoutFoodInput = {
     create?: XOR<FoodAliasCreateWithoutFoodInput, FoodAliasUncheckedCreateWithoutFoodInput> | FoodAliasCreateWithoutFoodInput[] | FoodAliasUncheckedCreateWithoutFoodInput[]
     connectOrCreate?: FoodAliasCreateOrConnectWithoutFoodInput | FoodAliasCreateOrConnectWithoutFoodInput[]
     createMany?: FoodAliasCreateManyFoodInputEnvelope
     connect?: FoodAliasWhereUniqueInput | FoodAliasWhereUniqueInput[]
+  }
+
+  export type NutritionProgramMealItemUncheckedCreateNestedManyWithoutFoodInput = {
+    create?: XOR<NutritionProgramMealItemCreateWithoutFoodInput, NutritionProgramMealItemUncheckedCreateWithoutFoodInput> | NutritionProgramMealItemCreateWithoutFoodInput[] | NutritionProgramMealItemUncheckedCreateWithoutFoodInput[]
+    connectOrCreate?: NutritionProgramMealItemCreateOrConnectWithoutFoodInput | NutritionProgramMealItemCreateOrConnectWithoutFoodInput[]
+    createMany?: NutritionProgramMealItemCreateManyFoodInputEnvelope
+    connect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
   }
 
   export type FloatFieldUpdateOperationsInput = {
@@ -19692,6 +27403,20 @@ export namespace Prisma {
     deleteMany?: FoodAliasScalarWhereInput | FoodAliasScalarWhereInput[]
   }
 
+  export type NutritionProgramMealItemUpdateManyWithoutFoodNestedInput = {
+    create?: XOR<NutritionProgramMealItemCreateWithoutFoodInput, NutritionProgramMealItemUncheckedCreateWithoutFoodInput> | NutritionProgramMealItemCreateWithoutFoodInput[] | NutritionProgramMealItemUncheckedCreateWithoutFoodInput[]
+    connectOrCreate?: NutritionProgramMealItemCreateOrConnectWithoutFoodInput | NutritionProgramMealItemCreateOrConnectWithoutFoodInput[]
+    upsert?: NutritionProgramMealItemUpsertWithWhereUniqueWithoutFoodInput | NutritionProgramMealItemUpsertWithWhereUniqueWithoutFoodInput[]
+    createMany?: NutritionProgramMealItemCreateManyFoodInputEnvelope
+    set?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    disconnect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    delete?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    connect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    update?: NutritionProgramMealItemUpdateWithWhereUniqueWithoutFoodInput | NutritionProgramMealItemUpdateWithWhereUniqueWithoutFoodInput[]
+    updateMany?: NutritionProgramMealItemUpdateManyWithWhereWithoutFoodInput | NutritionProgramMealItemUpdateManyWithWhereWithoutFoodInput[]
+    deleteMany?: NutritionProgramMealItemScalarWhereInput | NutritionProgramMealItemScalarWhereInput[]
+  }
+
   export type FoodAliasUncheckedUpdateManyWithoutFoodNestedInput = {
     create?: XOR<FoodAliasCreateWithoutFoodInput, FoodAliasUncheckedCreateWithoutFoodInput> | FoodAliasCreateWithoutFoodInput[] | FoodAliasUncheckedCreateWithoutFoodInput[]
     connectOrCreate?: FoodAliasCreateOrConnectWithoutFoodInput | FoodAliasCreateOrConnectWithoutFoodInput[]
@@ -19704,6 +27429,20 @@ export namespace Prisma {
     update?: FoodAliasUpdateWithWhereUniqueWithoutFoodInput | FoodAliasUpdateWithWhereUniqueWithoutFoodInput[]
     updateMany?: FoodAliasUpdateManyWithWhereWithoutFoodInput | FoodAliasUpdateManyWithWhereWithoutFoodInput[]
     deleteMany?: FoodAliasScalarWhereInput | FoodAliasScalarWhereInput[]
+  }
+
+  export type NutritionProgramMealItemUncheckedUpdateManyWithoutFoodNestedInput = {
+    create?: XOR<NutritionProgramMealItemCreateWithoutFoodInput, NutritionProgramMealItemUncheckedCreateWithoutFoodInput> | NutritionProgramMealItemCreateWithoutFoodInput[] | NutritionProgramMealItemUncheckedCreateWithoutFoodInput[]
+    connectOrCreate?: NutritionProgramMealItemCreateOrConnectWithoutFoodInput | NutritionProgramMealItemCreateOrConnectWithoutFoodInput[]
+    upsert?: NutritionProgramMealItemUpsertWithWhereUniqueWithoutFoodInput | NutritionProgramMealItemUpsertWithWhereUniqueWithoutFoodInput[]
+    createMany?: NutritionProgramMealItemCreateManyFoodInputEnvelope
+    set?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    disconnect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    delete?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    connect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    update?: NutritionProgramMealItemUpdateWithWhereUniqueWithoutFoodInput | NutritionProgramMealItemUpdateWithWhereUniqueWithoutFoodInput[]
+    updateMany?: NutritionProgramMealItemUpdateManyWithWhereWithoutFoodInput | NutritionProgramMealItemUpdateManyWithWhereWithoutFoodInput[]
+    deleteMany?: NutritionProgramMealItemScalarWhereInput | NutritionProgramMealItemScalarWhereInput[]
   }
 
   export type FoodCreateNestedOneWithoutAliasesInput = {
@@ -19922,6 +27661,246 @@ export namespace Prisma {
     delete?: WorkoutWhereInput | boolean
     connect?: WorkoutWhereUniqueInput
     update?: XOR<XOR<WorkoutUpdateToOneWithWhereWithoutSchedulesInput, WorkoutUpdateWithoutSchedulesInput>, WorkoutUncheckedUpdateWithoutSchedulesInput>
+  }
+
+  export type NutritionProgramDayCreateNestedManyWithoutProgramInput = {
+    create?: XOR<NutritionProgramDayCreateWithoutProgramInput, NutritionProgramDayUncheckedCreateWithoutProgramInput> | NutritionProgramDayCreateWithoutProgramInput[] | NutritionProgramDayUncheckedCreateWithoutProgramInput[]
+    connectOrCreate?: NutritionProgramDayCreateOrConnectWithoutProgramInput | NutritionProgramDayCreateOrConnectWithoutProgramInput[]
+    createMany?: NutritionProgramDayCreateManyProgramInputEnvelope
+    connect?: NutritionProgramDayWhereUniqueInput | NutritionProgramDayWhereUniqueInput[]
+  }
+
+  export type NutritionProgramDayUncheckedCreateNestedManyWithoutProgramInput = {
+    create?: XOR<NutritionProgramDayCreateWithoutProgramInput, NutritionProgramDayUncheckedCreateWithoutProgramInput> | NutritionProgramDayCreateWithoutProgramInput[] | NutritionProgramDayUncheckedCreateWithoutProgramInput[]
+    connectOrCreate?: NutritionProgramDayCreateOrConnectWithoutProgramInput | NutritionProgramDayCreateOrConnectWithoutProgramInput[]
+    createMany?: NutritionProgramDayCreateManyProgramInputEnvelope
+    connect?: NutritionProgramDayWhereUniqueInput | NutritionProgramDayWhereUniqueInput[]
+  }
+
+  export type NutritionProgramDayUpdateManyWithoutProgramNestedInput = {
+    create?: XOR<NutritionProgramDayCreateWithoutProgramInput, NutritionProgramDayUncheckedCreateWithoutProgramInput> | NutritionProgramDayCreateWithoutProgramInput[] | NutritionProgramDayUncheckedCreateWithoutProgramInput[]
+    connectOrCreate?: NutritionProgramDayCreateOrConnectWithoutProgramInput | NutritionProgramDayCreateOrConnectWithoutProgramInput[]
+    upsert?: NutritionProgramDayUpsertWithWhereUniqueWithoutProgramInput | NutritionProgramDayUpsertWithWhereUniqueWithoutProgramInput[]
+    createMany?: NutritionProgramDayCreateManyProgramInputEnvelope
+    set?: NutritionProgramDayWhereUniqueInput | NutritionProgramDayWhereUniqueInput[]
+    disconnect?: NutritionProgramDayWhereUniqueInput | NutritionProgramDayWhereUniqueInput[]
+    delete?: NutritionProgramDayWhereUniqueInput | NutritionProgramDayWhereUniqueInput[]
+    connect?: NutritionProgramDayWhereUniqueInput | NutritionProgramDayWhereUniqueInput[]
+    update?: NutritionProgramDayUpdateWithWhereUniqueWithoutProgramInput | NutritionProgramDayUpdateWithWhereUniqueWithoutProgramInput[]
+    updateMany?: NutritionProgramDayUpdateManyWithWhereWithoutProgramInput | NutritionProgramDayUpdateManyWithWhereWithoutProgramInput[]
+    deleteMany?: NutritionProgramDayScalarWhereInput | NutritionProgramDayScalarWhereInput[]
+  }
+
+  export type NutritionProgramDayUncheckedUpdateManyWithoutProgramNestedInput = {
+    create?: XOR<NutritionProgramDayCreateWithoutProgramInput, NutritionProgramDayUncheckedCreateWithoutProgramInput> | NutritionProgramDayCreateWithoutProgramInput[] | NutritionProgramDayUncheckedCreateWithoutProgramInput[]
+    connectOrCreate?: NutritionProgramDayCreateOrConnectWithoutProgramInput | NutritionProgramDayCreateOrConnectWithoutProgramInput[]
+    upsert?: NutritionProgramDayUpsertWithWhereUniqueWithoutProgramInput | NutritionProgramDayUpsertWithWhereUniqueWithoutProgramInput[]
+    createMany?: NutritionProgramDayCreateManyProgramInputEnvelope
+    set?: NutritionProgramDayWhereUniqueInput | NutritionProgramDayWhereUniqueInput[]
+    disconnect?: NutritionProgramDayWhereUniqueInput | NutritionProgramDayWhereUniqueInput[]
+    delete?: NutritionProgramDayWhereUniqueInput | NutritionProgramDayWhereUniqueInput[]
+    connect?: NutritionProgramDayWhereUniqueInput | NutritionProgramDayWhereUniqueInput[]
+    update?: NutritionProgramDayUpdateWithWhereUniqueWithoutProgramInput | NutritionProgramDayUpdateWithWhereUniqueWithoutProgramInput[]
+    updateMany?: NutritionProgramDayUpdateManyWithWhereWithoutProgramInput | NutritionProgramDayUpdateManyWithWhereWithoutProgramInput[]
+    deleteMany?: NutritionProgramDayScalarWhereInput | NutritionProgramDayScalarWhereInput[]
+  }
+
+  export type NutritionProgramCreateNestedOneWithoutDaysInput = {
+    create?: XOR<NutritionProgramCreateWithoutDaysInput, NutritionProgramUncheckedCreateWithoutDaysInput>
+    connectOrCreate?: NutritionProgramCreateOrConnectWithoutDaysInput
+    connect?: NutritionProgramWhereUniqueInput
+  }
+
+  export type NutritionProgramMealCreateNestedManyWithoutDayInput = {
+    create?: XOR<NutritionProgramMealCreateWithoutDayInput, NutritionProgramMealUncheckedCreateWithoutDayInput> | NutritionProgramMealCreateWithoutDayInput[] | NutritionProgramMealUncheckedCreateWithoutDayInput[]
+    connectOrCreate?: NutritionProgramMealCreateOrConnectWithoutDayInput | NutritionProgramMealCreateOrConnectWithoutDayInput[]
+    createMany?: NutritionProgramMealCreateManyDayInputEnvelope
+    connect?: NutritionProgramMealWhereUniqueInput | NutritionProgramMealWhereUniqueInput[]
+  }
+
+  export type NutritionProgramMealUncheckedCreateNestedManyWithoutDayInput = {
+    create?: XOR<NutritionProgramMealCreateWithoutDayInput, NutritionProgramMealUncheckedCreateWithoutDayInput> | NutritionProgramMealCreateWithoutDayInput[] | NutritionProgramMealUncheckedCreateWithoutDayInput[]
+    connectOrCreate?: NutritionProgramMealCreateOrConnectWithoutDayInput | NutritionProgramMealCreateOrConnectWithoutDayInput[]
+    createMany?: NutritionProgramMealCreateManyDayInputEnvelope
+    connect?: NutritionProgramMealWhereUniqueInput | NutritionProgramMealWhereUniqueInput[]
+  }
+
+  export type NutritionProgramUpdateOneRequiredWithoutDaysNestedInput = {
+    create?: XOR<NutritionProgramCreateWithoutDaysInput, NutritionProgramUncheckedCreateWithoutDaysInput>
+    connectOrCreate?: NutritionProgramCreateOrConnectWithoutDaysInput
+    upsert?: NutritionProgramUpsertWithoutDaysInput
+    connect?: NutritionProgramWhereUniqueInput
+    update?: XOR<XOR<NutritionProgramUpdateToOneWithWhereWithoutDaysInput, NutritionProgramUpdateWithoutDaysInput>, NutritionProgramUncheckedUpdateWithoutDaysInput>
+  }
+
+  export type NutritionProgramMealUpdateManyWithoutDayNestedInput = {
+    create?: XOR<NutritionProgramMealCreateWithoutDayInput, NutritionProgramMealUncheckedCreateWithoutDayInput> | NutritionProgramMealCreateWithoutDayInput[] | NutritionProgramMealUncheckedCreateWithoutDayInput[]
+    connectOrCreate?: NutritionProgramMealCreateOrConnectWithoutDayInput | NutritionProgramMealCreateOrConnectWithoutDayInput[]
+    upsert?: NutritionProgramMealUpsertWithWhereUniqueWithoutDayInput | NutritionProgramMealUpsertWithWhereUniqueWithoutDayInput[]
+    createMany?: NutritionProgramMealCreateManyDayInputEnvelope
+    set?: NutritionProgramMealWhereUniqueInput | NutritionProgramMealWhereUniqueInput[]
+    disconnect?: NutritionProgramMealWhereUniqueInput | NutritionProgramMealWhereUniqueInput[]
+    delete?: NutritionProgramMealWhereUniqueInput | NutritionProgramMealWhereUniqueInput[]
+    connect?: NutritionProgramMealWhereUniqueInput | NutritionProgramMealWhereUniqueInput[]
+    update?: NutritionProgramMealUpdateWithWhereUniqueWithoutDayInput | NutritionProgramMealUpdateWithWhereUniqueWithoutDayInput[]
+    updateMany?: NutritionProgramMealUpdateManyWithWhereWithoutDayInput | NutritionProgramMealUpdateManyWithWhereWithoutDayInput[]
+    deleteMany?: NutritionProgramMealScalarWhereInput | NutritionProgramMealScalarWhereInput[]
+  }
+
+  export type NutritionProgramMealUncheckedUpdateManyWithoutDayNestedInput = {
+    create?: XOR<NutritionProgramMealCreateWithoutDayInput, NutritionProgramMealUncheckedCreateWithoutDayInput> | NutritionProgramMealCreateWithoutDayInput[] | NutritionProgramMealUncheckedCreateWithoutDayInput[]
+    connectOrCreate?: NutritionProgramMealCreateOrConnectWithoutDayInput | NutritionProgramMealCreateOrConnectWithoutDayInput[]
+    upsert?: NutritionProgramMealUpsertWithWhereUniqueWithoutDayInput | NutritionProgramMealUpsertWithWhereUniqueWithoutDayInput[]
+    createMany?: NutritionProgramMealCreateManyDayInputEnvelope
+    set?: NutritionProgramMealWhereUniqueInput | NutritionProgramMealWhereUniqueInput[]
+    disconnect?: NutritionProgramMealWhereUniqueInput | NutritionProgramMealWhereUniqueInput[]
+    delete?: NutritionProgramMealWhereUniqueInput | NutritionProgramMealWhereUniqueInput[]
+    connect?: NutritionProgramMealWhereUniqueInput | NutritionProgramMealWhereUniqueInput[]
+    update?: NutritionProgramMealUpdateWithWhereUniqueWithoutDayInput | NutritionProgramMealUpdateWithWhereUniqueWithoutDayInput[]
+    updateMany?: NutritionProgramMealUpdateManyWithWhereWithoutDayInput | NutritionProgramMealUpdateManyWithWhereWithoutDayInput[]
+    deleteMany?: NutritionProgramMealScalarWhereInput | NutritionProgramMealScalarWhereInput[]
+  }
+
+  export type NutritionProgramDayCreateNestedOneWithoutMealsInput = {
+    create?: XOR<NutritionProgramDayCreateWithoutMealsInput, NutritionProgramDayUncheckedCreateWithoutMealsInput>
+    connectOrCreate?: NutritionProgramDayCreateOrConnectWithoutMealsInput
+    connect?: NutritionProgramDayWhereUniqueInput
+  }
+
+  export type NutritionProgramMealItemCreateNestedManyWithoutMealInput = {
+    create?: XOR<NutritionProgramMealItemCreateWithoutMealInput, NutritionProgramMealItemUncheckedCreateWithoutMealInput> | NutritionProgramMealItemCreateWithoutMealInput[] | NutritionProgramMealItemUncheckedCreateWithoutMealInput[]
+    connectOrCreate?: NutritionProgramMealItemCreateOrConnectWithoutMealInput | NutritionProgramMealItemCreateOrConnectWithoutMealInput[]
+    createMany?: NutritionProgramMealItemCreateManyMealInputEnvelope
+    connect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+  }
+
+  export type NutritionMealCompletionCreateNestedManyWithoutMealInput = {
+    create?: XOR<NutritionMealCompletionCreateWithoutMealInput, NutritionMealCompletionUncheckedCreateWithoutMealInput> | NutritionMealCompletionCreateWithoutMealInput[] | NutritionMealCompletionUncheckedCreateWithoutMealInput[]
+    connectOrCreate?: NutritionMealCompletionCreateOrConnectWithoutMealInput | NutritionMealCompletionCreateOrConnectWithoutMealInput[]
+    createMany?: NutritionMealCompletionCreateManyMealInputEnvelope
+    connect?: NutritionMealCompletionWhereUniqueInput | NutritionMealCompletionWhereUniqueInput[]
+  }
+
+  export type NutritionProgramMealItemUncheckedCreateNestedManyWithoutMealInput = {
+    create?: XOR<NutritionProgramMealItemCreateWithoutMealInput, NutritionProgramMealItemUncheckedCreateWithoutMealInput> | NutritionProgramMealItemCreateWithoutMealInput[] | NutritionProgramMealItemUncheckedCreateWithoutMealInput[]
+    connectOrCreate?: NutritionProgramMealItemCreateOrConnectWithoutMealInput | NutritionProgramMealItemCreateOrConnectWithoutMealInput[]
+    createMany?: NutritionProgramMealItemCreateManyMealInputEnvelope
+    connect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+  }
+
+  export type NutritionMealCompletionUncheckedCreateNestedManyWithoutMealInput = {
+    create?: XOR<NutritionMealCompletionCreateWithoutMealInput, NutritionMealCompletionUncheckedCreateWithoutMealInput> | NutritionMealCompletionCreateWithoutMealInput[] | NutritionMealCompletionUncheckedCreateWithoutMealInput[]
+    connectOrCreate?: NutritionMealCompletionCreateOrConnectWithoutMealInput | NutritionMealCompletionCreateOrConnectWithoutMealInput[]
+    createMany?: NutritionMealCompletionCreateManyMealInputEnvelope
+    connect?: NutritionMealCompletionWhereUniqueInput | NutritionMealCompletionWhereUniqueInput[]
+  }
+
+  export type NutritionProgramDayUpdateOneRequiredWithoutMealsNestedInput = {
+    create?: XOR<NutritionProgramDayCreateWithoutMealsInput, NutritionProgramDayUncheckedCreateWithoutMealsInput>
+    connectOrCreate?: NutritionProgramDayCreateOrConnectWithoutMealsInput
+    upsert?: NutritionProgramDayUpsertWithoutMealsInput
+    connect?: NutritionProgramDayWhereUniqueInput
+    update?: XOR<XOR<NutritionProgramDayUpdateToOneWithWhereWithoutMealsInput, NutritionProgramDayUpdateWithoutMealsInput>, NutritionProgramDayUncheckedUpdateWithoutMealsInput>
+  }
+
+  export type NutritionProgramMealItemUpdateManyWithoutMealNestedInput = {
+    create?: XOR<NutritionProgramMealItemCreateWithoutMealInput, NutritionProgramMealItemUncheckedCreateWithoutMealInput> | NutritionProgramMealItemCreateWithoutMealInput[] | NutritionProgramMealItemUncheckedCreateWithoutMealInput[]
+    connectOrCreate?: NutritionProgramMealItemCreateOrConnectWithoutMealInput | NutritionProgramMealItemCreateOrConnectWithoutMealInput[]
+    upsert?: NutritionProgramMealItemUpsertWithWhereUniqueWithoutMealInput | NutritionProgramMealItemUpsertWithWhereUniqueWithoutMealInput[]
+    createMany?: NutritionProgramMealItemCreateManyMealInputEnvelope
+    set?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    disconnect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    delete?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    connect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    update?: NutritionProgramMealItemUpdateWithWhereUniqueWithoutMealInput | NutritionProgramMealItemUpdateWithWhereUniqueWithoutMealInput[]
+    updateMany?: NutritionProgramMealItemUpdateManyWithWhereWithoutMealInput | NutritionProgramMealItemUpdateManyWithWhereWithoutMealInput[]
+    deleteMany?: NutritionProgramMealItemScalarWhereInput | NutritionProgramMealItemScalarWhereInput[]
+  }
+
+  export type NutritionMealCompletionUpdateManyWithoutMealNestedInput = {
+    create?: XOR<NutritionMealCompletionCreateWithoutMealInput, NutritionMealCompletionUncheckedCreateWithoutMealInput> | NutritionMealCompletionCreateWithoutMealInput[] | NutritionMealCompletionUncheckedCreateWithoutMealInput[]
+    connectOrCreate?: NutritionMealCompletionCreateOrConnectWithoutMealInput | NutritionMealCompletionCreateOrConnectWithoutMealInput[]
+    upsert?: NutritionMealCompletionUpsertWithWhereUniqueWithoutMealInput | NutritionMealCompletionUpsertWithWhereUniqueWithoutMealInput[]
+    createMany?: NutritionMealCompletionCreateManyMealInputEnvelope
+    set?: NutritionMealCompletionWhereUniqueInput | NutritionMealCompletionWhereUniqueInput[]
+    disconnect?: NutritionMealCompletionWhereUniqueInput | NutritionMealCompletionWhereUniqueInput[]
+    delete?: NutritionMealCompletionWhereUniqueInput | NutritionMealCompletionWhereUniqueInput[]
+    connect?: NutritionMealCompletionWhereUniqueInput | NutritionMealCompletionWhereUniqueInput[]
+    update?: NutritionMealCompletionUpdateWithWhereUniqueWithoutMealInput | NutritionMealCompletionUpdateWithWhereUniqueWithoutMealInput[]
+    updateMany?: NutritionMealCompletionUpdateManyWithWhereWithoutMealInput | NutritionMealCompletionUpdateManyWithWhereWithoutMealInput[]
+    deleteMany?: NutritionMealCompletionScalarWhereInput | NutritionMealCompletionScalarWhereInput[]
+  }
+
+  export type NutritionProgramMealItemUncheckedUpdateManyWithoutMealNestedInput = {
+    create?: XOR<NutritionProgramMealItemCreateWithoutMealInput, NutritionProgramMealItemUncheckedCreateWithoutMealInput> | NutritionProgramMealItemCreateWithoutMealInput[] | NutritionProgramMealItemUncheckedCreateWithoutMealInput[]
+    connectOrCreate?: NutritionProgramMealItemCreateOrConnectWithoutMealInput | NutritionProgramMealItemCreateOrConnectWithoutMealInput[]
+    upsert?: NutritionProgramMealItemUpsertWithWhereUniqueWithoutMealInput | NutritionProgramMealItemUpsertWithWhereUniqueWithoutMealInput[]
+    createMany?: NutritionProgramMealItemCreateManyMealInputEnvelope
+    set?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    disconnect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    delete?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    connect?: NutritionProgramMealItemWhereUniqueInput | NutritionProgramMealItemWhereUniqueInput[]
+    update?: NutritionProgramMealItemUpdateWithWhereUniqueWithoutMealInput | NutritionProgramMealItemUpdateWithWhereUniqueWithoutMealInput[]
+    updateMany?: NutritionProgramMealItemUpdateManyWithWhereWithoutMealInput | NutritionProgramMealItemUpdateManyWithWhereWithoutMealInput[]
+    deleteMany?: NutritionProgramMealItemScalarWhereInput | NutritionProgramMealItemScalarWhereInput[]
+  }
+
+  export type NutritionMealCompletionUncheckedUpdateManyWithoutMealNestedInput = {
+    create?: XOR<NutritionMealCompletionCreateWithoutMealInput, NutritionMealCompletionUncheckedCreateWithoutMealInput> | NutritionMealCompletionCreateWithoutMealInput[] | NutritionMealCompletionUncheckedCreateWithoutMealInput[]
+    connectOrCreate?: NutritionMealCompletionCreateOrConnectWithoutMealInput | NutritionMealCompletionCreateOrConnectWithoutMealInput[]
+    upsert?: NutritionMealCompletionUpsertWithWhereUniqueWithoutMealInput | NutritionMealCompletionUpsertWithWhereUniqueWithoutMealInput[]
+    createMany?: NutritionMealCompletionCreateManyMealInputEnvelope
+    set?: NutritionMealCompletionWhereUniqueInput | NutritionMealCompletionWhereUniqueInput[]
+    disconnect?: NutritionMealCompletionWhereUniqueInput | NutritionMealCompletionWhereUniqueInput[]
+    delete?: NutritionMealCompletionWhereUniqueInput | NutritionMealCompletionWhereUniqueInput[]
+    connect?: NutritionMealCompletionWhereUniqueInput | NutritionMealCompletionWhereUniqueInput[]
+    update?: NutritionMealCompletionUpdateWithWhereUniqueWithoutMealInput | NutritionMealCompletionUpdateWithWhereUniqueWithoutMealInput[]
+    updateMany?: NutritionMealCompletionUpdateManyWithWhereWithoutMealInput | NutritionMealCompletionUpdateManyWithWhereWithoutMealInput[]
+    deleteMany?: NutritionMealCompletionScalarWhereInput | NutritionMealCompletionScalarWhereInput[]
+  }
+
+  export type NutritionProgramMealCreateNestedOneWithoutItemsInput = {
+    create?: XOR<NutritionProgramMealCreateWithoutItemsInput, NutritionProgramMealUncheckedCreateWithoutItemsInput>
+    connectOrCreate?: NutritionProgramMealCreateOrConnectWithoutItemsInput
+    connect?: NutritionProgramMealWhereUniqueInput
+  }
+
+  export type FoodCreateNestedOneWithoutMealItemsInput = {
+    create?: XOR<FoodCreateWithoutMealItemsInput, FoodUncheckedCreateWithoutMealItemsInput>
+    connectOrCreate?: FoodCreateOrConnectWithoutMealItemsInput
+    connect?: FoodWhereUniqueInput
+  }
+
+  export type NutritionProgramMealUpdateOneRequiredWithoutItemsNestedInput = {
+    create?: XOR<NutritionProgramMealCreateWithoutItemsInput, NutritionProgramMealUncheckedCreateWithoutItemsInput>
+    connectOrCreate?: NutritionProgramMealCreateOrConnectWithoutItemsInput
+    upsert?: NutritionProgramMealUpsertWithoutItemsInput
+    connect?: NutritionProgramMealWhereUniqueInput
+    update?: XOR<XOR<NutritionProgramMealUpdateToOneWithWhereWithoutItemsInput, NutritionProgramMealUpdateWithoutItemsInput>, NutritionProgramMealUncheckedUpdateWithoutItemsInput>
+  }
+
+  export type FoodUpdateOneWithoutMealItemsNestedInput = {
+    create?: XOR<FoodCreateWithoutMealItemsInput, FoodUncheckedCreateWithoutMealItemsInput>
+    connectOrCreate?: FoodCreateOrConnectWithoutMealItemsInput
+    upsert?: FoodUpsertWithoutMealItemsInput
+    disconnect?: FoodWhereInput | boolean
+    delete?: FoodWhereInput | boolean
+    connect?: FoodWhereUniqueInput
+    update?: XOR<XOR<FoodUpdateToOneWithWhereWithoutMealItemsInput, FoodUpdateWithoutMealItemsInput>, FoodUncheckedUpdateWithoutMealItemsInput>
+  }
+
+  export type NutritionProgramMealCreateNestedOneWithoutCompletionsInput = {
+    create?: XOR<NutritionProgramMealCreateWithoutCompletionsInput, NutritionProgramMealUncheckedCreateWithoutCompletionsInput>
+    connectOrCreate?: NutritionProgramMealCreateOrConnectWithoutCompletionsInput
+    connect?: NutritionProgramMealWhereUniqueInput
+  }
+
+  export type NutritionProgramMealUpdateOneRequiredWithoutCompletionsNestedInput = {
+    create?: XOR<NutritionProgramMealCreateWithoutCompletionsInput, NutritionProgramMealUncheckedCreateWithoutCompletionsInput>
+    connectOrCreate?: NutritionProgramMealCreateOrConnectWithoutCompletionsInput
+    upsert?: NutritionProgramMealUpsertWithoutCompletionsInput
+    connect?: NutritionProgramMealWhereUniqueInput
+    update?: XOR<XOR<NutritionProgramMealUpdateToOneWithWhereWithoutCompletionsInput, NutritionProgramMealUpdateWithoutCompletionsInput>, NutritionProgramMealUncheckedUpdateWithoutCompletionsInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -20782,6 +28761,46 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type NutritionProgramMealItemCreateWithoutFoodInput = {
+    id?: string
+    customFoodName?: string | null
+    quantity?: number
+    unit?: string
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    meal: NutritionProgramMealCreateNestedOneWithoutItemsInput
+  }
+
+  export type NutritionProgramMealItemUncheckedCreateWithoutFoodInput = {
+    id?: string
+    mealId: string
+    customFoodName?: string | null
+    quantity?: number
+    unit?: string
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramMealItemCreateOrConnectWithoutFoodInput = {
+    where: NutritionProgramMealItemWhereUniqueInput
+    create: XOR<NutritionProgramMealItemCreateWithoutFoodInput, NutritionProgramMealItemUncheckedCreateWithoutFoodInput>
+  }
+
+  export type NutritionProgramMealItemCreateManyFoodInputEnvelope = {
+    data: NutritionProgramMealItemCreateManyFoodInput | NutritionProgramMealItemCreateManyFoodInput[]
+    skipDuplicates?: boolean
+  }
+
   export type FoodAliasUpsertWithWhereUniqueWithoutFoodInput = {
     where: FoodAliasWhereUniqueInput
     update: XOR<FoodAliasUpdateWithoutFoodInput, FoodAliasUncheckedUpdateWithoutFoodInput>
@@ -20812,6 +28831,41 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"FoodAlias"> | Date | string
   }
 
+  export type NutritionProgramMealItemUpsertWithWhereUniqueWithoutFoodInput = {
+    where: NutritionProgramMealItemWhereUniqueInput
+    update: XOR<NutritionProgramMealItemUpdateWithoutFoodInput, NutritionProgramMealItemUncheckedUpdateWithoutFoodInput>
+    create: XOR<NutritionProgramMealItemCreateWithoutFoodInput, NutritionProgramMealItemUncheckedCreateWithoutFoodInput>
+  }
+
+  export type NutritionProgramMealItemUpdateWithWhereUniqueWithoutFoodInput = {
+    where: NutritionProgramMealItemWhereUniqueInput
+    data: XOR<NutritionProgramMealItemUpdateWithoutFoodInput, NutritionProgramMealItemUncheckedUpdateWithoutFoodInput>
+  }
+
+  export type NutritionProgramMealItemUpdateManyWithWhereWithoutFoodInput = {
+    where: NutritionProgramMealItemScalarWhereInput
+    data: XOR<NutritionProgramMealItemUpdateManyMutationInput, NutritionProgramMealItemUncheckedUpdateManyWithoutFoodInput>
+  }
+
+  export type NutritionProgramMealItemScalarWhereInput = {
+    AND?: NutritionProgramMealItemScalarWhereInput | NutritionProgramMealItemScalarWhereInput[]
+    OR?: NutritionProgramMealItemScalarWhereInput[]
+    NOT?: NutritionProgramMealItemScalarWhereInput | NutritionProgramMealItemScalarWhereInput[]
+    id?: StringFilter<"NutritionProgramMealItem"> | string
+    mealId?: StringFilter<"NutritionProgramMealItem"> | string
+    foodId?: StringNullableFilter<"NutritionProgramMealItem"> | string | null
+    customFoodName?: StringNullableFilter<"NutritionProgramMealItem"> | string | null
+    quantity?: FloatFilter<"NutritionProgramMealItem"> | number
+    unit?: StringFilter<"NutritionProgramMealItem"> | string
+    calories?: IntNullableFilter<"NutritionProgramMealItem"> | number | null
+    proteinGrams?: FloatNullableFilter<"NutritionProgramMealItem"> | number | null
+    carbGrams?: FloatNullableFilter<"NutritionProgramMealItem"> | number | null
+    fatGrams?: FloatNullableFilter<"NutritionProgramMealItem"> | number | null
+    notes?: StringNullableFilter<"NutritionProgramMealItem"> | string | null
+    createdAt?: DateTimeFilter<"NutritionProgramMealItem"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionProgramMealItem"> | Date | string
+  }
+
   export type FoodCreateWithoutAliasesInput = {
     id?: string
     fdcId: number
@@ -20822,6 +28876,7 @@ export namespace Prisma {
     fats?: number
     source: string
     imageUrl?: string | null
+    mealItems?: NutritionProgramMealItemCreateNestedManyWithoutFoodInput
   }
 
   export type FoodUncheckedCreateWithoutAliasesInput = {
@@ -20834,6 +28889,7 @@ export namespace Prisma {
     fats?: number
     source: string
     imageUrl?: string | null
+    mealItems?: NutritionProgramMealItemUncheckedCreateNestedManyWithoutFoodInput
   }
 
   export type FoodCreateOrConnectWithoutAliasesInput = {
@@ -20862,6 +28918,7 @@ export namespace Prisma {
     fats?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    mealItems?: NutritionProgramMealItemUpdateManyWithoutFoodNestedInput
   }
 
   export type FoodUncheckedUpdateWithoutAliasesInput = {
@@ -20874,6 +28931,7 @@ export namespace Prisma {
     fats?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    mealItems?: NutritionProgramMealItemUncheckedUpdateManyWithoutFoodNestedInput
   }
 
   export type WorkoutProgramDayCreateWithoutProgramInput = {
@@ -21402,6 +29460,674 @@ export namespace Prisma {
     exercises?: WorkoutExerciseUncheckedUpdateManyWithoutWorkoutNestedInput
   }
 
+  export type NutritionProgramDayCreateWithoutProgramInput = {
+    id?: string
+    dayNumber: number
+    title?: string | null
+    totalCalories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    meals?: NutritionProgramMealCreateNestedManyWithoutDayInput
+  }
+
+  export type NutritionProgramDayUncheckedCreateWithoutProgramInput = {
+    id?: string
+    dayNumber: number
+    title?: string | null
+    totalCalories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    meals?: NutritionProgramMealUncheckedCreateNestedManyWithoutDayInput
+  }
+
+  export type NutritionProgramDayCreateOrConnectWithoutProgramInput = {
+    where: NutritionProgramDayWhereUniqueInput
+    create: XOR<NutritionProgramDayCreateWithoutProgramInput, NutritionProgramDayUncheckedCreateWithoutProgramInput>
+  }
+
+  export type NutritionProgramDayCreateManyProgramInputEnvelope = {
+    data: NutritionProgramDayCreateManyProgramInput | NutritionProgramDayCreateManyProgramInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type NutritionProgramDayUpsertWithWhereUniqueWithoutProgramInput = {
+    where: NutritionProgramDayWhereUniqueInput
+    update: XOR<NutritionProgramDayUpdateWithoutProgramInput, NutritionProgramDayUncheckedUpdateWithoutProgramInput>
+    create: XOR<NutritionProgramDayCreateWithoutProgramInput, NutritionProgramDayUncheckedCreateWithoutProgramInput>
+  }
+
+  export type NutritionProgramDayUpdateWithWhereUniqueWithoutProgramInput = {
+    where: NutritionProgramDayWhereUniqueInput
+    data: XOR<NutritionProgramDayUpdateWithoutProgramInput, NutritionProgramDayUncheckedUpdateWithoutProgramInput>
+  }
+
+  export type NutritionProgramDayUpdateManyWithWhereWithoutProgramInput = {
+    where: NutritionProgramDayScalarWhereInput
+    data: XOR<NutritionProgramDayUpdateManyMutationInput, NutritionProgramDayUncheckedUpdateManyWithoutProgramInput>
+  }
+
+  export type NutritionProgramDayScalarWhereInput = {
+    AND?: NutritionProgramDayScalarWhereInput | NutritionProgramDayScalarWhereInput[]
+    OR?: NutritionProgramDayScalarWhereInput[]
+    NOT?: NutritionProgramDayScalarWhereInput | NutritionProgramDayScalarWhereInput[]
+    id?: StringFilter<"NutritionProgramDay"> | string
+    programId?: StringFilter<"NutritionProgramDay"> | string
+    dayNumber?: IntFilter<"NutritionProgramDay"> | number
+    title?: StringNullableFilter<"NutritionProgramDay"> | string | null
+    totalCalories?: IntNullableFilter<"NutritionProgramDay"> | number | null
+    proteinGrams?: FloatNullableFilter<"NutritionProgramDay"> | number | null
+    carbGrams?: FloatNullableFilter<"NutritionProgramDay"> | number | null
+    fatGrams?: FloatNullableFilter<"NutritionProgramDay"> | number | null
+    createdAt?: DateTimeFilter<"NutritionProgramDay"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionProgramDay"> | Date | string
+  }
+
+  export type NutritionProgramCreateWithoutDaysInput = {
+    id?: string
+    userId: string
+    name: string
+    goal?: string | null
+    durationWeeks?: number | null
+    mealsPerDay?: number | null
+    dailyCaloriesTarget?: number | null
+    proteinTargetGrams?: number | null
+    carbTargetGrams?: number | null
+    fatTargetGrams?: number | null
+    sourcePlanId?: string | null
+    sourceType?: string | null
+    status?: string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    repeatEnabled?: boolean
+    archivedAt?: Date | string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramUncheckedCreateWithoutDaysInput = {
+    id?: string
+    userId: string
+    name: string
+    goal?: string | null
+    durationWeeks?: number | null
+    mealsPerDay?: number | null
+    dailyCaloriesTarget?: number | null
+    proteinTargetGrams?: number | null
+    carbTargetGrams?: number | null
+    fatTargetGrams?: number | null
+    sourcePlanId?: string | null
+    sourceType?: string | null
+    status?: string
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    repeatEnabled?: boolean
+    archivedAt?: Date | string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramCreateOrConnectWithoutDaysInput = {
+    where: NutritionProgramWhereUniqueInput
+    create: XOR<NutritionProgramCreateWithoutDaysInput, NutritionProgramUncheckedCreateWithoutDaysInput>
+  }
+
+  export type NutritionProgramMealCreateWithoutDayInput = {
+    id?: string
+    mealType: string
+    title?: string | null
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    items?: NutritionProgramMealItemCreateNestedManyWithoutMealInput
+    completions?: NutritionMealCompletionCreateNestedManyWithoutMealInput
+  }
+
+  export type NutritionProgramMealUncheckedCreateWithoutDayInput = {
+    id?: string
+    mealType: string
+    title?: string | null
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    items?: NutritionProgramMealItemUncheckedCreateNestedManyWithoutMealInput
+    completions?: NutritionMealCompletionUncheckedCreateNestedManyWithoutMealInput
+  }
+
+  export type NutritionProgramMealCreateOrConnectWithoutDayInput = {
+    where: NutritionProgramMealWhereUniqueInput
+    create: XOR<NutritionProgramMealCreateWithoutDayInput, NutritionProgramMealUncheckedCreateWithoutDayInput>
+  }
+
+  export type NutritionProgramMealCreateManyDayInputEnvelope = {
+    data: NutritionProgramMealCreateManyDayInput | NutritionProgramMealCreateManyDayInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type NutritionProgramUpsertWithoutDaysInput = {
+    update: XOR<NutritionProgramUpdateWithoutDaysInput, NutritionProgramUncheckedUpdateWithoutDaysInput>
+    create: XOR<NutritionProgramCreateWithoutDaysInput, NutritionProgramUncheckedCreateWithoutDaysInput>
+    where?: NutritionProgramWhereInput
+  }
+
+  export type NutritionProgramUpdateToOneWithWhereWithoutDaysInput = {
+    where?: NutritionProgramWhereInput
+    data: XOR<NutritionProgramUpdateWithoutDaysInput, NutritionProgramUncheckedUpdateWithoutDaysInput>
+  }
+
+  export type NutritionProgramUpdateWithoutDaysInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    mealsPerDay?: NullableIntFieldUpdateOperationsInput | number | null
+    dailyCaloriesTarget?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    repeatEnabled?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramUncheckedUpdateWithoutDaysInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    mealsPerDay?: NullableIntFieldUpdateOperationsInput | number | null
+    dailyCaloriesTarget?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatTargetGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    repeatEnabled?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealUpsertWithWhereUniqueWithoutDayInput = {
+    where: NutritionProgramMealWhereUniqueInput
+    update: XOR<NutritionProgramMealUpdateWithoutDayInput, NutritionProgramMealUncheckedUpdateWithoutDayInput>
+    create: XOR<NutritionProgramMealCreateWithoutDayInput, NutritionProgramMealUncheckedCreateWithoutDayInput>
+  }
+
+  export type NutritionProgramMealUpdateWithWhereUniqueWithoutDayInput = {
+    where: NutritionProgramMealWhereUniqueInput
+    data: XOR<NutritionProgramMealUpdateWithoutDayInput, NutritionProgramMealUncheckedUpdateWithoutDayInput>
+  }
+
+  export type NutritionProgramMealUpdateManyWithWhereWithoutDayInput = {
+    where: NutritionProgramMealScalarWhereInput
+    data: XOR<NutritionProgramMealUpdateManyMutationInput, NutritionProgramMealUncheckedUpdateManyWithoutDayInput>
+  }
+
+  export type NutritionProgramMealScalarWhereInput = {
+    AND?: NutritionProgramMealScalarWhereInput | NutritionProgramMealScalarWhereInput[]
+    OR?: NutritionProgramMealScalarWhereInput[]
+    NOT?: NutritionProgramMealScalarWhereInput | NutritionProgramMealScalarWhereInput[]
+    id?: StringFilter<"NutritionProgramMeal"> | string
+    dayId?: StringFilter<"NutritionProgramMeal"> | string
+    mealType?: StringFilter<"NutritionProgramMeal"> | string
+    title?: StringNullableFilter<"NutritionProgramMeal"> | string | null
+    calories?: IntNullableFilter<"NutritionProgramMeal"> | number | null
+    proteinGrams?: FloatNullableFilter<"NutritionProgramMeal"> | number | null
+    carbGrams?: FloatNullableFilter<"NutritionProgramMeal"> | number | null
+    fatGrams?: FloatNullableFilter<"NutritionProgramMeal"> | number | null
+    notes?: StringNullableFilter<"NutritionProgramMeal"> | string | null
+    createdAt?: DateTimeFilter<"NutritionProgramMeal"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionProgramMeal"> | Date | string
+  }
+
+  export type NutritionProgramDayCreateWithoutMealsInput = {
+    id?: string
+    dayNumber: number
+    title?: string | null
+    totalCalories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    program: NutritionProgramCreateNestedOneWithoutDaysInput
+  }
+
+  export type NutritionProgramDayUncheckedCreateWithoutMealsInput = {
+    id?: string
+    programId: string
+    dayNumber: number
+    title?: string | null
+    totalCalories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramDayCreateOrConnectWithoutMealsInput = {
+    where: NutritionProgramDayWhereUniqueInput
+    create: XOR<NutritionProgramDayCreateWithoutMealsInput, NutritionProgramDayUncheckedCreateWithoutMealsInput>
+  }
+
+  export type NutritionProgramMealItemCreateWithoutMealInput = {
+    id?: string
+    customFoodName?: string | null
+    quantity?: number
+    unit?: string
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    food?: FoodCreateNestedOneWithoutMealItemsInput
+  }
+
+  export type NutritionProgramMealItemUncheckedCreateWithoutMealInput = {
+    id?: string
+    foodId?: string | null
+    customFoodName?: string | null
+    quantity?: number
+    unit?: string
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramMealItemCreateOrConnectWithoutMealInput = {
+    where: NutritionProgramMealItemWhereUniqueInput
+    create: XOR<NutritionProgramMealItemCreateWithoutMealInput, NutritionProgramMealItemUncheckedCreateWithoutMealInput>
+  }
+
+  export type NutritionProgramMealItemCreateManyMealInputEnvelope = {
+    data: NutritionProgramMealItemCreateManyMealInput | NutritionProgramMealItemCreateManyMealInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type NutritionMealCompletionCreateWithoutMealInput = {
+    id?: string
+    userId: string
+    logDate: Date | string
+    status?: string
+    percentConsumed?: number
+    consumedCalories?: number | null
+    consumedProtein?: number | null
+    consumedCarbs?: number | null
+    consumedFat?: number | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionMealCompletionUncheckedCreateWithoutMealInput = {
+    id?: string
+    userId: string
+    logDate: Date | string
+    status?: string
+    percentConsumed?: number
+    consumedCalories?: number | null
+    consumedProtein?: number | null
+    consumedCarbs?: number | null
+    consumedFat?: number | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionMealCompletionCreateOrConnectWithoutMealInput = {
+    where: NutritionMealCompletionWhereUniqueInput
+    create: XOR<NutritionMealCompletionCreateWithoutMealInput, NutritionMealCompletionUncheckedCreateWithoutMealInput>
+  }
+
+  export type NutritionMealCompletionCreateManyMealInputEnvelope = {
+    data: NutritionMealCompletionCreateManyMealInput | NutritionMealCompletionCreateManyMealInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type NutritionProgramDayUpsertWithoutMealsInput = {
+    update: XOR<NutritionProgramDayUpdateWithoutMealsInput, NutritionProgramDayUncheckedUpdateWithoutMealsInput>
+    create: XOR<NutritionProgramDayCreateWithoutMealsInput, NutritionProgramDayUncheckedCreateWithoutMealsInput>
+    where?: NutritionProgramDayWhereInput
+  }
+
+  export type NutritionProgramDayUpdateToOneWithWhereWithoutMealsInput = {
+    where?: NutritionProgramDayWhereInput
+    data: XOR<NutritionProgramDayUpdateWithoutMealsInput, NutritionProgramDayUncheckedUpdateWithoutMealsInput>
+  }
+
+  export type NutritionProgramDayUpdateWithoutMealsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dayNumber?: IntFieldUpdateOperationsInput | number
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    totalCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    program?: NutritionProgramUpdateOneRequiredWithoutDaysNestedInput
+  }
+
+  export type NutritionProgramDayUncheckedUpdateWithoutMealsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    programId?: StringFieldUpdateOperationsInput | string
+    dayNumber?: IntFieldUpdateOperationsInput | number
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    totalCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealItemUpsertWithWhereUniqueWithoutMealInput = {
+    where: NutritionProgramMealItemWhereUniqueInput
+    update: XOR<NutritionProgramMealItemUpdateWithoutMealInput, NutritionProgramMealItemUncheckedUpdateWithoutMealInput>
+    create: XOR<NutritionProgramMealItemCreateWithoutMealInput, NutritionProgramMealItemUncheckedCreateWithoutMealInput>
+  }
+
+  export type NutritionProgramMealItemUpdateWithWhereUniqueWithoutMealInput = {
+    where: NutritionProgramMealItemWhereUniqueInput
+    data: XOR<NutritionProgramMealItemUpdateWithoutMealInput, NutritionProgramMealItemUncheckedUpdateWithoutMealInput>
+  }
+
+  export type NutritionProgramMealItemUpdateManyWithWhereWithoutMealInput = {
+    where: NutritionProgramMealItemScalarWhereInput
+    data: XOR<NutritionProgramMealItemUpdateManyMutationInput, NutritionProgramMealItemUncheckedUpdateManyWithoutMealInput>
+  }
+
+  export type NutritionMealCompletionUpsertWithWhereUniqueWithoutMealInput = {
+    where: NutritionMealCompletionWhereUniqueInput
+    update: XOR<NutritionMealCompletionUpdateWithoutMealInput, NutritionMealCompletionUncheckedUpdateWithoutMealInput>
+    create: XOR<NutritionMealCompletionCreateWithoutMealInput, NutritionMealCompletionUncheckedCreateWithoutMealInput>
+  }
+
+  export type NutritionMealCompletionUpdateWithWhereUniqueWithoutMealInput = {
+    where: NutritionMealCompletionWhereUniqueInput
+    data: XOR<NutritionMealCompletionUpdateWithoutMealInput, NutritionMealCompletionUncheckedUpdateWithoutMealInput>
+  }
+
+  export type NutritionMealCompletionUpdateManyWithWhereWithoutMealInput = {
+    where: NutritionMealCompletionScalarWhereInput
+    data: XOR<NutritionMealCompletionUpdateManyMutationInput, NutritionMealCompletionUncheckedUpdateManyWithoutMealInput>
+  }
+
+  export type NutritionMealCompletionScalarWhereInput = {
+    AND?: NutritionMealCompletionScalarWhereInput | NutritionMealCompletionScalarWhereInput[]
+    OR?: NutritionMealCompletionScalarWhereInput[]
+    NOT?: NutritionMealCompletionScalarWhereInput | NutritionMealCompletionScalarWhereInput[]
+    id?: StringFilter<"NutritionMealCompletion"> | string
+    userId?: StringFilter<"NutritionMealCompletion"> | string
+    mealId?: StringFilter<"NutritionMealCompletion"> | string
+    logDate?: DateTimeFilter<"NutritionMealCompletion"> | Date | string
+    status?: StringFilter<"NutritionMealCompletion"> | string
+    percentConsumed?: IntFilter<"NutritionMealCompletion"> | number
+    consumedCalories?: IntNullableFilter<"NutritionMealCompletion"> | number | null
+    consumedProtein?: FloatNullableFilter<"NutritionMealCompletion"> | number | null
+    consumedCarbs?: FloatNullableFilter<"NutritionMealCompletion"> | number | null
+    consumedFat?: FloatNullableFilter<"NutritionMealCompletion"> | number | null
+    completedAt?: DateTimeNullableFilter<"NutritionMealCompletion"> | Date | string | null
+    createdAt?: DateTimeFilter<"NutritionMealCompletion"> | Date | string
+    updatedAt?: DateTimeFilter<"NutritionMealCompletion"> | Date | string
+  }
+
+  export type NutritionProgramMealCreateWithoutItemsInput = {
+    id?: string
+    mealType: string
+    title?: string | null
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    day: NutritionProgramDayCreateNestedOneWithoutMealsInput
+    completions?: NutritionMealCompletionCreateNestedManyWithoutMealInput
+  }
+
+  export type NutritionProgramMealUncheckedCreateWithoutItemsInput = {
+    id?: string
+    dayId: string
+    mealType: string
+    title?: string | null
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    completions?: NutritionMealCompletionUncheckedCreateNestedManyWithoutMealInput
+  }
+
+  export type NutritionProgramMealCreateOrConnectWithoutItemsInput = {
+    where: NutritionProgramMealWhereUniqueInput
+    create: XOR<NutritionProgramMealCreateWithoutItemsInput, NutritionProgramMealUncheckedCreateWithoutItemsInput>
+  }
+
+  export type FoodCreateWithoutMealItemsInput = {
+    id?: string
+    fdcId: number
+    name: string
+    calories: number
+    protein?: number
+    carbs?: number
+    fats?: number
+    source: string
+    imageUrl?: string | null
+    aliases?: FoodAliasCreateNestedManyWithoutFoodInput
+  }
+
+  export type FoodUncheckedCreateWithoutMealItemsInput = {
+    id?: string
+    fdcId: number
+    name: string
+    calories: number
+    protein?: number
+    carbs?: number
+    fats?: number
+    source: string
+    imageUrl?: string | null
+    aliases?: FoodAliasUncheckedCreateNestedManyWithoutFoodInput
+  }
+
+  export type FoodCreateOrConnectWithoutMealItemsInput = {
+    where: FoodWhereUniqueInput
+    create: XOR<FoodCreateWithoutMealItemsInput, FoodUncheckedCreateWithoutMealItemsInput>
+  }
+
+  export type NutritionProgramMealUpsertWithoutItemsInput = {
+    update: XOR<NutritionProgramMealUpdateWithoutItemsInput, NutritionProgramMealUncheckedUpdateWithoutItemsInput>
+    create: XOR<NutritionProgramMealCreateWithoutItemsInput, NutritionProgramMealUncheckedCreateWithoutItemsInput>
+    where?: NutritionProgramMealWhereInput
+  }
+
+  export type NutritionProgramMealUpdateToOneWithWhereWithoutItemsInput = {
+    where?: NutritionProgramMealWhereInput
+    data: XOR<NutritionProgramMealUpdateWithoutItemsInput, NutritionProgramMealUncheckedUpdateWithoutItemsInput>
+  }
+
+  export type NutritionProgramMealUpdateWithoutItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mealType?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    day?: NutritionProgramDayUpdateOneRequiredWithoutMealsNestedInput
+    completions?: NutritionMealCompletionUpdateManyWithoutMealNestedInput
+  }
+
+  export type NutritionProgramMealUncheckedUpdateWithoutItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dayId?: StringFieldUpdateOperationsInput | string
+    mealType?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completions?: NutritionMealCompletionUncheckedUpdateManyWithoutMealNestedInput
+  }
+
+  export type FoodUpsertWithoutMealItemsInput = {
+    update: XOR<FoodUpdateWithoutMealItemsInput, FoodUncheckedUpdateWithoutMealItemsInput>
+    create: XOR<FoodCreateWithoutMealItemsInput, FoodUncheckedCreateWithoutMealItemsInput>
+    where?: FoodWhereInput
+  }
+
+  export type FoodUpdateToOneWithWhereWithoutMealItemsInput = {
+    where?: FoodWhereInput
+    data: XOR<FoodUpdateWithoutMealItemsInput, FoodUncheckedUpdateWithoutMealItemsInput>
+  }
+
+  export type FoodUpdateWithoutMealItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fdcId?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    calories?: FloatFieldUpdateOperationsInput | number
+    protein?: FloatFieldUpdateOperationsInput | number
+    carbs?: FloatFieldUpdateOperationsInput | number
+    fats?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    aliases?: FoodAliasUpdateManyWithoutFoodNestedInput
+  }
+
+  export type FoodUncheckedUpdateWithoutMealItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fdcId?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    calories?: FloatFieldUpdateOperationsInput | number
+    protein?: FloatFieldUpdateOperationsInput | number
+    carbs?: FloatFieldUpdateOperationsInput | number
+    fats?: FloatFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    aliases?: FoodAliasUncheckedUpdateManyWithoutFoodNestedInput
+  }
+
+  export type NutritionProgramMealCreateWithoutCompletionsInput = {
+    id?: string
+    mealType: string
+    title?: string | null
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    day: NutritionProgramDayCreateNestedOneWithoutMealsInput
+    items?: NutritionProgramMealItemCreateNestedManyWithoutMealInput
+  }
+
+  export type NutritionProgramMealUncheckedCreateWithoutCompletionsInput = {
+    id?: string
+    dayId: string
+    mealType: string
+    title?: string | null
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    items?: NutritionProgramMealItemUncheckedCreateNestedManyWithoutMealInput
+  }
+
+  export type NutritionProgramMealCreateOrConnectWithoutCompletionsInput = {
+    where: NutritionProgramMealWhereUniqueInput
+    create: XOR<NutritionProgramMealCreateWithoutCompletionsInput, NutritionProgramMealUncheckedCreateWithoutCompletionsInput>
+  }
+
+  export type NutritionProgramMealUpsertWithoutCompletionsInput = {
+    update: XOR<NutritionProgramMealUpdateWithoutCompletionsInput, NutritionProgramMealUncheckedUpdateWithoutCompletionsInput>
+    create: XOR<NutritionProgramMealCreateWithoutCompletionsInput, NutritionProgramMealUncheckedCreateWithoutCompletionsInput>
+    where?: NutritionProgramMealWhereInput
+  }
+
+  export type NutritionProgramMealUpdateToOneWithWhereWithoutCompletionsInput = {
+    where?: NutritionProgramMealWhereInput
+    data: XOR<NutritionProgramMealUpdateWithoutCompletionsInput, NutritionProgramMealUncheckedUpdateWithoutCompletionsInput>
+  }
+
+  export type NutritionProgramMealUpdateWithoutCompletionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mealType?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    day?: NutritionProgramDayUpdateOneRequiredWithoutMealsNestedInput
+    items?: NutritionProgramMealItemUpdateManyWithoutMealNestedInput
+  }
+
+  export type NutritionProgramMealUncheckedUpdateWithoutCompletionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dayId?: StringFieldUpdateOperationsInput | string
+    mealType?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: NutritionProgramMealItemUncheckedUpdateManyWithoutMealNestedInput
+  }
+
   export type WorkoutExerciseCreateManyExerciseInput = {
     id?: string
     workoutId: string
@@ -21652,6 +30378,21 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type NutritionProgramMealItemCreateManyFoodInput = {
+    id?: string
+    mealId: string
+    customFoodName?: string | null
+    quantity?: number
+    unit?: string
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type FoodAliasUpdateWithoutFoodInput = {
     id?: StringFieldUpdateOperationsInput | string
     alias?: StringFieldUpdateOperationsInput | string
@@ -21678,6 +30419,51 @@ export namespace Prisma {
     aliasNormalized?: StringFieldUpdateOperationsInput | string
     language?: StringFieldUpdateOperationsInput | string
     source?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealItemUpdateWithoutFoodInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customFoodName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: FloatFieldUpdateOperationsInput | number
+    unit?: StringFieldUpdateOperationsInput | string
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    meal?: NutritionProgramMealUpdateOneRequiredWithoutItemsNestedInput
+  }
+
+  export type NutritionProgramMealItemUncheckedUpdateWithoutFoodInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mealId?: StringFieldUpdateOperationsInput | string
+    customFoodName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: FloatFieldUpdateOperationsInput | number
+    unit?: StringFieldUpdateOperationsInput | string
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealItemUncheckedUpdateManyWithoutFoodInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mealId?: StringFieldUpdateOperationsInput | string
+    customFoodName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: FloatFieldUpdateOperationsInput | number
+    unit?: StringFieldUpdateOperationsInput | string
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -21826,6 +30612,232 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type NutritionProgramDayCreateManyProgramInput = {
+    id?: string
+    dayNumber: number
+    title?: string | null
+    totalCalories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramDayUpdateWithoutProgramInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dayNumber?: IntFieldUpdateOperationsInput | number
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    totalCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    meals?: NutritionProgramMealUpdateManyWithoutDayNestedInput
+  }
+
+  export type NutritionProgramDayUncheckedUpdateWithoutProgramInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dayNumber?: IntFieldUpdateOperationsInput | number
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    totalCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    meals?: NutritionProgramMealUncheckedUpdateManyWithoutDayNestedInput
+  }
+
+  export type NutritionProgramDayUncheckedUpdateManyWithoutProgramInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    dayNumber?: IntFieldUpdateOperationsInput | number
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    totalCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealCreateManyDayInput = {
+    id?: string
+    mealType: string
+    title?: string | null
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramMealUpdateWithoutDayInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mealType?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: NutritionProgramMealItemUpdateManyWithoutMealNestedInput
+    completions?: NutritionMealCompletionUpdateManyWithoutMealNestedInput
+  }
+
+  export type NutritionProgramMealUncheckedUpdateWithoutDayInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mealType?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: NutritionProgramMealItemUncheckedUpdateManyWithoutMealNestedInput
+    completions?: NutritionMealCompletionUncheckedUpdateManyWithoutMealNestedInput
+  }
+
+  export type NutritionProgramMealUncheckedUpdateManyWithoutDayInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mealType?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealItemCreateManyMealInput = {
+    id?: string
+    foodId?: string | null
+    customFoodName?: string | null
+    quantity?: number
+    unit?: string
+    calories?: number | null
+    proteinGrams?: number | null
+    carbGrams?: number | null
+    fatGrams?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionMealCompletionCreateManyMealInput = {
+    id?: string
+    userId: string
+    logDate: Date | string
+    status?: string
+    percentConsumed?: number
+    consumedCalories?: number | null
+    consumedProtein?: number | null
+    consumedCarbs?: number | null
+    consumedFat?: number | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NutritionProgramMealItemUpdateWithoutMealInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    customFoodName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: FloatFieldUpdateOperationsInput | number
+    unit?: StringFieldUpdateOperationsInput | string
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    food?: FoodUpdateOneWithoutMealItemsNestedInput
+  }
+
+  export type NutritionProgramMealItemUncheckedUpdateWithoutMealInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    foodId?: NullableStringFieldUpdateOperationsInput | string | null
+    customFoodName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: FloatFieldUpdateOperationsInput | number
+    unit?: StringFieldUpdateOperationsInput | string
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionProgramMealItemUncheckedUpdateManyWithoutMealInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    foodId?: NullableStringFieldUpdateOperationsInput | string | null
+    customFoodName?: NullableStringFieldUpdateOperationsInput | string | null
+    quantity?: FloatFieldUpdateOperationsInput | number
+    unit?: StringFieldUpdateOperationsInput | string
+    calories?: NullableIntFieldUpdateOperationsInput | number | null
+    proteinGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    carbGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    fatGrams?: NullableFloatFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionMealCompletionUpdateWithoutMealInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    logDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    percentConsumed?: IntFieldUpdateOperationsInput | number
+    consumedCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    consumedProtein?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedCarbs?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionMealCompletionUncheckedUpdateWithoutMealInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    logDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    percentConsumed?: IntFieldUpdateOperationsInput | number
+    consumedCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    consumedProtein?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedCarbs?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NutritionMealCompletionUncheckedUpdateManyWithoutMealInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    logDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    percentConsumed?: IntFieldUpdateOperationsInput | number
+    consumedCalories?: NullableIntFieldUpdateOperationsInput | number | null
+    consumedProtein?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedCarbs?: NullableFloatFieldUpdateOperationsInput | number | null
+    consumedFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -21855,6 +30867,18 @@ export namespace Prisma {
      * @deprecated Use WorkoutProgramDayCountOutputTypeDefaultArgs instead
      */
     export type WorkoutProgramDayCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutProgramDayCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use NutritionProgramCountOutputTypeDefaultArgs instead
+     */
+    export type NutritionProgramCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionProgramCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use NutritionProgramDayCountOutputTypeDefaultArgs instead
+     */
+    export type NutritionProgramDayCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionProgramDayCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use NutritionProgramMealCountOutputTypeDefaultArgs instead
+     */
+    export type NutritionProgramMealCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionProgramMealCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use ExerciseDefaultArgs instead
      */
@@ -21907,6 +30931,26 @@ export namespace Prisma {
      * @deprecated Use WorkoutScheduleDefaultArgs instead
      */
     export type WorkoutScheduleArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutScheduleDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use NutritionProgramDefaultArgs instead
+     */
+    export type NutritionProgramArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionProgramDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use NutritionProgramDayDefaultArgs instead
+     */
+    export type NutritionProgramDayArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionProgramDayDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use NutritionProgramMealDefaultArgs instead
+     */
+    export type NutritionProgramMealArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionProgramMealDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use NutritionProgramMealItemDefaultArgs instead
+     */
+    export type NutritionProgramMealItemArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionProgramMealItemDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use NutritionMealCompletionDefaultArgs instead
+     */
+    export type NutritionMealCompletionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionMealCompletionDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

@@ -6,5 +6,6 @@ const router = Router();
 
 // Only internal services with the internal token may call these endpoints
 router.get('/exercises/for-ai-plans', internalAuthMiddleware, internalController.exercisesForAiPlans as any);
+router.get('/foods/for-ai-nutrition', internalAuthMiddleware, internalController.foodsForAiNutrition as any);
 
 export default router;

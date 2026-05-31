@@ -15,14 +15,15 @@ export const inbodyRepository = {
   async findByUserId(userId: string) {
     return prisma.inBodyEntry.findMany({
       where: { userId },
-      orderBy: { date: 'desc' },
+      // Sort by measurement date (dateOnly) — one record per day, ascending for charts
+      orderBy: { dateOnly: 'desc' },
     });
   },
 
   async findLatestByUserId(userId: string) {
     return prisma.inBodyEntry.findFirst({
       where: { userId },
-      orderBy: { date: 'desc' },
+      orderBy: { dateOnly: 'desc' },
     });
   },
 

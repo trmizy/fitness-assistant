@@ -156,7 +156,7 @@ export const planController = {
 
   async generatePlan(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { userId } = req.context;
-    const { goal, durationWeeks, daysPerWeek, exercisesPerDay, contractId } = req.body as GeneratePlanRequest & { contractId?: string };
+    const { goal, durationWeeks, daysPerWeek, exercisesPerDay, trainingLocation, equipmentPreference, contractId } = req.body as GeneratePlanRequest & { contractId?: string };
 
     try {
       if (!(await ensureLlmAvailable(res))) return;
@@ -164,7 +164,7 @@ export const planController = {
       let ptUserId: string | null = null;
       let clientName: string | null = null;
 
-      // Verify contractId via user-service (fail-closed: contractId sent but invalid → 400)
+      // Verify contractId via user-service (fail-closed: contractId sent but invalid â†’ 400)
       if (contractId) {
         const verifyRes = await axios.get(
           `${USER_SERVICE_URL}/internal/contracts/active-pt`,
@@ -176,12 +176,12 @@ export const planController = {
         );
         ptUserId = verifyRes.data?.ptUserId ?? null;
         if (!ptUserId) {
-          res.status(400).json({ error: 'contractId không hợp lệ hoặc không còn ACTIVE' });
+          res.status(400).json({ error: 'contractId khÃ´ng há»£p lá»‡ hoáº·c khÃ´ng cÃ²n ACTIVE' });
           return;
         }
       }
 
-      // Fetch clientName from auth-service (fail-safe — empty name is fine)
+      // Fetch clientName from auth-service (fail-safe â€” empty name is fine)
       try {
         const authRes = await axios.get(
           `${AUTH_SERVICE_URL}/auth/internal/users/${userId}`,
@@ -199,6 +199,8 @@ export const planController = {
         durationWeeks,
         daysPerWeek,
         exercisesPerDay,
+        trainingLocation: trainingLocation ?? 'GYM',
+        equipmentPreference: equipmentPreference ?? 'MIXED_GYM',
         ptUserId,
         clientName,
       });
@@ -208,6 +210,25 @@ export const planController = {
     } catch (err) {
       aiPlanGenerationsTotal.inc({ status: 'failure' });
       logger.error({ err, userId }, 'Error queuing plan generation');
+      next(err);
+    }
+  },
+
+  async generateNutritionPlan(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { userId } = req.context;
+    
+    try {
+      if (!(await ensureLlmAvailable(res))) return;
+
+      const result = await conversationService.queueNutritionPlanGeneration({
+        userId,
+        ...req.body,
+      });
+      aiPlanGenerationsTotal.inc({ status: 'queued' });
+      // 202 Accepted: the plan is queued, not yet complete.
+      res.status(202).json(formatSuccessResponse(result));
+    } catch (err) {
+      aiPlanGenerationsTotal.inc({ status: 'failure' });
       next(err);
     }
   },
@@ -248,6 +269,21 @@ export const planController = {
   },
 
   /**
+   * GET /plans/nutrition/current
+   * Returns the user's most recent nutrition plans (up to 10).
+   */
+  async getCurrentNutritionPlans(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { userId } = req.context;
+    
+    try {
+      const rawPlans = await conversationRepository.findNutritionPlansByUser(userId, undefined, 10);
+      res.status(200).json(formatSuccessResponse(rawPlans));
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /**
    * GET /plans/:planId
    * Returns a single plan (any status) owned by the authenticated user.
    */
@@ -282,7 +318,7 @@ export const planController = {
     const { jobId } = req.params;
 
     try {
-      // Check DB first — the plan record is created before the job is queued.
+      // Check DB first â€” the plan record is created before the job is queued.
       const dbPlan = await conversationRepository.findPlanByJobId(jobId);
       if (dbPlan && dbPlan.userId !== userId) {
         res.status(403).json(formatErrorResponse('FORBIDDEN', 'You do not have access to this job'));
@@ -340,7 +376,7 @@ export const planController = {
       }
       if (plan.status !== PlanStatus.COMPLETED) {
         res.status(409).json(
-          formatErrorResponse('PLAN_NOT_COMPLETED', `Plan is ${plan.status} — only COMPLETED plans can be explained`),
+          formatErrorResponse('PLAN_NOT_COMPLETED', `Plan is ${plan.status} â€” only COMPLETED plans can be explained`),
         );
         return;
       }
@@ -425,7 +461,7 @@ export const planController = {
 
     try {
       if (!['APPROVE', 'REJECT'].includes(action)) {
-        res.status(400).json({ error: 'action phải là APPROVE hoặc REJECT' });
+        res.status(400).json({ error: 'action pháº£i lÃ  APPROVE hoáº·c REJECT' });
         return;
       }
 
@@ -578,7 +614,7 @@ export const planController = {
   async savePlanToWorkoutLog(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { userId } = req.context;
     const { planId } = req.params;
-    const { startDate, repeatWeeks } = req.body as SavePlanToWorkoutLogRequest;
+    const { startDate, repeatWeeks, selectedWeekdays, replaceExisting } = req.body as SavePlanToWorkoutLogRequest;
 
     try {
       const plan = await conversationRepository.findPlanById(planId);
@@ -594,10 +630,11 @@ export const planController = {
 
       if (plan.status !== PlanStatus.COMPLETED) {
         res.status(409).json(
-          formatErrorResponse('PLAN_NOT_COMPLETED', `Plan is ${plan.status} — only COMPLETED plans can be saved`),
+          formatErrorResponse('PLAN_NOT_COMPLETED', `Plan is ${plan.status} â€” only COMPLETED plans can be saved`),
         );
         return;
       }
+
       if ((plan as any).archivedAt) {
         res.status(409).json(formatErrorResponse('VALIDATION_ERROR', 'Kế hoạch này đã được ẩn và không thể lưu vào lịch tập'));
         return;
@@ -610,7 +647,6 @@ export const planController = {
         );
         return;
       }
-
       const fitnessServiceUrl = process.env.FITNESS_SERVICE_URL || 'http://localhost:3002';
       const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
 
@@ -625,7 +661,9 @@ export const planController = {
           daysPerWeek: plan.daysPerWeek,
           startDate,
           repeatWeeks: repeatWeeks ?? plan.duration,
+          selectedWeekdays,
           weeklySchedule: planContent.weeklySchedule,
+          replaceExisting: replaceExisting !== false, // default true
         },
         {
           timeout: 20000,
@@ -640,14 +678,17 @@ export const planController = {
 
       const fitnessPayload = response.data?.success ? response.data.data ?? response.data : response.data;
 
-      res.status(response.status >= 400 ? response.status : response.data?.alreadyExists ? 200 : 201).json(
+      res.status(response.status >= 400 ? response.status : fitnessPayload.alreadyExists ? 200 : 201).json(
         formatSuccessResponse({
           sourcePlanId: plan.id,
           createdProgramId: fitnessPayload.createdProgramId,
           createdScheduleCount: fitnessPayload.createdScheduleCount ?? 0,
+          cancelledScheduleCount: fitnessPayload.cancelledScheduleCount,
           skippedDuplicateCount: fitnessPayload.skippedDuplicateCount ?? 0,
           alreadyExists: Boolean(fitnessPayload.alreadyExists),
-          message: fitnessPayload.message || 'Đã lưu kế hoạch AI vào lịch tập',
+          selectedWeekdays: fitnessPayload.selectedWeekdays,
+          schedulePreview: fitnessPayload.schedulePreview,
+          message: fitnessPayload.message || 'AI plan imported to workout schedule',
         }),
       );
     } catch (err) {
@@ -671,4 +712,279 @@ export const planController = {
       next(err);
     }
   },
+
+  /**
+   * POST /plans/nutrition/:planId/explain
+   * Generate a natural-language explanation for a completed nutrition plan.
+   */
+  async explainNutritionPlan(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { userId } = req.context;
+    const { planId } = req.params;
+
+    try {
+      const plan = await conversationRepository.findNutritionPlanById(planId);
+      if (!plan) {
+        res.status(404).json(formatErrorResponse('PLAN_NOT_FOUND', `Plan ${planId} not found`));
+        return;
+      }
+      if (plan.userId !== userId) {
+        res.status(403).json(formatErrorResponse('FORBIDDEN', 'You do not have access to this plan'));
+        return;
+      }
+      if (plan.status !== PlanStatus.COMPLETED) {
+        res.status(409).json(formatErrorResponse('PLAN_NOT_COMPLETED', `Plan is ${plan.status} — only COMPLETED plans can be explained`));
+        return;
+      }
+      if ((plan as any).archivedAt) {
+        res.status(409).json(formatErrorResponse('VALIDATION_ERROR', 'Kế hoạch này đã được ẩn và không thể giải thích'));
+        return;
+      }
+
+      const planContent = plan.plan as any;
+      const schedule = (planContent.weeklySchedule || []).slice(0, 7).map((day: any, idx: number) => {
+        const meals = (day.meals || []).map((m: any) =>
+          `${m.mealType || m.title}: ${(m.items || []).map((item: any) => `${item.name} ${item.quantity}${item.unit || 'g'}`).join(', ')}`
+        ).join(' | ');
+        return `Ngày ${day.dayNumber || idx + 1} (${day.totalCalories || 0}kcal): ${meals}`;
+      }).join('\n');
+
+      const nutritionPrompt = `Bạn là chuyên gia dinh dưỡng. Hãy giải thích kế hoạch dinh dưỡng sau bằng tiếng Việt:
+
+Mục tiêu: ${plan.goal}
+Thời lượng: ${plan.durationWeeks} tuần, ${plan.mealsPerDay} bữa/ngày
+Calories mục tiêu: ${planContent.dailyCaloriesTarget || 'N/A'} kcal/ngày
+Protein: ${planContent.proteinTargetGrams || 0}g | Carbs: ${planContent.carbTargetGrams || 0}g | Fat: ${planContent.fatTargetGrams || 0}g
+
+Thực đơn 7 ngày:
+${schedule}
+
+Hãy giải thích:
+1. Vì sao lượng calories và macro này phù hợp với mục tiêu ${plan.goal}
+2. Nguyên tắc chọn thực phẩm trong kế hoạch
+3. Cách áp dụng thực đơn 7 ngày này
+4. Lưu ý dinh dưỡng quan trọng
+5. Cách thay thế món nếu không hợp khẩu vị`;
+
+      let explanation = '';
+      let source: 'llm' | 'fallback' = 'llm';
+
+      try {
+        const health = await llmService.getHealthStatus();
+        if (!health.llmAvailable) throw new Error('LLM not available');
+        const llmResp = await callExplainLlmWithTimeout(nutritionPrompt, 30000);
+        explanation = (llmResp as any).answer || String(llmResp);
+      } catch (err) {
+        source = 'fallback';
+        explanation = [
+          `Kế hoạch dinh dưỡng này được thiết kế cho mục tiêu **${plan.goal}** trong ${plan.durationWeeks} tuần.`,
+          `Mức calories ${planContent.dailyCaloriesTarget || 2000} kcal/ngày được cân bằng với Protein ${planContent.proteinTargetGrams || 0}g, Carbs ${planContent.carbTargetGrams || 0}g, Fat ${planContent.fatTargetGrams || 0}g.`,
+          `Thực đơn 7 ngày luân phiên giúp đảm bảo đa dạng dinh dưỡng và không bị nhàm chán.`,
+          `Bạn có thể thay thế các món không hợp khẩu vị bằng các thực phẩm tương đương về calories và macros.`,
+          `Uống đủ 2-3 lít nước mỗi ngày và ăn đúng giờ để tối ưu hiệu quả.`,
+        ].join('\n\n');
+      }
+
+      res.json(formatSuccessResponse({ planId, explanation, source }));
+    } catch (err) {
+      logger.error({ err, planId, userId }, 'Error explaining nutrition plan');
+      next(err);
+    }
+  },
+
+  /**
+   * POST /plans/nutrition/:planId/adjust
+   * Queue an adjusted version of a nutrition plan.
+   */
+  async adjustNutritionPlan(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { userId } = req.context;
+    const { planId } = req.params;
+    const { adjustments, mealsPerDay } = req.body as { adjustments: string; mealsPerDay?: number };
+
+    if (!adjustments || adjustments.trim().length < 5) {
+      res.status(400).json(formatErrorResponse('VALIDATION_ERROR', 'adjustments phải có ít nhất 5 ký tự'));
+      return;
+    }
+
+    try {
+      const plan = await conversationRepository.findNutritionPlanById(planId);
+      if (!plan) {
+        res.status(404).json(formatErrorResponse('PLAN_NOT_FOUND', `Plan ${planId} not found`));
+        return;
+      }
+      if (plan.userId !== userId) {
+        res.status(403).json(formatErrorResponse('FORBIDDEN', 'You do not have access to this plan'));
+        return;
+      }
+      if (plan.status !== PlanStatus.COMPLETED) {
+        res.status(409).json(formatErrorResponse('VALIDATION_ERROR', 'Chỉ có thể điều chỉnh kế hoạch đã hoàn thành'));
+        return;
+      }
+      if ((plan as any).archivedAt) {
+        res.status(409).json(formatErrorResponse('VALIDATION_ERROR', 'Kế hoạch này đã được ẩn và không thể điều chỉnh'));
+        return;
+      }
+
+      if (!(await ensureLlmAvailable(res))) return;
+
+      const result = await conversationService.queueNutritionPlanGeneration({
+        userId,
+        goal: plan.goal || 'General Health',
+        durationWeeks: 1,
+        mealsPerDay: mealsPerDay || plan.mealsPerDay || 3,
+        notes: `Điều chỉnh từ kế hoạch trước: ${adjustments}`,
+      });
+
+      aiPlanGenerationsTotal.inc({ status: 'queued' });
+      res.status(202).json(formatSuccessResponse(result));
+    } catch (err) {
+      logger.error({ err, planId, userId }, 'Error adjusting nutrition plan');
+      next(err);
+    }
+  },
+
+  /**
+   * DELETE /plans/nutrition/:planId
+   * Soft-archive a nutrition plan.
+   */
+  async archiveNutritionPlan(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { userId } = req.context;
+    const { planId } = req.params;
+
+    try {
+      const plan = await conversationRepository.findNutritionPlanById(planId);
+      if (!plan) {
+        res.status(404).json(formatErrorResponse('PLAN_NOT_FOUND', `Plan ${planId} not found`));
+        return;
+      }
+      if (plan.userId !== userId) {
+        res.status(403).json(formatErrorResponse('FORBIDDEN', 'You do not have access to this plan'));
+        return;
+      }
+      if (plan.status === PlanStatus.PROCESSING) {
+        res.status(409).json(formatErrorResponse('VALIDATION_ERROR', 'Không thể ẩn kế hoạch đang xử lý'));
+        return;
+      }
+      if ((plan as any).archivedAt) {
+        res.json(formatSuccessResponse({ planId, archived: true, archivedAt: (plan as any).archivedAt }));
+        return;
+      }
+
+      const archived = await conversationRepository.archiveNutritionPlan(planId);
+      res.json(formatSuccessResponse({ planId, archived: true, archivedAt: (archived as any).archivedAt }));
+    } catch (err) {
+      logger.error({ err, planId, userId }, 'Error archiving nutrition plan');
+      next(err);
+    }
+  },
+
+  /**
+   * POST /plans/:planId/save-to-nutrition
+   * Save a completed AI plan into the authenticated user's nutrition schedule.
+   */
+  async saveNutritionPlan(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const { userId } = req.context;
+    const { planId } = req.params;
+    const { startDate, endDate, repeatEnabled, forceArchive } = req.body;
+
+    try {
+      const plan = await conversationRepository.findNutritionPlanById(planId);
+      if (!plan) {
+        res.status(404).json(formatErrorResponse('PLAN_NOT_FOUND', `Plan ${planId} not found`));
+        return;
+      }
+
+      if (plan.userId !== userId) {
+        res.status(403).json(formatErrorResponse('FORBIDDEN', 'You do not have access to this plan'));
+        return;
+      }
+
+      if (plan.status !== PlanStatus.COMPLETED) {
+        res.status(409).json(
+          formatErrorResponse('PLAN_NOT_COMPLETED', `Plan is ${plan.status} â€” only COMPLETED plans can be saved`),
+        );
+        return;
+      }
+
+      if ((plan as any).archivedAt) {
+        res.status(409).json(formatErrorResponse('VALIDATION_ERROR', 'Kế hoạch này đã được ẩn và không thể lưu vào lịch dinh dưỡng'));
+        return;
+      }
+
+      const planContent = plan.plan as unknown as any;
+      if (!Array.isArray(planContent.weeklySchedule) || planContent.weeklySchedule.length === 0) {
+        res.status(422).json(
+          formatErrorResponse('VALIDATION_ERROR', 'Plan weeklySchedule is empty or invalid'),
+        );
+        return;
+      }
+      if (plan.durationWeeks !== 1 || planContent.durationWeeks !== 1 || planContent.weeklySchedule.length !== 7) {
+        res.status(400).json(
+          formatErrorResponse('VALIDATION_ERROR', 'Kế hoạch dinh dưỡng AI hiện chỉ hỗ trợ tối đa 1 tuần.'),
+        );
+        return;
+      }
+
+      const fitnessServiceUrl = process.env.FITNESS_SERVICE_URL || 'http://localhost:3002';
+      const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
+
+      const response = await axios.post(
+        `${fitnessServiceUrl}/nutrition/from-ai-plan`,
+        {
+          sourcePlanId: plan.id,
+          sourcePlanName: plan.name,
+          goal: plan.goal,
+          durationWeeks: plan.durationWeeks,
+          mealsPerDay: plan.mealsPerDay,
+          startDate,
+          endDate,
+          repeatEnabled: repeatEnabled ?? false,
+          forceArchive,
+          weeklySchedule: planContent.weeklySchedule,
+          dailyCaloriesTarget: planContent.dailyCaloriesTarget,
+          proteinTargetGrams: planContent.proteinTargetGrams,
+          carbTargetGrams: planContent.carbTargetGrams,
+          fatTargetGrams: planContent.fatTargetGrams,
+        },
+        {
+          timeout: 20000,
+          headers: {
+            'x-user-id': userId,
+            'x-user-email': req.headers['x-user-email'] as string | undefined,
+            'x-user-role': req.headers['x-user-role'] as string | undefined,
+            ...(internalSecret ? { 'x-internal-token': internalSecret } : {}),
+          },
+        },
+      );
+
+      const fitnessPayload = response.data?.success ? response.data.data ?? response.data : response.data;
+
+      res.status(response.status >= 400 ? response.status : fitnessPayload.alreadyExists ? 200 : 201).json(
+        formatSuccessResponse({
+          sourcePlanId: plan.id,
+          createdNutritionPlanId: fitnessPayload.createdNutritionPlanId ?? fitnessPayload.createdProgramId,
+          createdProgramId: fitnessPayload.createdProgramId,
+          existingNutritionPlanId: fitnessPayload.existingNutritionPlanId,
+          createdDayCount: fitnessPayload.createdDayCount,
+          createdMealCount: fitnessPayload.createdMealCount,
+          createdItemCount: fitnessPayload.createdItemCount,
+          alreadyExists: Boolean(fitnessPayload.alreadyExists),
+          message: fitnessPayload.message || 'Đã lưu kế hoạch AI vào lịch dinh dưỡng',
+        }),
+      );
+    } catch (err) {
+      if (err instanceof AxiosError) {
+        const status = err.response?.status || 500;
+        const data = err.response?.data as any;
+        res.status(status).json(
+          data?.success === false && data?.error
+            ? data
+            : formatErrorResponse('INTERNAL_ERROR', data?.error || data?.message || 'Failed to save AI nutrition plan'),
+        );
+        return;
+      }
+      logger.error({ err, planId, userId }, 'Error saving nutrition plan to fitness-service');
+      next(err);
+    }
+  },
 };
+

@@ -398,4 +398,66 @@ export const conversationRepository = {
       },
     });
   },
+
+  // ── NutritionPlan ────────────────────────────────────────────────────────────
+
+  createNutritionPlan(data: {
+    userId: string;
+    name: string;
+    goal: string;
+    durationWeeks: number;
+    mealsPerDay: number;
+  }) {
+    return prisma.nutritionPlan.create({
+      data: { ...data, plan: {}, status: PlanStatus.QUEUED },
+    });
+  },
+
+  updateNutritionPlanJob(planId: string, jobId: string) {
+    return prisma.nutritionPlan.update({ where: { id: planId }, data: { jobId } });
+  },
+
+  updateNutritionPlanStatus(planId: string, status: PlanStatus) {
+    return prisma.nutritionPlan.update({ where: { id: planId }, data: { status } });
+  },
+
+  updateNutritionPlanCompletion(planId: string, content: unknown) {
+    return prisma.nutritionPlan.update({
+      where: { id: planId },
+      data: {
+        status: PlanStatus.COMPLETED,
+        plan: content as Parameters<(typeof prisma.nutritionPlan)['update']>[0]['data']['plan'],
+      },
+    });
+  },
+
+  updateNutritionPlanFailed(planId: string, reason: string) {
+    return prisma.nutritionPlan.update({
+      where: { id: planId },
+      data: { status: PlanStatus.FAILED, failReason: reason },
+    });
+  },
+
+  findNutritionPlansByUser(userId: string, status?: PlanStatus, limit = 10) {
+    return prisma.nutritionPlan.findMany({
+      where: { userId, ...(status !== undefined ? { status } : {}), archivedAt: null },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  },
+
+  findNutritionPlanById(planId: string) {
+    return prisma.nutritionPlan.findUnique({ where: { id: planId } });
+  },
+
+  archiveNutritionPlan(planId: string) {
+    return prisma.nutritionPlan.update({
+      where: { id: planId },
+      data: { archivedAt: new Date() },
+    });
+  },
+
+  findNutritionPlanByJobId(jobId: string) {
+    return prisma.nutritionPlan.findFirst({ where: { jobId } });
+  },
 };

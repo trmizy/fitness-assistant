@@ -4,8 +4,9 @@ import { logger } from '@gym-coach/shared';
 import axios from 'axios';
 import { llmService } from '../services/llm.service';
 import { conversationRepository, PlanStatus } from '../repositories/conversation.repository';
-import { parsePlanContent, buildPlanPrompt } from '../schemas/plan.schemas';
+import { parsePlanContent, buildPlanPrompt, type AllowedExerciseItem, type DayExerciseCatalog } from '../schemas/plan.schemas';
 import { LlmError } from '../errors/api-error';
+import { safeParseJsonCandidate } from '../utils/json';
 
 const redisConnection = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -14,16 +15,185 @@ const redisConnection = {
 
 export const aiQueue = new Queue('ai-tasks', { connection: redisConnection });
 
-type AllowedExercise = {
-  id: string;
-  exerciseName: string;
-  bodyPart?: string;
-  typeOfActivity?: string;
-  typeOfEquipment?: string;
-  muscleGroupsActivated?: string[];
-};
+type AllowedExercise = AllowedExerciseItem;
 
-const PLAN_EXERCISE_PROMPT_LIMIT = 80;
+// Increased limit so we have enough exercises to build per-day catalogs
+const PLAN_EXERCISE_FETCH_LIMIT = 300;
+const PLAN_EXERCISE_PROMPT_LIMIT = 80; // fallback flat-list limit
+
+// ── Muscle group matching ────────────────────────────────────────────────────
+
+/** Returns true if the exercise matches the given focus group */
+function exerciseMatchesMuscleGroup(ex: AllowedExercise, group: string): boolean {
+  const muscles = (ex.muscleGroupsActivated || []).map((m) => m.toLowerCase());
+  const bp = (ex.bodyPart || '').toUpperCase();
+  const name = (ex.exerciseName || '').toLowerCase();
+
+  switch (group) {
+    case 'CHEST':
+      return muscles.some((m) => /chest|pectoral/.test(m)) ||
+             (bp === 'UPPER_BODY' && /bench|fly|flye|push.up|chest/.test(name));
+    case 'BACK':
+      return (bp === 'UPPER_BODY' || muscles.some((m) => /back|lat|trap|rhomboid|erector/.test(m))) &&
+             muscles.some((m) => /back|lat|trap|rhomboid|erector/.test(m));
+    case 'SHOULDERS':
+      return muscles.some((m) => /shoulder|deltoid|delt/.test(m)) ||
+             /overhead|press.*shoulder|shoulder.*press|lateral raise|front raise/.test(name);
+    case 'TRICEPS':
+      return muscles.some((m) => /tricep/.test(m)) ||
+             /tricep|skull.*crusher|dip|extension/.test(name);
+    case 'BICEPS':
+      return muscles.some((m) => /bicep/.test(m)) ||
+             /bicep|curl/.test(name);
+    case 'LEGS':
+      return bp === 'LOWER_BODY' &&
+             muscles.some((m) => /quad|hamstring|calf|calves|tibial|leg/.test(m));
+    case 'GLUTES':
+      return (bp === 'LOWER_BODY') &&
+             (muscles.some((m) => /glute|hip|abductor/.test(m)) ||
+              /squat|lunge|deadlift|hip.thrust|glute|step.up/.test(name));
+    case 'CORE':
+      return bp === 'CORE' ||
+             muscles.some((m) => /abdomin|oblique|core|rectus/.test(m)) ||
+             /crunch|plank|ab |sit.up/.test(name);
+    case 'LOWER_BODY':
+      return bp === 'LOWER_BODY';
+    case 'UPPER_BODY':
+      return bp === 'UPPER_BODY';
+    case 'FULL_BODY':
+      return true;
+    default:
+      return false;
+  }
+}
+
+/** Parse a day goal string into a list of focus muscle group keys */
+function parseDayFocusMuscleGroups(dayGoal: string): string[] {
+  const s = dayGoal.toLowerCase();
+
+  // Full body / conditioning patterns first
+  if (/full.body|toan.*than|toàn.*thân|conditioning.*all|general.*strength/.test(s)) {
+    return ['FULL_BODY'];
+  }
+  // Push day
+  if (/^push/.test(s)) return ['CHEST', 'SHOULDERS', 'TRICEPS'];
+  // Pull day
+  if (/^pull/.test(s)) return ['BACK', 'BICEPS'];
+  // Strict lower body
+  if (/lower.*body$|than.*duoi$|leg.*only/.test(s)) return ['LEGS', 'GLUTES'];
+  // Strict upper body (no specific muscle listed)
+  if (/upper.*body$|than.*tren$/.test(s) &&
+      !/(nguc|lung|vai|tay)/.test(s)) {
+    return ['CHEST', 'BACK', 'SHOULDERS', 'BICEPS', 'TRICEPS'];
+  }
+
+  const groups: string[] = [];
+  if (/nguc|ngực|chest|pec|bench/.test(s)) groups.push('CHEST');
+  if (/vai|shoulder|delt|overhead/.test(s)) groups.push('SHOULDERS');
+  if (/tay sau|tricep/.test(s)) groups.push('TRICEPS');
+  // BACK can coexist with CHEST (e.g. "Nguc + Lung" full-body upper day)
+  if (/lung|lưng|back|lat|row|pull/.test(s) && !/pull.up|pullover/.test(s)) groups.push('BACK');
+  if (/tay tr[ưu]oc|truoc|bicep|curl/.test(s)) groups.push('BICEPS');
+  if (/ch[aâ]n|leg|quad|hamstring|squat|deadlift|lunge|bap chan/.test(s)) groups.push('LEGS');
+  if (/m[oô]ng|glute|hip/.test(s)) groups.push('GLUTES');
+  if (/core|b[uụ]ng|ab|plank/.test(s)) groups.push('CORE');
+
+  // Conditioning-only day → lower body as default
+  if (groups.length === 0 && /condition|dieu.*hoa/.test(s)) return ['LEGS', 'CORE'];
+
+  return groups.length > 0 ? groups : ['FULL_BODY'];
+}
+
+const HOME_EQUIPMENT = new Set(['BODYWEIGHT', 'DUMBBELLS', 'RESISTANCE_BAND', 'KETTLEBELL', 'MEDICINE_BALL', 'FOAM_ROLLER']);
+const MACHINE_ONLY_EQUIPMENT = new Set(['MACHINE', 'CABLE']);
+const MIXED_GYM_EQUIPMENT = new Set(['MACHINE', 'CABLE', 'BARBELL', 'DUMBBELLS', 'BODYWEIGHT', 'KETTLEBELL']);
+
+/** Filter and rank exercises for a specific day's muscle focus */
+function filterExercisesForDay(
+  allExercises: AllowedExercise[],
+  focusMuscleGroups: string[],
+  goal: string,
+  trainingLocation: string,
+  limit = 18,
+  equipmentPreference = 'MIXED_GYM',
+): AllowedExercise[] {
+  const isMuscleGain = /muscle|tang.*co|hypertrophy|gain/i.test(goal);
+  const isHome = trainingLocation === 'HOME';
+  const isMachineOnly = equipmentPreference === 'MACHINE_ONLY';
+  const isFullBody = focusMuscleGroups.includes('FULL_BODY') || focusMuscleGroups.length === 0;
+
+  const candidates = allExercises.filter((ex) => {
+    const equip = ex.typeOfEquipment || '';
+    // Equipment filter based on preference/location
+    if (isHome && !HOME_EQUIPMENT.has(equip)) return false;
+    if (isMachineOnly && !MACHINE_ONLY_EQUIPMENT.has(equip)) return false;
+    if (!isHome && !isMachineOnly && !MIXED_GYM_EQUIPMENT.has(equip)) return false;
+    // For muscle gain, skip pure cardio as main exercises
+    if (isMuscleGain && ex.typeOfActivity === 'CARDIO') return false;
+    // Muscle group match
+    if (isFullBody) return true;
+    return focusMuscleGroups.some((g) => exerciseMatchesMuscleGroup(ex, g));
+  });
+
+  // Score: prefer exercises that match more focus groups and fit goal
+  const scored = candidates.map((ex) => {
+    let score = 0;
+    for (const g of focusMuscleGroups) {
+      if (exerciseMatchesMuscleGroup(ex, g)) score += 3;
+    }
+    if (isMuscleGain && ex.typeOfActivity === 'STRENGTH') score += 2;
+    if (isMachineOnly && MACHINE_ONLY_EQUIPMENT.has(ex.typeOfEquipment || '')) score += 2;
+    if (!isMachineOnly && ex.typeOfEquipment === 'BARBELL' && isMuscleGain) score += 1;
+    return { ex, score };
+  }).sort((a, b) => b.score - a.score);
+
+  const seen = new Set<string>();
+  const result: AllowedExercise[] = [];
+  for (const { ex } of scored) {
+    if (!seen.has(ex.id)) {
+      seen.add(ex.id);
+      result.push(ex);
+      if (result.length >= limit) break;
+    }
+  }
+  return result;
+}
+
+/** Build per-day exercise catalogs from a flat allowedExercises list */
+function buildPerDayCatalogs(
+  goal: string,
+  daysPerWeek: number,
+  allExercises: AllowedExercise[],
+  trainingLocation: string,
+  equipmentPreference = 'MIXED_GYM',
+): DayExerciseCatalog[] {
+  const catalogs: DayExerciseCatalog[] = [];
+
+  for (let dayIndex = 0; dayIndex < daysPerWeek; dayIndex++) {
+    const dayGoal = splitGoalForDay(goal, dayIndex, daysPerWeek);
+    const focusMuscleGroups = parseDayFocusMuscleGroups(dayGoal);
+    const exercises = filterExercisesForDay(allExercises, focusMuscleGroups, goal, trainingLocation, 18, equipmentPreference);
+
+    catalogs.push({ dayIndex, dayGoal, focusMuscleGroups, exercises });
+  }
+
+  return catalogs;
+}
+
+/** Validate that a plan exercise matches its day's focus muscle groups.
+ *  Returns an error string if mismatch, null if OK.
+ */
+function validateExerciseMuscleMatch(
+  ex: AllowedExercise,
+  focusMuscleGroups: string[],
+): string | null {
+  if (focusMuscleGroups.includes('FULL_BODY')) return null;
+  const matches = focusMuscleGroups.some((g) => exerciseMatchesMuscleGroup(ex, g));
+  if (!matches) {
+    return `Exercise "${ex.exerciseName}" (${ex.bodyPart ?? 'UNKNOWN'}) does not match focus [${focusMuscleGroups.join(', ')}]`;
+  }
+  return null;
+}
 
 function splitGoalForDay(planGoal: string, dayIndex: number, daysPerWeek: number): string {
   const normalizedGoal = String(planGoal || '').toLowerCase();
@@ -31,19 +201,19 @@ function splitGoalForDay(planGoal: string, dayIndex: number, daysPerWeek: number
 
   const hypertrophySplits =
     daysPerWeek >= 6
-      ? ['Nguc + Vai + Tay sau', 'Lung + Tay truoc', 'Chan + Mong', 'Nguc + Vai', 'Lung + Core', 'Chan + Bap chan']
+      ? ['Nguc + Tay sau', 'Lung + Tay truoc', 'Chan + Mong', 'Nguc + Vai', 'Lung + Tay truoc B', 'Chan + Mong + Core']
       : daysPerWeek >= 5
-        ? ['Push - Nguc + Vai + Tay sau', 'Pull - Lung + Tay truoc', 'Legs - Chan + Mong', 'Upper Body', 'Lower Body']
+        ? ['Nguc + Vai + Tay sau', 'Lung + Tay truoc', 'Chan + Mong', 'Vai + Tay truoc + Tay sau', 'Chan + Mong + Core']
         : daysPerWeek >= 4
-          ? ['Upper Push - Nguc + Vai + Tay sau', 'Lower - Chan + Mong', 'Upper Pull - Lung + Tay truoc', 'Full Body Hypertrophy']
-          : ['Full Body Strength', 'Upper Body', 'Lower Body'];
+          ? ['Nguc + Vai + Tay sau', 'Lung + Tay truoc', 'Chan + Mong', 'Vai + Tay truoc + Tay sau']
+          : ['Nguc + Lung', 'Chan + Mong', 'Vai + Tay truoc + Tay sau'];
 
   const generalSplits =
     daysPerWeek >= 5
-      ? ['Full Body Strength', 'Lower Body + Conditioning', 'Upper Body + Core', 'Full Body Volume', 'Mobility + Zone 2']
+      ? ['Nguc + Lung + Core', 'Chan + Mong', 'Vai + Tay truoc + Tay sau', 'Chan + Mong + Cardio', 'Nguc + Lung nhe']
       : daysPerWeek >= 4
-        ? ['Full Body Strength', 'Lower Body + Conditioning', 'Upper Body + Core', 'Full Body Volume']
-        : ['Full Body Strength', 'Upper Body + Core', 'Lower Body + Conditioning'];
+        ? ['Nguc + Lung + Core', 'Chan + Mong', 'Vai + Tay truoc + Tay sau', 'Chan + Mong + Core nhe']
+        : ['Nguc + Lung + Core', 'Chan + Mong', 'Vai + Tay truoc + Tay sau'];
 
   const splits = muscleGain ? hypertrophySplits : generalSplits;
   return splits[dayIndex % splits.length];
@@ -70,64 +240,7 @@ function buildExercisePrescription(
   };
 }
 
-function safeParseJsonCandidate(raw: string): unknown | null {
-  // Strip common code fences and labels
-  const cleaned = String(raw || '')
-    .replace(/```\s*json\s*/i, '')
-    .replace(/```/g, '')
-    .replace(/^\s*JSON\s*[:\-]\s*/i, '')
-    .trim();
-
-  // Find first balanced JSON object (handles braces within strings)
-  function extractBalanced(s: string): string | null {
-    const start = s.indexOf('{');
-    if (start === -1) return null;
-    let inString = false;
-    let escape = false;
-    let depth = 0;
-    for (let i = start; i < s.length; i++) {
-      const ch = s[i];
-      if (escape) {
-        escape = false;
-        continue;
-      }
-      if (ch === '\\') {
-        escape = true;
-        continue;
-      }
-      if (ch === '"') {
-        inString = !inString;
-        continue;
-      }
-      if (inString) continue;
-      if (ch === '{') depth += 1;
-      if (ch === '}') {
-        depth -= 1;
-        if (depth === 0) return s.slice(start, i + 1);
-      }
-    }
-    return null;
-  }
-
-  // Try full-parse first
-  try {
-    return JSON.parse(cleaned);
-  } catch (_) {}
-
-  const candidate = extractBalanced(cleaned);
-  if (!candidate) return null;
-
-  try {
-    return JSON.parse(candidate);
-  } catch {
-    try {
-      const repaired = candidate.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']').replace(/'/g, '"');
-      return JSON.parse(repaired);
-    } catch {
-      return null;
-    }
-  }
-}
+// (safeParseJsonCandidate imported from utils)
 
 function tokenize(value: unknown): string[] {
   return String(value ?? '')
@@ -382,6 +495,8 @@ const PlanJobDataSchema = z.object({
   durationWeeks: z.number().int().min(1).max(52),
   daysPerWeek: z.number().int().min(1).max(7),
   exercisesPerDay: z.number().int().min(1).max(8).default(4),
+  trainingLocation: z.enum(['HOME', 'GYM']).default('GYM').optional(),
+  equipmentPreference: z.enum(['MACHINE_ONLY', 'MIXED_GYM']).default('MIXED_GYM').optional(),
   /** Present when this job was queued via the adjust endpoint. */
   adjustmentContext: z.string().max(1000).optional(),
 });
@@ -390,6 +505,11 @@ type PlanJobData = z.infer<typeof PlanJobDataSchema>;
 export const aiWorker = new Worker(
   'ai-tasks',
   async (job) => {
+    if (job.name === 'generate-nutrition-plan') {
+      const { processNutritionPlanJob } = await import('../services/nutrition.processor');
+      return processNutritionPlanJob(job);
+    }
+
     // ── 1. Validate job data ───────────────────────────────────────────────
     const dataResult = PlanJobDataSchema.safeParse(job.data);
     if (!dataResult.success) {
@@ -398,7 +518,7 @@ export const aiWorker = new Worker(
       // Do NOT update DB — we don't have a planId to update.
       throw new Error(reason);
     }
-    const { planId, userId, goal, durationWeeks, daysPerWeek, exercisesPerDay, adjustmentContext } =
+    const { planId, userId, goal, durationWeeks, daysPerWeek, exercisesPerDay, adjustmentContext, trainingLocation = 'GYM', equipmentPreference = 'MIXED_GYM' } =
       dataResult.data as PlanJobData;
 
     logger.info({ jobId: job.id, planId, userId }, 'Plan generation job started');
@@ -413,7 +533,7 @@ export const aiWorker = new Worker(
     let allowedExercises: AllowedExercise[] = [];
     try {
       const resp = await axios.get(`${fitnessServiceUrl}/internal/exercises/for-ai-plans`, {
-        params: { goal, limit: PLAN_EXERCISE_PROMPT_LIMIT },
+        params: { goal, trainingLocation, equipmentPreference, limit: PLAN_EXERCISE_FETCH_LIMIT },
         timeout: 10000,
         headers: {
           'x-internal-token': internalSecret,
@@ -443,9 +563,35 @@ export const aiWorker = new Worker(
       return;
     }
 
-    // ── 4. Build prompt (include allowed exercises) and call LLM ───────────
+    // ── 3b. Fetch personal user context (InBody, workout history, nutrition) ─
+    // Non-critical: failures are swallowed; plan will still be generated
+    let userContextText = '';
+    try {
+      const { fetchWorkerUserContext, formatWorkerContextForPrompt } = await import('./worker-user-context');
+      const ctx = await fetchWorkerUserContext(userId);
+      userContextText = formatWorkerContextForPrompt(ctx);
+      if (userContextText) {
+        logger.info({ planId, hasInBody: !!ctx.latestInBody, workoutDays: ctx.recentWorkouts.length }, 'Fetched personal user context for plan generation');
+      }
+    } catch (err) {
+      logger.warn({ err, planId }, 'Could not fetch personal user context — plan will use goal/params only');
+    }
+
+    // ── 4. Build per-day exercise catalogs and prompt ──────────────────────
+    const perDayCatalogs = buildPerDayCatalogs(goal, daysPerWeek, allowedExercises, trainingLocation, equipmentPreference);
+    logger.info(
+      { planId, daysPerWeek, catalogs: perDayCatalogs.map(c => ({ day: c.dayGoal, groups: c.focusMuscleGroups, count: c.exercises.length })) },
+      'Per-day exercise catalogs built',
+    );
+
+    // Flat list used for repair/validation helpers
     const promptExercises = allowedExercises.slice(0, PLAN_EXERCISE_PROMPT_LIMIT);
-    const prompt = buildPlanPrompt(goal, durationWeeks, daysPerWeek, exercisesPerDay, adjustmentContext, promptExercises);
+    // Append personal context to adjustmentContext so prompt builder can include it
+    const enrichedAdjustmentContext = [
+      adjustmentContext,
+      userContextText ? `[Thông tin cá nhân hóa]\n${userContextText}` : '',
+    ].filter(Boolean).join('\n\n') || undefined;
+    const prompt = buildPlanPrompt(goal, durationWeeks, daysPerWeek, exercisesPerDay, enrichedAdjustmentContext, promptExercises, trainingLocation, perDayCatalogs, equipmentPreference);
 
     let rawAnswer: string;
     try {
@@ -579,6 +725,69 @@ export const aiWorker = new Worker(
       if (repairedValidation.ok) {
         parseResult = repairedValidation;
         logger.warn({ jobId: job.id, planId, repairs: countRepair.warnings }, 'Plan generation repaired day goals/exercise counts');
+      }
+    }
+
+    // ── 4b. Repair muscle-group mismatches (exercise in wrong day) ───────────
+    const mismatchWarnings: Array<Record<string, unknown>> = [];
+    const catalogById = new Map(perDayCatalogs.map((c) => [c.dayIndex, c]));
+    const planContentForRepair = parseResult.content as any;
+
+    if (Array.isArray(planContentForRepair?.weeklySchedule)) {
+      for (let dayIndex = 0; dayIndex < planContentForRepair.weeklySchedule.length; dayIndex++) {
+        const day = planContentForRepair.weeklySchedule[dayIndex];
+        const catalog = catalogById.get(dayIndex);
+        if (!catalog || catalog.focusMuscleGroups.includes('FULL_BODY')) continue;
+
+        const allowedById = new Map(allowedExercises.map((ex) => [ex.id, ex]));
+
+        if (!Array.isArray(day?.exercises)) continue;
+
+        for (let exIdx = 0; exIdx < day.exercises.length; exIdx++) {
+          const ex = day.exercises[exIdx];
+          if (!ex?.exerciseId) continue;
+
+          const exInfo = allowedById.get(String(ex.exerciseId));
+          if (!exInfo) continue; // Will be caught by idsValid
+
+          const mismatch = validateExerciseMuscleMatch(exInfo, catalog.focusMuscleGroups);
+          if (!mismatch) continue;
+
+          // Try to find a valid replacement from this day's catalog
+          const usedIds = new Set(day.exercises.map((e: any) => String(e?.exerciseId || '')));
+          const replacement = catalog.exercises.find((cEx) =>
+            !usedIds.has(cEx.id) || cEx.id === ex.exerciseId,
+          ) ?? catalog.exercises[exIdx % catalog.exercises.length];
+
+          if (!replacement) continue;
+
+          mismatchWarnings.push({
+            type: 'muscle_mismatch_repair',
+            planId,
+            jobId: job.id,
+            dayIndex,
+            dayGoal: catalog.dayGoal,
+            focusMuscleGroups: catalog.focusMuscleGroups,
+            replaced: `${exInfo.exerciseName} (${exInfo.bodyPart})`,
+            with: `${replacement.exerciseName} (${replacement.bodyPart})`,
+            reason: mismatch,
+          });
+
+          day.exercises[exIdx] = buildExercisePrescription(
+            replacement,
+            exIdx + 1,
+            'Auto-repaired: exercise did not match day muscle group',
+          );
+        }
+      }
+    }
+
+    if (mismatchWarnings.length > 0) {
+      appendPlanWarnings(planContentForRepair, mismatchWarnings);
+      const repairedAfterMuscle = parsePlanContent(JSON.stringify(planContentForRepair));
+      if (repairedAfterMuscle.ok) {
+        parseResult = repairedAfterMuscle;
+        logger.warn({ planId, jobId: job.id, repairs: mismatchWarnings }, 'Plan repaired: muscle-group mismatches corrected');
       }
     }
 
@@ -881,6 +1090,11 @@ export const aiWorker = new Worker(
         if (canonical) ex.name = canonical;
       }
     }
+
+    // Embed trainingLocation and equipmentPreference in plan metadata for frontend display
+    content._metadata = content._metadata || {};
+    content._metadata.trainingLocation = trainingLocation;
+    content._metadata.equipmentPreference = equipmentPreference;
 
     // ── 5. Persist structured plan ─────────────────────────────────────────
     await conversationRepository.updatePlanCompletion(planId, content);

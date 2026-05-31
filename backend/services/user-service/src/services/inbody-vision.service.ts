@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 export interface VisionResult {
+  measurement_date: string | null; // ISO date string "YYYY-MM-DD" extracted from the report
   weight: number | null;
   height: number | null;
   skeletal_muscle_mass: number | null;
@@ -29,6 +30,10 @@ const INBODY_TOOL: Anthropic.Tool = {
   input_schema: {
     type: 'object',
     properties: {
+      measurement_date: {
+        type: 'string',
+        description: 'The measurement/test date printed on the InBody report. Format: YYYY-MM-DD. Look for dates like "2024.05.01", "05/01/2024", "01-05-2024", or any printed date near the patient name or header. Return null if not visible.',
+      },
       weight: { type: 'number', description: 'Total body weight in kg' },
       height: { type: 'number', description: 'Height in cm' },
       skeletal_muscle_mass: { type: 'number', description: 'Skeletal muscle mass in kg' },
@@ -59,7 +64,7 @@ const INBODY_TOOL: Anthropic.Tool = {
       },
     },
     required: [
-      'weight', 'height', 'skeletal_muscle_mass', 'body_fat_mass',
+      'measurement_date', 'weight', 'height', 'skeletal_muscle_mass', 'body_fat_mass',
       'segmental_lean_analysis', 'segmental_fat_analysis',
     ],
   },
@@ -86,7 +91,7 @@ export async function extractInBodyVision(imagePath: string): Promise<VisionResu
           },
           {
             type: 'text',
-            text: 'Extract all body composition metrics from this InBody report. The Segmental Lean Analysis and Segmental Fat Analysis sections show a body silhouette with kg values labeled per body part (right arm, left arm, trunk, right leg, left leg). Use null for any value that is not visible or cannot be read.',
+            text: 'Extract all body composition metrics from this InBody report. IMPORTANT: Also extract the measurement_date printed on the report (the date when the test was taken) — it may appear near the patient name, header, or footer in formats like YYYY.MM.DD, MM/DD/YYYY, or similar. Convert it to YYYY-MM-DD format. The Segmental Lean Analysis and Segmental Fat Analysis sections show a body silhouette with kg values labeled per body part (right arm, left arm, trunk, right leg, left leg). Use null for any value that is not visible or cannot be read.',
           },
         ],
       },

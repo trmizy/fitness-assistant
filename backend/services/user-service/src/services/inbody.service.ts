@@ -1,4 +1,5 @@
 import { inbodyRepository } from '../repositories/inbody.repository';
+import { profileRepository } from '../repositories/profile.repository';
 import { contractRepository } from '../repositories/contract.repository';
 import { extractInBodyVision } from './inbody-vision.service';
 import { ocrExtractionsTotal, ocrExtractionDuration, inbodyUploadsTotal } from '@gym-coach/shared';
@@ -19,6 +20,19 @@ function err(message: string, status: number) {
 // see a raw Prisma error and return 500.
 function isUniqueViolation(e: any): boolean {
   return e?.code === 'P2002' || /unique constraint/i.test(String(e?.message || ''));
+}
+
+/** After any InBody upsert/update, propagate the newest physical metrics to UserProfile
+ *  so that profile.currentWeight always reflects the latest InBody measurement.
+ */
+async function syncLatestInBodyToProfile(userId: string): Promise<void> {
+  const latest = await inbodyRepository.findLatestByUserId(userId);
+  if (!latest) return;
+  const patch: Record<string, unknown> = {};
+  if (typeof latest.weight === 'number') patch.currentWeight = latest.weight;
+  if (Object.keys(patch).length > 0) {
+    await profileRepository.upsert(userId, patch);
+  }
 }
 
 export const inbodyService = {
@@ -45,7 +59,10 @@ export const inbodyService = {
     const dateOnly = startOfUtcDay(measuredDate);
     const payload = { ...data, date: measuredDate, dateOnly };
     const { dateOnly: _d, userId: _u, ...updatePayload } = payload;
-    return inbodyRepository.upsertByUserAndDate(userId, dateOnly, payload, updatePayload);
+    const entry = await inbodyRepository.upsertByUserAndDate(userId, dateOnly, payload, updatePayload);
+    // Sync latest InBody metrics to the profile so AI always reads fresh data
+    await syncLatestInBodyToProfile(userId).catch(() => {});
+    return entry;
   },
 
   // BR-06: client may edit an InBody entry (e.g. tweak OCR results before confirming).
@@ -63,7 +80,10 @@ export const inbodyService = {
       patch.dateOnly = startOfUtcDay(newDate);
     }
     try {
-      return await inbodyRepository.update(id, patch);
+      const updated = await inbodyRepository.update(id, patch);
+      // Re-sync: the edit might have changed weight on the latest entry
+      await syncLatestInBodyToProfile(userId).catch(() => {});
+      return updated;
     } catch (e: any) {
       if (isUniqueViolation(e)) {
         throw err('Bản ghi InBody trong ngày đã tồn tại', 409);
@@ -71,6 +91,7 @@ export const inbodyService = {
       throw e;
     }
   },
+
 
   async extractFromImage(_userId: string, imagePath: string) {
     const startTime = Date.now();
@@ -92,7 +113,22 @@ export const inbodyService = {
         ? Math.round((bodyFat / weight) * 1000) / 10
         : undefined;
 
+      // Parse measurement_date from OCR. If Claude returned a valid date string,
+      // use it as the measurement date. Otherwise fall back to today.
+      let measurementDate: string | null = null;
+      if (result.measurement_date && typeof result.measurement_date === 'string') {
+        const cleaned = result.measurement_date.trim();
+        // Validate it parses as a real date
+        const parsed = new Date(cleaned);
+        if (!isNaN(parsed.getTime()) && cleaned.length >= 8) {
+          // Return as YYYY-MM-DD
+          measurementDate = parsed.toISOString().slice(0, 10);
+        }
+      }
+
       const entryData = {
+        // date will be the measurement date from OCR, or null (frontend will show date picker defaulting to today)
+        date: measurementDate,
         weight,
         height: heightCm,
         muscleMass: result.skeletal_muscle_mass || 0,

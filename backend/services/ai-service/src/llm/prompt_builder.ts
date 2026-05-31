@@ -2,19 +2,40 @@ import type { InputIntent, RecommendationResult, ResponseLanguage, RetrievalResu
 import type { PersonalizationContext } from './profile_extractor';
 
 function compactProfile(profile: UserProfile): string {
+  // Weight: InBody is always the priority source; profile weight is a fallback
+  const inBodyDate = profile.inBody?.measuredAt
+    ? `InBody đo ngày ${String(profile.inBody.measuredAt).slice(0, 10)}`
+    : null;
+  const weightSource = inBodyDate ?? 'profile (tự khai báo)';
+  const weightDisplay = profile.currentWeightKg ?? 'unknown';
+
   const lines: string[] = [
     `- Age: ${profile.age ?? 'unknown'}`,
     `- Gender: ${profile.gender ?? 'unknown'}`,
     `- Height(cm): ${profile.heightCm ?? 'unknown'}`,
-    `- Weight(kg): ${profile.currentWeightKg ?? profile.inBody?.weightKg ?? 'unknown'}`,
+    `- Weight(kg): ${weightDisplay} [nguồn: ${weightSource}]`,
     `- Goal: ${profile.goal ?? 'unknown'}`,
     `- Activity level: ${profile.activityLevel ?? 'unknown'}`,
     `- Experience level: ${profile.experienceLevel ?? 'BEGINNER'}`,
   ];
 
   if (profile.inBody) {
-    lines.push(`- Body fat(%): ${profile.inBody.bodyFatPct ?? 'unknown'}`);
-    lines.push(`- Skeletal muscle(kg): ${profile.inBody.skeletalMuscleKg ?? 'unknown'}`);
+    const lbl = inBodyDate ? ` (${inBodyDate})` : '';
+    lines.push(`- Body fat%${lbl}: ${profile.inBody.bodyFatPct ?? 'unknown'}`);
+    lines.push(`- Skeletal muscle(kg)${lbl}: ${profile.inBody.skeletalMuscleKg ?? 'unknown'}`);
+    if (profile.inBody.bodyFatKg != null) lines.push(`- Fat mass(kg)${lbl}: ${profile.inBody.bodyFatKg}`);
+    if (profile.inBody.bmi != null) lines.push(`- BMI${lbl}: ${profile.inBody.bmi}`);
+    if (profile.inBody.bmr != null) lines.push(`- BMR(kcal/day)${lbl}: ${profile.inBody.bmr}`);
+    // Segmental muscle analysis
+    const sm = profile.inBody.segmentalMuscle;
+    if (sm) {
+      lines.push(`- Segmental muscle(kg)${lbl}: tay-P ${sm.rightArm ?? '?'} tay-T ${sm.leftArm ?? '?'} thân ${sm.trunk ?? '?'} chân-P ${sm.rightLeg ?? '?'} chân-T ${sm.leftLeg ?? '?'}`);
+    }
+    // Segmental fat analysis
+    const sf = profile.inBody.segmentalFat;
+    if (sf) {
+      lines.push(`- Segmental fat(kg)${lbl}: tay-P ${sf.rightArm ?? '?'} tay-T ${sf.leftArm ?? '?'} thân ${sf.trunk ?? '?'} chân-P ${sf.rightLeg ?? '?'} chân-T ${sf.leftLeg ?? '?'}`);
+    }
   }
 
   if (profile.training.injuries.length > 0) {
@@ -34,6 +55,29 @@ function compactProfile(profile: UserProfile): string {
   }
 
   return lines.join('\n');
+}
+
+function compactCurrentPrograms(context: PersonalizationContext): string {
+  const parts: string[] = [];
+
+  if (context.currentWorkoutProgram) {
+    const wp = context.currentWorkoutProgram as any;
+    const days = Array.isArray(wp.daySummaries) && wp.daySummaries.length > 0
+      ? wp.daySummaries.map((d: any) => `Ngày ${d.dayNumber}: ${d.title ?? '(no title)'} (${d.exerciseCount ?? 0} bài)`).join('; ')
+      : '';
+    parts.push(
+      `Chương trình tập hiện tại: ${wp.name ?? 'N/A'} | Mục tiêu: ${wp.goal ?? 'N/A'} | ${wp.daysPerWeek ?? '?'} buổi/tuần | ${wp.durationWeeks ?? '?'} tuần${days ? ` | ${days}` : ''}`
+    );
+  }
+
+  if (context.currentNutritionProgram) {
+    const np = context.currentNutritionProgram as any;
+    parts.push(
+      `Chương trình dinh dưỡng hiện tại: ${np.name ?? 'N/A'} | Mục tiêu: ${np.goal ?? 'N/A'} | Calories/ngày: ${np.dailyCaloriesTarget ?? 'N/A'} kcal | Protein: ${np.proteinTargetGrams ?? '?'}g | Carbs: ${np.carbTargetGrams ?? '?'}g | Fat: ${np.fatTargetGrams ?? '?'}g`
+    );
+  }
+
+  return parts.length > 0 ? parts.join('\n') : '';
 }
 
 export function extractSessionContext(chatHistory: any[]): string {
@@ -100,29 +144,70 @@ export function extractSessionContext(chatHistory: any[]): string {
 
 function formatHistorySections(context: PersonalizationContext, chatHistory: any[]): string[] {
   const sections: string[] = [];
+  // Note: current workout/nutrition programs are injected via compactCurrentPrograms()
+  // in the main prompt build rather than here to keep them near the profile block.
 
-  if (context.workoutHistory && context.workoutHistory.length > 0) {
-    const totalWorkouts = context.workoutHistory.length;
-    const recentWorkouts = context.workoutHistory.slice(0, 5).map(w =>
-      `- ${w.date?.split('T')[0] || 'Unknown'}: ${w.duration ? w.duration + ' min' : 'Unknown duration'}, ${Array.isArray(w.exercises) ? w.exercises.length : 0} exercises`,
-    ).join('\n');
-    sections.push(`Lịch sử tập luyện (${totalWorkouts} buổi gần nhất):\n` + recentWorkouts);
+  // ── InBody history trend (up to 5 most recent measurements) ─────────────
+  if (context.inBodyHistory && context.inBodyHistory.length > 1) {
+    const historyLines = context.inBodyHistory.slice(0, 5).map((e: any) => {
+      const d = (e.date || e.dateOnly || '').split('T')[0];
+      const seg = (e.rightArmMuscle || e.trunkMuscle || e.rightLegMuscle)
+        ? ` | Cơ: tay-P ${e.rightArmMuscle ?? '?'}kg tay-T ${e.leftArmMuscle ?? '?'}kg thân ${e.trunkMuscle ?? '?'}kg chân-P ${e.rightLegMuscle ?? '?'}kg chân-T ${e.leftLegMuscle ?? '?'}kg`
+        : '';
+      return `- ${d}: ${e.weight ?? '?'}kg | mỡ ${e.bodyFatPct ?? '?'}% (${e.bodyFat ?? '?'}kg) | cơ ${e.muscleMass ?? '?'}kg${seg}`;
+    });
+    sections.push(`Lịch sử InBody (${Math.min(context.inBodyHistory.length, 5)} lần đo gần nhất, mới nhất trước):\n${historyLines.join('\n')}`);
   }
 
+  // ── Workout history: show exercise names + muscle groups ─────────────────
+  if (context.workoutHistory && context.workoutHistory.length > 0) {
+    const totalWorkouts = context.workoutHistory.length;
+    // Group by date, then show exercises with muscle groups
+    const recentWorkouts = (context.workoutHistory as any[]).slice(0, 7).map(w => {
+      const d = (w.date || '').split('T')[0] || 'Unknown';
+      const dur = w.duration ? `${w.duration} phút` : '?';
+      const exList = Array.isArray(w.exercises) && w.exercises.length > 0
+        ? w.exercises.slice(0, 8).map((ex: any) => {
+            const name = ex.exercise?.exerciseName ?? ex.name ?? 'Unknown';
+            const muscles = Array.isArray(ex.exercise?.muscleGroupsActivated) && ex.exercise.muscleGroupsActivated.length > 0
+              ? `[${ex.exercise.muscleGroupsActivated.slice(0, 3).join(', ')}]`
+              : ex.exercise?.bodyPart ? `[${ex.exercise.bodyPart}]` : '';
+            const volume = (ex.sets && ex.reps) ? `${ex.sets}×${ex.reps}${ex.weight ? `@${ex.weight}kg` : ''}` : '';
+            return `    • ${name}${muscles ? ' ' + muscles : ''}${volume ? ' ' + volume : ''}`;
+          }).join('\n')
+        : '    (không có chi tiết bài tập)';
+      return `- ${d} (${dur}, ${Array.isArray(w.exercises) ? w.exercises.length : 0} bài):\n${exList}`;
+    }).join('\n');
+    sections.push(`Lịch sử tập luyện (${totalWorkouts} buổi, hiển thị 7 gần nhất):\n${recentWorkouts}`);
+  }
+
+  // ── Nutrition: group by date, show all macros ────────────────────────────
   if (context.nutritionHistory && context.nutritionHistory.length > 0) {
-    const avgCal = Math.round(
-      context.nutritionHistory.slice(0, 7).reduce((s, n) => s + (n.calories || 0), 0) /
-        Math.min(context.nutritionHistory.length, 7),
-    );
-    const avgProtein = Math.round(
-      context.nutritionHistory.slice(0, 7).reduce((s, n) => s + (n.protein || 0), 0) /
-        Math.min(context.nutritionHistory.length, 7),
-    );
-    const recentNutrition = context.nutritionHistory.slice(0, 5).map(n =>
-      `- ${n.date?.split('T')[0] || 'Unknown'}: ${n.calories || 0} kcal, ${n.protein || 0}g protein`,
-    ).join('\n');
+    const logs = context.nutritionHistory as any[];
+    // Group by date
+    const byDate: Record<string, { cal: number; pro: number; carbs: number; fat: number; items: string[] }> = {};
+    for (const n of logs) {
+      const d = (n.date || '').split('T')[0] || 'Unknown';
+      if (!byDate[d]) byDate[d] = { cal: 0, pro: 0, carbs: 0, fat: 0, items: [] };
+      byDate[d].cal += n.calories || 0;
+      byDate[d].pro += n.protein || 0;
+      byDate[d].carbs += n.carbs || 0;
+      byDate[d].fat += n.fats || 0;
+      if (n.foodName) byDate[d].items.push(`${n.foodName}${n.quantity ? ` ${n.quantity}${n.unit || 'g'}` : ''}`);
+    }
+    const dates = Object.keys(byDate).sort().reverse().slice(0, 7);
+    const totalDays = dates.length;
+    const avgCal = Math.round(dates.reduce((s, d) => s + byDate[d].cal, 0) / totalDays);
+    const avgPro = Math.round(dates.reduce((s, d) => s + byDate[d].pro, 0) / totalDays);
+    const avgCarbs = Math.round(dates.reduce((s, d) => s + byDate[d].carbs, 0) / totalDays);
+    const avgFat = Math.round(dates.reduce((s, d) => s + byDate[d].fat, 0) / totalDays);
+    const dailyLines = dates.map(d => {
+      const v = byDate[d];
+      const items = v.items.length > 0 ? ` (${v.items.slice(0, 4).join(', ')}${v.items.length > 4 ? '...' : ''})` : '';
+      return `- ${d}: ${v.cal} kcal | P ${v.pro}g | C ${v.carbs}g | F ${v.fat}g${items}`;
+    }).join('\n');
     sections.push(
-      `Lịch sử dinh dưỡng (TB 7 ngày: ${avgCal} kcal, ${avgProtein}g protein):\n` + recentNutrition,
+      `Lịch sử dinh dưỡng (${totalDays} ngày gần nhất, TB: ${avgCal} kcal P${avgPro}g C${avgCarbs}g F${avgFat}g):\n${dailyLines}`,
     );
   }
 
@@ -290,6 +375,11 @@ export const promptBuilder = {
       'Hồ sơ user:',
       compactProfile(profile),
       '',
+      // Inject active workout & nutrition programs if available
+      ...(() => {
+        const programsText = compactCurrentPrograms(context);
+        return programsText ? ['Chương trình đang áp dụng:', programsText, ''] : [];
+      })(),
       ...(() => {
         const isGeneralKnowledge = intent.routeIntent === 'general_fitness_knowledge';
         if (isGeneralKnowledge) return [];

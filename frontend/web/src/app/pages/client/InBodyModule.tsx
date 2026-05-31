@@ -62,7 +62,18 @@ export function InBodyModule() {
   const [errors, setErrors]         = useState<Record<string, string>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [extractedData, setExtractedData] = useState<any>(null);
+  const [reviewDate, setReviewDate] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper: display measurement date from record (use dateOnly slice to avoid TZ issues)
+  const formatMeasurementDate = (r: any): string => {
+    const raw: string | undefined = r.dateOnly ?? r.date;
+    if (!raw) return '--';
+    const ymd = String(raw).slice(0, 10); // "2024-06-10"
+    const parts = ymd.split('-');
+    if (parts.length !== 3) return ymd;
+    return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+  };
 
   // Queries
   const { data: history = [], isLoading } = useQuery({
@@ -83,6 +94,12 @@ export function InBodyModule() {
     mutationFn: inbodyService.upload,
     onSuccess: (data) => {
       setExtractedData(data.entryData);
+      // If OCR extracted a measurement date, pre-fill it; else default to today
+      const ocrDate = data.entryData?.date;
+      const defaultDate = ocrDate
+        ? String(ocrDate).slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+      setReviewDate(defaultDate);
       setUploadStep("review");
     },
     onError: () => {
@@ -93,12 +110,18 @@ export function InBodyModule() {
   const latest = history[0] || { weight: 0, muscleMass: 0, bodyFat: 0, bodyFatPct: 0 };
   const prev   = history[1] || latest;
 
-  const trends = [...history].reverse().map((h: any) => ({
-    date: new Date(h.date).toLocaleDateString(undefined, { month: 'short' }),
-    weight: h.weight,
-    muscle: h.muscleMass,
-    fat: h.bodyFat,
-  }));
+  // Chart data sorted ascending by measurement date (dateOnly)
+  const trends = [...history].reverse().map((h: any) => {
+    // Use dateOnly (YYYY-MM-DD) if available, otherwise fall back to date
+    const measureDate = h.dateOnly ? new Date(h.dateOnly) : new Date(h.date);
+    return {
+      date: measureDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+      fullDate: measureDate.toLocaleDateString('vi-VN'),
+      weight: h.weight,
+      muscle: h.muscleMass,
+      fat: h.bodyFat,
+    };
+  });
 
   const radarData = [
     { subject: "Weight", A: (latest.weight / 100) * 100 },
@@ -178,7 +201,12 @@ export function InBodyModule() {
   const confirmExtraction = async () => {
     if (extractedData) {
       try {
-        await createMutation.mutateAsync(extractedData);
+        // Always include measurement date: reviewDate (user-confirmed) takes priority
+        const dateToSave = reviewDate || new Date().toISOString().slice(0, 10);
+        await createMutation.mutateAsync({
+          ...extractedData,
+          date: new Date(dateToSave + 'T00:00:00').toISOString(),
+        });
         setUploadStep("done");
       } catch {
         // stays on review step; createMutation.isError shows the error inline
@@ -379,7 +407,7 @@ export function InBodyModule() {
               return (
                 <div key={r.id} className={`flex items-center gap-4 p-3 rounded-xl border ${i === 0 ? "bg-green-500/5 border-green-500/15" : "bg-zinc-900 border-zinc-800/60"}`}>
                   <div className="text-sm font-semibold text-zinc-200 w-28 flex-shrink-0">
-                    {new Date(r.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    {formatMeasurementDate(r)}
                     {i === 0 && <span className="ml-1 text-xs bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded-full border border-green-500/20">Mới nhất</span>}
                   </div>
                   <div className="flex gap-4 text-xs text-zinc-500">
@@ -638,6 +666,31 @@ export function InBodyModule() {
                 <span className="text-sm text-amber-300 font-semibold">Kiểm tra dữ liệu trích xuất — chỉnh sửa nếu cần trước khi lưu</span>
               </div>
               <div className="p-4 space-y-4">
+                {/* Measurement Date — critical field, shown first */}
+                <div className={`rounded-lg border p-3 ${
+                  extractedData?.date
+                    ? 'bg-green-500/5 border-green-500/20'
+                    : 'bg-amber-500/5 border-amber-500/20'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">📅 Ngày đo InBody</span>
+                    {extractedData?.date
+                      ? <span className="text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">Đọc được từ ảnh</span>
+                      : <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Không đọc được — nhập thủ công</span>
+                    }
+                  </div>
+                  <input
+                    type="date"
+                    value={reviewDate}
+                    onChange={(e) => setReviewDate(e.target.value)}
+                    className={inp}
+                    required
+                  />
+                  <p className="text-xs text-zinc-600 mt-1">
+                    Đây là ngày đo trên phiếu InBody, không phải ngày tải ảnh. Upload 2 ảnh cùng ngày đo → chỉ lưu 1 bản ghi, dữ liệu mới nhất.
+                  </p>
+                </div>
+
                 {/* Basic Metrics */}
                 <div>
                   <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Thông số cơ bản</h4>
@@ -794,7 +847,7 @@ export function InBodyModule() {
                     return (
                       <tr key={r.id} className={`border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/30 transition-colors ${i === 0 ? "bg-green-500/5" : ""}`}>
                         <td className="px-4 py-3 text-sm font-semibold text-zinc-200">
-                          {new Date(r.date).toLocaleDateString()}
+                          {formatMeasurementDate(r)}
                           {i === 0 && <span className="ml-1.5 text-xs bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded-full border border-green-500/20">Mới nhất</span>}
                         </td>
                         <td className="px-4 py-3 text-sm text-blue-400 font-semibold">{r.weight}</td>
@@ -854,14 +907,14 @@ export function InBodyModule() {
             <div>
               <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Bản ghi A</label>
               <select value={compareA} onChange={e => setCompareA(Number(e.target.value))} className={inp}>
-                {history.map((h: any, i: number) => <option key={h.id} value={i}>{new Date(h.date).toLocaleDateString()}</option>)}
+                {history.map((h: any, i: number) => <option key={h.id} value={i}>{formatMeasurementDate(h)}</option>)}
               </select>
             </div>
             <span className="text-zinc-600 text-sm self-center hidden sm:block font-bold">vs</span>
             <div>
               <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Bản ghi B</label>
               <select value={compareB} onChange={e => setCompareB(Number(e.target.value))} className={inp}>
-                {history.map((h: any, i: number) => <option key={h.id} value={i}>{new Date(h.date).toLocaleDateString()}</option>)}
+                {history.map((h: any, i: number) => <option key={h.id} value={i}>{formatMeasurementDate(h)}</option>)}
               </select>
             </div>
           </div>
@@ -884,13 +937,13 @@ export function InBodyModule() {
                   <div className="flex items-end justify-between">
                     <div>
                       <div className="text-lg font-bold text-zinc-100">{aVal}{isPct ? "%" : ""}</div>
-                      <div className="text-xs text-zinc-600">{new Date(history[compareA]?.date).toLocaleDateString()}</div>
+                      <div className="text-xs text-zinc-600">{formatMeasurementDate(history[compareA])}</div>
                     </div>
                     <div className="text-right">
                       <div className={`text-sm font-bold ${isGood ? "text-green-400" : "text-red-400"}`}>
                         {diff > 0 ? "+" : ""}{diff.toFixed(1)}{isPct ? "%" : ""}
                       </div>
-                      <div className="text-xs text-zinc-600">{new Date(history[compareB]?.date).toLocaleDateString()}</div>
+                      <div className="text-xs text-zinc-600">{formatMeasurementDate(history[compareB])}</div>
                     </div>
                   </div>
                 </div>
@@ -909,8 +962,8 @@ export function InBodyModule() {
                 <XAxis dataKey="metric" tick={{ fontSize: 11, fill: "#71717a" }} />
                 <YAxis tick={{ fontSize: 10, fill: "#71717a" }} />
                 <Tooltip {...tooltipStyle} />
-                <Bar dataKey="A" fill="#22c55e" radius={[4, 4, 0, 0]} name={new Date(history[compareA]?.date).toLocaleDateString()} />
-                <Bar dataKey="B" fill="#3f3f46" radius={[4, 4, 0, 0]} name={new Date(history[compareB]?.date).toLocaleDateString()} />
+                <Bar dataKey="A" fill="#22c55e" radius={[4, 4, 0, 0]} name={formatMeasurementDate(history[compareA])} />
+                <Bar dataKey="B" fill="#3f3f46" radius={[4, 4, 0, 0]} name={formatMeasurementDate(history[compareB])} />
               </BarChart>
             </ResponsiveContainer>
           </SectionCard>

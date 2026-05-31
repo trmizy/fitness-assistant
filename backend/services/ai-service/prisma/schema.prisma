@@ -85,3 +85,26 @@ model WorkoutPlan {
   @@index([userId, archivedAt])
   @@map("workout_plans")
 }
+
+model NutritionPlan {
+  id            String     @id @default(uuid())
+  userId        String     @map("user_id")
+  name          String
+  goal          String
+  durationWeeks Int        @map("duration_weeks")
+  mealsPerDay   Int        @map("meals_per_day")
+  /// Structured JSON matching NutritionPlanContentSchema once COMPLETED; empty object while QUEUED/PROCESSING
+  plan          Json
+  status        PlanStatus @default(QUEUED)
+  jobId         String?    @map("job_id")
+  failReason    String?    @map("fail_reason")
+  archivedAt    DateTime?  @map("archived_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([jobId])
+  @@index([userId, status])
+  @@index([userId, archivedAt])
+  @@map("nutrition_plans")
+}

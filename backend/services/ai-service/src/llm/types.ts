@@ -28,6 +28,14 @@ export type RouteCategory =
 
 export type ResponseLanguage = 'vi' | 'en';
 
+export interface InBodySegmental {
+  rightArm?: number;
+  leftArm?: number;
+  trunk?: number;
+  rightLeg?: number;
+  leftLeg?: number;
+}
+
 export interface InBodyMetrics {
   weightKg?: number;
   bodyFatPct?: number;
@@ -36,6 +44,8 @@ export interface InBodyMetrics {
   bmr?: number;
   bmi?: number;
   measuredAt?: string;
+  segmentalMuscle?: InBodySegmental;
+  segmentalFat?: InBodySegmental;
 }
 
 export interface TrainingConstraints {

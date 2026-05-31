@@ -9,6 +9,10 @@ import {
   AdjustPlanRequestSchema,
   SavePlanToWorkoutLogRequestSchema,
 } from '../schemas/plan.schemas';
+import {
+  GenerateNutritionPlanRequestSchema,
+  SaveNutritionPlanToNutritionRequestSchema,
+} from '../schemas/nutrition-plan.schemas';
 
 const router = Router();
 
@@ -20,6 +24,54 @@ router.use(requireAuth);
  * Preflight check used by the UI before starting LLM-backed actions.
  */
 router.get('/llm-health', planController.getLlmHealth);
+
+/**
+ * POST /plans/nutrition/:planId/explain
+ * Generate a natural-language explanation for a COMPLETED nutrition plan.
+ */
+router.post('/nutrition/:planId/explain', planController.explainNutritionPlan);
+
+/**
+ * POST /plans/nutrition/:planId/adjust
+ * Queue an adjusted version of an existing COMPLETED nutrition plan.
+ */
+router.post('/nutrition/:planId/adjust', planController.adjustNutritionPlan);
+
+/**
+ * DELETE /plans/nutrition/:planId
+ * Soft-archive a nutrition plan.
+ */
+router.delete('/nutrition/:planId', planController.archiveNutritionPlan);
+
+/**
+ * POST /plans/nutrition/generate
+ * Queues a background job to generate an AI Nutrition Plan.
+ */
+router.post(
+  '/nutrition/generate',
+  (req, res, next) => {
+    const durationWeeks = req.body?.durationWeeks;
+    if (durationWeeks !== undefined && Number(durationWeeks) > 1) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'NUTRITION_PLAN_DURATION_LIMIT',
+          message: 'Kế hoạch dinh dưỡng AI hiện chỉ hỗ trợ tối đa 1 tuần.',
+        },
+      });
+      return;
+    }
+    next();
+  },
+  validateBody(GenerateNutritionPlanRequestSchema),
+  planController.generateNutritionPlan,
+);
+
+/**
+ * GET /plans/nutrition/current
+ * Fetch the authenticated user's most recent nutrition plans.
+ */
+router.get('/nutrition/current', planController.getCurrentNutritionPlans);
 
 /**
  * POST /plans/workout/generate
@@ -94,6 +146,22 @@ router.post(
   '/:planId/save-to-workout-log',
   validateBody(SavePlanToWorkoutLogRequestSchema),
   planController.savePlanToWorkoutLog,
+);
+
+/**
+ * POST /plans/:planId/save-to-nutrition
+ * Persist a COMPLETED AI plan into the user's nutrition schedule.
+ */
+router.post(
+  '/:planId/save-to-nutrition',
+  validateBody(SaveNutritionPlanToNutritionRequestSchema),
+  planController.saveNutritionPlan,
+);
+
+router.post(
+  '/nutrition/:planId/save-to-nutrition',
+  validateBody(SaveNutritionPlanToNutritionRequestSchema),
+  planController.saveNutritionPlan,
 );
 
 /**

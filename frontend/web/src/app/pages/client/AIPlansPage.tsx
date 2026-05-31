@@ -31,6 +31,7 @@ import {
 } from '../../components/ui/alert-dialog';
 import {
   planService,
+  workoutService,
   type PlanContent,
   type PlanExplanationResponse,
   type PlanStatusBackend,
@@ -39,15 +40,27 @@ import {
   type ExerciseItem,
   type LlmHealthStatus,
 } from '../../services/api';
+
 import { useApp } from '../../context/AppContext';
 import { acknowledgeTask, enqueuePlanTask, usePendingAiTasks } from '../../stores/pendingAiTasks';
+import { CurrentNutritionProgram as NutritionAiPlansPanel } from './CurrentNutritionProgram';
+
+const QUERY_GOAL_LABELS: Record<string, string> = {
+  WEIGHT_LOSS: 'Giam mo',
+  MUSCLE_GAIN: 'Tang co',
+  MAINTENANCE: 'Duy tri voc dang',
+  ATHLETIC_PERFORMANCE: 'Cai thien suc khoe',
+};
 
 type JobActionType = 'generate' | 'adjust';
+type AiPlanTab = 'workout' | 'nutrition';
 
 type SaveOutcome = {
   alreadyExists: boolean;
   createdScheduleCount: number;
   createdProgramId?: string;
+  selectedWeekdays?: number[];
+  schedulePreview?: unknown[];
   message: string;
 };
 
@@ -59,6 +72,31 @@ type UnknownRecord = Record<string, unknown>;
 
 const LLM_NOT_READY_MESSAGE = 'AI model chưa sẵn sàng. Vui lòng bật Ollama hoặc thử lại sau.';
 
+const WEEKDAY_OPTIONS = [
+  { value: 1, short: 'T2', label: 'Thứ 2' },
+  { value: 2, short: 'T3', label: 'Thứ 3' },
+  { value: 3, short: 'T4', label: 'Thứ 4' },
+  { value: 4, short: 'T5', label: 'Thứ 5' },
+  { value: 5, short: 'T6', label: 'Thứ 6' },
+  { value: 6, short: 'T7', label: 'Thứ 7' },
+  { value: 0, short: 'CN', label: 'Chủ nhật' },
+];
+
+const WEEKDAY_LABEL_BY_VALUE = WEEKDAY_OPTIONS.reduce<Record<number, string>>((acc, option) => {
+  acc[option.value] = option.label;
+  return acc;
+}, {});
+
+const WEEKDAY_SUGGESTIONS: Record<number, number[]> = {
+  1: [1],
+  2: [1, 4],
+  3: [1, 3, 5],
+  4: [1, 3, 5, 0],
+  5: [1, 2, 3, 5, 6],
+  6: [1, 2, 3, 4, 5, 6],
+  7: [1, 2, 3, 4, 5, 6, 0],
+};
+
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null;
 }
@@ -67,6 +105,17 @@ function toTimestamp(value?: string): number {
   if (!value) return 0;
   const ms = Date.parse(value);
   return Number.isNaN(ms) ? 0 : ms;
+}
+
+function toLocalDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function isDateInputValue(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
 function statusLabel(status: PlanStatusBackend): string {
@@ -203,6 +252,58 @@ function formatExplanationWarnings(value: ExplanationResult | string | UnknownRe
   return [];
 }
 
+function localizePlanNoteForDisplay(value: string): string {
+  const trimmed = value.trim();
+  const key = trimmed.toLowerCase().replace(/[–—]/g, '-').replace(/\s+/g, ' ');
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u0370-\u04FF\u0E00-\u0E7F\u0E80-\u0EFF]|[ƷƵƳƪǍǭȸ½¿]|\uFFFD|\?|Āng|ᬺ|ǈi|ī|ǉ|ĝ|Âng|Ñ|Ȃ|ӣ/.test(trimmed)) {
+    if (/7-9|giờ|phục hồi|hồi/i.test(trimmed)) {
+      return 'Ngủ 7-9 giờ mỗi ngày và duy trì ít nhất một ngày phục hồi mỗi tuần.';
+    }
+    if (/đau|nhức|kéo dài|khối lượng|nghỉ/i.test(trimmed)) {
+      return 'Nếu đau nhức kéo dài, hãy giảm khối lượng tập hoặc nghỉ thêm.';
+    }
+    if (/form|chuẩn|cường độ/i.test(trimmed)) {
+      return 'Giữ form chuẩn trước khi tăng cường độ.';
+    }
+    if (/protein|calo|nước/i.test(trimmed)) {
+      return 'Ưu tiên đủ protein, kiểm soát tổng calo theo mục tiêu và uống đủ nước.';
+    }
+    return 'Tập trung vào kỹ thuật chuẩn, kiểm soát nhịp tập và tăng tiến từ từ.';
+  }
+  const map: Record<string, string> = {
+    'add load or reps gradually when all sets feel controlled.':
+      'Tăng dần mức tạ hoặc số lần lặp khi bạn hoàn thành đủ các hiệp với kỹ thuật tốt.',
+    'sleep 7-9 hours and keep at least one recovery day weekly.':
+      'Ngủ 7-9 giờ mỗi ngày và duy trì ít nhất một ngày phục hồi mỗi tuần.',
+    'protein 1.8-2.2 g/kg/day and calories aligned with the goal.':
+      'Ưu tiên đủ protein, kiểm soát tổng calo theo mục tiêu và uống đủ nước.',
+  };
+  if (map[key]) return map[key];
+  if (/add .*load|add .*reps|progress/i.test(trimmed)) {
+    return 'Tăng dần mức tạ hoặc số lần lặp khi bạn hoàn thành đủ các hiệp với kỹ thuật tốt.';
+  }
+  if (/sleep|recovery|stretch/i.test(trimmed)) {
+    return 'Ngủ 7-9 giờ mỗi ngày, giãn cơ nhẹ sau buổi tập và giữ ít nhất một ngày phục hồi mỗi tuần.';
+  }
+  if (/protein|calorie|caloric|nutrition/i.test(trimmed)) {
+    return 'Ưu tiên đủ protein, kiểm soát tổng calo theo mục tiêu và uống đủ nước.';
+  }
+  return trimmed;
+}
+
+function localizeDayGoalForDisplay(value: unknown, dayIndex: number): string {
+  if (typeof value !== 'string' || !value.trim()) return `Buổi tập ${dayIndex + 1}`;
+  const trimmed = value.trim();
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u0370-\u04FF\u0E00-\u0E7F\u0E80-\u0EFF]|[ƷƵƳƪǍǭȸ½¿]|\uFFFD|\?|Āng|ᬺ|ǈi|ī|ǉ|ĝ|Âng|Ñ|Ȃ|ӣ/.test(trimmed)) {
+    if (/tay trước/i.test(trimmed)) return 'Lưng + Tay trước';
+    if (/tay sau/i.test(trimmed)) return 'Ngực + Vai + Tay sau';
+    if (/vai/i.test(trimmed)) return 'Vai + Tay';
+    if (/chân|mong|mông/i.test(trimmed)) return 'Chân + Mông';
+    return `Buổi tập ${dayIndex + 1}`;
+  }
+  return trimmed;
+}
+
 function countInvalidExerciseIds(schedule: WeeklyScheduleItem[] | null): number {
   if (!schedule) return 0;
 
@@ -234,11 +335,34 @@ export function AIPlansPage() {
   const [durationWeeks, setDurationWeeks] = useState(8);
   const [daysPerWeek, setDaysPerWeek] = useState(4);
   const [exercisesPerDay, setExercisesPerDay] = useState(4);
+  const [trainingLocation, setTrainingLocation] = useState<'HOME' | 'GYM'>('GYM');
+  const [equipmentPreference, setEquipmentPreference] = useState<'MACHINE_ONLY' | 'MIXED_GYM'>('MIXED_GYM');
+  const [activePlanTab, setActivePlanTab] = useState<AiPlanTab>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab') || params.get('type');
+    return tab === 'nutrition' ? 'nutrition' : 'workout';
+  });
+
+  useEffect(() => {
+    const queryGoal = new URLSearchParams(window.location.search).get('goal');
+    if (!queryGoal) return;
+    setGoal(QUERY_GOAL_LABELS[queryGoal] || queryGoal);
+  }, []);
+
+  function selectPlanTab(tab: AiPlanTab) {
+    setActivePlanTab(tab);
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  }
 
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [planFilter, setPlanFilter] = useState<PlanFilter>('completed');
 
   const [explanationResult, setExplanationResult] = useState<ExplanationResult | null>(null);
+  const [isExplanationStreaming, setIsExplanationStreaming] = useState(false);
+  const [explanationStatus, setExplanationStatus] = useState<string | null>(null);
+  const explanationAbortRef = useRef<(() => void) | null>(null);
 
   const [showAdjustPanel, setShowAdjustPanel] = useState(false);
   const [adjustments, setAdjustments] = useState('');
@@ -246,9 +370,13 @@ export function AIPlansPage() {
   const [adjustExercisesPerDayInput, setAdjustExercisesPerDayInput] = useState('');
 
   const [showSavePanel, setShowSavePanel] = useState(false);
-  const [saveStartDate, setSaveStartDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [saveStartDate, setSaveStartDate] = useState(() => toLocalDateInputValue(new Date()));
   const [saveRepeatWeeksInput, setSaveRepeatWeeksInput] = useState('');
+  const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>(WEEKDAY_SUGGESTIONS[4]);
+  const [weekdayWarning, setWeekdayWarning] = useState<string | null>(null);
+  const [replaceExisting, setReplaceExisting] = useState(true);
   const [saveOutcome, setSaveOutcome] = useState<SaveOutcome | null>(null);
+  const [checkingCurrentProgram, setCheckingCurrentProgram] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<WorkoutPlanRecord | null>(null);
   const [llmTechnicalDetails, setLlmTechnicalDetails] = useState<string | null>(null);
 
@@ -334,6 +462,11 @@ export function AIPlansPage() {
   }, [defaultPlan, selectedPlanId, visiblePlans]);
 
   const currentContent = useMemo(() => toPlanContent(currentPlan?.plan), [currentPlan]);
+  const saveDaysPerWeek = useMemo(() => {
+    const rawDays = Number(currentContent?.daysPerWeek ?? currentPlan?.daysPerWeek ?? daysPerWeek);
+    if (!Number.isFinite(rawDays)) return 1;
+    return Math.min(7, Math.max(1, Math.trunc(rawDays)));
+  }, [currentContent?.daysPerWeek, currentPlan?.daysPerWeek, daysPerWeek]);
   const weeklySchedule = useMemo(
     () => toWeeklySchedule(currentContent?.weeklySchedule),
     [currentContent],
@@ -349,10 +482,23 @@ export function AIPlansPage() {
     setSaveOutcome(null);
     setShowSavePanel(false);
     setExplanationResult(null);
+    setExplanationStatus(null);
+    setIsExplanationStreaming(false);
+    explanationAbortRef.current?.();
+    explanationAbortRef.current = null;
   }, [currentPlan?.id]);
 
+  useEffect(() => () => {
+    explanationAbortRef.current?.();
+  }, []);
+
+  useEffect(() => {
+    setSelectedWeekdays(WEEKDAY_SUGGESTIONS[saveDaysPerWeek] ?? WEEKDAY_OPTIONS.slice(0, saveDaysPerWeek).map((day) => day.value));
+    setWeekdayWarning(null);
+  }, [currentPlan?.id, saveDaysPerWeek]);
+
   const generateMutation = useMutation({
-    mutationFn: (payload: { goal: string; durationWeeks: number; daysPerWeek: number; exercisesPerDay: number }) =>
+    mutationFn: (payload: { goal: string; durationWeeks: number; daysPerWeek: number; exercisesPerDay: number; trainingLocation: 'HOME' | 'GYM'; equipmentPreference: 'MACHINE_ONLY' | 'MIXED_GYM' }) =>
       planService.generateWorkoutPlan(payload),
     onSuccess: (result) => {
       enqueuePlanTask(userScopeId, {
@@ -375,9 +521,11 @@ export function AIPlansPage() {
     mutationFn: (planId: string) => planService.explainPlan(planId, 'vi'),
     onSuccess: (result) => {
       setExplanationResult(result);
+      setExplanationStatus(null);
       toast.success(result.source === 'fallback' ? 'Đã tạo giải thích kế hoạch bằng chế độ tự động' : 'Đã tạo giải thích kế hoạch');
     },
     onError: (error: unknown) => {
+      setExplanationStatus(null);
       toast.error(summarizeApiError(error, 'Không thể giải thích kế hoạch'));
     },
   });
@@ -420,19 +568,26 @@ export function AIPlansPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: (payload: { planId: string; startDate?: string; repeatWeeks?: number }) =>
+    mutationFn: (payload: { planId: string; startDate?: string; repeatWeeks?: number; selectedWeekdays?: number[]; replaceExisting?: boolean }) =>
       planService.savePlanToWorkoutLog(payload.planId, {
         startDate: payload.startDate,
         repeatWeeks: payload.repeatWeeks,
+        selectedWeekdays: payload.selectedWeekdays,
+        replaceExisting: payload.replaceExisting,
       }),
     onSuccess: (result) => {
       setShowSavePanel(false);
       setSaveRepeatWeeksInput('');
+      void queryClient.invalidateQueries({ queryKey: ['current-workout-program'] });
+      void queryClient.invalidateQueries({ queryKey: ['workout-schedules'] });
+      void queryClient.invalidateQueries({ queryKey: ['workout-stats'] });
       const alreadyExists = Boolean(result.alreadyExists);
       setSaveOutcome({
         alreadyExists,
         createdScheduleCount: result.createdScheduleCount,
         createdProgramId: result.createdProgramId,
+        selectedWeekdays: result.selectedWeekdays,
+        schedulePreview: result.schedulePreview,
         message: alreadyExists
           ? 'Kế hoạch này đã được lưu vào lịch tập trước đó.'
           : 'Đã lưu kế hoạch vào lịch tập.',
@@ -471,6 +626,7 @@ export function AIPlansPage() {
   const isBusy =
     generateMutation.isPending ||
     explainMutation.isPending ||
+    isExplanationStreaming ||
     adjustMutation.isPending ||
     saveMutation.isPending ||
     archiveMutation.isPending ||
@@ -519,6 +675,8 @@ export function AIPlansPage() {
       durationWeeks,
       daysPerWeek,
       exercisesPerDay,
+      trainingLocation,
+      equipmentPreference,
     });
   };
 
@@ -527,8 +685,54 @@ export function AIPlansPage() {
       toast.error('Chỉ có thể giải thích plan đã hoàn thành');
       return;
     }
-    if (!(await ensureLlmReady())) return;
-    explainMutation.mutate(currentPlan.id);
+    if (isExplanationStreaming || explainMutation.isPending) return;
+
+    explanationAbortRef.current?.();
+    setExplanationResult({
+      planId: currentPlan.id,
+      explanation: '',
+      source: 'llm',
+      warnings: [],
+    });
+    setExplanationStatus('AI đang giải thích kế hoạch...');
+    setIsExplanationStreaming(true);
+
+    explanationAbortRef.current = planService.explainPlanStream(
+      currentPlan.id,
+      {
+        onStatus: (status) => {
+          setExplanationStatus(status || 'AI đang giải thích kế hoạch...');
+        },
+        onToken: (token) => {
+          setExplanationResult((previous) => ({
+            planId: currentPlan.id,
+            explanation: `${previous?.explanation ?? ''}${token}`,
+            source: previous?.source ?? 'llm',
+            warnings: previous?.warnings ?? [],
+          }));
+        },
+        onDone: (meta) => {
+          setIsExplanationStreaming(false);
+          setExplanationStatus(null);
+          explanationAbortRef.current = null;
+          setExplanationResult((previous) => ({
+            planId: currentPlan.id,
+            explanation: previous?.explanation ?? '',
+            source: meta.source,
+            warnings: meta.warnings,
+          }));
+          toast.success(meta.source === 'fallback' ? 'Đã tạo giải thích tự động bằng tiếng Việt' : 'Đã tạo giải thích kế hoạch');
+        },
+        onError: (message) => {
+          setIsExplanationStreaming(false);
+          setExplanationStatus(null);
+          explanationAbortRef.current = null;
+          toast.error(message || 'Không thể giải thích kế hoạch lúc này. Vui lòng thử lại.');
+          explainMutation.mutate(currentPlan.id);
+        },
+      },
+      { lang: 'vi' },
+    );
   };
 
   const handleArchive = (plan: WorkoutPlanRecord) => {
@@ -557,6 +761,8 @@ export function AIPlansPage() {
       durationWeeks: plan.duration,
       daysPerWeek: plan.daysPerWeek,
       exercisesPerDay: retryExercisesPerDay,
+      trainingLocation,
+      equipmentPreference,
     });
   };
 
@@ -600,7 +806,24 @@ export function AIPlansPage() {
     });
   };
 
-  const handleSaveToWorkoutLog = () => {
+  const toggleSaveWeekday = (weekday: number) => {
+    setSelectedWeekdays((previous) => {
+      if (previous.includes(weekday)) {
+        setWeekdayWarning(null);
+        return previous.filter((value) => value !== weekday);
+      }
+
+      if (previous.length >= saveDaysPerWeek) {
+        setWeekdayWarning(`Kế hoạch này có ${saveDaysPerWeek} buổi/tuần, bạn chỉ được chọn tối đa ${saveDaysPerWeek} ngày.`);
+        return previous;
+      }
+
+      setWeekdayWarning(null);
+      return WEEKDAY_OPTIONS.map((option) => option.value).filter((value) => [...previous, weekday].includes(value));
+    });
+  };
+
+  const handleSaveToWorkoutLog = async () => {
     if (!currentPlan?.id || currentPlan.status !== 'COMPLETED') {
       toast.error('Chỉ có thể lưu plan đã hoàn thành');
       return;
@@ -616,11 +839,41 @@ export function AIPlansPage() {
       toast.error('repeatWeeks phải trong khoảng 1-52');
       return;
     }
+    if (saveStartDate && !isDateInputValue(saveStartDate)) {
+      toast.error('Ngày bắt đầu không hợp lệ');
+      return;
+    }
+    if (selectedWeekdays.length !== saveDaysPerWeek) {
+      toast.error(`Vui lòng chọn đủ ${saveDaysPerWeek} ngày tập trong tuần.`);
+      return;
+    }
+
+    setCheckingCurrentProgram(true);
+    try {
+      const activeProgram = await workoutService.getCurrentProgram();
+      const activeSourcePlanId = typeof activeProgram?.sourcePlanId === 'string' ? activeProgram.sourcePlanId : null;
+      const isDifferentActiveProgram = Boolean(activeProgram?.id && activeSourcePlanId !== currentPlan.id);
+
+      if (isDifferentActiveProgram) {
+        const activeProgramName = typeof activeProgram.name === 'string' ? activeProgram.name : 'chương trình hiện tại';
+        const shouldReplace = window.confirm(
+          `Bạn đang có "${activeProgramName}" trong nhật ký tập. Lưu plan AI mới sẽ ẩn chương trình cũ và dùng plan này làm chương trình hiện tại. Bạn có muốn thay thế không?`,
+        );
+        if (!shouldReplace) return;
+      }
+    } catch (error) {
+      toast.error(summarizeApiError(error, 'Không thể kiểm tra chương trình hiện tại'));
+      return;
+    } finally {
+      setCheckingCurrentProgram(false);
+    }
 
     saveMutation.mutate({
       planId: currentPlan.id,
       startDate: saveStartDate || undefined,
       repeatWeeks: parsedRepeatWeeks,
+      selectedWeekdays,
+      replaceExisting,
     });
   };
 
@@ -628,6 +881,9 @@ export function AIPlansPage() {
   const headerDuration = currentContent?.durationWeeks ?? currentPlan?.duration ?? '--';
   const headerDays = currentContent?.daysPerWeek ?? currentPlan?.daysPerWeek ?? '--';
   const headerExercisesPerDay = currentContent?.exercisesPerDay ?? '--';
+  const headerLocation = (currentPlan?.plan as any)?._metadata?.trainingLocation
+    ?? (currentContent as any)?._metadata?.trainingLocation
+    ?? null;
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5">
@@ -667,6 +923,35 @@ export function AIPlansPage() {
         </div>
       )}
 
+      <div className="flex flex-wrap gap-2">
+        {([
+          { key: 'workout', label: 'Kế hoạch tập luyện', icon: Dumbbell },
+          { key: 'nutrition', label: 'Kế hoạch dinh dưỡng', icon: CalendarDays },
+        ] as const).map((tab) => {
+          const Icon = tab.icon;
+          const active = activePlanTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => selectPlanTab(tab.key)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-colors ${
+                active
+                  ? 'border-green-500/40 bg-green-500/10 text-green-300'
+                  : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {activePlanTab === 'nutrition' ? (
+        <NutritionAiPlansPanel />
+      ) : (
+        <>
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-5 space-y-4">
         <div className="flex items-center gap-2 text-zinc-200 font-semibold">
           <Sparkles className="w-4 h-4 text-green-400" />
@@ -732,6 +1017,58 @@ export function AIPlansPage() {
             />
           </div>
         </div>
+
+        {/* Training location */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-zinc-400">Nơi tập</label>
+          <div className="flex gap-2">
+            {([
+              { value: 'GYM', label: 'Phòng gym', desc: 'Máy, tạ, cable' },
+              { value: 'HOME', label: 'Ở nhà', desc: 'Bodyweight, tạ đôi, band' },
+            ] as const).map(({ value, label, desc }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTrainingLocation(value)}
+                className={`flex-1 px-4 py-2.5 rounded-xl border text-left transition-all ${
+                  trainingLocation === value
+                    ? 'border-green-500/50 bg-green-500/10 text-green-300'
+                    : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300'
+                }`}
+              >
+                <div className="text-sm font-semibold">{label}</div>
+                <div className="text-[11px] opacity-70">{desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Equipment preference (only for GYM) */}
+        {trainingLocation === 'GYM' && (
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-zinc-400">Nguồn thiết bị</label>
+            <div className="flex gap-2">
+              {([
+                { value: 'MACHINE_ONLY', label: 'Tập hoàn toàn bằng máy', desc: 'Chỉ machine/cable/smith' },
+                { value: 'MIXED_GYM', label: 'Kết hợp máy và bài thường', desc: 'Machine + tạ + barbell' },
+              ] as const).map(({ value, label, desc }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setEquipmentPreference(value)}
+                  className={`flex-1 px-4 py-2.5 rounded-xl border text-left transition-all ${
+                    equipmentPreference === value
+                      ? 'border-green-500/50 bg-green-500/10 text-green-300'
+                      : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300'
+                  }`}
+                >
+                  <div className="text-sm font-semibold">{label}</div>
+                  <div className="text-[11px] opacity-70">{desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <button
@@ -920,6 +1257,12 @@ export function AIPlansPage() {
                     <div className="text-sm text-zinc-100 mt-1">{String(headerExercisesPerDay)} bài</div>
                   </div>
                   <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
+                    <div className="text-[11px] text-zinc-500">Nơi tập</div>
+                    <div className="text-sm text-zinc-100 mt-1">
+                      {headerLocation === 'HOME' ? 'Ở nhà' : headerLocation === 'GYM' ? 'Phòng gym' : 'Chưa xác định'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
                     <div className="text-[11px] text-zinc-500">Version</div>
                     <div className="text-sm text-zinc-100 mt-1">v{currentPlan.version ?? 1}</div>
                   </div>
@@ -950,18 +1293,18 @@ export function AIPlansPage() {
                     onClick={handleExplain}
                     disabled={
                       explainMutation.isPending ||
-                      blockLlmActions ||
+                      isExplanationStreaming ||
                       !currentPlan.id ||
                       currentPlan.status !== 'COMPLETED'
                     }
                     className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {explainMutation.isPending ? (
+                    {explainMutation.isPending || isExplanationStreaming ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Wand2 className="w-4 h-4" />
                     )}
-                    Giải thích kế hoạch
+                    {isExplanationStreaming ? 'AI đang giải thích...' : 'Giải thích kế hoạch'}
                   </button>
 
                   <button
@@ -1002,6 +1345,32 @@ export function AIPlansPage() {
                         Kế hoạch này còn {missingExerciseIdCount} bài tập chưa có exerciseId. Hãy tạo lại plan trước khi lưu vào lịch tập.
                       </div>
                     )}
+
+                    {/* Replace vs Append mode */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-zinc-400">Lịch tập hiện tại</label>
+                      <div className="flex gap-2">
+                        {([
+                          { value: true, label: 'Thay thế lịch cũ', desc: 'Xóa lịch cũ chưa hoàn thành' },
+                          { value: false, label: 'Thêm vào lịch hiện tại', desc: 'Giữ lịch cũ, thêm mới' },
+                        ] as const).map(({ value, label, desc }) => (
+                          <button
+                            key={String(value)}
+                            type="button"
+                            onClick={() => setReplaceExisting(value)}
+                            className={`flex-1 px-3 py-2 rounded-xl border text-left transition-all ${
+                              replaceExisting === value
+                                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200'
+                                : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-zinc-600'
+                            }`}
+                          >
+                            <div className="text-xs font-semibold">{label}</div>
+                            <div className="text-[10px] opacity-70 mt-0.5">{desc}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <label className="block text-xs font-semibold text-zinc-400">Ngày bắt đầu</label>
@@ -1025,15 +1394,54 @@ export function AIPlansPage() {
                         />
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="block text-xs font-semibold text-zinc-400">Chọn ngày tập trong tuần</label>
+                        <span className="text-xs text-zinc-500">
+                          Đã chọn {selectedWeekdays.length}/{saveDaysPerWeek} ngày
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                        {WEEKDAY_OPTIONS.map((option) => {
+                          const isSelected = selectedWeekdays.includes(option.value);
+                          const isAtLimit = selectedWeekdays.length >= saveDaysPerWeek;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => toggleSaveWeekday(option.value)}
+                              className={[
+                                'min-h-12 rounded-xl border px-2 py-2 text-center transition-colors',
+                                isSelected
+                                  ? 'border-emerald-400 bg-emerald-400 text-black'
+                                  : 'border-zinc-800 bg-zinc-950 text-zinc-300 hover:border-emerald-500/50 hover:text-emerald-200',
+                                !isSelected && isAtLimit ? 'opacity-50' : '',
+                              ].join(' ')}
+                            >
+                              <span className="block text-sm font-bold">{option.short}</span>
+                              <span className="block text-[10px] leading-tight">{option.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="text-xs text-zinc-500">
+                        Day 1 đến Day {saveDaysPerWeek} sẽ được xếp theo thứ tự ngày đã chọn.
+                      </div>
+                      {weekdayWarning && (
+                        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-200">
+                          {weekdayWarning}
+                        </div>
+                      )}
+                    </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={handleSaveToWorkoutLog}
-                        disabled={saveMutation.isPending || hasMissingExerciseIds}
+                        disabled={saveMutation.isPending || checkingCurrentProgram || hasMissingExerciseIds || selectedWeekdays.length !== saveDaysPerWeek}
                         className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-400 text-black font-semibold hover:bg-emerald-300 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarDays className="w-4 h-4" />}
-                        Lưu lịch tập
+                        {saveMutation.isPending || checkingCurrentProgram ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarDays className="w-4 h-4" />}
+                        {checkingCurrentProgram ? 'Đang kiểm tra' : 'Lưu lịch tập'}
                       </button>
                       <button
                         type="button"
@@ -1054,6 +1462,11 @@ export function AIPlansPage() {
                         ? `Tạo/đồng bộ ${saveOutcome.createdScheduleCount} lịch tập.`
                         : 'Không có lịch tập mới được tạo thêm.'}
                     </div>
+                    {saveOutcome.selectedWeekdays?.length ? (
+                      <div className="text-xs text-emerald-200/80">
+                        Lịch tập: {saveOutcome.selectedWeekdays.map((day) => WEEKDAY_LABEL_BY_VALUE[day] ?? `Ngày ${day}`).join(', ')}
+                      </div>
+                    ) : null}
                     {saveOutcome.createdProgramId && (
                       <div className="text-xs text-emerald-200/80 break-all">
                         Program ID: {saveOutcome.createdProgramId}
@@ -1129,15 +1542,33 @@ export function AIPlansPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <div className="text-xs font-semibold text-blue-300">Giải thích kế hoạch</div>
                       <span className="text-[11px] px-2 py-0.5 rounded-full border border-zinc-700 text-zinc-300 bg-zinc-950/60">
-                        {explanationResult.source === 'fallback' ? 'Tự động' : 'AI'}
+                        {isExplanationStreaming ? 'Đang chạy' : explanationResult.source === 'fallback' ? 'Tự động' : 'AI'}
                       </span>
+                      {!isExplanationStreaming && currentPlan?.id && (
+                        <button
+                          type="button"
+                          onClick={handleExplain}
+                          disabled={explainMutation.isPending}
+                          className="ml-auto text-[11px] px-2 py-1 rounded-lg border border-blue-500/30 text-blue-200 hover:bg-blue-500/10 disabled:opacity-60"
+                        >
+                          Tạo lại giải thích
+                        </button>
+                      )}
                     </div>
+                    {isExplanationStreaming && (
+                      <div className="text-xs text-blue-200 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-2">
+                        {explanationStatus || 'AI đang giải thích kế hoạch...'}
+                      </div>
+                    )}
                     {explanationResult.source === 'fallback' && (
                       <div className="text-xs text-amber-200 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2">
                         Đang dùng giải thích tự động vì AI phản hồi chậm.
                       </div>
                     )}
-                    <pre className="whitespace-pre-wrap text-sm text-zinc-200 leading-relaxed">{formatExplanationText(explanationResult)}</pre>
+                    <pre className="whitespace-pre-wrap text-sm text-zinc-200 leading-relaxed">
+                      {formatExplanationText(explanationResult)}
+                      {isExplanationStreaming ? <span className="text-blue-300 animate-pulse">▍</span> : null}
+                    </pre>
                     {formatExplanationWarnings(explanationResult).length > 0 && (
                       <details className="rounded-lg border border-zinc-800 bg-zinc-950/70 px-3 py-2">
                         <summary className="cursor-pointer text-xs font-medium text-zinc-300">Chi tiết kỹ thuật</summary>
@@ -1180,7 +1611,7 @@ export function AIPlansPage() {
                       !UUID_PATTERN.test(exercise.exerciseId.trim()),
                   );
                   const hasInvalidExerciseIds = invalidExercises.length > 0;
-                  const title = day.goal || day.focus || 'Workout Day';
+                  const title = localizeDayGoalForDisplay(day.goal || day.focus, dayIndex);
 
                   return (
                     <div key={key} className={`rounded-xl border overflow-hidden ${hasInvalidExerciseIds ? 'border-amber-500/30' : 'border-zinc-800'}`}>
@@ -1211,12 +1642,12 @@ export function AIPlansPage() {
                         <div className="p-3 bg-zinc-900 border-t border-zinc-800 space-y-2">
                           {day.notes && (
                             <div className="text-xs text-zinc-400 rounded-lg bg-zinc-950 border border-zinc-800 p-2">
-                              Ghi chú ngày tập: {day.notes}
+                              Ghi chú ngày tập: {localizePlanNoteForDisplay(day.notes)}
                             </div>
                           )}
                           {day.cardio && (
                             <div className="text-xs text-zinc-400 rounded-lg bg-zinc-950 border border-zinc-800 p-2">
-                              Cardio: {day.cardio}
+                              Cardio: {localizePlanNoteForDisplay(day.cardio)}
                             </div>
                           )}
 
@@ -1244,7 +1675,7 @@ export function AIPlansPage() {
                                     <div>Intensity: {exercise.intensity ?? '--'}</div>
                                     <div>Muscle: {exercise.muscleGroup ?? '--'}</div>
                                     <div>Equipment: {exercise.equipment ?? '--'}</div>
-                                    <div className="md:col-span-2">Note: {exercise.note ?? '--'}</div>
+                                    <div className="md:col-span-2">Note: {exercise.note ? localizePlanNoteForDisplay(exercise.note) : '--'}</div>
                                   </div>
                                 </div>
                               ))}
@@ -1263,42 +1694,44 @@ export function AIPlansPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                  <div className="text-xs font-semibold text-zinc-400 mb-1">Progression Notes</div>
+                  <div className="text-xs font-semibold text-zinc-400 mb-1">Ghi chú tăng tiến</div>
                   {(currentContent?.progressionNotes ?? []).length > 0 ? (
                     <ul className="text-sm text-zinc-300 space-y-1">
                       {(currentContent?.progressionNotes ?? []).map((note, i) => (
                         <li key={`prog-${i}`} className="flex gap-2">
                           <CircleCheck className="w-4 h-4 text-green-400 mt-0.5" />
-                          <span>{note}</span>
+                          <span>{localizePlanNoteForDisplay(note)}</span>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-zinc-500">Chưa có progression notes.</p>
+                    <p className="text-sm text-zinc-500">Chưa có ghi chú tăng tiến.</p>
                   )}
                 </div>
 
                 <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                  <div className="text-xs font-semibold text-zinc-400 mb-1">Recovery Notes</div>
+                  <div className="text-xs font-semibold text-zinc-400 mb-1">Ghi chú phục hồi</div>
                   {(currentContent?.recoveryNotes ?? []).length > 0 ? (
                     <ul className="text-sm text-zinc-300 space-y-1">
                       {(currentContent?.recoveryNotes ?? []).map((note, i) => (
                         <li key={`rec-${i}`} className="flex gap-2">
                           <CircleCheck className="w-4 h-4 text-blue-400 mt-0.5" />
-                          <span>{note}</span>
+                          <span>{localizePlanNoteForDisplay(note)}</span>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-zinc-500">Chưa có recovery notes.</p>
+                    <p className="text-sm text-zinc-500">Chưa có ghi chú phục hồi.</p>
                   )}
                 </div>
               </div>
 
               <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-                <div className="text-xs font-semibold text-zinc-400 mb-1">Nutrition Summary</div>
+                <div className="text-xs font-semibold text-zinc-400 mb-1">Tóm tắt dinh dưỡng</div>
                 <p className="text-sm text-zinc-300">
-                  {currentContent?.nutritionSummary || 'Chưa có nutrition summary.'}
+                  {currentContent?.nutritionSummary
+                    ? localizePlanNoteForDisplay(currentContent.nutritionSummary)
+                    : 'Chưa có tóm tắt dinh dưỡng.'}
                 </p>
               </div>
             </div>
@@ -1370,6 +1803,8 @@ export function AIPlansPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </>
+      )}
     </div>
   );
 }

@@ -26,68 +26,90 @@ export const workoutRepository = {
     }),
 
   create: (userId: string, data: any) =>
-    prisma.workout.create({
-      data: {
-        userId,
-        name: data.name,
-        description: data.description,
-        date: data.date ? new Date(data.date) : new Date(),
-        duration: data.duration,
-        notes: data.notes,
-        exercises: {
-          create: data.exercises.map((ex: any, index: number) => ({
-            exerciseId: ex.exerciseId,
-            sets: ex.sets,
-            reps: ex.reps,
-            duration: ex.duration,
-            weight: ex.weight,
-            notes: ex.notes,
-            order: index,
-            workoutSets: {
-              create: Array.from({ length: ex.sets }, (_, i) => ({
-                setNumber: i + 1,
-                reps: ex.reps ?? null,
-                weight: ex.weight ?? null,
-                completed: false,
-              })),
-            },
-          })),
+    prisma.$transaction(async (tx) => {
+      const workout = await tx.workout.create({
+        data: {
+          userId,
+          name: data.name,
+          description: data.description,
+          date: data.date ? new Date(data.date) : new Date(),
+          duration: data.duration,
+          notes: data.notes,
+          exercises: {
+            create: data.exercises.map((ex: any, index: number) => ({
+              exerciseId: ex.exerciseId,
+              sets: ex.sets,
+              reps: ex.reps,
+              duration: ex.duration,
+              weight: ex.weight,
+              notes: ex.notes,
+              order: index,
+              workoutSets: {
+                create: Array.from({ length: ex.sets }, (_, i) => ({
+                  setNumber: i + 1,
+                  reps: ex.reps ?? null,
+                  weight: ex.weight ?? null,
+                  completed: true,
+                })),
+              },
+            })),
+          },
         },
-      },
-      include: workoutInclude,
+        include: workoutInclude,
+      });
+
+      if (data.scheduleId) {
+        await tx.workoutSchedule.update({
+          where: { id: data.scheduleId },
+          data: { workoutId: workout.id },
+        });
+      }
+
+      return workout;
     }),
 
   async update(id: string, data: any) {
-    await prisma.workoutExercise.deleteMany({ where: { workoutId: id } });
-    return prisma.workout.update({
-      where: { id },
-      data: {
-        name: data.name,
-        description: data.description,
-        date: data.date ? new Date(data.date) : undefined,
-        duration: data.duration,
-        notes: data.notes,
-        exercises: {
-          create: data.exercises.map((ex: any, index: number) => ({
-            exerciseId: ex.exerciseId,
-            sets: ex.sets,
-            reps: ex.reps,
-            duration: ex.duration,
-            weight: ex.weight,
-            notes: ex.notes,
-            order: index,
-            workoutSets: {
-              create: Array.from({ length: ex.sets }, (_, i) => ({
-                setNumber: i + 1,
-                reps: ex.reps ?? null,
-                weight: ex.weight ?? null,
-                completed: false,
-              })),
-            },
-          })),
+    return prisma.$transaction(async (tx) => {
+      await tx.workoutExercise.deleteMany({ where: { workoutId: id } });
+      const workout = await tx.workout.update({
+        where: { id },
+        data: {
+          name: data.name,
+          description: data.description,
+          date: data.date ? new Date(data.date) : undefined,
+          duration: data.duration,
+          notes: data.notes,
+          exercises: {
+            create: data.exercises.map((ex: any, index: number) => ({
+              exerciseId: ex.exerciseId,
+              sets: ex.sets,
+              reps: ex.reps,
+              duration: ex.duration,
+              weight: ex.weight,
+              notes: ex.notes,
+              order: index,
+              workoutSets: {
+                create: Array.from({ length: ex.sets }, (_, i) => ({
+                  setNumber: i + 1,
+                  reps: ex.reps ?? null,
+                  weight: ex.weight ?? null,
+                  completed: true,
+                })),
+              },
+            })),
+          },
         },
-      },
-      include: workoutInclude,
+        include: workoutInclude,
+      });
+
+      if (data.scheduleId) {
+        await tx.workoutSchedule.update({
+          where: { id: data.scheduleId },
+          data: { workoutId: id },
+        });
+      }
+
+      return workout;
     });
   },
 
