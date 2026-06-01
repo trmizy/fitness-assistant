@@ -59,9 +59,21 @@ export const workoutRepository = {
       });
 
       if (data.scheduleId) {
+        const totalExercises = data.exercises.length;
+        const totalSets = data.exercises.reduce((sum: number, ex: any) => sum + Number(ex.sets || 0), 0);
         await tx.workoutSchedule.update({
           where: { id: data.scheduleId },
-          data: { workoutId: workout.id },
+          data: {
+            workoutId: workout.id,
+            status: 'COMPLETED',
+            progressPercent: 100,
+            completedAt: new Date(),
+            totalExercises,
+            completedExercises: totalExercises,
+            totalSets,
+            completedSets: totalSets,
+            durationSeconds: typeof data.duration === 'number' ? data.duration * 60 : undefined,
+          },
         });
       }
 
@@ -103,9 +115,21 @@ export const workoutRepository = {
       });
 
       if (data.scheduleId) {
+        const totalExercises = data.exercises.length;
+        const totalSets = data.exercises.reduce((sum: number, ex: any) => sum + Number(ex.sets || 0), 0);
         await tx.workoutSchedule.update({
           where: { id: data.scheduleId },
-          data: { workoutId: id },
+          data: {
+            workoutId: id,
+            status: 'COMPLETED',
+            progressPercent: 100,
+            completedAt: new Date(),
+            totalExercises,
+            completedExercises: totalExercises,
+            totalSets,
+            completedSets: totalSets,
+            durationSeconds: typeof data.duration === 'number' ? data.duration * 60 : undefined,
+          },
         });
       }
 

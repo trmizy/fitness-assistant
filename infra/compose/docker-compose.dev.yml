@@ -239,6 +239,10 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       LLM_MODEL: llama3.2:3b
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      AI_PLAN_NUM_PREDICT: ${AI_PLAN_NUM_PREDICT:-900}
+      AI_PLAN_RETRY_NUM_PREDICT: ${AI_PLAN_RETRY_NUM_PREDICT:-650}
+      AI_PLAN_TIMEOUT_MS: ${AI_PLAN_TIMEOUT_MS:-90000}
+      AI_PLAN_RETRY_TIMEOUT_MS: ${AI_PLAN_RETRY_TIMEOUT_MS:-60000}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       CHOKIDAR_USEPOLLING: "true"
     env_file:

@@ -285,6 +285,16 @@ model WorkoutSchedule {
   date            DateTime
   programDayId    String?  @map("program_day_id") // optional: which program day is scheduled
   workoutId       String?  @map("workout_id")     // optional: completed workout
+  status          String   @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | SKIPPED
+  progressPercent Int      @default(0) @map("progress_percent")
+  startedAt       DateTime? @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  totalExercises  Int?     @map("total_exercises")
+  completedExercises Int?  @map("completed_exercises")
+  totalSets       Int?     @map("total_sets")
+  completedSets   Int?     @map("completed_sets")
+  durationSeconds Int?     @map("duration_seconds")
+  caloriesEstimate Int?    @map("calories_estimate")
   sourcePlanId    String?  @map("source_plan_id")
   sourceType      String?  @map("source_type")
   notes           String?

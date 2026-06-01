@@ -1759,7 +1759,7 @@ export function AIPlansPage() {
 
                           {hasInvalidExerciseIds && (
                             <div className="text-xs text-amber-200 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2">
-                              Một số bài tập trong ngày này chưa có exerciseId hợp lệ. Kế hoạch sẽ không thể lưu vào lịch tập cho đến khi AI tạo lại đúng dữ liệu.
+                              Một số bài tập trong ngày này chưa có exerciseId hợp lệ. Hệ thống sẽ cố gắng tìm kiếm tên bài tập trong cơ sở dữ liệu. Nếu không tìm thấy, bài tập này sẽ bị bỏ qua khi lưu.
                             </div>
                           )}
 

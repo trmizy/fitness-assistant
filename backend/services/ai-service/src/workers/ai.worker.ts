@@ -32,6 +32,15 @@ const PLAN_EXERCISE_FETCH_LIMIT = 120;
 const PLAN_EXERCISE_PROMPT_LIMIT = 32; // fallback flat-list limit
 const PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT = 6;
 
+function readPositiveIntEnv(name: string): number | undefined {
+  const value = Number.parseInt(process.env[name] || '', 10);
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+function clampInt(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
 function buildEvidenceProfile(ctx: WorkerUserContext | null, fallbackGoal: string): UserProfile {
   const profile = ctx?.profile ?? {};
   const latestInBody = ctx?.latestInBody ?? null;
@@ -565,13 +574,33 @@ function appendPlanWarnings(content: any, warnings: Array<Record<string, unknown
 }
 
 function estimatePlanNumPredict(daysPerWeek: number, exercisesPerDay: number): number {
+  const override = readPositiveIntEnv('AI_PLAN_NUM_PREDICT');
+  if (override) return clampInt(override, 400, 2200);
+
   const exerciseObjects = daysPerWeek * exercisesPerDay;
-  return Math.min(2600, Math.max(1000, 550 + exerciseObjects * 60));
+  return clampInt(430 + exerciseObjects * 30, 650, 1250);
+}
+
+function estimatePlanRetryNumPredict(planNumPredict: number): number {
+  const override = readPositiveIntEnv('AI_PLAN_RETRY_NUM_PREDICT');
+  if (override) return clampInt(override, 300, 1600);
+
+  return Math.min(planNumPredict, 700);
 }
 
 function estimatePlanTimeoutMs(daysPerWeek: number, exercisesPerDay: number): number {
+  const override = readPositiveIntEnv('AI_PLAN_TIMEOUT_MS');
+  if (override) return clampInt(override, 30000, 240000);
+
   const exerciseObjects = daysPerWeek * exercisesPerDay;
-  return Math.min(210000, Math.max(130000, 70000 + exerciseObjects * 3500));
+  return clampInt(45000 + exerciseObjects * 1500, 65000, 120000);
+}
+
+function estimatePlanRetryTimeoutMs(planTimeoutMs: number): number {
+  const override = readPositiveIntEnv('AI_PLAN_RETRY_TIMEOUT_MS');
+  if (override) return clampInt(override, 20000, 180000);
+
+  return Math.min(planTimeoutMs, 60000);
 }
 
 function buildFastPlanPrompt(args: {
@@ -612,8 +641,11 @@ function buildFastPlanPrompt(args: {
     'Exercise catalog. For Day N, use ONLY ids under Day N. Never invent exerciseId.',
     catalog,
     'Rules:',
+    '- Keep the JSON compact. No markdown, no commentary, no duplicate exercise details.',
     `- weeklySchedule length exactly ${args.daysPerWeek}.`,
     `- each day exactly ${args.exercisesPerDay} exercises.`,
+    '- each exercise object must contain only: exerciseId, order, name, sets, reps, restSeconds, note.',
+    '- notes must be short, max 12 Vietnamese words.',
     '- day goal, notes, cardio, progressionNotes, recoveryNotes, nutritionSummary must be Vietnamese.',
     '- do not diagnose disease; do not invent citations/source_url; server attaches evidence metadata.',
     '- keep exercise names exactly from catalog.',
@@ -622,6 +654,70 @@ function buildFastPlanPrompt(args: {
 }
 
 // ── Job data schema ───────────────────────────────────────────────────────────
+function buildDeterministicPlanFromCatalogs(args: {
+  goal: string;
+  durationWeeks: number;
+  daysPerWeek: number;
+  exercisesPerDay: number;
+  exercisesByDay: DayExerciseCatalog[];
+  planId: string;
+  jobId: string | undefined;
+  reason: string;
+}): Record<string, unknown> {
+  const weeklySchedule = Array.from({ length: args.daysPerWeek }, (_, dayIndex) => {
+    const catalog = args.exercisesByDay[dayIndex % Math.max(1, args.exercisesByDay.length)];
+    const usedIds = new Set<string>();
+    const selectedExercises: AllowedExercise[] = [];
+
+    for (const exercise of catalog?.exercises ?? []) {
+      if (!exercise?.id || usedIds.has(exercise.id)) continue;
+      usedIds.add(exercise.id);
+      selectedExercises.push(exercise);
+      if (selectedExercises.length >= args.exercisesPerDay) break;
+    }
+
+    return {
+      day: `Day ${dayIndex + 1}`,
+      goal: catalog?.dayGoal || splitGoalForDay(args.goal, dayIndex, args.daysPerWeek),
+      exercises: selectedExercises.map((exercise, exerciseIndex) =>
+        buildExercisePrescription(
+          exercise,
+          exerciseIndex + 1,
+          'Auto-repaired from per-day exercise catalog after incomplete LLM output',
+        ),
+      ),
+      cardio: 'Khởi động nhẹ 5-10 phút trước buổi tập.',
+    };
+  });
+
+  const content: Record<string, unknown> = {
+    goal: args.goal,
+    durationWeeks: args.durationWeeks,
+    daysPerWeek: args.daysPerWeek,
+    exercisesPerDay: args.exercisesPerDay,
+    weeklySchedule,
+    progressionNotes: [
+      'Tăng dần mức tạ hoặc số lần lặp khi hoàn thành đủ hiệp với kỹ thuật tốt.',
+      'Giữ form chuẩn trước khi tăng cường độ.',
+    ],
+    recoveryNotes: [
+      'Ngủ 7-9 giờ mỗi ngày và duy trì ít nhất một ngày phục hồi mỗi tuần.',
+      'Nếu đau nhức kéo dài, hãy giảm khối lượng tập hoặc nghỉ thêm.',
+    ],
+    nutritionSummary: 'Ưu tiên đủ protein, kiểm soát tổng calo theo mục tiêu và uống đủ nước.',
+  };
+
+  appendPlanWarnings(content, [{
+    type: 'deterministic_repair',
+    planId: args.planId,
+    jobId: args.jobId,
+    reason: args.reason,
+    source: 'per_day_exercise_catalog',
+  }]);
+
+  return content;
+}
+
 const PlanJobDataSchema = z.object({
   planId: z.string().uuid(),
   userId: z.string().min(1),
@@ -654,6 +750,7 @@ export const aiWorker = new Worker(
     }
     const { planId, userId, goal, durationWeeks, daysPerWeek, exercisesPerDay, adjustmentContext, trainingLocation = 'GYM', equipmentPreference = 'MIXED_GYM' } =
       dataResult.data as PlanJobData;
+    const planJobStartedAt = Date.now();
 
     logger.info({ jobId: job.id, planId, userId }, 'Plan generation job started');
 
@@ -723,7 +820,9 @@ export const aiWorker = new Worker(
     // Flat list used for repair/validation helpers
     const promptExercises = allowedExercises.slice(0, PLAN_EXERCISE_PROMPT_LIMIT);
     const planNumPredict = estimatePlanNumPredict(daysPerWeek, exercisesPerDay);
+    const planRetryNumPredict = estimatePlanRetryNumPredict(planNumPredict);
     const planTimeoutMs = estimatePlanTimeoutMs(daysPerWeek, exercisesPerDay);
+    const planRetryTimeoutMs = estimatePlanRetryTimeoutMs(planTimeoutMs);
     // Append personal context to adjustmentContext so prompt builder can include it
     const enrichedAdjustmentContext = [
       adjustmentContext,
@@ -745,6 +844,10 @@ export const aiWorker = new Worker(
         goal,
         daysPerWeek,
         exercisesPerDay,
+        planNumPredict,
+        planRetryNumPredict,
+        planTimeoutMs,
+        planRetryTimeoutMs,
         hasUserContext: Boolean(userContextText),
         bodyCompAdjustments: evidenceBundle.adjustment_reason.map((item) => item.metric),
         evidenceUsed: evidenceBundle.evidence_used.map((item) => ({
@@ -769,10 +872,21 @@ export const aiWorker = new Worker(
       evidenceText,
     });
 
+    logger.info({
+      jobId: job.id,
+      planId,
+      promptChars: prompt.length,
+      allowedExerciseCount: allowedExercises.length,
+      daysPerWeek,
+      exercisesPerDay,
+      planNumPredict,
+      planTimeoutMs,
+    }, 'Plan generation prompt prepared');
+
     const completePlan = async (content: any, logMessage: string, extraLog: Record<string, unknown> = {}) => {
       attachEvidenceToPlanContent(content, evidenceBundle);
       await conversationRepository.updatePlanCompletion(planId, content);
-      logger.info({ jobId: job.id, planId, userId, ...extraLog }, logMessage);
+      logger.info({ jobId: job.id, planId, userId, totalDurationMs: Date.now() - planJobStartedAt, ...extraLog }, logMessage);
     };
 
     let rawAnswer: string;
@@ -819,14 +933,14 @@ export const aiWorker = new Worker(
         ].join('\n');
 
         const retryStartedAt = Date.now();
-        const retryResp = await llmService.callLLM(minimalRepairPrompt, { responseFormat: 'json', timeoutMs: Math.min(planTimeoutMs, 120000), numPredict: planNumPredict, temperature: 0.1 });
+        const retryResp = await llmService.callLLM(minimalRepairPrompt, { responseFormat: 'json', timeoutMs: planRetryTimeoutMs, numPredict: planRetryNumPredict, temperature: 0.1 });
         logger.info({
           jobId: job.id,
           planId,
           durationMs: Date.now() - retryStartedAt,
           promptTokens: retryResp.promptTokens,
           completionTokens: retryResp.completionTokens,
-          numPredict: planNumPredict,
+          numPredict: planRetryNumPredict,
         }, 'Plan generation format-only retry finished');
         const retryRaw = retryResp.answer;
         rawAnswer = retryRaw;
@@ -881,6 +995,27 @@ export const aiWorker = new Worker(
         if (parseResult.ok) {
           logger.warn({ jobId: job.id, planId, repairs: repaired.warnings }, 'Plan generation repaired short/empty schedule output');
         }
+      }
+    }
+
+    if (!parseResult.ok) {
+      const fallbackContent = buildDeterministicPlanFromCatalogs({
+        goal,
+        durationWeeks,
+        daysPerWeek,
+        exercisesPerDay,
+        exercisesByDay: perDayCatalogs,
+        planId,
+        jobId: job.id,
+        reason: parseResult.reason || 'unparseable_or_incomplete_llm_output',
+      });
+      const fallbackParse = parsePlanContent(JSON.stringify(fallbackContent));
+      if (fallbackParse.ok) {
+        logger.warn(
+          { jobId: job.id, planId, technicalReason: parseResult.reason, rawSnippet: String(rawAnswer).slice(0, 500) },
+          'Plan generation recovered from invalid LLM output using per-day catalog repair',
+        );
+        parseResult = fallbackParse;
       }
     }
 
@@ -1064,7 +1199,16 @@ export const aiWorker = new Worker(
         .join('\n')}\n\nPlease re-output the plan JSON only using exerciseId fields that are exactly one of the allowed ids. Keep the same JSON structure as previously requested and make sure each exercise object includes ${"exerciseId, name, sets, reps, restSeconds"}. Return ONLY the JSON.`;
 
       try {
-        const retryResp = await llmService.callLLM(correctionPrompt + '\n' + rawAnswer, { responseFormat: 'json', timeoutMs: Math.min(planTimeoutMs, 120000), numPredict: planNumPredict, temperature: 0.1 });
+        const retryStartedAt = Date.now();
+        const retryResp = await llmService.callLLM(correctionPrompt + '\n' + rawAnswer, { responseFormat: 'json', timeoutMs: planRetryTimeoutMs, numPredict: planRetryNumPredict, temperature: 0.1 });
+        logger.info({
+          jobId: job.id,
+          planId,
+          durationMs: Date.now() - retryStartedAt,
+          promptTokens: retryResp.promptTokens,
+          completionTokens: retryResp.completionTokens,
+          numPredict: planRetryNumPredict,
+        }, 'Plan generation invalid-id retry finished');
         const retryRaw = retryResp.answer;
         parseResult = parsePlanContent(retryRaw);
         if (!parseResult.ok) {

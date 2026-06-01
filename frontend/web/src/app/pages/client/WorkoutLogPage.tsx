@@ -157,6 +157,16 @@ function parseApiDateOnly(value: string | Date) {
   return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
 }
 
+function isSameCalendarDay(left: Date, right: Date) {
+  return left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate();
+}
+
+function toApiDateTime(date: Date) {
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString();
+}
+
 function getMonthRange(month: Date) {
   const start = new Date(month.getFullYear(), month.getMonth(), 1);
   const end = new Date(month.getFullYear(), month.getMonth() + 1, 0);
@@ -302,6 +312,13 @@ function exerciseUsesExternalWeight(exercise: any) {
   const equipment = String(exercise?.equipment || "").toUpperCase();
   if (!equipment) return true;
   return !["BODYWEIGHT", "FOAM_ROLLER", "RESISTANCE_BAND"].includes(equipment);
+}
+
+function scheduleProgressPercent(schedule?: WorkoutScheduleRecord | null) {
+  if (!schedule) return 0;
+  if (schedule.status === "COMPLETED" || schedule.workoutId || schedule.workout?.id) return 100;
+  const progress = Number(schedule.progressPercent ?? 0);
+  return Number.isFinite(progress) ? Math.max(0, Math.min(100, progress)) : 0;
 }
 
 // Accent helpers
@@ -505,6 +522,8 @@ export function WorkoutLogPage() {
           exerciseCount,
           programName: s.programDay?.program?.name,
           sourceType: s.programDay?.program?.sourceType,
+          status: s.status,
+          workoutId: s.workoutId || s.workout?.id || null,
         });
         map.set(day, list);
       }
@@ -534,6 +553,18 @@ export function WorkoutLogPage() {
     setCurrentProgram(program);
     setAiSchedules(Array.isArray(schedules) ? schedules : []);
   }, [calendarMonth]);
+
+  const findScheduleForDate = useCallback((date: Date) => {
+    return aiSchedules.find((schedule) => isSameCalendarDay(parseApiDateOnly(schedule.date), date)) || null;
+  }, [aiSchedules]);
+
+  const selectedSchedule = useCallback(() => {
+    if (selectedScheduleId) {
+      const byId = aiSchedules.find((schedule) => schedule.id === selectedScheduleId);
+      if (byId) return byId;
+    }
+    return findScheduleForDate(selectedDate);
+  }, [aiSchedules, findScheduleForDate, selectedDate, selectedScheduleId]);
 
   const openScheduleModal = useCallback((date = selectedDate) => {
     setScheduleDateInput(toDateInputValue(date));
@@ -698,7 +729,7 @@ export function WorkoutLogPage() {
       const saveDate = selectedDate;
       const payload = {
         name: `Workout for ${saveDate.toLocaleDateString()}`,
-        date: saveDate.toISOString(),
+        date: toApiDateTime(saveDate),
         exercises: editExercises.map((ex) => {
           // Ensure we have a valid UUID for exerciseId
           // If it's a seed ID or missing, we need to skip it or handle it
@@ -1014,11 +1045,14 @@ export function WorkoutLogPage() {
   }, []);
 
   const persistCompletedWorkout = async () => {
-    const saveDate = selectedDate;
+    const scheduleForSave = selectedSchedule();
+    const saveDate = scheduleForSave?.date ? parseApiDateOnly(scheduleForSave.date) : selectedDate;
+    const scheduleWorkoutId = scheduleForSave?.workoutId || scheduleForSave?.workout?.id || null;
+    const scheduleId = selectedScheduleId || scheduleForSave?.id || undefined;
     const payload = {
-      scheduleId: selectedScheduleId || undefined,
+      scheduleId,
       name: `Workout for ${saveDate.toLocaleDateString()}`,
-      date: saveDate.toISOString(),
+      date: toApiDateTime(saveDate),
       duration: Math.max(1, Math.ceil(timerSeconds / 60)),
       exercises: dayExercises.map((exercise, index) => {
         const log = activeExerciseLogs[index];
@@ -1034,9 +1068,11 @@ export function WorkoutLogPage() {
       }),
     };
 
-    const saved = currentWorkoutId
-      ? await workoutService.updateWorkout(currentWorkoutId, payload)
+    const workoutIdForSave = currentWorkoutId || scheduleWorkoutId;
+    const saved = workoutIdForSave
+      ? await workoutService.updateWorkout(workoutIdForSave, payload)
       : await workoutService.logWorkout(payload);
+    if (scheduleId) setSelectedScheduleId(scheduleId);
     if (saved?.id) setCurrentWorkoutId(saved.id);
     await refetchProgramAndSchedules();
   };
@@ -1353,16 +1389,18 @@ export function WorkoutLogPage() {
                   const clickedDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
                   const dStr = clickedDate.toDateString();
                   setSelectedDate(clickedDate);
-                  const scheduleForDay = aiSchedules.find((schedule) => {
-                    const date = new Date(schedule.date);
-                    return date.getFullYear() === clickedDate.getFullYear() && date.getMonth() === clickedDate.getMonth() && date.getDate() === clickedDate.getDate();
-                  });
+                  const scheduleForDay = findScheduleForDate(clickedDate);
                   setSelectedDay(scheduleForDay?.programDay?.dayNumber || day);
                   setSelectedScheduleId(scheduleForDay?.id || null);
                   setCurrentWorkoutId(scheduleForDay?.workoutId || scheduleForDay?.workout?.id || null);
 
-                  // Check if we have this workout in cache
-                  if (workoutCache[dStr]) {
+                  // Prefer the persisted schedule. Workout history can contain legacy
+                  // date-shifted rows, so it is only a fallback for unscheduled days.
+                  if (scheduleForDay?.programDay?.dayNumber) {
+                    setSelectedDay(scheduleForDay.programDay.dayNumber);
+                    setTab("plan");
+                    setPlanView("dayDetail");
+                  } else if (workoutCache[dStr]) {
                     const w = workoutCache[dStr];
                     setCurrentWorkoutId(w.id);
                     const mapped = w.exercises.map((we: any) => ({
@@ -1381,13 +1419,7 @@ export function WorkoutLogPage() {
                     setTab("plan");
                     setPlanView("dayDetail");
                   } else {
-                    if (scheduleForDay?.programDay?.dayNumber) {
-                      setSelectedDay(scheduleForDay.programDay.dayNumber);
-                      setTab("plan");
-                      setPlanView("dayDetail");
-                    } else {
-                      openScheduleModal(clickedDate);
-                    }
+                    openScheduleModal(clickedDate);
                   }
                 }}
               />
@@ -1717,10 +1749,7 @@ export function WorkoutLogPage() {
                       onDayClick={(day) => {
                         const clickedDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
                         setSelectedDate(clickedDate);
-                        const scheduleForDay = aiSchedules.find((schedule) => {
-                          const date = new Date(schedule.date);
-                          return date.getFullYear() === clickedDate.getFullYear() && date.getMonth() === clickedDate.getMonth() && date.getDate() === clickedDate.getDate();
-                        });
+                        const scheduleForDay = findScheduleForDate(clickedDate);
                         setSelectedDay(scheduleForDay?.programDay?.dayNumber || day);
                         setSelectedScheduleId(scheduleForDay?.id || null);
                         setCurrentWorkoutId(scheduleForDay?.workoutId || scheduleForDay?.workout?.id || null);
@@ -1787,6 +1816,8 @@ export function WorkoutLogPage() {
       {tab === "plan" && planView === "dayDetail" && (() => {
         const programDays = currentProgram?.days || [];
         const wd = programDays.find((d: any) => d.dayNumber === selectedDay) || programDays[0];
+        const detailSchedule = selectedSchedule();
+        const detailProgress = scheduleProgressPercent(detailSchedule);
         if (!wd) {
           return (
             <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-8 text-center">
@@ -1827,10 +1858,23 @@ export function WorkoutLogPage() {
                     <div className="relative">
                       <svg width="110" height="110" viewBox="0 0 110 110">
                         <circle cx="55" cy="55" r="48" fill="none" stroke="#064e3b" strokeWidth="4" />
+                        {detailProgress > 0 && (
+                          <circle
+                            cx="55"
+                            cy="55"
+                            r="48"
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="4"
+                            strokeDasharray={`${(detailProgress / 100) * 302} 302`}
+                            strokeLinecap="round"
+                            transform="rotate(-90 55 55)"
+                          />
+                        )}
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-center">
-                          <span className="text-2xl text-emerald-400">0%</span>
+                          <span className="text-2xl text-emerald-400">{detailProgress}%</span>
                           <p className="text-[9px] text-zinc-600 mt-0.5">Hoàn thành</p>
                         </div>
                       </div>
@@ -1856,7 +1900,11 @@ export function WorkoutLogPage() {
                   </div>
 
                   <button
-                    onClick={() => setPlanView("activeExercise")}
+                    onClick={() => {
+                      if (detailSchedule?.id) setSelectedScheduleId(detailSchedule.id);
+                      setCurrentWorkoutId(detailSchedule?.workoutId || detailSchedule?.workout?.id || null);
+                      setPlanView("activeExercise");
+                    }}
                     className="w-full py-3.5 rounded-xl bg-emerald-500 text-black text-sm tracking-wider transition-all hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     <Play className="w-4 h-4" /> BẮT ĐẦU TẬP
@@ -3098,6 +3146,8 @@ type CalendarDayInfo = {
   exerciseCount: number;
   programName?: string;
   sourceType?: string | null;
+  status?: WorkoutScheduleRecord["status"];
+  workoutId?: string | null;
 };
 
 function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth, onDayClick }: {
@@ -3173,26 +3223,26 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
                 ? `${firstInfo.title}${firstInfo.exerciseCount ? ` · ${firstInfo.exerciseCount} bài` : ''}${firstInfo.programName ? `\n${firstInfo.programName}` : ''}`
                 : undefined}
               className={`relative w-full h-[52px] flex flex-col items-center pt-1.5 rounded-xl text-xs transition-all cursor-pointer overflow-hidden ${
-                isToday
-                  ? "bg-emerald-500 text-black shadow-[0_0_14px_rgba(16,185,129,0.3)]"
-                  : isTraining
-                  ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/15 hover:border-emerald-500/30 shadow-[0_0_8px_rgba(16,185,129,0.06)]"
+                isTraining
+                  ? "bg-emerald-500 text-black shadow-[0_0_14px_rgba(16,185,129,0.3)] hover:bg-emerald-400"
+                  : isToday
+                  ? "border border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
                   : "text-zinc-500 hover:bg-zinc-800/30 hover:text-zinc-400"
               }`}
             >
-              <span className={`text-[11px] font-medium leading-none ${isToday ? '' : isTraining ? 'text-emerald-200' : ''}`}>
+              <span className={`text-[11px] font-medium leading-none ${isTraining ? 'text-black font-bold' : isToday ? 'text-emerald-400' : ''}`}>
                 {day}
               </span>
-              {isTraining && !isToday && firstInfo && (
-                <span className="mt-[3px] text-[7px] leading-tight text-emerald-300/90 truncate w-full text-center px-0.5">
+              {isTraining && firstInfo && (
+                <span className="mt-[3px] text-[7px] leading-tight text-black/80 truncate w-full text-center px-0.5">
                   {shortTitle(firstInfo.title)}
                 </span>
               )}
-              {isTraining && !isToday && !firstInfo && (
-                <span className="mt-[5px] block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(16,185,129,0.4)]" />
+              {isTraining && !firstInfo && (
+                <span className="mt-[5px] block w-1.5 h-1.5 rounded-full bg-black/60 shadow-[0_0_4px_rgba(0,0,0,0.2)]" />
               )}
-              {extraCount > 0 && !isToday && (
-                <span className="text-[6.5px] text-emerald-400/70 leading-none mt-0.5">+{extraCount}</span>
+              {extraCount > 0 && isTraining && (
+                <span className="text-[6.5px] text-black/70 font-semibold leading-none mt-0.5">+{extraCount}</span>
               )}
             </div>
           );

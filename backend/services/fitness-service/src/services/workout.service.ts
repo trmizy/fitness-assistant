@@ -151,20 +151,23 @@ export const workoutService = {
 
   async createWorkout(userId: string, data: CreateWorkoutDto) {
     await validateExerciseIds(data.exercises.map((ex) => ex.exerciseId));
+    const workoutData: any = { ...data };
     if ((data as any).scheduleId) {
       const schedule = await prisma.workoutSchedule.findFirst({
         where: { id: (data as any).scheduleId, userId },
       });
       if (!schedule) throw { status: 404, message: 'Schedule not found' };
       if (schedule.workoutId) throw { status: 409, message: 'Schedule already has a completed workout log' };
+      workoutData.date = schedule.date.toISOString();
     }
-    return workoutRepository.create(userId, data);
+    return workoutRepository.create(userId, workoutData);
   },
 
   async updateWorkout(id: string, userId: string, data: CreateWorkoutDto) {
     const existing = await workoutRepository.findOne(id, userId);
     if (!existing) throw { status: 404, message: 'Workout not found' };
     await validateExerciseIds(data.exercises.map((ex) => ex.exerciseId));
+    const workoutData: any = { ...data };
     if ((data as any).scheduleId) {
       const schedule = await prisma.workoutSchedule.findFirst({
         where: { id: (data as any).scheduleId, userId },
@@ -173,8 +176,9 @@ export const workoutService = {
       if (schedule.workoutId && schedule.workoutId !== id) {
         throw { status: 409, message: 'Schedule already has a completed workout log' };
       }
+      workoutData.date = schedule.date.toISOString();
     }
-    return workoutRepository.update(id, data);
+    return workoutRepository.update(id, workoutData);
   },
 
   async deleteWorkout(id: string, userId: string) {
@@ -635,6 +639,7 @@ export const workoutService = {
       where: {
         userId,
         sourcePlanId: input.sourcePlanId,
+        aiPlanVersion: input.sourcePlanVersion ?? null,
       },
       include: {
         days: {
@@ -651,8 +656,34 @@ export const workoutService = {
     });
 
     if (existingProgram) {
-      const program = await prisma.$transaction(async (tx) => {
-        // Archive programs other than the existing one, and delete their incomplete schedules
+      const repeatWeeks = input.repeatWeeks ?? input.durationWeeks;
+      const startDate = parseDateOnly(input.startDate);
+      const selectedWeekdays = input.selectedWeekdays;
+
+      if (selectedWeekdays) {
+        const uniqueWeekdays = new Set(selectedWeekdays);
+        if (uniqueWeekdays.size !== selectedWeekdays.length || selectedWeekdays.length !== input.daysPerWeek) {
+          throw {
+            status: 400,
+            message: `Kế hoạch này có ${input.daysPerWeek} buổi/tuần. Vui lòng chọn đúng ${input.daysPerWeek} ngày tập.`,
+          };
+        }
+      }
+
+      const result = await prisma.$transaction(async (tx) => {
+        let cancelledScheduleCount = 0;
+        const shouldReplace = input.replaceExisting !== false;
+        if (shouldReplace) {
+          const deleteResult = await (tx.workoutSchedule as any).deleteMany({
+            where: {
+              userId,
+              workoutId: null,
+              date: { gte: startDate },
+            },
+          });
+          cancelledScheduleCount = deleteResult.count ?? 0;
+        }
+
         const otherActivePrograms = await (tx.workoutProgram as any).findMany({
           where: { userId, status: 'ACTIVE', id: { not: existingProgram.id } },
           select: { id: true },
@@ -683,7 +714,7 @@ export const workoutService = {
           data: { status: 'ARCHIVED', archivedAt: new Date() },
         });
 
-        return (tx.workoutProgram as any).update({
+        const program = await (tx.workoutProgram as any).update({
           where: { id: existingProgram.id },
           data: { status: 'ACTIVE', archivedAt: null },
           include: {
@@ -699,23 +730,88 @@ export const workoutService = {
             },
           },
         });
+
+        const scheduleRows: any[] = [];
+        const schedulePreview: any[] = [];
+        const programDays = [...(program.days as any[])].sort((a: any, b: any) => a.dayNumber - b.dayNumber);
+
+        if (selectedWeekdays) {
+          for (let weekIndex = 0; weekIndex < repeatWeeks; weekIndex += 1) {
+            for (const [weekdayIndex, weekday] of selectedWeekdays.entries()) {
+              const day = programDays[weekdayIndex];
+              if (!day) continue;
+              const plannedDate = nextDateForWeekday(startDate, weekday, weekIndex);
+              scheduleRows.push({
+                userId,
+                date: plannedDate,
+                programDayId: day.id,
+                sourcePlanId: input.sourcePlanId,
+                sourceType: 'AI_PLAN',
+                notes: `${input.sourcePlanName || goalLabel(input.goal)} - Week ${weekIndex + 1} Day ${day.dayNumber}`,
+              });
+              if (schedulePreview.length < 14) {
+                schedulePreview.push({
+                  date: formatDateOnly(plannedDate),
+                  programDayId: day.id,
+                  dayLabel: CLEAN_WEEKDAY_LABELS[weekday] || WEEKDAY_LABELS[weekday],
+                });
+              }
+            }
+          }
+        } else {
+          for (let weekIndex = 0; weekIndex < repeatWeeks; weekIndex += 1) {
+            for (const day of programDays) {
+              const plannedDate = new Date(startDate);
+              plannedDate.setDate(plannedDate.getDate() + (weekIndex * 7) + (day.dayNumber - 1));
+              scheduleRows.push({
+                userId,
+                date: plannedDate,
+                programDayId: day.id,
+                sourcePlanId: input.sourcePlanId,
+                sourceType: 'AI_PLAN',
+                notes: `${input.sourcePlanName || goalLabel(input.goal)} - Week ${weekIndex + 1} Day ${day.dayNumber}`,
+              });
+              if (schedulePreview.length < 14) {
+                schedulePreview.push({
+                  date: formatDateOnly(plannedDate),
+                  programDayId: day.id,
+                  dayLabel: `Day ${day.dayNumber}`,
+                });
+              }
+            }
+          }
+        }
+
+        const createResult = scheduleRows.length > 0
+          ? await (tx.workoutSchedule as any).createMany({ data: scheduleRows, skipDuplicates: true })
+          : { count: 0 };
+
+        return {
+          program,
+          createdScheduleCount: createResult.count,
+          cancelledScheduleCount,
+          skippedDuplicateCount: Math.max(0, scheduleRows.length - createResult.count),
+          schedulePreview,
+        };
       });
 
-      const existingScheduleCount = (program.days as any[]).reduce(
+      const totalScheduleCount = (result.program.days as any[]).reduce(
         (count: number, day: any) => count + (day.schedules?.length || 0),
         0,
-      );
+      ) + result.createdScheduleCount;
       return {
         success: true,
         message: 'AI plan already saved to workout schedule',
         sourcePlanId: input.sourcePlanId,
         createdProgramId: existingProgram.id,
-        createdScheduleCount: existingScheduleCount,
-        skippedDuplicateCount: existingScheduleCount,
+        createdScheduleCount: result.createdScheduleCount,
+        cancelledScheduleCount: result.cancelledScheduleCount,
+        skippedDuplicateCount: result.skippedDuplicateCount,
         alreadyExists: true,
         selectedWeekdays: input.selectedWeekdays,
-        schedulePreview: [],
-        program,
+        schedulePreview: result.schedulePreview,
+        totalScheduleCount,
+        program: result.program,
       };
     }
 
@@ -737,7 +833,20 @@ export const workoutService = {
         if (exercise.exerciseId && typeof exercise.exerciseId === 'string' && exercise.exerciseId.trim()) {
           const found = catalog.find((c) => c.id === exercise.exerciseId);
           if (!found) {
-            unmatchedExercises.add(exercise.exerciseId);
+            const match = findExerciseMatch(catalog, exercise.name);
+            if (!match) {
+              unmatchedExercises.add(exercise.name);
+              continue;
+            }
+            const parsedReps = Number.parseInt(String(exercise.reps).match(/\d+/)?.[0] ?? '', 10);
+            exercises.push({
+              exerciseId: match.id,
+              order: exercise.order ?? exercises.length + 1,
+              sets: exercise.sets,
+              reps: Number.isFinite(parsedReps) ? parsedReps : null,
+              restSeconds: exercise.restSeconds,
+              notes: sanitizeImportedExerciseNote(exercise.note),
+            });
             continue;
           }
           const parsedReps = Number.parseInt(String(exercise.reps).match(/\d+/)?.[0] ?? '', 10);

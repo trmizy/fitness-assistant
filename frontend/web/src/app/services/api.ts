@@ -335,6 +335,11 @@ export const workoutService = {
     return data?.data ?? data;
   },
 
+  startSchedule: async (id: string, input?: { repeat?: boolean }) => {
+    const { data } = await api.post(`/workouts/schedules/${id}/start`, input || {});
+    return data?.data ?? data;
+  },
+
   createManualProgram: async (input: {
     name: string;
     goal?: string | null;
@@ -467,10 +472,26 @@ export interface WorkoutScheduleRecord {
   id: string;
   userId: string;
   date: string;
+  scheduledDate?: string;
   sourcePlanId?: string | null;
   sourceType?: string | null;
   notes?: string | null;
   workoutId?: string | null;
+  workoutLogId?: string | null;
+  status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
+  progressPercent?: number;
+  completedAt?: string | null;
+  canStart?: boolean;
+  canContinue?: boolean;
+  canReview?: boolean;
+  canRepeat?: boolean;
+  totalExercises?: number | null;
+  completedExercises?: number | null;
+  totalSets?: number | null;
+  completedSets?: number | null;
+  durationSeconds?: number | null;
+  durationMinutes?: number | null;
+  exerciseCount?: number;
   programDay?: WorkoutScheduleProgramDayRecord | null;
   workout?: { id?: string } | null;
 }

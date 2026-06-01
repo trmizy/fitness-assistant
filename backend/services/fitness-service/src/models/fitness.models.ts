@@ -80,10 +80,6 @@ export const createWorkoutSchema = z.object({
   date: z
     .string()
     .datetime('Invalid date format')
-    .refine(
-      (d) => new Date(d) <= new Date(Date.now() + L.DATE_MAX_FUTURE_DAYS * 86_400_000),
-      { message: `Date cannot be more than ${L.DATE_MAX_FUTURE_DAYS} days in the future` },
-    )
     .optional(),
   duration: z
     .number()
@@ -119,6 +115,16 @@ export const createWorkoutSchema = z.object({
     )
     .min(L.EXERCISES_MIN, 'At least one exercise is required')
     .max(L.EXERCISES_MAX, `A workout session cannot have more than ${L.EXERCISES_MAX} exercises`),
+}).superRefine((data, ctx) => {
+  if (!data.date || data.scheduleId) return;
+  const maxFuture = new Date(Date.now() + L.DATE_MAX_FUTURE_DAYS * 86_400_000);
+  if (new Date(data.date) > maxFuture) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['date'],
+      message: `Date cannot be more than ${L.DATE_MAX_FUTURE_DAYS} days in the future`,
+    });
+  }
 });
 
 export const updateWorkoutSetSchema = z.object({

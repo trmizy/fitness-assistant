@@ -117,17 +117,30 @@ function localizeDayGoal(value: string, dayIndex: number): string {
 function normalizePlanCandidate(parsed: unknown): unknown {
   if (!isRecord(parsed)) return parsed;
 
-  const normalized: UnknownRecord = { ...parsed };
+  const wrapped =
+    isRecord(parsed.plan) && (Array.isArray(parsed.plan.weeklySchedule) || Array.isArray(parsed.plan.weekly_schedule))
+      ? parsed.plan
+      : isRecord(parsed.workout_plan) && (Array.isArray(parsed.workout_plan.weeklySchedule) || Array.isArray(parsed.workout_plan.weekly_schedule))
+        ? parsed.workout_plan
+        : isRecord(parsed.workout) && (Array.isArray(parsed.workout.weeklySchedule) || Array.isArray(parsed.workout.weekly_schedule))
+          ? parsed.workout
+          : parsed;
 
-  const normalizedGoal = asNonEmptyString(parsed.goal, 'General fitness');
+  const normalized: UnknownRecord = { ...wrapped };
+
+  const normalizedGoal = asNonEmptyString(wrapped.goal, asNonEmptyString(wrapped.name, 'General fitness'));
   normalized.goal = normalizedGoal;
-  normalized.durationWeeks = asBoundedInt(parsed.durationWeeks ?? parsed.duration, 4, 1, 52);
-  normalized.daysPerWeek = asBoundedInt(parsed.daysPerWeek, 3, 1, 7);
-  if (parsed.exercisesPerDay !== undefined) {
-    normalized.exercisesPerDay = asBoundedInt(parsed.exercisesPerDay, 4, 1, 8);
+  normalized.durationWeeks = asBoundedInt(wrapped.durationWeeks ?? wrapped.duration, 4, 1, 52);
+  normalized.daysPerWeek = asBoundedInt(wrapped.daysPerWeek, 3, 1, 7);
+  if (wrapped.exercisesPerDay !== undefined) {
+    normalized.exercisesPerDay = asBoundedInt(wrapped.exercisesPerDay, 4, 1, 8);
   }
 
-  const schedule = Array.isArray(parsed.weeklySchedule) ? parsed.weeklySchedule : [];
+  const schedule = Array.isArray(wrapped.weeklySchedule)
+    ? wrapped.weeklySchedule
+    : Array.isArray(wrapped.weekly_schedule)
+      ? wrapped.weekly_schedule
+      : [];
   normalized.weeklySchedule = schedule
     .filter((item) => isRecord(item))
     .map((dayItem, dayIndex) => {
@@ -155,7 +168,7 @@ function normalizePlanCandidate(parsed: unknown): unknown {
       };
     });
 
-  const progression = Array.isArray(parsed.progressionNotes) ? parsed.progressionNotes : [];
+  const progression = Array.isArray(wrapped.progressionNotes) ? wrapped.progressionNotes : [];
   normalized.progressionNotes = progression
     .filter((note) => typeof note === 'string' && note.trim().length > 0)
     .map((note) => localizePlanNote(note));
@@ -166,7 +179,7 @@ function normalizePlanCandidate(parsed: unknown): unknown {
     ];
   }
 
-  const recovery = Array.isArray(parsed.recoveryNotes) ? parsed.recoveryNotes : [];
+  const recovery = Array.isArray(wrapped.recoveryNotes) ? wrapped.recoveryNotes : [];
   normalized.recoveryNotes = recovery
     .filter((note) => typeof note === 'string' && note.trim().length > 0)
     .map((note) => localizePlanNote(note));
@@ -177,8 +190,8 @@ function normalizePlanCandidate(parsed: unknown): unknown {
     ];
   }
 
-  if (typeof parsed.nutritionSummary === 'string' && parsed.nutritionSummary.trim().length > 0) {
-    normalized.nutritionSummary = localizePlanNote(parsed.nutritionSummary);
+  if (typeof wrapped.nutritionSummary === 'string' && wrapped.nutritionSummary.trim().length > 0) {
+    normalized.nutritionSummary = localizePlanNote(wrapped.nutritionSummary);
   } else {
     normalized.nutritionSummary = 'Ưu tiên đủ protein, kiểm soát tổng calo theo mục tiêu và uống đủ nước.';
   }
