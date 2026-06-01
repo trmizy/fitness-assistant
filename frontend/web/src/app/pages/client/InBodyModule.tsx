@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   AreaChart, Area, BarChart, Bar, RadarChart, Radar, PolarGrid,
   PolarAngleAxis, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid
@@ -75,11 +75,39 @@ export function InBodyModule() {
     return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
   };
 
+  const measurementDateKey = (r: any): string => {
+    const raw = r?.dateOnly ?? r?.date ?? r?.createdAt;
+    const s = raw ? String(raw) : '';
+    const iso = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+    if (iso) return iso[1];
+    const dmy = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);
+    if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+    const dmy2 = /^(\d{2})-(\d{2})-(\d{4})/.exec(s);
+    if (dmy2) return `${dmy2[3]}-${dmy2[2]}-${dmy2[1]}`;
+    return '9999-12-31';
+  };
+
+  const parseMeasurementDate = (r: any): Date => {
+    const key = measurementDateKey(r);
+    if (key === '9999-12-31') return new Date(NaN);
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
   // Queries
-  const { data: history = [], isLoading } = useQuery({
+  const { data: historyRaw = [], isLoading } = useQuery({
     queryKey: ["inbody-history"],
     queryFn: inbodyService.getHistory,
   });
+
+  const history = useMemo(
+    () => [...historyRaw].sort((a: any, b: any) => {
+      const cmp = measurementDateKey(b).localeCompare(measurementDateKey(a)); // descending
+      if (cmp !== 0) return cmp;
+      return Date.parse(String(b?.createdAt ?? 0)) - Date.parse(String(a?.createdAt ?? 0));
+    }),
+    [historyRaw],
+  );
 
   // Mutations
   const createMutation = useMutation({
@@ -111,9 +139,10 @@ export function InBodyModule() {
   const prev   = history[1] || latest;
 
   // Chart data sorted ascending by measurement date (dateOnly)
-  const trends = [...history].reverse().map((h: any) => {
-    // Use dateOnly (YYYY-MM-DD) if available, otherwise fall back to date
-    const measureDate = h.dateOnly ? new Date(h.dateOnly) : new Date(h.date);
+  const trends = [...history]
+    .sort((a: any, b: any) => measurementDateKey(a).localeCompare(measurementDateKey(b)))
+    .map((h: any) => {
+    const measureDate = parseMeasurementDate(h);
     return {
       date: measureDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
       fullDate: measureDate.toLocaleDateString('vi-VN'),

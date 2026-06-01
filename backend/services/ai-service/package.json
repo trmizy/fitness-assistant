@@ -21,8 +21,14 @@
     "import:kaggle": "tsx src/datasets/seed/importKaggle.ts",
     "data:download": "tsx src/datasets/seed/downloadResearchData.ts",
     "data:process:nhanes": "tsx src/datasets/seed/processNhanes.ts",
-    "data:process:papers": "cross-env NODE_OPTIONS=--max-old-space-size=2048 tsx src/datasets/seed/processPapers.ts",
-    "data:all": "tsx src/datasets/seed/dataPipelineAll.ts"
+    "data:process:papers": "tsx src/datasets/seed/processPapers.ts",
+    "data:all": "tsx src/datasets/seed/dataPipelineAll.ts",
+    "data:validate": "tsx src/datasets/seed/validateNhanes.ts",
+    "data:ingest": "tsx src/datasets/seed/ingestEvidence.ts",
+    "data:ingest:nhanes": "tsx src/datasets/seed/ingestEvidence.ts -- --nhanes",
+    "ai:reindex": "npm run data:validate && npm run data:ingest",
+    "ai:test:evidence": "tsx src/datasets/seed/testEvidenceIntegration.ts",
+    "ai:test:plan-evidence": "tsx src/datasets/seed/testPlanEvidence.ts"
   },
   "dependencies": {
     "@gym-coach/shared": "workspace:*",

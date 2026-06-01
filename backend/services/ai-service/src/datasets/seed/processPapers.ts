@@ -17,7 +17,6 @@
 
 import fs   from 'node:fs';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
 
 const ROOT          = path.resolve(process.cwd(), '..', '..', '..', 'data');
 const RAW_PAPERS    = path.join(ROOT, 'raw', 'papers');
@@ -116,8 +115,6 @@ function splitIntoChunks(text: string, chunkSize: number, overlap: number): stri
 
 // ── Try pdf-parse for small PDFs ──────────────────────────────────────────────
 
-const MAX_FILE_FOR_PARSE = 2 * 1024 * 1024; // 2MB limit
-
 // PDF parsing disabled — pdfjs-dist consumes 4GB+ heap even for small files.
 // Knowledge chunks provide accurate, curated content without the memory overhead.
 // To enable PDF parsing: install a lighter library (e.g., pdfreader, pdftotext CLI)
@@ -165,10 +162,12 @@ async function main() {
       }
 
       const total = chunks.length;
+      const extractionMethod = rawText ? 'pdf_parse' : 'knowledge_curated';
       const lines = chunks.map((content, idx) => JSON.stringify({
         id: `${paper.id}-chunk-${String(idx).padStart(4, '0')}`,
         title: paper.title,
-        source_type: paper.source_type,
+        source_type: extractionMethod === 'pdf_parse' ? paper.source_type : 'curated_summary',
+        original_source_type: paper.source_type,
         category: paper.category,
         content,
         source_url: paper.source_url,
@@ -176,7 +175,7 @@ async function main() {
         tags: paper.tags,
         chunk_index: idx,
         total_chunks: total,
-        extraction_method: rawText ? 'pdf_parse' : 'knowledge_curated',
+        extraction_method: extractionMethod,
       }));
 
       fs.writeFileSync(outPath, lines.join('\n') + '\n', 'utf-8');

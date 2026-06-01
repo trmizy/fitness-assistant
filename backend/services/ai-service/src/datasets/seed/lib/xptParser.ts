@@ -92,11 +92,9 @@ export function parseXpt(data: Buffer, keepCols: string[] = []): XptParseResult 
   if (nsHdrPos < 0) throw new Error('NAMESTR header not found');
   pos = nsHdrPos;
 
-  const obsHdrPosGuess = findMagic('HEADER RECORD*******OBS', nsHdrPos + 80);
-
   // ── Read NAMESTR header; compute nvar from NAMESTR data size ─────────────
   pos = nsHdrPos; // ensure pos is at NAMESTR header
-  const nsHdr = readRecord(); // consume NAMESTR header (advances pos by 80)
+  readRecord(); // consume NAMESTR header (advances pos by 80)
 
   // We find the OBS header FIRST and use the distance to back-calculate nvar.
   // This is more reliable than parsing the variable-count field, which has

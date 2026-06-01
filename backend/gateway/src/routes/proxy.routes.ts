@@ -1510,6 +1510,10 @@ router.post(
 router.use(
   '/plans',
   authMiddleware,
+  (req, _res, next) => {
+    req.headers['x-internal-token'] = INTERNAL_SERVICE_SECRET;
+    next();
+  },
   createProxyMiddleware({
     target: AI_SERVICE_URL,
     changeOrigin: true,

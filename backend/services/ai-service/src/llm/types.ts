@@ -122,6 +122,15 @@ export interface RetrievalDocument {
     chunk_id: string;
     body_part?: string;
     type_of_activity?: string;
+    // Evidence-collection fields (fitness_evidence)
+    title?: string;
+    source_url?: string | null;
+    source_type?: string;
+    evidence_level?: string;
+    tags?: unknown[];
+    created_from?: string;
+    extraction_method?: string;
+    [key: string]: unknown;
   };
 }
 
@@ -240,6 +249,25 @@ export interface PromptSections {
   responseRules: string;
 }
 
+// ── Evidence-based enrichment types (backward-compatible additions) ──────────
+
+/** Explains why a plan parameter was adjusted based on body metrics. */
+export interface AdjustmentReason {
+  metric:          string;          // e.g. "bodyFatPct"
+  observed_value:  string | number; // e.g. "28.6%"
+  interpretation:  string;          // human-readable explanation
+  plan_adjustment: string;          // what was changed and why
+}
+
+/** A piece of evidence used to inform the plan (from RAG or curated knowledge). */
+export interface EvidenceUsed {
+  title:       string;
+  source_url:  string;
+  category:    string;
+  source_type: string;  // "guideline" | "paper" | "dataset" | "curated_summary"
+  summary:     string;  // 1–2 sentence summary of the relevant finding
+}
+
 export interface FinalAnswerPayload {
   traceId: string;
   answer: string;
@@ -260,6 +288,10 @@ export interface FinalAnswerPayload {
   routeIntent: string;
   warningCount: number;
   explicitLanguageLock: boolean;
+  // ── Evidence enrichment (new — optional for backward compat) ──────────────
+  adjustmentReasons?: AdjustmentReason[];
+  evidenceUsed?: EvidenceUsed[];
+  safetyNotes?: string[];
 }
 
 export interface OrchestrationInput {

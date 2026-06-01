@@ -417,6 +417,10 @@ export function buildPlanPrompt(
   trainingLocation?: string,
   exercisesByDay?: DayExerciseCatalog[],
   equipmentPreference?: string,
+  evidenceContext?: {
+    bodyCompText?: string;
+    evidenceText?: string;
+  },
 ): string {
   const adjustNote = adjustmentContext
     ? `\nAdjustment request from user: "${adjustmentContext}"\nApply this adjustment to the plan while keeping the goal and duration the same.\n`
@@ -482,8 +486,13 @@ Training days per week: ${daysPerWeek}
 Exercises per training day: ${exercisesPerDay}
 ${locationNote}${adjustNote}
 ${goalInstruction}
+${evidenceContext?.bodyCompText ? `\n=== BODY COMPOSITION ANALYSIS (RULE ENGINE) ===\n${evidenceContext.bodyCompText}\n=== END BODY COMPOSITION ANALYSIS ===\n` : ''}
+${evidenceContext?.evidenceText ? `\n=== RETRIEVED FITNESS EVIDENCE (ALLOWED SOURCES ONLY) ===\n${evidenceContext.evidenceText}\n=== END RETRIEVED FITNESS EVIDENCE ===\n` : ''}
 ${exerciseCatalogText}
 Use only exerciseId values from the catalog above. Never invent or guess an exerciseId.
+Use the user profile, InBody/body metrics, recent workout logs, rule-engine analysis, and retrieved evidence when choosing split, volume, cardio, and nutrition guidance.
+Do not diagnose disease or claim to treat medical conditions.
+Do not invent titles, source_url values, papers, or guidelines. If you mention evidence, only refer to evidence listed in RETRIEVED FITNESS EVIDENCE.
 All user-visible text (day goal, notes, cardio, progressionNotes, recoveryNotes, nutritionSummary) must be Vietnamese.
 Keep exercise names exactly as they appear in the catalog.
 
@@ -522,5 +531,7 @@ STRICT Rules:
 - Do NOT put a chest/upper-body exercise in a Legs day or vice versa.
 - Day goal must name the muscle groups in Vietnamese (e.g. "Chân + Mông", "Ngực + Vai + Tay sau").
 - Never output English notes or generic labels like "Training focus", "Main lift", "Workout Day".
+- Output must be valid JSON only.
+- Do not add fabricated citation fields. Evidence metadata will be attached by the server from retriever metadata.
 - Return raw JSON only.`.trim();
 }

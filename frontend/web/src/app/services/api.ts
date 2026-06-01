@@ -173,6 +173,26 @@ export const profileService = {
   },
 };
 
+function inBodyDateKey(entry: any): string {
+  const raw = entry?.dateOnly ?? entry?.date ?? entry?.createdAt;
+  const s = raw ? String(raw) : '';
+  const iso = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+  if (iso) return iso[1];
+  const dmy = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  const dmy2 = /^(\d{2})-(\d{2})-(\d{4})/.exec(s);
+  if (dmy2) return `${dmy2[3]}-${dmy2[2]}-${dmy2[1]}`;
+  return '9999-12-31';
+}
+
+function sortInBodyHistoryByMeasurementDate(history: any[]) {
+  return [...history].sort((a, b) => {
+    const cmp = inBodyDateKey(b).localeCompare(inBodyDateKey(a)); // descending
+    if (cmp !== 0) return cmp;
+    return Date.parse(String(b?.createdAt ?? 0)) - Date.parse(String(a?.createdAt ?? 0));
+  });
+}
+
 export const inbodyService = {
   create: async (entry: any) => {
     const { data } = await api.post('/inbody', entry);
@@ -186,7 +206,7 @@ export const inbodyService = {
 
   getHistory: async () => {
     const { data } = await api.get('/inbody');
-    return data;
+    return Array.isArray(data) ? sortInBodyHistoryByMeasurementDate(data) : data;
   },
 
   upload: async (file: File) => {

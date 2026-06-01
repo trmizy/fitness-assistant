@@ -125,7 +125,7 @@ export function Sidebar() {
       : { label: "Trang thành viên", color: "bg-green-500",   textColor: "text-green-400",   pillBg: "bg-green-500/10",   pillBorder: "border-green-500/20",   icon: User  };
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 text-white border-r border-zinc-800/60">
+    <div className="flex flex-col h-full bg-transparent text-white border-r border-zinc-800/60">
 
       {/* ── Brand header ── */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800/60">

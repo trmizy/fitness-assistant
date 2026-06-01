@@ -7,6 +7,16 @@ import { conversationRepository, PlanStatus } from '../repositories/conversation
 import { parsePlanContent, buildPlanPrompt, type AllowedExerciseItem, type DayExerciseCatalog } from '../schemas/plan.schemas';
 import { LlmError } from '../errors/api-error';
 import { safeParseJsonCandidate } from '../utils/json';
+import { analyzeBodyComposition, formatBodyCompAnalysis } from '../llm/body_composition_rules';
+import { retriever } from '../llm/retriever';
+import {
+  attachEvidenceToPlanContent,
+  buildPlanEvidenceBundle,
+  formatEvidenceForPlanPrompt,
+  type PlanEvidenceBundle,
+} from '../llm/plan_evidence';
+import type { UserProfile } from '../llm/types';
+import type { WorkerUserContext } from './worker-user-context';
 
 const redisConnection = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -20,6 +30,39 @@ type AllowedExercise = AllowedExerciseItem;
 // Increased limit so we have enough exercises to build per-day catalogs
 const PLAN_EXERCISE_FETCH_LIMIT = 300;
 const PLAN_EXERCISE_PROMPT_LIMIT = 80; // fallback flat-list limit
+
+function buildEvidenceProfile(ctx: WorkerUserContext | null, fallbackGoal: string): UserProfile {
+  const profile = ctx?.profile ?? {};
+  const latestInBody = ctx?.latestInBody ?? null;
+
+  return {
+    userId: undefined,
+    age: typeof profile.age === 'number' ? profile.age : undefined,
+    gender: profile.gender === 'FEMALE' || profile.gender === 'OTHER' ? profile.gender : 'MALE',
+    heightCm: typeof profile.heightCm === 'number' ? profile.heightCm : undefined,
+    currentWeightKg: latestInBody?.weightKg ?? profile.currentWeight,
+    targetWeightKg: profile.targetWeight,
+    goal: (profile.goal ?? fallbackGoal) as any,
+    activityLevel: profile.activityLevel as any,
+    experienceLevel: (profile.experienceLevel ?? 'BEGINNER') as any,
+    training: {
+      availableEquipment: [],
+      injuries: Array.isArray(profile.injuries) ? profile.injuries : [],
+      preferredTrainingDays: [],
+      trainingDaysPerWeek: undefined,
+    },
+    inBody: latestInBody ? {
+      weightKg: latestInBody.weightKg,
+      bodyFatPct: latestInBody.bodyFatPct,
+      bodyFatKg: latestInBody.bodyFatKg,
+      skeletalMuscleKg: latestInBody.muscleMassKg,
+      bmi: latestInBody.bmi,
+      bmr: latestInBody.bmr,
+      measuredAt: latestInBody.measuredAt,
+      segmentalMuscle: latestInBody.segmentalMuscle,
+    } : undefined,
+  };
+}
 
 // ── Muscle group matching ────────────────────────────────────────────────────
 
@@ -566,9 +609,11 @@ export const aiWorker = new Worker(
     // ── 3b. Fetch personal user context (InBody, workout history, nutrition) ─
     // Non-critical: failures are swallowed; plan will still be generated
     let userContextText = '';
+    let workerContext: WorkerUserContext | null = null;
     try {
       const { fetchWorkerUserContext, formatWorkerContextForPrompt } = await import('./worker-user-context');
       const ctx = await fetchWorkerUserContext(userId);
+      workerContext = ctx;
       userContextText = formatWorkerContextForPrompt(ctx);
       if (userContextText) {
         logger.info({ planId, hasInBody: !!ctx.latestInBody, workoutDays: ctx.recentWorkouts.length }, 'Fetched personal user context for plan generation');
@@ -591,7 +636,54 @@ export const aiWorker = new Worker(
       adjustmentContext,
       userContextText ? `[Thông tin cá nhân hóa]\n${userContextText}` : '',
     ].filter(Boolean).join('\n\n') || undefined;
-    const prompt = buildPlanPrompt(goal, durationWeeks, daysPerWeek, exercisesPerDay, enrichedAdjustmentContext, promptExercises, trainingLocation, perDayCatalogs, equipmentPreference);
+    const evidenceProfile = buildEvidenceProfile(workerContext, goal);
+    const bodyCompAnalysis = analyzeBodyComposition(evidenceProfile);
+    const bodyCompText = formatBodyCompAnalysis(bodyCompAnalysis);
+    const evidenceDocs = await retriever.retrieveEvidence(bodyCompAnalysis.evidenceQueries).catch((err) => {
+      logger.warn({ err, planId }, 'Plan evidence retrieval failed; continuing without evidence docs');
+      return [];
+    });
+    const evidenceBundle: PlanEvidenceBundle = buildPlanEvidenceBundle(bodyCompAnalysis, evidenceDocs);
+    const evidenceText = formatEvidenceForPlanPrompt(evidenceDocs);
+
+    if (process.env.DEBUG_AI_PLAN === 'true') {
+      logger.info({
+        planId,
+        goal,
+        daysPerWeek,
+        exercisesPerDay,
+        hasUserContext: Boolean(userContextText),
+        bodyCompAdjustments: evidenceBundle.adjustment_reason.map((item) => item.metric),
+        evidenceUsed: evidenceBundle.evidence_used.map((item) => ({
+          title: item.title,
+          source_type: item.source_type,
+          source_url: item.source_url,
+        })),
+        safetyNotesCount: evidenceBundle.safety_notes.length,
+      }, 'AI plan prompt context summary');
+    }
+
+    const prompt = buildPlanPrompt(
+      goal,
+      durationWeeks,
+      daysPerWeek,
+      exercisesPerDay,
+      enrichedAdjustmentContext,
+      promptExercises,
+      trainingLocation,
+      perDayCatalogs,
+      equipmentPreference,
+      {
+        bodyCompText: bodyCompText || undefined,
+        evidenceText,
+      },
+    );
+
+    const completePlan = async (content: any, logMessage: string, extraLog: Record<string, unknown> = {}) => {
+      attachEvidenceToPlanContent(content, evidenceBundle);
+      await conversationRepository.updatePlanCompletion(planId, content);
+      logger.info({ jobId: job.id, planId, userId, ...extraLog }, logMessage);
+    };
 
     let rawAnswer: string;
     try {
@@ -943,8 +1035,7 @@ export const aiWorker = new Worker(
               selectedExerciseId: item.selectedExerciseId,
               selectedExerciseName: item.selectedExerciseName,
             })));
-            await conversationRepository.updatePlanCompletion(planId, incomplete);
-            logger.info({ jobId: job.id, planId, repairedDays }, 'Plan generation completed after deterministic empty-day repair');
+            await completePlan(incomplete, 'Plan generation completed after deterministic empty-day repair', { repairedDays });
             return;
           }
 
@@ -1014,8 +1105,7 @@ export const aiWorker = new Worker(
       // Re-run id validation — if successful, persist and finish.
       let newCheck = await idsValid(content);
       if (newCheck.ok) {
-        await conversationRepository.updatePlanCompletion(planId, content);
-        logger.info({ jobId: job.id, planId, userId }, 'Plan generation completed after allowedExercises name->id mapping');
+        await completePlan(content, 'Plan generation completed after allowedExercises name->id mapping');
         return true;
       }
 
@@ -1064,8 +1154,7 @@ export const aiWorker = new Worker(
         content._metadata = content._metadata || {};
         content._metadata.aiWarnings = (content._metadata.aiWarnings || []).concat(mappingWarnings);
         if (mappingWarnings.length > 0) logger.warn({ planId, jobId: job.id, mappings: mappingWarnings }, 'Persisting plan with mapping warnings');
-        await conversationRepository.updatePlanCompletion(planId, content);
-        logger.info({ jobId: job.id, planId, userId }, 'Plan generation completed after name->id mapping fallback');
+        await completePlan(content, 'Plan generation completed after name->id mapping fallback');
         return true;
       }
       return false;
@@ -1097,8 +1186,7 @@ export const aiWorker = new Worker(
     content._metadata.equipmentPreference = equipmentPreference;
 
     // ── 5. Persist structured plan ─────────────────────────────────────────
-    await conversationRepository.updatePlanCompletion(planId, content);
-    logger.info({ jobId: job.id, planId, userId }, 'Plan generation completed successfully');
+    await completePlan(content, 'Plan generation completed successfully');
   },
   {
     connection: redisConnection,

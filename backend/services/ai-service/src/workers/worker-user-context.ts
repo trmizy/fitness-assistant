@@ -13,6 +13,12 @@ const FITNESS_SERVICE_URL =
   process.env.FITNESS_SERVICE_URL ||
   (process.env.NODE_ENV === 'production' ? 'http://fitness-service:3002' : 'http://localhost:3002');
 
+function userServiceHeaders() {
+  return {
+    'x-service-secret': process.env.INTERNAL_SERVICE_SECRET || '',
+  };
+}
+
 function internalHeaders(userId: string) {
   return {
     'x-internal-token': process.env.INTERNAL_SERVICE_SECRET || '',
@@ -72,11 +78,12 @@ export interface WorkerUserContext {
  */
 export async function fetchWorkerUserContext(userId: string): Promise<WorkerUserContext> {
   const headers = internalHeaders(userId);
+  const userHeaders = userServiceHeaders();
   const timeout = 5000;
 
   const [profileRes, inBodyRes, workoutsRes, nutritionRes] = await Promise.allSettled([
-    axios.get(`${USER_SERVICE_URL}/profile/me`, { headers, timeout }),
-    axios.get(`${USER_SERVICE_URL}/inbody`, { headers, timeout }),
+    axios.get(`${USER_SERVICE_URL}/internal/profile/${encodeURIComponent(userId)}`, { headers: userHeaders, timeout }),
+    axios.get(`${USER_SERVICE_URL}/internal/inbody/${encodeURIComponent(userId)}`, { headers: userHeaders, timeout }),
     axios.get(`${FITNESS_SERVICE_URL}/workouts?limit=10`, { headers, timeout }),
     axios.get(`${FITNESS_SERVICE_URL}/nutrition`, { headers, timeout }),
   ]);

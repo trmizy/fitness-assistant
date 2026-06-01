@@ -87,7 +87,7 @@ const FILES: FileSpec[] = [
   { id: 'nhanes-2017-demo', file: 'DEMO_J.xpt',  keepCols: DEMO_COLS,  year: '2017' },
 ];
 
-async function processFile(spec: FileSpec): Promise<Map<number, Record<string, any>>> {
+async function processFile(spec: FileSpec): Promise<Map<string, Record<string, any>>> {
   const xptPath = path.join(RAW_NHANES, spec.file);
   if (!fs.existsSync(xptPath)) {
     console.warn(`  ⚠  ${spec.file} not found — run data:download first`);
@@ -101,12 +101,12 @@ async function processFile(spec: FileSpec): Promise<Map<number, Record<string, a
     const lines = fs.readFileSync(outCsv, 'utf-8').split('\n').filter(Boolean);
     const headers = lines[0].split(',');
     const seqnIdx = headers.indexOf('SEQN');
-    const idx = new Map<number, Record<string, any>>();
+    const idx = new Map<string, Record<string, any>>();
     for (const line of lines.slice(1)) {
       const vals = line.split(',');
       const row: Record<string, any> = {};
       headers.forEach((h, i) => { row[h] = vals[i] ?? null; });
-      if (seqnIdx >= 0 && vals[seqnIdx]) idx.set(Number(vals[seqnIdx]), row);
+      if (seqnIdx >= 0 && vals[seqnIdx]) idx.set(String(Math.round(Number(vals[seqnIdx]))), row);
     }
     return idx;
   }
@@ -139,7 +139,7 @@ async function main() {
   console.log('🔬  NHANES XPT Processor');
   ensureDir(OUT_NHANES);
 
-  const indexes = new Map<string, Map<number, Record<string, any>>>();
+  const indexes = new Map<string, Map<string, Record<string, any>>>();
   for (const spec of FILES) {
     const idx = await processFile(spec);
     indexes.set(spec.id, idx);

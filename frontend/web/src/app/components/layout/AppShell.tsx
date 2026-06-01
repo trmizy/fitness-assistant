@@ -4,6 +4,7 @@ import { useApp } from "../../context/AppContext";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { CallOverlay } from "../call/CallOverlay";
+import bgGym from "../../../assets/bg-gym.jpg";
 
 export function AppShell() {
   const { isAuthenticated, isPT, setActiveView } = useApp();
@@ -38,9 +39,14 @@ function AppShellInner() {
   const { sidebarOpen, setSidebarOpen } = useApp();
 
   return (
-    <div className="flex h-screen bg-zinc-950 overflow-hidden">
+    <div 
+      className="flex h-screen overflow-hidden bg-cover bg-center bg-no-repeat relative"
+      style={{ backgroundImage: `url(${bgGym})` }}
+    >
+      <div className="absolute inset-0 bg-black/40 pointer-events-none z-0"></div>
+
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 border-r border-zinc-800/60">
+      <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 border-r border-zinc-800/60 z-10 bg-zinc-950/40 backdrop-blur-md">
         <Sidebar />
       </aside>
 
@@ -58,9 +64,9 @@ function AppShellInner() {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden z-10">
         <Topbar />
-        <main className="flex-1 overflow-y-auto bg-zinc-950">
+        <main className="flex-1 overflow-y-auto bg-transparent relative z-10">
           <Outlet />
         </main>
       </div>

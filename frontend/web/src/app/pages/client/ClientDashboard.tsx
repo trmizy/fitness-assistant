@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart,
@@ -64,6 +65,35 @@ function formatScheduleDate(value: string) {
   });
 }
 
+/**
+ * Extract a stable YYYY-MM-DD sort key from an InBody record.
+ * Priority: dateOnly → date → createdAt
+ * Also handles DD/MM/YYYY format that can come from manual entry or OCR.
+ * Invalid/missing dates return "9999-12-31" so they sort to the END (not the start).
+ */
+function inBodyDateKey(record: any): string {
+  const raw = record?.dateOnly ?? record?.date ?? record?.createdAt;
+  const s = raw ? String(raw) : "";
+  // ISO format YYYY-MM-DD (or YYYY-MM-DDTHH:mm...)
+  const iso = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+  if (iso) return iso[1];
+  // DD/MM/YYYY (from OCR or manual input)
+  const dmy = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  // DD-MM-YYYY
+  const dmy2 = /^(\d{2})-(\d{2})-(\d{4})/.exec(s);
+  if (dmy2) return `${dmy2[3]}-${dmy2[2]}-${dmy2[1]}`;
+  return "9999-12-31";
+}
+
+function parseInBodyMeasurementDate(record: any): Date {
+  const key = inBodyDateKey(record);
+  if (key === "9999-12-31") return new Date(NaN);
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+
 const goalLabels: Record<string, string> = {
   WEIGHT_LOSS: "Giảm mỡ",
   MUSCLE_GAIN: "Tăng cơ",
@@ -92,6 +122,16 @@ export function ClientDashboard() {
     queryKey: ["inbody-history"],
     queryFn: inbodyService.getHistory,
   });
+
+  const sortedInBodyHistory = useMemo(
+    () => [...inbodyHistory].sort((a: any, b: any) => {
+      // Descending: newest first. Use ISO string compare (lexicographic = chronological for YYYY-MM-DD)
+      const cmp = inBodyDateKey(b).localeCompare(inBodyDateKey(a));
+      if (cmp !== 0) return cmp;
+      return Date.parse(String(b?.createdAt ?? 0)) - Date.parse(String(a?.createdAt ?? 0));
+    }),
+    [inbodyHistory],
+  );
 
   const { data: workoutHistory = [], isLoading: workoutLoading } = useQuery({
     queryKey: ["workout-history"],
@@ -122,8 +162,8 @@ export function ClientDashboard() {
     );
   }
 
-  const latest = inbodyHistory[0];
-  const prev = inbodyHistory[1];
+  const latest = sortedInBodyHistory[0];
+  const prev = sortedInBodyHistory[1];
 
   const calcChange = (curr: number, old?: number) => {
     if (!old) return "---";
@@ -185,13 +225,17 @@ export function ClientDashboard() {
     },
   ];
 
-  const weightData = [...inbodyHistory].reverse().map((h: any) => ({
-    date: new Date(h.date).toLocaleDateString("vi-VN", { month: "short" }),
+  const chartHistory = [...sortedInBodyHistory].sort(
+    (a: any, b: any) => inBodyDateKey(a).localeCompare(inBodyDateKey(b)),
+  );
+
+  const weightData = chartHistory.map((h: any) => ({
+    date: parseInBodyMeasurementDate(h).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
     value: h.weight,
   }));
 
-  const muscleData = [...inbodyHistory].reverse().map((h: any) => ({
-    date: new Date(h.date).toLocaleDateString("vi-VN", { month: "short" }),
+  const muscleData = chartHistory.map((h: any) => ({
+    date: parseInBodyMeasurementDate(h).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
     value: h.muscleMass,
   }));
 
@@ -222,7 +266,7 @@ export function ClientDashboard() {
         </div>
       </div>
 
-      {inbodyHistory.length === 0 && (
+      {sortedInBodyHistory.length === 0 && (
         <div className="flex items-start gap-3 px-4 py-3 rounded-xl text-sm border bg-amber-500/8 border-amber-500/20 text-amber-300">
           <Bell className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>Bạn chưa tải lên dữ liệu InBody nào. Tải lên ngay để nhận phân tích từ AI!</span>
