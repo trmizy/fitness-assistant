@@ -166,7 +166,7 @@ export function Topbar() {
               <span className="text-xs font-semibold">AI đang xử lý {pendingCount}</span>
             </button>
             {aiTasksOpen && pendingAiTasksOpen.length > 0 && (
-              <div className="absolute right-0 top-full mt-2 w-72 bg-zinc-900 rounded-xl shadow-2xl shadow-black/50 border border-zinc-700/50 z-50 overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 w-72 glass-panel rounded-xl z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-zinc-100">Tác vụ AI</h3>
                   <span className="text-xs bg-amber-500/15 text-amber-300 border border-amber-500/20 px-2 py-0.5 rounded-full font-semibold">
@@ -209,7 +209,7 @@ export function Topbar() {
           {notifOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-              <div className="absolute right-0 top-full mt-1 w-80 bg-zinc-900 rounded-xl shadow-2xl shadow-black/50 border border-zinc-700/50 z-50 overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 w-80 glass-panel rounded-xl z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-zinc-100">Thông báo</h3>
                   <div className="flex items-center gap-2">
@@ -270,7 +270,7 @@ export function Topbar() {
           {userOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setUserOpen(false)} />
-              <div className="absolute right-0 top-full mt-1 w-60 bg-zinc-900 rounded-xl shadow-2xl shadow-black/50 border border-zinc-700/50 z-50 overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 w-60 glass-panel rounded-xl z-50 overflow-hidden">
                 {/* User info */}
                 <div className="px-4 py-3 border-b border-zinc-800">
                   <div className="flex items-center gap-2.5">

@@ -28,7 +28,10 @@
     "data:ingest:nhanes": "tsx src/datasets/seed/ingestEvidence.ts -- --nhanes",
     "ai:reindex": "npm run data:validate && npm run data:ingest",
     "ai:test:evidence": "tsx src/datasets/seed/testEvidenceIntegration.ts",
-    "ai:test:plan-evidence": "tsx src/datasets/seed/testPlanEvidence.ts"
+    "ai:test:plan-evidence": "tsx src/datasets/seed/testPlanEvidence.ts",
+    "ai:test:workout-schedule-chat": "tsx src/scripts/testWorkoutScheduleChat.ts",
+    "ai:test:intent-routing": "tsx src/scripts/testIntentRouting.ts",
+    "ai:test:nutrition-chat": "tsx src/scripts/testNutritionChat.ts"
   },
   "dependencies": {
     "@gym-coach/shared": "workspace:*",

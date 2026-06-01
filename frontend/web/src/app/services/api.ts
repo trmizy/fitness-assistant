@@ -853,25 +853,39 @@ export const coachService = {
       onError: (message: string) => void;
     },
   ): () => void {
-    const token = localStorage.getItem('accessToken');
     const controller = new AbortController();
 
     (async () => {
       try {
-        const response = await fetch(`${API_URL}/ai/ask/stream`, {
+        const sendStreamRequest = (token: string | null) => fetch(`${API_URL}/ai/ask/stream`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && token !== 'null' && token !== 'undefined'
-              ? { Authorization: `Bearer ${token}` }
-              : {}),
+            ...(hasUsableToken(token) ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({ question: message }),
           signal: controller.signal,
         });
 
+        let response = await sendStreamRequest(localStorage.getItem('accessToken'));
+
+        if (response.status === 401) {
+          const newToken = await refreshOnce();
+          if (hasUsableToken(newToken) && !controller.signal.aborted) {
+            response = await sendStreamRequest(newToken);
+          } else {
+            clearSessionAndRedirectToLogin();
+            callbacks.onError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            return;
+          }
+        }
+
         if (!response.ok || !response.body) {
-          callbacks.onError('Could not connect to AI service');
+          callbacks.onError(
+            response.status === 503
+              ? 'AI model chưa sẵn sàng. Vui lòng bật Ollama hoặc thử lại sau.'
+              : 'Không thể kết nối AI Coach. Vui lòng thử lại.',
+          );
           return;
         }
 
@@ -915,7 +929,7 @@ export const coachService = {
         }
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'AbortError') return;
-        callbacks.onError('Could not connect to AI service');
+        callbacks.onError('Không thể kết nối AI Coach. Vui lòng thử lại.');
       }
     })();
 

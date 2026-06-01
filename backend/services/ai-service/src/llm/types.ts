@@ -292,6 +292,21 @@ export interface FinalAnswerPayload {
   adjustmentReasons?: AdjustmentReason[];
   evidenceUsed?: EvidenceUsed[];
   safetyNotes?: string[];
+  workoutSchedule?: {
+    activePlanName?: string;
+    planFrequency?: number;
+    targetDate?: string;
+    targetDayOfWeek?: string;
+    scheduledWorkoutFound: boolean;
+    source: string;
+  };
+  nutritionSchedule?: {
+    targetDate?: string;
+    mealType: string;
+    nutritionPlanName?: string;
+    plannedMealsFound: boolean;
+    source: string;
+  };
 }
 
 export interface OrchestrationInput {

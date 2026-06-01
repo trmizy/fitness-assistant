@@ -28,7 +28,7 @@ export function evidenceUsedFromDocs(docs: RetrievalDocument[]): EvidenceUsed[] 
       source_url: sourceUrl,
       category: typeof metadata.category === 'string' ? metadata.category : doc.category,
       source_type: sourceType,
-      summary: doc.pageContent.replace(/\s+/g, ' ').slice(0, 240),
+      summary: doc.pageContent.replace(/\s+/g, ' ').slice(0, 180),
     });
   }
 
@@ -75,14 +75,14 @@ export function attachEvidenceToPlanContent<T extends Record<string, any>>(
 export function formatEvidenceForPlanPrompt(docs: RetrievalDocument[]): string {
   if (docs.length === 0) return 'No retrieved evidence passed the similarity threshold.';
 
-  return docs.slice(0, 4).map((doc, index) => {
+  return docs.slice(0, 2).map((doc, index) => {
     const metadata = doc.metadata ?? {};
     return [
       `E${index + 1}: ${metadata.title || 'Untitled evidence'}`,
       `source_type: ${metadata.source_type || 'curated_summary'}`,
       `source_url: ${metadata.source_url || 'unknown'}`,
       `category: ${doc.category}`,
-      `summary: ${doc.pageContent.replace(/\s+/g, ' ').slice(0, 420)}`,
+      `summary: ${doc.pageContent.replace(/\s+/g, ' ').slice(0, 180)}`,
     ].join('\n');
   }).join('\n\n');
 }

@@ -38,7 +38,7 @@ const tooltipStyle = {
 /* ── Helper: section card ─────────────────────────────────── */
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
+    <div className="glass-panel rounded-xl p-4">
       <h4 className="text-sm font-semibold text-zinc-200 mb-3">{title}</h4>
       {children}
     </div>
@@ -302,7 +302,7 @@ export function InBodyModule() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               onClick={() => { setTab("manual"); setManualStep("form"); }}
-              className="group flex items-center gap-4 bg-zinc-900 hover:bg-zinc-800/80 border-2 border-zinc-700/60 hover:border-green-500/40 rounded-xl p-4 text-left transition-all"
+              className="group flex items-center gap-4 glass-panel hover:bg-zinc-800/80 border-2 border-zinc-700/60 hover:border-green-500/40 rounded-xl p-4 text-left transition-all"
             >
               <div className="w-12 h-12 bg-violet-500/10 border border-violet-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-violet-500/20 transition-colors">
                 <ClipboardList className="w-6 h-6 text-violet-400" />
@@ -316,7 +316,7 @@ export function InBodyModule() {
 
             <button
               onClick={() => { setTab("upload"); setUploadStep("drop"); }}
-              className="group flex items-center gap-4 bg-zinc-900 hover:bg-zinc-800/80 border-2 border-zinc-700/60 hover:border-green-500/40 rounded-xl p-4 text-left transition-all"
+              className="group flex items-center gap-4 glass-panel hover:bg-zinc-800/80 border-2 border-zinc-700/60 hover:border-green-500/40 rounded-xl p-4 text-left transition-all"
             >
               <div className="w-12 h-12 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/20 transition-colors">
                 <Camera className="w-6 h-6 text-green-400" />
@@ -434,7 +434,7 @@ export function InBodyModule() {
             {history.slice(0, 3).map((r: any, i: number) => {
               const cfg = statusConfig[r.status];
               return (
-                <div key={r.id} className={`flex items-center gap-4 p-3 rounded-xl border ${i === 0 ? "bg-green-500/5 border-green-500/15" : "bg-zinc-900 border-zinc-800/60"}`}>
+                <div key={r.id} className={`flex items-center gap-4 p-3 rounded-xl border ${i === 0 ? "bg-green-500/5 border-green-500/15" : "glass-panel"}`}>
                   <div className="text-sm font-semibold text-zinc-200 w-28 flex-shrink-0">
                     {formatMeasurementDate(r)}
                     {i === 0 && <span className="ml-1 text-xs bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded-full border border-green-500/20">Mới nhất</span>}
@@ -462,7 +462,7 @@ export function InBodyModule() {
         <div className="max-w-2xl mx-auto space-y-4">
 
           {manualStep === "done" ? (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-10 text-center">
+            <div className="glass-panel rounded-xl p-10 text-center">
               <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/15">
                 <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
@@ -637,7 +637,7 @@ export function InBodyModule() {
 
           {/* Step: Preview */}
           {uploadStep === "preview" && (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
+            <div className="glass-panel rounded-xl overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/60 bg-zinc-800/40">
                 <FileImage className="w-4 h-4 text-zinc-400" />
                 <span className="text-sm text-zinc-300 font-semibold">{selectedFile?.name}</span>
@@ -689,7 +689,7 @@ export function InBodyModule() {
 
           {/* Step: Review (extraction review) */}
           {uploadStep === "review" && (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
+            <div className="glass-panel rounded-xl overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/8 border-b border-amber-500/20">
                 <AlertCircle className="w-4 h-4 text-amber-400" />
                 <span className="text-sm text-amber-300 font-semibold">Kiểm tra dữ liệu trích xuất — chỉnh sửa nếu cần trước khi lưu</span>
@@ -816,7 +816,7 @@ export function InBodyModule() {
 
           {/* Step: Done */}
           {uploadStep === "done" && (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-10 text-center">
+            <div className="glass-panel rounded-xl p-10 text-center">
               <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/15">
                 <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
@@ -850,7 +850,7 @@ export function InBodyModule() {
             ))}
           </div>
 
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
+          <div className="glass-panel rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center justify-between">
               <h4 className="text-sm font-semibold text-zinc-200">Lịch sử InBody ({history.length} bản ghi)</h4>
               <button onClick={() => setTab("upload")} className="flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300 transition-colors">
@@ -927,7 +927,7 @@ export function InBodyModule() {
       {tab === "compare" && (
         <div className="space-y-4">
           {history.length < 2 ? (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-10 text-center">
+            <div className="glass-panel rounded-xl p-10 text-center">
               <div className="text-zinc-400 font-semibold mb-1">Chưa đủ dữ liệu</div>
               <p className="text-zinc-600 text-sm">Bạn cần ít nhất 2 bản ghi InBody để so sánh.</p>
             </div>

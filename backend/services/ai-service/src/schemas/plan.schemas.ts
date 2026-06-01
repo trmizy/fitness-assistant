@@ -445,16 +445,12 @@ export function buildPlanPrompt(
     exampleExerciseB = exercisesByDay[0]?.exercises?.[1] ?? exampleExerciseA;
 
     exerciseCatalogText = '\n=== EXERCISE CATALOG (PER DAY — STRICT) ===\n';
-    exerciseCatalogText += 'CRITICAL: For each day, you MUST ONLY use exerciseId values listed under that day.\n';
-    exerciseCatalogText += 'Do NOT cross exercises between days (e.g. NO Bench Press in a Legs day).\n\n';
+    exerciseCatalogText += 'For Day N, use ONLY ids listed under Day N.\n\n';
 
     for (const daySpec of exercisesByDay) {
       exerciseCatalogText += `[Day ${daySpec.dayIndex + 1}] ${daySpec.dayGoal} — muscles: ${daySpec.focusMuscleGroups.join(', ')}\n`;
-      exerciseCatalogText += `Allowed exerciseId values for Day ${daySpec.dayIndex + 1}:\n`;
       for (const ex of daySpec.exercises) {
-        const muscles = (ex.muscleGroupsActivated ?? []).join(', ') || 'general';
-        const equip = ex.typeOfEquipment ?? 'ANY';
-        exerciseCatalogText += `  ${ex.id} | ${ex.exerciseName} | ${muscles} | ${equip}\n`;
+        exerciseCatalogText += `  ${ex.id} | ${ex.exerciseName}\n`;
       }
       exerciseCatalogText += '\n';
     }

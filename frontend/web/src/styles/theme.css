@@ -176,3 +176,9 @@
     line-height: 1.5;
   }
 }
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-zinc-950/60 backdrop-blur-xl border border-zinc-700/50 shadow-2xl;
+  }
+}
