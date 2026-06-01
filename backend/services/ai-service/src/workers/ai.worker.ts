@@ -4,7 +4,7 @@ import { logger } from '@gym-coach/shared';
 import axios from 'axios';
 import { llmService } from '../services/llm.service';
 import { conversationRepository, PlanStatus } from '../repositories/conversation.repository';
-import { parsePlanContent, buildPlanPrompt, type AllowedExerciseItem, type DayExerciseCatalog } from '../schemas/plan.schemas';
+import { parsePlanContent, type AllowedExerciseItem, type DayExerciseCatalog } from '../schemas/plan.schemas';
 import { LlmError } from '../errors/api-error';
 import { safeParseJsonCandidate } from '../utils/json';
 import { analyzeBodyComposition, formatBodyCompAnalysis } from '../llm/body_composition_rules';
@@ -28,8 +28,9 @@ export const aiQueue = new Queue('ai-tasks', { connection: redisConnection });
 type AllowedExercise = AllowedExerciseItem;
 
 // Increased limit so we have enough exercises to build per-day catalogs
-const PLAN_EXERCISE_FETCH_LIMIT = 300;
-const PLAN_EXERCISE_PROMPT_LIMIT = 80; // fallback flat-list limit
+const PLAN_EXERCISE_FETCH_LIMIT = 120;
+const PLAN_EXERCISE_PROMPT_LIMIT = 32; // fallback flat-list limit
+const PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT = 6;
 
 function buildEvidenceProfile(ctx: WorkerUserContext | null, fallbackGoal: string): UserProfile {
   const profile = ctx?.profile ?? {};
@@ -209,13 +210,18 @@ function buildPerDayCatalogs(
   allExercises: AllowedExercise[],
   trainingLocation: string,
   equipmentPreference = 'MIXED_GYM',
+  exercisesPerDay = 4,
 ): DayExerciseCatalog[] {
   const catalogs: DayExerciseCatalog[] = [];
+  const perDayLimit = Math.min(
+    PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT,
+    Math.max(exercisesPerDay + 2, exercisesPerDay),
+  );
 
   for (let dayIndex = 0; dayIndex < daysPerWeek; dayIndex++) {
     const dayGoal = splitGoalForDay(goal, dayIndex, daysPerWeek);
     const focusMuscleGroups = parseDayFocusMuscleGroups(dayGoal);
-    const exercises = filterExercisesForDay(allExercises, focusMuscleGroups, goal, trainingLocation, 18, equipmentPreference);
+    const exercises = filterExercisesForDay(allExercises, focusMuscleGroups, goal, trainingLocation, perDayLimit, equipmentPreference);
 
     catalogs.push({ dayIndex, dayGoal, focusMuscleGroups, exercises });
   }
@@ -323,6 +329,7 @@ function repairScheduleLengthAndEmptyDays(
 
   const warnings: Array<Record<string, unknown>> = [];
   const schedule = content.weeklySchedule;
+  const allowedIdSet = new Set(allowedExercises.map((exercise) => exercise.id));
 
   if (schedule.length > daysPerWeek) {
     content.weeklySchedule = schedule.slice(0, daysPerWeek);
@@ -378,6 +385,52 @@ function repairScheduleLengthAndEmptyDays(
       selectedExerciseId: selected.id,
       selectedExerciseName: selected.exerciseName,
     });
+  }
+
+  for (let dayIndex = 0; dayIndex < content.weeklySchedule.length; dayIndex += 1) {
+    const day = content.weeklySchedule[dayIndex];
+    if (!day || typeof day !== 'object') continue;
+
+    if (!Array.isArray(day.exercises)) {
+      day.exercises = [];
+    }
+
+    if (day.exercises.length > exercisesPerDay) {
+      day.exercises = day.exercises.slice(0, exercisesPerDay);
+      warnings.push({ type: 'deterministic_repair', planId, jobId, dayIndex, reason: 'trimmed_extra_exercises' });
+    }
+
+    const usedIds = new Set<string>();
+    for (let exerciseIndex = 0; exerciseIndex < exercisesPerDay; exerciseIndex += 1) {
+      const current = day.exercises[exerciseIndex];
+      const currentId = String(current?.exerciseId || '').trim();
+      if (currentId && allowedIdSet.has(currentId) && !usedIds.has(currentId)) {
+        usedIds.add(currentId);
+        continue;
+      }
+
+      const preferred = chooseRepairExercise(day, goal, allowedExercises);
+      const fallback = allowedExercises.find((exercise) => !usedIds.has(exercise.id)) ?? allowedExercises[(dayIndex * exercisesPerDay + exerciseIndex) % allowedExercises.length];
+      const selected = preferred && !usedIds.has(preferred.id) ? preferred : fallback;
+      if (!selected) continue;
+
+      usedIds.add(selected.id);
+      day.exercises[exerciseIndex] = buildExercisePrescription(
+        selected,
+        exerciseIndex + 1,
+        'Auto-repaired from allowed exercise catalog after incomplete LLM output',
+      );
+      warnings.push({
+        type: 'deterministic_repair',
+        planId,
+        jobId,
+        dayIndex,
+        exerciseIndex,
+        reason: currentId ? 'replaced_invalid_or_duplicate_exercise' : 'filled_missing_exercise',
+        selectedExerciseId: selected.id,
+        selectedExerciseName: selected.exerciseName,
+      });
+    }
   }
 
   return { repaired: warnings.length > 0, content, warnings };
@@ -511,23 +564,61 @@ function appendPlanWarnings(content: any, warnings: Array<Record<string, unknown
     : warnings;
 }
 
-function buildEmptyDayRepairPrompt(
-  goal: string,
-  daysPerWeek: number,
-  allowedExercises: AllowedExercise[],
-  emptyDayIndexes: number[],
-  rawJson: string,
-): string {
+function estimatePlanNumPredict(daysPerWeek: number, exercisesPerDay: number): number {
+  const exerciseObjects = daysPerWeek * exercisesPerDay;
+  return Math.min(2600, Math.max(1000, 550 + exerciseObjects * 60));
+}
+
+function estimatePlanTimeoutMs(daysPerWeek: number, exercisesPerDay: number): number {
+  const exerciseObjects = daysPerWeek * exercisesPerDay;
+  return Math.min(210000, Math.max(130000, 70000 + exerciseObjects * 3500));
+}
+
+function buildFastPlanPrompt(args: {
+  goal: string;
+  durationWeeks: number;
+  daysPerWeek: number;
+  exercisesPerDay: number;
+  adjustmentContext?: string;
+  trainingLocation: string;
+  equipmentPreference: string;
+  exercisesByDay: DayExerciseCatalog[];
+  bodyCompText?: string;
+  evidenceText?: string;
+}): string {
+  const catalog = args.exercisesByDay.map((day) => {
+    const ids = day.exercises
+      .slice(0, PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT)
+      .map((exercise) => `${exercise.id}|${exercise.exerciseName}`)
+      .join('\n');
+    return `[Day ${day.dayIndex + 1}] ${day.dayGoal}\n${ids}`;
+  }).join('\n\n');
+
+  const sampleExercise = args.exercisesByDay[0]?.exercises?.[0];
+  const sampleId = sampleExercise?.id ?? 'allowed-exercise-id';
+  const sampleName = sampleExercise?.exerciseName ?? 'Exercise name';
+
   return [
-    'The previous plan JSON has empty days.',
-    `Day indexes with no exercises: ${emptyDayIndexes.map((index) => index + 1).join(', ')}`,
-    `Return the FULL JSON again with exactly ${daysPerWeek} scheduled days and at least one valid exerciseId for every day.`,
-    'Do not add rest days inside weeklySchedule. Use recoveryNotes for rest guidance instead.',
-    `Goal: ${goal}`,
-    'Allowed exercises (id -> name):',
-    allowedExercises.map((exercise) => `${exercise.id} -> ${exercise.exerciseName}`).join('\n'),
-    `Original JSON:\n${rawJson}`,
-  ].join('\n');
+    'You are a personal trainer. Return ONLY valid compact JSON.',
+    `Goal: ${args.goal}`,
+    `DurationWeeks: ${args.durationWeeks}`,
+    `DaysPerWeek: ${args.daysPerWeek}`,
+    `ExercisesPerDay: ${args.exercisesPerDay}`,
+    `Location: ${args.trainingLocation}`,
+    `Equipment: ${args.equipmentPreference}`,
+    args.adjustmentContext ? `User context/request:\n${args.adjustmentContext}` : '',
+    args.bodyCompText ? `Body composition rule analysis:\n${args.bodyCompText}` : '',
+    args.evidenceText ? `Allowed evidence only:\n${args.evidenceText}` : '',
+    'Exercise catalog. For Day N, use ONLY ids under Day N. Never invent exerciseId.',
+    catalog,
+    'Rules:',
+    `- weeklySchedule length exactly ${args.daysPerWeek}.`,
+    `- each day exactly ${args.exercisesPerDay} exercises.`,
+    '- day goal, notes, cardio, progressionNotes, recoveryNotes, nutritionSummary must be Vietnamese.',
+    '- do not diagnose disease; do not invent citations/source_url; server attaches evidence metadata.',
+    '- keep exercise names exactly from catalog.',
+    `Schema example: {"goal":"${args.goal}","durationWeeks":${args.durationWeeks},"daysPerWeek":${args.daysPerWeek},"exercisesPerDay":${args.exercisesPerDay},"weeklySchedule":[{"day":"Day 1","goal":"Ten nhom co","exercises":[{"exerciseId":"${sampleId}","order":1,"name":"${sampleName}","sets":3,"reps":"8-12","restSeconds":75,"note":"Ghi chu ngan"}],"cardio":"Khoi dong nhe neu can"}],"progressionNotes":["Ghi chu ngan"],"recoveryNotes":["Ghi chu ngan"],"nutritionSummary":"Tom tat ngan"}`,
+  ].filter(Boolean).join('\n\n');
 }
 
 // ── Job data schema ───────────────────────────────────────────────────────────
@@ -623,7 +714,7 @@ export const aiWorker = new Worker(
     }
 
     // ── 4. Build per-day exercise catalogs and prompt ──────────────────────
-    const perDayCatalogs = buildPerDayCatalogs(goal, daysPerWeek, allowedExercises, trainingLocation, equipmentPreference);
+    const perDayCatalogs = buildPerDayCatalogs(goal, daysPerWeek, allowedExercises, trainingLocation, equipmentPreference, exercisesPerDay);
     logger.info(
       { planId, daysPerWeek, catalogs: perDayCatalogs.map(c => ({ day: c.dayGoal, groups: c.focusMuscleGroups, count: c.exercises.length })) },
       'Per-day exercise catalogs built',
@@ -631,6 +722,8 @@ export const aiWorker = new Worker(
 
     // Flat list used for repair/validation helpers
     const promptExercises = allowedExercises.slice(0, PLAN_EXERCISE_PROMPT_LIMIT);
+    const planNumPredict = estimatePlanNumPredict(daysPerWeek, exercisesPerDay);
+    const planTimeoutMs = estimatePlanTimeoutMs(daysPerWeek, exercisesPerDay);
     // Append personal context to adjustmentContext so prompt builder can include it
     const enrichedAdjustmentContext = [
       adjustmentContext,
@@ -663,21 +756,18 @@ export const aiWorker = new Worker(
       }, 'AI plan prompt context summary');
     }
 
-    const prompt = buildPlanPrompt(
+    const prompt = buildFastPlanPrompt({
       goal,
       durationWeeks,
       daysPerWeek,
       exercisesPerDay,
-      enrichedAdjustmentContext,
-      promptExercises,
+      adjustmentContext: enrichedAdjustmentContext,
       trainingLocation,
-      perDayCatalogs,
       equipmentPreference,
-      {
-        bodyCompText: bodyCompText || undefined,
-        evidenceText,
-      },
-    );
+      exercisesByDay: perDayCatalogs,
+      bodyCompText: bodyCompText || undefined,
+      evidenceText,
+    });
 
     const completePlan = async (content: any, logMessage: string, extraLog: Record<string, unknown> = {}) => {
       attachEvidenceToPlanContent(content, evidenceBundle);
@@ -687,7 +777,16 @@ export const aiWorker = new Worker(
 
     let rawAnswer: string;
     try {
-      const llmResponse = await llmService.callLLM(prompt, { responseFormat: 'json', timeoutMs: 300000, numPredict: 4096 });
+      const llmStartedAt = Date.now();
+      const llmResponse = await llmService.callLLM(prompt, { responseFormat: 'json', timeoutMs: planTimeoutMs, numPredict: planNumPredict, temperature: 0.1 });
+      logger.info({
+        jobId: job.id,
+        planId,
+        durationMs: Date.now() - llmStartedAt,
+        promptTokens: llmResponse.promptTokens,
+        completionTokens: llmResponse.completionTokens,
+        numPredict: planNumPredict,
+      }, 'Plan generation LLM call finished');
       rawAnswer = llmResponse.answer;
     } catch (err) {
       const reason =
@@ -713,10 +812,22 @@ export const aiWorker = new Worker(
           `DurationWeeks: ${durationWeeks}`,
           `DaysPerWeek: ${daysPerWeek}`,
           'Allowed exercises (id -> name):',
-          ...promptExercises.map((e) => `${e.id} -> ${e.exerciseName}`),
+          ...perDayCatalogs.flatMap((day) => [
+            `[Day ${day.dayIndex + 1}] ${day.dayGoal}`,
+            ...day.exercises.slice(0, PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT).map((e) => `${e.id} -> ${e.exerciseName}`),
+          ]),
         ].join('\n');
 
-        const retryResp = await llmService.callLLM(minimalRepairPrompt, { responseFormat: 'json', timeoutMs: 120000, numPredict: 4096 });
+        const retryStartedAt = Date.now();
+        const retryResp = await llmService.callLLM(minimalRepairPrompt, { responseFormat: 'json', timeoutMs: Math.min(planTimeoutMs, 120000), numPredict: planNumPredict, temperature: 0.1 });
+        logger.info({
+          jobId: job.id,
+          planId,
+          durationMs: Date.now() - retryStartedAt,
+          promptTokens: retryResp.promptTokens,
+          completionTokens: retryResp.completionTokens,
+          numPredict: planNumPredict,
+        }, 'Plan generation format-only retry finished');
         const retryRaw = retryResp.answer;
         rawAnswer = retryRaw;
         looseCandidate = safeParseJsonCandidate(retryRaw);
@@ -746,16 +857,10 @@ export const aiWorker = new Worker(
     if (!parseResult.ok) {
       const emptyDayIndexes = getEmptyDayIndexes(looseCandidate);
       if (emptyDayIndexes.length > 0) {
-        try {
-          const repairPrompt = buildEmptyDayRepairPrompt(goal, daysPerWeek, promptExercises, emptyDayIndexes, rawAnswer);
-          const retryResp = await llmService.callLLM(repairPrompt, { responseFormat: 'json', timeoutMs: 120000, numPredict: 4096 });
-          const retryRaw = retryResp.answer;
-          rawAnswer = retryRaw;
-          looseCandidate = safeParseJsonCandidate(retryRaw);
-          parseResult = parsePlanContent(retryRaw);
-        } catch (err) {
-          logger.warn({ err, jobId: job.id, planId, emptyDayIndexes }, 'Plan generation: empty-day repair prompt failed');
-        }
+        logger.warn(
+          { jobId: job.id, planId, emptyDayIndexes },
+          'Plan generation: skipping LLM empty-day retry; using deterministic catalog repair',
+        );
       }
     }
 
@@ -959,7 +1064,7 @@ export const aiWorker = new Worker(
         .join('\n')}\n\nPlease re-output the plan JSON only using exerciseId fields that are exactly one of the allowed ids. Keep the same JSON structure as previously requested and make sure each exercise object includes ${"exerciseId, name, sets, reps, restSeconds"}. Return ONLY the JSON.`;
 
       try {
-        const retryResp = await llmService.callLLM(correctionPrompt + '\n' + rawAnswer, { responseFormat: 'json', timeoutMs: 120000, numPredict: 4096 });
+        const retryResp = await llmService.callLLM(correctionPrompt + '\n' + rawAnswer, { responseFormat: 'json', timeoutMs: Math.min(planTimeoutMs, 120000), numPredict: planNumPredict, temperature: 0.1 });
         const retryRaw = retryResp.answer;
         parseResult = parsePlanContent(retryRaw);
         if (!parseResult.ok) {

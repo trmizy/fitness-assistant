@@ -240,19 +240,19 @@ export function ClientDashboard() {
   }));
 
   const quickActions = [
-    { label: "Tải InBody", icon: Upload, to: "/client/inbody", color: "bg-green-500 hover:bg-green-400 text-black shadow-green-500/25" },
-    { label: "Nhật ký tập", icon: Dumbbell, to: "/client/workout", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
-    { label: "Xem kế hoạch", icon: Brain, to: "/client/plans", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
-    { label: "Nhắn tin PT", icon: MessageSquare, to: "/client/chat", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
-    { label: "Đặt lịch", icon: Calendar, to: "/client/booking", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
+    { label: "Tải InBody", icon: Upload, to: "/client/inbody", color: "bg-green-500/80 hover:bg-green-400/90 text-zinc-100 border border-green-500/50 backdrop-blur-md" },
+    { label: "Nhật ký tập", icon: Dumbbell, to: "/client/workout", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
+    { label: "Xem kế hoạch", icon: Brain, to: "/client/plans", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
+    { label: "Nhắn tin PT", icon: MessageSquare, to: "/client/chat", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
+    { label: "Đặt lịch", icon: Calendar, to: "/client/booking", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
   ];
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-zinc-100">Xin chào, {firstName}</h1>
-          <p className="text-zinc-500 text-sm mt-0.5">{today} · Phiên hoạt động</p>
+          <h1 className="text-zinc-50 drop-shadow-md">Xin chào, {firstName}</h1>
+          <p className="text-zinc-300 text-sm mt-0.5 drop-shadow-sm">{today} · Phiên hoạt động</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-semibold rounded-full flex items-center gap-1.5 border border-green-500/20">
@@ -307,7 +307,7 @@ export function ClientDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
+        <div className="glass-panel rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-zinc-200">Xu hướng cân nặng</h4>
             {weightData.length > 1 && (
@@ -325,7 +325,7 @@ export function ClientDashboard() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
+        <div className="glass-panel rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-zinc-200">Cơ bắp</h4>
             {muscleData.length > 1 && (
@@ -343,7 +343,7 @@ export function ClientDashboard() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60 md:col-span-2 xl:col-span-1">
+        <div className="glass-panel rounded-xl p-4 md:col-span-2 xl:col-span-1">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-zinc-200">Calories tuần này</h4>
             <span className="text-xs text-zinc-500">Không có dữ liệu</span>
@@ -355,7 +355,7 @@ export function ClientDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
+        <div className="glass-panel rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-zinc-200">Kế hoạch đang dùng</h4>
           </div>
@@ -387,7 +387,7 @@ export function ClientDashboard() {
           )}
         </div>
 
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
+        <div className="glass-panel rounded-xl p-4">
           {nextSchedule ? (
             <button
               onClick={() => navigate("/client/workout")}
@@ -415,7 +415,7 @@ export function ClientDashboard() {
           )}
         </div>
 
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60 relative overflow-hidden">
+        <div className="glass-panel rounded-xl p-4 relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-green-500/5 rounded-full blur-2xl" />
           <div className="flex items-center gap-2 mb-3 relative z-10">
             <div className="w-7 h-7 bg-green-500/15 rounded-lg flex items-center justify-center border border-green-500/20">
@@ -446,7 +446,7 @@ export function ClientDashboard() {
         </div>
       </div>
 
-      <div className="bg-zinc-900 rounded-xl border border-zinc-800/60">
+      <div className="glass-panel rounded-xl">
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
           <h4 className="text-sm font-semibold text-zinc-200">Tập luyện gần đây</h4>
           <button onClick={() => navigate("/client/workout")} className="text-xs text-green-400 hover:text-green-300 transition-colors">Xem tất cả</button>

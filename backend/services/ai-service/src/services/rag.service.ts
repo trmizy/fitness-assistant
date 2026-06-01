@@ -108,6 +108,8 @@ export const ragService = {
       missingFields: orchestrated.missingFields,
       validationNotes: orchestrated.validationNotes,
       recommendation: orchestrated.recommendation,
+      ...(orchestrated.workoutSchedule ? { workoutSchedule: orchestrated.workoutSchedule } : {}),
+      ...(orchestrated.nutritionSchedule ? { nutritionSchedule: orchestrated.nutritionSchedule } : {}),
     };
   },
 };

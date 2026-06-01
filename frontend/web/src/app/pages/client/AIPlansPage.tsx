@@ -85,6 +85,7 @@ type PlanAdjustmentItem = {
 };
 
 const LLM_NOT_READY_MESSAGE = 'AI model chưa sẵn sàng. Vui lòng bật Ollama hoặc thử lại sau.';
+const LLM_TIMEOUT_MESSAGE = 'AI model đang quá tải hoặc phản hồi chưa kịp. Vui lòng thử tạo lại sau.';
 
 const WEEKDAY_OPTIONS = [
   { value: 1, short: 'T2', label: 'Thứ 2' },
@@ -246,6 +247,7 @@ function isLlmUnavailableMessage(message: string | null | undefined): boolean {
 }
 
 function friendlyPlanFailReason(reason?: string | null): string {
+  if (reason && /timed out|timeout/i.test(reason)) return LLM_TIMEOUT_MESSAGE;
   if (isLlmUnavailableMessage(reason)) return LLM_NOT_READY_MESSAGE;
   return reason || 'Không có fail reason từ backend.';
 }
