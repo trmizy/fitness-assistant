@@ -1,0 +1,113 @@
+[
+  {
+    "id": "espen-bia-1",
+    "title": "ESPEN BIA Guidelines Part I (2019)",
+    "file": "espen-bia-1.jsonl",
+    "category": "bia_validation",
+    "evidence_level": "clinical_guideline",
+    "tags": [
+      "BIA",
+      "body composition",
+      "impedance",
+      "ESPEN",
+      "clinical"
+    ]
+  },
+  {
+    "id": "espen-bia-2",
+    "title": "ESPEN BIA Guidelines Part II (2019)",
+    "file": "espen-bia-2.jsonl",
+    "category": "bia_validation",
+    "evidence_level": "clinical_guideline",
+    "tags": [
+      "BIA",
+      "body composition",
+      "disease",
+      "sports",
+      "ESPEN"
+    ]
+  },
+  {
+    "id": "hhs-pa-2018",
+    "title": "Physical Activity Guidelines for Americans 2nd Edition (HHS 2018)",
+    "file": "hhs-pa-2018.jsonl",
+    "category": "physical_activity",
+    "evidence_level": "government_guideline",
+    "tags": [
+      "physical activity",
+      "exercise",
+      "HHS",
+      "aerobic",
+      "resistance training"
+    ]
+  },
+  {
+    "id": "who-pa-2020",
+    "title": "WHO Guidelines on Physical Activity (2020)",
+    "file": "who-pa-2020.jsonl",
+    "category": "physical_activity",
+    "evidence_level": "government_guideline",
+    "tags": [
+      "physical activity",
+      "WHO",
+      "global",
+      "sedentary"
+    ]
+  },
+  {
+    "id": "issn-protein-2017",
+    "title": "ISSN Position Stand: Protein and Exercise (2017)",
+    "file": "issn-protein-2017.jsonl",
+    "category": "nutrition",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "protein",
+      "muscle",
+      "g/kg",
+      "ISSN",
+      "sports nutrition"
+    ]
+  },
+  {
+    "id": "issn-diets-2017",
+    "title": "ISSN Position Stand: Diets and Body Composition (2017)",
+    "file": "issn-diets-2017.jsonl",
+    "category": "nutrition",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "diet",
+      "fat loss",
+      "macros",
+      "ISSN",
+      "body composition"
+    ]
+  },
+  {
+    "id": "issn-performance-2017",
+    "title": "ISSN Position Stand: Nutritional Performance (2017)",
+    "file": "issn-performance-2017.jsonl",
+    "category": "nutrition",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "performance",
+      "creatine",
+      "caffeine",
+      "carbohydrate",
+      "ISSN"
+    ]
+  },
+  {
+    "id": "issn-timing-2014",
+    "title": "ISSN Position Stand: Nutrient Timing (2014)",
+    "file": "issn-timing-2014.jsonl",
+    "category": "nutrition",
+    "evidence_level": "expert_consensus",
+    "tags": [
+      "nutrient timing",
+      "pre-workout",
+      "post-workout",
+      "anabolic window",
+      "ISSN"
+    ]
+  }
+]
