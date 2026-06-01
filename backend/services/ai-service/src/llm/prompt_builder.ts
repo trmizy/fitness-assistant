@@ -235,12 +235,30 @@ function compactRetrieval(result: RetrievalResult): string {
     return '- No relevant context retrieved. Use conservative recommendations.';
   }
 
-  // Limit to 3 docs — more context doesn't improve small-model accuracy but increases latency
-  return result.documents
-    .slice(0, 3)
-    .map((doc, idx) => `${idx + 1}. ${doc.pageContent}`)
-    .join('\n\n');
+  // Separate evidence docs from exercise/knowledge docs
+  const evidenceDocs  = result.documents.filter(d => d.source === 'qdrant:fitness_evidence');
+  const regularDocs   = result.documents.filter(d => d.source !== 'qdrant:fitness_evidence');
+
+  const parts: string[] = [];
+
+  // Limit to 3 regular docs — more context doesn't improve small-model accuracy
+  if (regularDocs.length > 0) {
+    parts.push(regularDocs.slice(0, 3).map((doc, idx) => `${idx + 1}. ${doc.pageContent}`).join('\n\n'));
+  }
+
+  // Evidence docs shown separately with citation markers
+  if (evidenceDocs.length > 0) {
+    const evidenceBlock = evidenceDocs.slice(0, 3).map((doc, idx) => {
+      const m = doc.metadata as any;
+      const cite = m.source_url ? ` [nguồn: ${m.source_url}]` : '';
+      return `E${idx + 1}. ${doc.pageContent}${cite}`;
+    }).join('\n\n');
+    parts.push(`[Bằng chứng khoa học từ nghiên cứu:]\n${evidenceBlock}`);
+  }
+
+  return parts.join('\n\n') || '- No relevant context retrieved. Use conservative recommendations.';
 }
+
 
 function compactRecommendations(recommendation: RecommendationResult): string {
   const n = recommendation.nutrition;
@@ -274,6 +292,7 @@ export const promptBuilder = {
     recommendation: RecommendationResult,
     responseLanguage: ResponseLanguage,
     chatHistory: any[],
+    bodyCompText?: string,
   ): string {
     const profile = context.profile;
     const viRules = [
@@ -379,6 +398,11 @@ export const promptBuilder = {
       ...(() => {
         const programsText = compactCurrentPrograms(context);
         return programsText ? ['Chương trình đang áp dụng:', programsText, ''] : [];
+      })(),
+      // Inject body composition analysis + evidence-based plan adjustments
+      ...(() => {
+        if (!bodyCompText) return [];
+        return ['Phân tích thành phần cơ thể (dùng để điều chỉnh kế hoạch):', bodyCompText, ''];
       })(),
       ...(() => {
         const isGeneralKnowledge = intent.routeIntent === 'general_fitness_knowledge';

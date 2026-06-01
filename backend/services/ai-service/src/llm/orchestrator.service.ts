@@ -12,7 +12,8 @@ import { answerValidator, hasCriticalNutritionMismatch, hasCriticalStructureMism
 import { responseFormatter } from './response_formatter';
 import { labelLocalizer } from './label_localizer';
 import { traceLogger } from './trace_logger';
-import type { FinalAnswerPayload, LanguageDecision, RecommendationResult } from './types';
+import { analyzeBodyComposition, formatBodyCompAnalysis } from './body_composition_rules';
+import type { AdjustmentReason, EvidenceUsed, FinalAnswerPayload, LanguageDecision, RecommendationResult } from './types';
 
 /** Callback fired at each real pipeline milestone so callers can forward live status events. */
 export type ProgressCallback = (message: string) => void;
@@ -91,6 +92,14 @@ export const llmOrchestrator = {
       userId ? conversationRepository.findMany({ userId }, 5) : Promise.resolve([]),
     ]);
 
+    // Body composition analysis — synchronous, runs after profile is available
+    const bodyCompAnalysis = analyzeBodyComposition(context.profile);
+    const bodyCompText = formatBodyCompAnalysis(bodyCompAnalysis);
+
+    // Retrieve evidence from fitness_evidence collection using body-comp-specific queries.
+    // Runs after profile so queries can be shaped by the analysis. Best-effort: no throw.
+    const evidenceDocs = await retriever.retrieveEvidence(bodyCompAnalysis.evidenceQueries).catch(() => []);
+
     onProgress?.('Đã tìm dữ liệu phù hợp');
 
     const routedIntent = intentRouter.route(question, context.profile);
@@ -135,16 +144,22 @@ export const llmOrchestrator = {
 
     const needsLlm = llmIntents.has(routedIntent.intent) || parsedInput.mentionsInjury;
 
+    // Merge evidence docs into retrieval so compactRetrieval() can format citations
+    const mergedRetrieval = evidenceDocs.length > 0
+      ? { ...retrieval, documents: [...retrieval.documents, ...evidenceDocs], isEmpty: false }
+      : retrieval;
+
     if (needsLlm && !unsafe?.blocked) {
       onProgress?.('Đang tạo câu trả lời cá nhân hóa...');
       prompt = promptBuilder.build(
         question,
         parsedInput,
         context,
-        retrieval,
+        mergedRetrieval,
         recommendation,
         language.responseLanguage,
         chatHistory,
+        bodyCompText || undefined,
       );
       const llmResponse = await llmService.callLLM(prompt);
       llmAnswer = labelLocalizer.localize(llmResponse.answer, language.responseLanguage);
@@ -186,6 +201,25 @@ export const llmOrchestrator = {
       completionTokens,
     });
 
+    // Build evidence-used list from retrieved fitness_evidence docs
+    const evidenceUsed: EvidenceUsed[] = evidenceDocs.map(d => {
+      const m = d.metadata as any;
+      return {
+        title:       m.title ?? d.pageContent.slice(0, 80),
+        source_url:  m.source_url ?? '',
+        category:    m.category ?? d.category,
+        source_type: m.source_type ?? 'curated_summary',
+        summary:     d.pageContent.slice(0, 200),
+      };
+    });
+
+    const adjustmentReasons: AdjustmentReason[] = bodyCompAnalysis.adjustments.map(a => ({
+      metric:          a.metric,
+      observed_value:  a.observed_value,
+      interpretation:  a.interpretation,
+      plan_adjustment: a.plan_adjustment,
+    }));
+
     return {
       traceId: trace.traceId,
       answer: llmAnswer,
@@ -194,7 +228,7 @@ export const llmOrchestrator = {
       usedDeterministicFallbackBecauseOfValidation,
       missingFields: recommendation.missingFields,
       recommendation,
-      retrieval,
+      retrieval: mergedRetrieval,
       finalPrompt: prompt,
       validationNotes: validation.warnings,
       promptTokens,
@@ -203,6 +237,10 @@ export const llmOrchestrator = {
       routeIntent: routedIntent.intent,
       warningCount: validation.warnings.length,
       explicitLanguageLock: language.locked,
+      // Evidence enrichment (optional backward-compat fields)
+      adjustmentReasons: adjustmentReasons.length > 0 ? adjustmentReasons : undefined,
+      evidenceUsed:      evidenceUsed.length > 0 ? evidenceUsed : undefined,
+      safetyNotes:       bodyCompAnalysis.safetyNotes.length > 0 ? bodyCompAnalysis.safetyNotes : undefined,
     };
   },
 };

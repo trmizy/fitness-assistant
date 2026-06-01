@@ -69,6 +69,20 @@ type ExplanationResult = PlanExplanationResponse;
 type PlanFilter = 'all' | 'completed' | 'failed';
 
 type UnknownRecord = Record<string, unknown>;
+type PlanEvidenceItem = {
+  title?: string;
+  source_url?: string;
+  source_type?: string;
+  category?: string;
+  summary?: string;
+};
+
+type PlanAdjustmentItem = {
+  metric?: string;
+  observed_value?: string | number;
+  interpretation?: string;
+  plan_adjustment?: string;
+};
 
 const LLM_NOT_READY_MESSAGE = 'AI model chưa sẵn sàng. Vui lòng bật Ollama hoặc thử lại sau.';
 
@@ -99,6 +113,40 @@ const WEEKDAY_SUGGESTIONS: Record<number, number[]> = {
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null;
+}
+
+function getPlanEvidence(content?: PlanContent | null) {
+  const record = content as any;
+  const adjustmentReason = Array.isArray(record?.adjustment_reason)
+    ? record.adjustment_reason
+    : Array.isArray(record?.adjustmentReasons)
+      ? record.adjustmentReasons
+      : [];
+  const evidenceUsed = Array.isArray(record?.evidence_used)
+    ? record.evidence_used
+    : Array.isArray(record?.evidenceUsed)
+      ? record.evidenceUsed
+      : [];
+  const safetyNotes = Array.isArray(record?.safety_notes)
+    ? record.safety_notes
+    : Array.isArray(record?.safetyNotes)
+      ? record.safetyNotes
+      : [];
+
+  return {
+    adjustmentReason: adjustmentReason as PlanAdjustmentItem[],
+    evidenceUsed: evidenceUsed as PlanEvidenceItem[],
+    safetyNotes: safetyNotes as string[],
+  };
+}
+
+function formatEvidenceSourceType(value?: string) {
+  if (!value) return 'Evidence';
+  if (value === 'curated_summary') return 'Curated summary';
+  if (value === 'guideline') return 'Guideline';
+  if (value === 'paper') return 'Paper';
+  if (value === 'dataset') return 'Dataset';
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function toTimestamp(value?: string): number {
@@ -472,6 +520,7 @@ export function AIPlansPage() {
     [currentContent],
   );
   const planWarnings = useMemo(() => extractPlanWarnings(currentContent), [currentContent]);
+  const planEvidence = useMemo(() => getPlanEvidence(currentContent), [currentContent]);
   const missingExerciseIdCount = useMemo(
     () => countInvalidExerciseIds(weeklySchedule),
     [weeklySchedule],
@@ -1285,6 +1334,61 @@ export function AIPlansPage() {
                       ))}
                     </ul>
                   </div>
+                )}
+
+                {(planEvidence.adjustmentReason.length > 0 || planEvidence.evidenceUsed.length > 0 || planEvidence.safetyNotes.length > 0) && (
+                  <details className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-sm text-zinc-300">
+                    <summary className="cursor-pointer text-cyan-200 font-semibold">Vì sao AI điều chỉnh kế hoạch</summary>
+                    <div className="mt-3 space-y-3">
+                      {planEvidence.adjustmentReason.length > 0 && (
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1">Điều chỉnh theo chỉ số</div>
+                          <ul className="space-y-2">
+                            {planEvidence.adjustmentReason.map((item, index) => (
+                              <li key={`${item.metric}-${index}`} className="rounded-lg border border-zinc-800 bg-zinc-950/70 p-2">
+                                <div className="text-zinc-100 font-semibold">{item.metric || 'Chỉ số'}: {String(item.observed_value ?? '--')}</div>
+                                {item.interpretation && <div className="text-xs text-zinc-400 mt-1">{item.interpretation}</div>}
+                                {item.plan_adjustment && <div className="text-xs text-green-300 mt-1">{item.plan_adjustment}</div>}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {planEvidence.evidenceUsed.length > 0 && (
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1">Evidence used</div>
+                          <ul className="space-y-2">
+                            {planEvidence.evidenceUsed.map((item, index) => (
+                              <li key={`${item.source_url}-${index}`} className="rounded-lg border border-zinc-800 bg-zinc-950/70 p-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-zinc-100 font-semibold">{item.title || 'Nguồn tham khảo'}</span>
+                                  {item.source_type && <span className="text-[10px] px-2 py-0.5 rounded-full border border-cyan-500/30 text-cyan-300">{formatEvidenceSourceType(item.source_type)}</span>}
+                                </div>
+                                {item.summary && <div className="text-xs text-zinc-400 mt-1">{item.summary}</div>}
+                                {item.source_url && (
+                                  <a className="text-xs text-cyan-300 hover:underline mt-1 inline-block" href={item.source_url} target="_blank" rel="noreferrer">
+                                    {item.source_url}
+                                  </a>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {planEvidence.safetyNotes.length > 0 && (
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1">Safety notes</div>
+                          <ul className="list-disc pl-5 space-y-1 text-xs text-zinc-400">
+                            {planEvidence.safetyNotes.map((note, index) => (
+                              <li key={`${note}-${index}`}>{note}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </details>
                 )}
 
                 <div className="flex flex-wrap gap-2">

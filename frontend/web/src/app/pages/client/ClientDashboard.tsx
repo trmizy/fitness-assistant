@@ -1,51 +1,158 @@
 import { useNavigate } from "react-router";
-import { useApp } from "../../context/AppContext";
-import {
-  AreaChart, Area, LineChart, Line,
-  ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid
-} from "recharts";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { profileService, inbodyService, workoutService } from "../../services/api";
 import {
-  Activity, Brain, Calendar, MessageSquare, TrendingDown,
-  TrendingUp, Zap, Upload, Dumbbell, ChevronRight, Bell,
-  Target, Clock, Award, Flame, Loader2
+  AreaChart,
+  Area,
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  XAxis,
+  Tooltip,
+} from "recharts";
+import { useApp } from "../../context/AppContext";
+import { profileService, inbodyService, workoutService, type WorkoutScheduleRecord } from "../../services/api";
+import {
+  Award,
+  Bell,
+  Brain,
+  Calendar,
+  ChevronRight,
+  Dumbbell,
+  Flame,
+  Loader2,
+  MessageSquare,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  Upload,
 } from "lucide-react";
 
 const tooltipStyle = {
   contentStyle: {
-    fontSize: 12, borderRadius: 8,
+    fontSize: 12,
+    borderRadius: 8,
     border: "1px solid #27272a",
     backgroundColor: "#111111",
-    color: "#f4f4f5"
+    color: "#f4f4f5",
+  },
+};
+
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseApiDateOnly(value: string | Date) {
+  if (typeof value === "string") {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+    if (match) {
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    }
   }
+
+  const parsed = new Date(value);
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
+function formatScheduleDate(value: string) {
+  return parseApiDateOnly(value).toLocaleDateString("vi-VN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
+/**
+ * Extract a stable YYYY-MM-DD sort key from an InBody record.
+ * Priority: dateOnly → date → createdAt
+ * Also handles DD/MM/YYYY format that can come from manual entry or OCR.
+ * Invalid/missing dates return "9999-12-31" so they sort to the END (not the start).
+ */
+function inBodyDateKey(record: any): string {
+  const raw = record?.dateOnly ?? record?.date ?? record?.createdAt;
+  const s = raw ? String(raw) : "";
+  // ISO format YYYY-MM-DD (or YYYY-MM-DDTHH:mm...)
+  const iso = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+  if (iso) return iso[1];
+  // DD/MM/YYYY (from OCR or manual input)
+  const dmy = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  // DD-MM-YYYY
+  const dmy2 = /^(\d{2})-(\d{2})-(\d{4})/.exec(s);
+  if (dmy2) return `${dmy2[3]}-${dmy2[2]}-${dmy2[1]}`;
+  return "9999-12-31";
+}
+
+function parseInBodyMeasurementDate(record: any): Date {
+  const key = inBodyDateKey(record);
+  if (key === "9999-12-31") return new Date(NaN);
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+
+const goalLabels: Record<string, string> = {
+  WEIGHT_LOSS: "Giảm mỡ",
+  MUSCLE_GAIN: "Tăng cơ",
+  MAINTENANCE: "Duy trì",
+  ATHLETIC_PERFORMANCE: "Cải thiện sức khỏe",
 };
 
 export function ClientDashboard() {
   const { user } = useApp();
   const navigate = useNavigate();
   const today = new Date().toLocaleDateString("vi-VN", { weekday: "long", month: "long", day: "numeric" });
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const upcomingEnd = new Date(todayStart);
+  upcomingEnd.setDate(upcomingEnd.getDate() + 30);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
       const res = await profileService.getProfile();
       return res.profile;
-    }
+    },
   });
 
   const { data: inbodyHistory = [], isLoading: inbodyLoading } = useQuery({
     queryKey: ["inbody-history"],
-    queryFn: inbodyService.getHistory
+    queryFn: inbodyService.getHistory,
   });
+
+  const sortedInBodyHistory = useMemo(
+    () => [...inbodyHistory].sort((a: any, b: any) => {
+      // Descending: newest first. Use ISO string compare (lexicographic = chronological for YYYY-MM-DD)
+      const cmp = inBodyDateKey(b).localeCompare(inBodyDateKey(a));
+      if (cmp !== 0) return cmp;
+      return Date.parse(String(b?.createdAt ?? 0)) - Date.parse(String(a?.createdAt ?? 0));
+    }),
+    [inbodyHistory],
+  );
 
   const { data: workoutHistory = [], isLoading: workoutLoading } = useQuery({
     queryKey: ["workout-history"],
-    queryFn: () => workoutService.getHistory(1, 4)
+    queryFn: () => workoutService.getHistory(1, 4),
+  });
+
+  const { data: currentProgram = null, isLoading: programLoading } = useQuery({
+    queryKey: ["current-workout-program"],
+    queryFn: () => workoutService.getCurrentProgram(),
+  });
+
+  const { data: upcomingSchedules = [], isLoading: schedulesLoading } = useQuery({
+    queryKey: ["workout-schedules", "dashboard-upcoming"],
+    queryFn: () => workoutService.getSchedules(10, {
+      startDate: toDateInputValue(todayStart),
+      endDate: toDateInputValue(upcomingEnd),
+    }),
   });
 
   const firstName = user?.firstName || "Bạn";
-  const isLoading = profileLoading || inbodyLoading || workoutLoading;
+  const isLoading = profileLoading || inbodyLoading || workoutLoading || programLoading || schedulesLoading;
 
   if (isLoading) {
     return (
@@ -55,8 +162,8 @@ export function ClientDashboard() {
     );
   }
 
-  const latest = inbodyHistory[0];
-  const prev = inbodyHistory[1];
+  const latest = sortedInBodyHistory[0];
+  const prev = sortedInBodyHistory[1];
 
   const calcChange = (curr: number, old?: number) => {
     if (!old) return "---";
@@ -64,41 +171,72 @@ export function ClientDashboard() {
     return (diff > 0 ? "+" : "") + diff.toFixed(1);
   };
 
+  const programDays = Array.isArray(currentProgram?.days) ? currentProgram.days : [];
+  const programExerciseCount = programDays.reduce((sum: number, day: any) => {
+    return sum + (Array.isArray(day?.exercises) ? day.exercises.length : 0);
+  }, 0);
+
+  const nextSchedule = (Array.isArray(upcomingSchedules) ? upcomingSchedules : [])
+    .filter((schedule: WorkoutScheduleRecord) => !schedule.workoutId && !schedule.workout?.id)
+    .sort((a: WorkoutScheduleRecord, b: WorkoutScheduleRecord) => parseApiDateOnly(a.date).getTime() - parseApiDateOnly(b.date).getTime())[0];
+  const nextProgramDay = nextSchedule?.programDay;
+  const nextExerciseCount = nextProgramDay?.exercises?.length ?? 0;
+
   const kpis = [
     {
       label: "Cân nặng",
       value: latest?.weight ? `${latest.weight} kg` : "---",
       change: calcChange(latest?.weight, prev?.weight) + (prev ? " kg" : ""),
-      icon: TrendingDown, color: "text-green-400", bg: "bg-green-500/10", iconBg: "bg-green-500/15", border: "border-green-500/20"
+      icon: TrendingDown,
+      color: "text-green-400",
+      bg: "bg-green-500/10",
+      iconBg: "bg-green-500/15",
+      border: "border-green-500/20",
     },
     {
       label: "Cơ bắp",
       value: latest?.muscleMass ? `${latest.muscleMass} kg` : "---",
       change: calcChange(latest?.muscleMass, prev?.muscleMass) + (prev ? " kg" : ""),
-      icon: TrendingUp, color: "text-blue-400", bg: "bg-blue-500/10", iconBg: "bg-blue-500/15", border: "border-blue-500/20"
+      icon: TrendingUp,
+      color: "text-blue-400",
+      bg: "bg-blue-500/10",
+      iconBg: "bg-blue-500/15",
+      border: "border-blue-500/20",
     },
     {
       label: "Mỡ cơ thể",
       value: latest?.bodyFatPct ? `${latest.bodyFatPct}%` : "---",
       change: calcChange(latest?.bodyFatPct, prev?.bodyFatPct) + (prev ? "%" : ""),
-      icon: Flame, color: "text-orange-400", bg: "bg-orange-500/10", iconBg: "bg-orange-500/15", border: "border-orange-500/20"
+      icon: Flame,
+      color: "text-orange-400",
+      bg: "bg-orange-500/10",
+      iconBg: "bg-orange-500/15",
+      border: "border-orange-500/20",
     },
     {
       label: "Buổi tập",
       value: workoutHistory.length.toString(),
       change: "30 ngày qua",
-      icon: Dumbbell, color: "text-emerald-400", bg: "bg-emerald-500/10", iconBg: "bg-emerald-500/15", border: "border-emerald-500/20"
+      icon: Dumbbell,
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/10",
+      iconBg: "bg-emerald-500/15",
+      border: "border-emerald-500/20",
     },
   ];
 
-  const weightData = [...inbodyHistory].reverse().map(h => ({
-    date: new Date(h.date).toLocaleDateString("vi-VN", { month: 'short' }),
-    value: h.weight
+  const chartHistory = [...sortedInBodyHistory].sort(
+    (a: any, b: any) => inBodyDateKey(a).localeCompare(inBodyDateKey(b)),
+  );
+
+  const weightData = chartHistory.map((h: any) => ({
+    date: parseInBodyMeasurementDate(h).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+    value: h.weight,
   }));
 
-  const muscleData = [...inbodyHistory].reverse().map(h => ({
-    date: new Date(h.date).toLocaleDateString("vi-VN", { month: 'short' }),
-    value: h.muscleMass
+  const muscleData = chartHistory.map((h: any) => ({
+    date: parseInBodyMeasurementDate(h).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+    value: h.muscleMass,
   }));
 
   const quickActions = [
@@ -109,19 +247,11 @@ export function ClientDashboard() {
     { label: "Đặt lịch", icon: Calendar, to: "/client/booking", color: "bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700" },
   ];
 
-  const goalLabels: any = {
-    WEIGHT_LOSS: "Giảm mỡ",
-    MUSCLE_GAIN: "Tăng cơ",
-    MAINTENANCE: "Duy trì",
-    ATHLETIC_PERFORMANCE: "Cải thiện sức khỏe"
-  };
-
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
-      {/* Greeting */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-zinc-100">Xin chào, {firstName} 👋</h1>
+          <h1 className="text-zinc-100">Xin chào, {firstName}</h1>
           <p className="text-zinc-500 text-sm mt-0.5">{today} · Phiên hoạt động</p>
         </div>
         <div className="flex items-center gap-2">
@@ -136,14 +266,13 @@ export function ClientDashboard() {
         </div>
       </div>
 
-      {inbodyHistory.length === 0 && (
+      {sortedInBodyHistory.length === 0 && (
         <div className="flex items-start gap-3 px-4 py-3 rounded-xl text-sm border bg-amber-500/8 border-amber-500/20 text-amber-300">
           <Bell className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>Bạn chưa tải lên dữ liệu InBody nào. Tải lên ngay để nhận phân tích từ AI!</span>
         </div>
       )}
 
-      {/* Quick actions */}
       <div>
         <h3 className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2.5">Thao tác nhanh</h3>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -160,7 +289,6 @@ export function ClientDashboard() {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((k) => (
           <div key={k.label} className={`${k.bg} rounded-xl p-4 border ${k.border}`}>
@@ -178,9 +306,7 @@ export function ClientDashboard() {
         ))}
       </div>
 
-      {/* Charts row */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {/* Weight trend */}
         <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-zinc-200">Xu hướng cân nặng</h4>
@@ -199,7 +325,6 @@ export function ClientDashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Muscle trend */}
         <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-zinc-200">Cơ bắp</h4>
@@ -218,7 +343,6 @@ export function ClientDashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Weekly calories */}
         <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60 md:col-span-2 xl:col-span-1">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-zinc-200">Calories tuần này</h4>
@@ -230,28 +354,67 @@ export function ClientDashboard() {
         </div>
       </div>
 
-      {/* Bottom row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Active plan */}
         <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold text-zinc-200">Kế hoạch đang dùng</h4>
           </div>
-          <div className="flex flex-col items-center justify-center h-[100px] border border-dashed border-zinc-800 rounded-lg text-center p-4">
-            <Brain className="w-6 h-6 text-zinc-700 mb-2" />
-            <p className="text-[10px] text-zinc-500 italic">Chưa có kế hoạch AI. Vào AI Plans để tạo kế hoạch.</p>
-            <button onClick={() => navigate("/client/plans")} className="mt-2 text-[10px] text-green-500 font-bold hover:underline">Bắt đầu ngay</button>
-          </div>
+          {currentProgram ? (
+            <button
+              onClick={() => navigate("/client/workout")}
+              className="w-full min-h-[100px] text-left rounded-lg border border-green-500/20 bg-green-500/8 p-4 hover:bg-green-500/12 transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-green-500/15 border border-green-500/20 flex items-center justify-center">
+                  <Dumbbell className="w-4 h-4 text-green-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-zinc-100 truncate">{currentProgram.name || "Chương trình tập hiện tại"}</p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {programDays.length || currentProgram.daysPerWeek || "--"} ngày · {programExerciseCount || "--"} bài tập
+                  </p>
+                  <p className="mt-2 text-xs font-semibold text-green-400">Mở nhật ký tập</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-500 mt-1" />
+              </div>
+            </button>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[100px] border border-dashed border-zinc-800 rounded-lg text-center p-4">
+              <Brain className="w-6 h-6 text-zinc-700 mb-2" />
+              <p className="text-[10px] text-zinc-500 italic">Chưa có chương trình trong nhật ký tập. Tạo AI Plan hoặc tạo thủ công để bắt đầu.</p>
+              <button onClick={() => navigate("/client/workout")} className="mt-2 text-[10px] text-green-500 font-bold hover:underline">Tạo trong nhật ký tập</button>
+            </div>
+          )}
         </div>
 
-        {/* Next session */}
-        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60 flex flex-col items-center justify-center text-center">
-          <Calendar className="w-8 h-8 text-zinc-700 mb-2" />
-          <p className="text-sm text-zinc-500 font-medium">Không có lịch tập sắp tới</p>
-          <button onClick={() => navigate("/client/booking")} className="mt-3 text-xs text-green-400 hover:underline">Đặt lịch tập đầu tiên</button>
+        <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
+          {nextSchedule ? (
+            <button
+              onClick={() => navigate("/client/workout")}
+              className="w-full h-full min-h-[132px] text-left flex flex-col justify-center rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 hover:border-green-500/30 hover:bg-green-500/8 transition-colors"
+            >
+              <div className="flex items-center gap-2 text-xs font-semibold text-green-400">
+                <Calendar className="w-4 h-4" />
+                Lịch tập sắp tới
+              </div>
+              <p className="mt-3 text-sm font-bold text-zinc-100">{nextProgramDay?.title || "Buổi tập"}</p>
+              <p className="mt-1 text-xs text-zinc-500">
+                {formatScheduleDate(nextSchedule.date)} · {nextExerciseCount || "--"} bài tập
+              </p>
+              {nextProgramDay?.program?.name && (
+                <p className="mt-1 text-xs text-zinc-600 truncate">{nextProgramDay.program.name}</p>
+              )}
+              <p className="mt-3 text-xs font-semibold text-green-400">Mở buổi tập</p>
+            </button>
+          ) : (
+            <div className="h-full min-h-[132px] flex flex-col items-center justify-center text-center">
+              <Calendar className="w-8 h-8 text-zinc-700 mb-2" />
+              <p className="text-sm text-zinc-500 font-medium">Không có lịch tập sắp tới</p>
+              <button onClick={() => navigate("/client/workout")} className="mt-3 text-xs text-green-400 hover:underline">Lên lịch trong nhật ký tập</button>
+            </div>
+          )}
         </div>
 
-        {/* AI Insights */}
         <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60 relative overflow-hidden">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-green-500/5 rounded-full blur-2xl" />
           <div className="flex items-center gap-2 mb-3 relative z-10">
@@ -283,7 +446,6 @@ export function ClientDashboard() {
         </div>
       </div>
 
-      {/* Recent workouts */}
       <div className="bg-zinc-900 rounded-xl border border-zinc-800/60">
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
           <h4 className="text-sm font-semibold text-zinc-200">Tập luyện gần đây</h4>

@@ -131,9 +131,9 @@ export async function processNutritionPlanJob(job: Job) {
       dietPreference,
       budgetLevel,
       restrictions: [
-        ...(dataResult.data.restrictions ?? []),
+        ...(restrictions ?? []),
         // Inject InBody-derived note as a soft constraint
-        ...(userContextNote ? [`[Dữ liệu cá nhân]\n${userContextNote}`] : []),
+        ...(userContextNote ? [`[Dữ liệu cá nhân]\n${userContextNote}${resolvedBmr ? `\nBMR tham khảo: ${resolvedBmr} kcal/ngày` : ''}`] : []),
       ],
       allowedFoods,
       // Pass resolved physical metrics so prompt can calculate accurate macros

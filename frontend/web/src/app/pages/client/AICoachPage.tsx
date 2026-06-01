@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Bot, Send, Lightbulb, AlertCircle, RefreshCw, User, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { inbodyService } from "../../services/api";
@@ -53,9 +53,15 @@ export function AICoachPage() {
   const suggestions = [inBodySuggestion, ...BASE_SUGGESTIONS];
 
   const [input, setInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messages = session.messages;
   const aiLoading = session.status === "processing";
   const isStreaming = aiLoading;
+  const latestMessage = messages[messages.length - 1];
+
+  const scrollToLatestMessage = useCallback((behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
+  }, []);
 
   useEffect(() => {
     if (!isLoading && messages.length === 0) {
@@ -63,11 +69,16 @@ export function AICoachPage() {
     }
   }, [isLoading, latest, prev, messages.length, setInitialMessage]);
 
+  useEffect(() => {
+    scrollToLatestMessage(messages.length <= 1 ? "auto" : "smooth");
+  }, [latestMessage?.id, latestMessage?.text, messages.length, aiLoading, scrollToLatestMessage]);
+
   const send = useCallback((text: string) => {
     if (!text.trim() || aiLoading) return;
     setInput("");
     sendQuestion(text.trim());
-  }, [aiLoading, sendQuestion]);
+    window.requestAnimationFrame(() => scrollToLatestMessage("smooth"));
+  }, [aiLoading, scrollToLatestMessage, sendQuestion]);
 
   if (isLoading) {
     return (
@@ -196,7 +207,10 @@ export function AICoachPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-950">
+      <div
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-950"
+        onClick={() => scrollToLatestMessage("smooth")}
+      >
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"} gap-2`}>
             {msg.from === "ai" && (
@@ -231,7 +245,7 @@ export function AICoachPage() {
             </div>
           </div>
         )}
-          <div />
+          <div ref={messagesEndRef} aria-hidden="true" />
       </div>
 
       {/* Suggestions */}
@@ -258,6 +272,7 @@ export function AICoachPage() {
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
+            onFocus={() => scrollToLatestMessage("smooth")}
             onKeyDown={e => e.key === "Enter" && !aiLoading && send(input)}
             placeholder="Ask your AI coach anything…"
             className="flex-1 px-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-zinc-200 placeholder-zinc-600 transition-all"

@@ -20,7 +20,7 @@ export function Topbar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [aiTasksOpen, setAiTasksOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+
 
   const { data: notifData } = useQuery({
     queryKey: ["notifications"],
@@ -108,7 +108,7 @@ export function Topbar() {
   const pendingAiTasksOpen = pendingAiTasks.filter((task) => task.status === 'QUEUED' || task.status === 'PROCESSING');
 
   return (
-    <header className="h-14 bg-zinc-900 border-b border-zinc-800/60 flex items-center justify-between px-4 sticky top-0 z-40">
+    <header className="h-14 bg-zinc-950/40 backdrop-blur-md border-b border-zinc-800/60 flex items-center justify-between px-4 sticky top-0 z-40">
 
       {/* Left: hamburger + search */}
       <div className="flex items-center gap-3">
@@ -118,20 +118,7 @@ export function Topbar() {
         >
           <Menu className="w-5 h-5" />
         </button>
-        <button
-          className="sm:hidden p-2 rounded-lg text-zinc-400 hover:bg-zinc-800"
-          onClick={() => setSearchOpen(!searchOpen)}
-        >
-          <Search className="w-4 h-4" />
-        </button>
-        <div className="hidden sm:flex items-center gap-2 bg-zinc-800/80 border border-zinc-700/50 rounded-lg px-3 py-1.5 w-44 md:w-56">
-          <Search className="w-4 h-4 text-zinc-500 flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="Tìm kiếm…"
-            className="bg-transparent text-sm outline-none text-zinc-300 placeholder-zinc-600 w-full"
-          />
-        </div>
+
       </div>
 
       {/* Right: workspace switcher + notifications + user */}
@@ -382,15 +369,7 @@ export function Topbar() {
         </div>
       </div>
 
-      {/* Mobile search bar */}
-      {searchOpen && (
-        <div className="absolute top-14 left-0 right-0 bg-zinc-900 border-b border-zinc-800 px-4 py-2 sm:hidden z-50">
-          <div className="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2">
-            <Search className="w-4 h-4 text-zinc-500" />
-            <input autoFocus type="text" placeholder="Tìm kiếm…" className="bg-transparent text-sm outline-none flex-1 text-zinc-200 placeholder-zinc-600" />
-          </div>
-        </div>
-      )}
+
     </header>
   );
 }
