@@ -8,6 +8,31 @@ const LLM_BASE_URL = process.env.LLM_BASE_URL || 'http://localhost:11434';
 export const LLM_MODEL = process.env.LLM_MODEL || 'llama3.2:3b';
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'nomic-embed-text';
 
+function readPositiveIntEnv(name: string, fallback: number): number {
+  const value = Number.parseInt(process.env[name] || '', 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+function sanitizeLlmError(err: unknown): Record<string, unknown> {
+  if (err instanceof AxiosError) {
+    return {
+      name: err.name,
+      message: err.message,
+      code: err.code,
+      status: err.response?.status,
+      method: err.config?.method,
+      url: err.config?.url,
+      timeout: err.config?.timeout,
+    };
+  }
+
+  if (err instanceof Error) {
+    return { name: err.name, message: err.message };
+  }
+
+  return { message: String(err) };
+}
+
 function safeLlmUrl(): string {
   try {
     const url = new URL(LLM_BASE_URL);
@@ -155,7 +180,7 @@ export const llmService = {
           messages: buildOllamaMessages(prompt),
           stream: false,
           options: {
-            num_ctx: opts?.responseFormat === 'json' ? 8192 : 4096,
+            num_ctx: opts?.responseFormat === 'json' ? readPositiveIntEnv('LLM_JSON_NUM_CTX', 4096) : 4096,
             num_predict: opts?.numPredict ?? (opts?.responseFormat === 'json' ? 2048 : 1024),
           },
         };
@@ -204,7 +229,7 @@ export const llmService = {
       const isTimeout = isAxiosTimeout(err);
       const detail = err instanceof AxiosError ? err.message : String(err);
 
-      logger.error({ err, llmProvider: LLM_PROVIDER, llmBaseUrl: LLM_BASE_URL }, 'LLM call failed');
+      logger.error({ err: sanitizeLlmError(err), llmProvider: LLM_PROVIDER, llmBaseUrl: safeLlmUrl() }, 'LLM call failed');
 
       throw new LlmError(
         isConnection

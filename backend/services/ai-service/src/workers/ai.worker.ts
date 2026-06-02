@@ -30,7 +30,7 @@ type AllowedExercise = AllowedExerciseItem;
 // Increased limit so we have enough exercises to build per-day catalogs
 const PLAN_EXERCISE_FETCH_LIMIT = 120;
 const PLAN_EXERCISE_PROMPT_LIMIT = 32; // fallback flat-list limit
-const PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT = 6;
+const PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT = 8;
 
 function readPositiveIntEnv(name: string): number | undefined {
   const value = Number.parseInt(process.env[name] || '', 10);
@@ -718,6 +718,10 @@ function buildDeterministicPlanFromCatalogs(args: {
   return content;
 }
 
+function isRecoverablePlanLlmTimeout(err: unknown): boolean {
+  return err instanceof LlmError && /timed out|timeout/i.test(err.message);
+}
+
 const PlanJobDataSchema = z.object({
   planId: z.string().uuid(),
   userId: z.string().min(1),
@@ -903,6 +907,35 @@ export const aiWorker = new Worker(
       }, 'Plan generation LLM call finished');
       rawAnswer = llmResponse.answer;
     } catch (err) {
+      if (isRecoverablePlanLlmTimeout(err)) {
+        const fallbackContent = buildDeterministicPlanFromCatalogs({
+          goal,
+          durationWeeks,
+          daysPerWeek,
+          exercisesPerDay,
+          exercisesByDay: perDayCatalogs,
+          planId,
+          jobId: job.id,
+          reason: 'llm_timeout_recovered_with_catalog',
+        });
+        const fallbackParse = parsePlanContent(JSON.stringify(fallbackContent));
+        if (fallbackParse.ok) {
+          logger.warn(
+            { jobId: job.id, planId, timeoutMs: planTimeoutMs, promptChars: prompt.length },
+            'Plan generation recovered from LLM timeout using per-day catalog repair',
+          );
+          await completePlan(fallbackParse.content, 'Plan generation completed after LLM timeout recovery', {
+            recoveredFrom: 'llm_timeout',
+          });
+          return;
+        }
+
+        logger.error(
+          { jobId: job.id, planId, fallbackReason: fallbackParse.reason },
+          'Plan generation timeout recovery failed validation',
+        );
+      }
+
       const reason =
         err instanceof LlmError
           ? `LLM unavailable: ${err.message}`

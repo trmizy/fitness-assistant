@@ -476,9 +476,7 @@ export function NutritionPage() {
 
   // Rule-based feedback (tiếng Việt, max 2 alerts)
   const feedback: Array<{ type: "warning" | "success" | "info"; text: string }> = [];
-  if (isToday && todayLogs.length === 0) {
-    feedback.push({ type: "info", text: "Bạn chưa log món nào hôm nay. Hãy bắt đầu ghi lại bữa ăn!" });
-  } else if (isToday && goal) {
+  if (isToday && goal && todayLogs.length > 0) {
     const calPct = totals.calories / goal.calories;
     const protPct = totals.protein / goal.protein;
     const fatPct = totals.fat / goal.fat;
