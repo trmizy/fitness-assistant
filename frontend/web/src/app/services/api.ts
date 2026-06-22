@@ -1,8 +1,14 @@
+export interface PlanExplanationResponse {
+  planId: string;
+  explanation: string;
+  source: 'llm' | 'fallback';
+  warnings: string[];
+}
 import axios from 'axios';
 import { makeRefreshOnce } from './refresh-once';
 
 // @ts-ignore - ImportMeta.env is provided by Vite
-export const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -161,32 +167,31 @@ export const profileService = {
     return data;
   },
 
-  listPTs: async (filters?: {
-    q?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    sessionMode?: string;
-    provinceCode?: number;
-    wardCode?: number;
-    sortBy?: string;
-    page?: number;
-    limit?: number;
-  }) => {
-    const { data } = await api.get('/profile/pts', { params: filters });
+  listPTs: async () => {
+    const { data } = await api.get('/profile/pts');
     return data;
   },
 };
 
-export const locationService = {
-  getProvinces: async () => {
-    const { data } = await api.get('/locations/provinces');
-    return data as { code: number; name: string; codename?: string; divisionType?: string }[];
-  },
-  getWards: async (provinceCode: number) => {
-    const { data } = await api.get(`/locations/provinces/${provinceCode}/wards`);
-    return data as { code: number; name: string; codename?: string }[];
-  },
-};
+function inBodyDateKey(entry: any): string {
+  const raw = entry?.dateOnly ?? entry?.date ?? entry?.createdAt;
+  const s = raw ? String(raw) : '';
+  const iso = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+  if (iso) return iso[1];
+  const dmy = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  const dmy2 = /^(\d{2})-(\d{2})-(\d{4})/.exec(s);
+  if (dmy2) return `${dmy2[3]}-${dmy2[2]}-${dmy2[1]}`;
+  return '9999-12-31';
+}
+
+function sortInBodyHistoryByMeasurementDate(history: any[]) {
+  return [...history].sort((a, b) => {
+    const cmp = inBodyDateKey(b).localeCompare(inBodyDateKey(a)); // descending
+    if (cmp !== 0) return cmp;
+    return Date.parse(String(b?.createdAt ?? 0)) - Date.parse(String(a?.createdAt ?? 0));
+  });
+}
 
 export const inbodyService = {
   create: async (entry: any) => {
@@ -201,7 +206,7 @@ export const inbodyService = {
 
   getHistory: async () => {
     const { data } = await api.get('/inbody');
-    return data;
+    return Array.isArray(data) ? sortInBodyHistoryByMeasurementDate(data) : data;
   },
 
   upload: async (file: File) => {
@@ -237,13 +242,43 @@ export const workoutService = {
     return data;
   },
 
-  getExercises: async () => {
-    const { data } = await api.get('/exercises');
+  getExercises: async (params?: {
+    search?: string;
+    bodyPart?: string;
+    muscleGroup?: string;
+    equipment?: string;
+    activityType?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.search) qs.set('search', params.search);
+    if (params?.bodyPart) qs.set('bodyPart', params.bodyPart);
+    if (params?.muscleGroup) qs.set('muscleGroup', params.muscleGroup);
+    if (params?.equipment) qs.set('equipment', params.equipment);
+    if (params?.activityType) qs.set('activityType', params.activityType);
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    const { data } = await api.get(`/exercises${qs.toString() ? `?${qs.toString()}` : ''}`);
+    // Backend returns { success: true, data: { exercises: [...], pagination, filters } }
+    return data?.data?.exercises ?? (Array.isArray(data) ? data : []);
+  },
+
+  getExerciseFilterOptions: async () => {
+    const { data } = await api.get('/exercises/filter-options');
     return data;
   },
 
   getStats: async () => {
     const { data } = await api.get('/stats/workouts');
+    return data;
+  },
+
+  getSchedules: async (limit = 20, range?: { startDate?: string; endDate?: string }) => {
+    const qs = new URLSearchParams({ limit: String(limit) });
+    if (range?.startDate) qs.set('startDate', range.startDate);
+    if (range?.endDate) qs.set('endDate', range.endDate);
+    const { data } = await api.get(`/workouts/schedules?${qs.toString()}`);
     return data;
   },
 
@@ -257,37 +292,557 @@ export const workoutService = {
     const { data } = await api.patch(`/workouts/sets/${setId}`, patch);
     return data;
   },
+
+  // Controller returns { success: true, data: { program: {...} | null } }
+  getCurrentProgram: async () => {
+    const { data } = await api.get('/workouts/programs/current');
+    return data?.data?.program ?? null;
+  },
+
+  updateProgram: async (id: string, patch: any) => {
+    const { data } = await api.patch(`/workouts/programs/${id}`, patch);
+    return data;
+  },
+
+  deleteProgram: async (id: string) => {
+    const { data } = await api.delete(`/workouts/programs/${id}`);
+    return data;
+  },
+
+  updateProgramDay: async (id: string, patch: any) => {
+    const { data } = await api.patch(`/workouts/program-days/${id}`, patch);
+    return data;
+  },
+
+  updateProgramExercise: async (id: string, patch: any) => {
+    const { data } = await api.patch(`/workouts/program-exercises/${id}`, patch);
+    return data;
+  },
+
+  deleteProgramExercise: async (id: string) => {
+    const { data } = await api.delete(`/workouts/program-exercises/${id}`);
+    return data;
+  },
+
+  deleteSchedule: async (id: string) => {
+    const { data } = await api.delete(`/workouts/schedules/${id}`);
+    return data;
+  },
+
+  createSchedule: async (input: { date: string; programDayId: string; notes?: string }) => {
+    const { data } = await api.post('/workouts/schedules', input);
+    // Controller returns { success: true, data: { alreadyExists, schedule } }
+    return data?.data ?? data;
+  },
+
+  startSchedule: async (id: string, input?: { repeat?: boolean }) => {
+    const { data } = await api.post(`/workouts/schedules/${id}/start`, input || {});
+    return data?.data ?? data;
+  },
+
+  createManualProgram: async (input: {
+    name: string;
+    goal?: string | null;
+    durationWeeks: number;
+    daysPerWeek: number;
+    startDate: string;
+    repeatWeeks?: number;
+    selectedWeekdays: number[];
+    replaceExisting?: boolean;
+    days: Array<{
+      dayNumber: number;
+      title: string;
+      description?: string | null;
+      exercises: Array<{
+        exerciseId: string;
+        order?: number;
+        sets?: number;
+        reps?: number;
+        restSeconds?: number;
+        notes?: string | null;
+      }>;
+    }>;
+  }) => {
+    const { data } = await api.post('/workouts/programs/manual', input);
+    return data?.data ?? data;
+  },
+
+  addProgramExercise: async (programDayId: string, exercise: {
+    exerciseId: string;
+    order?: number;
+    sets?: number;
+    reps?: number;
+    restSeconds?: number;
+    notes?: string | null;
+  }) => {
+    const { data } = await api.post(`/workouts/program-days/${programDayId}/exercises`, exercise);
+    return data;
+  },
+
+  // Archive (soft-delete) the current program
+  archiveProgram: async (id: string) => {
+    const { data } = await api.delete(`/workouts/programs/${id}`);
+    return data;
+  },
 };
 
+export type PlanStatusBackend = 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export interface ExerciseItem {
+  exerciseId?: string;
+  order?: number;
+  name?: string;
+  sets?: number | string;
+  reps?: number | string;
+  restSeconds?: number;
+  note?: string;
+  muscleGroup?: string;
+  equipment?: string;
+  intensity?: string;
+}
+
+export interface WeeklyScheduleItem {
+  day?: string | number;
+  focus?: string;
+  goal?: string;
+  exercises?: ExerciseItem[];
+  notes?: string;
+  cardio?: string;
+}
+
+export interface PlanContent {
+  goal?: string;
+  durationWeeks?: number;
+  daysPerWeek?: number;
+  exercisesPerDay?: number;
+  weeklySchedule?: WeeklyScheduleItem[];
+  progressionNotes?: string[];
+  recoveryNotes?: string[];
+  nutritionSummary?: string;
+}
+
+export interface WorkoutPlanRecord {
+  id: string;
+  userId?: string;
+  name?: string;
+  description?: string;
+  goal?: string;
+  duration?: number;
+  daysPerWeek?: number;
+  plan?: PlanContent | unknown;
+  status: PlanStatusBackend;
+  version?: number;
+  jobId?: string | null;
+  failReason?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  archivedAt?: string | null;
+}
+
+export interface WorkoutScheduleExerciseRecord {
+  order: number;
+  sets: number;
+  reps: number | null;
+  restSeconds?: number | null;
+  notes?: string | null;
+  exercise?: {
+    id: string;
+    exerciseName: string;
+    typeOfActivity?: string;
+    muscleGroupsActivated?: string[];
+  };
+}
+
+export interface WorkoutScheduleProgramDayRecord {
+  id: string;
+  dayNumber: number;
+  title: string;
+  description?: string | null;
+  program?: {
+    id: string;
+    name: string;
+    sourcePlanId?: string | null;
+    sourceType?: string | null;
+    aiPlanVersion?: number | null;
+  };
+  exercises?: WorkoutScheduleExerciseRecord[];
+}
+
+export interface WorkoutScheduleRecord {
+  id: string;
+  userId: string;
+  date: string;
+  scheduledDate?: string;
+  sourcePlanId?: string | null;
+  sourceType?: string | null;
+  notes?: string | null;
+  workoutId?: string | null;
+  workoutLogId?: string | null;
+  status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
+  progressPercent?: number;
+  completedAt?: string | null;
+  canStart?: boolean;
+  canContinue?: boolean;
+  canReview?: boolean;
+  canRepeat?: boolean;
+  totalExercises?: number | null;
+  completedExercises?: number | null;
+  totalSets?: number | null;
+  completedSets?: number | null;
+  durationSeconds?: number | null;
+  durationMinutes?: number | null;
+  exerciseCount?: number;
+  programDay?: WorkoutScheduleProgramDayRecord | null;
+  workout?: { id?: string } | null;
+}
+
+export interface PlanJobResponse {
+  planId: string;
+  jobId: string;
+  status: PlanStatusBackend;
+}
+
+export interface PlanJobStatusResponse {
+  jobId?: string;
+  planId?: string | null;
+  status: PlanStatusBackend;
+  failReason?: string | null;
+}
+
+export interface LlmHealthStatus {
+  llmAvailable: boolean;
+  llmProvider: string;
+  llmUrl: string;
+  model: string;
+  embeddingModel: string;
+  checkedAt: string;
+  error?: string;
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null;
+}
+
+function unwrapApiPayload<T = unknown>(payload: unknown): T {
+  if (isRecord(payload) && 'data' in payload) {
+    return payload.data as T;
+  }
+  return payload as T;
+}
+
+function normalizePlanStatus(value: unknown): PlanStatusBackend {
+  if (typeof value === 'string') {
+    const upper = value.toUpperCase();
+    if (upper === 'QUEUED' || upper === 'PROCESSING' || upper === 'COMPLETED' || upper === 'FAILED') {
+      return upper;
+    }
+    if (upper === 'WAITING' || upper === 'DELAYED') return 'QUEUED';
+    if (upper === 'ACTIVE') return 'PROCESSING';
+  }
+  return 'QUEUED';
+}
+
+function extractPlanJobResponse(payload: unknown): PlanJobResponse {
+  const data = unwrapApiPayload<unknown>(payload);
+  if (!isRecord(data)) {
+    throw new Error('Invalid generate/adjust response payload');
+  }
+
+  const planId = typeof data.planId === 'string' ? data.planId : '';
+  const jobId = typeof data.jobId === 'string' ? data.jobId : '';
+  const status = normalizePlanStatus(data.status);
+
+  if (!planId || !jobId) {
+    throw new Error('Missing planId/jobId in generate/adjust response');
+  }
+
+  return { planId, jobId, status };
+}
+
+function extractCurrentPlans(payload: unknown): WorkoutPlanRecord[] {
+  const unwrapped = unwrapApiPayload<unknown>(payload);
+
+  if (Array.isArray(unwrapped)) {
+    return unwrapped as WorkoutPlanRecord[];
+  }
+
+  if (isRecord(unwrapped)) {
+    if (Array.isArray(unwrapped.plans)) {
+      return unwrapped.plans as WorkoutPlanRecord[];
+    }
+    if (Array.isArray(unwrapped.data)) {
+      return unwrapped.data as WorkoutPlanRecord[];
+    }
+  }
+
+  return [];
+}
+
+function extractPlanRecord(payload: unknown): WorkoutPlanRecord {
+  const unwrapped = unwrapApiPayload<unknown>(payload);
+
+  if (isRecord(unwrapped) && isRecord(unwrapped.plan)) {
+    return unwrapped.plan as WorkoutPlanRecord;
+  }
+  if (isRecord(unwrapped)) {
+    return unwrapped as WorkoutPlanRecord;
+  }
+
+  throw new Error('Invalid plan detail response');
+}
+
+function extractJobStatus(payload: unknown): PlanJobStatusResponse {
+  const data = unwrapApiPayload<unknown>(payload);
+  if (!isRecord(data)) {
+    throw new Error('Invalid job status response payload');
+  }
+
+  return {
+    jobId: typeof data.jobId === 'string' ? data.jobId : undefined,
+    planId: typeof data.planId === 'string' ? data.planId : null,
+    status: normalizePlanStatus(data.status),
+    failReason: typeof data.failReason === 'string' ? data.failReason : null,
+  };
+}
+
+function extractExplanation(payload: unknown): PlanExplanationResponse {
+  const unwrapped = unwrapApiPayload<unknown>(payload);
+  if (typeof unwrapped === 'string') {
+    return { planId: '', explanation: unwrapped, source: 'llm', warnings: [] };
+  }
+
+  if (isRecord(unwrapped)) {
+    if (typeof unwrapped.explanation === 'string') {
+      return {
+        planId: typeof unwrapped.planId === 'string' ? unwrapped.planId : '',
+        explanation: unwrapped.explanation,
+        source: unwrapped.source === 'fallback' ? 'fallback' : 'llm',
+        warnings: Array.isArray(unwrapped.warnings) ? unwrapped.warnings.filter((item): item is string => typeof item === 'string') : [],
+      };
+    }
+    if (isRecord(unwrapped.data) && typeof unwrapped.data.explanation === 'string') {
+      return {
+        planId: typeof unwrapped.data.planId === 'string' ? unwrapped.data.planId : '',
+        explanation: unwrapped.data.explanation,
+        source: unwrapped.data.source === 'fallback' ? 'fallback' : 'llm',
+        warnings: Array.isArray(unwrapped.data.warnings) ? unwrapped.data.warnings.filter((item): item is string => typeof item === 'string') : [],
+      };
+    }
+    return {
+      planId: '',
+      explanation: JSON.stringify(unwrapped, null, 2),
+      source: 'llm',
+      warnings: [],
+    };
+  }
+
+  return { planId: '', explanation: String(unwrapped ?? ''), source: 'llm', warnings: [] };
+}
+
+function extractLlmHealth(payload: unknown): LlmHealthStatus {
+  const unwrapped = unwrapApiPayload<unknown>(payload);
+  if (isRecord(unwrapped) && typeof unwrapped.llmAvailable === 'boolean') {
+    return {
+      llmAvailable: unwrapped.llmAvailable,
+      llmProvider: typeof unwrapped.llmProvider === 'string' ? unwrapped.llmProvider : 'unknown',
+      llmUrl: typeof unwrapped.llmUrl === 'string' ? unwrapped.llmUrl : '',
+      model: typeof unwrapped.model === 'string' ? unwrapped.model : '',
+      embeddingModel: typeof unwrapped.embeddingModel === 'string' ? unwrapped.embeddingModel : '',
+      checkedAt: typeof unwrapped.checkedAt === 'string' ? unwrapped.checkedAt : new Date().toISOString(),
+      error: typeof unwrapped.error === 'string' ? unwrapped.error : undefined,
+    };
+  }
+
+  return {
+    llmAvailable: false,
+    llmProvider: 'unknown',
+    llmUrl: '',
+    model: '',
+    embeddingModel: '',
+    checkedAt: new Date().toISOString(),
+    error: 'Invalid LLM health response',
+  };
+}
+
 export const planService = {
-  generateWorkoutPlan: async (params: {
+  getLlmHealth: async (): Promise<LlmHealthStatus> => {
+    const { data } = await api.get('/plans/llm-health', {
+      timeout: 5000,
+      validateStatus: () => true,
+    });
+    return extractLlmHealth(data);
+  },
+
+  generateWorkoutPlan: async (input: {
     goal: string;
     durationWeeks: number;
     daysPerWeek: number;
+    exercisesPerDay?: number;
     contractId?: string;
-  }) => {
-    const { data } = await api.post('/plans/workout/generate', params);
-    return data;
+  }): Promise<PlanJobResponse> => {
+    const { data } = await api.post('/plans/workout/generate', input);
+    return extractPlanJobResponse(data);
   },
 
-  explainPlan: async (planType: 'workout' | 'meal') => {
-    const { data } = await api.post('/plans/explain', { planType });
-    return data;
+  getCurrentPlans: async (includeArchived = false): Promise<WorkoutPlanRecord[]> => {
+    const { data } = await api.get(`/plans/current${includeArchived ? '?includeArchived=true' : ''}`);
+    return extractCurrentPlans(data);
   },
 
-  adjustPlan: async (planType: 'workout' | 'meal', adjustments: any) => {
-    const { data } = await api.post('/plans/adjust', { planType, adjustments });
-    return data;
+  getPlanById: async (planId: string): Promise<WorkoutPlanRecord> => {
+    const { data } = await api.get(`/plans/${planId}`);
+    return extractPlanRecord(data);
   },
 
-  getShoppingList: async () => {
-    const { data } = await api.get('/plans/shopping-list');
-    return data;
+  getJobStatus: async (jobId: string): Promise<PlanJobStatusResponse> => {
+    const { data } = await api.get(`/plans/job/${jobId}`);
+    return extractJobStatus(data);
   },
 
-  getCurrentPlans: async () => {
-    const { data } = await api.get('/plans/current');
-    return data;
+  explainPlan: async (planId: string, lang = 'vi'): Promise<PlanExplanationResponse> => {
+    const { data } = await api.post(
+      `/plans/explain?lang=${encodeURIComponent(lang)}`,
+      { planId },
+      { timeout: 30000 },
+    );
+    return extractExplanation(data);
+  },
+
+  archivePlan: async (planId: string) => {
+    const { data } = await api.delete(`/plans/${planId}`);
+    return unwrapApiPayload<unknown>(data);
+  },
+
+  savePlanToWorkoutLog: async (
+    planId: string,
+    input: { startDate?: string; repeatWeeks?: number; selectedWeekdays?: number[]; replaceExisting?: boolean },
+  ): Promise<{
+    sourcePlanId: string;
+    createdProgramId?: string;
+    createdScheduleCount: number;
+    cancelledScheduleCount?: number;
+    skippedDuplicateCount: number;
+    alreadyExists?: boolean;
+    mode?: string;
+    message?: string;
+    selectedWeekdays?: number[];
+    schedulePreview?: unknown[];
+  }> => {
+    const { data } = await api.post(`/plans/${planId}/save-to-workout-log`, input);
+    const unwrapped = unwrapApiPayload<unknown>(data);
+
+    if (isRecord(unwrapped)) {
+      return {
+        sourcePlanId: typeof unwrapped.sourcePlanId === 'string' ? unwrapped.sourcePlanId : planId,
+        createdProgramId: typeof unwrapped.createdProgramId === 'string' ? unwrapped.createdProgramId : undefined,
+        createdScheduleCount: typeof unwrapped.createdScheduleCount === 'number' ? unwrapped.createdScheduleCount : 0,
+        cancelledScheduleCount: typeof unwrapped.cancelledScheduleCount === 'number' ? unwrapped.cancelledScheduleCount : undefined,
+        skippedDuplicateCount: typeof unwrapped.skippedDuplicateCount === 'number' ? unwrapped.skippedDuplicateCount : 0,
+        alreadyExists: typeof unwrapped.alreadyExists === 'boolean' ? unwrapped.alreadyExists : undefined,
+        mode: typeof unwrapped.mode === 'string' ? unwrapped.mode : undefined,
+        message: typeof unwrapped.message === 'string' ? unwrapped.message : undefined,
+        selectedWeekdays: Array.isArray(unwrapped.selectedWeekdays) ? unwrapped.selectedWeekdays as number[] : undefined,
+        schedulePreview: Array.isArray(unwrapped.schedulePreview) ? unwrapped.schedulePreview : undefined,
+      };
+    }
+
+    return {
+      sourcePlanId: planId,
+      createdScheduleCount: 0,
+      skippedDuplicateCount: 0,
+    };
+  },
+
+  adjustPlan: async (
+    planId: string,
+    adjustments: string,
+    daysPerWeek?: number,
+    exercisesPerDay?: number,
+  ): Promise<PlanJobResponse> => {
+    const body: { planId: string; adjustments: string; daysPerWeek?: number; exercisesPerDay?: number } = {
+      planId,
+      adjustments,
+    };
+    if (typeof daysPerWeek === 'number') {
+      body.daysPerWeek = daysPerWeek;
+    }
+    if (typeof exercisesPerDay === 'number') {
+      body.exercisesPerDay = exercisesPerDay;
+    }
+    const { data } = await api.post('/plans/adjust', body);
+    return extractPlanJobResponse(data);
+  },
+
+  getCurrentNutritionAiPlans: async (): Promise<any[]> => {
+    const { data } = await api.get('/plans/nutrition/current');
+    return unwrapApiPayload<any[]>(data) || [];
+  },
+
+  generateNutritionPlan: async (input: {
+    goal: string;
+    durationWeeks: number;
+    mealsPerDay: number;
+    dailyCaloriesTarget?: number;
+    dietPreference?: string;
+    budgetLevel?: string;
+    restrictions?: string[];
+  }): Promise<PlanJobResponse> => {
+    const { data } = await api.post('/plans/nutrition/generate', input);
+    return extractPlanJobResponse(data);
+  },
+
+  saveNutritionPlanToNutrition: async (
+    planId: string,
+    input: { startDate?: string; forceArchive?: boolean },
+  ): Promise<{
+    sourcePlanId: string;
+    createdNutritionPlanId?: string;
+    createdProgramId?: string;
+    existingNutritionPlanId?: string;
+    createdDayCount?: number;
+    createdMealCount?: number;
+    createdItemCount?: number;
+    alreadyExists?: boolean;
+    message?: string;
+  }> => {
+    const { data } = await api.post(`/plans/nutrition/${planId}/save-to-nutrition`, input);
+    const unwrapped = unwrapApiPayload<unknown>(data);
+
+    if (isRecord(unwrapped)) {
+      return {
+        sourcePlanId: typeof unwrapped.sourcePlanId === 'string' ? unwrapped.sourcePlanId : planId,
+        createdNutritionPlanId: typeof unwrapped.createdNutritionPlanId === 'string' ? unwrapped.createdNutritionPlanId : undefined,
+        createdProgramId: typeof unwrapped.createdProgramId === 'string' ? unwrapped.createdProgramId : undefined,
+        existingNutritionPlanId: typeof unwrapped.existingNutritionPlanId === 'string' ? unwrapped.existingNutritionPlanId : undefined,
+        createdDayCount: typeof unwrapped.createdDayCount === 'number' ? unwrapped.createdDayCount : undefined,
+        createdMealCount: typeof unwrapped.createdMealCount === 'number' ? unwrapped.createdMealCount : undefined,
+        createdItemCount: typeof unwrapped.createdItemCount === 'number' ? unwrapped.createdItemCount : undefined,
+        alreadyExists: typeof unwrapped.alreadyExists === 'boolean' ? unwrapped.alreadyExists : undefined,
+        message: typeof unwrapped.message === 'string' ? unwrapped.message : undefined,
+      };
+    }
+
+    return { sourcePlanId: planId };
+  },
+
+  explainNutritionPlan: async (planId: string): Promise<{ explanation: string; source: 'llm' | 'fallback' }> => {
+    const { data } = await api.post(`/plans/nutrition/${planId}/explain`);
+    const unwrapped = unwrapApiPayload<any>(data);
+    return {
+      explanation: typeof unwrapped?.explanation === 'string' ? unwrapped.explanation : '',
+      source: unwrapped?.source === 'llm' ? 'llm' : 'fallback',
+    };
+  },
+
+  adjustNutritionPlan: async (planId: string, adjustments: string, mealsPerDay?: number): Promise<PlanJobResponse> => {
+    const { data } = await api.post(`/plans/nutrition/${planId}/adjust`, { adjustments, mealsPerDay });
+    return extractPlanJobResponse(data);
+  },
+
+  archiveNutritionPlan: async (planId: string): Promise<void> => {
+    await api.delete(`/plans/nutrition/${planId}`);
   },
 };
 
@@ -319,25 +874,39 @@ export const coachService = {
       onError: (message: string) => void;
     },
   ): () => void {
-    const token = localStorage.getItem('accessToken');
     const controller = new AbortController();
 
     (async () => {
       try {
-        const response = await fetch(`${API_URL}/ai/ask/stream`, {
+        const sendStreamRequest = (token: string | null) => fetch(`${API_URL}/ai/ask/stream`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && token !== 'null' && token !== 'undefined'
-              ? { Authorization: `Bearer ${token}` }
-              : {}),
+            ...(hasUsableToken(token) ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({ question: message }),
           signal: controller.signal,
         });
 
+        let response = await sendStreamRequest(localStorage.getItem('accessToken'));
+
+        if (response.status === 401) {
+          const newToken = await refreshOnce();
+          if (hasUsableToken(newToken) && !controller.signal.aborted) {
+            response = await sendStreamRequest(newToken);
+          } else {
+            clearSessionAndRedirectToLogin();
+            callbacks.onError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            return;
+          }
+        }
+
         if (!response.ok || !response.body) {
-          callbacks.onError('Could not connect to AI service');
+          callbacks.onError(
+            response.status === 503
+              ? 'AI model chưa sẵn sàng. Vui lòng bật Ollama hoặc thử lại sau.'
+              : 'Không thể kết nối AI Coach. Vui lòng thử lại.',
+          );
           return;
         }
 
@@ -381,7 +950,7 @@ export const coachService = {
         }
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'AbortError') return;
-        callbacks.onError('Could not connect to AI service');
+        callbacks.onError('Không thể kết nối AI Coach. Vui lòng thử lại.');
       }
     })();
 
@@ -557,12 +1126,93 @@ export const nutritionService = {
     const { data } = await api.delete(`/nutrition/${id}`);
     return data;
   },
+  getCurrentProgram: async () => {
+    const { data } = await api.get('/nutrition/plans/current');
+    return data?.data ?? null;
+  },
+
+  getMonthlySummary: async (startDate: string, endDate: string): Promise<Array<{
+    date: string;
+    status: 'completed' | 'partial' | 'in_progress' | 'skipped' | 'pending';
+    completedMeals: number;
+    partialMeals: number;
+    totalMeals: number;
+    calories: number;
+  }>> => {
+    const { data } = await api.get(`/nutrition/monthly-summary?startDate=${startDate}&endDate=${endDate}`);
+    return data?.data ?? [];
+  },
+
+  getDailyTask: async (date?: string): Promise<{
+    hasProgram: boolean;
+    date: string;
+    program: any | null;
+    day: any | null;
+    meals: any[];
+    actualProgress: { calories: number; protein: number; carbs: number; fat: number } | null;
+    message?: string;
+  }> => {
+    const qs = date ? `?date=${date}` : '';
+    const { data } = await api.get(`/nutrition/daily-task${qs}`);
+    return data?.data ?? { hasProgram: false, date: date ?? '', program: null, day: null, meals: [], actualProgress: null };
+  },
+
+  upsertMealCompletion: async (
+    mealId: string,
+    date: string,
+    status: 'COMPLETED' | 'PARTIAL' | 'SKIPPED' | 'PENDING',
+    opts?: {
+      percentConsumed?: number;
+      overrideCalories?: number;
+      overrideProtein?: number;
+      overrideCarbs?: number;
+      overrideFat?: number;
+    },
+  ) => {
+    const { data } = await api.post('/nutrition/meal-completions', { mealId, date, status, ...opts });
+    return data?.data ?? data;
+  },
+
+  deleteMealCompletion: async (mealId: string, date: string) => {
+    const { data } = await api.delete(`/nutrition/meal-completions?mealId=${mealId}&date=${date}`);
+    return data?.data ?? data;
+  },
   getGoal: async () => {
     const { data } = await api.get('/nutrition/goals');
     return data as { id?: string; calories: number; protein: number; carbs: number; fat: number; waterMl: number | null };
   },
   upsertGoal: async (goal: { calories: number; protein: number; carbs: number; fat: number; waterMl?: number }) => {
     const { data } = await api.put('/nutrition/goals', goal);
+    return data;
+  },
+  updateProgram: async (programId: string, patch: { name?: string; goal?: string; dailyCaloriesTarget?: number }) => {
+    const { data } = await api.patch(`/nutrition/programs/${programId}`, patch);
+    return data?.data ?? data;
+  },
+  deleteProgram: async (programId: string) => {
+    const { data } = await api.delete(`/nutrition/programs/${programId}`);
+    return data;
+  },
+  addMealItem: async (mealId: string, item: { foodId?: string; customFoodName?: string; name?: string; quantity: number; unit?: string; calories: number; protein: number; carbs: number; fat: number }) => {
+    const { data } = await api.post(`/nutrition/program-meals/${mealId}/items`, item);
+    return data?.data ?? data;
+  },
+  updateMealItem: async (itemId: string, patch: { quantity?: number; unit?: string; calories?: number; protein?: number; carbs?: number; fat?: number; notes?: string }) => {
+    const { data } = await api.patch(`/nutrition/program-meal-items/${itemId}`, patch);
+    return data?.data ?? data;
+  },
+  deletePlanMeal: async (mealId: string) => {
+    const { data } = await api.delete(`/nutrition/plan-meals/${mealId}`);
+    return data?.data ?? data;
+  },
+
+  deactivateNutritionProgram: async (programId: string): Promise<{ archived: boolean; hadCompletedMeals: boolean }> => {
+    const { data } = await api.post(`/nutrition/programs/${programId}/deactivate`);
+    return data?.data ?? data;
+  },
+
+  deleteMealItem: async (itemId: string) => {
+    const { data } = await api.delete(`/nutrition/program-meal-items/${itemId}`);
     return data;
   },
 };
@@ -760,6 +1410,17 @@ export const ptPlanReviewService = {
   submitReview: async (planId: string, body: { action: 'APPROVE' | 'REJECT'; note?: string }) => {
     const { data } = await api.post(`/plans/${planId}/pt-review`, body);
     return data;
+  },
+};
+
+export const locationService = {
+  getProvinces: async () => {
+    const { data } = await api.get('/locations/provinces');
+    return data as { code: number; name: string; codename?: string; divisionType?: string }[];
+  },
+  getWards: async (provinceCode: number) => {
+    const { data } = await api.get(`/locations/provinces/${provinceCode}/wards`);
+    return data as { code: number; name: string; codename?: string }[];
   },
 };
 

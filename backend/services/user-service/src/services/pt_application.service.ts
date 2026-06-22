@@ -68,7 +68,7 @@ async function enrichWithUserInfo(app: any): Promise<any> {
 async function validateLocationData(data: any): Promise<void> {
   const {
     residenceProvinceCode, residenceWardCode,
-    applicationTrainingLocations, serviceMode,
+    applicationTrainingLocations,
   } = data;
 
   // Validate residence location if provided

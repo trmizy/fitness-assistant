@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { workoutService } from '../services/workout.service';
-import { createWorkoutSchema, updateWorkoutSetSchema } from '../models/fitness.models';
+import { createManualProgramSchema, createWorkoutSchema, importAiPlanSchema, updateWorkoutSetSchema } from '../models/fitness.models';
 import { formatZodErrors } from '../utils/workout-validation';
 import type { AuthRequest } from '../middleware/auth.middleware';
 
@@ -145,6 +145,70 @@ export const workoutController = {
   },
 
   // POST /workouts/:id/sets — append a single set to a workout's exercise.
+  async listSchedules(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const limit = req.query.limit ? Number(req.query.limit) : undefined;
+      const { startDate, endDate } = req.query as Record<string, string | undefined>;
+      const schedules = await workoutService.listSchedules(req.user!.id, { limit, startDate, endDate });
+      res.json(schedules);
+    } catch (error) {
+      logger.error({ err: error }, 'Error fetching workout schedules');
+      res.status(500).json({ error: 'Failed to fetch workout schedules' });
+    }
+  },
+
+  async createSchedule(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.createSchedule(req.user!.id, req.body || {});
+      res.status(result.alreadyExists ? 200 : 201).json({ success: true, data: result });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, 'Error creating workout schedule');
+      res.status(500).json({ error: 'Failed to create workout schedule' });
+    }
+  },
+
+  async createManualProgram(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const data = createManualProgramSchema.parse(req.body);
+      const result = await workoutService.createManualProgram(req.user!.id, data);
+      res.status(201).json({ success: true, data: result });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Invalid manual program data', details: formatZodErrors(error.errors) });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, 'Error creating manual workout program');
+      res.status(500).json({ error: 'Failed to create manual workout program' });
+    }
+  },
+
+  async importAiPlan(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const data = importAiPlanSchema.parse(req.body);
+      const result = await workoutService.importAiPlanToSchedule(req.user!.id, data);
+      res.status(result.alreadyExists ? 200 : 201).json({ success: true, data: result });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Invalid AI plan data', details: formatZodErrors(error.errors) });
+        return;
+      }
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, 'Error importing AI plan');
+      res.status(500).json({ error: 'Failed to import AI plan' });
+    }
+  },
+
   async addSet(req: AuthRequest, res: Response): Promise<void> {
     try {
       const result = await workoutService.addSet(req.params.id, req.user!.id, req.body);
@@ -153,6 +217,93 @@ export const workoutController = {
       if (error.status) { res.status(error.status).json({ error: error.message }); return; }
       logger.error('Error adding set:', error);
       res.status(500).json({ error: 'Failed to add set' });
+    }
+  },
+
+  async getCurrentProgram(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const program = await workoutService.getCurrentProgram(req.user!.id);
+      res.json({ success: true, data: { program: program || null } });
+    } catch (error) {
+      logger.error({ err: error }, 'Error fetching current program');
+      res.status(500).json({ error: 'Failed to fetch current program' });
+    }
+  },
+
+  async updateProgram(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const program = await workoutService.updateProgram(req.params.id, req.user!.id, req.body);
+      res.json(program);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error updating program');
+      res.status(500).json({ error: 'Failed to update program' });
+    }
+  },
+
+  async deleteProgram(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.deleteProgram(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error deleting program');
+      res.status(500).json({ error: 'Failed to delete program' });
+    }
+  },
+
+  async updateProgramDay(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const day = await workoutService.updateProgramDay(req.params.id, req.user!.id, req.body);
+      res.json(day);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error updating program day');
+      res.status(500).json({ error: 'Failed to update program day' });
+    }
+  },
+
+  async addProgramExercise(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const exercise = await workoutService.addProgramExercise(req.params.id, req.user!.id, req.body);
+      res.status(201).json(exercise);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error adding program exercise');
+      res.status(500).json({ error: 'Failed to add program exercise' });
+    }
+  },
+
+  async updateProgramExercise(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const exercise = await workoutService.updateProgramExercise(req.params.id, req.user!.id, req.body);
+      res.json(exercise);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error updating program exercise');
+      res.status(500).json({ error: 'Failed to update program exercise' });
+    }
+  },
+
+  async deleteProgramExercise(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.deleteProgramExercise(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error deleting program exercise');
+      res.status(500).json({ error: 'Failed to delete program exercise' });
+    }
+  },
+
+  async deleteSchedule(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.deleteSchedule(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
+      logger.error({ err: error }, 'Error deleting schedule');
+      res.status(500).json({ error: 'Failed to delete schedule' });
     }
   },
 };

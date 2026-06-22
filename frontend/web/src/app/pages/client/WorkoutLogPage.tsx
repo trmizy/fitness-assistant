@@ -1,18 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dumbbell, ChevronLeft, ChevronRight, Plus, Lock,
   AlertCircle, Share2, Star, ArrowUpDown, ChevronDown,
   Minus, Clock, MessageSquare, Timer, Target, BarChart3,
   Zap, Calendar, TrendingUp, Play, GripVertical, Trash2,
-  Check, X, SkipForward, Pause, RotateCcw, Trophy, PartyPopper
+  Check, X, SkipForward, Pause, RotateCcw, Trophy, PartyPopper,
+  Search, SlidersHorizontal
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import { toast } from "sonner";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, CartesianGrid
 } from "recharts";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
-import { workoutService, inbodyService } from "../../services/api";
+import { workoutService, inbodyService, type WorkoutScheduleRecord } from "../../services/api";
 
 // Format helper
 const formatVideoUrlToImg = (videoUrl: string | null | undefined, frame: 0 | 1) => {
@@ -101,6 +105,104 @@ function ExerciseFlipDemo({ img1, img2, alt, className = "" }: {
 /* ───── Data ───── */
 const heroImg = "https://images.unsplash.com/photo-1628935291759-bbaf33a66dc6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxneW0lMjB3b3Jrb3V0JTIwbXVzY2xlJTIwdHJhaW5pbmclMjBkYXJrfGVufDF8fHx8MTc3NjA2NjY0NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral";
 
+const GOAL_LABELS: Record<string, string> = {
+  WEIGHT_LOSS: "Giảm mỡ",
+  MUSCLE_GAIN: "Tăng cơ",
+  MAINTENANCE: "Duy trì",
+  ATHLETIC_PERFORMANCE: "Cải thiện sức khỏe",
+  lose_fat: "Giảm mỡ",
+  gain_muscle: "Tăng cơ",
+  maintain: "Duy trì",
+  improve_health: "Cải thiện sức khỏe",
+};
+
+const MUSCLE_FILTERS = [
+  { label: "Tất cả", bodyPart: "", muscleGroup: "" },
+  { label: "Ngực", bodyPart: "", muscleGroup: "chest" },
+  { label: "Lưng", bodyPart: "", muscleGroup: "back" },
+  { label: "Chân", bodyPart: "LOWER_BODY", muscleGroup: "" },
+  { label: "Vai", bodyPart: "", muscleGroup: "shoulders" },
+  { label: "Tay trước", bodyPart: "", muscleGroup: "biceps" },
+  { label: "Tay sau", bodyPart: "", muscleGroup: "triceps" },
+  { label: "Core", bodyPart: "CORE", muscleGroup: "" },
+  { label: "Full Body", bodyPart: "FULL_BODY", muscleGroup: "" },
+];
+
+function labelizeEnum(value?: string | null) {
+  if (!value) return "--";
+  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function groupTitle(value?: string | null) {
+  if (!value) return "Khác";
+  return labelizeEnum(value);
+}
+
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseApiDateOnly(value: string | Date) {
+  if (typeof value === "string") {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+    if (match) {
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    }
+  }
+
+  const parsed = new Date(value);
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
+function isSameCalendarDay(left: Date, right: Date) {
+  return left.getFullYear() === right.getFullYear()
+    && left.getMonth() === right.getMonth()
+    && left.getDate() === right.getDate();
+}
+
+function toApiDateTime(date: Date) {
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString();
+}
+
+function getMonthRange(month: Date) {
+  const start = new Date(month.getFullYear(), month.getMonth(), 1);
+  const end = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+  return { startDate: toDateInputValue(start), endDate: toDateInputValue(end) };
+}
+
+function goalLabel(goal?: string | null) {
+  if (!goal) return "Chưa xác định";
+  return GOAL_LABELS[goal] || goal;
+}
+
+function mapProgramExercise(ex: any) {
+  const exercise = ex.exercise || {};
+  return {
+    id: ex.id,
+    programExerciseId: ex.id,
+    dbId: ex.exerciseId || exercise.id,
+    name: exercise.exerciseName || "Bài tập",
+    prescription: `${ex.sets ?? 3}×${ex.reps ?? 10}${ex.restSeconds ? ` · nghỉ ${ex.restSeconds}s` : ""}`,
+    sets: ex.sets ?? 3,
+    reps: ex.reps ?? 10,
+    restSeconds: ex.restSeconds ?? 90,
+    notes: ex.notes ?? "",
+    img: formatVideoUrlToImg(exercise.videoUrl, 0),
+    img2: formatVideoUrlToImg(exercise.videoUrl, 1),
+    type: (exercise.typeOfActivity === "CARDIO" ? "cardio" : "strength") as "cardio" | "strength",
+    bodyPart: exercise.bodyPart,
+    equipment: exercise.typeOfEquipment,
+    activityType: exercise.typeOfActivity,
+    movementType: exercise.type,
+    description: exercise.instructions,
+    muscles: exercise.muscleGroupsActivated || [],
+    tips: [],
+  };
+}
+
 const weightData = [
   { week: "W1", kg: 80 }, { week: "W2", kg: 79.5 }, { week: "W3", kg: 79.2 },
   { week: "W4", kg: 78.8 }, { week: "W5", kg: 78.5 }, { week: "W6", kg: 78.3 },
@@ -127,84 +229,6 @@ const DAYS_IN_APRIL = 30;
 const FIRST_DAY_OFFSET = 2;
 const trainingMarkers = [1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29];
 
-const workoutDays = [
-  { day: 1, title: "Chest + Triceps + Front Delts", progress: 0, locked: false, exercises: 6, duration: "1h 24m" },
-  { day: 2, title: "Back + Biceps + Rear Delts", progress: 0, locked: false, exercises: 5, duration: "1h 18m" },
-  { day: 3, title: "Legs + Side Delts", progress: 0, locked: true, exercises: 6, duration: "1h 30m" },
-];
-
-/* ── yuhonas/free-exercise-db GitHub raw image base URL ── */
-const EXERCISE_IMG = (folder: string, frame: 0 | 1) =>
-  `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${folder}/${frame}.jpg`;
-
-const DEFAULT_DAY_EXERCISES = [
-  {
-    name: "Treadmill Run",
-    dbId: "Jogging_Treadmill",
-    prescription: "8 min, 110–140 bpm",
-    img:  EXERCISE_IMG("Jogging_Treadmill", 0),
-    img2: EXERCISE_IMG("Jogging_Treadmill", 1),
-    type: "cardio" as const,
-    description: "A steady-state cardio warm-up to elevate heart rate and prepare the body for strength training. Maintain a moderate pace at 110–140 bpm.",
-    muscles: ["Quadriceps", "Hamstrings", "Calves"],
-    tips: ["Start slow and gradually increase speed", "Keep your core engaged", "Don't hold the handrails"],
-  },
-  {
-    name: "Flat Barbell Bench Press",
-    dbId: "Barbell_Bench_Press_-_Medium_Grip",
-    prescription: "4×10×65 kg",
-    img:  EXERCISE_IMG("Barbell_Bench_Press_-_Medium_Grip", 0),
-    img2: EXERCISE_IMG("Barbell_Bench_Press_-_Medium_Grip", 1),
-    type: "strength" as const,
-    description: "The king of chest exercises. Lie flat on a bench, grip the bar slightly wider than shoulder-width, lower to mid-chest, then press up explosively.",
-    muscles: ["Chest", "Triceps", "Front Delts"],
-    tips: ["Arch your upper back slightly", "Touch the bar to your chest", "Drive through your feet for stability"],
-  },
-  {
-    name: "Incline Dumbbell Press",
-    dbId: "Dumbbell_Bench_Press",
-    prescription: "4×10×18 kg",
-    img:  EXERCISE_IMG("Dumbbell_Bench_Press", 0),
-    img2: EXERCISE_IMG("Dumbbell_Bench_Press", 1),
-    type: "strength" as const,
-    description: "Targets the upper chest. Set the bench to 30–45°, press dumbbells upward from shoulder level with a slight arc.",
-    muscles: ["Upper Chest", "Triceps", "Front Delts"],
-    tips: ["Don't flare elbows past 75°", "Control the negative phase", "Keep wrists neutral"],
-  },
-  {
-    name: "Cable Chest Fly",
-    dbId: "Cable_Crossover",
-    prescription: "4×10×35 kg",
-    img:  EXERCISE_IMG("Cable_Crossover", 0),
-    img2: EXERCISE_IMG("Cable_Crossover", 1),
-    type: "strength" as const,
-    description: "An isolation movement for the chest using cable pulleys. Stand centered between the cables, bring handles together in a hugging arc.",
-    muscles: ["Chest", "Front Delts"],
-    tips: ["Keep a slight bend in elbows throughout", "Focus on the squeeze, not the weight", "Control the eccentric phase"],
-  },
-  {
-    name: "Seated Dumbbell Shoulder Press",
-    dbId: "Seated_Dumbbell_Press",
-    prescription: "4×10×20 kg",
-    img:  EXERCISE_IMG("Seated_Dumbbell_Press", 0),
-    img2: EXERCISE_IMG("Seated_Dumbbell_Press", 1),
-    type: "strength" as const,
-    description: "A compound shoulder exercise performed seated for strict form. Press dumbbells overhead from shoulder height.",
-    muscles: ["Front Delts", "Side Delts", "Triceps"],
-    tips: ["Keep your back against the pad", "Don't use momentum", "Exhale on the press"],
-  },
-  {
-    name: "Lying Triceps Extension",
-    dbId: "Lying_Triceps_Press",
-    prescription: "3×10×32.5 kg",
-    img:  EXERCISE_IMG("Lying_Triceps_Press", 0),
-    img2: EXERCISE_IMG("Lying_Triceps_Press", 1),
-    type: "strength" as const,
-    description: "Also known as skull crushers. Lie flat and lower the barbell toward your forehead by bending at the elbows, then extend back up.",
-    muscles: ["Triceps (all heads)"],
-    tips: ["Keep elbows pointed to ceiling", "Use a controlled tempo", "Don't flare elbows out"],
-  },
-];
 
 const bodyFatData = [
   { week: "W1", pct: 18.5 }, { week: "W2", pct: 18.3 }, { week: "W3", pct: 18.0 },
@@ -233,6 +257,70 @@ type Tab = "overview" | "plan";
 type TimeFilter = "last" | "week" | "month" | "all";
 type PlanView = "main" | "dayDetail" | "activeExercise";
 
+type ManualBuilderExercise = {
+  exerciseId: string;
+  exerciseName: string;
+  sets: number;
+  reps: number;
+  restSeconds: number;
+};
+
+type ManualBuilderDay = {
+  dayNumber: number;
+  title: string;
+  exercises: ManualBuilderExercise[];
+};
+
+type ActiveExerciseLog = {
+  weightKg: string;
+  noWeight: boolean;
+};
+
+const MANUAL_WEEKDAYS = [
+  { value: 1, short: "T2", label: "Thứ 2" },
+  { value: 2, short: "T3", label: "Thứ 3" },
+  { value: 3, short: "T4", label: "Thứ 4" },
+  { value: 4, short: "T5", label: "Thứ 5" },
+  { value: 5, short: "T6", label: "Thứ 6" },
+  { value: 6, short: "T7", label: "Thứ 7" },
+  { value: 0, short: "CN", label: "Chủ nhật" },
+];
+
+const DEFAULT_MANUAL_WEEKDAYS: Record<number, number[]> = {
+  1: [1],
+  2: [1, 4],
+  3: [1, 3, 5],
+  4: [1, 3, 5, 0],
+  5: [1, 2, 3, 5, 6],
+  6: [1, 2, 3, 4, 5, 6],
+  7: [1, 2, 3, 4, 5, 6, 0],
+};
+
+function buildManualDays(daysPerWeek: number, previous: ManualBuilderDay[] = []) {
+  return Array.from({ length: daysPerWeek }, (_, index) => {
+    const previousDay = previous[index];
+    return {
+      dayNumber: index + 1,
+      title: previousDay?.title || `Buổi ${index + 1}`,
+      exercises: previousDay?.exercises || [],
+    };
+  });
+}
+
+function exerciseUsesExternalWeight(exercise: any) {
+  if (exercise?.type === "cardio") return false;
+  const equipment = String(exercise?.equipment || "").toUpperCase();
+  if (!equipment) return true;
+  return !["BODYWEIGHT", "FOAM_ROLLER", "RESISTANCE_BAND"].includes(equipment);
+}
+
+function scheduleProgressPercent(schedule?: WorkoutScheduleRecord | null) {
+  if (!schedule) return 0;
+  if (schedule.status === "COMPLETED" || schedule.workoutId || schedule.workout?.id) return 100;
+  const progress = Number(schedule.progressPercent ?? 0);
+  return Number.isFinite(progress) ? Math.max(0, Math.min(100, progress)) : 0;
+}
+
 // Accent helpers
 const G = {
   text: "text-emerald-400",
@@ -250,13 +338,15 @@ const G = {
 };
 
 export function WorkoutLogPage() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("overview");
   const [muscleFilter, setMuscleFilter] = useState<TimeFilter>("week");
   const [exerciseFilter, setExerciseFilter] = useState<TimeFilter>("week");
   const [planView, setPlanView] = useState<PlanView>("main");
   const [selectedDay, setSelectedDay] = useState(1);
-  const [dayExercises, setDayExercises] = useState<any[]>(DEFAULT_DAY_EXERCISES.map((e, i) => ({ ...e, id: `seed-${i}` })));
+  const [dayExercises, setDayExercises] = useState<any[]>([]);
   const [currentWorkoutId, setCurrentWorkoutId] = useState<string | null>(null);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showOnOverview, setShowOnOverview] = useState(true);
@@ -267,15 +357,18 @@ export function WorkoutLogPage() {
   const [consecutiveTrain, setConsecutiveTrain] = useState(3);
   const [consecutiveRest, setConsecutiveRest] = useState(1);
   const [calendarExpanded, setCalendarExpanded] = useState(true);
-  const [inputValue, setInputValue] = useState("");
   const [selectedExercise, setSelectedExercise] = useState<any | null>(null);
+  const [selectedProgramDayId, setSelectedProgramDayId] = useState<string | null>(null);
 
   // Dynamic Navigation & Stats
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [latestInBody, setLatestInBody] = useState<any>(null);
   const [workoutStats, setWorkoutStats] = useState<any>(null);
+  const [currentProgram, setCurrentProgram] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [daysSinceInBody, setDaysSinceInBody] = useState<number | null>(null);
   const [workoutCache, setWorkoutCache] = useState<Record<string, any>>({});
+  const [aiSchedules, setAiSchedules] = useState<WorkoutScheduleRecord[]>([]);
   // Track the actual calendar date being edited (not the plan day number)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
@@ -291,15 +384,26 @@ export function WorkoutLogPage() {
     const fetchAllData = async () => {
       setIsLoading(true);
       try {
-        const { inbodyService } = await import("../../services/api");
-        const [history, inbody, stats] = await Promise.all([
+        const { inbodyService, profileService } = await import("../../services/api");
+        const [historyResult, inbodyResult, statsResult, schedulesResult, programResult, profileResult] = await Promise.allSettled([
           workoutService.getHistory(1, 50), // Fetch last 50 workouts to fill cache
           inbodyService.getLatest(),
-          workoutService.getStats()
+          workoutService.getStats(),
+          workoutService.getSchedules(100, getMonthRange(calendarMonth)),
+          workoutService.getCurrentProgram(),
+          profileService.getProfile(),
         ]);
+
+        if (programResult.status === 'fulfilled') {
+          setCurrentProgram(programResult.value);
+        }
+        if (profileResult.status === 'fulfilled') {
+          setUserProfile(profileResult.value?.profile ?? profileResult.value);
+        }
 
         // 1. Build Workout Cache
         const cache: Record<string, any> = {};
+        const history = historyResult.status === 'fulfilled' ? historyResult.value : null;
         if (history && Array.isArray(history)) {
           history.forEach((w: any) => {
             const d = new Date(w.date).toDateString();
@@ -332,12 +436,15 @@ export function WorkoutLogPage() {
         }
 
         // 3. InBody Stats
+        const inbody = inbodyResult.status === 'fulfilled' ? inbodyResult.value : null;
         if (inbody && inbody.createdAt) {
           setLatestInBody(inbody);
           const diff = Math.floor((Date.now() - new Date(inbody.createdAt).getTime()) / (1000 * 60 * 60 * 24));
           setDaysSinceInBody(diff);
         }
-        setWorkoutStats(stats);
+        setWorkoutStats(statsResult.status === 'fulfilled' ? statsResult.value : null);
+        const schedules = schedulesResult.status === 'fulfilled' ? schedulesResult.value : [];
+        setAiSchedules(Array.isArray(schedules) ? schedules : []);
       } catch (err) {
         console.error("Failed to fetch all data:", err);
       } finally {
@@ -348,8 +455,34 @@ export function WorkoutLogPage() {
     fetchAllData();
   }, [calendarMonth]);
 
+  useEffect(() => {
+    const programDays = currentProgram?.days;
+    if (!Array.isArray(programDays) || programDays.length === 0) {
+      setSelectedProgramDayId(null);
+      return;
+    }
+
+    const selected =
+      programDays.find((day: any) => day.dayNumber === selectedDay) ||
+      programDays[0];
+
+    setSelectedDay(selected.dayNumber);
+    setSelectedProgramDayId(selected.id);
+    setDayExercises((selected.exercises || []).map(mapProgramExercise));
+    setEditExercises((selected.exercises || []).map(mapProgramExercise));
+    if (planView !== "activeExercise") {
+      setCompletedExercises(new Set());
+      setActiveExerciseLogs({});
+      setShowCompletion(false);
+    }
+  }, [currentProgram, selectedDay, planView]);
+
   // Calendar schedule modal
   const [showCalendarAdd, setShowCalendarAdd] = useState(false);
+  const [scheduleDateInput, setScheduleDateInput] = useState(() => toDateInputValue(new Date()));
+  const [scheduleProgramDayId, setScheduleProgramDayId] = useState("");
+  const [scheduleNotes, setScheduleNotes] = useState("");
+  const [savingSchedule, setSavingSchedule] = useState(false);
   type WeekdaySlot = { enabled: boolean; time: string };
   const [weekdaySlots, setWeekdaySlots] = useState<Record<number, WeekdaySlot>>({
     1: { enabled: true, time: "07:00" },
@@ -358,14 +491,48 @@ export function WorkoutLogPage() {
   });
   const [exceptions, setExceptions] = useState<Set<number>>(new Set());
   const WD_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-  const derivedMarkers = (() => {
-    const m: number[] = [];
-    for (let d = 1; d <= DAYS_IN_APRIL; d++) {
-      const dow = ((d + FIRST_DAY_OFFSET - 1) % 7);
-      if (weekdaySlots[dow]?.enabled && !exceptions.has(d)) m.push(d);
-    }
-    return m;
+  const derivedMarkers: number[] = [];
+
+  const [showManualBuilder, setShowManualBuilder] = useState(false);
+  const [savingManualProgram, setSavingManualProgram] = useState(false);
+  const [manualProgramName, setManualProgramName] = useState("Chương trình thủ công");
+  const [manualDurationWeeks, setManualDurationWeeks] = useState("4");
+  const [manualStartDate, setManualStartDate] = useState(() => toDateInputValue(new Date()));
+  const [manualDaysPerWeek, setManualDaysPerWeek] = useState(3);
+  const [manualSelectedWeekdays, setManualSelectedWeekdays] = useState<number[]>(DEFAULT_MANUAL_WEEKDAYS[3]);
+  const [manualDays, setManualDays] = useState<ManualBuilderDay[]>(() => buildManualDays(3));
+  const [manualEditingDayIndex, setManualEditingDayIndex] = useState<number | null>(null);
+
+  // Build per-day schedule info for the calendar
+  const schedulesByDay = (() => {
+    const map = new Map<number, CalendarDayInfo[]>();
+    try {
+      for (const s of (aiSchedules || [])) {
+        const d = parseApiDateOnly(s.date);
+        if (isNaN(d.getTime())) continue;
+        if (d.getFullYear() !== calendarMonth.getFullYear() || d.getMonth() !== calendarMonth.getMonth()) continue;
+        const day = d.getDate();
+        const rawTitle = s.programDay?.title || '';
+        const dayTitle = rawTitle || `Buổi tập ${s.programDay?.dayNumber ?? ''}`.trim() || 'Buổi tập';
+        const exerciseCount = s.programDay?.exercises?.length ?? 0;
+        const list = map.get(day) ?? [];
+        list.push({
+          title: dayTitle,
+          scheduleId: s.id,
+          exerciseCount,
+          programName: s.programDay?.program?.name,
+          sourceType: s.programDay?.program?.sourceType,
+          status: s.status,
+          workoutId: s.workoutId || s.workout?.id || null,
+        });
+        map.set(day, list);
+      }
+    } catch { /* keep empty map */ }
+    return map;
   })();
+
+  // Fallback flat markers for backward compat
+  const calendarMarkers = Array.from(schedulesByDay.keys()).sort((a, b) => a - b);
 
   // Log modal
   const [showLogModal, setShowLogModal] = useState(false);
@@ -378,14 +545,191 @@ export function WorkoutLogPage() {
   const [editExercises, setEditExercises] = useState<any[]>([]);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
+  const refetchProgramAndSchedules = useCallback(async () => {
+    const [program, schedules] = await Promise.all([
+      workoutService.getCurrentProgram(),
+      workoutService.getSchedules(100, getMonthRange(calendarMonth)),
+    ]);
+    setCurrentProgram(program);
+    setAiSchedules(Array.isArray(schedules) ? schedules : []);
+  }, [calendarMonth]);
+
+  const findScheduleForDate = useCallback((date: Date) => {
+    return aiSchedules.find((schedule) => isSameCalendarDay(parseApiDateOnly(schedule.date), date)) || null;
+  }, [aiSchedules]);
+
+  const selectedSchedule = useCallback(() => {
+    if (selectedScheduleId) {
+      const byId = aiSchedules.find((schedule) => schedule.id === selectedScheduleId);
+      if (byId) return byId;
+    }
+    return findScheduleForDate(selectedDate);
+  }, [aiSchedules, findScheduleForDate, selectedDate, selectedScheduleId]);
+
+  const openScheduleModal = useCallback((date = selectedDate) => {
+    setScheduleDateInput(toDateInputValue(date));
+    const firstDay = currentProgram?.days?.[0];
+    setScheduleProgramDayId((prev) => prev || firstDay?.id || "");
+    setScheduleNotes("");
+    setShowCalendarAdd(true);
+  }, [currentProgram, selectedDate]);
+
+  const handleCreateSchedule = async () => {
+    if (!currentProgram?.days?.length) {
+      toast.error("Bạn chưa có chương trình tập. Hãy tạo AI Plan trước.");
+      return;
+    }
+    if (!scheduleDateInput) {
+      toast.error("Vui lòng chọn ngày tập.");
+      return;
+    }
+    if (!scheduleProgramDayId) {
+      toast.error("Vui lòng chọn buổi tập.");
+      return;
+    }
+
+    setSavingSchedule(true);
+    try {
+      const result: any = await workoutService.createSchedule({
+        date: scheduleDateInput,
+        programDayId: scheduleProgramDayId,
+        notes: scheduleNotes.trim() || undefined,
+      });
+      await refetchProgramAndSchedules();
+      setSelectedDate(new Date(`${scheduleDateInput}T00:00:00`));
+      setShowCalendarAdd(false);
+      toast.success(result?.alreadyExists ? "Ngày này đã có lịch tập." : "Đã thêm lịch tập.");
+    } catch (error: any) {
+      const message = error?.response?.status === 409
+        ? "Ngày này đã có lịch tập."
+        : error?.response?.data?.error || "Không thể thêm lịch tập. Vui lòng thử lại.";
+      toast.error(message);
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  const handleCreateManualProgram = async () => {
+    const durationWeeks = Number(manualDurationWeeks);
+    if (!manualProgramName.trim()) {
+      toast.error("Vui lòng nhập tên chương trình");
+      return;
+    }
+    if (!Number.isFinite(durationWeeks) || durationWeeks < 1 || durationWeeks > 52) {
+      toast.error("Số tuần phải trong khoảng 1-52");
+      return;
+    }
+    if (manualSelectedWeekdays.length !== manualDaysPerWeek) {
+      toast.error(`Vui lòng chọn đủ ${manualDaysPerWeek} ngày tập trong tuần`);
+      return;
+    }
+    const emptyDay = manualDays.find((day) => day.exercises.length === 0);
+    if (emptyDay) {
+      toast.error(`Buổi ${emptyDay.dayNumber} cần ít nhất 1 bài tập`);
+      return;
+    }
+
+    setSavingManualProgram(true);
+    try {
+      const result: any = await workoutService.createManualProgram({
+        name: manualProgramName.trim(),
+        goal: userProfile?.goal || null,
+        durationWeeks,
+        daysPerWeek: manualDaysPerWeek,
+        startDate: manualStartDate,
+        repeatWeeks: durationWeeks,
+        selectedWeekdays: manualSelectedWeekdays,
+        replaceExisting: true,
+        days: manualDays.map((day) => ({
+          dayNumber: day.dayNumber,
+          title: day.title.trim() || `Buổi ${day.dayNumber}`,
+          exercises: day.exercises.map((exercise, index) => ({
+            exerciseId: exercise.exerciseId,
+            order: index + 1,
+            sets: exercise.sets,
+            reps: exercise.reps,
+            restSeconds: exercise.restSeconds,
+          })),
+        })),
+      });
+      await refetchProgramAndSchedules();
+      setShowManualBuilder(false);
+      toast.success(`Đã tạo chương trình thủ công với ${result?.createdScheduleCount ?? 0} lịch tập`);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || "Không thể tạo chương trình thủ công");
+    } finally {
+      setSavingManualProgram(false);
+    }
+  };
+
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void refetchProgramAndSchedules();
+      }
+    };
+
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [refetchProgramAndSchedules]);
+
   const handleSaveWorkout = async (silent = false) => {
     if (isSaving) return;
     setIsSaving(true);
     try {
+      if (selectedProgramDayId && currentProgram) {
+        if (editExercises.length === 0) {
+          throw new Error("Mỗi ngày tập cần ít nhất 1 bài tập.");
+        }
+        const existingIds = new Set(
+          (currentProgram.days || [])
+            .flatMap((day: any) => day.exercises || [])
+            .map((exercise: any) => exercise.id),
+        );
+
+        for (const [index, ex] of editExercises.entries()) {
+          const payload = {
+            exerciseId: ex.dbId,
+            order: index + 1,
+            sets: Number(ex.sets) || 3,
+            reps: Number(ex.reps) || 10,
+            restSeconds: Number(ex.restSeconds) || 90,
+            notes: ex.notes || null,
+          };
+
+          if (!payload.exerciseId) {
+            throw new Error(`Exercise "${ex.name}" does not have a database ID.`);
+          }
+
+          if (ex.programExerciseId && existingIds.has(ex.programExerciseId)) {
+            await workoutService.updateProgramExercise(ex.programExerciseId, payload);
+          } else {
+            await workoutService.addProgramExercise(selectedProgramDayId, payload);
+          }
+        }
+
+        const editedIds = new Set(editExercises.map((ex) => ex.programExerciseId).filter(Boolean));
+        const selectedDayModel = (currentProgram.days || []).find((day: any) => day.id === selectedProgramDayId);
+        for (const existing of selectedDayModel?.exercises || []) {
+          if (!editedIds.has(existing.id)) {
+            await workoutService.deleteProgramExercise(existing.id);
+          }
+        }
+
+        await refetchProgramAndSchedules();
+        setDayExercises(editExercises);
+        if (!silent) setEditMode(false);
+        return;
+      }
+
       const saveDate = selectedDate;
       const payload = {
         name: `Workout for ${saveDate.toLocaleDateString()}`,
-        date: saveDate.toISOString(),
+        date: toApiDateTime(saveDate),
         exercises: editExercises.map((ex) => {
           // Ensure we have a valid UUID for exerciseId
           // If it's a seed ID or missing, we need to skip it or handle it
@@ -438,6 +782,8 @@ export function WorkoutLogPage() {
   // Active workout state
   const [activeExIdx, setActiveExIdx] = useState(0);
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set());
+  const [activeExerciseLogs, setActiveExerciseLogs] = useState<Record<number, ActiveExerciseLog>>({});
+  const [isCompletingWorkout, setIsCompletingWorkout] = useState(false);
   const [showExerciseDetail, setShowExerciseDetail] = useState<any | null>(null);
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -450,43 +796,214 @@ export function WorkoutLogPage() {
   // Add Exercise Modal state
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [dbSearch, setDbSearch] = useState("");
+  const [debouncedDbSearch, setDebouncedDbSearch] = useState("");
   const [dbExercises, setDbExercises] = useState<any[]>([]);
   const [dbLoading, setDbLoading] = useState(false);
+  const [dbError, setDbError] = useState<string | null>(null);
+  const [exerciseOptions, setExerciseOptions] = useState<any>({});
+  const [pickerBodyPart, setPickerBodyPart] = useState("");
+  const [pickerMuscleGroup, setPickerMuscleGroup] = useState("");
+  const [pickerEquipment, setPickerEquipment] = useState("");
+  const [pickerActivityType, setPickerActivityType] = useState("");
+  const [pickerSort, setPickerSort] = useState<"name" | "bodyPart" | "equipment">("bodyPart");
+  const [replaceExerciseIndex, setReplaceExerciseIndex] = useState<number | null>(null);
 
-  // Search DB Exercises
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedDbSearch(dbSearch.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [dbSearch]);
+
   useEffect(() => {
     if (!showAddExercise) return;
-    const timer = setTimeout(() => {
-      setDbLoading(true);
-      const url = import.meta.env.VITE_API_URL + "/exercises" + (dbSearch ? `?search=${encodeURIComponent(dbSearch)}` : "");
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          setDbExercises(Array.isArray(data) ? data : []);
-          setDbLoading(false);
-        })
-        .catch(err => {
-          console.error("Failed to fetch exercises:", err);
-          setDbLoading(false);
-        });
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [showAddExercise, dbSearch]);
+    workoutService.getExerciseFilterOptions()
+      .then(setExerciseOptions)
+      .catch(() => setExerciseOptions({}));
+  }, [showAddExercise]);
 
-  const handleAddFromDB = (dbEx: any) => {
+  const clearExerciseFilters = useCallback(() => {
+    setDbSearch("");
+    setPickerBodyPart("");
+    setPickerMuscleGroup("");
+    setPickerEquipment("");
+    setPickerActivityType("");
+    setPickerSort("bodyPart");
+  }, []);
+
+  const openManualBuilder = useCallback(() => {
+    setManualProgramName("Chương trình thủ công");
+    setManualDurationWeeks("4");
+    setManualStartDate(toDateInputValue(new Date()));
+    setManualDaysPerWeek(3);
+    setManualSelectedWeekdays(DEFAULT_MANUAL_WEEKDAYS[3]);
+    setManualDays(buildManualDays(3));
+    setManualEditingDayIndex(null);
+    clearExerciseFilters();
+    setShowManualBuilder(true);
+  }, [clearExerciseFilters]);
+
+  const updateManualDaysPerWeek = useCallback((nextDaysPerWeek: number) => {
+    setManualDaysPerWeek(nextDaysPerWeek);
+    setManualSelectedWeekdays(DEFAULT_MANUAL_WEEKDAYS[nextDaysPerWeek]);
+    setManualDays((previous) => buildManualDays(nextDaysPerWeek, previous));
+  }, []);
+
+  const toggleManualWeekday = useCallback((weekday: number) => {
+    setManualSelectedWeekdays((previous) => {
+      if (previous.includes(weekday)) {
+        return previous.filter((item) => item !== weekday);
+      }
+      if (previous.length >= manualDaysPerWeek) {
+        toast.error(`Chỉ chọn ${manualDaysPerWeek} ngày tập trong tuần`);
+        return previous;
+      }
+      return MANUAL_WEEKDAYS.map((option) => option.value).filter((value) => [...previous, weekday].includes(value));
+    });
+  }, [manualDaysPerWeek]);
+
+  const preselectExerciseFilter = useCallback((exercise: any) => {
+    setDbSearch("");
+    setPickerEquipment("");
+    setPickerActivityType("");
+    const muscles = Array.isArray(exercise?.muscles) ? exercise.muscles.map((m: string) => m.toLowerCase()) : [];
+    if (exercise?.bodyPart === "CORE" || muscles.includes("abdominals")) {
+      setPickerBodyPart("CORE");
+      setPickerMuscleGroup("");
+    } else if (exercise?.bodyPart === "LOWER_BODY" || muscles.some((m: string) => ["quadriceps", "hamstrings", "glutes", "calves"].includes(m))) {
+      setPickerBodyPart("LOWER_BODY");
+      setPickerMuscleGroup("");
+    } else if (muscles.includes("chest")) {
+      setPickerBodyPart("");
+      setPickerMuscleGroup("chest");
+    } else if (muscles.some((m: string) => ["lats", "middle back", "lower back", "traps"].includes(m))) {
+      setPickerBodyPart("");
+      setPickerMuscleGroup("back");
+    } else if (muscles.includes("shoulders")) {
+      setPickerBodyPart("");
+      setPickerMuscleGroup("shoulders");
+    } else if (muscles.includes("biceps")) {
+      setPickerBodyPart("");
+      setPickerMuscleGroup("biceps");
+    } else if (muscles.includes("triceps")) {
+      setPickerBodyPart("");
+      setPickerMuscleGroup("triceps");
+    } else {
+      setPickerBodyPart(exercise?.bodyPart || "");
+      setPickerMuscleGroup("");
+    }
+  }, []);
+
+  const exercisesQuery = useQuery({
+    queryKey: ["exercises", debouncedDbSearch, pickerBodyPart, pickerMuscleGroup, pickerEquipment, pickerActivityType, 1],
+    queryFn: () => workoutService.getExercises({
+      search: debouncedDbSearch || undefined,
+      bodyPart: pickerBodyPart || undefined,
+      muscleGroup: pickerMuscleGroup || undefined,
+      equipment: pickerEquipment || undefined,
+      activityType: pickerActivityType || undefined,
+      page: 1,
+      limit: 60,
+    }),
+    enabled: showAddExercise,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    setDbLoading(exercisesQuery.isFetching);
+    if (exercisesQuery.isError) {
+      setDbError("Không tải được danh sách bài tập");
+      setDbExercises([]);
+      return;
+    }
+    setDbError(null);
+    setDbExercises(Array.isArray(exercisesQuery.data) ? exercisesQuery.data : []);
+  }, [exercisesQuery.data, exercisesQuery.isError, exercisesQuery.isFetching]);
+
+  const sortedDbExercises = [...dbExercises].sort((a, b) => {
+    if (pickerSort === "bodyPart") {
+      return String(a.bodyPart || "").localeCompare(String(b.bodyPart || "")) || String(a.exerciseName || "").localeCompare(String(b.exerciseName || ""));
+    }
+    if (pickerSort === "equipment") {
+      return String(a.typeOfEquipment || "").localeCompare(String(b.typeOfEquipment || "")) || String(a.exerciseName || "").localeCompare(String(b.exerciseName || ""));
+    }
+    return String(a.exerciseName || "").localeCompare(String(b.exerciseName || ""));
+  });
+
+  const groupedDbExercises = sortedDbExercises.reduce((groups: Record<string, any[]>, exercise) => {
+    const key = pickerSort === "equipment" ? groupTitle(exercise.typeOfEquipment) : groupTitle(exercise.bodyPart);
+    groups[key] = groups[key] || [];
+    groups[key].push(exercise);
+    return groups;
+  }, {});
+
+  const handleAddFromDB = async (dbEx: any) => {
     const newEx = {
       id: Date.now(), // temporary UI id
       dbId: dbEx.id,
       name: dbEx.exerciseName,
       prescription: "3×10", // Default prescription
+      sets: 3,
+      reps: 10,
+      restSeconds: 90,
+      notes: "",
       img: formatVideoUrlToImg(dbEx.videoUrl, 0),
       img2: formatVideoUrlToImg(dbEx.videoUrl, 1),
       type: (dbEx.typeOfActivity === "CARDIO" ? "cardio" : "strength") as "cardio"|"strength",
+      bodyPart: dbEx.bodyPart,
+      equipment: dbEx.typeOfEquipment,
+      activityType: dbEx.typeOfActivity,
+      movementType: dbEx.type,
       description: dbEx.instructions,
       muscles: dbEx.muscleGroupsActivated || [],
       tips: [],
     };
-    setEditExercises([...editExercises, newEx]);
+    if (showManualBuilder && manualEditingDayIndex !== null) {
+      setManualDays((previous) => previous.map((day, index) => {
+        if (index !== manualEditingDayIndex) return day;
+        return {
+          ...day,
+          exercises: [
+            ...day.exercises,
+            {
+              exerciseId: dbEx.id,
+              exerciseName: dbEx.exerciseName,
+              sets: 3,
+              reps: 10,
+              restSeconds: 90,
+            },
+          ],
+        };
+      }));
+      setShowAddExercise(false);
+      return;
+    }
+    if (replaceExerciseIndex !== null) {
+      const next = [...editExercises];
+      const existing = next[replaceExerciseIndex];
+      if (existing?.programExerciseId) {
+        setDbLoading(true);
+        try {
+          await workoutService.updateProgramExercise(existing.programExerciseId, { exerciseId: dbEx.id });
+          next[replaceExerciseIndex] = { ...newEx, id: existing.id, programExerciseId: existing.programExerciseId };
+          setEditExercises(next);
+          setDayExercises(next);
+          await refetchProgramAndSchedules();
+          toast.success("Đã đổi bài tập");
+        } catch (error) {
+          console.error("Failed to replace exercise:", error);
+          toast.error("Không thể đổi bài tập. Vui lòng thử lại.");
+          setDbLoading(false);
+          return;
+        } finally {
+          setDbLoading(false);
+        }
+      } else {
+        next[replaceExerciseIndex] = { ...newEx, id: existing?.id, programExerciseId: existing?.programExerciseId };
+        setEditExercises(next);
+      }
+      setReplaceExerciseIndex(null);
+    } else {
+      setEditExercises([...editExercises, newEx]);
+    }
     setShowAddExercise(false);
   };
 
@@ -527,7 +1044,50 @@ export function WorkoutLogPage() {
     frame();
   }, []);
 
-  const handleCompleteExercise = () => {
+  const persistCompletedWorkout = async () => {
+    const scheduleForSave = selectedSchedule();
+    const saveDate = scheduleForSave?.date ? parseApiDateOnly(scheduleForSave.date) : selectedDate;
+    const scheduleWorkoutId = scheduleForSave?.workoutId || scheduleForSave?.workout?.id || null;
+    const scheduleId = selectedScheduleId || scheduleForSave?.id || undefined;
+    const payload = {
+      scheduleId,
+      name: `Workout for ${saveDate.toLocaleDateString()}`,
+      date: toApiDateTime(saveDate),
+      duration: Math.max(1, Math.ceil(timerSeconds / 60)),
+      exercises: dayExercises.map((exercise, index) => {
+        const log = activeExerciseLogs[index];
+        const weight = log?.noWeight ? undefined : Number(log?.weightKg);
+        return {
+          exerciseId: exercise.dbId,
+          sets: Number(exercise.sets) || 1,
+          reps: Number(exercise.reps) || undefined,
+          duration: exercise.type === "cardio" ? Number(exercise.duration) || undefined : undefined,
+          weight: Number.isFinite(weight) ? weight : undefined,
+          notes: log?.noWeight ? "Không dùng tạ" : undefined,
+        };
+      }),
+    };
+
+    const workoutIdForSave = currentWorkoutId || scheduleWorkoutId;
+    const saved = workoutIdForSave
+      ? await workoutService.updateWorkout(workoutIdForSave, payload)
+      : await workoutService.logWorkout(payload);
+    if (scheduleId) setSelectedScheduleId(scheduleId);
+    if (saved?.id) setCurrentWorkoutId(saved.id);
+    await refetchProgramAndSchedules();
+  };
+
+  const handleCompleteExercise = async () => {
+    const currentLog = activeExerciseLogs[activeExIdx];
+    const needsWeight = exerciseUsesExternalWeight(dayExercises[activeExIdx]);
+    if (needsWeight && !currentLog?.noWeight) {
+      const weight = Number(currentLog?.weightKg);
+      if (!Number.isFinite(weight) || weight <= 0) {
+        toast.error("Vui lòng nhập tổng số kg tạ cho bài này hoặc chọn Không dùng tạ.");
+        return;
+      }
+    }
+
     const newCompleted = new Set(completedExercises);
     newCompleted.add(activeExIdx);
     setCompletedExercises(newCompleted);
@@ -535,9 +1095,18 @@ export function WorkoutLogPage() {
     setTimerSeconds(0);
 
     if (newCompleted.size === dayExercises.length) {
-      // All exercises done!
-      setShowCompletion(true);
-      setTimeout(() => fireConfetti(), 300);
+      setIsCompletingWorkout(true);
+      try {
+        await persistCompletedWorkout();
+        setShowCompletion(true);
+        setTimeout(() => fireConfetti(), 300);
+        toast.success("Đã lưu hoàn thành buổi tập.");
+      } catch (error: any) {
+        toast.error(error?.response?.data?.error || "Không thể lưu buổi tập đã hoàn thành.");
+        setCompletedExercises(completedExercises);
+      } finally {
+        setIsCompletingWorkout(false);
+      }
     } else if (activeExIdx < dayExercises.length - 1) {
       // Start rest timer then move to next
       setRestSeconds(90);
@@ -563,8 +1132,14 @@ export function WorkoutLogPage() {
       setTimerSeconds(0);
       setRestTimerRunning(false);
       setShowCompletion(false);
+      setActiveExerciseLogs({});
+      setIsCompletingWorkout(false);
     }
   }, [planView]);
+
+  const profileGoal = userProfile?.goal;
+  const programGoal = currentProgram?.goal;
+  const hasGoalMismatch = Boolean(profileGoal && programGoal && profileGoal !== programGoal);
 
   return (
     <div className="p-5 md:p-8 space-y-7 max-w-[1400px] mx-auto">
@@ -588,8 +1163,8 @@ export function WorkoutLogPage() {
 
           <div className="hidden lg:flex items-center gap-3">
             {[
-              { label: "Kế hoạch", value: "Muscle Gain", icon: Zap },
-              { label: "Tuần này", value: "0 / 3 buổi", icon: Calendar },
+              { label: "Kế hoạch", value: currentProgram?.name || "Chưa có", icon: Zap },
+              { label: "Tuần này", value: `${workoutStats?.weeklyWorkouts || 0} / ${currentProgram?.daysPerWeek || 0} buổi`, icon: Calendar },
               { label: "Streak", value: "0 ngày", icon: TrendingUp },
             ].map((s) => (
               <div key={s.label} className="px-4 py-2.5 rounded-xl bg-zinc-900/70 border border-zinc-800/50 min-w-[130px]">
@@ -622,6 +1197,31 @@ export function WorkoutLogPage() {
       </div>
 
       {/* ═══════════════ OVERVIEW ═══════════════ */}
+      {hasGoalMismatch && (
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-200">Lịch tập chưa đồng bộ với mục tiêu mới</p>
+              <p className="text-xs text-amber-100/70 mt-1">
+                Mục tiêu hồ sơ của bạn đã đổi sang {goalLabel(profileGoal)}, nhưng lịch tập hiện tại vẫn là {goalLabel(programGoal)}.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => navigate(`/client/plans?goal=${encodeURIComponent(profileGoal || "")}`)}
+              className="px-3 py-2 rounded-xl bg-amber-400 text-black text-xs font-semibold hover:bg-amber-300 transition-colors"
+            >
+              Cập nhật lịch theo mục tiêu mới
+            </button>
+            <button className="px-3 py-2 rounded-xl border border-amber-500/25 text-amber-200 text-xs hover:bg-amber-500/10 transition-colors">
+              Giữ lịch hiện tại
+            </button>
+          </div>
+        </div>
+      )}
+
       {tab === "overview" && (
         <div className="space-y-6">
           {/* Reminder - Only show if > 7 days or no data */}
@@ -666,14 +1266,36 @@ export function WorkoutLogPage() {
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-6">
                 <span className="text-[10px] text-emerald-400/60 uppercase tracking-[0.2em] mb-1.5 block">Chương trình hiện tại</span>
-                <h2 className="text-2xl text-white mb-2 tracking-tight">General Muscle Gain</h2>
-                <div className="flex items-center gap-4 text-xs text-zinc-400">
-                  <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3 text-zinc-600" /> 12 tuần</span>
-                  <span className="text-zinc-700">·</span>
-                  <span>{workoutStats?.workoutsPerWeek || "3.0"} buổi/tuần</span>
-                  <span className="text-zinc-700">·</span>
-                  <span>Đã hoàn thành: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
-                </div>
+                <h2 className="text-2xl text-white mb-2 tracking-tight">{currentProgram ? currentProgram.name : "Chưa có chương trình"}</h2>
+                {hasGoalMismatch && (
+                  <div className="mb-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 inline-block">
+                    <p className="text-[11px] text-amber-400 flex items-center gap-1.5">
+                      <AlertCircle className="w-3 h-3" />
+                      Mục tiêu trong Hồ sơ ({goalLabel(userProfile.goal)}) khác với Chương trình hiện tại ({goalLabel(currentProgram.goal)})
+                    </p>
+                  </div>
+                )}
+                {currentProgram && (
+                  <div className="flex items-center gap-4 text-xs text-zinc-400">
+                    <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3 text-zinc-600" /> {currentProgram.durationWeeks || 4} tuần</span>
+                    <span className="text-zinc-700">·</span>
+                    <span>{currentProgram.daysPerWeek || workoutStats?.workoutsPerWeek || 3} buổi/tuần</span>
+                    <span className="text-zinc-700">·</span>
+                    {currentProgram.sourceType === "AI_PLAN" && (
+                      <>
+                        <span className="px-2 py-0.5 rounded-full border border-sky-500/25 bg-sky-500/10 text-sky-300">AI</span>
+                        <span className="text-zinc-700">·</span>
+                      </>
+                    )}
+                    {currentProgram.goal && (
+                      <>
+                        <span>{goalLabel(currentProgram.goal)}</span>
+                        <span className="text-zinc-700">·</span>
+                      </>
+                    )}
+                    <span>Đã hoàn thành: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
+                  </div>
+                )}
                 <div className="mt-3 h-1.5 bg-white/[0.06] rounded-full overflow-hidden max-w-sm">
                   <div 
                     className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-1000" 
@@ -685,49 +1307,100 @@ export function WorkoutLogPage() {
 
             <GlassPanel title="Buổi tập sắp tới" icon={<Dumbbell className="w-4 h-4 text-emerald-400" />}>
               <div className="space-y-2.5">
-                {workoutDays.map((w) => (
-                  <div key={`upk-${w.day}`}
-                    onClick={() => { if (!w.locked) { setTab("plan"); setPlanView("dayDetail"); setSelectedDay(w.day); setSelectedDate(new Date()); } }}
-                    className={`group/item rounded-xl border p-3.5 transition-all ${
-                    w.locked
-                      ? "bg-zinc-900/20 border-zinc-800/25 opacity-40"
-                      : "bg-zinc-800/20 border-zinc-700/25 hover:border-emerald-500/20 hover:bg-zinc-800/40 cursor-pointer"
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                        w.locked ? "bg-zinc-800/40 border border-zinc-700/40" : "bg-emerald-500/8 border border-emerald-500/15"
-                      }`}>
-                        {w.locked ? <Lock className="w-3.5 h-3.5 text-zinc-700" /> : <span className="text-[11px] text-emerald-400">D{w.day}</span>}
+                {aiSchedules.length > 0 ? (
+                  aiSchedules.slice(0, 5).map((schedule) => {
+                    const programDay = schedule.programDay;
+                    const programName = programDay?.program?.name || 'AI Plan';
+                    const dayTitle = programDay?.title || `Day ${programDay?.dayNumber || 1}`;
+                    const exerciseCount = programDay?.exercises?.length || 0;
+                    return (
+                      <div
+                        key={schedule.id}
+                        className="group/item rounded-xl border p-3.5 transition-all bg-zinc-800/20 border-zinc-700/25 hover:border-emerald-500/20 hover:bg-zinc-800/40"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-emerald-500/8 border border-emerald-500/15">
+                            <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm text-zinc-200 truncate">{dayTitle}</p>
+                            <p className="text-[11px] text-zinc-500 truncate">
+                              {new Date(schedule.date).toLocaleDateString('vi-VN')} · {exerciseCount} bài · {programName}
+                            </p>
+                          </div>
+                          <span className="text-[10px] px-2 py-1 rounded-full border border-emerald-500/20 text-emerald-300">
+                            AI
+                          </span>
+                          <button
+                            onClick={() => {
+                              setTab("plan");
+                              setSelectedDay(programDay?.dayNumber || 1);
+                              setSelectedDate(new Date(schedule.date));
+                              setSelectedScheduleId(schedule.id);
+                              setCurrentWorkoutId(schedule.workoutId || schedule.workout?.id || null);
+                              setPlanView("dayDetail");
+                            }}
+                            className="text-[10px] px-2 py-1 rounded-full border border-zinc-700/50 text-zinc-300 hover:bg-zinc-800"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (!window.confirm("Xóa lịch tập này khỏi lịch? Workout đã hoàn thành sẽ không bị xóa.")) return;
+                              await workoutService.deleteSchedule(schedule.id);
+                              await refetchProgramAndSchedules();
+                            }}
+                            className="text-[10px] px-2 py-1 rounded-full border border-red-500/25 text-red-300 hover:bg-red-500/10"
+                          >
+                            Ẩn
+                          </button>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-zinc-200">Ngày {w.day}</p>
-                        <p className="text-[11px] text-zinc-500 truncate">{w.title}</p>
-                      </div>
-                      {!w.locked && <ChevronRight className="w-3.5 h-3.5 text-zinc-700 group-hover/item:text-emerald-400 transition-colors" />}
-                    </div>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-xl border border-dashed border-zinc-700/30 bg-zinc-900/25 p-4 text-center">
+                    <p className="text-sm text-zinc-400">Bạn chưa có lịch tập sắp tới</p>
+                    <button
+                      onClick={() => navigate('/client/plans')}
+                      className="mt-3 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400 transition-colors"
+                    >
+                      Tạo bằng AI
+                    </button>
                   </div>
-                ))}
+                )}
               </div>
             </GlassPanel>
           </div>
 
           {/* Calendar + Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <button onClick={openManualBuilder} className="lg:col-span-2 justify-self-start px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15">
+              Tạo thủ công
+            </button>
             <GlassPanel title="Lịch tập" icon={<Calendar className="w-4 h-4 text-emerald-400" />} actionLabel="Thêm" onAction={() => setShowCalendarAdd(true)}>
-              <CalendarGrid 
-                markers={derivedMarkers} 
-                month={calendarMonth} 
-                onPrevMonth={handlePrevMonth} 
+              <CalendarGrid
+                schedulesByDay={schedulesByDay}
+                markers={calendarMarkers}
+                month={calendarMonth}
+                onPrevMonth={handlePrevMonth}
                 onNextMonth={handleNextMonth}
                 onDayClick={(day) => {
                   const clickedDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
                   const dStr = clickedDate.toDateString();
-                  const dateLabel = clickedDate.toLocaleDateString();
-                  setSelectedDay(day);
                   setSelectedDate(clickedDate);
+                  const scheduleForDay = findScheduleForDate(clickedDate);
+                  setSelectedDay(scheduleForDay?.programDay?.dayNumber || day);
+                  setSelectedScheduleId(scheduleForDay?.id || null);
+                  setCurrentWorkoutId(scheduleForDay?.workoutId || scheduleForDay?.workout?.id || null);
 
-                  // Check if we have this workout in cache
-                  if (workoutCache[dStr]) {
+                  // Prefer the persisted schedule. Workout history can contain legacy
+                  // date-shifted rows, so it is only a fallback for unscheduled days.
+                  if (scheduleForDay?.programDay?.dayNumber) {
+                    setSelectedDay(scheduleForDay.programDay.dayNumber);
+                    setTab("plan");
+                    setPlanView("dayDetail");
+                  } else if (workoutCache[dStr]) {
                     const w = workoutCache[dStr];
                     setCurrentWorkoutId(w.id);
                     const mapped = w.exercises.map((we: any) => ({
@@ -746,16 +1419,7 @@ export function WorkoutLogPage() {
                     setTab("plan");
                     setPlanView("dayDetail");
                   } else {
-                    // No workout in cache
-                    if (window.confirm(`Chưa có bài tập cho ${dateLabel}. Bạn muốn tạo bài tập cho ngày này?`)) {
-                      setDayExercises([]);
-                      setEditExercises([]);
-                      setTab("plan");
-                      setPlanView("dayDetail");
-                      setEditMode(true);
-                      setShowAddExercise(true);
-                      setCurrentWorkoutId(null);
-                    }
+                    openScheduleModal(clickedDate);
                   }
                 }}
               />
@@ -943,14 +1607,40 @@ export function WorkoutLogPage() {
 
             <div className="absolute bottom-0 left-0 right-0 p-6">
               <span className="text-[10px] text-emerald-400/50 uppercase tracking-[0.2em] mb-1.5 block">Chương trình</span>
-              <h2 className="text-2xl text-white mb-2 tracking-tight">General Muscle Gain</h2>
-              <div className="flex items-center gap-4 text-xs text-zinc-400">
-                <span className="flex items-center gap-1.5"><Dumbbell className="w-3 h-3 text-emerald-500/50" /> 12 tuần</span>
-                <span className="text-zinc-700">·</span>
-                <span>{workoutStats?.workoutsPerWeek || "3.0"} buổi/tuần</span>
-                <span className="text-zinc-700">·</span>
-                <span>Đã hoàn thành: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
-              </div>
+              <h2 className="text-2xl text-white mb-2 tracking-tight">{currentProgram ? currentProgram.name : "Chưa có chương trình"}</h2>
+              {currentProgram && (
+                <button
+                  onClick={async () => {
+                    if (!window.confirm("Ẩn chương trình hiện tại? Workout đã hoàn thành sẽ không bị xóa.")) return;
+                    await workoutService.archiveProgram(currentProgram.id);
+                    await refetchProgramAndSchedules();
+                  }}
+                  className="mb-2 px-3 py-1.5 rounded-lg border border-red-500/25 bg-red-500/10 text-[11px] text-red-300 hover:bg-red-500/15"
+                >
+                  Ẩn chương trình
+                </button>
+              )}
+              {currentProgram && (
+                <div className="flex items-center gap-4 text-xs text-zinc-400">
+                  <span className="flex items-center gap-1.5"><Dumbbell className="w-3 h-3 text-emerald-500/50" /> {currentProgram.durationWeeks || 4} tuần</span>
+                  <span className="text-zinc-700">·</span>
+                  <span>{currentProgram.daysPerWeek || workoutStats?.workoutsPerWeek || 3} buổi/tuần</span>
+                  <span className="text-zinc-700">·</span>
+                  {currentProgram.sourceType === "AI_PLAN" && (
+                    <>
+                      <span className="px-2 py-0.5 rounded-full border border-sky-500/25 bg-sky-500/10 text-sky-300">AI</span>
+                      <span className="text-zinc-700">·</span>
+                    </>
+                  )}
+                  {currentProgram.goal && (
+                    <>
+                      <span>{goalLabel(currentProgram.goal)}</span>
+                      <span className="text-zinc-700">·</span>
+                    </>
+                  )}
+                  <span>Đã hoàn thành: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
+                </div>
+              )}
               <div className="mt-3 h-1.5 bg-white/[0.05] rounded-full overflow-hidden max-w-md">
                 <div 
                   className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.35)] transition-all duration-1000" 
@@ -966,10 +1656,25 @@ export function WorkoutLogPage() {
             <div className="xl:col-span-2">
               <SectionTitle title="Ngày tập" />
               <div className="space-y-3 mt-4">
-                {workoutDays.map((w) => (
+                {currentProgram?.days?.length ? currentProgram.days.map((w: any) => (
                   <button
-                    key={`td-${w.day}`}
-                    onClick={() => { if (!w.locked) { setSelectedDay(w.day); setSelectedDate(new Date()); setPlanView("dayDetail"); } }}
+                    key={`td-${w.day || w.dayNumber}`}
+                    onClick={() => {
+                      if (!w.locked) {
+                        const schedules = Array.isArray(w.schedules) ? w.schedules : [];
+                        const todayStart = new Date();
+                        todayStart.setHours(0, 0, 0, 0);
+                        const nextSchedule =
+                          schedules.find((schedule: any) => !schedule.workoutId && new Date(schedule.date) >= todayStart) ||
+                          schedules.find((schedule: any) => !schedule.workoutId) ||
+                          schedules[0];
+                        setSelectedDay(w.day || w.dayNumber);
+                        setSelectedDate(nextSchedule?.date ? new Date(nextSchedule.date) : new Date());
+                        setSelectedScheduleId(nextSchedule?.id || null);
+                        setCurrentWorkoutId(nextSchedule?.workoutId || nextSchedule?.workout?.id || null);
+                        setPlanView("dayDetail");
+                      }
+                    }}
                     disabled={w.locked}
                     className={`group/card w-full rounded-2xl border p-5 transition-all text-left relative overflow-hidden ${
                       w.locked
@@ -995,12 +1700,12 @@ export function WorkoutLogPage() {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-zinc-100">Ngày {w.day}</p>
+                        <p className="text-sm text-zinc-100">Ngày {w.day || w.dayNumber}</p>
                         <p className="text-xs text-zinc-500 mt-0.5 truncate">{w.title}</p>
                         {!w.locked && (
                           <div className="flex items-center gap-3 mt-2">
-                            <span className="text-[10px] text-zinc-600 flex items-center gap-1"><Clock className="w-3 h-3" /> {w.duration}</span>
-                            <span className="text-[10px] text-zinc-600">{w.exercises} bài tập</span>
+                            <span className="text-[10px] text-zinc-600 flex items-center gap-1"><Clock className="w-3 h-3" /> {w.duration || '1h'}</span>
+                            <span className="text-[10px] text-zinc-600">{w.exercises?.length || w.exercises || 0} bài tập</span>
                           </div>
                         )}
                       </div>
@@ -1008,7 +1713,15 @@ export function WorkoutLogPage() {
                       {!w.locked && <ChevronRight className="w-4 h-4 text-zinc-700 group-hover/card:text-emerald-400 transition-colors shrink-0" />}
                     </div>
                   </button>
-                ))}
+                )) : (
+                  <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-6 text-center">
+                    <p className="text-sm text-zinc-400">Bạn chưa có lịch tập hiện tại</p>
+                    <div className="mt-4 flex justify-center gap-2">
+                      <button onClick={openManualBuilder} className="px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800">Tạo thủ công</button>
+                      <button onClick={() => navigate('/client/plans')} className="px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Tạo bằng AI</button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1019,6 +1732,7 @@ export function WorkoutLogPage() {
                 <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/[0.02] rounded-full blur-[60px] pointer-events-none" />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-5">
+                    <button onClick={openManualBuilder} className="px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15">Tạo thủ công</button>
                     <SectionTitle title="Lịch tập" />
                     <button onClick={() => setCalendarExpanded(!calendarExpanded)} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-400 transition-colors">
                       {calendarExpanded ? "Thu gọn" : "Mở rộng"}
@@ -1026,27 +1740,25 @@ export function WorkoutLogPage() {
                     </button>
                   </div>
                   {calendarExpanded && (
-                    <CalendarGrid 
-                      markers={derivedMarkers} 
-                      month={calendarMonth} 
-                      onPrevMonth={handlePrevMonth} 
+                    <CalendarGrid
+                      schedulesByDay={schedulesByDay}
+                      markers={calendarMarkers}
+                      month={calendarMonth}
+                      onPrevMonth={handlePrevMonth}
                       onNextMonth={handleNextMonth}
                       onDayClick={(day) => {
                         const clickedDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
-                        const dateStr = clickedDate.toLocaleDateString();
-                        setSelectedDay(day);
                         setSelectedDate(clickedDate);
+                        const scheduleForDay = findScheduleForDate(clickedDate);
+                        setSelectedDay(scheduleForDay?.programDay?.dayNumber || day);
+                        setSelectedScheduleId(scheduleForDay?.id || null);
+                        setCurrentWorkoutId(scheduleForDay?.workoutId || scheduleForDay?.workout?.id || null);
                         
-                        if (derivedMarkers.includes(day)) {
+                        if (scheduleForDay?.programDay?.dayNumber) {
+                          setSelectedDay(scheduleForDay.programDay.dayNumber);
                           setPlanView("dayDetail");
                         } else {
-                          if (window.confirm(`Chưa có bài tập cho ${dateStr}. Bạn muốn tạo bài tập cho ngày này?`)) {
-                            setDayExercises([]);
-                            setEditExercises([]);
-                            setPlanView("dayDetail");
-                            setEditMode(true);
-                            setShowAddExercise(true);
-                          }
+                          openScheduleModal(clickedDate);
                         }
                       }}
                     />
@@ -1102,7 +1814,18 @@ export function WorkoutLogPage() {
 
       {/* ═══════════════ DAY DETAIL ═══════════════ */}
       {tab === "plan" && planView === "dayDetail" && (() => {
-        const wd = workoutDays.find(d => d.day === selectedDay) || workoutDays[0];
+        const programDays = currentProgram?.days || [];
+        const wd = programDays.find((d: any) => d.dayNumber === selectedDay) || programDays[0];
+        const detailSchedule = selectedSchedule();
+        const detailProgress = scheduleProgressPercent(detailSchedule);
+        if (!wd) {
+          return (
+            <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-8 text-center">
+              <p className="text-sm text-zinc-400">Bạn chưa có ngày tập trong chương trình hiện tại</p>
+              <button onClick={() => navigate('/client/plans')} className="mt-4 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Tạo bằng AI</button>
+            </div>
+          );
+        }
         return (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -1113,6 +1836,17 @@ export function WorkoutLogPage() {
                 <h2 className="text-lg text-white tracking-tight">Ngày {selectedDay} — Chi tiết bài tập</h2>
                 <p className="text-xs text-zinc-500">{wd.title}</p>
               </div>
+              <button
+                onClick={async () => {
+                  const title = window.prompt("Tên buổi tập", wd.title || "");
+                  if (!title || title === wd.title) return;
+                  await workoutService.updateProgramDay(wd.id, { title });
+                  await refetchProgramAndSchedules();
+                }}
+                className="ml-auto px-3 py-2 rounded-xl border border-zinc-700/40 text-xs text-zinc-300 hover:bg-zinc-800"
+              >
+                Sửa tên buổi
+              </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1124,10 +1858,23 @@ export function WorkoutLogPage() {
                     <div className="relative">
                       <svg width="110" height="110" viewBox="0 0 110 110">
                         <circle cx="55" cy="55" r="48" fill="none" stroke="#064e3b" strokeWidth="4" />
+                        {detailProgress > 0 && (
+                          <circle
+                            cx="55"
+                            cy="55"
+                            r="48"
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="4"
+                            strokeDasharray={`${(detailProgress / 100) * 302} 302`}
+                            strokeLinecap="round"
+                            transform="rotate(-90 55 55)"
+                          />
+                        )}
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-center">
-                          <span className="text-2xl text-emerald-400">0%</span>
+                          <span className="text-2xl text-emerald-400">{detailProgress}%</span>
                           <p className="text-[9px] text-zinc-600 mt-0.5">Hoàn thành</p>
                         </div>
                       </div>
@@ -1142,18 +1889,22 @@ export function WorkoutLogPage() {
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     <div className="bg-zinc-800/25 rounded-xl border border-zinc-700/20 p-3.5 text-center">
                       <Clock className="w-4 h-4 text-emerald-500/50 mx-auto mb-1" />
-                      <p className="text-sm text-zinc-200">{wd.duration}</p>
+                      <p className="text-sm text-zinc-200">{wd.duration || '1h'}</p>
                       <p className="text-[10px] text-zinc-600">Thời gian</p>
                     </div>
                     <div className="bg-zinc-800/25 rounded-xl border border-zinc-700/20 p-3.5 text-center">
                       <Dumbbell className="w-4 h-4 text-emerald-500/50 mx-auto mb-1" />
-                      <p className="text-sm text-zinc-200">{wd.exercises}</p>
+                      <p className="text-sm text-zinc-200">{wd.exercises?.length || wd.exercises || 0}</p>
                       <p className="text-[10px] text-zinc-600">Bài tập</p>
                     </div>
                   </div>
 
                   <button
-                    onClick={() => setPlanView("activeExercise")}
+                    onClick={() => {
+                      if (detailSchedule?.id) setSelectedScheduleId(detailSchedule.id);
+                      setCurrentWorkoutId(detailSchedule?.workoutId || detailSchedule?.workout?.id || null);
+                      setPlanView("activeExercise");
+                    }}
                     className="w-full py-3.5 rounded-xl bg-emerald-500 text-black text-sm tracking-wider transition-all hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     <Play className="w-4 h-4" /> BẮT ĐẦU TẬP
@@ -1245,6 +1996,29 @@ export function WorkoutLogPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-zinc-100 truncate">{ex.name}</p>
                           <p className="text-xs text-zinc-500 mt-0.5">{ex.prescription}</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {[
+                              ["sets", "Sets"],
+                              ["reps", "Reps"],
+                              ["restSeconds", "Rest"],
+                            ].map(([key, label]) => (
+                              <label key={key} className="flex items-center gap-1 text-[10px] text-zinc-500">
+                                {label}
+                                <input
+                                  type="number"
+                                  min={key === "restSeconds" ? 0 : 1}
+                                  value={ex[key] ?? ""}
+                                  onChange={(event) => {
+                                    const next = [...editExercises];
+                                    next[i] = { ...next[i], [key]: Number(event.target.value) || (key === "restSeconds" ? 0 : 1) };
+                                    next[i].prescription = `${next[i].sets ?? 3}×${next[i].reps ?? 10}${next[i].restSeconds ? ` · nghỉ ${next[i].restSeconds}s` : ""}`;
+                                    setEditExercises(next);
+                                  }}
+                                  className="w-14 rounded-md border border-zinc-700/50 bg-zinc-950/60 px-2 py-1 text-[10px] text-zinc-200 outline-none focus:border-emerald-500/40"
+                                />
+                              </label>
+                            ))}
+                          </div>
                         </div>
                         <span className={`text-[10px] px-2.5 py-1 rounded-lg border shrink-0 ${
                           ex.type === "cardio"
@@ -1254,7 +2028,24 @@ export function WorkoutLogPage() {
                           {ex.type === "cardio" ? "Cardio" : "Strength"}
                         </span>
                         <button
-                          onClick={() => setEditExercises(editExercises.filter((_, j) => j !== i))}
+                          onClick={() => {
+                            setReplaceExerciseIndex(i);
+                            preselectExerciseFilter(ex);
+                            setShowAddExercise(true);
+                          }}
+                          className="px-2.5 py-1 rounded-lg border border-zinc-700/40 text-[10px] text-zinc-300 hover:bg-zinc-800 shrink-0"
+                        >
+                          Đổi bài
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (editExercises.length <= 1) {
+                              alert("Mỗi ngày tập cần ít nhất 1 bài tập.");
+                              return;
+                            }
+                            if (!window.confirm("Xóa bài tập này khỏi ngày tập?")) return;
+                            setEditExercises(editExercises.filter((_, j) => j !== i));
+                          }}
                           className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-red-400 hover:bg-red-500/8 transition-all shrink-0"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1264,7 +2055,8 @@ export function WorkoutLogPage() {
                     {!isLoading && (
                       <button 
                         onClick={() => {
-                          setDbSearch("");
+                          clearExerciseFilters();
+                          setReplaceExerciseIndex(null);
                           setShowAddExercise(true);
                         }}
                         className="w-full rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/20 p-4 flex items-center justify-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/20 transition-all"
@@ -1319,9 +2111,32 @@ export function WorkoutLogPage() {
 
       {/* ═══════════════ ACTIVE EXERCISE ═══════════════ */}
       {tab === "plan" && planView === "activeExercise" && !showCompletion && (() => {
+        if (dayExercises.length === 0) {
+          return (
+            <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-8 text-center">
+              <p className="text-sm text-zinc-400">Ngày tập này chưa có bài tập</p>
+              <button onClick={() => setPlanView("dayDetail")} className="mt-4 px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800">Quay lai</button>
+            </div>
+          );
+        }
         const curEx = dayExercises[activeExIdx];
         const isCompleted = completedExercises.has(activeExIdx);
         const progressPct = (completedExercises.size / dayExercises.length) * 100;
+        const requiresExternalWeight = exerciseUsesExternalWeight(curEx);
+        const activeLog = activeExerciseLogs[activeExIdx] || {
+          weightKg: "",
+          noWeight: !requiresExternalWeight,
+        };
+        const updateActiveLog = (patch: Partial<ActiveExerciseLog>) => {
+          setActiveExerciseLogs((prev) => ({
+            ...prev,
+            [activeExIdx]: {
+              weightKg: prev[activeExIdx]?.weightKg ?? "",
+              noWeight: prev[activeExIdx]?.noWeight ?? !requiresExternalWeight,
+              ...patch,
+            },
+          }));
+        };
         return (
         <div className="space-y-6">
           {/* Header */}
@@ -1475,18 +2290,33 @@ export function WorkoutLogPage() {
               {/* Log Entry */}
               <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 space-y-4">
                 <p className="text-xs text-zinc-600 uppercase tracking-wider">Ghi chép</p>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={activeLog.noWeight ? "" : activeLog.weightKg}
+                    onChange={(e) => updateActiveLog({ weightKg: e.target.value, noWeight: false })}
+                    disabled={activeLog.noWeight}
                     placeholder={curEx.type === "cardio" ? "Nhập thời gian (phút)..." : "Nhập tạ (kg)..."}
                     className="flex-1 px-5 py-4 rounded-xl bg-zinc-800/30 border border-zinc-700/25 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/25 focus:ring-1 focus:ring-emerald-500/10 focus:shadow-[0_0_12px_rgba(16,185,129,0.06)] transition-all"
                   />
-                  <button className="w-14 h-14 rounded-xl bg-emerald-500 flex items-center justify-center hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-95">
-                    <Plus className="w-5 h-5 text-black" />
+                  <button
+                    type="button"
+                    onClick={() => updateActiveLog({ noWeight: !activeLog.noWeight, weightKg: "" })}
+                    disabled={!requiresExternalWeight}
+                    className={`px-4 h-14 rounded-xl border text-sm font-medium transition-all ${
+                      activeLog.noWeight
+                        ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                        : "border-zinc-700/40 bg-zinc-800/30 text-zinc-300 hover:bg-zinc-800"
+                    } disabled:cursor-default`}
+                  >
+                    Không dùng tạ
                   </button>
                 </div>
+                {requiresExternalWeight && !activeLog.noWeight && (
+                  <p className="text-[11px] text-amber-300/80">Bắt buộc nhập tổng kg tạ trước khi hoàn thành bài này.</p>
+                )}
                 <button className="flex items-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 transition-colors">
                   <MessageSquare className="w-3.5 h-3.5" /> Thêm ghi chú
                 </button>
@@ -1503,9 +2333,9 @@ export function WorkoutLogPage() {
                 </button>
                 <button
                   onClick={handleCompleteExercise}
-                  disabled={isCompleted}
+                  disabled={isCompleted || isCompletingWorkout}
                   className={`py-3.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${
-                    isCompleted
+                    isCompleted || isCompletingWorkout
                       ? "bg-emerald-500/10 border border-emerald-500/15 text-emerald-500/50 cursor-not-allowed"
                       : "bg-emerald-500 text-black hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98]"
                   }`}
@@ -1687,22 +2517,183 @@ export function WorkoutLogPage() {
       )}
 
       {/* ═══════════════ CALENDAR SCHEDULE MODAL ═══════════════ */}
+      {showManualBuilder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowManualBuilder(false)}>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div className="relative w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg text-white">Tạo chương trình thủ công</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Chọn lịch trong tuần, rồi tự custom bài tập cho từng buổi.</p>
+              </div>
+              <button onClick={() => setShowManualBuilder(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+                <X className="w-4 h-4 text-zinc-400" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <label className="space-y-1 md:col-span-2">
+                <span className="block text-xs font-semibold text-zinc-400">Tên chương trình</span>
+                <input value={manualProgramName} onChange={(event) => setManualProgramName(event.target.value)} className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50" />
+              </label>
+              <label className="space-y-1">
+                <span className="block text-xs font-semibold text-zinc-400">Ngày bắt đầu</span>
+                <input type="date" value={manualStartDate} onChange={(event) => setManualStartDate(event.target.value)} className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50 [color-scheme:dark]" />
+              </label>
+              <label className="space-y-1">
+                <span className="block text-xs font-semibold text-zinc-400">Số tuần</span>
+                <input type="number" min={1} max={52} value={manualDurationWeeks} onChange={(event) => setManualDurationWeeks(event.target.value)} className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50" />
+              </label>
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-zinc-100 font-semibold">Số buổi và ngày tập</p>
+                  <p className="text-xs text-zinc-500">Chọn đúng số ngày bằng số buổi/tuần.</p>
+                </div>
+                <select value={manualDaysPerWeek} onChange={(event) => updateManualDaysPerWeek(Number(event.target.value))} className="rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/50">
+                  {[1, 2, 3, 4, 5, 6, 7].map((value) => <option key={value} value={value}>{value} buổi/tuần</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                {MANUAL_WEEKDAYS.map((weekday) => {
+                  const active = manualSelectedWeekdays.includes(weekday.value);
+                  return (
+                    <button key={weekday.value} type="button" onClick={() => toggleManualWeekday(weekday.value)} className={`rounded-xl border px-3 py-2 text-sm transition-colors ${active ? "border-emerald-500/35 bg-emerald-500/15 text-emerald-300" : "border-zinc-800 bg-zinc-900 text-zinc-500 hover:text-zinc-200"}`}>
+                      <span className="block font-semibold">{weekday.short}</span>
+                      <span className="block text-[10px] opacity-70">{weekday.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {manualDays.map((day, dayIndex) => (
+                <div key={day.dayNumber} className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-semibold">{day.dayNumber}</span>
+                    <input value={day.title} onChange={(event) => setManualDays((previous) => previous.map((item, index) => index === dayIndex ? { ...item, title: event.target.value } : item))} className="flex-1 rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/50" />
+                    <button type="button" onClick={() => { setManualEditingDayIndex(dayIndex); clearExerciseFilters(); setReplaceExerciseIndex(null); setShowAddExercise(true); }} className="px-3 py-2 rounded-xl bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Thêm bài</button>
+                  </div>
+                  <div className="space-y-2">
+                    {day.exercises.length === 0 ? (
+                      <p className="text-xs text-zinc-500 rounded-lg border border-dashed border-zinc-800 p-3">Chưa có bài tập.</p>
+                    ) : day.exercises.map((exercise, exerciseIndex) => (
+                      <div key={`${exercise.exerciseId}-${exerciseIndex}`} className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs text-zinc-100">{exerciseIndex + 1}. {exercise.exerciseName}</p>
+                          <p className="text-[10px] text-zinc-500">{exercise.sets}x{exercise.reps} · nghỉ {exercise.restSeconds}s</p>
+                        </div>
+                        <button type="button" onClick={() => setManualDays((previous) => previous.map((item, index) => index === dayIndex ? { ...item, exercises: item.exercises.filter((_, removeIndex) => removeIndex !== exerciseIndex) } : item))} className="h-8 w-8 rounded-lg border border-red-500/20 bg-red-500/10 text-red-300 flex items-center justify-center hover:bg-red-500/20">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={() => setShowManualBuilder(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
+              <button onClick={handleCreateManualProgram} disabled={savingManualProgram} className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm font-semibold hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
+                {savingManualProgram ? "Đang lưu..." : "Lưu chương trình thủ công"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCalendarAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowCalendarAdd(false)}>
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-6" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg text-white">Lịch tập luyện</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">Chọn ngày trong tuần và giờ tập</p>
+                <h2 className="text-lg text-white">Thêm lịch tập</h2>
+                <p className="text-xs text-zinc-500 mt-0.5">Chọn ngày và buổi tập từ chương trình hiện tại</p>
               </div>
               <button onClick={() => setShowCalendarAdd(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
                 <X className="w-4 h-4 text-zinc-400" />
               </button>
             </div>
 
+            {!currentProgram?.days?.length ? (
+              <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4">
+                <p className="text-sm text-amber-100">Bạn chưa có chương trình tập. Hãy tạo AI Plan hoặc tạo chương trình thủ công trước.</p>
+                <button
+                  onClick={() => navigate("/client/plans")}
+                  className="mt-3 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400"
+                >
+                  Tạo AI Plan
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <label className="space-y-1">
+                    <span className="block text-xs font-semibold text-zinc-400">Ngày tập</span>
+                    <input
+                      type="date"
+                      value={scheduleDateInput}
+                      onChange={(event) => setScheduleDateInput(event.target.value)}
+                      className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50 [color-scheme:dark]"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="block text-xs font-semibold text-zinc-400">Buổi tập</span>
+                    <select
+                      value={scheduleProgramDayId}
+                      onChange={(event) => setScheduleProgramDayId(event.target.value)}
+                      className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50"
+                    >
+                      <option value="">Chọn buổi tập</option>
+                      {(currentProgram.days || []).map((day: any) => (
+                        <option key={day.id} value={day.id}>
+                          Ngày {day.dayNumber} - {day.title || "Buổi tập"} ({day.exercises?.length || 0} bài)
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                {(() => {
+                  const day = (currentProgram.days || []).find((item: any) => item.id === scheduleProgramDayId);
+                  const exercises = day?.exercises || [];
+                  return day ? (
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
+                      <div className="text-sm text-zinc-100 font-semibold">{day.title || `Ngày ${day.dayNumber}`}</div>
+                      <div className="mt-2 space-y-1.5 max-h-44 overflow-y-auto">
+                        {exercises.length > 0 ? exercises.map((exercise: any, index: number) => (
+                          <div key={exercise.id || index} className="flex items-center justify-between gap-3 text-xs text-zinc-400">
+                            <span className="truncate">{index + 1}. {exercise.exercise?.exerciseName || "Bài tập"}</span>
+                            <span className="text-zinc-600 shrink-0">{exercise.sets || 3}x{exercise.reps || 10}</span>
+                          </div>
+                        )) : (
+                          <p className="text-xs text-zinc-500">Buổi này chưa có bài tập.</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+
+                <label className="space-y-1 block">
+                  <span className="block text-xs font-semibold text-zinc-400">Ghi chú</span>
+                  <textarea
+                    value={scheduleNotes}
+                    onChange={(event) => setScheduleNotes(event.target.value)}
+                    rows={3}
+                    placeholder="Ghi chú tùy chọn..."
+                    className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 outline-none focus:border-emerald-500/50 resize-none"
+                  />
+                </label>
+              </>
+            )}
+
             {/* ── Step 1: Weekday selection ── */}
-            <div>
+            <div className="hidden">
               <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">1 · Ngày & giờ tập</p>
               <div className="space-y-2">
                 {WD_LABELS.map((label, idx) => {
@@ -1744,7 +2735,7 @@ export function WorkoutLogPage() {
             </div>
 
             {/* Summary */}
-            <div className="rounded-xl bg-emerald-950/20 border border-emerald-500/10 p-3.5 flex items-center gap-3">
+            <div className="hidden rounded-xl bg-emerald-950/20 border border-emerald-500/10 p-3.5 flex items-center gap-3">
               <Calendar className="w-4 h-4 text-emerald-400 shrink-0" />
               <p className="text-xs text-emerald-200/70">
                 <span className="text-emerald-300">{Object.keys(weekdaySlots).length} ngày/tuần</span> → <span className="text-emerald-300">{derivedMarkers.length} buổi</span> trong tháng 4/2026
@@ -1752,7 +2743,7 @@ export function WorkoutLogPage() {
             </div>
 
             {/* ── Step 2: Exceptions ── */}
-            <div>
+            <div className="hidden">
               <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">2 · Ngoại lệ <span className="normal-case text-zinc-700">— bấm ngày để bỏ qua</span></p>
               <div className="rounded-xl bg-zinc-800/20 border border-zinc-800/25 p-4">
                 <div className="grid grid-cols-7 gap-1 text-center mb-2">
@@ -1805,7 +2796,13 @@ export function WorkoutLogPage() {
 
             <div className="flex gap-3">
               <button onClick={() => setShowCalendarAdd(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
-              <button onClick={() => setShowCalendarAdd(false)} className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98]">Lưu lịch</button>
+              <button
+                onClick={handleCreateSchedule}
+                disabled={savingSchedule || !currentProgram?.days?.length}
+                className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {savingSchedule ? "Đang lưu..." : "Lưu lịch tập"}
+              </button>
             </div>
           </div>
         </div>
@@ -1895,60 +2892,179 @@ export function WorkoutLogPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowAddExercise(false)}>
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           <div 
-            className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-zinc-700/30 bg-zinc-900 shadow-2xl shadow-black/50 overflow-hidden"
+            className="relative w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl border border-zinc-700/30 bg-zinc-900 shadow-2xl shadow-black/50 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-zinc-800/50 flex items-center gap-3">
-              <div className="flex-1 relative">
-                <input 
-                  type="text" 
+            <div className="p-4 border-b border-zinc-800/50 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-zinc-100">{replaceExerciseIndex !== null ? "Đổi bài tập" : "Thêm bài tập"}</h3>
+                  <p className="text-xs text-zinc-500">Dữ liệu lấy trực tiếp từ Exercise DB</p>
+                </div>
+                <button onClick={() => setShowAddExercise(false)} className="w-10 h-10 rounded-xl bg-zinc-800/50 flex items-center justify-center hover:bg-zinc-700 transition-colors shrink-0">
+                  <X className="w-4 h-4 text-zinc-400" />
+                </button>
+              </div>
+
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  type="text"
                   value={dbSearch}
                   onChange={(e) => setDbSearch(e.target.value)}
                   placeholder="Tìm bài tập..."
-                  className="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                  className="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
                   autoFocus
                 />
               </div>
-              <button onClick={() => setShowAddExercise(false)} className="w-10 h-10 rounded-xl bg-zinc-800/50 flex items-center justify-center hover:bg-zinc-700 transition-colors shrink-0">
-                <X className="w-4 h-4 text-zinc-400" />
-              </button>
+
+              <div className="flex flex-wrap gap-2">
+                {MUSCLE_FILTERS.map((filter) => {
+                  const active = pickerBodyPart === filter.bodyPart && pickerMuscleGroup === filter.muscleGroup;
+                  return (
+                    <button
+                      key={filter.label}
+                      type="button"
+                      onClick={() => {
+                        setPickerBodyPart(filter.bodyPart);
+                        setPickerMuscleGroup(filter.muscleGroup);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg border text-xs transition-colors ${
+                        active
+                          ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                          : "border-zinc-700/50 bg-zinc-950/40 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                <label className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500" />
+                  </span>
+                  <select
+                    value={pickerEquipment}
+                    onChange={(e) => setPickerEquipment(e.target.value)}
+                    className="w-full appearance-none rounded-xl border border-zinc-800 bg-zinc-950 pl-9 pr-3 py-2 text-xs text-zinc-200 outline-none focus:border-emerald-500/40"
+                  >
+                    <option value="">Tất cả thiết bị</option>
+                    {(exerciseOptions.equipments || []).map((equipment: string) => (
+                      <option key={equipment} value={equipment}>{labelizeEnum(equipment)}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <select
+                  value={pickerActivityType}
+                  onChange={(e) => setPickerActivityType(e.target.value)}
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-200 outline-none focus:border-emerald-500/40"
+                >
+                  <option value="">Tất cả loại bài</option>
+                  {(exerciseOptions.activityTypes || []).map((activity: string) => (
+                    <option key={activity} value={activity}>{labelizeEnum(activity)}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={pickerSort}
+                  onChange={(e) => setPickerSort(e.target.value as "name" | "bodyPart" | "equipment")}
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-200 outline-none focus:border-emerald-500/40"
+                >
+                  <option value="bodyPart">Sắp xếp theo nhóm cơ</option>
+                  <option value="equipment">Sắp xếp theo thiết bị</option>
+                  <option value="name">Sắp xếp A-Z</option>
+                </select>
+
+                <button
+                  type="button"
+                  onClick={clearExerciseFilters}
+                  className="rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800"
+                >
+                  Xóa bộ lọc
+                </button>
+              </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div className="flex-1 overflow-y-auto p-4">
               {dbLoading ? (
-                <div className="py-12 flex items-center justify-center">
-                  <div className="w-6 h-6 border-2 border-emerald-500/30 border-t-emerald-400 rounded-full animate-spin" />
+                <div className="space-y-3">
+                  {[0, 1, 2, 3, 4].map((item) => (
+                    <div key={item} className="h-20 rounded-xl border border-zinc-800/50 bg-zinc-800/20 animate-pulse" />
+                  ))}
                 </div>
-              ) : dbExercises.length === 0 ? (
-                <div className="py-12 text-center text-sm text-zinc-500">
-                  Không tìm thấy bài tập.
+              ) : dbError ? (
+                <div className="py-12 text-center">
+                  <p className="text-sm text-red-300">{dbError}</p>
+                  <button
+                    type="button"
+                    onClick={() => void exercisesQuery.refetch()}
+                    className="mt-3 px-3 py-2 rounded-lg border border-zinc-700 text-xs text-zinc-300 hover:bg-zinc-800"
+                  >
+                    Thử lại
+                  </button>
+                </div>
+              ) : sortedDbExercises.length === 0 ? (
+                <div className="py-12 text-center">
+                  <p className="text-sm text-zinc-500">Không tìm thấy bài tập phù hợp</p>
+                  <button
+                    type="button"
+                    onClick={clearExerciseFilters}
+                    className="mt-3 px-3 py-2 rounded-lg border border-zinc-700 text-xs text-zinc-300 hover:bg-zinc-800"
+                  >
+                    Xóa bộ lọc
+                  </button>
                 </div>
               ) : (
-                dbExercises.map((ex: any) => (
-                  <button 
-                    key={ex.id}
-                    onClick={() => handleAddFromDB(ex)}
-                    className="w-full text-left p-3 rounded-xl border border-zinc-800/40 bg-zinc-800/20 hover:bg-zinc-800/60 hover:border-emerald-500/30 transition-all flex items-center gap-4 group"
-                  >
-                    <div className="w-12 h-12 rounded-lg bg-zinc-900 overflow-hidden shrink-0 border border-zinc-700/50">
-                      <ExerciseFlipDemo 
-                        img1={formatVideoUrlToImg(ex.videoUrl, 0)}
-                        img2={formatVideoUrlToImg(ex.videoUrl, 1)}
-                        alt={ex.exerciseName}
-                        className="w-full h-full"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-zinc-200 truncate">{ex.exerciseName}</p>
-                      <div className="flex gap-2 mt-1">
-                        <span className="text-[10px] text-zinc-500">{ex.bodyPart?.replace('_', ' ')}</span>
-                        <span className="text-[10px] text-zinc-600">•</span>
-                        <span className="text-[10px] text-zinc-500">{ex.typeOfEquipment?.replace('_', ' ')}</span>
+                <div className="space-y-5">
+                  {Object.entries(groupedDbExercises).map(([group, exercises]) => {
+                    const groupExercises = exercises as any[];
+                    return (
+                    <section key={group} className="space-y-2">
+                      <div className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm py-1 flex items-center gap-2">
+                        <div className="text-[11px] uppercase tracking-wider text-emerald-300 font-semibold">{group}</div>
+                        <div className="h-px flex-1 bg-zinc-800" />
+                        <div className="text-[10px] text-zinc-500">{groupExercises.length} bài</div>
                       </div>
-                    </div>
-                    <Plus className="w-4 h-4 text-emerald-500/0 group-hover:text-emerald-400 transition-colors" />
-                  </button>
-                ))
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {groupExercises.map((ex: any) => (
+                          <button
+                            key={ex.id}
+                            onClick={() => handleAddFromDB(ex)}
+                            className="w-full text-left p-3 rounded-xl border border-zinc-800/40 bg-zinc-800/20 hover:bg-zinc-800/60 hover:border-emerald-500/30 transition-all flex items-center gap-4 group"
+                          >
+                            <div className="w-14 h-14 rounded-lg bg-zinc-900 overflow-hidden shrink-0 border border-zinc-700/50">
+                              <ExerciseFlipDemo
+                                img1={formatVideoUrlToImg(ex.videoUrl, 0)}
+                                img2={formatVideoUrlToImg(ex.videoUrl, 1)}
+                                alt={ex.exerciseName}
+                                className="w-full h-full"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-zinc-200 truncate">{ex.exerciseName}</p>
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">{labelizeEnum(ex.bodyPart)}</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">{labelizeEnum(ex.typeOfEquipment)}</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">{labelizeEnum(ex.typeOfActivity)}</span>
+                              </div>
+                              {Array.isArray(ex.muscleGroupsActivated) && ex.muscleGroupsActivated.length > 0 && (
+                                <p className="mt-1.5 text-[10px] text-zinc-500 truncate">
+                                  {ex.muscleGroupsActivated.join(", ")}
+                                </p>
+                              )}
+                            </div>
+                            <Plus className="w-4 h-4 text-emerald-500/0 group-hover:text-emerald-400 transition-colors shrink-0" />
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>
@@ -2024,20 +3140,31 @@ function TimeFilterBar({ value, onChange }: { value: TimeFilter; onChange: (v: T
   );
 }
 
-function CalendarGrid({ markers, month, onPrevMonth, onNextMonth, onDayClick }: { 
-  markers?: number[]; 
+type CalendarDayInfo = {
+  title: string;
+  scheduleId: string;
+  exerciseCount: number;
+  programName?: string;
+  sourceType?: string | null;
+  status?: WorkoutScheduleRecord["status"];
+  workoutId?: string | null;
+};
+
+function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth, onDayClick }: {
+  schedulesByDay?: Map<number, CalendarDayInfo[]>;
+  markers?: number[];  // fallback: plain day markers
   month: Date;
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onDayClick: (day: number) => void;
 }) {
   const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-  
+
   const year = month.getFullYear();
   const monthIdx = month.getMonth();
   const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
-  const firstDayOfMonth = new Date(year, monthIdx, 1).getDay(); // 0=Sun, 1=Mon...
-  const offset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1; // Adjust to Mon-start
+  const firstDayOfMonth = new Date(year, monthIdx, 1).getDay();
+  const offset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
   const monthLabel = month.toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -2049,20 +3176,29 @@ function CalendarGrid({ markers, month, onPrevMonth, onNextMonth, onDayClick }: 
   const todayDate = new Date();
   const isCurrentMonth = todayDate.getFullYear() === year && todayDate.getMonth() === monthIdx;
   const todayDay = isCurrentMonth ? todayDate.getDate() : -1;
-  
+
+  // Use schedulesByDay if available, else fall back to markers[]
+  const hasSchedules = schedulesByDay && schedulesByDay.size > 0;
   const activeMarkers = markers ?? [];
+
+  // Short title: truncate at first " + " or limit chars
+  function shortTitle(title: string): string {
+    const parts = title.split(/\s*\+\s*/);
+    if (parts.length >= 2) return `${parts[0].trim()} + ${parts[1].trim()}`;
+    return title.slice(0, 14);
+  }
 
   return (
     <div>
       <div className="flex items-center justify-center gap-6 mb-4">
-        <button 
+        <button
           onClick={onPrevMonth}
           className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors"
         >
           <ChevronLeft className="w-4 h-4 text-zinc-500" />
         </button>
         <span className="text-sm text-zinc-200 min-w-[120px] text-center">{monthLabel}</span>
-        <button 
+        <button
           onClick={onNextMonth}
           className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors"
         >
@@ -2070,25 +3206,44 @@ function CalendarGrid({ markers, month, onPrevMonth, onNextMonth, onDayClick }: 
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1.5 text-center">
-        {dayLabels.map((d) => <span key={d} className="text-[10px] text-zinc-600 py-1.5 uppercase tracking-wider">{d}</span>)}
+        {dayLabels.map((d) => <span key={d} className="text-[10px] text-zinc-600 py-1 uppercase tracking-wider">{d}</span>)}
         {cells.map((day, i) => {
-          if (day === null) return <span key={`e-${i}`} />;
-          const isTraining = activeMarkers.includes(day);
+          if (day === null) return <span key={`e-${i}`} className="h-[52px]" />;
+          const dayInfos = hasSchedules ? (schedulesByDay!.get(day) ?? []) : [];
+          const isTraining = hasSchedules ? dayInfos.length > 0 : activeMarkers.includes(day);
           const isToday = day === todayDay;
+          const firstInfo = dayInfos[0];
+          const extraCount = dayInfos.length > 1 ? dayInfos.length - 1 : 0;
+
           return (
             <div
               key={`d-${day}`}
               onClick={() => onDayClick(day)}
-              className={`relative w-full aspect-square flex items-center justify-center rounded-xl text-xs transition-all cursor-pointer ${
-                isToday
-                  ? "bg-emerald-500 text-black shadow-[0_0_14px_rgba(16,185,129,0.3)]"
-                  : isTraining
-                  ? "bg-emerald-500/6 text-emerald-300 border border-emerald-500/12 hover:bg-emerald-500/12"
-                  : "text-zinc-500 hover:bg-zinc-800/30"
+              title={firstInfo
+                ? `${firstInfo.title}${firstInfo.exerciseCount ? ` · ${firstInfo.exerciseCount} bài` : ''}${firstInfo.programName ? `\n${firstInfo.programName}` : ''}`
+                : undefined}
+              className={`relative w-full h-[52px] flex flex-col items-center pt-1.5 rounded-xl text-xs transition-all cursor-pointer overflow-hidden ${
+                isTraining
+                  ? "bg-emerald-500 text-black shadow-[0_0_14px_rgba(16,185,129,0.3)] hover:bg-emerald-400"
+                  : isToday
+                  ? "border border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                  : "text-zinc-500 hover:bg-zinc-800/30 hover:text-zinc-400"
               }`}
             >
-              {day}
-              {isTraining && !isToday && <span className="absolute bottom-1 w-1 h-1 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(16,185,129,0.4)]" />}
+              <span className={`text-[11px] font-medium leading-none ${isTraining ? 'text-black font-bold' : isToday ? 'text-emerald-400' : ''}`}>
+                {day}
+              </span>
+              {isTraining && firstInfo && (
+                <span className="mt-[3px] text-[7px] leading-tight text-black/80 truncate w-full text-center px-0.5">
+                  {shortTitle(firstInfo.title)}
+                </span>
+              )}
+              {isTraining && !firstInfo && (
+                <span className="mt-[5px] block w-1.5 h-1.5 rounded-full bg-black/60 shadow-[0_0_4px_rgba(0,0,0,0.2)]" />
+              )}
+              {extraCount > 0 && isTraining && (
+                <span className="text-[6.5px] text-black/70 font-semibold leading-none mt-0.5">+{extraCount}</span>
+              )}
             </div>
           );
         })}

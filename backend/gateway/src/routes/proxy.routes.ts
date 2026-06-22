@@ -414,7 +414,7 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
   try {
     const authHeader = req.headers.authorization;
 
-    const [usersRes, ptsRes, statsRes, probes] = await Promise.all([
+    const [usersResult, ptsResult, statsResult, probesResult] = await Promise.allSettled([
       axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
         headers: authHeader ? { Authorization: authHeader } : undefined,
         timeout: 6000,
@@ -430,9 +430,27 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
       probeServices(),
     ]);
 
-    const users = ((usersRes.data?.users || []) as AuthUser[]).filter((u) => u.role !== 'ADMIN');
-    const ptProfiles = (ptsRes.data?.pts || []) as PTProfile[];
-    const activeContracts = statsRes.data?.activeContracts || 0;
+    const usersRes = usersResult.status === 'fulfilled' ? usersResult.value : null;
+    const ptsRes = ptsResult.status === 'fulfilled' ? ptsResult.value : null;
+    const statsRes = statsResult.status === 'fulfilled' ? statsResult.value : null;
+    const probes = probesResult.status === 'fulfilled' ? probesResult.value : [];
+
+    if (usersResult.status === 'rejected') {
+      logger.error({ error: usersResult.reason?.message }, 'Admin dashboard users upstream failed');
+    }
+    if (ptsResult.status === 'rejected') {
+      logger.error({ error: ptsResult.reason?.message }, 'Admin dashboard PT upstream failed');
+    }
+    if (statsResult.status === 'rejected') {
+      logger.error({ error: statsResult.reason?.message }, 'Admin dashboard stats upstream failed');
+    }
+    if (probesResult.status === 'rejected') {
+      logger.error({ error: probesResult.reason?.message }, 'Admin dashboard monitor probe failed');
+    }
+
+    const users = ((usersRes?.data?.users || []) as AuthUser[]).filter((u) => u.role !== 'ADMIN');
+    const ptProfiles = (ptsRes?.data?.pts || []) as PTProfile[];
+    const activeContracts = statsRes?.data?.activeContracts || 0;
     const ptSet = new Set(ptProfiles.filter((p) => p.isPT).map((p) => p.userId));
 
     const totalUsers = users.length;
@@ -469,6 +487,32 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
     const trainerCount = users.filter((u) => u.role === 'PT' || ptSet.has(u.id)).length;
 
     const monitorSummary = buildMonitorSummary(probes);
+    const upstreamWarnings = [
+      usersResult.status === 'rejected'
+        ? {
+            level: 'warning',
+            service: 'Auth Service',
+            message: 'Unable to fetch user list for dashboard. Showing partial data.',
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          }
+        : null,
+      ptsResult.status === 'rejected'
+        ? {
+            level: 'warning',
+            service: 'User Service',
+            message: 'Unable to fetch PT profiles for dashboard. Showing partial data.',
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          }
+        : null,
+      statsResult.status === 'rejected'
+        ? {
+            level: 'warning',
+            service: 'User Service',
+            message: 'Unable to fetch admin stats for dashboard. Showing partial data.',
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          }
+        : null,
+    ].filter(Boolean);
 
     const recentUsers = users
       .slice(0, 4)
@@ -482,6 +526,7 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
 
     const alerts = [
       ...monitorSummary.recentErrors,
+      ...upstreamWarnings,
       pendingPT > 0
         ? {
             level: 'info',
@@ -511,7 +556,7 @@ router.get('/admin/dashboard', authMiddleware, requireRoles('ADMIN'), async (req
         ],
         systemAlerts: alerts,
         recentUsers,
-        ocrStats: statsRes.data?.ocrStats || { total: 0, extracted: 0, manual: 0, pending: 0 },
+        ocrStats: statsRes?.data?.ocrStats || { total: 0, extracted: 0, manual: 0, pending: 0 },
         monitor: {
           healthScore: monitorSummary.healthScore,
           healthyCount: monitorSummary.healthyCount,
@@ -1346,10 +1391,129 @@ router.use(
   }),
 );
 
+// Dedicated SSE streaming route for /plans/explain/stream.
+// Keep this before the generic /plans proxy so plan explanations are not buffered.
+router.post(
+  '/plans/explain/stream',
+  authMiddleware,
+  (req: Request, res: Response) => {
+    const userId = req.headers['x-user-id'];
+    const userEmail = req.headers['x-user-email'];
+    const userRole = req.headers['x-user-role'];
+    const authorization = req.headers.authorization;
+
+    const targetUrl = new URL(AI_SERVICE_URL);
+    const isHttps = AI_SERVICE_URL.startsWith('https');
+    const transport = isHttps ? https : http;
+    const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+
+    const bodyChunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => bodyChunks.push(chunk));
+    req.on('end', () => {
+      const bodyData = Buffer.concat(bodyChunks);
+
+      const requestHeaders: http.OutgoingHttpHeaders = {
+        'content-type': 'application/json',
+        'content-length': bodyData.length,
+        'x-internal-token': INTERNAL_SERVICE_SECRET,
+      };
+      if (typeof userId === 'string') requestHeaders['x-user-id'] = userId;
+      if (typeof userEmail === 'string') requestHeaders['x-user-email'] = userEmail;
+      if (typeof userRole === 'string') requestHeaders['x-user-role'] = userRole;
+      if (typeof authorization === 'string') requestHeaders['authorization'] = authorization;
+
+      const proxyReq = transport.request(
+        {
+          hostname: targetUrl.hostname,
+          port: targetUrl.port ? Number(targetUrl.port) : (isHttps ? 443 : 80),
+          path: `/plans/explain/stream${query}`,
+          method: 'POST',
+          headers: requestHeaders,
+        },
+        (proxyRes) => {
+          res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers as Record<string, string | string[]>);
+          proxyRes.pipe(res, { end: true });
+        },
+      );
+
+      proxyReq.on('error', (err) => {
+        logger.error({ err }, 'Plan explain SSE stream error');
+        if (!res.headersSent) {
+          res.status(503).json({
+            success: false,
+            error: { code: 'SERVICE_UNAVAILABLE', message: 'AI service unavailable' },
+          });
+        } else {
+          res.end();
+        }
+      });
+
+      res.on('close', () => {
+        if (!res.writableEnded && !proxyReq.destroyed) {
+          proxyReq.destroy();
+        }
+      });
+      proxyReq.write(bodyData);
+      proxyReq.end();
+    });
+
+    req.on('error', (err) => {
+      logger.error({ err }, 'Plan explain stream request read error');
+      if (!res.headersSent) {
+        res.status(400).json({ success: false, error: { code: 'REQUEST_ERROR', message: 'Request error' } });
+      }
+    });
+  },
+);
+
 // Protected — Plans (AI Service)
+router.post(
+  '/plans/nutrition/:planId/save-to-nutrition',
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    const userId = req.headers['x-user-id'];
+    const userEmail = req.headers['x-user-email'];
+    const userRole = req.headers['x-user-role'];
+    const authorization = req.headers.authorization;
+
+    try {
+      const response = await axios.post(
+        `${AI_SERVICE_URL}/plans/nutrition/${encodeURIComponent(req.params.planId)}/save-to-nutrition`,
+        req.body,
+        {
+          timeout: 30000,
+          headers: {
+            ...(typeof userId === 'string' ? { 'x-user-id': userId } : {}),
+            ...(typeof userEmail === 'string' ? { 'x-user-email': userEmail } : {}),
+            ...(typeof userRole === 'string' ? { 'x-user-role': userRole } : {}),
+            ...(typeof authorization === 'string' ? { Authorization: authorization } : {}),
+            'x-internal-token': INTERNAL_SERVICE_SECRET,
+          },
+          validateStatus: () => true,
+        },
+      );
+
+      res.status(response.status).json(response.data);
+    } catch (err) {
+      logger.error({ err }, 'Nutrition plan save proxy error');
+      res.status(503).json({
+        success: false,
+        error: {
+          code: 'SERVICE_UNAVAILABLE',
+          message: 'AI service is unavailable',
+        },
+      });
+    }
+  },
+);
+
 router.use(
   '/plans',
   authMiddleware,
+  (req, _res, next) => {
+    req.headers['x-internal-token'] = INTERNAL_SERVICE_SECRET;
+    next();
+  },
   createProxyMiddleware({
     target: AI_SERVICE_URL,
     changeOrigin: true,
@@ -1583,7 +1747,7 @@ router.use(
   }),
 );
 
-// Public — Vietnam location data (provinces/wards) — no auth required
+// Public — Locations (User Service)
 router.use(
   '/locations',
   createProxyMiddleware({

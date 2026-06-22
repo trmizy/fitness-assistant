@@ -31,7 +31,7 @@ export const profileRepository = {
     }),
 
   /** List approved PTs with optional filters */
-  findPTs: (filters: {
+  findPTs: async (filters: {
     q?: string;
     minPrice?: number;
     maxPrice?: number;
@@ -112,65 +112,94 @@ export const profileRepository = {
     const take = filters.limit ?? 50;
     const skip = filters.page ? (filters.page - 1) * take : 0;
 
-    return prisma.userProfile.findMany({
+    const ptApplicationSelect = {
+      status: true,
+      serviceMode: true,
+      operatingAreas: true,
+      gymAffiliation: true,
+      desiredSessionPrice: true,
+      packagePrice: true,
+      sessionsPerPackage: true,
+      monthlyProgramPrice: true,
+      additionalPricingNotes: true,
+      onlinePricePerSession: true,
+      offlinePricePerSession: true,
+      onlinePackagePrice: true,
+      offlinePackagePrice: true,
+      professionalBio: true,
+      yearsOfExperience: true,
+      educationBackground: true,
+      previousWorkExperience: true,
+      trainingMethodsApproach: true,
+      targetClientGroups: true,
+      primaryTrainingGoals: true,
+      availableDays: true,
+      availableFrom: true,
+      availableUntil: true,
+      portfolioUrl: true,
+      linkedinUrl: true,
+      websiteUrl: true,
+      socialLinks: true,
+      mainSpecialties: true,
+      certificates: {
+        select: {
+          certificateName: true,
+          issuingOrganization: true,
+          isCurrentlyValid: true,
+          certificationStatus: true,
+          issueDate: true,
+          expirationDate: true,
+        },
+      },
+      // NOT included: residenceAddressLine, residenceProvinceCode, residenceWardCode, applicationTrainingLocations
+    };
+
+    const baseArgs = {
       where: profileWhere,
       orderBy,
       take,
       skip,
-      include: {
-        trainingLocations: {
-          where: { isActive: true },
-          include: {
-            province: { select: { name: true } },
-            ward: { select: { name: true } },
-          },
-          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
-        },
-        ptApplication: {
-          select: {
-            status: true,
-            serviceMode: true,
-            operatingAreas: true,
-            gymAffiliation: true,
-            desiredSessionPrice: true,
-            packagePrice: true,
-            sessionsPerPackage: true,
-            monthlyProgramPrice: true,
-            additionalPricingNotes: true,
-            onlinePricePerSession: true,
-            offlinePricePerSession: true,
-            onlinePackagePrice: true,
-            offlinePackagePrice: true,
-            professionalBio: true,
-            yearsOfExperience: true,
-            educationBackground: true,
-            previousWorkExperience: true,
-            trainingMethodsApproach: true,
-            targetClientGroups: true,
-            primaryTrainingGoals: true,
-            availableDays: true,
-            availableFrom: true,
-            availableUntil: true,
-            portfolioUrl: true,
-            linkedinUrl: true,
-            websiteUrl: true,
-            socialLinks: true,
-            mainSpecialties: true,
-            certificates: {
-              select: {
-                certificateName: true,
-                issuingOrganization: true,
-                isCurrentlyValid: true,
-                certificationStatus: true,
-                issueDate: true,
-                expirationDate: true,
-              },
+    };
+
+    try {
+      return await prisma.userProfile.findMany({
+        ...baseArgs,
+        include: {
+          trainingLocations: {
+            where: { isActive: true },
+            include: {
+              province: { select: { name: true } },
+              ward: { select: { name: true } },
             },
-            // NOT included: residenceAddressLine, residenceProvinceCode, residenceWardCode, applicationTrainingLocations
+            orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
           },
+          ptApplication: { select: ptApplicationSelect },
         },
-      },
-    });
+      });
+    } catch (error: any) {
+      const message = String(error?.message || '');
+      const trainingLocationMismatch =
+        message.includes('trainingLocations')
+        || message.includes('pt_training_locations')
+        || message.includes('Unknown field')
+        || message.includes('Unknown argument')
+        || message.includes('does not exist');
+
+      if (!trainingLocationMismatch) {
+        throw error;
+      }
+
+      const fallbackWhere: any = { ...profileWhere };
+      delete fallbackWhere.trainingLocations;
+
+      return prisma.userProfile.findMany({
+        ...baseArgs,
+        where: fallbackWhere,
+        include: {
+          ptApplication: { select: ptApplicationSelect },
+        },
+      });
+    }
   },
 
   findPTApplicationByUserId: (userId: string) =>

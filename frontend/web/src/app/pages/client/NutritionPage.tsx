@@ -1,13 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Utensils, Plus, Search, TrendingUp, Loader2, X, ChevronLeft, ChevronRight,
   Pencil, Trash2, Target, AlertTriangle, CheckCircle2, Info,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, Check, SkipForward, Minus, CalendarDays, Zap,
+  Calendar, Sparkles,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
 import { nutritionService, foodService } from "../../services/api";
 import { translateFoodQuery } from "../../utils/foodSearchSynonyms";
 import { toast } from "sonner";
@@ -143,6 +145,7 @@ function pct(consumed: number, target: number): number {
 
 export function NutritionPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Date navigation
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -190,12 +193,177 @@ export function NutritionPage() {
     new Set(["breakfast", "lunch", "dinner", "snack"]),
   );
 
+  // Partial meal modal (full redesign state)
+  const [partialMeal, setPartialMeal] = useState<{
+    mealId: string;
+    mealName: string;
+    plannedCal: number;
+    plannedProtein: number;
+    plannedCarbs: number;
+    plannedFat: number;
+  } | null>(null);
+  const [partialMode, setPartialMode] = useState<'pct' | 'amount'>('pct');
+  const [partialPct, setPartialPct] = useState("50");
+  // Amount mode fields
+  const [partialCal, setPartialCal] = useState("");
+  const [partialPro, setPartialPro] = useState("");
+  const [partialCarb, setPartialCarb] = useState("");
+  const [partialFatAmt, setPartialFatAmt] = useState("");
+
+  // Calendar state
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+
   // ── Data fetching ────────────────────────────────────────────────────────
 
   const { data: todayRaw, isLoading: loadingLogs } = useQuery({
     queryKey: ["nutrition-logs", dateStr],
     queryFn: () => nutritionService.getLogs(dateStr, dateStr),
   });
+
+  // Daily nutrition task from active program
+  // staleTime: 0 ensures we never serve stale plan data after actions like deactivate/stop
+  const { data: dailyTask, isLoading: loadingTask, refetch: refetchDailyTask } = useQuery({
+    queryKey: ["nutrition-daily-task", dateStr],
+    queryFn: () => nutritionService.getDailyTask(dateStr),
+    staleTime: 0,
+  });
+
+  // Monthly summary for calendar
+  const calMonthStart = formatLocalDate(calendarMonth);
+  const calMonthEnd   = formatLocalDate(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0));
+  const { data: monthlySummaryRaw, refetch: refetchMonthly } = useQuery({
+    queryKey: ["nutrition-monthly-summary", calMonthStart],
+    queryFn:  () => nutritionService.getMonthlySummary(calMonthStart, calMonthEnd),
+  });
+  const monthlySummary: Record<string, string> = {};
+  for (const item of (monthlySummaryRaw ?? [])) {
+    monthlySummary[item.date] = item.status;
+  }
+
+  const completeMealMutation = useMutation({
+    mutationFn: ({ mealId, status, pct, overrideCalories, overrideProtein, overrideCarbs, overrideFat }: {
+      mealId: string;
+      status: 'COMPLETED' | 'PARTIAL' | 'SKIPPED' | 'PENDING';
+      pct?: number;
+      overrideCalories?: number;
+      overrideProtein?: number;
+      overrideCarbs?: number;
+      overrideFat?: number;
+    }) =>
+      nutritionService.upsertMealCompletion(mealId, dateStr, status, { percentConsumed: pct, overrideCalories, overrideProtein, overrideCarbs, overrideFat }),
+    onSuccess: () => {
+      void refetchDailyTask();
+      void refetchMonthly();
+      void queryClient.invalidateQueries({ queryKey: ["nutrition-logs", dateStr] });
+    },
+    onError: () => toast.error('Không thể cập nhật trạng thái bữa ăn.'),
+  });
+
+  const undoMealMutation = useMutation({
+    mutationFn: (mealId: string) => nutritionService.deleteMealCompletion(mealId, dateStr),
+    onSuccess: () => { void refetchDailyTask(); void refetchMonthly(); void queryClient.invalidateQueries({ queryKey: ["nutrition-logs", dateStr] }); },
+    onError: () => toast.error('Không thể hoàn tác.'),
+  });
+
+  const deletePlanMealMutation = useMutation({
+    mutationFn: (mealId: string) => nutritionService.deletePlanMeal(mealId),
+    onSuccess: () => {
+      void refetchDailyTask();
+      void refetchMonthly();
+      toast.success('Đã xoá bữa ăn khỏi kế hoạch.');
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Không thể xoá bữa ăn.'),
+  });
+
+  const deactivateProgramMutation = useMutation({
+    mutationFn: (programId: string) => nutritionService.deactivateNutritionProgram(programId),
+    onSuccess: (result) => {
+      // Remove from cache immediately so stale plan data never flashes in the UI
+      queryClient.removeQueries({ queryKey: ['nutrition-daily-task'] });
+      queryClient.removeQueries({ queryKey: ['nutrition-current-program'] });
+      queryClient.removeQueries({ queryKey: ['nutrition-monthly-summary'] });
+      // Then refetch to populate with fresh (null/empty) data
+      void refetchDailyTask();
+      void refetchMonthly();
+      if (result.hadCompletedMeals) {
+        toast.success('Đã dừng kế hoạch. Lịch sử bữa ăn đã hoàn thành được giữ lại.');
+      } else {
+        toast.success('Đã xoá toàn bộ kế hoạch dinh dưỡng.');
+      }
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Không thể dừng kế hoạch.'),
+  });
+
+  // Confirm dialogs state
+  const [confirmDeleteMeal, setConfirmDeleteMeal] = useState<{ mealId: string; mealName: string } | null>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+
+  // ── Manual edit state ─────────────────────────────────────────────────────
+  // Inline quantity edit for a plan item
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingQty, setEditingQty] = useState('');
+  // Add-item modal
+  const [addItemMealId, setAddItemMealId] = useState<string | null>(null);
+  const [foodSearch, setFoodSearch] = useState('');
+  const [foodResults, setFoodResults] = useState<any[]>([]);
+  const [foodSearchLoading, setFoodSearchLoading] = useState(false);
+  const [selectedFoodForAdd, setSelectedFoodForAdd] = useState<any | null>(null);
+  const [addItemQty, setAddItemQty] = useState('100');
+
+  // ── Manual edit mutations ─────────────────────────────────────────────────
+  const updateItemMutation = useMutation({
+    mutationFn: ({ itemId, quantity }: { itemId: string; quantity: number }) =>
+      nutritionService.updateMealItem(itemId, { quantity }),
+    onSuccess: () => { void refetchDailyTask(); setEditingItemId(null); toast.success('Đã cập nhật lượng.'); },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Không thể cập nhật.'),
+  });
+
+  const deleteItemMutation = useMutation({
+    mutationFn: (itemId: string) => nutritionService.deleteMealItem(itemId),
+    onSuccess: () => { void refetchDailyTask(); toast.success('Đã xoá món.'); },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Không thể xoá món.'),
+  });
+
+  const addItemMutation = useMutation({
+    mutationFn: ({ mealId, food, qty }: { mealId: string; food: any; qty: number }) => {
+      const factor = qty / 100;
+      return nutritionService.addMealItem(mealId, {
+        foodId: food.id,
+        quantity: qty,
+        unit: 'g',
+        calories: Math.round((food.calories ?? 0) * factor),
+        protein: Math.round(((food.protein ?? 0) * factor) * 10) / 10,
+        carbs: Math.round(((food.carbs ?? 0) * factor) * 10) / 10,
+        fat: Math.round(((food.fats ?? food.fat ?? 0) * factor) * 10) / 10,
+      });
+    },
+    onSuccess: () => {
+      void refetchDailyTask();
+      setAddItemMealId(null);
+      setSelectedFoodForAdd(null);
+      setFoodSearch('');
+      setFoodResults([]);
+      toast.success('Đã thêm món vào kế hoạch.');
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.error || 'Không thể thêm món.'),
+  });
+
+  // Food search handler (debounced)
+  const handleFoodSearch = useCallback(async (q: string) => {
+    setFoodSearch(q);
+    if (q.trim().length < 2) { setFoodResults([]); return; }
+    setFoodSearchLoading(true);
+    try {
+      const { foodService } = await import('../../services/api');
+      const results = await foodService.search(q.trim());
+      setFoodResults(Array.isArray(results) ? results.slice(0, 20) : []);
+    } catch { setFoodResults([]); }
+    finally { setFoodSearchLoading(false); }
+  }, []);
+
   const todayLogs: NutritionLog[] = Array.isArray(todayRaw)
     ? (todayRaw as RawNutritionLog[]).map(normalizeLog)
     : [];
@@ -218,11 +386,14 @@ export function NutritionPage() {
 
   // queryKey uses translation.searchQuery intentionally:
   // "ức gà" and "uc ga" both map to "chicken breast" → shared cache entry
-  const { data: foodResults = [] as FoodItem[], isFetching: searchingFood } = useQuery({
+  const { data: searchedFoods = [] as FoodItem[], isFetching: searchingFood } = useQuery({
     queryKey: ["food-search", translation.searchQuery],
     queryFn: () => foodService.search(translation.searchQuery),
     enabled: translation.searchQuery.trim().length >= 2,
   });
+
+  // getCurrentProgram removed — plan data is already available via dailyTask (getDailyTask)
+  // Using dailyTask.meals (planMeal) as the single source of truth for planned items
 
   // ── Sync form states ────────────────────────────────────────────────────
 
@@ -254,6 +425,8 @@ export function NutritionPage() {
 
   // ── Derived data ─────────────────────────────────────────────────────────
 
+  // mealGroups now contains ONLY actual NutritionLog entries.
+  // Planned items are shown separately in the "Theo kế hoạch" section via planMeal (from dailyTask).
   const mealGroups: Record<MealType, NutritionLog[]> = {
     breakfast: [],
     lunch: [],
@@ -264,21 +437,29 @@ export function NutritionPage() {
     if (mealGroups[l.mealType]) mealGroups[l.mealType].push(l);
   });
 
-  const totals = todayLogs.reduce(
-    (acc, l) => ({
-      calories: acc.calories + l.calories,
-      protein: acc.protein + (l.protein ?? 0),
-      carbs: acc.carbs + (l.carbs ?? 0),
-      fat: acc.fat + (l.fat ?? 0),
-    }),
-    { calories: 0, protein: 0, carbs: 0, fat: 0 },
-  );
+  // Totals from logs are the fallback; completed plan meals take priority when available.
+  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  todayLogs.forEach(l => {
+    totals.calories += l.calories || 0;
+    totals.protein  += l.protein  || 0;
+    totals.carbs    += l.carbs    || 0;
+    totals.fat      += l.fat      || 0;
+  });
+  const hasDailyTaskItems = Array.isArray((dailyTask as any)?.meals)
+    && (dailyTask as any).meals.some((meal: any) => Array.isArray(meal.items) && meal.items.length > 0);
+  const hasVisibleMealItems = hasDailyTaskItems || todayLogs.length > 0;
+  const actualNutrition = {
+    calories: dailyTask?.actualProgress?.calories ?? totals.calories,
+    protein: dailyTask?.actualProgress?.protein ?? totals.protein,
+    carbs: dailyTask?.actualProgress?.carbs ?? totals.carbs,
+    fat: dailyTask?.actualProgress?.fat ?? totals.fat,
+  };
 
-  const pieTotal = Math.round(totals.protein * 4) + Math.round(totals.carbs * 4) + Math.round(totals.fat * 9);
+  const pieTotal = Math.round(actualNutrition.protein * 4) + Math.round(actualNutrition.carbs * 4) + Math.round(actualNutrition.fat * 9);
   const pieData = [
-    { name: "Protein", value: Math.round(totals.protein * 4) },
-    { name: "Carbs", value: Math.round(totals.carbs * 4) },
-    { name: "Fat", value: Math.round(totals.fat * 9) },
+    { name: "Protein", value: Math.round(actualNutrition.protein * 4) },
+    { name: "Carbs", value: Math.round(actualNutrition.carbs * 4) },
+    { name: "Fat", value: Math.round(actualNutrition.fat * 9) },
   ];
 
   const weeklyHistory = Array.from({ length: 7 }, (_, i) => {
@@ -295,9 +476,7 @@ export function NutritionPage() {
 
   // Rule-based feedback (tiếng Việt, max 2 alerts)
   const feedback: Array<{ type: "warning" | "success" | "info"; text: string }> = [];
-  if (isToday && todayLogs.length === 0) {
-    feedback.push({ type: "info", text: "Bạn chưa log món nào hôm nay. Hãy bắt đầu ghi lại bữa ăn!" });
-  } else if (isToday && goal) {
+  if (isToday && goal && todayLogs.length > 0) {
     const calPct = totals.calories / goal.calories;
     const protPct = totals.protein / goal.protein;
     const fatPct = totals.fat / goal.fat;
@@ -338,6 +517,9 @@ export function NutritionPage() {
   const invalidateNutrition = () => {
     queryClient.invalidateQueries({ queryKey: ["nutrition-logs"] });
     queryClient.invalidateQueries({ queryKey: ["nutrition-weekly"] });
+    queryClient.invalidateQueries({ queryKey: ["nutrition-daily-task"] });
+    queryClient.invalidateQueries({ queryKey: ["nutrition-monthly-summary"] });
+    queryClient.invalidateQueries({ queryKey: ["current-nutrition-program"] });
   };
 
   const createMutation = useMutation({
@@ -391,6 +573,15 @@ export function NutritionPage() {
   function openAddModal(meal: MealType) {
     setAddMealType(meal);
     setShowAddModal(true);
+  }
+
+  function openDefaultAddModal() {
+    const breakfastMeal = (dailyTask as any)?.meals?.find((meal: any) => meal.mealType === "BREAKFAST");
+    if (breakfastMeal?.id) {
+      setAddItemMealId(breakfastMeal.id);
+      return;
+    }
+    openAddModal("breakfast");
   }
 
   function closeAddModal() {
@@ -542,7 +733,7 @@ export function NutritionPage() {
             <Target className="w-4 h-4" /> Mục tiêu
           </button>
           <button
-            onClick={() => openAddModal("breakfast")}
+            onClick={openDefaultAddModal}
             className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/20"
           >
             <Plus className="w-4 h-4" /> Thêm món
@@ -550,7 +741,22 @@ export function NutritionPage() {
         </div>
       </div>
 
-      {/* ── Date navigation ── */}
+      {/* ── Nutrition Calendar ── */}
+      <NutritionCalendarGrid
+        month={calendarMonth}
+        today={todayStr}
+        selectedDate={dateStr}
+        statusByDate={monthlySummary}
+        onPrevMonth={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
+        onNextMonth={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
+        onDayClick={(dateString) => {
+          const [y, m, d] = dateString.split('-').map(Number);
+          setSelectedDate(new Date(y, m - 1, d));
+        }}
+        onAddClick={openDefaultAddModal}
+      />
+
+      {/* ── Date navigation (mini) ── */}
       <div className="flex items-center gap-3">
         <button
           onClick={prevDay}
@@ -576,7 +782,7 @@ export function NutritionPage() {
         {!isToday && (
           <button
             onClick={() => setSelectedDate(new Date())}
-            className="text-xs text-green-400 hover:text-green-300 transition-colors ml-1"
+            className="text-xs text-orange-400 hover:text-orange-300 transition-colors ml-1"
           >
             Hôm nay
           </button>
@@ -597,13 +803,453 @@ export function NutritionPage() {
         </div>
       )}
 
+      {/* ── Current Nutrition Program ── */}
+      <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h3 className="text-zinc-100 font-bold flex items-center gap-2 text-sm">
+            <Sparkles className="w-4 h-4 text-orange-400" />
+            Kế hoạch dinh dưỡng AI
+          </h3>
+          <p className="text-xs text-zinc-500 mt-1">
+            Tạo và quản lý AI Nutrition Plan tại trang AI Plans. Trang này chỉ hiển thị kế hoạch đã lưu.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/client/plans?tab=nutrition')}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-400 text-black text-sm font-bold transition-colors"
+        >
+          <Sparkles className="w-4 h-4" />
+          Tạo kế hoạch mới
+        </button>
+      </div>
+
+      {/* ── Out-of-range banner: date is outside the 7-day plan ── */}
+      {!loadingTask && dailyTask?.hasProgram && (dailyTask as any).outOfRange && (
+        <div className="flex items-start gap-3 bg-zinc-800/60 border border-zinc-700/40 rounded-xl px-4 py-3">
+          <Info className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-zinc-300">{(dailyTask as any).message}</p>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Kế hoạch: <strong className="text-zinc-300">{dailyTask.program?.name}</strong>
+            </p>
+          </div>
+          <button
+            onClick={() => setSelectedDate(new Date())}
+            className="text-xs text-orange-400 hover:text-orange-300 shrink-0 transition-colors"
+          >
+            Về hôm nay
+          </button>
+        </div>
+      )}
+
+      {/* ── Compact program summary (only when plan active for selected date) ── */}
+      {!loadingTask && dailyTask?.hasProgram && dailyTask.day && !(dailyTask as any).outOfRange && (
+        <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <CalendarDays className="w-4 h-4 text-orange-400 shrink-0" />
+              <span className="text-sm font-bold text-zinc-200">
+                {dailyTask.program?.name ?? 'Kế hoạch dinh dưỡng'}
+              </span>
+              <span className="text-xs text-zinc-500 px-2 py-0.5 bg-zinc-800/80 rounded-full border border-zinc-700/50">
+                Ngày {dailyTask.day.dayNumber}
+              </span>
+            </div>
+            {/* Deactivate program button */}
+            {dailyTask.program?.id && (
+              <button
+                onClick={() => setConfirmDeactivate(true)}
+                className="text-[10px] text-red-400/70 hover:text-red-400 border border-red-500/20 hover:border-red-500/40 px-2 py-1 rounded-lg transition-colors shrink-0"
+              >
+                Dừng kế hoạch
+              </button>
+            )}
+          </div>
+          {/* Progress bar */}
+          {dailyTask.actualProgress && (
+            <>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-zinc-500">Tiến độ hôm nay</span>
+                <span className="text-zinc-400 font-semibold">
+                  {dailyTask.actualProgress.calories} / {dailyTask.program?.dailyCaloriesTarget ?? dailyTask.day.totalCalories ?? 0} kcal
+                </span>
+              </div>
+              <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-500"
+                  style={{ width: `${pct(dailyTask.actualProgress.calories, dailyTask.program?.dailyCaloriesTarget ?? dailyTask.day.totalCalories ?? 2000)}%` }}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── Confirm: Delete plan meal ── */}
+      {confirmDeleteMeal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-zinc-100 font-bold">Xoá bữa ăn?</h3>
+                <p className="text-zinc-500 text-sm mt-1">
+                  Xoá <strong className="text-zinc-300">{confirmDeleteMeal.mealName}</strong> khỏi kế hoạch dinh dưỡng hôm nay. Các bữa đã hoàn thành/đã ăn một phần không thể xoá.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDeleteMeal(null)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-xl hover:bg-zinc-800 transition-colors">Hủy</button>
+              <button
+                onClick={() => { deletePlanMealMutation.mutate(confirmDeleteMeal.mealId); setConfirmDeleteMeal(null); }}
+                disabled={deletePlanMealMutation.isPending}
+                className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
+              >
+                Xoá bữa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm: Deactivate nutrition program ── */}
+      {confirmDeactivate && dailyTask?.program?.id && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl w-full max-w-sm shadow-2xl p-5 space-y-4">
+            <div>
+              <h3 className="text-zinc-100 font-bold mb-1">Dừng kế hoạch dinh dưỡng?</h3>
+              {/* Check if any completed meals exist */}
+              {(() => {
+                const hasAnyCompleted = (dailyTask.meals as any[]).some(
+                  m => m.completion?.status === 'COMPLETED' || m.completion?.status === 'PARTIAL'
+                );
+                return hasAnyCompleted ? (
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <p className="text-amber-300 text-xs">
+                        Kế hoạch này đã có bữa ăn được hoàn thành. Không thể xoá hoàn toàn. Hệ thống sẽ <strong>dừng áp dụng</strong> và lưu lại lịch sử bữa đã thực hiện.
+                      </p>
+                    </div>
+                    <p className="text-zinc-500 text-xs">Những bữa chưa thực hiện sẽ bị huỷ. Lịch sử ăn uống của bạn vẫn được giữ nguyên.</p>
+                  </div>
+                ) : (
+                  <p className="text-zinc-500 text-sm">Toàn bộ kế hoạch dinh dưỡng sẽ bị xoá. Hành động này không thể hoàn tác.</p>
+                );
+              })()}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDeactivate(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-xl hover:bg-zinc-800 transition-colors">Hủy</button>
+              <button
+                onClick={() => { deactivateProgramMutation.mutate(dailyTask.program!.id); setConfirmDeactivate(false); }}
+                disabled={deactivateProgramMutation.isPending}
+                className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
+              >
+                {deactivateProgramMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Xác nhận dừng'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add Item to Meal Modal ── */}
+      {addItemMealId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800/60">
+              <h3 className="text-zinc-100 font-bold text-sm">Thêm món vào bữa</h3>
+              <button onClick={() => { setAddItemMealId(null); setSelectedFoodForAdd(null); setFoodSearch(''); setFoodResults([]); }}
+                className="text-zinc-500 hover:text-zinc-300"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-4 space-y-3">
+              {/* Food search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Tìm món ăn (e.g. chicken breast)..."
+                  value={foodSearch}
+                  onChange={e => handleFoodSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-xl text-sm text-zinc-200 outline-none focus:border-orange-500/50"
+                  autoFocus
+                />
+              </div>
+
+              {/* Food results */}
+              {foodSearchLoading && <div className="flex justify-center py-3"><Loader2 className="w-5 h-5 animate-spin text-orange-400" /></div>}
+              {!foodSearchLoading && foodResults.length > 0 && !selectedFoodForAdd && (
+                <div className="max-h-48 overflow-y-auto space-y-1 border border-zinc-800/60 rounded-xl p-1">
+                  {foodResults.map(food => (
+                    <button key={food.id} onClick={() => setSelectedFoodForAdd(food)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors text-left">
+                      <span className="text-sm text-zinc-200 truncate">{food.name}</span>
+                      <span className="text-xs text-zinc-500 shrink-0 ml-2">{food.calories}kcal/100g</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Selected food + quantity */}
+              {selectedFoodForAdd && (
+                <div className="bg-zinc-800/50 border border-zinc-700/40 rounded-xl p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-zinc-200">{selectedFoodForAdd.name}</span>
+                    <button onClick={() => setSelectedFoodForAdd(null)} className="text-zinc-600 hover:text-zinc-400"><X className="w-4 h-4" /></button>
+                  </div>
+                  <div className="text-xs text-zinc-500">Per 100g: {selectedFoodForAdd.calories}kcal · P{selectedFoodForAdd.protein}g · C{selectedFoodForAdd.carbs}g · F{selectedFoodForAdd.fats ?? selectedFoodForAdd.fat ?? 0}g</div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-zinc-500 shrink-0">Lượng (g):</label>
+                    <input type="number" min="1" value={addItemQty}
+                      onChange={e => setAddItemQty(e.target.value)}
+                      className="w-24 px-2.5 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-200 outline-none focus:border-orange-500/50" />
+                    <span className="text-xs text-zinc-400">
+                      = {Math.round((selectedFoodForAdd.calories ?? 0) * Number(addItemQty) / 100)} kcal
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="px-4 pb-4 flex gap-2">
+              <button onClick={() => { setAddItemMealId(null); setSelectedFoodForAdd(null); setFoodSearch(''); setFoodResults([]); }}
+                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-xl hover:bg-zinc-800 transition-colors">Hủy</button>
+              <button
+                onClick={() => { if (selectedFoodForAdd && addItemMealId) addItemMutation.mutate({ mealId: addItemMealId, food: selectedFoodForAdd, qty: Number(addItemQty) || 100 }); }}
+                disabled={!selectedFoodForAdd || addItemMutation.isPending}
+                className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-400 text-black text-sm font-bold rounded-xl disabled:opacity-40 transition-colors"
+              >
+                {addItemMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Thêm vào kế hoạch'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Partial Meal Modal (redesigned) ── */}
+      {partialMeal && (() => {
+        const pctNum   = Math.max(1, parseFloat(partialPct) || 50);
+        const calInput = parseFloat(partialCal) || 0;
+        const proInput = parseFloat(partialPro)  || 0;
+        const crbInput = parseFloat(partialCarb) || 0;
+        const fatInput = parseFloat(partialFatAmt) || 0;
+
+        // Preview for pct mode
+        const prevCalPct  = Math.round(partialMeal.plannedCal     * pctNum / 100);
+        const prevProPct  = +(partialMeal.plannedProtein           * pctNum / 100).toFixed(1);
+        const prevCrbPct  = +(partialMeal.plannedCarbs             * pctNum / 100).toFixed(1);
+        const prevFatPct  = +(partialMeal.plannedFat               * pctNum / 100).toFixed(1);
+
+        // Auto-compute pct equivalent for amount mode display
+        const pctEquiv = partialMeal.plannedCal > 0
+          ? Math.round((calInput / partialMeal.plannedCal) * 100)
+          : 0;
+
+        const isOverPlan  = pctNum > 100;
+        const isExactPlan = pctNum === 100;
+
+        const handleConfirm = () => {
+          if (partialMode === 'pct') {
+            const status = isExactPlan ? 'COMPLETED' : 'PARTIAL';
+            completeMealMutation.mutate({ mealId: partialMeal.mealId, status, pct: pctNum });
+          } else {
+            if (!calInput) return;
+            const status = pctEquiv >= 100 ? 'COMPLETED' : 'PARTIAL';
+            completeMealMutation.mutate({
+              mealId: partialMeal.mealId, status,
+              pct: pctEquiv,
+              overrideCalories: calInput,
+              overrideProtein:  proInput || undefined,
+              overrideCarbs:    crbInput || undefined,
+              overrideFat:      fatInput || undefined,
+            });
+          }
+          setPartialMeal(null);
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+            <div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800/60">
+                <div>
+                  <h3 className="text-zinc-100 font-bold text-sm">Ghi nhận lượng thực ăn</h3>
+                  <p className="text-xs text-zinc-500 mt-0.5">{partialMeal.mealName} · {partialMeal.plannedCal} kcal theo kế hoạch</p>
+                </div>
+                <button onClick={() => setPartialMeal(null)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Mode tabs */}
+              <div className="flex gap-1 p-3 bg-zinc-950/50">
+                {([
+                  { key: 'pct',    label: 'Theo phần trăm (%)' },
+                  { key: 'amount', label: 'Nhập lượng thực ăn' },
+                ] as const).map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setPartialMode(tab.key)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${
+                      partialMode === tab.key
+                        ? 'bg-amber-500 text-black shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="px-5 pb-5 space-y-4">
+
+                {/* ── PCT MODE ── */}
+                {partialMode === 'pct' && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs text-zinc-500 font-semibold mb-1.5 flex items-center justify-between">
+                        <span>Phần đã ăn (%)</span>
+                        {isOverPlan && <span className="text-amber-400 text-[10px]">⚠ Ăn nhiều hơn kế hoạch</span>}
+                        {isExactPlan && <span className="text-green-400 text-[10px]">✓ Đúng kế hoạch</span>}
+                      </label>
+                      <input
+                        type="number" min="1" max="500"
+                        value={partialPct}
+                        onChange={e => setPartialPct(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-xl text-zinc-100 text-sm outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 transition-all"
+                        placeholder="VD: 50, 75, 120..."
+                      />
+                    </div>
+
+                    {/* Quick presets */}
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {[25, 50, 75, 100, 125].map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setPartialPct(String(p))}
+                          className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                            parseInt(partialPct) === p
+                              ? 'bg-amber-500 border-amber-500 text-black'
+                              : p > 100
+                              ? 'border-orange-500/30 text-orange-400 hover:bg-orange-500/10'
+                              : p === 100
+                              ? 'border-green-500/30 text-green-400 hover:bg-green-500/10'
+                              : 'border-zinc-700/50 text-zinc-400 hover:bg-zinc-800'
+                          }`}
+                        >
+                          {p}%
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Preview */}
+                    <div className="bg-zinc-800/50 rounded-xl p-3 grid grid-cols-4 gap-2 text-center text-xs">
+                      {[
+                        { label: 'Kcal',    val: prevCalPct, color: 'text-orange-400' },
+                        { label: 'Protein', val: `${prevProPct}g`, color: 'text-green-400' },
+                        { label: 'Carbs',   val: `${prevCrbPct}g`, color: 'text-blue-400' },
+                        { label: 'Fat',     val: `${prevFatPct}g`, color: 'text-amber-400' },
+                      ].map(m => (
+                        <div key={m.label}>
+                          <div className={`font-bold ${m.color}`}>{m.val}</div>
+                          <div className="text-zinc-600">{m.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── AMOUNT MODE ── */}
+                {partialMode === 'amount' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-zinc-500">
+                      Nhập calories thực tế đã ăn. Hữu ích khi ăn thêm hoặc ăn món khác ngoài kế hoạch.
+                    </p>
+
+                    {/* Calories — primary */}
+                    <div>
+                      <label className="text-xs text-zinc-500 font-semibold mb-1.5 flex items-center justify-between">
+                        <span>Calories thực tế (kcal) <span className="text-red-400">*</span></span>
+                        {calInput > 0 && (
+                          <span className={`text-[10px] font-bold ${pctEquiv > 100 ? 'text-orange-400' : pctEquiv === 100 ? 'text-green-400' : 'text-amber-400'}`}>
+                            ≈ {pctEquiv}% kế hoạch
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="number" min="0"
+                        value={partialCal}
+                        onChange={e => setPartialCal(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-xl text-zinc-100 text-sm outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 transition-all"
+                        placeholder={`Kế hoạch: ${partialMeal.plannedCal} kcal`}
+                        autoFocus
+                      />
+                    </div>
+
+                    {/* Macros — optional */}
+                    <div>
+                      <label className="text-xs text-zinc-500 font-semibold mb-1.5 block">Macros chi tiết (tùy chọn, đơn vị: g)</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { label: 'Protein', val: partialPro,    set: setPartialPro,    ph: String(partialMeal.plannedProtein.toFixed(0)), color: 'focus:border-green-500/60' },
+                          { label: 'Carbs',   val: partialCarb,   set: setPartialCarb,   ph: String(partialMeal.plannedCarbs.toFixed(0)),   color: 'focus:border-blue-500/60' },
+                          { label: 'Fat',     val: partialFatAmt, set: setPartialFatAmt, ph: String(partialMeal.plannedFat.toFixed(0)),     color: 'focus:border-amber-500/60' },
+                        ].map(f => (
+                          <div key={f.label}>
+                            <label className="text-[10px] text-zinc-600 mb-1 block">{f.label}</label>
+                            <input
+                              type="number" min="0"
+                              value={f.val}
+                              onChange={e => f.set(e.target.value)}
+                              className={`w-full px-2.5 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-zinc-100 text-xs outline-none ${f.color} transition-all`}
+                              placeholder={`~${f.ph}g`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Hint line */}
+                    <div className="flex items-center gap-1.5 text-[10px] text-zinc-600">
+                      <Info className="w-3 h-3 shrink-0" />
+                      Nếu ăn thêm ngoài kế hoạch, nhập tổng cả phần đã ăn. VD: kế hoạch 400 kcal + ăn thêm 200 kcal → nhập 600.
+                    </div>
+                  </div>
+                )}
+
+                {/* Confirm/Cancel */}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => setPartialMeal(null)}
+                    className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleConfirm}
+                    disabled={completeMealMutation.isPending || (partialMode === 'amount' && !calInput)}
+                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold rounded-xl transition-all shadow-sm shadow-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {completeMealMutation.isPending
+                      ? <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                      : isExactPlan && partialMode === 'pct' ? 'Hoàn thành' : 'Xác nhận'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Macro summary cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Calories", consumed: Math.round(totals.calories), target: goal?.calories ?? 2000, unit: "kcal", color: "#f97316", textColor: "text-orange-400" },
-          { label: "Protein", consumed: +totals.protein.toFixed(1), target: goal?.protein ?? 150, unit: "g", color: "#22c55e", textColor: "text-green-400" },
-          { label: "Carbs", consumed: +totals.carbs.toFixed(1), target: goal?.carbs ?? 200, unit: "g", color: "#60a5fa", textColor: "text-blue-400" },
-          { label: "Fat", consumed: +totals.fat.toFixed(1), target: goal?.fat ?? 65, unit: "g", color: "#f59e0b", textColor: "text-amber-400" },
+          { label: "Calories", consumed: Math.round(dailyTask?.actualProgress?.calories ?? totals.calories), target: dailyTask?.program?.dailyCaloriesTarget ?? goal?.calories ?? 2000, unit: "kcal", color: "#f97316", textColor: "text-orange-400" },
+          { label: "Protein", consumed: +(dailyTask?.actualProgress?.protein ?? totals.protein).toFixed(1), target: dailyTask?.program?.proteinTargetGrams ?? goal?.protein ?? 150, unit: "g", color: "#22c55e", textColor: "text-green-400" },
+          { label: "Carbs", consumed: +(dailyTask?.actualProgress?.carbs ?? totals.carbs).toFixed(1), target: dailyTask?.program?.carbTargetGrams ?? goal?.carbs ?? 200, unit: "g", color: "#60a5fa", textColor: "text-blue-400" },
+          { label: "Fat", consumed: +(dailyTask?.actualProgress?.fat ?? totals.fat).toFixed(1), target: dailyTask?.program?.fatTargetGrams ?? goal?.fat ?? 65, unit: "g", color: "#f59e0b", textColor: "text-amber-400" },
         ].map((m) => (
           <div key={m.label} className="bg-zinc-900 rounded-xl p-4 border border-zinc-800/60">
             <div className="flex items-center justify-between mb-1">
@@ -657,12 +1303,12 @@ export function NutritionPage() {
 
         {/* Meal sections */}
         <div className="lg:col-span-2 space-y-3">
-          {todayLogs.length === 0 && isToday && (
+          {!hasVisibleMealItems && isToday && (
             <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-12 text-center">
               <Utensils className="w-12 h-12 text-zinc-800 mx-auto mb-3" />
               <p className="text-zinc-500 text-sm">Bạn chưa log món nào cho ngày này</p>
               <button
-                onClick={() => openAddModal("breakfast")}
+                onClick={openDefaultAddModal}
                 className="mt-4 flex items-center gap-1.5 mx-auto text-green-400 hover:text-green-300 text-sm font-semibold transition-colors"
               >
                 <Plus className="w-4 h-4" /> Thêm món đầu tiên
@@ -671,50 +1317,205 @@ export function NutritionPage() {
           )}
 
           {MEAL_TYPES.map((meal) => {
-            const logs = mealGroups[meal];
-            const mealCal = logs.reduce((s, l) => s + l.calories, 0);
             const expanded = expandedMeals.has(meal);
+
+            // ── Plan meal integration ──
+            // Don't show plan meals when date is out of plan range or plan not active
+            const planIsActiveForDate = dailyTask?.hasProgram && !!(dailyTask as any).day && !(dailyTask as any).outOfRange;
+            const PLAN_MEAL_TYPE: Record<MealType, string> = {
+              breakfast: 'BREAKFAST', lunch: 'LUNCH', dinner: 'DINNER', snack: 'SNACK',
+            };
+            const planMeal = planIsActiveForDate
+              ? (dailyTask.meals as any[]).find(m => m.mealType?.toUpperCase() === PLAN_MEAL_TYPE[meal])
+              : null;
+            const logs = mealGroups[meal];
+            const logItems = logs.map((log) => ({
+              ...log,
+              sourceType: 'LOG_ITEM',
+              logItemId: log.id,
+              foodName: log.foodName,
+              customFoodName: log.foodName,
+              proteinGrams: log.protein ?? 0,
+              carbGrams: log.carbs ?? 0,
+              fatGrams: log.fat ?? 0,
+            }));
+            const tableItems = (planMeal?.items && Array.isArray(planMeal.items) ? planMeal.items : logItems) as any[];
+            const mealCal = tableItems.reduce((s, item) => s + Number(item.calories ?? 0), 0);
+            const mealProtein = tableItems.reduce((s, item) => s + Number(item.proteinGrams ?? item.protein ?? 0), 0);
+            const mealCarbs = tableItems.reduce((s, item) => s + Number(item.carbGrams ?? item.carbs ?? 0), 0);
+            const mealFat = tableItems.reduce((s, item) => s + Number(item.fatGrams ?? item.fat ?? item.fats ?? 0), 0);
+            const completion = planMeal?.completion ?? null;
+            const mealStatus: string = completion?.status ?? 'PENDING';
+            const isCompleted = mealStatus === 'COMPLETED';
+            const isPartial   = mealStatus === 'PARTIAL';
+            const isSkipped   = mealStatus === 'SKIPPED';
+            const isPending   = mealStatus === 'PENDING';
+            // Rules: COMPLETED/PARTIAL → cannot delete (has real data). PENDING/SKIPPED → can delete.
+            const canDeletePlanMeal = planMeal && !isCompleted && !isPartial;
+
+            const MEAL_VI: Record<MealType, string> = {
+              breakfast: 'Bữa sáng', lunch: 'Bữa trưa', dinner: 'Bữa tối', snack: 'Bữa phụ',
+            };
+
             return (
-              <div key={meal} className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
+              <div key={meal} className={`bg-zinc-900 rounded-xl border overflow-hidden transition-all ${
+                isCompleted ? 'border-green-500/30 bg-green-500/[0.02]' :
+                isPartial   ? 'border-amber-500/30 bg-amber-500/[0.02]' :
+                isSkipped   ? 'border-zinc-700/30 opacity-70' :
+                'border-zinc-800/60'
+              }`}>
                 {/* Meal header */}
-                <div className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center justify-between px-4 py-3 gap-2 flex-wrap">
                   <button
                     onClick={() => toggleMeal(meal)}
-                    className="flex items-center gap-3 flex-1 text-left"
+                    className="flex items-center gap-2 flex-1 text-left min-w-0"
                   >
-                    <span className="text-xs text-zinc-600 w-14 font-mono flex-shrink-0">
-                      {MEAL_TIMES[meal]}
-                    </span>
+                    <span className="text-xs text-zinc-600 w-12 font-mono flex-shrink-0">{MEAL_TIMES[meal]}</span>
                     <span className="text-sm font-bold text-zinc-200">{MEAL_LABELS[meal]}</span>
-                    {logs.length > 0 && (
-                      <span className="text-xs text-zinc-600">
-                        {logs.length} món
-                      </span>
-                    )}
+                    {/* Status badge */}
+                    {isCompleted && <span className="text-[10px] px-1.5 py-0.5 bg-green-500/15 text-green-400 border border-green-500/25 rounded-full shrink-0">✓ Hoàn thành</span>}
+                    {isPartial   && <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/15 text-amber-400 border border-amber-500/25 rounded-full shrink-0">½ {completion.percentConsumed}%</span>}
+                    {isSkipped   && <span className="text-[10px] px-1.5 py-0.5 bg-zinc-700/40 text-zinc-500 border border-zinc-700/30 rounded-full shrink-0">⊘ Bỏ qua</span>}
+                    <span className="text-xs text-zinc-600 shrink-0">{tableItems.length} món</span>
                   </button>
-                  <div className="flex items-center gap-2">
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {mealCal > 0 && (
-                      <span className="text-sm font-bold text-orange-400">{Math.round(mealCal)} kcal</span>
+                      <span className="text-xs font-semibold text-orange-400">{Math.round(mealCal)} kcal</span>
                     )}
-                    <button
-                      onClick={() => openAddModal(meal)}
-                      className="flex items-center gap-1 text-xs text-zinc-500 hover:text-green-400 transition-colors px-2 py-1 rounded-lg hover:bg-zinc-800"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Thêm
-                    </button>
-                    <button
-                      onClick={() => toggleMeal(meal)}
-                      className="text-zinc-600 hover:text-zinc-400 transition-colors"
-                    >
+
+                    {/* Plan completion actions — only shown when plan day is active */}
+                    {planMeal && isPending && (
+                      <>
+                        <button
+                          onClick={() => completeMealMutation.mutate({ mealId: planMeal.id, status: 'COMPLETED' })}
+                          disabled={completeMealMutation.isPending}
+                          className="flex items-center gap-0.5 px-2 py-1 bg-green-500/10 border border-green-500/25 text-green-400 text-[11px] rounded-lg hover:bg-green-500/20 transition-colors disabled:opacity-40"
+                        >
+                          <Check className="w-3 h-3" /> Hoàn thành
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPartialMeal({ mealId: planMeal.id, mealName: MEAL_VI[meal], plannedCal: Math.round(mealCal), plannedProtein: mealProtein, plannedCarbs: mealCarbs, plannedFat: mealFat });
+                            setPartialMode('pct'); setPartialPct("50");
+                            setPartialCal(""); setPartialPro(""); setPartialCarb(""); setPartialFatAmt("");
+                          }}
+                          className="flex items-center gap-0.5 px-2 py-1 bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[11px] rounded-lg hover:bg-amber-500/20 transition-colors"
+                        >
+                          <Minus className="w-3 h-3" /> Một phần
+                        </button>
+                        <button
+                          onClick={() => completeMealMutation.mutate({ mealId: planMeal.id, status: 'SKIPPED' })}
+                          disabled={completeMealMutation.isPending}
+                          className="flex items-center gap-0.5 px-2 py-1 bg-zinc-800 border border-zinc-700/40 text-zinc-500 text-[11px] rounded-lg hover:bg-zinc-700 transition-colors disabled:opacity-40"
+                        >
+                          <SkipForward className="w-3 h-3" /> Bỏ qua
+                        </button>
+                      </>
+                    )}
+                    {planMeal && !isPending && (
+                      <button
+                        onClick={() => undoMealMutation.mutate(planMeal.id)}
+                        disabled={undoMealMutation.isPending}
+                        className="px-2 py-1 bg-zinc-800 border border-zinc-700/40 text-zinc-500 text-[11px] rounded-lg hover:bg-zinc-700 transition-colors disabled:opacity-40"
+                      >
+                        Hoàn tác
+                      </button>
+                    )}
+
+                    {/* Delete plan meal */}
+                    {canDeletePlanMeal && (
+                      <button
+                        onClick={() => setConfirmDeleteMeal({ mealId: planMeal.id, mealName: MEAL_VI[meal] })}
+                        className="p-1 text-zinc-700 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10"
+                        title="Xoá bữa ăn này khỏi kế hoạch"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
+                    {isCompleted || isPartial ? (
+                      <span
+                        className="flex items-center gap-1 text-[11px] text-zinc-600 px-2 py-1 cursor-not-allowed"
+                        title="Không thể thêm món sau khi bữa đã hoàn thành"
+                      >
+                        🔒 Đã khoá
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (planMeal?.id) setAddItemMealId(planMeal.id);
+                          else openAddModal(meal);
+                        }}
+                        className="flex items-center gap-1 text-xs text-zinc-500 hover:text-green-400 transition-colors px-2 py-1 rounded-lg hover:bg-zinc-800"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Thêm
+                      </button>
+                    )}
+                    <button onClick={() => toggleMeal(meal)} className="text-zinc-600 hover:text-zinc-400 transition-colors">
                       {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
 
-                {/* Log table */}
+                {false && expanded && planMeal && (
+                  <div className="border-t border-zinc-800/40 bg-zinc-800/20 px-4 py-2.5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-wider font-semibold">Theo kế hoạch</p>
+                      {(isCompleted || isPartial) && (
+                        <span className="text-[10px] text-zinc-600 flex items-center gap-1">🔒 Đã hoàn thành</span>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      {(planMeal.items as any[]).map((item: any, idx: number) => {
+                        const isEditing = editingItemId === item.id;
+                        return (
+                          <div key={item.id ?? idx} className="group flex items-center gap-2 text-xs py-0.5">
+                            <span className="w-1 h-1 rounded-full bg-orange-400/50 shrink-0" />
+                            <span className="flex-1 truncate text-zinc-400">{item.customFoodName || item.food?.name || 'Món ăn'}</span>
+                            {isEditing ? (
+                              <div className="flex items-center gap-1 shrink-0">
+                                <input
+                                  type="number" min="1"
+                                  value={editingQty}
+                                  onChange={e => setEditingQty(e.target.value)}
+                                  className="w-16 px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-200 outline-none focus:border-orange-500/50 text-[11px]"
+                                  autoFocus
+                                />
+                                <span className="text-zinc-600">{item.unit ?? 'g'}</span>
+                                <button onClick={() => { if (item.id && editingQty) updateItemMutation.mutate({ itemId: item.id, quantity: Number(editingQty) }); }}
+                                  className="text-green-400 hover:text-green-300 transition-colors"><Check className="w-3 h-3" /></button>
+                                <button onClick={() => setEditingItemId(null)} className="text-zinc-600 hover:text-zinc-400"><X className="w-3 h-3" /></button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="text-zinc-600 shrink-0">{item.quantity}{item.unit ?? 'g'}</span>
+                                <span className="text-zinc-500 shrink-0">{item.calories ?? 0}kcal</span>
+                                {!isCompleted && !isPartial && item.id && (
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                                    <button onClick={() => { setEditingItemId(item.id); setEditingQty(String(item.quantity ?? 100)); }}
+                                      className="text-zinc-600 hover:text-orange-400 transition-colors"><Pencil className="w-3 h-3" /></button>
+                                    <button onClick={() => deleteItemMutation.mutate(item.id)}
+                                      disabled={deleteItemMutation.isPending}
+                                      className="text-zinc-600 hover:text-red-400 transition-colors disabled:opacity-40"><Trash2 className="w-3 h-3" /></button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {(planMeal.items || []).length === 0 && (
+                        <p className="text-xs text-zinc-600 italic">Chưa có món nào. Bấm "Thêm món" để bổ sung.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Unified item table */}
                 {expanded && (
                   <div className="border-t border-zinc-800/60">
-                    {logs.length === 0 ? (
+                    {tableItems.length === 0 ? (
                       <div className="px-4 py-4 text-center text-xs text-zinc-600">
                         Chưa có món nào cho {MEAL_LABELS[meal].toLowerCase()}
                       </div>
@@ -733,44 +1534,90 @@ export function NutritionPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {logs.map((log) => (
+                            {tableItems.map((log: any) => (
                               <tr
-                                key={log.id}
+                                key={`${log.sourceType || 'ITEM'}-${log.programMealItemId || log.logItemId || log.id}`}
                                 className="border-t border-zinc-800/40 hover:bg-zinc-800/30 transition-colors group"
                               >
                                 <td className="px-4 py-2.5 font-semibold text-zinc-200 max-w-[180px] truncate">
-                                  {log.foodName}
+                                  {log.foodName || log.customFoodName || log.food?.name || 'Món ăn'}
                                 </td>
                                 <td className="px-4 py-2.5 text-zinc-500">
-                                  {log.quantity != null ? `${log.quantity}g` : "—"}
+                                  {log.sourceType === 'PLAN_ITEM' && editingItemId === (log.programMealItemId || log.id) ? (
+                                    <>
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        value={editingQty}
+                                        onChange={e => setEditingQty(e.target.value)}
+                                        className="w-16 px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-200 outline-none focus:border-orange-500/50 text-[11px]"
+                                        autoFocus
+                                      />
+                                      <span className="ml-1">{log.unit ?? 'g'}</span>
+                                    </>
+                                  ) : log.quantity != null ? `${log.quantity}${log.unit ?? 'g'}` : "-"}
                                 </td>
                                 <td className="px-4 py-2.5 text-orange-400 font-semibold">{log.calories}</td>
                                 <td className="px-4 py-2.5 text-green-400">
-                                  {log.protein != null ? `${log.protein}g` : "—"}
+                                  {(log.proteinGrams ?? log.protein) != null ? `${log.proteinGrams ?? log.protein}g` : "-"}
                                 </td>
                                 <td className="px-4 py-2.5 text-blue-400">
-                                  {log.carbs != null ? `${log.carbs}g` : "—"}
+                                  {(log.carbGrams ?? log.carbs) != null ? `${log.carbGrams ?? log.carbs}g` : "-"}
                                 </td>
                                 <td className="px-4 py-2.5 text-amber-400">
-                                  {log.fat != null ? `${log.fat}g` : "—"}
+                                  {(log.fatGrams ?? log.fat ?? log.fats) != null ? `${log.fatGrams ?? log.fat ?? log.fats}g` : "-"}
                                 </td>
                                 <td className="px-4 py-2.5">
-                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                      onClick={() => setEditingLog(log)}
-                                      className="p-1 text-zinc-500 hover:text-blue-400 transition-colors rounded"
-                                      title="Sửa"
-                                    >
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      onClick={() => setDeletingId(log.id)}
-                                      className="p-1 text-zinc-500 hover:text-red-400 transition-colors rounded"
-                                      title="Xóa"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
+                                  {!isCompleted && !isPartial && (
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button
+                                        onClick={() => {
+                                          const itemId = log.programMealItemId || log.id;
+                                          if (log.sourceType === 'PLAN_ITEM' && editingItemId === itemId) {
+                                            updateItemMutation.mutate({ itemId, quantity: Number(editingQty) || Number(log.quantity) || 100 });
+                                            return;
+                                          }
+                                          if (log.sourceType === 'PLAN_ITEM') {
+                                            setEditingItemId(itemId);
+                                            setEditingQty(String(log.quantity ?? 100));
+                                          } else {
+                                            setEditingLog(log as any);
+                                          }
+                                        }}
+                                        className="p-1 text-zinc-500 hover:text-blue-400 transition-colors rounded"
+                                        title="Sửa"
+                                      >
+                                        {log.sourceType === 'PLAN_ITEM' && editingItemId === (log.programMealItemId || log.id) ? (
+                                          updateItemMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />
+                                        ) : (
+                                          <Pencil className="w-3.5 h-3.5" />
+                                        )}
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          const itemId = log.programMealItemId || log.id;
+                                          if (log.sourceType === 'PLAN_ITEM' && editingItemId === itemId) {
+                                            setEditingItemId(null);
+                                            return;
+                                          }
+                                          if (log.sourceType === 'PLAN_ITEM') deleteItemMutation.mutate(itemId);
+                                          else setDeletingId(log.id);
+                                        }}
+                                        disabled={deleteItemMutation.isPending}
+                                        className="p-1 text-zinc-500 hover:text-red-400 transition-colors rounded"
+                                        title="Xóa"
+                                      >
+                                        {log.sourceType === 'PLAN_ITEM' && editingItemId === (log.programMealItemId || log.id) ? (
+                                          <X className="w-3.5 h-3.5" />
+                                        ) : (
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        )}
+                                      </button>
+                                    </div>
+                                  )}
+                                  {(isCompleted || isPartial) && (
+                                    <span className="text-zinc-700 text-[10px]" title="Không thể sửa/xóa sau khi bữa đã hoàn thành">🔒</span>
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -826,9 +1673,9 @@ export function NutritionPage() {
             )}
             <div className="space-y-1.5 mt-1">
               {[
-                { name: "Protein", value: Math.round(totals.protein * 4), color: COLORS[0] },
-                { name: "Carbs", value: Math.round(totals.carbs * 4), color: COLORS[1] },
-                { name: "Fat", value: Math.round(totals.fat * 9), color: COLORS[2] },
+                { name: "Protein", value: Math.round(actualNutrition.protein * 4), color: COLORS[0] },
+                { name: "Carbs", value: Math.round(actualNutrition.carbs * 4), color: COLORS[1] },
+                { name: "Fat", value: Math.round(actualNutrition.fat * 9), color: COLORS[2] },
               ].map((d) => (
                 <div key={d.name} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5">
@@ -947,7 +1794,7 @@ export function NutritionPage() {
                         </p>
                       </div>
                     )}
-                    {debouncedQuery.length >= 2 && !searchingFood && foodResults.length === 0 && (
+                    {debouncedQuery.length >= 2 && !searchingFood && searchedFoods.length === 0 && (
                       <p className="text-xs text-zinc-600 mt-2 text-center">
                         Không tìm thấy kết quả.{" "}
                         {!translation.translated
@@ -955,9 +1802,9 @@ export function NutritionPage() {
                           : "Thử lại với tên khác hoặc từ khóa tiếng Anh."}
                       </p>
                     )}
-                    {foodResults.length > 0 && (
+                    {searchedFoods.length > 0 && (
                       <div className="mt-2 bg-zinc-800/60 border border-zinc-700/40 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
-                        {foodResults.map((food) => (
+                        {searchedFoods.map((food) => (
                           <button
                             key={food.id}
                             onClick={() => setSelectedFood(food)}
@@ -1319,6 +2166,161 @@ export function NutritionPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── NutritionCalendarGrid ───────────────────────────────────────────────── */
+
+const STATUS_DOT: Record<string, string> = {
+  completed:   'bg-green-400 shadow-[0_0_6px_rgba(34,197,94,0.6)]',
+  partial:     'bg-amber-400',
+  in_progress: 'bg-orange-400',
+  skipped:     'bg-zinc-600',
+  pending:     'bg-zinc-700',
+};
+
+const STATUS_CELL: Record<string, string> = {
+  completed:   'bg-green-500/10 border-green-500/25 text-green-300',
+  partial:     'bg-amber-500/10 border-amber-500/25 text-amber-300',
+  in_progress: 'bg-orange-500/10 border-orange-500/25 text-orange-300',
+  skipped:     'bg-zinc-800/40 border-zinc-700/30 text-zinc-500',
+};
+
+function NutritionCalendarGrid({
+  month,
+  today,
+  selectedDate,
+  statusByDate,
+  onPrevMonth,
+  onNextMonth,
+  onDayClick,
+  onAddClick,
+}: {
+  month: Date;
+  today: string;
+  selectedDate: string;
+  statusByDate: Record<string, string>;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+  onDayClick: (date: string) => void;
+  onAddClick: () => void;
+}) {
+  const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  const year = month.getFullYear();
+  const monthIdx = month.getMonth();
+  const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+  const firstDow = new Date(year, monthIdx, 1).getDay(); // 0=Sun
+  const offset = firstDow === 0 ? 6 : firstDow - 1;     // Mon-first
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < offset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const monthLabel = month.toLocaleString('vi-VN', { month: 'long', year: 'numeric' });
+
+  function dateStr(d: number) {
+    return `${year}-${String(monthIdx + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  return (
+    <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-4">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center justify-center">
+            <Calendar className="w-4 h-4 text-orange-400" />
+          </div>
+          <span className="text-sm font-bold text-zinc-200">Lịch tập</span>
+        </div>
+        <button
+          onClick={onAddClick}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-xl transition-all shadow-sm shadow-green-500/20"
+        >
+          <Plus className="w-3.5 h-3.5" /> Thêm
+        </button>
+      </div>
+
+      {/* Month navigation */}
+      <div className="flex items-center justify-center gap-5 mb-4">
+        <button
+          onClick={onPrevMonth}
+          className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/40 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-sm font-semibold text-zinc-200 capitalize min-w-[140px] text-center">
+          {monthLabel}
+        </span>
+        <button
+          onClick={onNextMonth}
+          className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/40 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Day labels */}
+      <div className="grid grid-cols-7 mb-1">
+        {DAY_LABELS.map(d => (
+          <span key={d} className="text-[10px] text-zinc-600 text-center py-1 uppercase tracking-wider font-semibold">
+            {d}
+          </span>
+        ))}
+      </div>
+
+      {/* Day cells */}
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((day, i) => {
+          if (!day) return <span key={`e-${i}`} />;
+
+          const ds = dateStr(day);
+          const isToday = ds === today;
+          const isSelected = ds === selectedDate && !isToday;
+          const status = statusByDate[ds];
+
+          return (
+            <button
+              key={ds}
+              onClick={() => onDayClick(ds)}
+              className={`
+                relative flex flex-col items-center justify-center rounded-xl text-xs font-semibold
+                min-h-[48px] transition-all duration-150 border
+                ${isToday
+                  ? 'bg-green-500 text-black shadow-[0_0_14px_rgba(34,197,94,0.35)] border-transparent'
+                  : isSelected
+                  ? 'bg-zinc-700 text-zinc-100 border-zinc-600'
+                  : status && STATUS_CELL[status]
+                  ? STATUS_CELL[status] + ' hover:opacity-80'
+                  : 'text-zinc-400 border-transparent hover:bg-zinc-800/50 hover:text-zinc-200'
+                }
+              `}
+            >
+              <span className="text-sm leading-none">{day}</span>
+              {/* Status dot */}
+              {!isToday && status && status !== 'pending' && (
+                <span className={`absolute bottom-1.5 w-1.5 h-1.5 rounded-full ${STATUS_DOT[status] ?? 'bg-zinc-600'}`} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-3 mt-4 pt-3 border-t border-zinc-800/60">
+        {[
+          { label: 'Hoàn thành', cls: 'bg-green-400' },
+          { label: 'Một phần', cls: 'bg-amber-400' },
+          { label: 'Đang làm', cls: 'bg-orange-400' },
+          { label: 'Bỏ qua', cls: 'bg-zinc-600' },
+        ].map(({ label, cls }) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full ${cls}`} />
+            <span className="text-[10px] text-zinc-500">{label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

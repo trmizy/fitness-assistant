@@ -1,54 +1,16 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Bot, Send, Lightbulb, AlertCircle, RefreshCw, User, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { inbodyService, coachService } from "../../services/api";
+import { inbodyService } from "../../services/api";
+import { useApp } from "../../context/AppContext";
+import { useAiCoachSession } from "../../stores/pendingAiTasks";
 
-interface ChatMessage { id: number | string; from: "user" | "ai"; text: string; time: string; }
-
-const AI_COACH_STORAGE_PREFIX = "ai_coach_messages_v1";
-
-function getAICoachStorageKey(): string {
-  try {
-    const rawUser = localStorage.getItem("user");
-    const parsedUser = rawUser ? JSON.parse(rawUser) : null;
-    const userId = parsedUser?.id || parsedUser?.userId || "guest";
-    return `${AI_COACH_STORAGE_PREFIX}:${String(userId)}`;
-  } catch {
-    return `${AI_COACH_STORAGE_PREFIX}:guest`;
-  }
-}
-
-function getAICoachStorageFallbackKey(): string {
-  return `${AI_COACH_STORAGE_PREFIX}:latest`;
-}
-
-function parseStoredMessages(raw: string | null): ChatMessage[] {
-  if (!raw) return [];
-  const parsed = JSON.parse(raw);
-  if (!Array.isArray(parsed)) return [];
-
-  return parsed.filter((msg: any) =>
-    msg &&
-    (typeof msg.id === "number" || typeof msg.id === "string") &&
-    (msg.from === "user" || msg.from === "ai") &&
-    typeof msg.text === "string" &&
-    typeof msg.time === "string"
-  );
-}
-
-function loadStoredMessages(): ChatMessage[] {
-  try {
-    const primary = parseStoredMessages(localStorage.getItem(getAICoachStorageKey()));
-    if (primary.length > 0) return primary;
-
-    const fallback = parseStoredMessages(localStorage.getItem(getAICoachStorageFallbackKey()));
-    if (fallback.length > 0) return fallback;
-
-    return [];
-  } catch {
-    return [];
-  }
-}
+type ChatMessage = {
+  id: number | string;
+  from: "user" | "ai";
+  text: string;
+  time: string;
+};
 
 const BASE_SUGGESTIONS = [
   "Lập lịch tập cho tôi",
@@ -75,8 +37,12 @@ const initialMessage = (latest: any, prev: any) => {
 
 
 export function AICoachPage() {
+  const { user } = useApp();
+  const userScopeId = user?.id ?? "guest";
+  const { session, setInitialMessage, sendQuestion } = useAiCoachSession(userScopeId);
+
   const { data: history = [], isLoading } = useQuery({
-    queryKey: ["inbody-history"],
+    queryKey: ["inbody-history", userScopeId],
     queryFn: inbodyService.getHistory
   });
 
@@ -86,102 +52,33 @@ export function AICoachPage() {
   const inBodySuggestion = latest ? "Phân tích InBody mới nhất của tôi" : "Phân tích InBody của tôi";
   const suggestions = [inBodySuggestion, ...BASE_SUGGESTIONS];
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadStoredMessages());
   const [input, setInput] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const cancelStreamRef = useRef<(() => void) | null>(null);
-  const isFirstTokenRef = useRef(true);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messages = session.messages;
+  const aiLoading = session.status === "processing";
+  const isStreaming = aiLoading;
+  const latestMessage = messages[messages.length - 1];
+
+  const scrollToLatestMessage = useCallback((behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
+  }, []);
 
   useEffect(() => {
     if (!isLoading && messages.length === 0) {
-      setMessages([initialMessage(latest, prev)]);
+      setInitialMessage(initialMessage(latest, prev));
     }
-  }, [isLoading, latest, prev]);
+  }, [isLoading, latest, prev, messages.length, setInitialMessage]);
 
-  // Only persist messages once streaming is fully complete to avoid saving partial content.
   useEffect(() => {
-    if (messages.length === 0 || isStreaming) return;
-    try {
-      localStorage.setItem(getAICoachStorageKey(), JSON.stringify(messages));
-      localStorage.setItem(getAICoachStorageFallbackKey(), JSON.stringify(messages));
-    } catch {
-      // Ignore storage errors and keep chat functional.
-    }
-  }, [messages, isStreaming]);
-
-  // Cancel any active stream when the component unmounts.
-  useEffect(() => {
-    return () => { cancelStreamRef.current?.(); };
-  }, []);
-
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+    scrollToLatestMessage(messages.length <= 1 ? "auto" : "smooth");
+  }, [latestMessage?.id, latestMessage?.text, messages.length, aiLoading, scrollToLatestMessage]);
 
   const send = useCallback((text: string) => {
     if (!text.trim() || aiLoading) return;
-
-    const userMsg: ChatMessage = { id: Date.now(), from: "user", text: text.trim(), time: "Now" };
-    const streamMsgId = `ai-stream-${Date.now()}`;
-    isFirstTokenRef.current = true;
-
-    setMessages(prev => [
-      ...prev,
-      userMsg,
-      { id: streamMsgId, from: "ai", text: "Đang bắt đầu xử lý...", time: "Now" },
-    ]);
     setInput("");
-    setAiLoading(true);
-    setIsStreaming(true);
-
-    const supportsStreaming = typeof window !== "undefined" && "ReadableStream" in window;
-
-    if (!supportsStreaming) {
-      // Fallback: call old REST endpoint for browsers without ReadableStream.
-      coachService.chat(text.trim())
-        .then(result => {
-          const replyText = result?.answer || "Sorry, I couldn't get a response. Please try again.";
-          setMessages(prev => prev.map(m => m.id === streamMsgId ? { ...m, text: replyText } : m));
-        })
-        .catch(() => {
-          setMessages(prev => prev.map(m =>
-            m.id === streamMsgId ? { ...m, text: "⚠️ Could not connect to AI service. Please try again later." } : m
-          ));
-        })
-        .finally(() => { setAiLoading(false); setIsStreaming(false); });
-      return;
-    }
-
-    cancelStreamRef.current?.();
-    cancelStreamRef.current = coachService.chatStream(text.trim(), {
-      onStatus: (status) => {
-        setMessages(prev => prev.map(m => m.id === streamMsgId ? { ...m, text: status } : m));
-      },
-      onToken: (token) => {
-        setMessages(prev => prev.map(m => {
-          if (m.id !== streamMsgId) return m;
-          if (isFirstTokenRef.current) {
-            isFirstTokenRef.current = false;
-            return { ...m, text: token };
-          }
-          return { ...m, text: m.text + token };
-        }));
-      },
-      onDone: () => {
-        setAiLoading(false);
-        setIsStreaming(false);
-        cancelStreamRef.current = null;
-      },
-      onError: (errorMsg) => {
-        setMessages(prev => prev.map(m =>
-          m.id === streamMsgId ? { ...m, text: `⚠️ ${errorMsg}` } : m
-        ));
-        setAiLoading(false);
-        setIsStreaming(false);
-        cancelStreamRef.current = null;
-      },
-    });
-  }, [aiLoading]);
+    sendQuestion(text.trim());
+    window.requestAnimationFrame(() => scrollToLatestMessage("smooth"));
+  }, [aiLoading, scrollToLatestMessage, sendQuestion]);
 
   if (isLoading) {
     return (
@@ -310,7 +207,10 @@ export function AICoachPage() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-950">
+      <div
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-950"
+        onClick={() => scrollToLatestMessage("smooth")}
+      >
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"} gap-2`}>
             {msg.from === "ai" && (
@@ -345,7 +245,7 @@ export function AICoachPage() {
             </div>
           </div>
         )}
-        <div ref={bottomRef} />
+          <div ref={messagesEndRef} aria-hidden="true" />
       </div>
 
       {/* Suggestions */}
@@ -372,6 +272,7 @@ export function AICoachPage() {
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
+            onFocus={() => scrollToLatestMessage("smooth")}
             onKeyDown={e => e.key === "Enter" && !aiLoading && send(input)}
             placeholder="Ask your AI coach anything…"
             className="flex-1 px-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-zinc-200 placeholder-zinc-600 transition-all"

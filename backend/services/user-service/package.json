@@ -9,6 +9,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "dev:seed-inbody": "tsx src/scripts/seed-dev-inbody.ts",
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {

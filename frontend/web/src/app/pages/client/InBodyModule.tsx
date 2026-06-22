@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   AreaChart, Area, BarChart, Bar, RadarChart, Radar, PolarGrid,
   PolarAngleAxis, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid
@@ -38,7 +38,7 @@ const tooltipStyle = {
 /* ── Helper: section card ─────────────────────────────────── */
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
+    <div className="glass-panel rounded-xl p-4">
       <h4 className="text-sm font-semibold text-zinc-200 mb-3">{title}</h4>
       {children}
     </div>
@@ -62,13 +62,52 @@ export function InBodyModule() {
   const [errors, setErrors]         = useState<Record<string, string>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [extractedData, setExtractedData] = useState<any>(null);
+  const [reviewDate, setReviewDate] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Helper: display measurement date from record (use dateOnly slice to avoid TZ issues)
+  const formatMeasurementDate = (r: any): string => {
+    const raw: string | undefined = r.dateOnly ?? r.date;
+    if (!raw) return '--';
+    const ymd = String(raw).slice(0, 10); // "2024-06-10"
+    const parts = ymd.split('-');
+    if (parts.length !== 3) return ymd;
+    return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+  };
+
+  const measurementDateKey = (r: any): string => {
+    const raw = r?.dateOnly ?? r?.date ?? r?.createdAt;
+    const s = raw ? String(raw) : '';
+    const iso = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+    if (iso) return iso[1];
+    const dmy = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);
+    if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+    const dmy2 = /^(\d{2})-(\d{2})-(\d{4})/.exec(s);
+    if (dmy2) return `${dmy2[3]}-${dmy2[2]}-${dmy2[1]}`;
+    return '9999-12-31';
+  };
+
+  const parseMeasurementDate = (r: any): Date => {
+    const key = measurementDateKey(r);
+    if (key === '9999-12-31') return new Date(NaN);
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
   // Queries
-  const { data: history = [], isLoading } = useQuery({
+  const { data: historyRaw = [], isLoading } = useQuery({
     queryKey: ["inbody-history"],
     queryFn: inbodyService.getHistory,
   });
+
+  const history = useMemo(
+    () => [...historyRaw].sort((a: any, b: any) => {
+      const cmp = measurementDateKey(b).localeCompare(measurementDateKey(a)); // descending
+      if (cmp !== 0) return cmp;
+      return Date.parse(String(b?.createdAt ?? 0)) - Date.parse(String(a?.createdAt ?? 0));
+    }),
+    [historyRaw],
+  );
 
   // Mutations
   const createMutation = useMutation({
@@ -83,6 +122,12 @@ export function InBodyModule() {
     mutationFn: inbodyService.upload,
     onSuccess: (data) => {
       setExtractedData(data.entryData);
+      // If OCR extracted a measurement date, pre-fill it; else default to today
+      const ocrDate = data.entryData?.date;
+      const defaultDate = ocrDate
+        ? String(ocrDate).slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+      setReviewDate(defaultDate);
       setUploadStep("review");
     },
     onError: () => {
@@ -93,12 +138,19 @@ export function InBodyModule() {
   const latest = history[0] || { weight: 0, muscleMass: 0, bodyFat: 0, bodyFatPct: 0 };
   const prev   = history[1] || latest;
 
-  const trends = [...history].reverse().map((h: any) => ({
-    date: new Date(h.date).toLocaleDateString(undefined, { month: 'short' }),
-    weight: h.weight,
-    muscle: h.muscleMass,
-    fat: h.bodyFat,
-  }));
+  // Chart data sorted ascending by measurement date (dateOnly)
+  const trends = [...history]
+    .sort((a: any, b: any) => measurementDateKey(a).localeCompare(measurementDateKey(b)))
+    .map((h: any) => {
+    const measureDate = parseMeasurementDate(h);
+    return {
+      date: measureDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+      fullDate: measureDate.toLocaleDateString('vi-VN'),
+      weight: h.weight,
+      muscle: h.muscleMass,
+      fat: h.bodyFat,
+    };
+  });
 
   const radarData = [
     { subject: "Weight", A: (latest.weight / 100) * 100 },
@@ -178,7 +230,12 @@ export function InBodyModule() {
   const confirmExtraction = async () => {
     if (extractedData) {
       try {
-        await createMutation.mutateAsync(extractedData);
+        // Always include measurement date: reviewDate (user-confirmed) takes priority
+        const dateToSave = reviewDate || new Date().toISOString().slice(0, 10);
+        await createMutation.mutateAsync({
+          ...extractedData,
+          date: new Date(dateToSave + 'T00:00:00').toISOString(),
+        });
         setUploadStep("done");
       } catch {
         // stays on review step; createMutation.isError shows the error inline
@@ -245,7 +302,7 @@ export function InBodyModule() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               onClick={() => { setTab("manual"); setManualStep("form"); }}
-              className="group flex items-center gap-4 bg-zinc-900 hover:bg-zinc-800/80 border-2 border-zinc-700/60 hover:border-green-500/40 rounded-xl p-4 text-left transition-all"
+              className="group flex items-center gap-4 glass-panel hover:bg-zinc-800/80 border-2 border-zinc-700/60 hover:border-green-500/40 rounded-xl p-4 text-left transition-all"
             >
               <div className="w-12 h-12 bg-violet-500/10 border border-violet-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-violet-500/20 transition-colors">
                 <ClipboardList className="w-6 h-6 text-violet-400" />
@@ -259,7 +316,7 @@ export function InBodyModule() {
 
             <button
               onClick={() => { setTab("upload"); setUploadStep("drop"); }}
-              className="group flex items-center gap-4 bg-zinc-900 hover:bg-zinc-800/80 border-2 border-zinc-700/60 hover:border-green-500/40 rounded-xl p-4 text-left transition-all"
+              className="group flex items-center gap-4 glass-panel hover:bg-zinc-800/80 border-2 border-zinc-700/60 hover:border-green-500/40 rounded-xl p-4 text-left transition-all"
             >
               <div className="w-12 h-12 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-green-500/20 transition-colors">
                 <Camera className="w-6 h-6 text-green-400" />
@@ -377,9 +434,9 @@ export function InBodyModule() {
             {history.slice(0, 3).map((r: any, i: number) => {
               const cfg = statusConfig[r.status];
               return (
-                <div key={r.id} className={`flex items-center gap-4 p-3 rounded-xl border ${i === 0 ? "bg-green-500/5 border-green-500/15" : "bg-zinc-900 border-zinc-800/60"}`}>
+                <div key={r.id} className={`flex items-center gap-4 p-3 rounded-xl border ${i === 0 ? "bg-green-500/5 border-green-500/15" : "glass-panel"}`}>
                   <div className="text-sm font-semibold text-zinc-200 w-28 flex-shrink-0">
-                    {new Date(r.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    {formatMeasurementDate(r)}
                     {i === 0 && <span className="ml-1 text-xs bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded-full border border-green-500/20">Mới nhất</span>}
                   </div>
                   <div className="flex gap-4 text-xs text-zinc-500">
@@ -405,7 +462,7 @@ export function InBodyModule() {
         <div className="max-w-2xl mx-auto space-y-4">
 
           {manualStep === "done" ? (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-10 text-center">
+            <div className="glass-panel rounded-xl p-10 text-center">
               <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/15">
                 <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
@@ -580,7 +637,7 @@ export function InBodyModule() {
 
           {/* Step: Preview */}
           {uploadStep === "preview" && (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
+            <div className="glass-panel rounded-xl overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800/60 bg-zinc-800/40">
                 <FileImage className="w-4 h-4 text-zinc-400" />
                 <span className="text-sm text-zinc-300 font-semibold">{selectedFile?.name}</span>
@@ -632,12 +689,37 @@ export function InBodyModule() {
 
           {/* Step: Review (extraction review) */}
           {uploadStep === "review" && (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
+            <div className="glass-panel rounded-xl overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/8 border-b border-amber-500/20">
                 <AlertCircle className="w-4 h-4 text-amber-400" />
                 <span className="text-sm text-amber-300 font-semibold">Kiểm tra dữ liệu trích xuất — chỉnh sửa nếu cần trước khi lưu</span>
               </div>
               <div className="p-4 space-y-4">
+                {/* Measurement Date — critical field, shown first */}
+                <div className={`rounded-lg border p-3 ${
+                  extractedData?.date
+                    ? 'bg-green-500/5 border-green-500/20'
+                    : 'bg-amber-500/5 border-amber-500/20'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">📅 Ngày đo InBody</span>
+                    {extractedData?.date
+                      ? <span className="text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">Đọc được từ ảnh</span>
+                      : <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Không đọc được — nhập thủ công</span>
+                    }
+                  </div>
+                  <input
+                    type="date"
+                    value={reviewDate}
+                    onChange={(e) => setReviewDate(e.target.value)}
+                    className={inp}
+                    required
+                  />
+                  <p className="text-xs text-zinc-600 mt-1">
+                    Đây là ngày đo trên phiếu InBody, không phải ngày tải ảnh. Upload 2 ảnh cùng ngày đo → chỉ lưu 1 bản ghi, dữ liệu mới nhất.
+                  </p>
+                </div>
+
                 {/* Basic Metrics */}
                 <div>
                   <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Thông số cơ bản</h4>
@@ -734,7 +816,7 @@ export function InBodyModule() {
 
           {/* Step: Done */}
           {uploadStep === "done" && (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-10 text-center">
+            <div className="glass-panel rounded-xl p-10 text-center">
               <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/15">
                 <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
@@ -768,7 +850,7 @@ export function InBodyModule() {
             ))}
           </div>
 
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
+          <div className="glass-panel rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center justify-between">
               <h4 className="text-sm font-semibold text-zinc-200">Lịch sử InBody ({history.length} bản ghi)</h4>
               <button onClick={() => setTab("upload")} className="flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300 transition-colors">
@@ -794,7 +876,7 @@ export function InBodyModule() {
                     return (
                       <tr key={r.id} className={`border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/30 transition-colors ${i === 0 ? "bg-green-500/5" : ""}`}>
                         <td className="px-4 py-3 text-sm font-semibold text-zinc-200">
-                          {new Date(r.date).toLocaleDateString()}
+                          {formatMeasurementDate(r)}
                           {i === 0 && <span className="ml-1.5 text-xs bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded-full border border-green-500/20">Mới nhất</span>}
                         </td>
                         <td className="px-4 py-3 text-sm text-blue-400 font-semibold">{r.weight}</td>
@@ -845,7 +927,7 @@ export function InBodyModule() {
       {tab === "compare" && (
         <div className="space-y-4">
           {history.length < 2 ? (
-            <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-10 text-center">
+            <div className="glass-panel rounded-xl p-10 text-center">
               <div className="text-zinc-400 font-semibold mb-1">Chưa đủ dữ liệu</div>
               <p className="text-zinc-600 text-sm">Bạn cần ít nhất 2 bản ghi InBody để so sánh.</p>
             </div>
@@ -854,14 +936,14 @@ export function InBodyModule() {
             <div>
               <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Bản ghi A</label>
               <select value={compareA} onChange={e => setCompareA(Number(e.target.value))} className={inp}>
-                {history.map((h: any, i: number) => <option key={h.id} value={i}>{new Date(h.date).toLocaleDateString()}</option>)}
+                {history.map((h: any, i: number) => <option key={h.id} value={i}>{formatMeasurementDate(h)}</option>)}
               </select>
             </div>
             <span className="text-zinc-600 text-sm self-center hidden sm:block font-bold">vs</span>
             <div>
               <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Bản ghi B</label>
               <select value={compareB} onChange={e => setCompareB(Number(e.target.value))} className={inp}>
-                {history.map((h: any, i: number) => <option key={h.id} value={i}>{new Date(h.date).toLocaleDateString()}</option>)}
+                {history.map((h: any, i: number) => <option key={h.id} value={i}>{formatMeasurementDate(h)}</option>)}
               </select>
             </div>
           </div>
@@ -884,13 +966,13 @@ export function InBodyModule() {
                   <div className="flex items-end justify-between">
                     <div>
                       <div className="text-lg font-bold text-zinc-100">{aVal}{isPct ? "%" : ""}</div>
-                      <div className="text-xs text-zinc-600">{new Date(history[compareA]?.date).toLocaleDateString()}</div>
+                      <div className="text-xs text-zinc-600">{formatMeasurementDate(history[compareA])}</div>
                     </div>
                     <div className="text-right">
                       <div className={`text-sm font-bold ${isGood ? "text-green-400" : "text-red-400"}`}>
                         {diff > 0 ? "+" : ""}{diff.toFixed(1)}{isPct ? "%" : ""}
                       </div>
-                      <div className="text-xs text-zinc-600">{new Date(history[compareB]?.date).toLocaleDateString()}</div>
+                      <div className="text-xs text-zinc-600">{formatMeasurementDate(history[compareB])}</div>
                     </div>
                   </div>
                 </div>
@@ -909,8 +991,8 @@ export function InBodyModule() {
                 <XAxis dataKey="metric" tick={{ fontSize: 11, fill: "#71717a" }} />
                 <YAxis tick={{ fontSize: 10, fill: "#71717a" }} />
                 <Tooltip {...tooltipStyle} />
-                <Bar dataKey="A" fill="#22c55e" radius={[4, 4, 0, 0]} name={new Date(history[compareA]?.date).toLocaleDateString()} />
-                <Bar dataKey="B" fill="#3f3f46" radius={[4, 4, 0, 0]} name={new Date(history[compareB]?.date).toLocaleDateString()} />
+                <Bar dataKey="A" fill="#22c55e" radius={[4, 4, 0, 0]} name={formatMeasurementDate(history[compareA])} />
+                <Bar dataKey="B" fill="#3f3f46" radius={[4, 4, 0, 0]} name={formatMeasurementDate(history[compareB])} />
               </BarChart>
             </ResponsiveContainer>
           </SectionCard>

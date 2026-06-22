@@ -11,6 +11,7 @@ export function ChatPage() {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { user } = useApp();
+  const userScopeId = user?.id ?? "guest";
   const { initiateCall } = useCall();
   const [activeConvId, setActiveConvId] = useState<string | null>(
     searchParams.get("conversationId"),
@@ -39,7 +40,7 @@ export function ChatPage() {
 
       // Append to current messages cache
       queryClient.setQueryData(
-        ["messages", msg.conversationId],
+        ["messages", userScopeId, msg.conversationId],
         (old: any[] | undefined) => {
           if (!old) return [mapped];
           // Avoid duplicates
@@ -49,12 +50,12 @@ export function ChatPage() {
       );
 
       // Refresh conversation list (for lastMessage preview)
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["conversations", userScopeId] });
     });
 
     // Real-time: conversation list updated (new message in any conversation)
     socket.on("chat:conversation_updated", () => {
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["conversations", userScopeId] });
     });
 
     socket.on("chat:error", (err: any) => {
@@ -67,7 +68,7 @@ export function ChatPage() {
       socket.off("chat:error");
       disconnectSocket();
     };
-  }, [queryClient]);
+  }, [queryClient, userScopeId]);
 
   // ── Join / leave conversation rooms ───────────────────────────
   useEffect(() => {
@@ -86,17 +87,22 @@ export function ChatPage() {
 
   // ── REST: initial conversation list ───────────────────────────
   const { data: conversations = [], isLoading: convsLoading } = useQuery({
-    queryKey: ["conversations"],
+    queryKey: ["conversations", userScopeId],
     queryFn: chatService.listConversations,
     refetchInterval: 10000, // light polling as fallback
   });
 
   // ── REST: initial messages for selected conversation ──────────
   const { data: messages = [] } = useQuery({
-    queryKey: ["messages", activeConvId],
+    queryKey: ["messages", userScopeId, activeConvId],
     queryFn: () => activeConvId ? chatService.getMessages(activeConvId) : Promise.resolve([]),
     enabled: !!activeConvId,
   });
+
+  useEffect(() => {
+    setActiveConvId(searchParams.get("conversationId"));
+    setMobileView(searchParams.get("conversationId") ? "chat" : "list");
+  }, [userScopeId]);
 
   // ── Auto-scroll on new messages ───────────────────────────────
   useEffect(() => {

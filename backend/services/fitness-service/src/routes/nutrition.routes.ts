@@ -1,8 +1,25 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, internalAuthMiddleware } from '../middleware/auth.middleware';
 import { nutritionController } from '../controllers/nutrition.controller';
 
 const router = Router();
+
+router.post('/from-ai-plan', internalAuthMiddleware, nutritionController.importAiPlan as any);
+
+router.get('/monthly-summary', authMiddleware, nutritionController.getMonthlySummary as any);
+router.get('/daily-task', authMiddleware, nutritionController.getDailyTask as any);
+router.post('/meal-completions', authMiddleware, nutritionController.upsertMealCompletion as any);
+router.delete('/meal-completions', authMiddleware, nutritionController.deleteMealCompletion as any);
+
+router.get('/programs/current', authMiddleware, nutritionController.getCurrentProgram as any);
+router.get('/plans/current', authMiddleware, nutritionController.getCurrentProgram as any);
+router.patch('/programs/:programId', authMiddleware, nutritionController.updateProgram as any);
+router.delete('/programs/:programId', authMiddleware, nutritionController.deleteProgram as any);
+router.post('/programs/:programId/deactivate', authMiddleware, nutritionController.deactivateNutritionProgram as any);
+router.delete('/plan-meals/:mealId', authMiddleware, nutritionController.deletePlanMeal as any);
+router.post('/program-meals/:mealId/items', authMiddleware, nutritionController.addMealItem as any);
+router.patch('/program-meal-items/:itemId', authMiddleware, nutritionController.updateMealItem as any);
+router.delete('/program-meal-items/:itemId', authMiddleware, nutritionController.deleteMealItem as any);
 
 router.get('/goals', authMiddleware, nutritionController.getGoal as any);
 router.put('/goals', authMiddleware, nutritionController.upsertGoal as any);

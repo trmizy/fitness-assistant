@@ -165,7 +165,24 @@ function formatTime(iso: string): string {
   });
 }
 
-function truncate(text: string, max = 60): string {
+function unwrapApiData<T>(response: unknown): T | undefined {
+  if (!response || typeof response !== "object") return undefined;
+  const obj = response as Record<string, unknown>;
+  if (obj.data && typeof obj.data === "object") return obj.data as T;
+  return obj as T;
+}
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function asObject<T extends Record<string, unknown>>(value: unknown, fallback: T): T {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return fallback;
+  return value as T;
+}
+
+function truncate(text: string | null | undefined, max = 60): string {
+  if (!text) return "—";
   return text.length <= max ? text : `${text.slice(0, max)}…`;
 }
 
@@ -179,6 +196,60 @@ const STATUS_COLORS: Record<string, string> = {
 const INTENT_COLORS = [
   "#6366f1","#8b5cf6","#ec4899","#f97316","#22c55e","#14b8a6","#0ea5e9","#f59e0b",
 ];
+
+const DEFAULT_OVERVIEW: OverviewData = {
+  generatedAt: "",
+  conversations: {
+    total: 0,
+    last24h: 0,
+    fallbackRate: 0,
+    deterministicFallbackRate: 0,
+    warningRate: 0,
+    avgLatencySeconds: null,
+    p95LatencySeconds: null,
+    slowCount: 0,
+  },
+  intents: [],
+  languages: [],
+  plans: {
+    queued: 0,
+    processing: 0,
+    completed: 0,
+    failed: 0,
+    queue: {
+      waiting: 0,
+      active: 0,
+      completed: 0,
+      failed: 0,
+      delayed: 0,
+    },
+  },
+};
+
+const DEFAULT_REQUESTS: RequestsData = {
+  items: [],
+  total: 0,
+  page: 1,
+  limit: 20,
+  pages: 1,
+};
+
+const DEFAULT_QUEUE: QueueData = {
+  generatedAt: "",
+  queue: {
+    waiting: 0,
+    active: 0,
+    completed: 0,
+    failed: 0,
+    delayed: 0,
+  },
+  plans: [],
+};
+
+const DEFAULT_ERRORS: ErrorsData = {
+  failedPlans: [],
+  highWarnConversations: [],
+};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -393,10 +464,92 @@ export function AdminAIObservability() {
         adminService.getAIQueue(),
         adminService.getAIErrors(),
       ]);
-      if (ovRes.success) setOverview(ovRes.data);
-      if (rqRes.success) setRequests(rqRes.data);
-      if (qRes.success)  setQueue(qRes.data);
-      if (erRes.success) setErrors(erRes.data);
+
+      const ovPayload = unwrapApiData<any>(ovRes);
+      const rqPayload = unwrapApiData<any>(rqRes);
+      const qPayload = unwrapApiData<any>(qRes);
+      const erPayload = unwrapApiData<any>(erRes);
+
+      if (ovRes?.success && ovPayload) {
+        setOverview({
+          ...DEFAULT_OVERVIEW,
+          ...ovPayload,
+          conversations: {
+            ...DEFAULT_OVERVIEW.conversations,
+            ...(ovPayload.conversations || {}),
+          },
+          intents: asArray(ovPayload.intents),
+          languages: asArray(ovPayload.languages),
+          plans: {
+            ...DEFAULT_OVERVIEW.plans,
+            ...(ovPayload.plans || {}),
+            queue: {
+              ...DEFAULT_OVERVIEW.plans.queue,
+              ...(ovPayload.plans?.queue || {}),
+            },
+          },
+        });
+      } else {
+        setOverview(DEFAULT_OVERVIEW);
+      }
+
+      if (rqRes?.success && rqPayload) {
+        const items = asArray<any>(rqPayload.items).map((item) => ({
+          id: String(item?.id || ""),
+          userId: item?.userId ?? null,
+          question: typeof item?.question === "string" ? item.question : "",
+          modelUsed: typeof item?.modelUsed === "string" ? item.modelUsed : "unknown",
+          responseTime: typeof item?.responseTime === "number" ? item.responseTime : 0,
+          responseLanguage: item?.responseLanguage ?? null,
+          routeIntent: item?.routeIntent ?? null,
+          usedFallback: !!item?.usedFallback,
+          usedDeterministicFallback: !!item?.usedDeterministicFallback,
+          warningCount: typeof item?.warningCount === "number" ? item.warningCount : 0,
+          traceId: item?.traceId ?? null,
+          totalTokens: typeof item?.totalTokens === "number" ? item.totalTokens : 0,
+          feedback: item?.feedback ?? null,
+          relevance: item?.relevance ?? null,
+          createdAt: typeof item?.createdAt === "string" ? item.createdAt : new Date().toISOString(),
+        })) as RequestItem[];
+
+        setRequests({
+          ...DEFAULT_REQUESTS,
+          ...rqPayload,
+          items,
+          total: typeof rqPayload.total === "number" ? rqPayload.total : items.length,
+          page: typeof rqPayload.page === "number" ? rqPayload.page : page,
+          limit: typeof rqPayload.limit === "number" ? rqPayload.limit : 20,
+          pages: typeof rqPayload.pages === "number" ? rqPayload.pages : 1,
+        });
+      } else {
+        setRequests(DEFAULT_REQUESTS);
+      }
+
+      if (qRes?.success && qPayload) {
+        setQueue({
+          ...DEFAULT_QUEUE,
+          ...qPayload,
+          queue: {
+            ...DEFAULT_QUEUE.queue,
+            ...asObject(qPayload.queue, DEFAULT_QUEUE.queue),
+          },
+          plans: asArray(qPayload.plans),
+        });
+      } else {
+        setQueue(DEFAULT_QUEUE);
+      }
+
+      if (erRes?.success && erPayload) {
+        setErrors({
+          ...DEFAULT_ERRORS,
+          ...erPayload,
+          failedPlans: asArray(erPayload.failedPlans),
+          highWarnConversations: asArray(erPayload.highWarnConversations),
+        });
+      } else {
+        setErrors(DEFAULT_ERRORS);
+      }
+
       setApiError(null);
     } catch (err: unknown) {
       setApiError((err as Error).message || "Failed to load observability data");

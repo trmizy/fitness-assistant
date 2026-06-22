@@ -130,7 +130,8 @@ model Food {
   source   String  // 'sr_legacy' | 'survey_fndds'
   imageUrl String? @map("image_url")
 
-  aliases  FoodAlias[]
+  aliases   FoodAlias[]
+  mealItems NutritionProgramMealItem[]
 
   @@index([name])
   @@map("foods")
@@ -212,12 +213,26 @@ model WorkoutProgram {
   userId          String   @map("user_id")
   name            String   // "Muscle Gain", "Cutting", etc.
   description     String?
+  sourcePlanId    String?  @map("source_plan_id")
+  sourceType      String?  @map("source_type")
+  aiPlanVersion   Int?     @map("ai_plan_version")
+
+  goal            String?
+  durationWeeks   Int?     @map("duration_weeks")
+  daysPerWeek     Int?     @map("days_per_week")
+  status          String   @default("ACTIVE")
+  archivedAt      DateTime? @map("archived_at")
+  version         Int      @default(1)
+
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   days            WorkoutProgramDay[]
 
   @@index([userId])
+  @@index([userId, status])
+  @@index([userId, sourcePlanId])
+  @@unique([userId, sourcePlanId])
   @@map("workout_programs")
 }
 
@@ -270,6 +285,18 @@ model WorkoutSchedule {
   date            DateTime
   programDayId    String?  @map("program_day_id") // optional: which program day is scheduled
   workoutId       String?  @map("workout_id")     // optional: completed workout
+  status          String   @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | SKIPPED
+  progressPercent Int      @default(0) @map("progress_percent")
+  startedAt       DateTime? @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  totalExercises  Int?     @map("total_exercises")
+  completedExercises Int?  @map("completed_exercises")
+  totalSets       Int?     @map("total_sets")
+  completedSets   Int?     @map("completed_sets")
+  durationSeconds Int?     @map("duration_seconds")
+  caloriesEstimate Int?    @map("calories_estimate")
+  sourcePlanId    String?  @map("source_plan_id")
+  sourceType      String?  @map("source_type")
   notes           String?
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -279,7 +306,129 @@ model WorkoutSchedule {
 
   @@unique([userId, date])
   @@index([userId, date])
+  @@index([userId, sourcePlanId])
   @@index([programDayId])
   @@index([workoutId])
   @@map("workout_schedules")
+}
+
+// 🥗 Nutrition Program (from AI plan or manual, replaces mock data)
+model NutritionProgram {
+  id                   String    @id @default(uuid())
+  userId               String    @map("user_id")
+  name                 String
+  goal                 String?
+  durationWeeks        Int?      @map("duration_weeks")
+  mealsPerDay          Int?      @map("meals_per_day")
+  dailyCaloriesTarget  Int?      @map("daily_calories_target")
+  proteinTargetGrams   Float?    @map("protein_target_grams")
+  carbTargetGrams      Float?    @map("carb_target_grams")
+  fatTargetGrams       Float?    @map("fat_target_grams")
+  sourcePlanId         String?   @map("source_plan_id")   // ai-service NutritionPlan id
+  sourceType           String?   @map("source_type")      // "AI_PLAN" | "MANUAL"
+  status               String    @default("ACTIVE")        // "ACTIVE" | "ARCHIVED"
+  startDate            DateTime? @map("start_date")
+  endDate              DateTime? @map("end_date")           // last calendar day of the plan
+  repeatEnabled        Boolean   @default(false) @map("repeat_enabled") // cycle 7-day menu beyond endDate window
+  archivedAt           DateTime? @map("archived_at")
+  notes                String?
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  days                 NutritionProgramDay[]
+
+  @@unique([userId, sourcePlanId])
+  @@index([userId])
+  @@index([userId, status])
+  @@map("nutrition_programs")
+}
+
+// 📅 Daily breakdown within a NutritionProgram
+model NutritionProgramDay {
+  id             String   @id @default(uuid())
+  programId      String   @map("program_id")
+  dayNumber      Int      @map("day_number")
+  title          String?
+  totalCalories  Int?     @map("total_calories")
+  proteinGrams   Float?   @map("protein_grams")
+  carbGrams      Float?   @map("carb_grams")
+  fatGrams       Float?   @map("fat_grams")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  program        NutritionProgram     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  meals          NutritionProgramMeal[]
+
+  @@unique([programId, dayNumber])
+  @@index([programId])
+  @@map("nutrition_program_days")
+}
+
+// 🍽️ A single meal (breakfast/lunch/dinner/snack) within a program day
+model NutritionProgramMeal {
+  id           String   @id @default(uuid())
+  dayId        String   @map("day_id")
+  mealType     String   @map("meal_type")   // "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK"
+  title        String?
+  calories     Int?
+  proteinGrams Float?   @map("protein_grams")
+  carbGrams    Float?   @map("carb_grams")
+  fatGrams     Float?   @map("fat_grams")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  day          NutritionProgramDay        @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  items        NutritionProgramMealItem[]
+  completions  NutritionMealCompletion[]
+
+  @@index([dayId])
+  @@map("nutrition_program_meals")
+}
+
+// 🥦 Individual food items within a meal
+model NutritionProgramMealItem {
+  id             String   @id @default(uuid())
+  mealId         String   @map("meal_id")
+  foodId         String?  @map("food_id")          // FK to Food (nullable if custom)
+  customFoodName String?  @map("custom_food_name") // fallback if no foodId
+  quantity       Float    @default(100)
+  unit           String   @default("g")
+  calories       Int?
+  proteinGrams   Float?   @map("protein_grams")
+  carbGrams      Float?   @map("carb_grams")
+  fatGrams       Float?   @map("fat_grams")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  meal           NutritionProgramMeal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  food           Food?                @relation(fields: [foodId], references: [id], onDelete: SetNull)
+
+  @@index([mealId])
+  @@index([foodId])
+  @@map("nutrition_program_meal_items")
+}
+
+// ✅ Tracks whether a user completed/skipped/partially ate a planned meal on a given date
+model NutritionMealCompletion {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  mealId           String    @map("meal_id")
+  logDate          DateTime  @db.Date @map("log_date")  // The actual calendar date (date-only)
+  status           String    @default("PENDING")          // PENDING | COMPLETED | PARTIAL | SKIPPED
+  percentConsumed  Int       @default(100) @map("percent_consumed") // 100 for full, 0-99 for partial
+  consumedCalories Int?      @map("consumed_calories")
+  consumedProtein  Float?    @map("consumed_protein")
+  consumedCarbs    Float?    @map("consumed_carbs")
+  consumedFat      Float?    @map("consumed_fat")
+  completedAt      DateTime? @map("completed_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  meal             NutritionProgramMeal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mealId, logDate], name: "nutrition_meal_completion_unique")
+  @@index([userId, logDate])
+  @@map("nutrition_meal_completions")
 }

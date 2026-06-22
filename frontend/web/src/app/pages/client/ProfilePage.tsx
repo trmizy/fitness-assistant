@@ -88,6 +88,8 @@ export function ProfilePage() {
     mutationFn: (newProfile: any) => profileService.updateProfile(newProfile),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["current-workout-program"] });
+      queryClient.invalidateQueries({ queryKey: ["workout-schedules"] });
       toast.success("Hồ sơ đã được cập nhật");
       setEditing(false);
     },

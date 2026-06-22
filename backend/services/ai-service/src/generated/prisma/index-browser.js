@@ -165,6 +165,23 @@ exports.Prisma.WorkoutPlanScalarFieldEnum = {
   ptReviewStatus: 'ptReviewStatus',
   ptNote: 'ptNote',
   ptReviewedAt: 'ptReviewedAt',
+  archivedAt: 'archivedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.NutritionPlanScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  goal: 'goal',
+  durationWeeks: 'durationWeeks',
+  mealsPerDay: 'mealsPerDay',
+  plan: 'plan',
+  status: 'status',
+  jobId: 'jobId',
+  failReason: 'failReason',
+  archivedAt: 'archivedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -208,7 +225,8 @@ exports.PtReviewStatus = exports.$Enums.PtReviewStatus = {
 
 exports.Prisma.ModelName = {
   Conversation: 'Conversation',
-  WorkoutPlan: 'WorkoutPlan'
+  WorkoutPlan: 'WorkoutPlan',
+  NutritionPlan: 'NutritionPlan'
 };
 
 /**

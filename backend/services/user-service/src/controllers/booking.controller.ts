@@ -109,10 +109,10 @@ export const bookingController = {
       const userId = req.headers['x-user-id'] as string;
       if (!userId) return res.status(401).json({ error: 'Unauthorized' });
       const result = await bookingService.joinSession(req.params.id, userId);
-      res.json(result);
+      return res.json(result);
     } catch (error: any) {
       logger.error(error, 'Join session error');
-      res.status(error.status || 500).json({ error: error.message || 'Không thể tham gia buổi học' });
+      return res.status(error.status || 500).json({ error: error.message || 'Không thể tham gia buổi học' });
     }
   },
 
