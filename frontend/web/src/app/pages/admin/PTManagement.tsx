@@ -121,7 +121,7 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
               <p className="text-xs text-zinc-500">Submitted {new Date(app.updatedAt).toLocaleDateString()}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all">
+          <button type="button" onClick={onClose} className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -133,7 +133,7 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
             { key: 2 as const, label: "Pro Certificates", icon: Award },
             { key: 3 as const, label: "Portfolio / Photos", icon: ImageIcon },
           ]).map(t => (
-            <button key={t.key} onClick={() => setSection(t.key)}
+            <button type="button" key={t.key} onClick={() => setSection(t.key)}
               className={`flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 text-[10px] font-bold border-b-2 transition-all min-w-0 ${section === t.key
                 ? "border-green-500 text-green-400 bg-green-500/8"
                 : "border-transparent text-zinc-500 hover:text-zinc-300"
@@ -164,8 +164,8 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
 
           {section === 2 && (
             <div className="space-y-4">
-              {app.certificates?.map((c, i) => (
-                <div key={i} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-3">
+              {app.certificates?.map((c) => (
+                <div key={c.certificateName || c.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-3">
                   <div className="flex justify-between items-start">
                     <h4 className="text-sm font-bold text-zinc-200">{c.certificateName}</h4>
                     {c.isCurrentlyValid ? (
@@ -193,7 +193,7 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
           {section === 3 && (
             <div className="grid grid-cols-2 gap-3">
               {app.media?.filter(m => m.groupType === "PORTFOLIO" || m.mediaGroup === "PORTFOLIO").map((m, i) => (
-                <DocThumb key={i} label={`Portfolio ${i + 1}`} url={m.fileUrl} tag="Media" />
+                <DocThumb key={m.fileUrl || m.id || i} label={`Portfolio ${i + 1}`} url={m.fileUrl} tag="Media" />
               ))}
               {(!app.media || app.media.filter(m => m.groupType === "PORTFOLIO" || m.mediaGroup === "PORTFOLIO").length === 0) && (
                 <div className="col-span-2 text-center py-10">
@@ -206,7 +206,7 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
         </div>
 
         <div className="p-4 border-t border-zinc-800/60 flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-700">Close Review</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-bold rounded-lg hover:bg-zinc-700">Close Review</button>
         </div>
       </div>
     </div>
@@ -240,7 +240,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
       <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
         {/* Top Header */}
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2.5 rounded-xl text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 border border-transparent hover:border-zinc-700 transition-all">
+          <button type="button" onClick={onBack} className="p-2.5 rounded-xl text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 border border-transparent hover:border-zinc-700 transition-all">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
@@ -275,7 +275,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
               <p className="text-sm text-zinc-500">{app.user?.email || "No email provided"}</p>
               
               <div className="mt-6 pt-6 border-t border-zinc-800/60 space-y-3">
-                <button onClick={() => setShowDocs(true)} className="w-full flex items-center justify-center gap-2.5 py-3 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded-xl transition-all shadow-lg shadow-green-500/5">
+                <button type="button" onClick={() => setShowDocs(true)} className="w-full flex items-center justify-center gap-2.5 py-3 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded-xl transition-all shadow-lg shadow-green-500/5">
                   <Eye className="w-4 h-4" /> View Documents
                 </button>
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800/30 border border-zinc-700/30">
@@ -304,10 +304,10 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                   <textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={2} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 resize-none outline-none focus:border-amber-500 transition-colors" placeholder="Message sent to user..." />
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                  <button onClick={() => actionMutation.mutate({ action: 'APPROVE', note: adminNote, feedback })} className="bg-green-500 hover:bg-green-400 text-black py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-green-500/20">Approve</button>
-                  <button onClick={() => actionMutation.mutate({ action: 'REJECT', note: adminNote, feedback })} className="bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-zinc-400 hover:text-red-400 py-2.5 rounded-xl font-bold text-xs transition-all">Reject</button>
-                  <button onClick={() => actionMutation.mutate({ action: 'REQUEST_INFO', note: adminNote, feedback })} className="col-span-1 bg-zinc-800 hover:bg-amber-500/10 border border-zinc-700 hover:border-amber-500/30 text-zinc-400 hover:text-amber-400 py-2.5 rounded-xl font-bold text-xs transition-all">Need Info</button>
-                  <button onClick={() => actionMutation.mutate({ action: 'UNDER_REVIEW', note: adminNote, feedback })} className="col-span-1 bg-zinc-800 hover:bg-blue-500/10 border border-zinc-700 hover:border-blue-500/30 text-zinc-400 hover:text-blue-400 py-2.5 rounded-xl font-bold text-xs transition-all">Investigate</button>
+                  <button type="button" onClick={() => actionMutation.mutate({ action: 'APPROVE', note: adminNote, feedback })} className="bg-green-500 hover:bg-green-400 text-black py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-green-500/20">Approve</button>
+                  <button type="button" onClick={() => actionMutation.mutate({ action: 'REJECT', note: adminNote, feedback })} className="bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-zinc-400 hover:text-red-400 py-2.5 rounded-xl font-bold text-xs transition-all">Reject</button>
+                  <button type="button" onClick={() => actionMutation.mutate({ action: 'REQUEST_INFO', note: adminNote, feedback })} className="col-span-1 bg-zinc-800 hover:bg-amber-500/10 border border-zinc-700 hover:border-amber-500/30 text-zinc-400 hover:text-amber-400 py-2.5 rounded-xl font-bold text-xs transition-all">Need Info</button>
+                  <button type="button" onClick={() => actionMutation.mutate({ action: 'UNDER_REVIEW', note: adminNote, feedback })} className="col-span-1 bg-zinc-800 hover:bg-blue-500/10 border border-zinc-700 hover:border-blue-500/30 text-zinc-400 hover:text-blue-400 py-2.5 rounded-xl font-bold text-xs transition-all">Investigate</button>
                 </div>
               </div>
             </div>
@@ -380,8 +380,8 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                     </div>
                     {app.availabilityBlocks && app.availabilityBlocks.length > 0 ? (
                       <div className="space-y-1.5">
-                        {app.availabilityBlocks.map((b: any, i: number) => (
-                          <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-zinc-950/50 border border-zinc-800/40">
+                        {app.availabilityBlocks.map((b: any) => (
+                          <div key={`${b.dayOfWeek}-${b.startTime}`} className="flex items-center gap-3 p-2 rounded-lg bg-zinc-950/50 border border-zinc-800/40">
                             <Clock className="w-3.5 h-3.5 text-green-400" />
                             <div className="text-xs text-zinc-300 font-medium">
                               <span className="text-zinc-500 w-10 inline-block">{b.dayOfWeek}</span> {b.startTime} — {b.endTime}
@@ -407,7 +407,7 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
                     <span className="truncate">
                       {(() => {
                         const locs: any[] = app.applicationTrainingLocations ?? [];
-                        const names = locs.map((l: any) => l.gymName).filter(Boolean);
+                        const names = locs.flatMap((l: any) => l.gymName ? [l.gymName] : []);
                         if (names.length > 0) return names.join(', ');
                         if (app.operatingAreas?.length) return app.operatingAreas.join(', ');
                         return 'Online';
@@ -577,7 +577,7 @@ export function PTManagement() {
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {Object.entries({ all: "All", SUBMITTED: "New", UNDER_REVIEW: "Reviewing", NEEDS_MORE_INFO: "Needs Info", APPROVED: "Approved", REJECTED: "Rejected" }).map(([k, v]) => (
-          <button key={k} onClick={() => setFilter(k as any)}
+          <button type="button" key={k} onClick={() => setFilter(k as any)}
             className={`whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all border ${filter === k ? "bg-green-500 text-black border-green-500" : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-700"
               }`}>
             {v}
@@ -595,7 +595,7 @@ export function PTManagement() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(app => (
-            <button key={app.id} onClick={() => handleSelectApp(app)}
+            <button type="button" key={app.id} onClick={() => handleSelectApp(app)}
               disabled={loadingId === app.id}
               className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 text-left hover:border-green-500/30 transition-all group relative overflow-hidden disabled:opacity-70">
               {loadingId === app.id && (

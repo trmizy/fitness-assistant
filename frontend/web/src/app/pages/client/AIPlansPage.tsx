@@ -282,10 +282,10 @@ function extractPlanWarnings(planContent: PlanContent | null): string[] {
   const warnings = (metadata as UnknownRecord).aiWarnings;
   if (!Array.isArray(warnings)) return [];
 
-  return warnings
-    .map((warning) => (typeof warning === 'string' ? warning : JSON.stringify(warning)))
-    .map((warning) => warning.trim())
-    .filter(Boolean);
+  return warnings.flatMap((warning) => {
+    const s = (typeof warning === 'string' ? warning : JSON.stringify(warning)).trim();
+    return s ? [s] : [];
+  });
 }
 
 function formatExplanationText(value: ExplanationResult | string | UnknownRecord): string {
@@ -297,7 +297,7 @@ function formatExplanationText(value: ExplanationResult | string | UnknownRecord
 function formatExplanationWarnings(value: ExplanationResult | string | UnknownRecord | null): string[] {
   if (!value || typeof value === 'string') return [];
   if (Array.isArray(value.warnings)) {
-    return value.warnings.map((warning) => warning.trim()).filter(Boolean);
+    return value.warnings.flatMap((warning) => { const t = warning.trim(); return t ? [t] : []; });
   }
   return [];
 }
@@ -381,7 +381,10 @@ export function AIPlansPage() {
   const userScopeId = user?.id ?? 'guest';
   const { tasks: pendingAiTasks } = usePendingAiTasks(userScopeId);
 
-  const [goal, setGoal] = useState('Giảm mỡ tăng cơ');
+  const [goal, setGoal] = useState(() => {
+    const queryGoal = new URLSearchParams(window.location.search).get('goal');
+    return queryGoal ? (QUERY_GOAL_LABELS[queryGoal] || queryGoal) : 'Giảm mỡ tăng cơ';
+  });
   const [durationWeeks, setDurationWeeks] = useState(8);
   const [daysPerWeek, setDaysPerWeek] = useState(4);
   const [exercisesPerDay, setExercisesPerDay] = useState(4);
@@ -393,11 +396,6 @@ export function AIPlansPage() {
     return tab === 'nutrition' ? 'nutrition' : 'workout';
   });
 
-  useEffect(() => {
-    const queryGoal = new URLSearchParams(window.location.search).get('goal');
-    if (!queryGoal) return;
-    setGoal(QUERY_GOAL_LABELS[queryGoal] || queryGoal);
-  }, []);
 
   function selectPlanTab(tab: AiPlanTab) {
     setActivePlanTab(tab);
@@ -432,7 +430,8 @@ export function AIPlansPage() {
 
   const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null);
   const appliedInitialFilter = useRef(false);
-  const handledTaskIdsRef = useRef(new Set<string>());
+  const handledTaskIdsRef = useRef<Set<string> | null>(null);
+  handledTaskIdsRef.current ??= new Set<string>();
 
   const {
     data: plans,
@@ -492,18 +491,17 @@ export function AIPlansPage() {
     appliedInitialFilter.current = true;
   }, [completedPlans.length, failedPlans.length, plans]);
 
-  useEffect(() => {
+  const [prevVisiblePlans, setPrevVisiblePlans] = useState(visiblePlans);
+  const [prevDefaultPlan, setPrevDefaultPlan] = useState(defaultPlan);
+  if (prevVisiblePlans !== visiblePlans || prevDefaultPlan !== defaultPlan) {
+    setPrevVisiblePlans(visiblePlans);
+    setPrevDefaultPlan(defaultPlan);
     if (!visiblePlans.length) {
       setSelectedPlanId(null);
-      return;
+    } else if (!selectedPlanId || !visiblePlans.some((plan) => plan.id === selectedPlanId)) {
+      setSelectedPlanId(defaultPlan?.id ?? visiblePlans[0]?.id ?? null);
     }
-
-    if (selectedPlanId && visiblePlans.some((plan) => plan.id === selectedPlanId)) {
-      return;
-    }
-
-    setSelectedPlanId(defaultPlan?.id ?? visiblePlans[0]?.id ?? null);
-  }, [defaultPlan, selectedPlanId, visiblePlans]);
+  }
 
   const currentPlan = useMemo(() => {
     if (!visiblePlans.length) return null;
@@ -529,7 +527,11 @@ export function AIPlansPage() {
   );
   const hasMissingExerciseIds = missingExerciseIdCount > 0;
 
-  useEffect(() => {
+  const [prevCurrentPlanId, setPrevCurrentPlanId] = useState<string | null | undefined>(currentPlan?.id);
+  const [prevSaveDPW, setPrevSaveDPW] = useState(saveDaysPerWeek);
+  if (prevCurrentPlanId !== currentPlan?.id) {
+    setPrevCurrentPlanId(currentPlan?.id);
+    setPrevSaveDPW(saveDaysPerWeek);
     setSaveOutcome(null);
     setShowSavePanel(false);
     setExplanationResult(null);
@@ -537,21 +539,22 @@ export function AIPlansPage() {
     setIsExplanationStreaming(false);
     explanationAbortRef.current?.();
     explanationAbortRef.current = null;
-  }, [currentPlan?.id]);
+    setSelectedWeekdays(WEEKDAY_SUGGESTIONS[saveDaysPerWeek] ?? WEEKDAY_OPTIONS.slice(0, saveDaysPerWeek).map((day) => day.value));
+    setWeekdayWarning(null);
+  } else if (prevSaveDPW !== saveDaysPerWeek) {
+    setPrevSaveDPW(saveDaysPerWeek);
+    setSelectedWeekdays(WEEKDAY_SUGGESTIONS[saveDaysPerWeek] ?? WEEKDAY_OPTIONS.slice(0, saveDaysPerWeek).map((day) => day.value));
+    setWeekdayWarning(null);
+  }
 
   useEffect(() => () => {
     explanationAbortRef.current?.();
   }, []);
 
-  useEffect(() => {
-    setSelectedWeekdays(WEEKDAY_SUGGESTIONS[saveDaysPerWeek] ?? WEEKDAY_OPTIONS.slice(0, saveDaysPerWeek).map((day) => day.value));
-    setWeekdayWarning(null);
-  }, [currentPlan?.id, saveDaysPerWeek]);
-
   const generateMutation = useMutation({
     mutationFn: (payload: { goal: string; durationWeeks: number; daysPerWeek: number; exercisesPerDay: number; trainingLocation: 'HOME' | 'GYM'; equipmentPreference: 'MACHINE_ONLY' | 'MIXED_GYM' }) =>
       planService.generateWorkoutPlan(payload),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       enqueuePlanTask(userScopeId, {
         jobId: result.jobId,
         planId: result.planId,
@@ -562,6 +565,7 @@ export function AIPlansPage() {
         durationWeeks,
       });
       toast.success('Đã gửi yêu cầu tạo kế hoạch AI');
+      await queryClient.invalidateQueries({ queryKey: ['ai-plans', 'current', userScopeId] });
     },
     onError: (error: unknown) => {
       toast.error(summarizeApiError(error, 'Không thể tạo kế hoạch AI'));
@@ -597,7 +601,7 @@ export function AIPlansPage() {
   const adjustMutation = useMutation({
     mutationFn: (payload: { planId: string; adjustments: string; daysPerWeek?: number; exercisesPerDay?: number }) =>
       planService.adjustPlan(payload.planId, payload.adjustments, payload.daysPerWeek, payload.exercisesPerDay),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       enqueuePlanTask(userScopeId, {
         jobId: result.jobId,
         planId: result.planId,
@@ -612,6 +616,7 @@ export function AIPlansPage() {
       setAdjustDaysPerWeekInput('');
       setAdjustExercisesPerDayInput('');
       toast.success('Đã gửi yêu cầu điều chỉnh kế hoạch');
+      await queryClient.invalidateQueries({ queryKey: ['ai-plans', 'current', userScopeId] });
     },
     onError: (error: unknown) => {
       toast.error(summarizeApiError(error, 'Không thể điều chỉnh kế hoạch'));
@@ -655,8 +660,8 @@ export function AIPlansPage() {
     const resolvedTasks = pendingAiTasks.filter((task) => task.status === 'COMPLETED' || task.status === 'FAILED');
 
     for (const task of resolvedTasks) {
-      if (handledTaskIdsRef.current.has(task.id)) continue;
-      handledTaskIdsRef.current.add(task.id);
+      if (handledTaskIdsRef.current!.has(task.id)) continue;
+      handledTaskIdsRef.current!.add(task.id);
       if (task.status === 'COMPLETED') {
         if (task.planId) {
           setSelectedPlanId(task.planId);
@@ -1768,7 +1773,7 @@ export function AIPlansPage() {
                           ) : (
                             <div className="space-y-2">
                               {exercises.map((exercise, index) => (
-                                <div key={`${exercise.name ?? 'ex'}-${index}`} className="rounded-lg border border-zinc-800 bg-zinc-950 p-2.5">
+                                <div key={exercise.order ?? `ex-${index}`} className="rounded-lg border border-zinc-800 bg-zinc-950 p-2.5">
                                   <div className="flex items-center gap-2 text-sm text-zinc-100 font-medium">
                                     <Dumbbell className="w-4 h-4 text-green-400" />
                                     <span>{exercise.order ?? index + 1}.</span>
@@ -1804,7 +1809,7 @@ export function AIPlansPage() {
                   {(currentContent?.progressionNotes ?? []).length > 0 ? (
                     <ul className="text-sm text-zinc-300 space-y-1">
                       {(currentContent?.progressionNotes ?? []).map((note, i) => (
-                        <li key={`prog-${i}`} className="flex gap-2">
+                        <li key={note} className="flex gap-2">
                           <CircleCheck className="w-4 h-4 text-green-400 mt-0.5" />
                           <span>{localizePlanNoteForDisplay(note)}</span>
                         </li>
@@ -1820,7 +1825,7 @@ export function AIPlansPage() {
                   {(currentContent?.recoveryNotes ?? []).length > 0 ? (
                     <ul className="text-sm text-zinc-300 space-y-1">
                       {(currentContent?.recoveryNotes ?? []).map((note, i) => (
-                        <li key={`rec-${i}`} className="flex gap-2">
+                        <li key={note} className="flex gap-2">
                           <CircleCheck className="w-4 h-4 text-blue-400 mt-0.5" />
                           <span>{localizePlanNoteForDisplay(note)}</span>
                         </li>

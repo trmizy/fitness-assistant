@@ -20,6 +20,27 @@ const dietPrefs      = ["Không yêu cầu", "Nhiều protein", "Ăn chay (có t
 const inputClass  = "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 transition-all";
 const selectClass = "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 bg-zinc-800/60 text-zinc-200";
 
+const ptStatusConfig = {
+  not_pt:   { label: "Chưa đăng ký",     bg: "bg-zinc-700/50",  text: "text-zinc-400",  border: "border-zinc-700",     desc: "Đăng ký để trở thành huấn luyện viên PT được chứng nhận trên nền tảng này" },
+  pending:  { label: "Đang xét duyệt",   bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", desc: "Đơn đăng ký PT của bạn đang được xem xét (2–5 ngày làm việc)" },
+  approved: { label: "Đã được duyệt",    bg: "bg-green-500/10", text: "text-green-400", border: "border-green-500/20", desc: "Bạn là huấn luyện viên PT đã được xác minh" },
+};
+
+const goalMap: Record<string, string> = {
+  WEIGHT_LOSS: "lose_fat",
+  MUSCLE_GAIN: "gain_muscle",
+  MAINTENANCE: "maintain",
+  ATHLETIC_PERFORMANCE: "improve_health",
+};
+
+const activityMap: Record<string, string> = {
+  SEDENTARY: "Ít vận động",
+  LIGHTLY_ACTIVE: "Vận động nhẹ",
+  MODERATELY_ACTIVE: "Vận động vừa",
+  VERY_ACTIVE: "Năng động",
+  EXTREMELY_ACTIVE: "Cực kỳ năng động",
+};
+
 export function ProfilePage() {
   const { user, isPT, setActiveView, updateUser } = useApp();
   const navigate = useNavigate();
@@ -49,36 +70,23 @@ export function ProfilePage() {
     if (profileData?.isPT && !isPT) {
       updateUser({ isPT: true, role: 'PT' });
     }
-  }, [profileData?.isPT]);
+  }, [profileData?.isPT, isPT, updateUser]);
 
-  useEffect(() => {
-    if (profileData) {
-      if (profileData.goal) {
-        const goalMap: any = {
-          WEIGHT_LOSS: "lose_fat",
-          MUSCLE_GAIN: "gain_muscle",
-          MAINTENANCE: "maintain",
-          ATHLETIC_PERFORMANCE: "improve_health"
-        };
-        setGoal(goalMap[profileData.goal] || "lose_fat");
-      }
-      if (profileData.activityLevel) {
-        const activityMap: any = {
-          SEDENTARY: "Ít vận động",
-          LIGHTLY_ACTIVE: "Vận động nhẹ",
-          MODERATELY_ACTIVE: "Vận động vừa",
-          VERY_ACTIVE: "Năng động",
-          EXTREMELY_ACTIVE: "Cực kỳ năng động"
-        };
-        setActivity(activityMap[profileData.activityLevel] || "Vận động vừa");
-      }
-      setAge(profileData.age?.toString() || "");
-      setGender(profileData.gender || "");
-      setHeight(profileData.heightCm?.toString() || "");
-      setWeight(profileData.currentWeight?.toString() || "");
-      if (profileData.dietaryPreference) setDiet(profileData.dietaryPreference);
+  const [prevProfileData, setPrevProfileData] = useState(profileData);
+  if (prevProfileData !== profileData && profileData) {
+    setPrevProfileData(profileData);
+    if (profileData.goal) {
+      setGoal(goalMap[profileData.goal] || "lose_fat");
     }
-  }, [profileData]);
+    if (profileData.activityLevel) {
+      setActivity(activityMap[profileData.activityLevel] || "Vận động vừa");
+    }
+    setAge(profileData.age?.toString() || "");
+    setGender(profileData.gender || "");
+    setHeight(profileData.heightCm?.toString() || "");
+    setWeight(profileData.currentWeight?.toString() || "");
+    if (profileData.dietaryPreference) setDiet(profileData.dietaryPreference);
+  }
 
   const ptStatus: "not_pt" | "pending" | "approved" = profileData?.isPT ? "approved" : "not_pt";
 
@@ -131,12 +139,6 @@ export function ProfilePage() {
     );
   }
 
-  const ptStatusConfig = {
-    not_pt:   { label: "Chưa đăng ký",     bg: "bg-zinc-700/50",  text: "text-zinc-400",  border: "border-zinc-700",     desc: "Đăng ký để trở thành huấn luyện viên PT được chứng nhận trên nền tảng này" },
-    pending:  { label: "Đang xét duyệt",   bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", desc: "Đơn đăng ký PT của bạn đang được xem xét (2–5 ngày làm việc)" },
-    approved: { label: "Đã được duyệt",    bg: "bg-green-500/10", text: "text-green-400", border: "border-green-500/20", desc: "Bạn là huấn luyện viên PT đã được xác minh" },
-  };
-
   const handleSwitchToPT = () => {
     setActiveView("pt");
     navigate("/pt/dashboard");
@@ -153,6 +155,7 @@ export function ProfilePage() {
           <p className="text-zinc-500 text-sm mt-0.5">Thông tin cá nhân và tùy chọn tập luyện</p>
         </div>
         <button
+          type="button"
           onClick={() => editing ? handleSave() : setEditing(true)}
           disabled={updateMutation.isPending}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg ${
@@ -188,6 +191,7 @@ export function ProfilePage() {
             )}
             {editing && (
               <button
+                type="button"
                 onClick={() => photoInputRef.current?.click()}
                 disabled={photoMutation.isPending}
                 className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -219,6 +223,7 @@ export function ProfilePage() {
           </div>
           {editing && (
             <button
+              type="button"
               onClick={() => photoInputRef.current?.click()}
               className="mt-4 w-full py-2 border border-zinc-700/60 text-sm text-zinc-500 rounded-xl hover:bg-zinc-800 hover:text-zinc-300 transition-colors flex items-center justify-center gap-2"
             >
@@ -277,6 +282,7 @@ export function ProfilePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {goals.map(g => (
                 <button
+                  type="button"
                   key={g.key}
                   onClick={() => editing && setGoal(g.key)}
                   disabled={!editing}
@@ -349,6 +355,7 @@ export function ProfilePage() {
               </div>
             </div>
             <button
+              type="button"
               onClick={handleSwitchToPT}
               className="flex items-center gap-2 bg-green-500 text-black px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-green-400 transition-all shadow-lg shadow-green-500/20 flex-shrink-0 self-start sm:self-auto"
             >
@@ -376,6 +383,7 @@ export function ProfilePage() {
             </div>
             {ptStatus === "not_pt" && (
               <button
+                type="button"
                 onClick={() => navigate("/client/pt-application")}
                 className="flex items-center gap-2 bg-green-500 text-black px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-green-400 transition-all shadow-lg shadow-green-500/20 flex-shrink-0 self-start sm:self-auto"
               >

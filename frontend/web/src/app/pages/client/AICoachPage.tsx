@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { Bot, Send, Lightbulb, AlertCircle, RefreshCw, User, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { inbodyService } from "../../services/api";
@@ -35,6 +35,100 @@ const initialMessage = (latest: any, prev: any) => {
   };
 };
 
+
+const renderInline = (text: string, key: number) => {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <span key={key}>
+      {parts.map((part, j) =>
+        part.startsWith("**") && part.endsWith("**")
+          ? <strong key={j} className="font-semibold text-zinc-100">{part.slice(2, -2)}</strong>
+          : <span key={j}>{part}</span>
+      )}
+    </span>
+  );
+};
+
+const renderTable = (lines: string[], startIdx: number) => {
+  const tableLines: string[] = [];
+  let i = startIdx;
+  while (i < lines.length && lines[i].trim().startsWith("|")) {
+    tableLines.push(lines[i]);
+    i++;
+  }
+  if (tableLines.length < 2) return { el: null, consumed: 0 };
+
+  const isHeaderSep = (l: string) => {
+    const cells = l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+    return cells.length > 0 && cells.every(c => /^[\-:]*$/.test(c));
+  };
+  const parseRow = (l: string) =>
+    l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+
+  const headers = parseRow(tableLines[0]);
+  const dataRows = tableLines.filter((l, idx) => idx > 0 && !isHeaderSep(l)).map(parseRow);
+
+  return {
+    consumed: tableLines.length,
+    el: (
+      <div key={startIdx} className="overflow-x-auto my-2 rounded-lg border border-zinc-700/60">
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="bg-zinc-800/80">
+              {headers.map((h, j) => (
+                <th key={j} className="px-2 py-1.5 text-left font-semibold text-zinc-200 border-b border-zinc-700/60 whitespace-nowrap">
+                  {renderInline(h, j)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {dataRows.map((row, ri) => (
+              <tr key={ri} className={ri % 2 === 0 ? "bg-zinc-900/40" : "bg-zinc-800/20"}>
+                {row.map((cell, ci) => (
+                  <td key={ci} className="px-2 py-1.5 text-zinc-300 border-b border-zinc-800/40 whitespace-nowrap">
+                    {renderInline(cell, ci)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ),
+  };
+};
+
+const renderText = (text: string) => {
+  const lines = text.split("\n");
+  const result: ReactNode[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim().startsWith("|")) {
+      const { el, consumed } = renderTable(lines, i);
+      if (consumed > 0) { result.push(el); i += consumed; continue; }
+    }
+    if (line.startsWith("## ")) {
+      result.push(<p key={i} className="font-bold text-zinc-100 text-base mt-3 mb-0.5">{renderInline(line.slice(3), i)}</p>);
+    } else if (line.startsWith("### ")) {
+      result.push(<p key={i} className="font-semibold text-zinc-200 text-sm mt-2">{renderInline(line.slice(4), i)}</p>);
+    } else if (line.startsWith("> ")) {
+      result.push(<p key={i} className="text-xs text-zinc-500 border-l-2 border-zinc-700 pl-2 italic my-0.5">{line.slice(2)}</p>);
+    } else if (line.startsWith("- ")) {
+      result.push(<p key={i} className="ml-2 flex gap-1.5"><span className="text-green-500 mt-0.5 shrink-0">•</span><span>{renderInline(line.slice(2), i)}</span></p>);
+    } else if (line.match(/^\d+\. /)) {
+      const m = line.match(/^(\d+)\. (.*)$/);
+      if (m) result.push(<p key={i} className="ml-2 flex gap-1.5"><span className="text-green-400 font-medium min-w-[16px] shrink-0">{m[1]}.</span><span>{renderInline(m[2], i)}</span></p>);
+    } else if (!line.trim()) {
+      result.push(<div key={i} className="h-1" />);
+    } else {
+      result.push(<p key={i}>{renderInline(line, i)}</p>);
+    }
+    i++;
+  }
+  return result;
+};
 
 export function AICoachPage() {
   const { user } = useApp();
@@ -87,103 +181,6 @@ export function AICoachPage() {
       </div>
     );
   }
-
-  const renderInline = (text: string, key: number) => {
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-    return (
-      <span key={key}>
-        {parts.map((part, j) =>
-          part.startsWith("**") && part.endsWith("**")
-            ? <strong key={j} className="font-semibold text-zinc-100">{part.slice(2, -2)}</strong>
-            : <span key={j}>{part}</span>
-        )}
-      </span>
-    );
-  };
-
-  const renderTable = (lines: string[], startIdx: number): { el: React.ReactNode; consumed: number } => {
-    const tableLines = [];
-    let i = startIdx;
-    while (i < lines.length && lines[i].trim().startsWith("|")) {
-      tableLines.push(lines[i]);
-      i++;
-    }
-    if (tableLines.length < 2) return { el: null, consumed: 0 };
-
-    const isHeaderSep = (l: string) => {
-      const cells = l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
-      return cells.length > 0 && cells.every(c => /^[\-:]*$/.test(c));
-    };
-    const parseRow = (l: string) =>
-      l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
-
-    const headers = parseRow(tableLines[0]);
-    const dataRows = tableLines.filter((l, idx) => idx > 0 && !isHeaderSep(l)).map(parseRow);
-
-    return {
-      consumed: tableLines.length,
-      el: (
-        <div key={startIdx} className="overflow-x-auto my-2 rounded-lg border border-zinc-700/60">
-          <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr className="bg-zinc-800/80">
-                {headers.map((h, j) => (
-                  <th key={j} className="px-2 py-1.5 text-left font-semibold text-zinc-200 border-b border-zinc-700/60 whitespace-nowrap">
-                    {renderInline(h, j)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {dataRows.map((row, ri) => (
-                <tr key={ri} className={ri % 2 === 0 ? "bg-zinc-900/40" : "bg-zinc-800/20"}>
-                  {row.map((cell, ci) => (
-                    <td key={ci} className="px-2 py-1.5 text-zinc-300 border-b border-zinc-800/40 whitespace-nowrap">
-                      {renderInline(cell, ci)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ),
-    };
-  };
-
-  const renderText = (text: string) => {
-    const lines = text.split("\n");
-    const result: React.ReactNode[] = [];
-    let i = 0;
-    while (i < lines.length) {
-      const line = lines[i];
-
-      // Markdown table
-      if (line.trim().startsWith("|")) {
-        const { el, consumed } = renderTable(lines, i);
-        if (consumed > 0) { result.push(el); i += consumed; continue; }
-      }
-
-      if (line.startsWith("## ")) {
-        result.push(<p key={i} className="font-bold text-zinc-100 text-base mt-3 mb-0.5">{renderInline(line.slice(3), i)}</p>);
-      } else if (line.startsWith("### ")) {
-        result.push(<p key={i} className="font-semibold text-zinc-200 text-sm mt-2">{renderInline(line.slice(4), i)}</p>);
-      } else if (line.startsWith("> ")) {
-        result.push(<p key={i} className="text-xs text-zinc-500 border-l-2 border-zinc-700 pl-2 italic my-0.5">{line.slice(2)}</p>);
-      } else if (line.startsWith("- ")) {
-        result.push(<p key={i} className="ml-2 flex gap-1.5"><span className="text-green-500 mt-0.5 shrink-0">•</span><span>{renderInline(line.slice(2), i)}</span></p>);
-      } else if (line.match(/^\d+\. /)) {
-        const m = line.match(/^(\d+)\. (.*)$/);
-        if (m) result.push(<p key={i} className="ml-2 flex gap-1.5"><span className="text-green-400 font-medium min-w-[16px] shrink-0">{m[1]}.</span><span>{renderInline(m[2], i)}</span></p>);
-      } else if (!line.trim()) {
-        result.push(<div key={i} className="h-1" />);
-      } else {
-        result.push(<p key={i}>{renderInline(line, i)}</p>);
-      }
-      i++;
-    }
-    return result;
-  };
 
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col w-full">
@@ -257,7 +254,7 @@ export function AICoachPage() {
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {suggestions.map(s => (
-              <button key={s} onClick={() => send(s)} className="whitespace-nowrap px-3 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-xs text-zinc-400 hover:border-green-500/50 hover:text-green-400 transition-all">
+              <button type="button" key={s} onClick={() => send(s)} className="whitespace-nowrap px-3 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-xs text-zinc-400 hover:border-green-500/50 hover:text-green-400 transition-all">
                 {s}
               </button>
             ))}
@@ -279,6 +276,7 @@ export function AICoachPage() {
             disabled={aiLoading}
           />
           <button
+            type="button"
             onClick={() => send(input)}
             disabled={!input.trim() || aiLoading}
             className="w-10 h-10 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black rounded-xl flex items-center justify-center transition-all flex-shrink-0 shadow-lg shadow-green-500/20"

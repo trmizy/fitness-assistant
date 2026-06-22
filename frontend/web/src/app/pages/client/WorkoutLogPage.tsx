@@ -337,6 +337,10 @@ const G = {
   ringDark: "#064e3b",
 };
 
+const WD_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+const derivedMarkers: number[] = [];
+const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+
 export function WorkoutLogPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("overview");
@@ -455,27 +459,6 @@ export function WorkoutLogPage() {
     fetchAllData();
   }, [calendarMonth]);
 
-  useEffect(() => {
-    const programDays = currentProgram?.days;
-    if (!Array.isArray(programDays) || programDays.length === 0) {
-      setSelectedProgramDayId(null);
-      return;
-    }
-
-    const selected =
-      programDays.find((day: any) => day.dayNumber === selectedDay) ||
-      programDays[0];
-
-    setSelectedDay(selected.dayNumber);
-    setSelectedProgramDayId(selected.id);
-    setDayExercises((selected.exercises || []).map(mapProgramExercise));
-    setEditExercises((selected.exercises || []).map(mapProgramExercise));
-    if (planView !== "activeExercise") {
-      setCompletedExercises(new Set());
-      setActiveExerciseLogs({});
-      setShowCompletion(false);
-    }
-  }, [currentProgram, selectedDay, planView]);
 
   // Calendar schedule modal
   const [showCalendarAdd, setShowCalendarAdd] = useState(false);
@@ -490,9 +473,6 @@ export function WorkoutLogPage() {
     5: { enabled: true, time: "09:00" },
   });
   const [exceptions, setExceptions] = useState<Set<number>>(new Set());
-  const WD_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-  const derivedMarkers: number[] = [];
-
   const [showManualBuilder, setShowManualBuilder] = useState(false);
   const [savingManualProgram, setSavingManualProgram] = useState(false);
   const [manualProgramName, setManualProgramName] = useState("Chương trình thủ công");
@@ -544,6 +524,24 @@ export function WorkoutLogPage() {
   const [editMode, setEditMode] = useState(false);
   const [editExercises, setEditExercises] = useState<any[]>([]);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  const [prevCurrentProgramSync, setPrevCurrentProgramSync] = useState(currentProgram);
+  const [prevSelectedDaySync, setPrevSelectedDaySync] = useState(selectedDay);
+  if (prevCurrentProgramSync !== currentProgram || prevSelectedDaySync !== selectedDay) {
+    setPrevCurrentProgramSync(currentProgram);
+    const programDays = currentProgram?.days;
+    if (!Array.isArray(programDays) || programDays.length === 0) {
+      setSelectedProgramDayId(null);
+      setPrevSelectedDaySync(selectedDay);
+    } else {
+      const selected = programDays.find((day: any) => day.dayNumber === selectedDay) || programDays[0];
+      setPrevSelectedDaySync(selected.dayNumber);
+      setSelectedDay(selected.dayNumber);
+      setSelectedProgramDayId(selected.id);
+      setDayExercises((selected.exercises || []).map(mapProgramExercise));
+      setEditExercises((selected.exercises || []).map(mapProgramExercise));
+    }
+  }
 
   const refetchProgramAndSchedules = useCallback(async () => {
     const [program, schedules] = await Promise.all([
@@ -691,7 +689,7 @@ export function WorkoutLogPage() {
             .map((exercise: any) => exercise.id),
         );
 
-        for (const [index, ex] of editExercises.entries()) {
+        const savePayloads = editExercises.map((ex, index) => {
           const payload = {
             exerciseId: ex.dbId,
             order: index + 1,
@@ -700,25 +698,21 @@ export function WorkoutLogPage() {
             restSeconds: Number(ex.restSeconds) || 90,
             notes: ex.notes || null,
           };
-
           if (!payload.exerciseId) {
             throw new Error(`Exercise "${ex.name}" does not have a database ID.`);
           }
+          return { ex, payload };
+        });
+        await Promise.all(savePayloads.map(({ ex, payload }) =>
+          ex.programExerciseId && existingIds.has(ex.programExerciseId)
+            ? workoutService.updateProgramExercise(ex.programExerciseId, payload)
+            : workoutService.addProgramExercise(selectedProgramDayId, payload),
+        ));
 
-          if (ex.programExerciseId && existingIds.has(ex.programExerciseId)) {
-            await workoutService.updateProgramExercise(ex.programExerciseId, payload);
-          } else {
-            await workoutService.addProgramExercise(selectedProgramDayId, payload);
-          }
-        }
-
-        const editedIds = new Set(editExercises.map((ex) => ex.programExerciseId).filter(Boolean));
+        const editedIds = new Set(editExercises.flatMap((ex) => ex.programExerciseId ? [ex.programExerciseId] : []));
         const selectedDayModel = (currentProgram.days || []).find((day: any) => day.id === selectedProgramDayId);
-        for (const existing of selectedDayModel?.exercises || []) {
-          if (!editedIds.has(existing.id)) {
-            await workoutService.deleteProgramExercise(existing.id);
-          }
-        }
+        const toDelete = (selectedDayModel?.exercises || []).filter((e: any) => !editedIds.has(e.id));
+        await Promise.all(toDelete.map((e: any) => workoutService.deleteProgramExercise(e.id)));
 
         await refetchProgramAndSchedules();
         setDayExercises(editExercises);
@@ -770,10 +764,12 @@ export function WorkoutLogPage() {
   };
 
   // Auto-save effect
+  const handleSaveWorkoutRef = useRef(handleSaveWorkout);
+  handleSaveWorkoutRef.current = handleSaveWorkout;
   useEffect(() => {
     if (editMode && editExercises.length > 0) {
       const timer = setTimeout(() => {
-        handleSaveWorkout(true); // silent save
+        handleSaveWorkoutRef.current(true); // silent save
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -797,9 +793,7 @@ export function WorkoutLogPage() {
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [dbSearch, setDbSearch] = useState("");
   const [debouncedDbSearch, setDebouncedDbSearch] = useState("");
-  const [dbExercises, setDbExercises] = useState<any[]>([]);
-  const [dbLoading, setDbLoading] = useState(false);
-  const [dbError, setDbError] = useState<string | null>(null);
+  const [replacingExercise, setReplacingExercise] = useState(false);
   const [exerciseOptions, setExerciseOptions] = useState<any>({});
   const [pickerBodyPart, setPickerBodyPart] = useState("");
   const [pickerMuscleGroup, setPickerMuscleGroup] = useState("");
@@ -807,6 +801,21 @@ export function WorkoutLogPage() {
   const [pickerActivityType, setPickerActivityType] = useState("");
   const [pickerSort, setPickerSort] = useState<"name" | "bodyPart" | "equipment">("bodyPart");
   const [replaceExerciseIndex, setReplaceExerciseIndex] = useState<number | null>(null);
+
+  const [prevPlanView, setPrevPlanView] = useState<PlanView>(planView);
+  if (prevPlanView !== planView) {
+    setPrevPlanView(planView);
+    if (planView !== "activeExercise") {
+      setActiveExIdx(0);
+      setCompletedExercises(new Set());
+      setTimerRunning(false);
+      setTimerSeconds(0);
+      setRestTimerRunning(false);
+      setShowCompletion(false);
+      setActiveExerciseLogs({});
+      setIsCompletingWorkout(false);
+    }
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedDbSearch(dbSearch.trim()), 300);
@@ -892,7 +901,7 @@ export function WorkoutLogPage() {
     }
   }, []);
 
-  const exercisesQuery = useQuery({
+  const { data: exercisesData, isError: exercisesIsError, isFetching: exercisesIsFetching, refetch: exercisesRefetch } = useQuery({
     queryKey: ["exercises", debouncedDbSearch, pickerBodyPart, pickerMuscleGroup, pickerEquipment, pickerActivityType, 1],
     queryFn: () => workoutService.getExercises({
       search: debouncedDbSearch || undefined,
@@ -907,16 +916,9 @@ export function WorkoutLogPage() {
     staleTime: 30_000,
   });
 
-  useEffect(() => {
-    setDbLoading(exercisesQuery.isFetching);
-    if (exercisesQuery.isError) {
-      setDbError("Không tải được danh sách bài tập");
-      setDbExercises([]);
-      return;
-    }
-    setDbError(null);
-    setDbExercises(Array.isArray(exercisesQuery.data) ? exercisesQuery.data : []);
-  }, [exercisesQuery.data, exercisesQuery.isError, exercisesQuery.isFetching]);
+  const dbError = exercisesIsError ? "Không tải được danh sách bài tập" : null;
+  const dbExercises: any[] = exercisesIsError ? [] : (Array.isArray(exercisesData) ? exercisesData : []);
+  const dbLoading = exercisesIsFetching || replacingExercise;
 
   const sortedDbExercises = [...dbExercises].sort((a, b) => {
     if (pickerSort === "bodyPart") {
@@ -980,7 +982,7 @@ export function WorkoutLogPage() {
       const next = [...editExercises];
       const existing = next[replaceExerciseIndex];
       if (existing?.programExerciseId) {
-        setDbLoading(true);
+        setReplacingExercise(true);
         try {
           await workoutService.updateProgramExercise(existing.programExerciseId, { exerciseId: dbEx.id });
           next[replaceExerciseIndex] = { ...newEx, id: existing.id, programExerciseId: existing.programExerciseId };
@@ -991,10 +993,10 @@ export function WorkoutLogPage() {
         } catch (error) {
           console.error("Failed to replace exercise:", error);
           toast.error("Không thể đổi bài tập. Vui lòng thử lại.");
-          setDbLoading(false);
+          setReplacingExercise(false);
           return;
         } finally {
-          setDbLoading(false);
+          setReplacingExercise(false);
         }
       } else {
         next[replaceExerciseIndex] = { ...newEx, id: existing?.id, programExerciseId: existing?.programExerciseId };
@@ -1027,8 +1029,6 @@ export function WorkoutLogPage() {
     }
     return () => { if (restRef.current) clearInterval(restRef.current); };
   }, [restTimerRunning, restSeconds]);
-
-  const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   const fireConfetti = useCallback(() => {
     const duration = 4000;
@@ -1111,7 +1111,7 @@ export function WorkoutLogPage() {
       // Start rest timer then move to next
       setRestSeconds(90);
       setRestTimerRunning(true);
-      setActiveExIdx(activeExIdx + 1);
+      setActiveExIdx(prev => prev + 1);
     }
   };
 
@@ -1119,23 +1119,10 @@ export function WorkoutLogPage() {
     setTimerRunning(false);
     setTimerSeconds(0);
     if (activeExIdx < dayExercises.length - 1) {
-      setActiveExIdx(activeExIdx + 1);
+      setActiveExIdx(prev => prev + 1);
     }
   };
 
-  // Reset workout when leaving active view
-  useEffect(() => {
-    if (planView !== "activeExercise") {
-      setActiveExIdx(0);
-      setCompletedExercises(new Set());
-      setTimerRunning(false);
-      setTimerSeconds(0);
-      setRestTimerRunning(false);
-      setShowCompletion(false);
-      setActiveExerciseLogs({});
-      setIsCompletingWorkout(false);
-    }
-  }, [planView]);
 
   const profileGoal = userProfile?.goal;
   const programGoal = currentProgram?.goal;
@@ -1183,7 +1170,8 @@ export function WorkoutLogPage() {
       <div className="flex gap-1 bg-zinc-900/50 border border-zinc-800/40 p-1 rounded-2xl w-fit">
         {(["overview", "plan"] as Tab[]).map((t) => (
           <button
-            key={t}
+            type="button"
+                        key={t}
             onClick={() => { setTab(t); setPlanView("main"); }}
             className={`px-8 py-2.5 rounded-xl text-sm transition-all ${
               tab === t
@@ -1210,12 +1198,13 @@ export function WorkoutLogPage() {
           </div>
           <div className="flex gap-2 shrink-0">
             <button
-              onClick={() => navigate(`/client/plans?goal=${encodeURIComponent(profileGoal || "")}`)}
+              type="button"
+                            onClick={() => navigate(`/client/plans?goal=${encodeURIComponent(profileGoal || "")}`)}
               className="px-3 py-2 rounded-xl bg-amber-400 text-black text-xs font-semibold hover:bg-amber-300 transition-colors"
             >
               Cập nhật lịch theo mục tiêu mới
             </button>
-            <button className="px-3 py-2 rounded-xl border border-amber-500/25 text-amber-200 text-xs hover:bg-amber-500/10 transition-colors">
+            <button type="button" className="px-3 py-2 rounded-xl border border-amber-500/25 text-amber-200 text-xs hover:bg-amber-500/10 transition-colors">
               Giữ lịch hiện tại
             </button>
           </div>
@@ -1240,7 +1229,7 @@ export function WorkoutLogPage() {
                       : "Chưa có dữ liệu InBody · Bắt đầu bằng cách tải ảnh lên"}
                   </p>
                 </div>
-                <button 
+                <button type="button" 
                   onClick={() => setShowLogModal(true)}
                   className="px-4 py-2 rounded-xl bg-emerald-500/8 border border-emerald-500/15 text-xs text-emerald-300 hover:bg-emerald-500/15 transition-all shrink-0"
                 >
@@ -1332,7 +1321,8 @@ export function WorkoutLogPage() {
                             AI
                           </span>
                           <button
-                            onClick={() => {
+                            type="button"
+                                                        onClick={() => {
                               setTab("plan");
                               setSelectedDay(programDay?.dayNumber || 1);
                               setSelectedDate(new Date(schedule.date));
@@ -1345,7 +1335,8 @@ export function WorkoutLogPage() {
                             Sửa
                           </button>
                           <button
-                            onClick={async () => {
+                            type="button"
+                                                        onClick={async () => {
                               if (!window.confirm("Xóa lịch tập này khỏi lịch? Workout đã hoàn thành sẽ không bị xóa.")) return;
                               await workoutService.deleteSchedule(schedule.id);
                               await refetchProgramAndSchedules();
@@ -1362,7 +1353,8 @@ export function WorkoutLogPage() {
                   <div className="rounded-xl border border-dashed border-zinc-700/30 bg-zinc-900/25 p-4 text-center">
                     <p className="text-sm text-zinc-400">Bạn chưa có lịch tập sắp tới</p>
                     <button
-                      onClick={() => navigate('/client/plans')}
+                      type="button"
+                                            onClick={() => navigate('/client/plans')}
                       className="mt-3 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400 transition-colors"
                     >
                       Tạo bằng AI
@@ -1375,7 +1367,7 @@ export function WorkoutLogPage() {
 
           {/* Calendar + Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <button onClick={openManualBuilder} className="lg:col-span-2 justify-self-start px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15">
+            <button type="button" onClick={openManualBuilder} className="lg:col-span-2 justify-self-start px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15">
               Tạo thủ công
             </button>
             <GlassPanel title="Lịch tập" icon={<Calendar className="w-4 h-4 text-emerald-400" />} actionLabel="Thêm" onAction={() => setShowCalendarAdd(true)}>
@@ -1432,7 +1424,8 @@ export function WorkoutLogPage() {
                   const isActive = activeCharts.has(m.key);
                   return (
                     <button
-                      key={m.key}
+                      type="button"
+                                            key={m.key}
                       onClick={() => {
                         const next = new Set(activeCharts);
                         if (isActive && next.size > 1) next.delete(m.key);
@@ -1593,7 +1586,7 @@ export function WorkoutLogPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/15" />
             <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/15 via-transparent to-transparent" />
 
-            <button className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/40 transition-all">
+            <button type="button" className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/40 transition-all">
               <Share2 className="w-4 h-4 text-white/50" />
             </button>
 
@@ -1610,7 +1603,8 @@ export function WorkoutLogPage() {
               <h2 className="text-2xl text-white mb-2 tracking-tight">{currentProgram ? currentProgram.name : "Chưa có chương trình"}</h2>
               {currentProgram && (
                 <button
-                  onClick={async () => {
+                  type="button"
+                                    onClick={async () => {
                     if (!window.confirm("Ẩn chương trình hiện tại? Workout đã hoàn thành sẽ không bị xóa.")) return;
                     await workoutService.archiveProgram(currentProgram.id);
                     await refetchProgramAndSchedules();
@@ -1658,7 +1652,8 @@ export function WorkoutLogPage() {
               <div className="space-y-3 mt-4">
                 {currentProgram?.days?.length ? currentProgram.days.map((w: any) => (
                   <button
-                    key={`td-${w.day || w.dayNumber}`}
+                    type="button"
+                                        key={`td-${w.day || w.dayNumber}`}
                     onClick={() => {
                       if (!w.locked) {
                         const schedules = Array.isArray(w.schedules) ? w.schedules : [];
@@ -1717,8 +1712,8 @@ export function WorkoutLogPage() {
                   <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-6 text-center">
                     <p className="text-sm text-zinc-400">Bạn chưa có lịch tập hiện tại</p>
                     <div className="mt-4 flex justify-center gap-2">
-                      <button onClick={openManualBuilder} className="px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800">Tạo thủ công</button>
-                      <button onClick={() => navigate('/client/plans')} className="px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Tạo bằng AI</button>
+                      <button type="button" onClick={openManualBuilder} className="px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800">Tạo thủ công</button>
+                      <button type="button" onClick={() => navigate('/client/plans')} className="px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Tạo bằng AI</button>
                     </div>
                   </div>
                 )}
@@ -1732,9 +1727,9 @@ export function WorkoutLogPage() {
                 <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/[0.02] rounded-full blur-[60px] pointer-events-none" />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-5">
-                    <button onClick={openManualBuilder} className="px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15">Tạo thủ công</button>
+                    <button type="button" onClick={openManualBuilder} className="px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15">Tạo thủ công</button>
                     <SectionTitle title="Lịch tập" />
-                    <button onClick={() => setCalendarExpanded(!calendarExpanded)} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-400 transition-colors">
+                    <button type="button" onClick={() => setCalendarExpanded(!calendarExpanded)} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-400 transition-colors">
                       {calendarExpanded ? "Thu gọn" : "Mở rộng"}
                       <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${!calendarExpanded ? "rotate-180" : ""}`} />
                     </button>
@@ -1784,7 +1779,7 @@ export function WorkoutLogPage() {
                         {/* Mode */}
                         <div className="flex bg-zinc-800/30 rounded-xl p-1 border border-zinc-700/20">
                           {(["day", "cycle"] as const).map((m) => (
-                            <button key={m} onClick={() => setScheduleMode(m)} className={`flex-1 py-2 rounded-lg text-xs transition-all ${
+                            <button type="button" key={m} onClick={() => setScheduleMode(m)} className={`flex-1 py-2 rounded-lg text-xs transition-all ${
                               scheduleMode === m
                                 ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/15 shadow-[0_0_10px_rgba(16,185,129,0.08)]"
                                 : "text-zinc-500 hover:text-zinc-400 border border-transparent"
@@ -1794,7 +1789,7 @@ export function WorkoutLogPage() {
                           ))}
                         </div>
                         <SettingRow label="Ngày bắt đầu">
-                          <button className="px-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-xs text-emerald-400 hover:border-emerald-500/20 transition-colors">Apr 1, 2026</button>
+                          <button type="button" className="px-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-xs text-emerald-400 hover:border-emerald-500/20 transition-colors">Apr 1, 2026</button>
                         </SettingRow>
                         <SettingRow label="Ngày tập liên tiếp">
                           <Stepper value={consecutiveTrain} onChange={setConsecutiveTrain} min={1} max={7} />
@@ -1822,14 +1817,14 @@ export function WorkoutLogPage() {
           return (
             <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-8 text-center">
               <p className="text-sm text-zinc-400">Bạn chưa có ngày tập trong chương trình hiện tại</p>
-              <button onClick={() => navigate('/client/plans')} className="mt-4 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Tạo bằng AI</button>
+              <button type="button" onClick={() => navigate('/client/plans')} className="mt-4 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Tạo bằng AI</button>
             </div>
           );
         }
         return (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <button onClick={() => setPlanView("main")} className="w-10 h-10 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+              <button type="button" onClick={() => setPlanView("main")} className="w-10 h-10 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
                 <ChevronLeft className="w-5 h-5 text-zinc-400" />
               </button>
               <div>
@@ -1837,7 +1832,8 @@ export function WorkoutLogPage() {
                 <p className="text-xs text-zinc-500">{wd.title}</p>
               </div>
               <button
-                onClick={async () => {
+                type="button"
+                                onClick={async () => {
                   const title = window.prompt("Tên buổi tập", wd.title || "");
                   if (!title || title === wd.title) return;
                   await workoutService.updateProgramDay(wd.id, { title });
@@ -1900,7 +1896,8 @@ export function WorkoutLogPage() {
                   </div>
 
                   <button
-                    onClick={() => {
+                    type="button"
+                                        onClick={() => {
                       if (detailSchedule?.id) setSelectedScheduleId(detailSchedule.id);
                       setCurrentWorkoutId(detailSchedule?.workoutId || detailSchedule?.workout?.id || null);
                       setPlanView("activeExercise");
@@ -1923,7 +1920,7 @@ export function WorkoutLogPage() {
                           {isSaving ? "Đang lưu..." : "Đã lưu"}
                         </span>
                       )}
-                      <button 
+                      <button type="button" 
                         onClick={() => { 
                           setDayExercises(editExercises); 
                           setEditMode(false); 
@@ -1932,7 +1929,7 @@ export function WorkoutLogPage() {
                       >
                         <Check className="w-3 h-3 text-emerald-400" /> Xong
                       </button>
-                      <button 
+                      <button type="button" 
                         onClick={() => handleSaveWorkout(false)} 
                         disabled={isSaving}
                         className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/25 disabled:opacity-50"
@@ -1946,7 +1943,7 @@ export function WorkoutLogPage() {
                       </button>
                     </div>
                   ) : (
-                    <button onClick={() => { setEditExercises([...dayExercises]); setEditMode(true); }} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20">
+                    <button type="button" onClick={() => { setEditExercises([...dayExercises]); setEditMode(true); }} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20">
                       <ArrowUpDown className="w-3 h-3" /> Sửa
                     </button>
                   )}
@@ -2028,7 +2025,8 @@ export function WorkoutLogPage() {
                           {ex.type === "cardio" ? "Cardio" : "Strength"}
                         </span>
                         <button
-                          onClick={() => {
+                          type="button"
+                                                    onClick={() => {
                             setReplaceExerciseIndex(i);
                             preselectExerciseFilter(ex);
                             setShowAddExercise(true);
@@ -2038,7 +2036,8 @@ export function WorkoutLogPage() {
                           Đổi bài
                         </button>
                         <button
-                          onClick={() => {
+                          type="button"
+                                                    onClick={() => {
                             if (editExercises.length <= 1) {
                               alert("Mỗi ngày tập cần ít nhất 1 bài tập.");
                               return;
@@ -2053,7 +2052,7 @@ export function WorkoutLogPage() {
                       </div>
                     ))}
                     {!isLoading && (
-                      <button 
+                      <button type="button" 
                         onClick={() => {
                           clearExerciseFilters();
                           setReplaceExerciseIndex(null);
@@ -2115,7 +2114,7 @@ export function WorkoutLogPage() {
           return (
             <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-8 text-center">
               <p className="text-sm text-zinc-400">Ngày tập này chưa có bài tập</p>
-              <button onClick={() => setPlanView("dayDetail")} className="mt-4 px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800">Quay lai</button>
+              <button type="button" onClick={() => setPlanView("dayDetail")} className="mt-4 px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800">Quay lai</button>
             </div>
           );
         }
@@ -2141,7 +2140,7 @@ export function WorkoutLogPage() {
         <div className="space-y-6">
           {/* Header */}
           <div className="flex items-center gap-4">
-            <button onClick={() => setPlanView("dayDetail")} className="w-10 h-10 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+            <button type="button" onClick={() => setPlanView("dayDetail")} className="w-10 h-10 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
               <ChevronLeft className="w-5 h-5 text-zinc-400" />
             </button>
             <div className="flex-1">
@@ -2153,11 +2152,11 @@ export function WorkoutLogPage() {
             </div>
             {/* Timer button */}
             {!timerRunning ? (
-              <button onClick={() => setTimerRunning(true)} className="px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-sm text-emerald-300 hover:bg-emerald-500/15 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)] transition-all flex items-center gap-2">
+              <button type="button" onClick={() => setTimerRunning(true)} className="px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-sm text-emerald-300 hover:bg-emerald-500/15 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)] transition-all flex items-center gap-2">
                 <Play className="w-4 h-4" /> {timerSeconds > 0 ? "Tiếp tục" : "Bắt giờ"}
               </button>
             ) : (
-              <button onClick={() => setTimerRunning(false)} className="px-5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/15 text-sm text-amber-300 hover:bg-amber-500/15 transition-all flex items-center gap-2">
+              <button type="button" onClick={() => setTimerRunning(false)} className="px-5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/15 text-sm text-amber-300 hover:bg-amber-500/15 transition-all flex items-center gap-2">
                 <Pause className="w-4 h-4" /> Tạm dừng
               </button>
             )}
@@ -2189,7 +2188,7 @@ export function WorkoutLogPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-2xl text-amber-300 tabular-nums">{formatTime(restSeconds)}</span>
-                    <button onClick={() => { setRestTimerRunning(false); setRestSeconds(90); }} className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/15 flex items-center justify-center hover:bg-amber-500/20 transition-all">
+                    <button type="button" onClick={() => { setRestTimerRunning(false); setRestSeconds(90); }} className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/15 flex items-center justify-center hover:bg-amber-500/20 transition-all">
                       <SkipForward className="w-3.5 h-3.5 text-amber-400" />
                     </button>
                   </div>
@@ -2317,7 +2316,7 @@ export function WorkoutLogPage() {
                 {requiresExternalWeight && !activeLog.noWeight && (
                   <p className="text-[11px] text-amber-300/80">Bắt buộc nhập tổng kg tạ trước khi hoàn thành bài này.</p>
                 )}
-                <button className="flex items-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 transition-colors">
+                <button type="button" className="flex items-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 transition-colors">
                   <MessageSquare className="w-3.5 h-3.5" /> Thêm ghi chú
                 </button>
               </div>
@@ -2325,14 +2324,16 @@ export function WorkoutLogPage() {
               {/* Navigation buttons */}
               <div className="grid grid-cols-3 gap-3">
                 <button
-                  onClick={() => { if (activeExIdx > 0) { setActiveExIdx(activeExIdx - 1); setTimerRunning(false); setTimerSeconds(0); } }}
+                  type="button"
+                                    onClick={() => { if (activeExIdx > 0) { setActiveExIdx(prev => prev - 1); setTimerRunning(false); setTimerSeconds(0); } }}
                   disabled={activeExIdx === 0}
                   className="py-3.5 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   <ChevronLeft className="w-4 h-4" /> Trước
                 </button>
                 <button
-                  onClick={handleCompleteExercise}
+                  type="button"
+                                    onClick={handleCompleteExercise}
                   disabled={isCompleted || isCompletingWorkout}
                   className={`py-3.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${
                     isCompleted || isCompletingWorkout
@@ -2343,7 +2344,8 @@ export function WorkoutLogPage() {
                   <Check className="w-4 h-4" /> {isCompleted ? "Xong" : "Hoàn thành"}
                 </button>
                 <button
-                  onClick={handleSkipExercise}
+                  type="button"
+                                    onClick={handleSkipExercise}
                   disabled={activeExIdx === dayExercises.length - 1}
                   className="py-3.5 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
@@ -2360,7 +2362,8 @@ export function WorkoutLogPage() {
                     const active = i === activeExIdx;
                     return (
                       <button
-                        key={`nav-${i}`}
+                        type="button"
+                                                key={ex.id ?? `nav-${i}`}
                         onClick={() => { setActiveExIdx(i); setTimerRunning(false); setTimerSeconds(0); }}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-all ${
                           active
@@ -2422,13 +2425,15 @@ export function WorkoutLogPage() {
             {/* Actions */}
             <div className="flex items-center justify-center gap-4">
               <button
-                onClick={() => { setPlanView("dayDetail"); }}
+                type="button"
+                                onClick={() => { setPlanView("dayDetail"); }}
                 className="px-8 py-3.5 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-300 hover:bg-zinc-800/70 transition-all"
               >
                 Quay lại chi tiết
               </button>
               <button
-                onClick={() => { setPlanView("main"); }}
+                type="button"
+                                onClick={() => { setPlanView("main"); }}
                 className="px-8 py-3.5 rounded-xl bg-emerald-500 text-black text-sm hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] flex items-center gap-2"
               >
                 <Trophy className="w-4 h-4" /> Xem tất cả ngày
@@ -2447,7 +2452,7 @@ export function WorkoutLogPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close */}
-            <button onClick={() => setShowExerciseDetail(null)} className="absolute top-4 right-4 z-10 w-9 h-9 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/60 transition-all">
+            <button type="button" onClick={() => setShowExerciseDetail(null)} className="absolute top-4 right-4 z-10 w-9 h-9 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/60 transition-all">
               <Plus className="w-4 h-4 text-white/60 rotate-45" />
             </button>
 
@@ -2502,8 +2507,8 @@ export function WorkoutLogPage() {
                 <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
                   <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Mẹo hay</p>
                   <ul className="space-y-2">
-                    {showExerciseDetail.tips?.map((t: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-zinc-400">
+                    {showExerciseDetail.tips?.map((t: string) => (
+                      <li key={t} className="flex items-start gap-2 text-xs text-zinc-400">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                         {t}
                       </li>
@@ -2526,7 +2531,7 @@ export function WorkoutLogPage() {
                 <h2 className="text-lg text-white">Tạo chương trình thủ công</h2>
                 <p className="text-xs text-zinc-500 mt-0.5">Chọn lịch trong tuần, rồi tự custom bài tập cho từng buổi.</p>
               </div>
-              <button onClick={() => setShowManualBuilder(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+              <button type="button" onClick={() => setShowManualBuilder(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
                 <X className="w-4 h-4 text-zinc-400" />
               </button>
             </div>
@@ -2597,8 +2602,8 @@ export function WorkoutLogPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <button onClick={() => setShowManualBuilder(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
-              <button onClick={handleCreateManualProgram} disabled={savingManualProgram} className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm font-semibold hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
+              <button type="button" onClick={() => setShowManualBuilder(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
+              <button type="button" onClick={handleCreateManualProgram} disabled={savingManualProgram} className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm font-semibold hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
                 {savingManualProgram ? "Đang lưu..." : "Lưu chương trình thủ công"}
               </button>
             </div>
@@ -2615,7 +2620,7 @@ export function WorkoutLogPage() {
                 <h2 className="text-lg text-white">Thêm lịch tập</h2>
                 <p className="text-xs text-zinc-500 mt-0.5">Chọn ngày và buổi tập từ chương trình hiện tại</p>
               </div>
-              <button onClick={() => setShowCalendarAdd(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+              <button type="button" onClick={() => setShowCalendarAdd(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
                 <X className="w-4 h-4 text-zinc-400" />
               </button>
             </div>
@@ -2624,7 +2629,8 @@ export function WorkoutLogPage() {
               <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4">
                 <p className="text-sm text-amber-100">Bạn chưa có chương trình tập. Hãy tạo AI Plan hoặc tạo chương trình thủ công trước.</p>
                 <button
-                  onClick={() => navigate("/client/plans")}
+                  type="button"
+                                    onClick={() => navigate("/client/plans")}
                   className="mt-3 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400"
                 >
                   Tạo AI Plan
@@ -2705,7 +2711,8 @@ export function WorkoutLogPage() {
                     }`}>
                       {/* Toggle */}
                       <button
-                        onClick={() => {
+                        type="button"
+                                                onClick={() => {
                           const next = { ...weekdaySlots };
                           if (enabled) { delete next[idx]; } else { next[idx] = { enabled: true, time: "07:00" }; }
                           setWeekdaySlots(next);
@@ -2763,7 +2770,8 @@ export function WorkoutLogPage() {
                       const isActive = isScheduled && !isException;
                       return (
                         <button
-                          key={`exc-${day}`}
+                          type="button"
+                                                    key={`exc-${day}`}
                           onClick={() => {
                             if (!isScheduled) return;
                             const next = new Set(exceptions);
@@ -2786,7 +2794,7 @@ export function WorkoutLogPage() {
                 {exceptions.size > 0 && (
                   <div className="mt-3 flex items-center justify-between">
                     <p className="text-[11px] text-red-400/60">{exceptions.size} ngày bị bỏ qua</p>
-                    <button onClick={() => setExceptions(new Set())} className="text-[11px] text-zinc-500 hover:text-zinc-400 flex items-center gap-1 transition-colors">
+                    <button type="button" onClick={() => setExceptions(new Set())} className="text-[11px] text-zinc-500 hover:text-zinc-400 flex items-center gap-1 transition-colors">
                       <RotateCcw className="w-3 h-3" /> Xóa tất cả
                     </button>
                   </div>
@@ -2795,9 +2803,10 @@ export function WorkoutLogPage() {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => setShowCalendarAdd(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
+              <button type="button" onClick={() => setShowCalendarAdd(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
               <button
-                onClick={handleCreateSchedule}
+                type="button"
+                                onClick={handleCreateSchedule}
                 disabled={savingSchedule || !currentProgram?.days?.length}
                 className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
               >
@@ -2815,7 +2824,7 @@ export function WorkoutLogPage() {
           <div className="relative w-full max-w-md rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg text-white">Ghi chỉ số</h2>
-              <button onClick={() => setShowLogModal(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+              <button type="button" onClick={() => setShowLogModal(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
                 <X className="w-4 h-4 text-zinc-400" />
               </button>
             </div>
@@ -2826,7 +2835,8 @@ export function WorkoutLogPage() {
               <div className="grid grid-cols-2 gap-2">
                 {metricOptions.map((m) => (
                   <button
-                    key={m.key}
+                    type="button"
+                                        key={m.key}
                     onClick={() => setLogMetric(m.key as any)}
                     className={`p-3.5 rounded-xl border text-left transition-all ${
                       logMetric === m.key
@@ -2871,8 +2881,8 @@ export function WorkoutLogPage() {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => setShowLogModal(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
-              <button onClick={() => {
+              <button type="button" onClick={() => setShowLogModal(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
+              <button type="button" onClick={() => {
                 if (logValue) {
                   const next = new Set(activeCharts);
                   next.add(logMetric);
@@ -2901,7 +2911,7 @@ export function WorkoutLogPage() {
                   <h3 className="text-sm font-semibold text-zinc-100">{replaceExerciseIndex !== null ? "Đổi bài tập" : "Thêm bài tập"}</h3>
                   <p className="text-xs text-zinc-500">Dữ liệu lấy trực tiếp từ Exercise DB</p>
                 </div>
-                <button onClick={() => setShowAddExercise(false)} className="w-10 h-10 rounded-xl bg-zinc-800/50 flex items-center justify-center hover:bg-zinc-700 transition-colors shrink-0">
+                <button type="button" onClick={() => setShowAddExercise(false)} className="w-10 h-10 rounded-xl bg-zinc-800/50 flex items-center justify-center hover:bg-zinc-700 transition-colors shrink-0">
                   <X className="w-4 h-4 text-zinc-400" />
                 </button>
               </div>
@@ -3001,7 +3011,7 @@ export function WorkoutLogPage() {
                   <p className="text-sm text-red-300">{dbError}</p>
                   <button
                     type="button"
-                    onClick={() => void exercisesQuery.refetch()}
+                    onClick={() => void exercisesRefetch()}
                     className="mt-3 px-3 py-2 rounded-lg border border-zinc-700 text-xs text-zinc-300 hover:bg-zinc-800"
                   >
                     Thử lại
@@ -3032,7 +3042,8 @@ export function WorkoutLogPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {groupExercises.map((ex: any) => (
                           <button
-                            key={ex.id}
+                            type="button"
+                                                        key={ex.id}
                             onClick={() => handleAddFromDB(ex)}
                             className="w-full text-left p-3 rounded-xl border border-zinc-800/40 bg-zinc-800/20 hover:bg-zinc-800/60 hover:border-emerald-500/30 transition-all flex items-center gap-4 group"
                           >
@@ -3096,7 +3107,7 @@ function GlassPanel({ title, icon, actionLabel, onAction, children }: {
             <h3 className="text-sm text-zinc-100">{title}</h3>
           </div>
           {actionLabel && (
-            <button onClick={onAction} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20">
+            <button type="button" onClick={onAction} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20">
               <Plus className="w-3 h-3" /> {actionLabel}
             </button>
           )}
@@ -3128,7 +3139,7 @@ function TimeFilterBar({ value, onChange }: { value: TimeFilter; onChange: (v: T
   return (
     <div className="flex bg-zinc-800/30 rounded-xl p-1 border border-zinc-700/20 w-fit mt-1">
       {(["last", "week", "month", "all"] as TimeFilter[]).map((v) => (
-        <button key={v} onClick={() => onChange(v)} className={`px-4 py-1.5 rounded-lg text-xs transition-all ${
+        <button type="button" key={v} onClick={() => onChange(v)} className={`px-4 py-1.5 rounded-lg text-xs transition-all ${
           value === v
             ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.06)]"
             : "text-zinc-500 hover:text-zinc-400 border border-transparent"
@@ -3150,6 +3161,14 @@ type CalendarDayInfo = {
   workoutId?: string | null;
 };
 
+const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+
+function shortTitle(title: string): string {
+  const parts = title.split(/\s*\+\s*/);
+  if (parts.length >= 2) return `${parts[0].trim()} + ${parts[1].trim()}`;
+  return title.slice(0, 14);
+}
+
 function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth, onDayClick }: {
   schedulesByDay?: Map<number, CalendarDayInfo[]>;
   markers?: number[];  // fallback: plain day markers
@@ -3158,8 +3177,6 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
   onNextMonth: () => void;
   onDayClick: (day: number) => void;
 }) {
-  const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-
   const year = month.getFullYear();
   const monthIdx = month.getMonth();
   const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
@@ -3181,25 +3198,21 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
   const hasSchedules = schedulesByDay && schedulesByDay.size > 0;
   const activeMarkers = markers ?? [];
 
-  // Short title: truncate at first " + " or limit chars
-  function shortTitle(title: string): string {
-    const parts = title.split(/\s*\+\s*/);
-    if (parts.length >= 2) return `${parts[0].trim()} + ${parts[1].trim()}`;
-    return title.slice(0, 14);
-  }
 
   return (
     <div>
       <div className="flex items-center justify-center gap-6 mb-4">
         <button
-          onClick={onPrevMonth}
+          type="button"
+                    onClick={onPrevMonth}
           className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors"
         >
           <ChevronLeft className="w-4 h-4 text-zinc-500" />
         </button>
         <span className="text-sm text-zinc-200 min-w-[120px] text-center">{monthLabel}</span>
         <button
-          onClick={onNextMonth}
+          type="button"
+                    onClick={onNextMonth}
           className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors"
         >
           <ChevronRight className="w-4 h-4 text-zinc-500" />
@@ -3257,7 +3270,8 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
     <div className="flex items-center justify-between py-3">
       <span className="text-sm text-zinc-400">{label}</span>
       <button
-        onClick={() => onChange(!value)}
+        type="button"
+                onClick={() => onChange(!value)}
         className={`relative rounded-full transition-all ${value ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-zinc-700"}`}
         style={{ width: 42, height: 24 }}
       >
@@ -3279,11 +3293,11 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
 function Stepper({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
   return (
     <div className="flex items-center gap-2">
-      <button onClick={() => onChange(Math.max(min, value - 1))} className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center hover:border-emerald-500/20 transition-colors">
+      <button type="button" onClick={() => onChange(Math.max(min, value - 1))} className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center hover:border-emerald-500/20 transition-colors">
         <Minus className="w-3 h-3 text-zinc-400" />
       </button>
       <span className="w-7 text-center text-sm text-emerald-400">{value}</span>
-      <button onClick={() => onChange(Math.min(max, value + 1))} className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center hover:border-emerald-500/20 transition-colors">
+      <button type="button" onClick={() => onChange(Math.min(max, value + 1))} className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center hover:border-emerald-500/20 transition-colors">
         <Plus className="w-3 h-3 text-zinc-400" />
       </button>
     </div>

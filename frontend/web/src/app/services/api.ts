@@ -888,7 +888,8 @@ export const coachService = {
           signal: controller.signal,
         });
 
-        let response = await sendStreamRequest(localStorage.getItem('accessToken'));
+        const accessToken = localStorage.getItem('accessToken');
+        let response = await sendStreamRequest(accessToken);
 
         if (response.status === 401) {
           const newToken = await refreshOnce();
