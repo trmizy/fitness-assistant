@@ -67,16 +67,17 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
   );
 }
 
+const getFullUrl = (url: string) => {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  // @ts-ignore
+  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  return `${baseUrl}${url}`;
+};
+
 function UploadBox({ label: labelText, hint, value, onUpload }: { label: string; hint?: string; value?: string; onUpload: (url: string) => void }) {
   const [isUploading, setIsUploading] = useState(false);
 
-  const getFullUrl = (url: string) => {
-    if (!url) return "";
-    if (url.startsWith("http")) return url;
-    // @ts-ignore
-    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
-    return `${baseUrl}${url}`;
-  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,6 +132,7 @@ function UploadBox({ label: labelText, hint, value, onUpload }: { label: string;
               </div>
             )}
             <button
+              type="button"
               onClick={e => { e.preventDefault(); e.stopPropagation(); onUpload(""); }}
               className="px-3 py-1 rounded-full bg-zinc-900/80 border border-zinc-700 text-zinc-400 hover:text-red-400 text-[11px] font-medium transition-colors flex items-center gap-1.5"
             >
@@ -156,7 +158,7 @@ function ReviewSection({ icon, title, onEdit, children }: { icon: React.ReactNod
           <div className="w-7 h-7 rounded-lg bg-zinc-700/30 flex items-center justify-center">{icon}</div>
           <h4 className="text-sm font-bold text-zinc-200">{title}</h4>
         </div>
-        <button onClick={onEdit} className="text-xs text-green-400 hover:text-green-300 font-medium flex items-center gap-1.5">
+        <button type="button" onClick={onEdit} className="text-xs text-green-400 hover:text-green-300 font-medium flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> Sửa
         </button>
       </div>
@@ -177,6 +179,7 @@ function ReviewRow({ label, value, isStatus }: { label: string; value?: string |
 }
 
 const emptyCert: PTApplicationCertificate = { certificateName: '', issuingOrganization: '', isCurrentlyValid: true, certificationStatus: 'Valid' };
+const emptyTrainingLoc = { provinceCode: '', wardCode: '', gymName: '', addressLine: '', legacyDistrictName: '', isPrimary: false, note: '', wards: [] as { code: number; name: string }[] };
 
 export function PTApplicationPage() {
   const { user } = useApp();
@@ -203,7 +206,6 @@ export function PTApplicationPage() {
     applicationTrainingLocations: [],
   });
 
-  const emptyTrainingLoc = { provinceCode: '', wardCode: '', gymName: '', addressLine: '', legacyDistrictName: '', isPrimary: false, note: '', wards: [] as { code: number; name: string }[] };
   const [provinces, setProvinces] = useState<{ code: number; name: string }[]>([]);
   const [residenceWards, setResidenceWards] = useState<{ code: number; name: string }[]>([]);
   const [trainingLocations, setTrainingLocations] = useState([{ ...emptyTrainingLoc, isPrimary: true }]);
@@ -471,8 +473,8 @@ export function PTApplicationPage() {
             })}
           </div>
           <div className="flex gap-3 justify-center">
-            <button onClick={() => navigate("/client/profile")} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">Về trang cá nhân</button>
-            <button onClick={() => navigate("/client/dashboard")} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">Về Dashboard</button>
+            <button type="button" onClick={() => navigate("/client/profile")} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">Về trang cá nhân</button>
+            <button type="button" onClick={() => navigate("/client/dashboard")} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">Về Dashboard</button>
           </div>
         </div>
       </div>
@@ -483,7 +485,7 @@ export function PTApplicationPage() {
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate("/client/profile")} className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-all">
+        <button type="button" onClick={() => navigate("/client/profile")} className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-all">
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div>
@@ -519,7 +521,7 @@ export function PTApplicationPage() {
             const done = i < currentStep;
             const active = i === currentStep;
             return (
-              <button key={s.key} onClick={() => { saveMutation.mutate(formData); setCurrentStep(i); }}
+              <button type="button" key={s.key} onClick={() => { saveMutation.mutate(formData); setCurrentStep(i); }}
                 className="flex flex-col items-center gap-1.5 flex-1 min-w-[60px] group transition-all">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all flex-shrink-0 ${done ? "bg-green-500 text-black"
                     : active ? "bg-green-500 text-black shadow-lg shadow-green-500/30"
@@ -678,7 +680,7 @@ export function PTApplicationPage() {
               </div>
 
               {(formData.certificates || []).map((cert, index) => (
-                <div key={index} className="border border-zinc-700/50 rounded-xl p-5 space-y-4">
+                <div key={cert.id ?? String(index)} className="border border-zinc-700/50 rounded-xl p-5 space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-bold text-zinc-300 uppercase tracking-wide">Chứng chỉ {index + 1}</h4>
                     <div className="flex items-center gap-2">
@@ -1110,7 +1112,7 @@ export function PTApplicationPage() {
                           <CheckCircle className="w-4 h-4 text-green-400" />
                           <span className="text-xs text-zinc-300">{m.label || `Ảnh portfolio ${i + 1}`}</span>
                         </div>
-                        <button onClick={() => removePortfolioImage(i)} className="text-zinc-600 hover:text-red-400">
+                        <button type="button" onClick={() => removePortfolioImage(i)} className="text-zinc-600 hover:text-red-400">
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -1162,7 +1164,7 @@ export function PTApplicationPage() {
               {/* Certifications */}
               <ReviewSection icon={<Award className="w-4 h-4 text-purple-400" />} title="Chứng chỉ" onEdit={() => setCurrentStep(3)}>
                 {(formData.certificates || []).filter(c => c.certificateName).map((cert, i) => (
-                  <div key={i}>
+                  <div key={cert.id ?? String(i)}>
                     <ReviewRow label={`Chứng chỉ ${i + 1}`} value={`${cert.certificateName} (${cert.certificationStatus || 'Valid'})`} />
                     <ReviewRow label="Tệp" value={cert.certificateFileUrl ? "✓ Đã tải" : "Chưa tải"} isStatus />
                   </div>
@@ -1246,11 +1248,11 @@ export function PTApplicationPage() {
         {/* FOOTER ACTIONS */}
         <div className="p-4 border-t border-zinc-800/80 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button onClick={goPrev} disabled={currentStep === 0}
+            <button type="button" onClick={goPrev} disabled={currentStep === 0}
               className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold transition-all ${currentStep === 0 ? "text-zinc-700" : "text-zinc-400 hover:text-white"}`}>
               <ChevronLeft className="w-4 h-4" /> Quay lại
             </button>
-            <button onClick={handleSaveDraft} disabled={saveMutation.isPending}
+            <button type="button" onClick={handleSaveDraft} disabled={saveMutation.isPending}
               className="px-4 py-2 text-sm font-semibold text-zinc-500 hover:text-zinc-300 border border-zinc-700/50 rounded-lg transition-all flex items-center gap-2">
               {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Lưu nháp"}
             </button>
@@ -1258,6 +1260,7 @@ export function PTApplicationPage() {
 
           {currentStep === steps.length - 1 ? (
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={!allConsented || submitMutation.isPending}
               className={`flex items-center gap-2 px-6 py-2.5 text-sm font-bold rounded-lg transition-all shadow-lg ${
@@ -1269,7 +1272,7 @@ export function PTApplicationPage() {
               {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> Nộp hồ sơ</>}
             </button>
           ) : (
-            <button onClick={goNext}
+            <button type="button" onClick={goNext}
               className="flex items-center gap-2 px-6 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
               Tiếp theo <ChevronRight className="w-4 h-4" />
             </button>

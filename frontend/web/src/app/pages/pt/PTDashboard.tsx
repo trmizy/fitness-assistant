@@ -69,6 +69,9 @@ function formatSessionTime(dateStr: string) {
   return d.toLocaleString("vi-VN", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: false });
 }
 
+const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+const statusLabel: Record<string, string> = { CONFIRMED: "Đã xác nhận", REQUESTED: "Chờ xác nhận" };
+
 export function PTDashboard() {
   const navigate = useNavigate();
   const { user } = useApp();
@@ -131,7 +134,6 @@ export function PTDashboard() {
     { label: "Đang hoạt động", revenue: activeRevenue },
   ];
 
-  const dayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
   const monday = getMonday(new Date());
   const sessionTrend = dayLabels.map((day, i) => ({
     day,
@@ -143,25 +145,22 @@ export function PTDashboard() {
     }).length,
   }));
 
-  const sortedSessions = [...(upcomingSessions as Session[])]
-    .sort((a, b) => new Date(a.scheduledStartAt).getTime() - new Date(b.scheduledStartAt).getTime())
+  const sortedSessions = (upcomingSessions as Session[])
+    .toSorted((a, b) => new Date(a.scheduledStartAt).getTime() - new Date(b.scheduledStartAt).getTime())
     .slice(0, 5);
 
   const now = new Date();
   const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const alerts: { type: string; text: string }[] = [
     ...(contracts as Contract[])
-      .filter(c => c.status === "ACTIVE" && c.endDate && new Date(c.endDate) <= in7Days)
-      .map(c => ({ type: "warning", text: `Hợp đồng "${c.packageName ?? "Package"}" sắp hết hạn trong vòng 7 ngày` })),
+      .flatMap(c => c.status === "ACTIVE" && c.endDate && new Date(c.endDate) <= in7Days
+        ? [{ type: "warning", text: `Hợp đồng "${c.packageName ?? "Package"}" sắp hết hạn trong vòng 7 ngày` }]
+        : []),
     ...(contracts as Contract[])
-      .filter(c => c.status === "PENDING_REVIEW")
-      .map(() => ({ type: "info", text: "Yêu cầu hợp đồng mới đang chờ xét duyệt" })),
+      .flatMap(c => c.status === "PENDING_REVIEW"
+        ? [{ type: "info", text: "Yêu cầu hợp đồng mới đang chờ xét duyệt" }]
+        : []),
   ];
-
-  const statusLabel: Record<string, string> = {
-    CONFIRMED: "Đã xác nhận",
-    REQUESTED: "Chờ xác nhận",
-  };
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
@@ -172,7 +171,7 @@ export function PTDashboard() {
           <p className="text-zinc-500 text-sm mt-0.5">{today}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => navigate("/pt/clients")} className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/20">
+          <button type="button" onClick={() => navigate("/pt/clients")} className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/20">
             <Users className="w-4 h-4" /> Xem học viên
           </button>
         </div>
@@ -242,7 +241,7 @@ export function PTDashboard() {
         <div className="lg:col-span-2 bg-zinc-900 rounded-xl border border-zinc-800/60">
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
             <h4 className="text-sm font-bold text-zinc-200">Buổi tập sắp tới</h4>
-            <button onClick={() => navigate("/pt/schedule")} className="text-xs text-green-400 hover:text-green-300 transition-colors">Xem tất cả</button>
+            <button type="button" onClick={() => navigate("/pt/schedule")} className="text-xs text-green-400 hover:text-green-300 transition-colors">Xem tất cả</button>
           </div>
           {sessionsLoading ? (
             <div className="px-4 py-8 flex items-center justify-center">
@@ -278,6 +277,7 @@ export function PTDashboard() {
                       return (
                         <div className="flex flex-col items-end gap-0.5">
                           <button
+                            type="button"
                             onClick={() => joinState.enabled && handleJoinSession(s)}
                             disabled={!joinState.enabled || isJoining}
                             title={joinState.reason}
@@ -324,6 +324,7 @@ export function PTDashboard() {
                       {(pendingPlans as any[]).length} kế hoạch AI đang chờ bạn duyệt
                     </p>
                     <button
+                      type="button"
                       onClick={() => navigate("/pt/plans")}
                       className="text-xs text-violet-400 hover:text-violet-300 font-semibold whitespace-nowrap"
                     >
@@ -332,8 +333,8 @@ export function PTDashboard() {
                   </div>
                 </div>
               )}
-              {alerts.map((a, i) => (
-                <div key={i} className={`px-4 py-3 ${a.type === "warning" ? "bg-amber-500/5" : "bg-blue-500/5"}`}>
+              {alerts.map((a) => (
+                <div key={a.text} className={`px-4 py-3 ${a.type === "warning" ? "bg-amber-500/5" : "bg-blue-500/5"}`}>
                   <p className="text-xs text-zinc-400 leading-relaxed">{a.text}</p>
                 </div>
               ))}

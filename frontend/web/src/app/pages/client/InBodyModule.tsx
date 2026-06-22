@@ -48,6 +48,42 @@ function SectionCard({ title, children }: { title: string; children: React.React
 /* ── Input style ─────────────────────────────────────────── */
 const inp = "w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 transition-all";
 
+const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
+  { key: "overview", label: "Tổng quan",     icon: Activity      },
+  { key: "manual",   label: "Nhập thủ công", icon: ClipboardList },
+  { key: "upload",   label: "Tải ảnh lên",   icon: Camera        },
+  { key: "history",  label: "Lịch sử",       icon: History       },
+  { key: "compare",  label: "So sánh",       icon: GitCompare    },
+];
+
+const formatMeasurementDate = (r: any): string => {
+  const raw: string | undefined = r.dateOnly ?? r.date;
+  if (!raw) return '--';
+  const ymd = String(raw).slice(0, 10);
+  const parts = ymd.split('-');
+  if (parts.length !== 3) return ymd;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+};
+
+const measurementDateKey = (r: any): string => {
+  const raw = r?.dateOnly ?? r?.date ?? r?.createdAt;
+  const s = raw ? String(raw) : '';
+  const iso = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+  if (iso) return iso[1];
+  const dmy = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  const dmy2 = /^(\d{2})-(\d{2})-(\d{4})/.exec(s);
+  if (dmy2) return `${dmy2[3]}-${dmy2[2]}-${dmy2[1]}`;
+  return '9999-12-31';
+};
+
+const parseMeasurementDate = (r: any): Date => {
+  const key = measurementDateKey(r);
+  if (key === '9999-12-31') return new Date(NaN);
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
 /* ═══════════════════════════════════════════════════════════
    MAIN COMPONENT
 ═══════════════════════════════════════════════════════════ */
@@ -65,34 +101,7 @@ export function InBodyModule() {
   const [reviewDate, setReviewDate] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper: display measurement date from record (use dateOnly slice to avoid TZ issues)
-  const formatMeasurementDate = (r: any): string => {
-    const raw: string | undefined = r.dateOnly ?? r.date;
-    if (!raw) return '--';
-    const ymd = String(raw).slice(0, 10); // "2024-06-10"
-    const parts = ymd.split('-');
-    if (parts.length !== 3) return ymd;
-    return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
-  };
 
-  const measurementDateKey = (r: any): string => {
-    const raw = r?.dateOnly ?? r?.date ?? r?.createdAt;
-    const s = raw ? String(raw) : '';
-    const iso = /^(\d{4}-\d{2}-\d{2})/.exec(s);
-    if (iso) return iso[1];
-    const dmy = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);
-    if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
-    const dmy2 = /^(\d{2})-(\d{2})-(\d{4})/.exec(s);
-    if (dmy2) return `${dmy2[3]}-${dmy2[2]}-${dmy2[1]}`;
-    return '9999-12-31';
-  };
-
-  const parseMeasurementDate = (r: any): Date => {
-    const key = measurementDateKey(r);
-    if (key === '9999-12-31') return new Date(NaN);
-    const [y, m, d] = key.split('-').map(Number);
-    return new Date(y, m - 1, d);
-  };
 
   // Queries
   const { data: historyRaw = [], isLoading } = useQuery({
@@ -101,7 +110,7 @@ export function InBodyModule() {
   });
 
   const history = useMemo(
-    () => [...historyRaw].sort((a: any, b: any) => {
+    () => historyRaw.toSorted((a: any, b: any) => {
       const cmp = measurementDateKey(b).localeCompare(measurementDateKey(a)); // descending
       if (cmp !== 0) return cmp;
       return Date.parse(String(b?.createdAt ?? 0)) - Date.parse(String(a?.createdAt ?? 0));
@@ -139,8 +148,8 @@ export function InBodyModule() {
   const prev   = history[1] || latest;
 
   // Chart data sorted ascending by measurement date (dateOnly)
-  const trends = [...history]
-    .sort((a: any, b: any) => measurementDateKey(a).localeCompare(measurementDateKey(b)))
+  const trends = history
+    .toSorted((a: any, b: any) => measurementDateKey(a).localeCompare(measurementDateKey(b)))
     .map((h: any) => {
     const measureDate = parseMeasurementDate(h);
     return {
@@ -160,13 +169,6 @@ export function InBodyModule() {
     { subject: "BMR",    A: ((latest.bmr || 1500) / 2500) * 100 },
   ];
 
-  const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
-    { key: "overview", label: "Tổng quan",     icon: Activity      },
-    { key: "manual",   label: "Nhập thủ công", icon: ClipboardList },
-    { key: "upload",   label: "Tải ảnh lên",   icon: Camera        },
-    { key: "history",  label: "Lịch sử",       icon: History       },
-    { key: "compare",  label: "So sánh",       icon: GitCompare    },
-  ];
 
   /* ── Handlers ── */
   const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -243,6 +245,8 @@ export function InBodyModule() {
     }
   };
 
+  const todayStr = new Date().toISOString().split('T')[0];
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
 
@@ -260,12 +264,14 @@ export function InBodyModule() {
         {/* Always-visible quick-add CTAs */}
         <div className="flex gap-2 flex-wrap">
           <button
+            type="button"
             onClick={() => { setTab("manual"); setManualStep("form"); }}
             className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/60 text-zinc-200 px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
           >
             <ClipboardList className="w-4 h-4 text-green-400" /> Nhập thủ công
           </button>
           <button
+            type="button"
             onClick={() => { setTab("upload"); setUploadStep("drop"); }}
             className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/25"
           >
@@ -278,6 +284,7 @@ export function InBodyModule() {
       <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl overflow-x-auto w-full">
         {tabs.map(t => (
           <button
+            type="button"
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex-1 justify-center ${
@@ -301,6 +308,7 @@ export function InBodyModule() {
           {/* Two-method CTA banner */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
+              type="button"
               onClick={() => { setTab("manual"); setManualStep("form"); }}
               className="group flex items-center gap-4 glass-panel hover:bg-zinc-800/80 border-2 border-zinc-700/60 hover:border-green-500/40 rounded-xl p-4 text-left transition-all"
             >
@@ -315,6 +323,7 @@ export function InBodyModule() {
             </button>
 
             <button
+              type="button"
               onClick={() => { setTab("upload"); setUploadStep("drop"); }}
               className="group flex items-center gap-4 glass-panel hover:bg-zinc-800/80 border-2 border-zinc-700/60 hover:border-green-500/40 rounded-xl p-4 text-left transition-all"
             >
@@ -426,7 +435,7 @@ export function InBodyModule() {
           {/* Recent history */}
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">Bản ghi gần đây</h4>
-            <button onClick={() => setTab("history")} className="text-xs text-green-400 hover:text-green-300 flex items-center gap-1 transition-colors">
+            <button type="button" onClick={() => setTab("history")} className="text-xs text-green-400 hover:text-green-300 flex items-center gap-1 transition-colors">
               Xem tất cả <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -469,10 +478,10 @@ export function InBodyModule() {
               <h3 className="text-zinc-100 font-bold mb-1">Đã lưu dữ liệu!</h3>
               <p className="text-zinc-500 text-sm mb-5">Dữ liệu thành phần cơ thể của bạn đã được ghi lại thành công.</p>
               <div className="flex gap-3 justify-center">
-                <button onClick={() => { setManualStep("form"); }} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">
+                <button type="button" onClick={() => { setManualStep("form"); }} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">
                   Thêm bản ghi
                 </button>
-                <button onClick={() => setTab("history")} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
+                <button type="button" onClick={() => setTab("history")} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
                   Xem lịch sử
                 </button>
               </div>
@@ -490,7 +499,7 @@ export function InBodyModule() {
                   <SectionCard title="📅 Thông tin kiểm tra">
                     <div>
                       <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Ngày kiểm tra *</label>
-                      <input name="date" type="date" className={inp} defaultValue={new Date().toISOString().split('T')[0]} required />
+                      <input name="date" type="date" className={inp} defaultValue={todayStr} required />
                     </div>
                   </SectionCard>
                   
@@ -650,10 +659,11 @@ export function InBodyModule() {
                 </div>
               </div>
               <div className="flex gap-2 p-4 border-t border-zinc-800/60">
-                <button onClick={() => { setSelectedFile(null); setUploadStep("drop"); }} className="flex-1 py-2 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800/60">
+                <button type="button" onClick={() => { setSelectedFile(null); setUploadStep("drop"); }} className="flex-1 py-2 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800/60">
                   Chọn ảnh khác
                 </button>
                 <button
+                  type="button"
                   onClick={handleUpload}
                   className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20"
                 >
@@ -785,10 +795,10 @@ export function InBodyModule() {
                 </div>
               </div>
               <div className="flex gap-2 p-4 border-t border-zinc-800/60">
-                <button onClick={() => setUploadStep("drop")} className="flex-1 py-2 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800/60 transition-colors">
+                <button type="button" onClick={() => setUploadStep("drop")} className="flex-1 py-2 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800/60 transition-colors">
                   Chụp lại
                 </button>
-                <button onClick={confirmExtraction} className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
+                <button type="button" onClick={confirmExtraction} className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
                   Xác nhận & Lưu
                 </button>
               </div>
@@ -804,10 +814,10 @@ export function InBodyModule() {
               <h3 className="text-zinc-200 font-bold mb-1">Trích xuất thất bại</h3>
               <p className="text-zinc-500 text-sm mb-5">AI không thể đọc đủ dữ liệu từ ảnh này. Hãy thử ảnh rõ hơn hoặc nhập thủ công.</p>
               <div className="flex gap-3 justify-center">
-                <button onClick={() => setUploadStep("drop")} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">
+                <button type="button" onClick={() => setUploadStep("drop")} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">
                   Thử lại
                 </button>
-                <button onClick={() => { setTab("manual"); setManualStep("form"); }} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
+                <button type="button" onClick={() => { setTab("manual"); setManualStep("form"); }} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
                   Nhập thủ công
                 </button>
               </div>
@@ -823,10 +833,10 @@ export function InBodyModule() {
               <h3 className="text-zinc-200 font-bold mb-1">Đã lưu InBody!</h3>
               <p className="text-zinc-500 text-sm mb-5">Dữ liệu thành phần cơ thể đã được trích xuất và xác nhận thành công.</p>
               <div className="flex gap-3 justify-center">
-                <button onClick={() => setUploadStep("drop")} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">
+                <button type="button" onClick={() => setUploadStep("drop")} className="px-5 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700/60 text-sm font-semibold rounded-lg hover:bg-zinc-700 transition-colors">
                   Tải ảnh khác
                 </button>
-                <button onClick={() => setTab("history")} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
+                <button type="button" onClick={() => setTab("history")} className="px-5 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20">
                   Xem lịch sử
                 </button>
               </div>
@@ -853,7 +863,7 @@ export function InBodyModule() {
           <div className="glass-panel rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center justify-between">
               <h4 className="text-sm font-semibold text-zinc-200">Lịch sử InBody ({history.length} bản ghi)</h4>
-              <button onClick={() => setTab("upload")} className="flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300 transition-colors">
+              <button type="button" onClick={() => setTab("upload")} className="flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300 transition-colors">
                 <Plus className="w-3.5 h-3.5" /> Thêm mới
               </button>
             </div>
@@ -890,7 +900,7 @@ export function InBodyModule() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <button className="text-zinc-600 hover:text-green-400 transition-colors">
+                          <button type="button" className="text-zinc-600 hover:text-green-400 transition-colors">
                             <Eye className="w-4 h-4" />
                           </button>
                         </td>

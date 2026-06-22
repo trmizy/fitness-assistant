@@ -186,7 +186,7 @@ function inBodyDateKey(entry: any): string {
 }
 
 function sortInBodyHistoryByMeasurementDate(history: any[]) {
-  return [...history].sort((a, b) => {
+  return history.toSorted((a, b) => {
     const cmp = inBodyDateKey(b).localeCompare(inBodyDateKey(a)); // descending
     if (cmp !== 0) return cmp;
     return Date.parse(String(b?.createdAt ?? 0)) - Date.parse(String(a?.createdAt ?? 0));

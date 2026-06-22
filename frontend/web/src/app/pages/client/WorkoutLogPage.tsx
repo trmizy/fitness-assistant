@@ -349,7 +349,7 @@ export function WorkoutLogPage() {
   const [planView, setPlanView] = useState<PlanView>("main");
   const [selectedDay, setSelectedDay] = useState(1);
   const [dayExercises, setDayExercises] = useState<any[]>([]);
-  const [currentWorkoutId, setCurrentWorkoutId] = useState<string | null>(null);
+  const currentWorkoutIdRef = useRef<string | null>(null);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -362,7 +362,7 @@ export function WorkoutLogPage() {
   const [consecutiveRest, setConsecutiveRest] = useState(1);
   const [calendarExpanded, setCalendarExpanded] = useState(true);
   const [selectedExercise, setSelectedExercise] = useState<any | null>(null);
-  const [selectedProgramDayId, setSelectedProgramDayId] = useState<string | null>(null);
+  const selectedProgramDayIdRef = useRef<string | null>(null);
 
   // Dynamic Navigation & Stats
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -371,7 +371,7 @@ export function WorkoutLogPage() {
   const [currentProgram, setCurrentProgram] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [daysSinceInBody, setDaysSinceInBody] = useState<number | null>(null);
-  const [workoutCache, setWorkoutCache] = useState<Record<string, any>>({});
+  const workoutCacheRef = useRef<Record<string, any>>({});
   const [aiSchedules, setAiSchedules] = useState<WorkoutScheduleRecord[]>([]);
   // Track the actual calendar date being edited (not the plan day number)
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -414,13 +414,13 @@ export function WorkoutLogPage() {
             cache[d] = w;
           });
         }
-        setWorkoutCache(cache);
+        workoutCacheRef.current = cache;
 
         // 2. Set current day exercises from cache if exists
         const todayStr = new Date().toDateString();
         if (cache[todayStr]) {
           const latest = cache[todayStr];
-          setCurrentWorkoutId(latest.id);
+          currentWorkoutIdRef.current = latest.id;
           const mapped = latest.exercises.map((we: any) => ({
             id: we.id,
             dbId: we.exerciseId,
@@ -481,7 +481,7 @@ export function WorkoutLogPage() {
   const [manualDaysPerWeek, setManualDaysPerWeek] = useState(3);
   const [manualSelectedWeekdays, setManualSelectedWeekdays] = useState<number[]>(DEFAULT_MANUAL_WEEKDAYS[3]);
   const [manualDays, setManualDays] = useState<ManualBuilderDay[]>(() => buildManualDays(3));
-  const [manualEditingDayIndex, setManualEditingDayIndex] = useState<number | null>(null);
+  const manualEditingDayIndexRef = useRef<number | null>(null);
 
   // Build per-day schedule info for the calendar
   const schedulesByDay = (() => {
@@ -531,13 +531,13 @@ export function WorkoutLogPage() {
     setPrevCurrentProgramSync(currentProgram);
     const programDays = currentProgram?.days;
     if (!Array.isArray(programDays) || programDays.length === 0) {
-      setSelectedProgramDayId(null);
+      selectedProgramDayIdRef.current = null;
       setPrevSelectedDaySync(selectedDay);
     } else {
       const selected = programDays.find((day: any) => day.dayNumber === selectedDay) || programDays[0];
       setPrevSelectedDaySync(selected.dayNumber);
       setSelectedDay(selected.dayNumber);
-      setSelectedProgramDayId(selected.id);
+      selectedProgramDayIdRef.current = selected.id;
       setDayExercises((selected.exercises || []).map(mapProgramExercise));
       setEditExercises((selected.exercises || []).map(mapProgramExercise));
     }
@@ -679,14 +679,13 @@ export function WorkoutLogPage() {
     if (isSaving) return;
     setIsSaving(true);
     try {
-      if (selectedProgramDayId && currentProgram) {
+      if (selectedProgramDayIdRef.current && currentProgram) {
         if (editExercises.length === 0) {
           throw new Error("Mỗi ngày tập cần ít nhất 1 bài tập.");
         }
         const existingIds = new Set(
           (currentProgram.days || [])
-            .flatMap((day: any) => day.exercises || [])
-            .map((exercise: any) => exercise.id),
+            .flatMap((day: any) => (day.exercises || []).map((exercise: any) => exercise.id)),
         );
 
         const savePayloads = editExercises.map((ex, index) => {
@@ -706,11 +705,11 @@ export function WorkoutLogPage() {
         await Promise.all(savePayloads.map(({ ex, payload }) =>
           ex.programExerciseId && existingIds.has(ex.programExerciseId)
             ? workoutService.updateProgramExercise(ex.programExerciseId, payload)
-            : workoutService.addProgramExercise(selectedProgramDayId, payload),
+            : workoutService.addProgramExercise(selectedProgramDayIdRef.current!, payload),
         ));
 
         const editedIds = new Set(editExercises.flatMap((ex) => ex.programExerciseId ? [ex.programExerciseId] : []));
-        const selectedDayModel = (currentProgram.days || []).find((day: any) => day.id === selectedProgramDayId);
+        const selectedDayModel = (currentProgram.days || []).find((day: any) => day.id === selectedProgramDayIdRef.current);
         const toDelete = (selectedDayModel?.exercises || []).filter((e: any) => !editedIds.has(e.id));
         await Promise.all(toDelete.map((e: any) => workoutService.deleteProgramExercise(e.id)));
 
@@ -740,15 +739,15 @@ export function WorkoutLogPage() {
         })
       };
 
-      if (currentWorkoutId) {
-        await workoutService.updateWorkout(currentWorkoutId, payload);
+      if (currentWorkoutIdRef.current) {
+        await workoutService.updateWorkout(currentWorkoutIdRef.current, payload);
       } else {
         const res = await workoutService.logWorkout(payload);
         if (res && res.id) {
-          setCurrentWorkoutId(res.id);
+          currentWorkoutIdRef.current = res.id;
           // Update cache with the new workout
           const dStr = saveDate.toDateString();
-          setWorkoutCache({ ...workoutCache, [dStr]: { ...res, exercises: editExercises.map(e => ({ ...e, exercise: { exerciseName: e.name, videoUrl: e.img, instructions: e.description, muscleGroupsActivated: e.muscles } })) } });
+          workoutCacheRef.current = { ...workoutCacheRef.current, [dStr]: { ...res, exercises: editExercises.map(e => ({ ...e, exercise: { exerciseName: e.name, videoUrl: e.img, instructions: e.description, muscleGroupsActivated: e.muscles } })) } };
         }
       }
       
@@ -845,7 +844,7 @@ export function WorkoutLogPage() {
     setManualDaysPerWeek(3);
     setManualSelectedWeekdays(DEFAULT_MANUAL_WEEKDAYS[3]);
     setManualDays(buildManualDays(3));
-    setManualEditingDayIndex(null);
+    manualEditingDayIndexRef.current = null;
     clearExerciseFilters();
     setShowManualBuilder(true);
   }, [clearExerciseFilters]);
@@ -865,7 +864,7 @@ export function WorkoutLogPage() {
         toast.error(`Chỉ chọn ${manualDaysPerWeek} ngày tập trong tuần`);
         return previous;
       }
-      return MANUAL_WEEKDAYS.map((option) => option.value).filter((value) => [...previous, weekday].includes(value));
+      return MANUAL_WEEKDAYS.flatMap((option) => [...previous, weekday].includes(option.value) ? [option.value] : []);
     });
   }, [manualDaysPerWeek]);
 
@@ -920,7 +919,7 @@ export function WorkoutLogPage() {
   const dbExercises: any[] = exercisesIsError ? [] : (Array.isArray(exercisesData) ? exercisesData : []);
   const dbLoading = exercisesIsFetching || replacingExercise;
 
-  const sortedDbExercises = [...dbExercises].sort((a, b) => {
+  const sortedDbExercises = dbExercises.toSorted((a, b) => {
     if (pickerSort === "bodyPart") {
       return String(a.bodyPart || "").localeCompare(String(b.bodyPart || "")) || String(a.exerciseName || "").localeCompare(String(b.exerciseName || ""));
     }
@@ -958,9 +957,9 @@ export function WorkoutLogPage() {
       muscles: dbEx.muscleGroupsActivated || [],
       tips: [],
     };
-    if (showManualBuilder && manualEditingDayIndex !== null) {
+    if (showManualBuilder && manualEditingDayIndexRef.current !== null) {
       setManualDays((previous) => previous.map((day, index) => {
-        if (index !== manualEditingDayIndex) return day;
+        if (index !== manualEditingDayIndexRef.current) return day;
         return {
           ...day,
           exercises: [
@@ -1068,12 +1067,12 @@ export function WorkoutLogPage() {
       }),
     };
 
-    const workoutIdForSave = currentWorkoutId || scheduleWorkoutId;
+    const workoutIdForSave = currentWorkoutIdRef.current || scheduleWorkoutId;
     const saved = workoutIdForSave
       ? await workoutService.updateWorkout(workoutIdForSave, payload)
       : await workoutService.logWorkout(payload);
     if (scheduleId) setSelectedScheduleId(scheduleId);
-    if (saved?.id) setCurrentWorkoutId(saved.id);
+    if (saved?.id) currentWorkoutIdRef.current = saved.id;
     await refetchProgramAndSchedules();
   };
 
@@ -1327,7 +1326,7 @@ export function WorkoutLogPage() {
                               setSelectedDay(programDay?.dayNumber || 1);
                               setSelectedDate(new Date(schedule.date));
                               setSelectedScheduleId(schedule.id);
-                              setCurrentWorkoutId(schedule.workoutId || schedule.workout?.id || null);
+                              currentWorkoutIdRef.current = schedule.workoutId || schedule.workout?.id || null;
                               setPlanView("dayDetail");
                             }}
                             className="text-[10px] px-2 py-1 rounded-full border border-zinc-700/50 text-zinc-300 hover:bg-zinc-800"
@@ -1384,7 +1383,7 @@ export function WorkoutLogPage() {
                   const scheduleForDay = findScheduleForDate(clickedDate);
                   setSelectedDay(scheduleForDay?.programDay?.dayNumber || day);
                   setSelectedScheduleId(scheduleForDay?.id || null);
-                  setCurrentWorkoutId(scheduleForDay?.workoutId || scheduleForDay?.workout?.id || null);
+                  currentWorkoutIdRef.current = scheduleForDay?.workoutId || scheduleForDay?.workout?.id || null;
 
                   // Prefer the persisted schedule. Workout history can contain legacy
                   // date-shifted rows, so it is only a fallback for unscheduled days.
@@ -1392,9 +1391,9 @@ export function WorkoutLogPage() {
                     setSelectedDay(scheduleForDay.programDay.dayNumber);
                     setTab("plan");
                     setPlanView("dayDetail");
-                  } else if (workoutCache[dStr]) {
-                    const w = workoutCache[dStr];
-                    setCurrentWorkoutId(w.id);
+                  } else if (workoutCacheRef.current[dStr]) {
+                    const w = workoutCacheRef.current[dStr];
+                    currentWorkoutIdRef.current = w.id;
                     const mapped = w.exercises.map((we: any) => ({
                       id: we.id,
                       dbId: we.exerciseId,
@@ -1666,7 +1665,7 @@ export function WorkoutLogPage() {
                         setSelectedDay(w.day || w.dayNumber);
                         setSelectedDate(nextSchedule?.date ? new Date(nextSchedule.date) : new Date());
                         setSelectedScheduleId(nextSchedule?.id || null);
-                        setCurrentWorkoutId(nextSchedule?.workoutId || nextSchedule?.workout?.id || null);
+                        currentWorkoutIdRef.current = nextSchedule?.workoutId || nextSchedule?.workout?.id || null;
                         setPlanView("dayDetail");
                       }
                     }}
@@ -1747,8 +1746,8 @@ export function WorkoutLogPage() {
                         const scheduleForDay = findScheduleForDate(clickedDate);
                         setSelectedDay(scheduleForDay?.programDay?.dayNumber || day);
                         setSelectedScheduleId(scheduleForDay?.id || null);
-                        setCurrentWorkoutId(scheduleForDay?.workoutId || scheduleForDay?.workout?.id || null);
-                        
+                        currentWorkoutIdRef.current = scheduleForDay?.workoutId || scheduleForDay?.workout?.id || null;
+
                         if (scheduleForDay?.programDay?.dayNumber) {
                           setSelectedDay(scheduleForDay.programDay.dayNumber);
                           setPlanView("dayDetail");
@@ -1899,7 +1898,7 @@ export function WorkoutLogPage() {
                     type="button"
                                         onClick={() => {
                       if (detailSchedule?.id) setSelectedScheduleId(detailSchedule.id);
-                      setCurrentWorkoutId(detailSchedule?.workoutId || detailSchedule?.workout?.id || null);
+                      currentWorkoutIdRef.current = detailSchedule?.workoutId || detailSchedule?.workout?.id || null;
                       setPlanView("activeExercise");
                     }}
                     className="w-full py-3.5 rounded-xl bg-emerald-500 text-black text-sm tracking-wider transition-all hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-[0.98] flex items-center justify-center gap-2"
@@ -2580,7 +2579,7 @@ export function WorkoutLogPage() {
                   <div className="flex items-center gap-3">
                     <span className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-semibold">{day.dayNumber}</span>
                     <input value={day.title} onChange={(event) => setManualDays((previous) => previous.map((item, index) => index === dayIndex ? { ...item, title: event.target.value } : item))} className="flex-1 rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/50" />
-                    <button type="button" onClick={() => { setManualEditingDayIndex(dayIndex); clearExerciseFilters(); setReplaceExerciseIndex(null); setShowAddExercise(true); }} className="px-3 py-2 rounded-xl bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Thêm bài</button>
+                    <button type="button" onClick={() => { manualEditingDayIndexRef.current = dayIndex; clearExerciseFilters(); setReplaceExerciseIndex(null); setShowAddExercise(true); }} className="px-3 py-2 rounded-xl bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Thêm bài</button>
                   </div>
                   <div className="space-y-2">
                     {day.exercises.length === 0 ? (

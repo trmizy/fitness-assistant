@@ -37,9 +37,9 @@ type Tab = "schedule" | "availability";
 export function PTSchedulePage() {
   const queryClient = useQueryClient();
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
-  const [selectedDay, setSelectedDay] = useState<number | null>(today.getDate());
+  const [year, setYear] = useState(() => today.getFullYear());
+  const [month, setMonth] = useState(() => today.getMonth());
+  const [selectedDay, setSelectedDay] = useState<number | null>(() => today.getDate());
   const [tab, setTab] = useState<Tab>("schedule");
 
   // Availability editing state
@@ -50,8 +50,8 @@ export function PTSchedulePage() {
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDay(year, month);
-  const prevMonth = () => { if (month === 0) { setMonth(11); setYear(year - 1); } else setMonth(month - 1); };
-  const nextMonth = () => { if (month === 11) { setMonth(0); setYear(year + 1); } else setMonth(month + 1); };
+  const prevMonth = () => { if (month === 0) { setMonth(11); setYear(prev => prev - 1); } else setMonth(prev => prev - 1); };
+  const nextMonth = () => { if (month === 11) { setMonth(0); setYear(prev => prev + 1); } else setMonth(prev => prev + 1); };
 
   // ── Queries ──────────────────────────────────────────────────────
   const { data: upcomingSessions = [], isLoading: loadingSessions } = useQuery({
@@ -80,11 +80,10 @@ export function PTSchedulePage() {
 
   // Session days for calendar dots
   const sessionDays = new Set(
-    sessions.map(s => {
+    sessions.flatMap(s => {
       const d = new Date(s.scheduledStartAt);
-      if (d.getFullYear() === year && d.getMonth() === month) return d.getDate();
-      return -1;
-    }).filter(d => d > 0)
+      return d.getFullYear() === year && d.getMonth() === month ? [d.getDate()] : [];
+    })
   );
 
   // Blocked dates set
@@ -195,10 +194,10 @@ export function PTSchedulePage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex">
-        <button onClick={() => setTab("schedule")} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${tab === "schedule" ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}>
+        <button type="button" onClick={() => setTab("schedule")} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${tab === "schedule" ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}>
           Sessions
         </button>
-        <button onClick={() => setTab("availability")} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${tab === "availability" ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}>
+        <button type="button" onClick={() => setTab("availability")} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all flex items-center gap-1.5 ${tab === "availability" ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}>
           <Settings className="w-3.5 h-3.5" /> Availability
         </button>
       </div>
@@ -209,9 +208,9 @@ export function PTSchedulePage() {
           {/* Calendar */}
           <div className="lg:col-span-2 bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
             <div className="flex items-center justify-between mb-4">
-              <button onClick={prevMonth} className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+              <button type="button" onClick={prevMonth} className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
               <h3 className="text-sm font-bold text-zinc-200">{MONTHS[month]} {year}</h3>
-              <button onClick={nextMonth} className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"><ChevronRight className="w-4 h-4" /></button>
+              <button type="button" onClick={nextMonth} className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"><ChevronRight className="w-4 h-4" /></button>
             </div>
             <div className="grid grid-cols-7 gap-1 mb-2">
               {DAYS_SHORT.map(d => <div key={d} className="text-center text-xs text-zinc-600 py-1 font-semibold">{d}</div>)}
@@ -226,6 +225,7 @@ export function PTSchedulePage() {
                 const isBlocked = blockedDates.has(dateStr);
                 return (
                   <button
+                    type="button"
                     key={day}
                     onClick={() => setSelectedDay(day)}
                     className={`aspect-square flex flex-col items-center justify-center rounded-xl text-xs transition-all font-medium ${
@@ -272,23 +272,23 @@ export function PTSchedulePage() {
                     <div className="flex gap-1.5 mt-3 pt-2 border-t border-zinc-800/40">
                       {s.status === "REQUESTED" && (
                         <>
-                          <button onClick={() => confirmMut.mutate(s.id)} disabled={confirmMut.isPending} className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all">
+                          <button type="button" onClick={() => confirmMut.mutate(s.id)} disabled={confirmMut.isPending} className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all">
                             <Check className="w-3 h-3" /> Confirm
                           </button>
-                          <button onClick={() => cancelSessionMut.mutate(s.id)} disabled={cancelSessionMut.isPending} className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors">
+                          <button type="button" onClick={() => cancelSessionMut.mutate(s.id)} disabled={cancelSessionMut.isPending} className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors">
                             <X className="w-3 h-3" /> Decline
                           </button>
                         </>
                       )}
                       {s.status === "CONFIRMED" && (
                         <>
-                          <button onClick={() => completeMut.mutate(s.id)} disabled={completeMut.isPending} className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all">
+                          <button type="button" onClick={() => completeMut.mutate(s.id)} disabled={completeMut.isPending} className="flex items-center gap-1 bg-blue-500 hover:bg-blue-400 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all">
                             <CheckCircle className="w-3 h-3" /> Complete
                           </button>
-                          <button onClick={() => noShowMut.mutate(s.id)} disabled={noShowMut.isPending} className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors">
+                          <button type="button" onClick={() => noShowMut.mutate(s.id)} disabled={noShowMut.isPending} className="flex items-center gap-1 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors">
                             <AlertOctagon className="w-3 h-3" /> No-Show
                           </button>
-                          <button onClick={() => cancelSessionMut.mutate(s.id)} disabled={cancelSessionMut.isPending} className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors">
+                          <button type="button" onClick={() => cancelSessionMut.mutate(s.id)} disabled={cancelSessionMut.isPending} className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-colors">
                             <X className="w-3 h-3" /> Cancel
                           </button>
                         </>
@@ -334,13 +334,14 @@ export function PTSchedulePage() {
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-zinc-200">Weekly Schedule</h3>
               {!isEditingAvail ? (
-                <button onClick={startEditing} className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 font-semibold transition-colors">
+                <button type="button" onClick={startEditing} className="flex items-center gap-1 text-xs text-green-400 hover:text-green-300 font-semibold transition-colors">
                   <Settings className="w-3 h-3" /> Edit
                 </button>
               ) : (
                 <div className="flex gap-2">
-                  <button onClick={() => setIsEditingAvail(false)} className="text-xs text-zinc-500 hover:text-zinc-300 font-semibold">Cancel</button>
+                  <button type="button" onClick={() => setIsEditingAvail(false)} className="text-xs text-zinc-500 hover:text-zinc-300 font-semibold">Cancel</button>
                   <button
+                    type="button"
                     onClick={saveAvailability}
                     disabled={saveAvailMut.isPending}
                     className="flex items-center gap-1 bg-green-500 hover:bg-green-400 text-black px-3 py-1 rounded-lg text-xs font-bold transition-all"
@@ -359,7 +360,7 @@ export function PTSchedulePage() {
                   const active = !!editSlots[day];
                   return (
                     <div key={day} className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${active ? "border-green-500/20 bg-green-500/5" : "border-zinc-800/60 bg-zinc-800/20"}`}>
-                      <button onClick={() => toggleDay(day)} className={`w-5 h-5 rounded flex items-center justify-center border transition-all ${active ? "bg-green-500 border-green-500" : "border-zinc-700"}`}>
+                      <button type="button" onClick={() => toggleDay(day)} className={`w-5 h-5 rounded flex items-center justify-center border transition-all ${active ? "bg-green-500 border-green-500" : "border-zinc-700"}`}>
                         {active && <Check className="w-3 h-3 text-black" />}
                       </button>
                       <span className={`text-xs font-bold w-10 ${active ? "text-zinc-200" : "text-zinc-600"}`}>{DAY_LABELS[day]}</span>
@@ -415,6 +416,7 @@ export function PTSchedulePage() {
                 className="flex-1 bg-zinc-800 border border-zinc-700/60 rounded-lg px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 outline-none"
               />
               <button
+                type="button"
                 onClick={() => blockDate && addExceptionMut.mutate({ date: blockDate, reason: blockReason || undefined })}
                 disabled={!blockDate || addExceptionMut.isPending}
                 className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 px-3 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
@@ -437,6 +439,7 @@ export function PTSchedulePage() {
                       {e.reason && <div className="text-xs text-zinc-500">{e.reason}</div>}
                     </div>
                     <button
+                      type="button"
                       onClick={() => removeExceptionMut.mutate(e.id)}
                       className="p-1 text-zinc-600 hover:text-red-400 transition-colors"
                     >

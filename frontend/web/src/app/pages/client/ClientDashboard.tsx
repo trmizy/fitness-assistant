@@ -101,6 +101,20 @@ const goalLabels: Record<string, string> = {
   ATHLETIC_PERFORMANCE: "Cải thiện sức khỏe",
 };
 
+const quickActions = [
+  { label: "Tải InBody", icon: Upload, to: "/client/inbody", color: "bg-green-500/80 hover:bg-green-400/90 text-zinc-100 border border-green-500/50 backdrop-blur-md" },
+  { label: "Nhật ký tập", icon: Dumbbell, to: "/client/workout", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
+  { label: "Xem kế hoạch", icon: Brain, to: "/client/plans", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
+  { label: "Nhắn tin PT", icon: MessageSquare, to: "/client/chat", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
+  { label: "Đặt lịch", icon: Calendar, to: "/client/booking", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
+];
+
+const calcChange = (curr: number, old?: number) => {
+  if (!old) return "---";
+  const diff = curr - old;
+  return (diff > 0 ? "+" : "") + diff.toFixed(1);
+};
+
 export function ClientDashboard() {
   const { user } = useApp();
   const navigate = useNavigate();
@@ -124,7 +138,7 @@ export function ClientDashboard() {
   });
 
   const sortedInBodyHistory = useMemo(
-    () => [...inbodyHistory].sort((a: any, b: any) => {
+    () => inbodyHistory.toSorted((a: any, b: any) => {
       // Descending: newest first. Use ISO string compare (lexicographic = chronological for YYYY-MM-DD)
       const cmp = inBodyDateKey(b).localeCompare(inBodyDateKey(a));
       if (cmp !== 0) return cmp;
@@ -165,11 +179,6 @@ export function ClientDashboard() {
   const latest = sortedInBodyHistory[0];
   const prev = sortedInBodyHistory[1];
 
-  const calcChange = (curr: number, old?: number) => {
-    if (!old) return "---";
-    const diff = curr - old;
-    return (diff > 0 ? "+" : "") + diff.toFixed(1);
-  };
 
   const programDays = Array.isArray(currentProgram?.days) ? currentProgram.days : [];
   const programExerciseCount = programDays.reduce((sum: number, day: any) => {
@@ -178,7 +187,9 @@ export function ClientDashboard() {
 
   const nextSchedule = (Array.isArray(upcomingSchedules) ? upcomingSchedules : [])
     .filter((schedule: WorkoutScheduleRecord) => !schedule.workoutId && !schedule.workout?.id)
-    .sort((a: WorkoutScheduleRecord, b: WorkoutScheduleRecord) => parseApiDateOnly(a.date).getTime() - parseApiDateOnly(b.date).getTime())[0];
+    .reduce((earliest: WorkoutScheduleRecord | undefined, s: WorkoutScheduleRecord) =>
+      !earliest || parseApiDateOnly(s.date).getTime() < parseApiDateOnly(earliest.date).getTime() ? s : earliest,
+      undefined);
   const nextProgramDay = nextSchedule?.programDay;
   const nextExerciseCount = nextProgramDay?.exercises?.length ?? 0;
 
@@ -225,7 +236,7 @@ export function ClientDashboard() {
     },
   ];
 
-  const chartHistory = [...sortedInBodyHistory].sort(
+  const chartHistory = sortedInBodyHistory.toSorted(
     (a: any, b: any) => inBodyDateKey(a).localeCompare(inBodyDateKey(b)),
   );
 
@@ -238,14 +249,6 @@ export function ClientDashboard() {
     date: parseInBodyMeasurementDate(h).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
     value: h.muscleMass,
   }));
-
-  const quickActions = [
-    { label: "Tải InBody", icon: Upload, to: "/client/inbody", color: "bg-green-500/80 hover:bg-green-400/90 text-zinc-100 border border-green-500/50 backdrop-blur-md" },
-    { label: "Nhật ký tập", icon: Dumbbell, to: "/client/workout", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
-    { label: "Xem kế hoạch", icon: Brain, to: "/client/plans", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
-    { label: "Nhắn tin PT", icon: MessageSquare, to: "/client/chat", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
-    { label: "Đặt lịch", icon: Calendar, to: "/client/booking", color: "bg-zinc-900/60 hover:bg-zinc-800/80 text-zinc-100 border border-zinc-700/50 backdrop-blur-md" },
-  ];
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
@@ -278,6 +281,7 @@ export function ClientDashboard() {
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
           {quickActions.map((a) => (
             <button
+              type="button"
               key={a.label}
               onClick={() => navigate(a.to)}
               className={`${a.color} rounded-xl p-3 flex flex-col items-center gap-2 transition-all shadow-lg`}
@@ -361,6 +365,7 @@ export function ClientDashboard() {
           </div>
           {currentProgram ? (
             <button
+              type="button"
               onClick={() => navigate("/client/workout")}
               className="w-full min-h-[100px] text-left rounded-lg border border-green-500/20 bg-green-500/8 p-4 hover:bg-green-500/12 transition-colors"
             >
@@ -382,7 +387,7 @@ export function ClientDashboard() {
             <div className="flex flex-col items-center justify-center h-[100px] border border-dashed border-zinc-800 rounded-lg text-center p-4">
               <Brain className="w-6 h-6 text-zinc-700 mb-2" />
               <p className="text-[10px] text-zinc-500 italic">Chưa có chương trình trong nhật ký tập. Tạo AI Plan hoặc tạo thủ công để bắt đầu.</p>
-              <button onClick={() => navigate("/client/workout")} className="mt-2 text-[10px] text-green-500 font-bold hover:underline">Tạo trong nhật ký tập</button>
+              <button type="button" onClick={() => navigate("/client/workout")} className="mt-2 text-[10px] text-green-500 font-bold hover:underline">Tạo trong nhật ký tập</button>
             </div>
           )}
         </div>
@@ -390,6 +395,7 @@ export function ClientDashboard() {
         <div className="glass-panel rounded-xl p-4">
           {nextSchedule ? (
             <button
+              type="button"
               onClick={() => navigate("/client/workout")}
               className="w-full h-full min-h-[132px] text-left flex flex-col justify-center rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 hover:border-green-500/30 hover:bg-green-500/8 transition-colors"
             >
@@ -410,7 +416,7 @@ export function ClientDashboard() {
             <div className="h-full min-h-[132px] flex flex-col items-center justify-center text-center">
               <Calendar className="w-8 h-8 text-zinc-700 mb-2" />
               <p className="text-sm text-zinc-500 font-medium">Không có lịch tập sắp tới</p>
-              <button onClick={() => navigate("/client/workout")} className="mt-3 text-xs text-green-400 hover:underline">Lên lịch trong nhật ký tập</button>
+              <button type="button" onClick={() => navigate("/client/workout")} className="mt-3 text-xs text-green-400 hover:underline">Lên lịch trong nhật ký tập</button>
             </div>
           )}
         </div>
@@ -449,7 +455,7 @@ export function ClientDashboard() {
       <div className="glass-panel rounded-xl">
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
           <h4 className="text-sm font-semibold text-zinc-200">Tập luyện gần đây</h4>
-          <button onClick={() => navigate("/client/workout")} className="text-xs text-green-400 hover:text-green-300 transition-colors">Xem tất cả</button>
+          <button type="button" onClick={() => navigate("/client/workout")} className="text-xs text-green-400 hover:text-green-300 transition-colors">Xem tất cả</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[400px]">
@@ -462,8 +468,8 @@ export function ClientDashboard() {
               </tr>
             </thead>
             <tbody>
-              {workoutHistory.length > 0 ? workoutHistory.map((w: any, i: number) => (
-                <tr key={i} className="border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/40 transition-colors">
+              {workoutHistory.length > 0 ? workoutHistory.map((w: any) => (
+                <tr key={w.id} className="border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/40 transition-colors">
                   <td className="px-4 py-2.5 text-sm font-semibold text-zinc-200">{w.title || "Buổi tập"}</td>
                   <td className="px-4 py-2.5 text-sm text-zinc-500">{new Date(w.date).toLocaleDateString("vi-VN")}</td>
                   <td className="px-4 py-2.5 text-sm text-zinc-500">{w.durationMinutes || "--"} phút</td>

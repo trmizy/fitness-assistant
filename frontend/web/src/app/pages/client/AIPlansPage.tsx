@@ -187,7 +187,7 @@ function chooseLatestPlan(plans: WorkoutPlanRecord[]): WorkoutPlanRecord | null 
   const completed = plans.filter((p) => p.status === 'COMPLETED');
   const source = completed.length > 0 ? completed : plans;
 
-  const sorted = [...source].sort((a, b) => {
+  const sorted = source.toSorted((a, b) => {
     const tsA = Math.max(toTimestamp(a.updatedAt), toTimestamp(a.createdAt));
     const tsB = Math.max(toTimestamp(b.updatedAt), toTimestamp(b.createdAt));
     if (tsA !== tsB) return tsB - tsA;
@@ -459,7 +459,7 @@ export function AIPlansPage() {
 
   const sortedPlans = useMemo(() => {
     const list = plans ?? [];
-    return [...list].sort((a, b) => {
+    return list.toSorted((a, b) => {
       const tsA = Math.max(toTimestamp(a.updatedAt), toTimestamp(a.createdAt));
       const tsB = Math.max(toTimestamp(b.updatedAt), toTimestamp(b.createdAt));
       if (tsA !== tsB) return tsB - tsA;
@@ -875,7 +875,7 @@ export function AIPlansPage() {
       }
 
       setWeekdayWarning(null);
-      return WEEKDAY_OPTIONS.map((option) => option.value).filter((value) => [...previous, weekday].includes(value));
+      return WEEKDAY_OPTIONS.flatMap((option) => [...previous, weekday].includes(option.value) ? [option.value] : []);
     });
   };
 
