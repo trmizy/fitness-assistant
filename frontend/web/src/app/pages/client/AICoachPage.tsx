@@ -66,7 +66,7 @@ const renderTable = (lines: string[], startIdx: number) => {
     l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
 
   const headers = parseRow(tableLines[0]);
-  const dataRows = tableLines.filter((l, idx) => idx > 0 && !isHeaderSep(l)).map(parseRow);
+  const dataRows = tableLines.flatMap((l, idx) => (idx > 0 && !isHeaderSep(l)) ? [parseRow(l)] : []);
 
   return {
     consumed: tableLines.length,
@@ -109,21 +109,22 @@ const renderText = (text: string) => {
       const { el, consumed } = renderTable(lines, i);
       if (consumed > 0) { result.push(el); i += consumed; continue; }
     }
+    const lk = `line-${i}`;
     if (line.startsWith("## ")) {
-      result.push(<p key={i} className="font-bold text-zinc-100 text-base mt-3 mb-0.5">{renderInline(line.slice(3), i)}</p>);
+      result.push(<p key={lk} className="font-bold text-zinc-100 text-base mt-3 mb-0.5">{renderInline(line.slice(3), i)}</p>);
     } else if (line.startsWith("### ")) {
-      result.push(<p key={i} className="font-semibold text-zinc-200 text-sm mt-2">{renderInline(line.slice(4), i)}</p>);
+      result.push(<p key={lk} className="font-semibold text-zinc-200 text-sm mt-2">{renderInline(line.slice(4), i)}</p>);
     } else if (line.startsWith("> ")) {
-      result.push(<p key={i} className="text-xs text-zinc-500 border-l-2 border-zinc-700 pl-2 italic my-0.5">{line.slice(2)}</p>);
+      result.push(<p key={lk} className="text-xs text-zinc-500 border-l-2 border-zinc-700 pl-2 italic my-0.5">{line.slice(2)}</p>);
     } else if (line.startsWith("- ")) {
-      result.push(<p key={i} className="ml-2 flex gap-1.5"><span className="text-green-500 mt-0.5 shrink-0">•</span><span>{renderInline(line.slice(2), i)}</span></p>);
+      result.push(<p key={lk} className="ml-2 flex gap-1.5"><span className="text-green-500 mt-0.5 shrink-0">•</span><span>{renderInline(line.slice(2), i)}</span></p>);
     } else if (line.match(/^\d+\. /)) {
       const m = line.match(/^(\d+)\. (.*)$/);
-      if (m) result.push(<p key={i} className="ml-2 flex gap-1.5"><span className="text-green-400 font-medium min-w-[16px] shrink-0">{m[1]}.</span><span>{renderInline(m[2], i)}</span></p>);
+      if (m) result.push(<p key={lk} className="ml-2 flex gap-1.5"><span className="text-green-400 font-medium min-w-[16px] shrink-0">{m[1]}.</span><span>{renderInline(m[2], i)}</span></p>);
     } else if (!line.trim()) {
-      result.push(<div key={i} className="h-1" />);
+      result.push(<div key={lk} className="h-1" />);
     } else {
-      result.push(<p key={i}>{renderInline(line, i)}</p>);
+      result.push(<p key={lk}>{renderInline(line, i)}</p>);
     }
     i++;
   }
@@ -204,7 +205,9 @@ export function AICoachPage() {
       </div>
 
       {/* Messages */}
-      <div
+      <button
+        type="button"
+        aria-label="Scroll to latest message"
         className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-950"
         onClick={() => scrollToLatestMessage("smooth")}
       >
@@ -237,13 +240,13 @@ export function AICoachPage() {
             </div>
             <div className="bg-zinc-900 border border-zinc-800/60 rounded-2xl rounded-bl-sm px-4 py-3">
               <div className="flex gap-1">
-                {[0, 1, 2].map(i => <div key={i} className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />)}
+                {[0, 1, 2].map(i => <div key={i} className="w-2 h-2 bg-green-500 rounded-full" style={{ animation: `loading-dot 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.15}s infinite alternate` }} />)}
               </div>
             </div>
           </div>
         )}
           <div ref={messagesEndRef} aria-hidden="true" />
-      </div>
+      </button>
 
       {/* Suggestions */}
       {messages.length <= 1 && (
@@ -271,15 +274,16 @@ export function AICoachPage() {
             onChange={e => setInput(e.target.value)}
             onFocus={() => scrollToLatestMessage("smooth")}
             onKeyDown={e => e.key === "Enter" && !aiLoading && send(input)}
+            aria-label="Ask your AI coach"
             placeholder="Ask your AI coach anything…"
-            className="flex-1 px-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-zinc-200 placeholder-zinc-600 transition-all"
+            className="flex-1 px-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-zinc-200 placeholder-zinc-400 transition-all"
             disabled={aiLoading}
           />
           <button
             type="button"
             onClick={() => send(input)}
             disabled={!input.trim() || aiLoading}
-            className="w-10 h-10 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black rounded-xl flex items-center justify-center transition-all flex-shrink-0 shadow-lg shadow-green-500/20"
+            className="w-10 h-10 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-white text-black rounded-xl flex items-center justify-center transition-all flex-shrink-0 shadow-lg shadow-green-500/20"
           >
             {aiLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>

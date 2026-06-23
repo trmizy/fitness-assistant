@@ -26,12 +26,14 @@ function IncomingCallUI() {
         </p>
         <div className="flex items-center justify-center gap-6">
           <button
+            type="button"
             onClick={rejectCall}
             className="w-14 h-14 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-full flex items-center justify-center transition-colors"
           >
             <PhoneOff className="w-6 h-6 text-red-400" />
           </button>
           <button
+            type="button"
             onClick={acceptCall}
             className="w-14 h-14 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 rounded-full flex items-center justify-center transition-colors animate-pulse"
           >
@@ -51,13 +53,14 @@ function OutgoingCallUI() {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 w-80 text-center shadow-2xl">
         <div className="w-16 h-16 bg-blue-500/15 border border-blue-500/20 rounded-full flex items-center justify-center text-2xl font-bold text-blue-400 mx-auto mb-4">
-          <Phone className="w-7 h-7 animate-bounce" />
+          <Phone className="w-7 h-7" style={{ animation: 'ring-pulse 0.8s cubic-bezier(0.16, 1, 0.3, 1) infinite' }} />
         </div>
         <h3 className="text-zinc-100 font-bold text-lg mb-1">Calling...</h3>
         <p className="text-zinc-400 text-sm mb-6">
           {state.callInfo?.callType === 'VIDEO' ? 'Video' : 'Voice'} call — waiting for answer
         </p>
         <button
+          type="button"
           onClick={cancelCall}
           className="w-14 h-14 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-full flex items-center justify-center transition-colors mx-auto"
         >
@@ -110,8 +113,11 @@ function ActiveCallUI() {
             ref={remoteVideoRef}
             autoPlay
             playsInline
+            aria-label="Remote video"
             className="w-full h-full object-cover"
-          />
+          >
+            <track kind="captions" />
+          </video>
           {state.remoteVideoOff && (
             <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
               <VideoOff className="w-16 h-16 text-zinc-600" />
@@ -124,6 +130,7 @@ function ActiveCallUI() {
               autoPlay
               playsInline
               muted
+              aria-label="Local video (muted)"
               className="w-full h-full object-cover"
             />
             {state.isVideoOff && (
@@ -147,7 +154,9 @@ function ActiveCallUI() {
             <p className="text-zinc-500 text-xs">Other party is muted</p>
           )}
           {/* Hidden audio element for voice calls */}
-          <audio ref={remoteVideoRef as any} autoPlay />
+          <audio ref={remoteVideoRef as any} autoPlay aria-label="Voice call audio">
+            <track kind="captions" />
+          </audio>
         </div>
       )}
 
@@ -157,6 +166,8 @@ function ActiveCallUI() {
           <p className="text-green-400 text-sm font-medium mr-4">{formatDuration(state.callDuration)}</p>
         )}
         <button
+          type="button"
+          aria-label={state.isMuted ? 'Unmute microphone' : 'Mute microphone'}
           onClick={toggleMute}
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
             state.isMuted
@@ -168,6 +179,8 @@ function ActiveCallUI() {
         </button>
         {isVideo && (
           <button
+            type="button"
+            aria-label={state.isVideoOff ? 'Turn on camera' : 'Turn off camera'}
             onClick={toggleVideo}
             className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
               state.isVideoOff
@@ -179,6 +192,8 @@ function ActiveCallUI() {
           </button>
         )}
         <button
+          type="button"
+          aria-label="End call"
           onClick={endCall}
           className="w-14 h-14 bg-red-500 hover:bg-red-400 rounded-full flex items-center justify-center transition-colors shadow-lg shadow-red-500/20"
         >

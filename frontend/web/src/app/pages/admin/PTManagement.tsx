@@ -75,7 +75,7 @@ function DocThumb({ label, url, tag }: { label: string; url?: string; tag?: stri
     <div className={`rounded-xl overflow-hidden border-2 transition-all ${url ? "border-green-500/30" : "border-red-500/20"}`}>
       <div className={`h-40 flex items-center justify-center relative ${url ? "bg-zinc-800/60" : "bg-red-500/5"}`}>
         {fullUrl ? (
-          <a href={fullUrl} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-20" />
+          <a href={fullUrl} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-20" aria-label={label} />
         ) : null}
         {fullUrl ? (
           <>
@@ -192,9 +192,9 @@ function DocumentViewer({ app, onClose }: { app: App; onClose: () => void }) {
 
           {section === 3 && (
             <div className="grid grid-cols-2 gap-3">
-              {app.media?.filter(m => m.groupType === "PORTFOLIO" || m.mediaGroup === "PORTFOLIO").map((m, i) => (
+              {app.media?.flatMap((m, i) => (m.groupType === "PORTFOLIO" || m.mediaGroup === "PORTFOLIO") ? [
                 <DocThumb key={m.fileUrl || m.id || i} label={`Portfolio ${i + 1}`} url={m.fileUrl} tag="Media" />
-              ))}
+              ] : [])}
               {(!app.media || app.media.filter(m => m.groupType === "PORTFOLIO" || m.mediaGroup === "PORTFOLIO").length === 0) && (
                 <div className="col-span-2 text-center py-10">
                   <ImageIcon className="w-10 h-10 text-zinc-700 mx-auto mb-2" />
@@ -297,17 +297,17 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
               <div className="space-y-4">
                 <div>
                   <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Internal Note</p>
-                  <textarea value={adminNote} onChange={e => setAdminNote(e.target.value)} rows={2} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 resize-none outline-none focus:border-green-500 transition-colors" placeholder="Visible only to admins..." />
+                  <textarea value={adminNote} onChange={e => setAdminNote(e.target.value)} rows={2} aria-label="Internal note" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 resize-none outline-none focus:border-green-500 transition-colors" placeholder="Visible only to admins..." />
                 </div>
                 <div>
                   <p className="text-[10px] text-zinc-600 font-bold uppercase mb-2">Feedback to User</p>
-                  <textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={2} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 resize-none outline-none focus:border-amber-500 transition-colors" placeholder="Message sent to user..." />
+                  <textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={2} aria-label="Feedback to user" className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-zinc-300 resize-none outline-none focus:border-amber-500 transition-colors" placeholder="Message sent to user..." />
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <button type="button" onClick={() => actionMutation.mutate({ action: 'APPROVE', note: adminNote, feedback })} className="bg-green-500 hover:bg-green-400 text-black py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-green-500/20">Approve</button>
-                  <button type="button" onClick={() => actionMutation.mutate({ action: 'REJECT', note: adminNote, feedback })} className="bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-zinc-400 hover:text-red-400 py-2.5 rounded-xl font-bold text-xs transition-all">Reject</button>
-                  <button type="button" onClick={() => actionMutation.mutate({ action: 'REQUEST_INFO', note: adminNote, feedback })} className="col-span-1 bg-zinc-800 hover:bg-amber-500/10 border border-zinc-700 hover:border-amber-500/30 text-zinc-400 hover:text-amber-400 py-2.5 rounded-xl font-bold text-xs transition-all">Need Info</button>
-                  <button type="button" onClick={() => actionMutation.mutate({ action: 'UNDER_REVIEW', note: adminNote, feedback })} className="col-span-1 bg-zinc-800 hover:bg-blue-500/10 border border-zinc-700 hover:border-blue-500/30 text-zinc-400 hover:text-blue-400 py-2.5 rounded-xl font-bold text-xs transition-all">Investigate</button>
+                  <button type="button" onClick={() => actionMutation.mutate({ action: 'REJECT', note: adminNote, feedback })} className="bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-white hover:text-red-400 py-2.5 rounded-xl font-bold text-xs transition-all">Reject</button>
+                  <button type="button" onClick={() => actionMutation.mutate({ action: 'REQUEST_INFO', note: adminNote, feedback })} className="col-span-1 bg-zinc-800 hover:bg-amber-500/10 border border-zinc-700 hover:border-amber-500/30 text-white hover:text-amber-400 py-2.5 rounded-xl font-bold text-xs transition-all">Need Info</button>
+                  <button type="button" onClick={() => actionMutation.mutate({ action: 'UNDER_REVIEW', note: adminNote, feedback })} className="col-span-1 bg-zinc-800 hover:bg-blue-500/10 border border-zinc-700 hover:border-blue-500/30 text-white hover:text-blue-400 py-2.5 rounded-xl font-bold text-xs transition-all">Investigate</button>
                 </div>
               </div>
             </div>
@@ -571,7 +571,7 @@ export function PTManagement() {
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email..." className="pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 w-full md:w-64 focus:outline-none focus:border-green-500" />
+          <input value={search} onChange={e => setSearch(e.target.value)} aria-label="Search trainers" placeholder="Search name or email..." className="pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-300 w-full md:w-64 focus:outline-none focus:border-green-500" />
         </div>
       </div>
 

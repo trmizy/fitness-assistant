@@ -306,7 +306,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <button type="button" className="absolute inset-0 bg-black/60" aria-label="Close" onClick={onClose} />
 
       {/* Drawer */}
       <div className="relative w-full max-w-2xl bg-zinc-950 border-l border-zinc-800 overflow-y-auto flex flex-col">
@@ -699,8 +699,8 @@ export function AdminAIObservability() {
                     labelFormatter={(v: string) => v.replace(/_/g, " ")}
                   />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                    {ov.intents.map((_, i) => (
-                      <Cell key={i} fill={INTENT_COLORS[i % INTENT_COLORS.length]} />
+                    {ov.intents.map((intent, i) => (
+                      <Cell key={intent.intent ?? i} fill={INTENT_COLORS[i % INTENT_COLORS.length]} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -723,8 +723,8 @@ export function AdminAIObservability() {
                   <ResponsiveContainer width={80} height={80}>
                     <PieChart>
                       <Pie data={ov.languages} dataKey="count" cx="50%" cy="50%" innerRadius={20} outerRadius={38}>
-                        {ov.languages.map((_, i) => (
-                          <Cell key={i} fill={i === 0 ? "#6366f1" : "#22c55e"} />
+                        {ov.languages.map((lang, i) => (
+                          <Cell key={lang.language ?? i} fill={i === 0 ? "#6366f1" : "#22c55e"} />
                         ))}
                       </Pie>
                     </PieChart>
@@ -1046,9 +1046,10 @@ export function AdminAIObservability() {
             ) : (
               <div className="divide-y divide-zinc-800/40">
                 {errors.highWarnConversations.map((c) => (
-                  <div
+                  <button
                     key={c.id}
-                    className="px-4 py-3 cursor-pointer hover:bg-zinc-800/30 transition-colors"
+                    type="button"
+                    className="px-4 py-3 cursor-pointer hover:bg-zinc-800/30 transition-colors w-full text-left"
                     onClick={() => setSelectedId(c.id)}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
@@ -1067,7 +1068,7 @@ export function AdminAIObservability() {
                       </span>
                       <span className="ml-auto text-zinc-700">→ click for trace</span>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

@@ -113,6 +113,7 @@ export function Topbar() {
       {/* Left: hamburger + search */}
       <div className="flex items-center gap-3">
         <button
+          type="button"
           className="lg:hidden p-2 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
           onClick={() => setSidebarOpen(true)}
         >
@@ -128,6 +129,7 @@ export function Topbar() {
         {isPT && (
           <div className="hidden sm:flex items-center bg-zinc-800/70 border border-zinc-700/50 rounded-xl p-1 gap-0.5 mr-1">
             <button
+              type="button"
               onClick={() => switchToView("client")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeView === "client"
                   ? "bg-zinc-700 text-zinc-100 shadow-sm"
@@ -138,6 +140,7 @@ export function Topbar() {
               <span className="hidden md:block">Client</span>
             </button>
             <button
+              type="button"
               onClick={() => switchToView("pt")}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeView === "pt"
                   ? "bg-green-500 text-black shadow-sm shadow-green-500/30"
@@ -159,6 +162,7 @@ export function Topbar() {
         {pendingCount > 0 && (
           <div className="relative">
             <button
+              type="button"
               onClick={() => setAiTasksOpen((open) => !open)}
               className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-amber-500/20 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15 transition-colors"
               title="AI đang xử lý"
@@ -176,6 +180,7 @@ export function Topbar() {
                 <div className="max-h-80 overflow-y-auto">
                   {pendingAiTasksOpen.map((task) => (
                     <button
+                      type="button"
                       key={task.id}
                       onClick={() => {
                         setAiTasksOpen(false);
@@ -198,6 +203,7 @@ export function Topbar() {
         {/* Notifications */}
         <div className="relative">
           <button
+            type="button"
             className="relative p-2 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
             onClick={() => { setNotifOpen(!notifOpen); setUserOpen(false); }}
           >
@@ -208,7 +214,12 @@ export function Topbar() {
           </button>
           {notifOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+              <button
+                type="button"
+                className="fixed inset-0 z-40"
+                aria-label="Close notifications"
+                onClick={() => setNotifOpen(false)}
+              />
               <div className="absolute right-0 top-full mt-1 w-80 glass-panel rounded-xl z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-zinc-100">Thông báo</h3>
@@ -219,7 +230,7 @@ export function Topbar() {
                       </span>
                     )}
                     {unreadCount > 0 && (
-                      <button onClick={() => markAllReadMutation.mutate()} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors" title="Mark all read">
+                      <button type="button" onClick={() => markAllReadMutation.mutate()} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors" title="Mark all read">
                         <CheckCheck className="w-4 h-4" />
                       </button>
                     )}
@@ -227,13 +238,14 @@ export function Topbar() {
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   {notifications.map((n: AppNotification) => (
-                    <div
+                    <button
                       key={n.id}
+                      type="button"
                       onClick={() => {
                         if (n.unread) markReadMutation.mutate(n.id);
                         if (n.link) { navigate(n.link); setNotifOpen(false); }
                       }}
-                      className={`px-4 py-3 hover:bg-zinc-800 cursor-pointer border-b border-zinc-800/50 last:border-0 transition-colors ${n.unread ? "bg-green-500/5" : ""}`}
+                      className={`px-4 py-3 hover:bg-zinc-800 cursor-pointer border-b border-zinc-800/50 last:border-0 transition-colors w-full text-left ${n.unread ? "bg-green-500/5" : ""}`}
                     >
                       <p className="text-sm text-zinc-200">{n.text}</p>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -242,7 +254,7 @@ export function Topbar() {
                         </span>
                         <span className="text-xs text-zinc-700">{n.eventType.replace(/_/g, ' ').toLowerCase()}</span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
                 {notifications.length === 0 && (
@@ -258,6 +270,7 @@ export function Topbar() {
         {/* User menu */}
         <div className="relative">
           <button
+            type="button"
             className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
             onClick={() => { setUserOpen(!userOpen); setNotifOpen(false); }}
           >
@@ -269,7 +282,12 @@ export function Topbar() {
 
           {userOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setUserOpen(false)} />
+              <button
+                type="button"
+                className="fixed inset-0 z-40"
+                aria-label="Close user menu"
+                onClick={() => setUserOpen(false)}
+              />
               <div className="absolute right-0 top-full mt-1 w-60 glass-panel rounded-xl z-50 overflow-hidden">
                 {/* User info */}
                 <div className="px-4 py-3 border-b border-zinc-800">
@@ -302,6 +320,7 @@ export function Topbar() {
                     <p className="text-xs text-zinc-600 font-semibold uppercase tracking-wider mb-1.5 px-1">Chuyển chế độ</p>
                     <div className="flex gap-1.5">
                       <button
+                        type="button"
                         onClick={() => switchToView("client")}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border ${activeView === "client"
                             ? "bg-zinc-700 text-zinc-100 border-zinc-600"
@@ -311,6 +330,7 @@ export function Topbar() {
                         <User className="w-3 h-3" /> Thành viên
                       </button>
                       <button
+                        type="button"
                         onClick={() => switchToView("pt")}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all border ${activeView === "pt"
                             ? "bg-green-500 text-black border-green-500 shadow-sm shadow-green-500/30"
@@ -325,18 +345,20 @@ export function Topbar() {
 
                 {/* Menu items */}
                 <button
+                  type="button"
                   onClick={() => { setUserOpen(false); navigate(role === "pt" ? "/pt/profile" : "/client/profile"); }}
                   className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
                 >
                   <User className="w-4 h-4" /> Hồ sơ cá nhân
                 </button>
-                <button className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors">
+                <button type="button" className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors">
                   <Settings className="w-4 h-4" /> Cài đặt
                 </button>
 
                 {/* Admin link */}
                 {isAdmin && (
                   <button
+                    type="button"
                     onClick={() => { setUserOpen(false); navigate("/admin/dashboard"); }}
                     className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-violet-400 hover:bg-violet-500/10 transition-colors"
                   >
@@ -347,6 +369,7 @@ export function Topbar() {
                 {/* PT quick switch (mobile-friendly) */}
                 {isPT && (
                   <button
+                    type="button"
                     onClick={() => { setUserOpen(false); switchToView(activeView === "pt" ? "client" : "pt"); }}
                     className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
                   >
@@ -357,6 +380,7 @@ export function Topbar() {
 
                 <div className="border-t border-zinc-800">
                   <button
+                    type="button"
                     onClick={handleLogout}
                     className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                   >

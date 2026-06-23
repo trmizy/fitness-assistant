@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { nutritionService, planService } from "../../services/api";
@@ -50,6 +50,7 @@ function NutritionDayView({ day, expanded, onToggle }: { day: any; expanded: boo
   return (
     <div className="bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden">
       <button
+        type="button"
         onClick={onToggle}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-900 transition-colors"
       >
@@ -96,6 +97,11 @@ function NutritionDayView({ day, expanded, onToggle }: { day: any; expanded: boo
   );
 }
 
+const RESTRICTION_PRESETS = [
+  'Không cá biển', 'Không hải sản', 'Không sữa', 'Không đậu phộng',
+  'Không trứng', 'Không thịt đỏ', 'Không gluten', 'Không đường',
+];
+
 // ── Main component ───────────────────────────────────────────────────────────
 
 export function CurrentNutritionProgram() {
@@ -110,7 +116,7 @@ export function CurrentNutritionProgram() {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [savedOutcome, setSavedOutcome] = useState<{ planId: string; count: number } | null>(null);
-  const [prevActivePlanId, setPrevActivePlanId] = useState<string | null>(null);
+  const [prevProcessingPlanId, setPrevProcessingPlanId] = useState<string | null>(null);
 
   // ── Generate form state (basic + advanced) ────────────────────────────────
   const [generateForm, setGenerateForm] = useState({
@@ -155,12 +161,6 @@ export function CurrentNutritionProgram() {
     forceArchive: true,
   });
 
-  // ── Restriction presets ────────────────────────────────────────────────────
-  const RESTRICTION_PRESETS = [
-    'Không cá biển', 'Không hải sản', 'Không sữa', 'Không đậu phộng',
-    'Không trứng', 'Không thịt đỏ', 'Không gluten', 'Không đường',
-  ];
-
   // ── Queries ────────────────────────────────────────────────────────────────
 
   const { data: currentProgram, isLoading: programLoading } = useQuery({
@@ -174,26 +174,26 @@ export function CurrentNutritionProgram() {
     refetchInterval: 3000,
   });
 
-  const plans: any[] = Array.isArray(aiPlansData) ? aiPlansData : [];
+  const plans: any[] = useMemo(() => Array.isArray(aiPlansData) ? aiPlansData : [], [aiPlansData]);
   const processingPlan = plans.find((p: any) => p.status === 'QUEUED' || p.status === 'PROCESSING');
   const completedPlans = plans.filter((p: any) => p.status === 'COMPLETED');
   const failedPlans = plans.filter((p: any) => p.status === 'FAILED');
 
-  // Auto-open the most recent completed plan
-  useEffect(() => {
-    if (processingPlan) {
-      setPrevActivePlanId(processingPlan.id);
-    } else if (prevActivePlanId && plans.length > 0) {
-      const finished = plans.find((p: any) => p.id === prevActivePlanId);
+  // Track plan completion transition
+  const currentProcessingId = processingPlan?.id ?? null;
+  if (prevProcessingPlanId !== currentProcessingId) {
+    const oldId = prevProcessingPlanId;
+    setPrevProcessingPlanId(currentProcessingId);
+    if (oldId && !processingPlan && plans.length > 0) {
+      const finished = plans.find((p: any) => p.id === oldId);
       if (finished?.status === 'COMPLETED') {
         toast.success('Đã tạo kế hoạch dinh dưỡng thành công!');
         setExpandedPlanId(finished.id);
       } else if (finished?.status === 'FAILED') {
         toast.error(finished.failReason || 'Tạo kế hoạch thất bại. Vui lòng thử lại.');
       }
-      setPrevActivePlanId(null);
     }
-  }, [processingPlan, plans, prevActivePlanId]);
+  }
 
   // ── Mutations ──────────────────────────────────────────────────────────────
 
@@ -308,7 +308,7 @@ export function CurrentNutritionProgram() {
 
   // ── Plan card ──────────────────────────────────────────────────────────────
 
-  function PlanCard({ plan }: { plan: any }) {
+  const renderPlanCard = (plan: any) => {
     const { label, cls } = statusBadge(plan.status);
     const content = plan.plan as any;
     const isExpanded = expandedPlanId === plan.id;
@@ -319,7 +319,7 @@ export function CurrentNutritionProgram() {
     const wasSaved = savedOutcome?.planId === plan.id;
 
     return (
-      <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl overflow-hidden">
+      <div key={plan.id} className="bg-zinc-900 border border-zinc-800/60 rounded-xl overflow-hidden">
         {/* Header */}
         <div className="p-4 flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -344,6 +344,7 @@ export function CurrentNutritionProgram() {
             )}
           </div>
           <button
+            type="button"
             onClick={() => setExpandedPlanId(isExpanded ? null : plan.id)}
             className="shrink-0 text-zinc-500 hover:text-zinc-300 transition-colors"
           >
@@ -356,6 +357,7 @@ export function CurrentNutritionProgram() {
           <div className="px-4 pb-3 flex flex-wrap gap-2">
             {wasSaved ? (
               <button
+                type="button"
                 onClick={() => navigate('/client/nutrition')}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/30 text-green-400 text-xs rounded-lg hover:bg-green-500/15"
               >
@@ -363,6 +365,7 @@ export function CurrentNutritionProgram() {
               </button>
             ) : (
               <button
+                type="button"
                 onClick={() => { const t = new Date().toISOString().slice(0, 10); setSaveDateForm({ startDate: t, endDate: '', repeatEnabled: false, forceArchive: true }); setShowSaveModal(plan.id); }}
                 disabled={isSaving}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-lg disabled:opacity-50"
@@ -373,6 +376,7 @@ export function CurrentNutritionProgram() {
             )}
 
             <button
+              type="button"
               onClick={() => handleExplain(plan.id)}
               disabled={isExplaining}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-xs rounded-lg disabled:opacity-50"
@@ -382,6 +386,7 @@ export function CurrentNutritionProgram() {
             </button>
 
             <button
+              type="button"
               onClick={() => { setShowAdjustModal(plan.id); setAdjustText(''); }}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-xs rounded-lg"
             >
@@ -389,6 +394,7 @@ export function CurrentNutritionProgram() {
             </button>
 
             <button
+              type="button"
               onClick={() => setExpandedPlanId(isExpanded ? null : plan.id)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-xs rounded-lg"
             >
@@ -396,6 +402,7 @@ export function CurrentNutritionProgram() {
             </button>
 
             <button
+              type="button"
               onClick={() => handleArchive(plan.id)}
               disabled={isArchiving}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-red-500/20 text-red-400 text-xs rounded-lg disabled:opacity-50"
@@ -409,12 +416,13 @@ export function CurrentNutritionProgram() {
         {plan.status === 'FAILED' && (
           <div className="px-4 pb-3 flex gap-2">
             <button
+              type="button"
               onClick={() => generateMutation.mutate({ ...generateForm, durationWeeks: 1, goal: plan.goal || generateForm.goal })}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs rounded-lg hover:bg-amber-500/15"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Tạo lại
             </button>
-            <button onClick={() => handleArchive(plan.id)} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 border border-zinc-700 text-zinc-400 text-xs rounded-lg hover:bg-zinc-700">
+            <button type="button" onClick={() => handleArchive(plan.id)} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 border border-zinc-700 text-zinc-400 text-xs rounded-lg hover:bg-zinc-700">
               <Archive className="w-3.5 h-3.5" /> Ẩn
             </button>
           </div>
@@ -449,6 +457,7 @@ export function CurrentNutritionProgram() {
           <CalendarDays className="w-5 h-5 text-orange-400" /> AI Kế hoạch dinh dưỡng
         </h3>
         <button
+          type="button"
           onClick={() => setShowGenerateModal(true)}
           className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-black px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg"
         >
@@ -466,6 +475,7 @@ export function CurrentNutritionProgram() {
               <p className="text-xs text-zinc-500">{goalLabel(currentProgram.goal)} · {currentProgram.durationWeeks} tuần</p>
             </div>
             <button
+              type="button"
               onClick={() => navigate('/client/nutrition')}
               className="text-xs px-3 py-1.5 bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg hover:bg-green-500/15"
             >
@@ -503,7 +513,7 @@ export function CurrentNutritionProgram() {
       {completedPlans.length > 0 && (
         <div className="space-y-3">
           <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wider">Kế hoạch đã tạo</p>
-          {completedPlans.map((plan: any) => <PlanCard key={plan.id} plan={plan} />)}
+          {completedPlans.map((plan: any) => renderPlanCard(plan))}
         </div>
       )}
 
@@ -511,7 +521,7 @@ export function CurrentNutritionProgram() {
       {failedPlans.length > 0 && (
         <div className="space-y-3">
           <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wider">Tạo thất bại</p>
-          {failedPlans.map((plan: any) => <PlanCard key={plan.id} plan={plan} />)}
+          {failedPlans.map((plan: any) => renderPlanCard(plan))}
         </div>
       )}
 
@@ -532,7 +542,7 @@ export function CurrentNutritionProgram() {
               <h3 className="text-zinc-100 font-bold flex items-center gap-2 text-sm">
                 <Sparkles className="w-4 h-4 text-orange-400" /> Tạo kế hoạch dinh dưỡng AI
               </h3>
-              <button onClick={() => setShowGenerateModal(false)} className="text-zinc-500 hover:text-zinc-300"><X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => setShowGenerateModal(false)} className="text-zinc-500 hover:text-zinc-300"><X className="w-5 h-5" /></button>
             </div>
             <div className="overflow-y-auto flex-1 p-4 space-y-4">
 
@@ -540,8 +550,8 @@ export function CurrentNutritionProgram() {
               <div className="space-y-3">
                 <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Thông tin cơ bản</p>
                 <div>
-                  <label className="text-xs text-zinc-500 font-semibold mb-1 block">Mục tiêu</label>
-                  <select value={generateForm.goal} onChange={e => setGenerateForm({...generateForm, goal: e.target.value})}
+                  <label htmlFor="cnp-goal" className="text-xs text-zinc-500 font-semibold mb-1 block">Mục tiêu</label>
+                  <select id="cnp-goal" value={generateForm.goal} onChange={e => setGenerateForm({...generateForm, goal: e.target.value})}
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-orange-500/50">
                     <option value="Giảm mỡ">Giảm mỡ (Fat Loss)</option>
                     <option value="Tăng cơ">Tăng cơ (Muscle Gain)</option>
@@ -557,22 +567,22 @@ export function CurrentNutritionProgram() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-zinc-500 font-semibold mb-1 block">Số bữa / ngày</label>
-                    <input type="number" min={2} max={6} value={generateForm.mealsPerDay}
+                    <label htmlFor="cnp-meals-per-day" className="text-xs text-zinc-500 font-semibold mb-1 block">Số bữa / ngày</label>
+                    <input id="cnp-meals-per-day" type="number" min={2} max={6} value={generateForm.mealsPerDay}
                       onChange={e => setGenerateForm({...generateForm, mealsPerDay: Number(e.target.value)})}
                       className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-orange-500/50" />
                   </div>
                   <div>
-                    <label className="text-xs text-zinc-500 font-semibold mb-1 block">Calories (kcal/ngày)</label>
-                    <input type="number" min={1000} max={6000} value={generateForm.dailyCaloriesTarget}
+                    <label htmlFor="cnp-daily-calories" className="text-xs text-zinc-500 font-semibold mb-1 block">Calories (kcal/ngày)</label>
+                    <input id="cnp-daily-calories" type="number" min={1000} max={6000} value={generateForm.dailyCaloriesTarget}
                       onChange={e => setGenerateForm({...generateForm, dailyCaloriesTarget: Number(e.target.value)})}
                       className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-orange-500/50" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-zinc-500 font-semibold mb-1 block">Chế độ ăn</label>
-                    <select value={generateForm.dietPreference} onChange={e => setGenerateForm({...generateForm, dietPreference: e.target.value})}
+                    <label htmlFor="cnp-diet-preference" className="text-xs text-zinc-500 font-semibold mb-1 block">Chế độ ăn</label>
+                    <select id="cnp-diet-preference" value={generateForm.dietPreference} onChange={e => setGenerateForm({...generateForm, dietPreference: e.target.value})}
                       className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-orange-500/50">
                       <option value="Không">Không đặc biệt</option>
                       <option value="high_protein">High protein</option>
@@ -584,8 +594,8 @@ export function CurrentNutritionProgram() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-zinc-500 font-semibold mb-1 block">Ngân sách</label>
-                    <select value={generateForm.budgetLevel} onChange={e => setGenerateForm({...generateForm, budgetLevel: e.target.value})}
+                    <label htmlFor="cnp-budget-level" className="text-xs text-zinc-500 font-semibold mb-1 block">Ngân sách</label>
+                    <select id="cnp-budget-level" value={generateForm.budgetLevel} onChange={e => setGenerateForm({...generateForm, budgetLevel: e.target.value})}
                       className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-orange-500/50">
                       <option value="student">Tiết kiệm</option>
                       <option value="normal">Bình thường</option>
@@ -596,7 +606,7 @@ export function CurrentNutritionProgram() {
               </div>
 
               {/* Toggle advanced */}
-              <button onClick={() => setShowAdvancedForm(!showAdvancedForm)}
+              <button type="button" onClick={() => setShowAdvancedForm(!showAdvancedForm)}
                 className="w-full flex items-center justify-between px-3 py-2 bg-zinc-800/50 border border-zinc-700/40 rounded-xl text-xs text-zinc-400 hover:text-zinc-200 transition-colors">
                 <span className="font-semibold">{showAdvancedForm ? '▾' : '▸'} Thông tin nâng cao (vận động viên, body stats, macro)</span>
                 <span className="text-zinc-600">{showAdvancedForm ? 'Thu gọn' : 'Mở rộng'}</span>
@@ -615,8 +625,9 @@ export function CurrentNutritionProgram() {
                         { label: 'Tuổi', key: 'age', ph: '25' },
                       ].map(f => (
                         <div key={f.key}>
-                          <label className="text-[10px] text-zinc-600 mb-0.5 block">{f.label}</label>
-                          <input type="number" placeholder={f.ph} value={(generateForm as any)[f.key]}
+                          <label htmlFor={`cnp-${f.key}`} className="text-[10px] text-zinc-600 mb-0.5 block">{f.label}</label>
+                          <input id={`cnp-${f.key}`} type="number" placeholder={f.ph} value={(generateForm as any)[f.key]}
+                            aria-label={f.label}
                             onChange={e => setGenerateForm({...generateForm, [f.key]: e.target.value})}
                             className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none focus:border-orange-500/40" />
                         </div>
@@ -624,8 +635,8 @@ export function CurrentNutritionProgram() {
                     </div>
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       <div>
-                        <label className="text-[10px] text-zinc-600 mb-0.5 block">Giới tính</label>
-                        <select value={generateForm.gender} onChange={e => setGenerateForm({...generateForm, gender: e.target.value})}
+                        <label htmlFor="cnp-gender" className="text-[10px] text-zinc-600 mb-0.5 block">Giới tính</label>
+                        <select id="cnp-gender" value={generateForm.gender} onChange={e => setGenerateForm({...generateForm, gender: e.target.value})}
                           className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none">
                           <option value="">--</option>
                           <option value="MALE">Nam</option>
@@ -633,8 +644,8 @@ export function CurrentNutritionProgram() {
                         </select>
                       </div>
                       <div>
-                        <label className="text-[10px] text-zinc-600 mb-0.5 block">Body fat % (ước tính)</label>
-                        <input type="number" placeholder="18" value={(generateForm as any).bodyFatPct ?? ''}
+                        <label htmlFor="cnp-body-fat-pct" className="text-[10px] text-zinc-600 mb-0.5 block">Body fat % (ước tính)</label>
+                        <input id="cnp-body-fat-pct" type="number" placeholder="18" value={(generateForm as any).bodyFatPct ?? ''}
                           onChange={e => setGenerateForm({...generateForm, bodyFatPct: e.target.value} as any)}
                           className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none focus:border-orange-500/40" />
                       </div>
@@ -646,8 +657,8 @@ export function CurrentNutritionProgram() {
                     <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-2">Lịch tập luyện</p>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[10px] text-zinc-600 mb-0.5 block">Mức vận động</label>
-                        <select value={generateForm.activityLevel} onChange={e => setGenerateForm({...generateForm, activityLevel: e.target.value})}
+                        <label htmlFor="cnp-activity-level" className="text-[10px] text-zinc-600 mb-0.5 block">Mức vận động</label>
+                        <select id="cnp-activity-level" value={generateForm.activityLevel} onChange={e => setGenerateForm({...generateForm, activityLevel: e.target.value})}
                           className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none">
                           <option value="SEDENTARY">Ít vận động</option>
                           <option value="LIGHT">Nhẹ</option>
@@ -657,20 +668,20 @@ export function CurrentNutritionProgram() {
                         </select>
                       </div>
                       <div>
-                        <label className="text-[10px] text-zinc-600 mb-0.5 block">Buổi tập/tuần</label>
-                        <input type="number" min={0} max={7} placeholder="4" value={generateForm.trainingDaysPerWeek}
+                        <label htmlFor="cnp-training-days" className="text-[10px] text-zinc-600 mb-0.5 block">Buổi tập/tuần</label>
+                        <input id="cnp-training-days" type="number" min={0} max={7} placeholder="4" value={generateForm.trainingDaysPerWeek}
                           onChange={e => setGenerateForm({...generateForm, trainingDaysPerWeek: e.target.value})}
                           className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none" />
                       </div>
                       <div>
-                        <label className="text-[10px] text-zinc-600 mb-0.5 block">Thời gian/buổi (phút)</label>
-                        <input type="number" placeholder="60" value={generateForm.trainingDurationMin}
+                        <label htmlFor="cnp-training-duration" className="text-[10px] text-zinc-600 mb-0.5 block">Thời gian/buổi (phút)</label>
+                        <input id="cnp-training-duration" type="number" placeholder="60" value={generateForm.trainingDurationMin}
                           onChange={e => setGenerateForm({...generateForm, trainingDurationMin: e.target.value})}
                           className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none" />
                       </div>
                       <div>
-                        <label className="text-[10px] text-zinc-600 mb-0.5 block">Loại tập</label>
-                        <select value={generateForm.trainingType} onChange={e => setGenerateForm({...generateForm, trainingType: e.target.value})}
+                        <label htmlFor="cnp-training-type" className="text-[10px] text-zinc-600 mb-0.5 block">Loại tập</label>
+                        <select id="cnp-training-type" value={generateForm.trainingType} onChange={e => setGenerateForm({...generateForm, trainingType: e.target.value})}
                           className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none">
                           <option value="">--</option>
                           <option value="weights">Tạ kháng lực</option>
@@ -688,8 +699,8 @@ export function CurrentNutritionProgram() {
                     <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-2">Giai đoạn & Kinh nghiệm</p>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[10px] text-zinc-600 mb-0.5 block">Giai đoạn hiện tại</label>
-                        <select value={generateForm.trainingPhase} onChange={e => setGenerateForm({...generateForm, trainingPhase: e.target.value})}
+                        <label htmlFor="cnp-training-phase" className="text-[10px] text-zinc-600 mb-0.5 block">Giai đoạn hiện tại</label>
+                        <select id="cnp-training-phase" value={generateForm.trainingPhase} onChange={e => setGenerateForm({...generateForm, trainingPhase: e.target.value})}
                           className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none">
                           <option value="">--</option>
                           <option value="cutting">Cutting</option>
@@ -701,8 +712,8 @@ export function CurrentNutritionProgram() {
                         </select>
                       </div>
                       <div>
-                        <label className="text-[10px] text-zinc-600 mb-0.5 block">Kinh nghiệm</label>
-                        <select value={generateForm.experienceLevel} onChange={e => setGenerateForm({...generateForm, experienceLevel: e.target.value})}
+                        <label htmlFor="cnp-experience-level" className="text-[10px] text-zinc-600 mb-0.5 block">Kinh nghiệm</label>
+                        <select id="cnp-experience-level" value={generateForm.experienceLevel} onChange={e => setGenerateForm({...generateForm, experienceLevel: e.target.value})}
                           className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none">
                           <option value="">--</option>
                           <option value="BEGINNER">Mới bắt đầu</option>
@@ -713,8 +724,8 @@ export function CurrentNutritionProgram() {
                       </div>
                     </div>
                     <div className="mt-2">
-                      <label className="text-[10px] text-zinc-600 mb-0.5 block">Protein target (g/ngày, để AI tự tính nếu bỏ trống)</label>
-                      <input type="number" placeholder="AI tự tính" value={generateForm.proteinTargetG}
+                      <label htmlFor="cnp-protein-target" className="text-[10px] text-zinc-600 mb-0.5 block">Protein target (g/ngày, để AI tự tính nếu bỏ trống)</label>
+                      <input id="cnp-protein-target" type="number" placeholder="AI tự tính" value={generateForm.proteinTargetG}
                         onChange={e => setGenerateForm({...generateForm, proteinTargetG: e.target.value})}
                         className="w-full px-2 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none" />
                     </div>
@@ -745,15 +756,15 @@ export function CurrentNutritionProgram() {
                         </button>
                       ))}
                     </div>
-                    <input placeholder="Ghi thêm dị ứng/hạn chế khác..." value={generateForm.customRestriction}
+                    <input aria-label="Ghi thêm dị ứng/hạn chế khác" placeholder="Ghi thêm dị ứng/hạn chế khác..." value={generateForm.customRestriction}
                       onChange={e => setGenerateForm({...generateForm, customRestriction: e.target.value})}
                       className="w-full px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none focus:border-orange-500/40" />
                   </div>
 
                   {/* Notes */}
                   <div>
-                    <label className="text-[10px] text-zinc-600 mb-0.5 block">Ghi chú thêm cho AI</label>
-                    <textarea rows={2} placeholder="Ví dụ: ưu tiên thực phẩm dễ nấu, ăn được cay..."
+                    <label htmlFor="cnp-notes" className="text-[10px] text-zinc-600 mb-0.5 block">Ghi chú thêm cho AI</label>
+                    <textarea id="cnp-notes" rows={2} placeholder="Ví dụ: ưu tiên thực phẩm dễ nấu, ăn được cay..."
                       value={generateForm.notes} onChange={e => setGenerateForm({...generateForm, notes: e.target.value})}
                       className="w-full px-2.5 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 outline-none resize-none" />
                   </div>
@@ -763,8 +774,9 @@ export function CurrentNutritionProgram() {
               <p className="text-xs text-zinc-600">Kế hoạch 7 ngày sẽ được tạo trong vòng 2-5 phút.</p>
             </div>
             <div className="p-4 border-t border-zinc-800/60 flex gap-3 shrink-0">
-              <button onClick={() => setShowGenerateModal(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800">Hủy</button>
+              <button type="button" onClick={() => setShowGenerateModal(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800">Hủy</button>
               <button
+                type="button"
                 onClick={() => {
                   const payload: any = {
                     ...generateForm,
@@ -802,19 +814,19 @@ export function CurrentNutritionProgram() {
               <h3 className="text-zinc-100 font-bold text-sm flex items-center gap-2">
                 <CalendarDays className="w-4 h-4 text-green-400" /> Lưu kế hoạch vào Dinh dưỡng
               </h3>
-              <button onClick={() => setShowSaveModal(null)} className="text-zinc-500 hover:text-zinc-300"><X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => setShowSaveModal(null)} className="text-zinc-500 hover:text-zinc-300"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-zinc-500 font-semibold mb-1 block">Ngày bắt đầu <span className="text-red-400">*</span></label>
-                  <input type="date" value={saveDateForm.startDate}
+                  <label htmlFor="cnp-start-date" className="text-xs text-zinc-500 font-semibold mb-1 block">Ngày bắt đầu <span className="text-red-400">*</span></label>
+                  <input id="cnp-start-date" type="date" value={saveDateForm.startDate}
                     onChange={e => setSaveDateForm({...saveDateForm, startDate: e.target.value})}
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50 [color-scheme:dark]" />
                 </div>
                 <div>
-                  <label className="text-xs text-zinc-500 font-semibold mb-1 block">Ngày kết thúc</label>
-                  <input type="date" value={saveDateForm.endDate}
+                  <label htmlFor="cnp-end-date" className="text-xs text-zinc-500 font-semibold mb-1 block">Ngày kết thúc</label>
+                  <input id="cnp-end-date" type="date" value={saveDateForm.endDate}
                     min={saveDateForm.startDate}
                     onChange={e => setSaveDateForm({...saveDateForm, endDate: e.target.value})}
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50 [color-scheme:dark]" />
@@ -827,7 +839,7 @@ export function CurrentNutritionProgram() {
                   <p className="text-xs font-semibold text-zinc-200">Lặp lại thực đơn 7 ngày</p>
                   <p className="text-[10px] text-zinc-500 mt-0.5">Ngày thứ 8 sẽ quay lại Day 1, ngày thứ 9 → Day 2...</p>
                 </div>
-                <button onClick={() => setSaveDateForm(f => ({...f, repeatEnabled: !f.repeatEnabled}))}
+                <button type="button" aria-label="Lặp lại thực đơn 7 ngày" aria-pressed={saveDateForm.repeatEnabled} onClick={() => setSaveDateForm(f => ({...f, repeatEnabled: !f.repeatEnabled}))}
                   className={`w-10 h-6 rounded-full transition-colors shrink-0 ${saveDateForm.repeatEnabled ? 'bg-green-500' : 'bg-zinc-700'}`}>
                   <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${saveDateForm.repeatEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                 </button>
@@ -844,8 +856,9 @@ export function CurrentNutritionProgram() {
               <p className="text-xs text-zinc-600">Nếu không chọn ngày kết thúc, kế hoạch áp dụng đúng 7 ngày từ ngày bắt đầu.</p>
             </div>
             <div className="p-4 border-t border-zinc-800/60 flex gap-3">
-              <button onClick={() => setShowSaveModal(null)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-lg hover:bg-zinc-800">Hủy</button>
+              <button type="button" onClick={() => setShowSaveModal(null)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-lg hover:bg-zinc-800">Hủy</button>
               <button
+                type="button"
                 onClick={() => {
                   if (!saveDateForm.startDate) { toast.error('Vui lòng chọn ngày bắt đầu.'); return; }
                   if (saveDateForm.endDate && saveDateForm.endDate < saveDateForm.startDate) { toast.error('Ngày kết thúc phải sau ngày bắt đầu.'); return; }
@@ -867,11 +880,12 @@ export function CurrentNutritionProgram() {
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
               <h3 className="text-zinc-100 font-bold">Điều chỉnh kế hoạch</h3>
-              <button onClick={() => setShowAdjustModal(null)} className="text-zinc-500 hover:text-zinc-300"><X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => setShowAdjustModal(null)} className="text-zinc-500 hover:text-zinc-300"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-5">
-              <label className="text-xs text-zinc-500 font-semibold mb-2 block">Yêu cầu điều chỉnh</label>
+              <label htmlFor="cnp-adjust-text" className="text-xs text-zinc-500 font-semibold mb-2 block">Yêu cầu điều chỉnh</label>
               <textarea
+                id="cnp-adjust-text"
                 rows={4}
                 value={adjustText}
                 onChange={(e) => setAdjustText(e.target.value)}
@@ -881,8 +895,9 @@ export function CurrentNutritionProgram() {
               <p className="text-xs text-zinc-600 mt-2">Kế hoạch mới sẽ được tạo dựa trên yêu cầu của bạn.</p>
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-              <button onClick={() => setShowAdjustModal(null)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-lg hover:bg-zinc-800">Hủy</button>
+              <button type="button" onClick={() => setShowAdjustModal(null)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-lg hover:bg-zinc-800">Hủy</button>
               <button
+                type="button"
                 onClick={() => adjustMutation.mutate({ planId: showAdjustModal, text: adjustText })}
                 disabled={adjustMutation.isPending || adjustText.trim().length < 5}
                 className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-400 text-black text-sm font-bold rounded-lg disabled:opacity-50"

@@ -379,6 +379,7 @@ export function AdminWorkflowStudio() {
           )}
 
           <button
+            type="button"
             onClick={onRefresh}
             disabled={refreshing || loading}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
@@ -509,6 +510,7 @@ export function AdminWorkflowStudio() {
                       <div className="flex flex-col items-center gap-3">
                         <p className="text-sm text-zinc-500">Chưa có workflow nào trong n8n.</p>
                         <button
+                          type="button"
                           onClick={runSetup}
                           disabled={setupLoading}
                           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -561,6 +563,7 @@ export function AdminWorkflowStudio() {
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex items-center gap-2">
                         <button
+                          type="button"
                           onClick={() => loadExecutions(wf)}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700/50 transition-colors"
                         >
@@ -598,6 +601,7 @@ export function AdminWorkflowStudio() {
               </span>
             </div>
             <button
+              type="button"
               onClick={() => { setSelectedWf(null); setExecutions([]); }}
               className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
             >
@@ -627,6 +631,7 @@ export function AdminWorkflowStudio() {
                 return (
                   <div key={exec.id}>
                     <button
+                      type="button"
                       onClick={() => toggleExecDetail(exec)}
                       className="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-zinc-800/30 transition-colors"
                     >
@@ -701,6 +706,7 @@ export function AdminWorkflowStudio() {
         <div className="p-4 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <button
+              type="button"
               onClick={runE2eTest}
               disabled={e2eRunning}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-amber-600 text-white hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -839,6 +845,7 @@ export function AdminWorkflowStudio() {
         <div className="p-4 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <button
+              type="button"
               onClick={runSmokeTest}
               disabled={smokeRunning}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"

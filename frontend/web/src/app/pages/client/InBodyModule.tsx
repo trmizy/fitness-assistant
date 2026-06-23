@@ -498,19 +498,19 @@ export function InBodyModule() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <SectionCard title="📅 Thông tin kiểm tra">
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Ngày kiểm tra *</label>
-                      <input name="date" type="date" className={inp} defaultValue={todayStr} required />
+                      <label htmlFor="m-date" className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Ngày kiểm tra *</label>
+                      <input id="m-date" name="date" type="date" className={inp} defaultValue={todayStr} required />
                     </div>
                   </SectionCard>
-                  
+
                   <SectionCard title="⚖️ Số đo cơ bản">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Cân nặng (kg) *</label>
+                        <label htmlFor="m-weight" className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Cân nặng (kg) *</label>
                         <input name="weight" id="m-weight" type="number" step="0.1" placeholder="75.0" className={inp} required />
                       </div>
                       <div>
-                        <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Chiều cao (cm)</label>
+                        <label htmlFor="m-height" className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Chiều cao (cm)</label>
                         <input name="height" id="m-height" type="number" step="0.1" placeholder="175" className={inp} />
                       </div>
                     </div>
@@ -520,16 +520,16 @@ export function InBodyModule() {
                 <SectionCard title="💪 Thành phần cơ thể">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Cơ bắp (kg)</label>
-                      <input name="muscleMass" type="number" step="0.1" placeholder="35.0" className={inp} />
+                      <label htmlFor="m-muscleMass" className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Cơ bắp (kg)</label>
+                      <input id="m-muscleMass" name="muscleMass" type="number" step="0.1" placeholder="35.0" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Mỡ cơ thể (kg)</label>
-                      <input name="bodyFat" type="number" step="0.1" placeholder="12.0" className={inp} />
+                      <label htmlFor="m-bodyFat" className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">Mỡ cơ thể (kg)</label>
+                      <input id="m-bodyFat" name="bodyFat" type="number" step="0.1" placeholder="12.0" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">% Mỡ cơ thể</label>
-                      <input name="bodyFatPct" type="number" step="0.1" placeholder="15.0" className={inp} />
+                      <label htmlFor="m-bodyFatPct" className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block">% Mỡ cơ thể</label>
+                      <input id="m-bodyFatPct" name="bodyFatPct" type="number" step="0.1" placeholder="15.0" className={inp} />
                     </div>
                   </div>
                 </SectionCard>
@@ -537,24 +537,24 @@ export function InBodyModule() {
                 <SectionCard title="🦵 Cơ theo vùng (kg)">
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <div>
-                      <label className="text-xs text-zinc-500 mb-1 block">Tay P</label>
-                      <input name="rightArmMuscle" type="number" step="0.1" placeholder="3.2" className={inp} />
+                      <label htmlFor="m-rightArmMuscle" className="text-xs text-zinc-500 mb-1 block">Tay P</label>
+                      <input id="m-rightArmMuscle" name="rightArmMuscle" type="number" step="0.1" placeholder="3.2" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 mb-1 block">Tay T</label>
-                      <input name="leftArmMuscle" type="number" step="0.1" placeholder="3.2" className={inp} />
+                      <label htmlFor="m-leftArmMuscle" className="text-xs text-zinc-500 mb-1 block">Tay T</label>
+                      <input id="m-leftArmMuscle" name="leftArmMuscle" type="number" step="0.1" placeholder="3.2" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 mb-1 block">Thân</label>
-                      <input name="trunkMuscle" type="number" step="0.1" placeholder="24.0" className={inp} />
+                      <label htmlFor="m-trunkMuscle" className="text-xs text-zinc-500 mb-1 block">Thân</label>
+                      <input id="m-trunkMuscle" name="trunkMuscle" type="number" step="0.1" placeholder="24.0" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 mb-1 block">Chân P</label>
-                      <input name="rightLegMuscle" type="number" step="0.1" placeholder="9.5" className={inp} />
+                      <label htmlFor="m-rightLegMuscle" className="text-xs text-zinc-500 mb-1 block">Chân P</label>
+                      <input id="m-rightLegMuscle" name="rightLegMuscle" type="number" step="0.1" placeholder="9.5" className={inp} />
                     </div>
                     <div>
-                      <label className="text-xs text-zinc-500 mb-1 block">Chân T</label>
-                      <input name="leftLegMuscle" type="number" step="0.1" placeholder="9.5" className={inp} />
+                      <label htmlFor="m-leftLegMuscle" className="text-xs text-zinc-500 mb-1 block">Chân T</label>
+                      <input id="m-leftLegMuscle" name="leftLegMuscle" type="number" step="0.1" placeholder="9.5" className={inp} />
                     </div>
                   </div>
                 </SectionCard>
@@ -614,23 +614,24 @@ export function InBodyModule() {
 
           {/* Step: Drop */}
           {uploadStep === "drop" && (
-            <div
+            <button
+              type="button"
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
-              onDrop={e => { 
-                e.preventDefault(); 
-                setDragOver(false); 
+              onDrop={e => {
+                e.preventDefault();
+                setDragOver(false);
                 if (e.dataTransfer.files[0]) {
                   setSelectedFile(e.dataTransfer.files[0]);
                   setUploadStep("preview");
                 }
               }}
               onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${
+              className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all w-full ${
                 dragOver ? "border-green-500 bg-green-500/8" : "border-zinc-700 hover:border-green-500/50 hover:bg-zinc-800/40"
               }`}
             >
-              <input type="file" ref={fileInputRef} onChange={onFileSelect} className="hidden" accept="image/*" />
+              <input type="file" ref={fileInputRef} onChange={onFileSelect} className="hidden" accept="image/*" aria-label="Chọn ảnh phiếu InBody" />
               <div className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Camera className="w-8 h-8 text-green-400" />
               </div>
@@ -641,7 +642,7 @@ export function InBodyModule() {
                 <span className="text-xs text-zinc-600 bg-zinc-800 border border-zinc-700/50 px-2 py-1 rounded-full">PNG</span>
                 <span className="text-xs text-zinc-600">· Max 10MB</span>
               </div>
-            </div>
+            </button>
           )}
 
           {/* Step: Preview */}
@@ -680,10 +681,10 @@ export function InBodyModule() {
                 <RefreshCw className="w-8 h-8 text-green-400 animate-spin" />
               </div>
               <div className="text-zinc-200 font-bold mb-1">Đang trích xuất dữ liệu bằng AI…</div>
-              <p className="text-zinc-500 text-sm">Đang phân tích ảnh phiếu InBody của bạn</p>
+              <p className="text-zinc-300 text-sm">Đang phân tích ảnh phiếu InBody của bạn</p>
               <div className="flex gap-1 justify-center mt-5">
                 {[0, 1, 2].map((i: number) => (
-                  <div key={i} className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                  <div key={i} className="w-2 h-2 bg-green-500 rounded-full" style={{ animation: `loading-dot 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.15}s infinite alternate` }} />
                 ))}
               </div>
               <div className="mt-4 space-y-1.5 text-left max-w-xs mx-auto">
@@ -719,11 +720,13 @@ export function InBodyModule() {
                     }
                   </div>
                   <input
+                    id="review-date"
                     type="date"
                     value={reviewDate}
                     onChange={(e) => setReviewDate(e.target.value)}
                     className={inp}
                     required
+                    aria-label="Ngày đo InBody"
                   />
                   <p className="text-xs text-zinc-600 mt-1">
                     Đây là ngày đo trên phiếu InBody, không phải ngày tải ảnh. Upload 2 ảnh cùng ngày đo → chỉ lưu 1 bản ghi, dữ liệu mới nhất.
@@ -743,8 +746,9 @@ export function InBodyModule() {
                       { label: "BMI",             field: "bmi",        value: extractedData?.bmi },
                     ].map((f: { label: string; field: string; value: number | undefined }) => (
                       <div key={f.field}>
-                        <label className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
-                        <input type="number" step="0.1" defaultValue={f.value}
+                        <label htmlFor={`review-${f.field}`} className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
+                        <input id={`review-${f.field}`} type="number" step="0.1" defaultValue={f.value}
+                          aria-label={f.label}
                           onChange={(e) => setExtractedData({ ...extractedData, [f.field]: parseFloat(e.target.value) })}
                           className={inp} />
                       </div>
@@ -764,8 +768,9 @@ export function InBodyModule() {
                       { label: "Thân mình", field: "trunkMuscle",    value: extractedData?.trunkMuscle },
                     ].map((f: { label: string; field: string; value: number | undefined }) => (
                       <div key={f.field}>
-                        <label className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
-                        <input type="number" step="0.01" defaultValue={f.value}
+                        <label htmlFor={`review-${f.field}`} className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
+                        <input id={`review-${f.field}`} type="number" step="0.01" defaultValue={f.value}
+                          aria-label={f.label}
                           onChange={(e) => setExtractedData({ ...extractedData, [f.field]: parseFloat(e.target.value) })}
                           className={inp} />
                       </div>
@@ -785,8 +790,9 @@ export function InBodyModule() {
                       { label: "Thân mình", field: "trunkFat",    value: extractedData?.trunkFat },
                     ].map((f: { label: string; field: string; value: number | undefined }) => (
                       <div key={f.field}>
-                        <label className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
-                        <input type="number" step="0.01" defaultValue={f.value}
+                        <label htmlFor={`review-${f.field}`} className="text-xs text-zinc-500 mb-1 block">{f.label}</label>
+                        <input id={`review-${f.field}`} type="number" step="0.01" defaultValue={f.value}
+                          aria-label={f.label}
                           onChange={(e) => setExtractedData({ ...extractedData, [f.field]: parseFloat(e.target.value) })}
                           className={inp} />
                       </div>
@@ -877,7 +883,7 @@ export function InBodyModule() {
                     <th className="px-4 py-2.5">Mỡ (kg)</th>
                     <th className="px-4 py-2.5">% Mỡ</th>
                     <th className="px-4 py-2.5">Phương thức</th>
-                    <th className="px-4 py-2.5"></th>
+                    <th className="px-4 py-2.5" aria-label="Hành động"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -900,7 +906,7 @@ export function InBodyModule() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <button type="button" className="text-zinc-600 hover:text-green-400 transition-colors">
+                          <button type="button" aria-label="Xem chi tiết" className="text-zinc-600 hover:text-green-400 transition-colors">
                             <Eye className="w-4 h-4" />
                           </button>
                         </td>
@@ -944,15 +950,15 @@ export function InBodyModule() {
           ) : (<>
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Bản ghi A</label>
-              <select value={compareA} onChange={e => setCompareA(Number(e.target.value))} className={inp}>
+              <label htmlFor="compare-a" className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Bản ghi A</label>
+              <select id="compare-a" value={compareA} onChange={e => setCompareA(Number(e.target.value))} className={inp}>
                 {history.map((h: any, i: number) => <option key={h.id} value={i}>{formatMeasurementDate(h)}</option>)}
               </select>
             </div>
             <span className="text-zinc-600 text-sm self-center hidden sm:block font-bold">vs</span>
             <div>
-              <label className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Bản ghi B</label>
-              <select value={compareB} onChange={e => setCompareB(Number(e.target.value))} className={inp}>
+              <label htmlFor="compare-b" className="text-xs text-zinc-500 mb-1 block uppercase tracking-wider">Bản ghi B</label>
+              <select id="compare-b" value={compareB} onChange={e => setCompareB(Number(e.target.value))} className={inp}>
                 {history.map((h: any, i: number) => <option key={h.id} value={i}>{formatMeasurementDate(h)}</option>)}
               </select>
             </div>

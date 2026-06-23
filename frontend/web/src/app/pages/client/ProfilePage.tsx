@@ -206,6 +206,7 @@ export function ProfilePage() {
             ref={photoInputRef}
             type="file"
             accept="image/*"
+            aria-label="Tải ảnh đại diện lên"
             className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) photoMutation.mutate(f); e.target.value = ""; }}
           />
@@ -244,25 +245,30 @@ export function ProfilePage() {
                 { label: "Tuổi",             value: age,    setter: setAge,    type: "number" },
                 { label: "Chiều cao (cm)",   value: height, setter: setHeight, type: "number" },
                 { label: "Cân nặng (kg)",    value: weight, setter: setWeight, type: "number" },
-              ].map(f => (
-                <div key={f.label}>
-                  <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">{f.label}</label>
-                  {editing && f.setter ? (
-                    <input
-                      type={f.type}
-                      value={f.value}
-                      onChange={(e) => f.setter(e.target.value)}
-                      className={inputClass}
-                    />
-                  ) : (
-                    <div className="text-sm font-medium text-zinc-300 py-2">{f.value || "Chưa thiết lập"}</div>
-                  )}
-                </div>
-              ))}
+              ].map(f => {
+                const fieldId = `pp-field-${f.label.replace(/\s+/g, '-').toLowerCase()}`;
+                return (
+                  <div key={f.label}>
+                    <label htmlFor={editing && f.setter ? fieldId : undefined} className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">{f.label}</label>
+                    {editing && f.setter ? (
+                      <input
+                        id={fieldId}
+                        type={f.type}
+                        aria-label={f.label}
+                        value={f.value}
+                        onChange={(e) => f.setter(e.target.value)}
+                        className={inputClass}
+                      />
+                    ) : (
+                      <div className="text-sm font-medium text-zinc-300 py-2">{f.value || "Chưa thiết lập"}</div>
+                    )}
+                  </div>
+                );
+              })}
               <div>
-                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">Giới tính</label>
+                <label htmlFor="pp-gender" className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">Giới tính</label>
                 {editing ? (
-                  <select value={gender} onChange={e => setGender(e.target.value)} className={selectClass}>
+                  <select id="pp-gender" value={gender} onChange={e => setGender(e.target.value)} className={selectClass}>
                     <option value="MALE">Nam</option>
                     <option value="FEMALE">Nữ</option>
                     <option value="OTHER">Khác</option>
@@ -305,9 +311,9 @@ export function ProfilePage() {
             <h3 className="text-sm font-semibold text-zinc-200 mb-3">Tùy chọn</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">Mức độ hoạt động</label>
+                <label htmlFor="pp-activity" className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">Mức độ hoạt động</label>
                 {editing ? (
-                  <select value={activity} onChange={e => setActivity(e.target.value)} className={selectClass}>
+                  <select id="pp-activity" value={activity} onChange={e => setActivity(e.target.value)} className={selectClass}>
                     {activityLevels.map(a => <option key={a}>{a}</option>)}
                   </select>
                 ) : (
@@ -315,9 +321,9 @@ export function ProfilePage() {
                 )}
               </div>
               <div>
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">Chế độ ăn</label>
+                <label htmlFor="pp-diet" className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">Chế độ ăn</label>
                 {editing ? (
-                  <select value={diet} onChange={e => setDiet(e.target.value)} className={selectClass}>
+                  <select id="pp-diet" value={diet} onChange={e => setDiet(e.target.value)} className={selectClass}>
                     {dietPrefs.map(d => <option key={d}>{d}</option>)}
                   </select>
                 ) : (
@@ -325,9 +331,9 @@ export function ProfilePage() {
                 )}
               </div>
               <div className="sm:col-span-2">
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">Ghi chú sức khỏe</label>
+                <label htmlFor="pp-health-notes" className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">Ghi chú sức khỏe</label>
                 {editing ? (
-                  <textarea rows={2} placeholder="Chấn thương hoặc tình trạng sức khỏe cần lưu ý..." className={`${inputClass} resize-none`} />
+                  <textarea id="pp-health-notes" rows={2} placeholder="Chấn thương hoặc tình trạng sức khỏe cần lưu ý..." className={`${inputClass} resize-none`} />
                 ) : (
                   <div className="text-sm text-zinc-400 py-2">Không có chấn thương.</div>
                 )}

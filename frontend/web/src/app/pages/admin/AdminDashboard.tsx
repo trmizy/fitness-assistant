@@ -39,7 +39,7 @@ export function AdminDashboard() {
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-zinc-100 font-bold text-xl mb-2">Dashboard Error</h2>
           <p className="text-zinc-500 mb-6">Failed to load system metrics. Please check if services are running.</p>
-          <button onClick={() => refetch()} className="px-6 py-2 bg-red-500 text-white font-bold rounded-xl hover:bg-red-400 transition-all">Retry Now</button>
+          <button type="button" onClick={() => refetch()} className="px-6 py-2 bg-red-500 text-white font-bold rounded-xl hover:bg-red-400 transition-all">Retry Now</button>
         </div>
       </div>
     );
@@ -65,7 +65,7 @@ export function AdminDashboard() {
           <p className="text-zinc-500 text-sm mt-0.5">{today} · System overview</p>
         </div>
         <div className="flex gap-2 items-center">
-          <button 
+          <button type="button" 
             onClick={() => refetch()} 
             disabled={isFetching}
             className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors"
@@ -166,8 +166,8 @@ export function AdminDashboard() {
             <h4 className="text-sm font-bold text-zinc-200">System Alerts</h4>
           </div>
           <div className="divide-y divide-zinc-800/40 max-h-[140px] overflow-y-auto">
-            {systemAlerts.length > 0 ? systemAlerts.map((a: any, i: number) => (
-              <div key={i} className={`px-4 py-3 ${a.level === "error" || a.level === "critical" ? "bg-red-500/5" : a.level === "warning" ? "bg-amber-500/5" : "bg-blue-500/5"}`}>
+            {systemAlerts.length > 0 ? systemAlerts.map((a: any) => (
+              <div key={`${a.service}-${a.time}`} className={`px-4 py-3 ${a.level === "error" || a.level === "critical" ? "bg-red-500/5" : a.level === "warning" ? "bg-amber-500/5" : "bg-blue-500/5"}`}>
                 <div className="flex justify-between items-start gap-2">
                   <p className="text-xs text-zinc-400 leading-relaxed font-medium">{a.service}: {a.message}</p>
                   <span className="text-[10px] text-zinc-600 whitespace-nowrap">{a.time}</span>
@@ -184,7 +184,7 @@ export function AdminDashboard() {
       <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
           <h4 className="text-sm font-bold text-zinc-200">Recent Registrations</h4>
-          <button onClick={() => navigate("/admin/users")} className="text-xs text-green-400 hover:text-green-300 transition-colors font-bold">View all</button>
+          <button type="button" onClick={() => navigate("/admin/users")} className="text-xs text-green-400 hover:text-green-300 transition-colors font-bold">View all</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[500px]">
@@ -198,8 +198,8 @@ export function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {recentUsers.length > 0 ? recentUsers.map((u: any, i: number) => (
-                <tr key={i} className="border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/30 transition-colors">
+              {recentUsers.length > 0 ? recentUsers.map((u: any) => (
+                <tr key={u.id ?? u.email} className="border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/30 transition-colors">
                   <td className="px-4 py-3 text-sm font-semibold text-zinc-200">{u.name}</td>
                   <td className="px-4 py-3 text-sm text-zinc-500">{u.email}</td>
                   <td className="px-4 py-3">

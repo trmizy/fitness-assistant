@@ -1981,14 +1981,14 @@ export function WorkoutLogPage() {
                           <GripVertical className="w-4 h-4" />
                         </div>
                         <span className="w-6 h-6 rounded-lg bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center text-[10px] text-zinc-500 shrink-0">{i + 1}</span>
-                        <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25" onClick={() => setShowExerciseDetail(ex)}>
-                          <ExerciseFlipDemo 
-                            img1={ex.img} 
-                            img2={ex.img2} 
-                            alt={ex.name} 
-                            className="w-full h-full" 
+                        <button type="button" className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25" onClick={() => setShowExerciseDetail(ex)}>
+                          <ExerciseFlipDemo
+                            img1={ex.img}
+                            img2={ex.img2}
+                            alt={ex.name}
+                            className="w-full h-full"
                           />
-                        </div>
+                        </button>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-zinc-100 truncate">{ex.name}</p>
                           <p className="text-xs text-zinc-500 mt-0.5">{ex.prescription}</p>
@@ -2044,7 +2044,7 @@ export function WorkoutLogPage() {
                             if (!window.confirm("Xóa bài tập này khỏi ngày tập?")) return;
                             setEditExercises(editExercises.filter((_, j) => j !== i));
                           }}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-red-400 hover:bg-red-500/8 transition-all shrink-0"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-white hover:text-red-400 hover:bg-red-500/8 transition-all shrink-0"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -2072,7 +2072,8 @@ export function WorkoutLogPage() {
                         <p className="text-xs text-zinc-500">Đang tải bài tập...</p>
                       </div>
                     ) : dayExercises.map((ex, i) => (
-                      <div
+                      <button
+                        type="button"
                         key={`ex-${i}-${ex.name}`}
                         onClick={() => setShowExerciseDetail(ex)}
                         className="group/ex rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-4 flex items-center gap-4 hover:border-emerald-500/15 hover:shadow-[0_0_20px_rgba(16,185,129,0.03)] transition-all cursor-pointer relative overflow-hidden"
@@ -2097,7 +2098,7 @@ export function WorkoutLogPage() {
                         }`}>
                           {ex.type === "cardio" ? "Cardio" : "Strength"}
                         </span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -2202,7 +2203,8 @@ export function WorkoutLogPage() {
               </div>
 
               {/* Exercise flip animation demo */}
-              <div
+              <button
+                type="button"
                 onClick={() => setShowExerciseDetail(curEx)}
                 className="rounded-2xl overflow-hidden border border-zinc-800/30 aspect-video relative group cursor-pointer"
               >
@@ -2218,7 +2220,7 @@ export function WorkoutLogPage() {
                     <Play className="w-6 h-6 text-white ml-0.5" />
                   </div>
                 </div>
-              </div>
+              </button>
 
               <div className="text-center space-y-2 py-2">
                 <h3 className="text-xl text-white tracking-tight">{curEx.name}</h3>
@@ -2297,6 +2299,7 @@ export function WorkoutLogPage() {
                     onChange={(e) => updateActiveLog({ weightKg: e.target.value, noWeight: false })}
                     disabled={activeLog.noWeight}
                     placeholder={curEx.type === "cardio" ? "Nhập thời gian (phút)..." : "Nhập tạ (kg)..."}
+                    aria-label={curEx.type === "cardio" ? "Thời gian (phút)" : "Trọng lượng (kg)"}
                     className="flex-1 px-5 py-4 rounded-xl bg-zinc-800/30 border border-zinc-700/25 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/25 focus:ring-1 focus:ring-emerald-500/10 focus:shadow-[0_0_12px_rgba(16,185,129,0.06)] transition-all"
                   />
                   <button
@@ -2444,7 +2447,7 @@ export function WorkoutLogPage() {
 
       {/* ═══════════════ EXERCISE DETAIL MODAL ═══════════════ */}
       {showExerciseDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowExerciseDetail(null)}>
+        <div aria-hidden="true" className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowExerciseDetail(null)}>
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           <div
             className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl shadow-black/50"
@@ -2522,7 +2525,7 @@ export function WorkoutLogPage() {
 
       {/* ═══════════════ CALENDAR SCHEDULE MODAL ═══════════════ */}
       {showManualBuilder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowManualBuilder(false)}>
+        <div aria-hidden="true" className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowManualBuilder(false)}>
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           <div className="relative w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between gap-4">
@@ -2578,7 +2581,7 @@ export function WorkoutLogPage() {
                 <div key={day.dayNumber} className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3">
                   <div className="flex items-center gap-3">
                     <span className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-semibold">{day.dayNumber}</span>
-                    <input value={day.title} onChange={(event) => setManualDays((previous) => previous.map((item, index) => index === dayIndex ? { ...item, title: event.target.value } : item))} className="flex-1 rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/50" />
+                    <input value={day.title} onChange={(event) => setManualDays((previous) => previous.map((item, index) => index === dayIndex ? { ...item, title: event.target.value } : item))} aria-label={`Tên buổi tập ngày ${day.dayNumber}`} className="flex-1 rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/50" />
                     <button type="button" onClick={() => { manualEditingDayIndexRef.current = dayIndex; clearExerciseFilters(); setReplaceExerciseIndex(null); setShowAddExercise(true); }} className="px-3 py-2 rounded-xl bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Thêm bài</button>
                   </div>
                   <div className="space-y-2">
@@ -2611,7 +2614,7 @@ export function WorkoutLogPage() {
       )}
 
       {showCalendarAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowCalendarAdd(false)}>
+        <div aria-hidden="true" className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowCalendarAdd(false)}>
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
@@ -2711,6 +2714,7 @@ export function WorkoutLogPage() {
                       {/* Toggle */}
                       <button
                         type="button"
+                        aria-label={`${enabled ? "Tắt" : "Bật"} ngày ${label}`}
                                                 onClick={() => {
                           const next = { ...weekdaySlots };
                           if (enabled) { delete next[idx]; } else { next[idx] = { enabled: true, time: "07:00" }; }
@@ -2729,6 +2733,7 @@ export function WorkoutLogPage() {
                           type="time"
                           value={slot.time}
                           onChange={(e) => setWeekdaySlots({ ...weekdaySlots, [idx]: { ...slot, time: e.target.value } })}
+                          aria-label={`Giờ tập ngày ${label}`}
                           className="ml-auto px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 text-sm text-emerald-300 focus:outline-none focus:border-emerald-500/25 transition-all [color-scheme:dark]"
                         />
                       ) : (
@@ -2818,7 +2823,7 @@ export function WorkoutLogPage() {
 
       {/* ═══════════════ LOG METRIC MODAL ═══════════════ */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowLogModal(false)}>
+        <div aria-hidden="true" className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowLogModal(false)}>
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           <div className="relative w-full max-w-md rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
@@ -2863,6 +2868,7 @@ export function WorkoutLogPage() {
                   value={logValue}
                   onChange={(e) => setLogValue(e.target.value)}
                   placeholder={`Nhập ${metricOptions.find((m) => m.key === logMetric)?.unit}...`}
+                  aria-label={`Giá trị ${metricOptions.find((m) => m.key === logMetric)?.label ?? logMetric}`}
                   className="flex-1 px-5 py-4 rounded-xl bg-zinc-800/30 border border-zinc-700/25 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/25 focus:ring-1 focus:ring-emerald-500/10 transition-all"
                 />
                 <span className="text-sm text-zinc-500">{metricOptions.find((m) => m.key === logMetric)?.unit}</span>
@@ -2898,7 +2904,7 @@ export function WorkoutLogPage() {
       )}
       {/* ═══════════════ ADD EXERCISE FROM DB MODAL ═══════════════ */}
       {showAddExercise && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowAddExercise(false)}>
+        <div aria-hidden="true" className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowAddExercise(false)}>
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           <div 
             className="relative w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl border border-zinc-700/30 bg-zinc-900 shadow-2xl shadow-black/50 overflow-hidden"
@@ -2922,8 +2928,8 @@ export function WorkoutLogPage() {
                   value={dbSearch}
                   onChange={(e) => setDbSearch(e.target.value)}
                   placeholder="Tìm bài tập..."
+                  aria-label="Tìm bài tập"
                   className="w-full bg-zinc-800/50 border border-zinc-700/50 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
-                  autoFocus
                 />
               </div>
 
@@ -3228,7 +3234,8 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
           const extraCount = dayInfos.length > 1 ? dayInfos.length - 1 : 0;
 
           return (
-            <div
+            <button
+              type="button"
               key={`d-${day}`}
               onClick={() => onDayClick(day)}
               title={firstInfo
@@ -3256,7 +3263,7 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
               {extraCount > 0 && isTraining && (
                 <span className="text-[6.5px] text-black/70 font-semibold leading-none mt-0.5">+{extraCount}</span>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -3270,6 +3277,7 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
       <span className="text-sm text-zinc-400">{label}</span>
       <button
         type="button"
+        aria-label={`${value ? "Tắt" : "Bật"} ${label}`}
                 onClick={() => onChange(!value)}
         className={`relative rounded-full transition-all ${value ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-zinc-700"}`}
         style={{ width: 42, height: 24 }}

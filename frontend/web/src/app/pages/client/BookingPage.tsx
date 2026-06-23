@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Calendar, Clock, ChevronLeft, ChevronRight, CheckCircle, AlertCircle,
   XCircle, Loader2, Star, MapPin, MessageSquare, FileText, RefreshCw,
@@ -42,13 +42,15 @@ const SESSION_STATUS_CONFIG: Record<SessionStatus, { label: string; color: strin
 
 type Tab = "book" | "upcoming" | "past";
 
+const tabLabels: Record<Tab, string> = { book: "Đặt lịch", upcoming: "Sắp tới", past: "Đã qua" };
+
 export function BookingPage() {
   const queryClient = useQueryClient();
   const { user } = useApp();
   const { joinCoachingSession } = useCall();
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
+  const [year, setYear] = useState(() => today.getFullYear());
+  const [month, setMonth] = useState(() => today.getMonth());
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
@@ -110,13 +112,16 @@ export function BookingPage() {
     setSelectedContractId(activeContracts[0].id);
   }
 
-  // Lock session mode to match contract when contract has a specific mode
-  useEffect(() => {
-    if (!selectedContract) return;
-    const cm = selectedContract.sessionMode;
-    if (cm === 'ONLINE') setSessionMode('ONLINE');
-    else if (cm === 'OFFLINE') setSessionMode('OFFLINE');
-  }, [selectedContract?.id]);
+  // Sync session mode when selected contract changes
+  const [prevContractId, setPrevContractId] = useState(selectedContractId);
+  if (prevContractId !== selectedContractId) {
+    setPrevContractId(selectedContractId);
+    if (selectedContract) {
+      const cm = selectedContract.sessionMode;
+      if (cm === 'ONLINE') setSessionMode('ONLINE');
+      else if (cm === 'OFFLINE') setSessionMode('OFFLINE');
+    }
+  }
 
   // Fetch upcoming sessions
   const { data: upcomingSessions = [], isLoading: loadingUpcoming } = useQuery({
@@ -216,11 +221,11 @@ export function BookingPage() {
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDay(year, month);
-  const prevMonth = () => { if (month === 0) { setMonth(11); setYear(year - 1); } else setMonth(month - 1); };
-  const nextMonth = () => { if (month === 11) { setMonth(0); setYear(year + 1); } else setMonth(month + 1); };
+  const prevMonth = () => { if (month === 0) { setMonth(11); setYear(prev => prev - 1); } else setMonth(prev => prev - 1); };
+  const nextMonth = () => { if (month === 11) { setMonth(0); setYear(prev => prev + 1); } else setMonth(prev => prev + 1); };
   const isToday = (day: number) => year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
 
-  const tabLabels: Record<Tab, string> = { book: "Đặt lịch", upcoming: "Sắp tới", past: "Đã qua" };
+  const nowMs = Date.now();
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5">
@@ -285,6 +290,7 @@ export function BookingPage() {
             )}
             {["ERROR", "EXPIRED"].includes(contract.eSignStatus || "") && (
               <button
+                type="button"
                 onClick={() => handleResendESign(contract.id)}
                 disabled={resendingId === contract.id}
                 className="flex items-center gap-1.5 text-xs font-semibold text-green-400 hover:text-green-300 border border-green-500/20 bg-green-500/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
@@ -303,7 +309,7 @@ export function BookingPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-zinc-800/60 border border-zinc-700/40 p-1 rounded-xl w-full sm:w-auto sm:inline-flex">
         {(["book", "upcoming", "past"] as Tab[]).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${tab === t ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}>
+          <button type="button" key={t} onClick={() => setTab(t)} className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${tab === t ? "bg-green-500 text-black shadow-sm" : "text-zinc-500 hover:text-zinc-300"}`}>
             {tabLabels[t]}
           </button>
         ))}
@@ -325,6 +331,7 @@ export function BookingPage() {
                 <div className="flex gap-2 overflow-x-auto">
                   {activeContracts.map(c => (
                     <button
+                      type="button"
                       key={c.id}
                       onClick={() => { setSelectedContractId(c.id); setSelectedDate(null); setSelectedSlot(null); }}
                       className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
@@ -343,9 +350,9 @@ export function BookingPage() {
                 {/* Calendar */}
                 <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 shadow-xl">
                   <div className="flex items-center justify-between mb-4">
-                    <button onClick={prevMonth} className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                    <button type="button" onClick={prevMonth} className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
                     <h3 className="text-sm font-bold text-zinc-200">{MONTHS[month]} {year}</h3>
-                    <button onClick={nextMonth} className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"><ChevronRight className="w-4 h-4" /></button>
+                    <button type="button" onClick={nextMonth} className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-500 hover:text-zinc-300 transition-colors"><ChevronRight className="w-4 h-4" /></button>
                   </div>
                   <div className="grid grid-cols-7 gap-1 mb-2 border-b border-zinc-800/60 pb-2">
                     {DAYS.map((d) => <div key={d} className="text-center text-[10px] text-zinc-600 uppercase tracking-tighter font-bold">{d}</div>)}
@@ -360,6 +367,7 @@ export function BookingPage() {
                       const disabled = isPast || !!isPastEndDate;
                       return (
                         <button
+                          type="button"
                           key={day}
                           disabled={disabled}
                           onClick={() => { setSelectedDate(day); setSelectedSlot(null); }}
@@ -397,6 +405,7 @@ export function BookingPage() {
                         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                           {timeSlots.map((slot) => (
                             <button
+                              type="button"
                               key={slot}
                               onClick={() => setSelectedSlot(slot)}
                               className={`flex items-center justify-center gap-1.5 px-2 py-2.5 border-2 rounded-xl text-sm transition-all font-medium ${
@@ -429,6 +438,7 @@ export function BookingPage() {
                                 const isDisabled = isLocked && contractMode !== mode;
                                 return (
                                   <button
+                                    type="button"
                                     key={mode}
                                     onClick={() => !isDisabled && setSessionMode(mode)}
                                     disabled={isDisabled}
@@ -449,8 +459,9 @@ export function BookingPage() {
 
                           {/* Notes */}
                           <div>
-                            <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Ghi chú (không bắt buộc)</label>
+                            <label htmlFor="booking-notes" className="text-xs font-semibold text-zinc-400 mb-1.5 block">Ghi chú (không bắt buộc)</label>
                             <textarea
+                              id="booking-notes"
                               value={bookingNotes}
                               onChange={e => setBookingNotes(e.target.value)}
                               rows={2}
@@ -465,13 +476,14 @@ export function BookingPage() {
                               <CheckCircle className="w-4 h-4" />
                               <span className="text-sm font-bold">Sẵn sàng đặt lịch</span>
                             </div>
-                            <p className="text-xs text-zinc-400 mb-3">
+                            <p className="text-xs text-white mb-3">
                               {MONTHS[month]} {selectedDate}, {year} lúc {formatTime(selectedSlot)} · {sessionMode === "ONLINE" ? "Trực tuyến" : "Trực tiếp"}
                             </p>
                             <button
+                              type="button"
                               onClick={() => bookMutation.mutate()}
                               disabled={bookMutation.isPending}
-                              className="w-full py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                              className="w-full py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-white text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
                             >
                               {bookMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                               Xác nhận đặt lịch
@@ -522,7 +534,7 @@ export function BookingPage() {
               </div>
               <h3 className="text-zinc-200 font-bold mb-1">Không có buổi tập sắp tới</h3>
               <p className="text-sm text-zinc-500 mb-6">Bạn chưa có buổi tập nào được lên lịch.</p>
-              <button onClick={() => setTab("book")} className="px-6 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-xl transition-all">
+              <button type="button" onClick={() => setTab("book")} className="px-6 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-xl transition-all">
                 Đặt lịch tập
               </button>
             </div>
@@ -531,7 +543,7 @@ export function BookingPage() {
               {(upcomingSessions as Session[]).map((s) => {
                 const cfg = SESSION_STATUS_CONFIG[s.status];
                 const startDate = new Date(s.scheduledStartAt);
-                const hoursUntil = (startDate.getTime() - Date.now()) / (1000 * 60 * 60);
+                const hoursUntil = (startDate.getTime() - nowMs) / (1000 * 60 * 60);
                 return (
                   <div key={s.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
                     <div className="flex items-start justify-between">
@@ -563,6 +575,7 @@ export function BookingPage() {
                           return (
                             <div className="flex flex-col items-end gap-0.5">
                               <button
+                                type="button"
                                 onClick={() => joinState.enabled && handleJoinSession(s)}
                                 disabled={!joinState.enabled || isJoining}
                                 title={joinState.reason}
@@ -581,6 +594,7 @@ export function BookingPage() {
                           );
                         })()}
                         <button
+                          type="button"
                           onClick={() => setCancelId(s.id)}
                           className="flex items-center gap-1 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
                         >
@@ -609,6 +623,7 @@ export function BookingPage() {
             <div className="flex gap-2 overflow-x-auto mb-4">
               {activeContracts.map(c => (
                 <button
+                  type="button"
                   key={c.id}
                   onClick={() => setSelectedContractId(c.id)}
                   className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${
@@ -652,6 +667,7 @@ export function BookingPage() {
                       <div>
                         {s.status === "COMPLETED" && !s.review && (
                           <button
+                            type="button"
                             onClick={() => setReviewId(s.id)}
                             className="flex items-center gap-1 bg-green-500/10 border border-green-500/20 text-green-400 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-500/20 transition-colors"
                           >
@@ -685,6 +701,7 @@ export function BookingPage() {
             <div className="p-5 space-y-4">
               <p className="text-sm text-zinc-400">Vui lòng cho biết lý do hủy lịch tập này.</p>
               <textarea
+                aria-label="Lý do hủy lịch"
                 value={cancelReason}
                 onChange={e => setCancelReason(e.target.value)}
                 rows={3}
@@ -693,13 +710,14 @@ export function BookingPage() {
               />
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-              <button onClick={() => { setCancelId(null); setCancelReason(""); }} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
+              <button type="button" onClick={() => { setCancelId(null); setCancelReason(""); }} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
                 Giữ lịch
               </button>
               <button
+                type="button"
                 onClick={() => cancelMutation.mutate({ id: cancelId, reason: cancelReason })}
                 disabled={!cancelReason.trim() || cancelMutation.isPending}
-                className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-white text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {cancelMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                 Hủy lịch tập
@@ -719,12 +737,13 @@ export function BookingPage() {
             <div className="p-5 space-y-4">
               <div className="flex items-center justify-center gap-2">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <button key={i} onClick={() => setReviewRating(i + 1)}>
+                  <button type="button" key={i} onClick={() => setReviewRating(i + 1)}>
                     <Star className={`w-8 h-8 transition-colors ${i < reviewRating ? "text-amber-400 fill-amber-400" : "text-zinc-700 hover:text-zinc-500"}`} />
                   </button>
                 ))}
               </div>
               <textarea
+                aria-label="Nhận xét đánh giá"
                 value={reviewComment}
                 onChange={e => setReviewComment(e.target.value)}
                 rows={3}
@@ -733,13 +752,14 @@ export function BookingPage() {
               />
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-              <button onClick={() => { setReviewId(null); setReviewRating(5); setReviewComment(""); }} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
+              <button type="button" onClick={() => { setReviewId(null); setReviewRating(5); setReviewComment(""); }} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
                 Bỏ qua
               </button>
               <button
+                type="button"
                 onClick={() => reviewMutation.mutate()}
                 disabled={reviewMutation.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-white text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {reviewMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                 Gửi đánh giá

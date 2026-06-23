@@ -1016,8 +1016,9 @@ export function AIPlansPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-zinc-400">Mục tiêu</label>
+            <label htmlFor="ai-plan-goal" className="text-xs font-semibold text-zinc-400">Mục tiêu</label>
             <input
+              id="ai-plan-goal"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
               placeholder="Ví dụ: giảm mỡ tăng cơ"
@@ -1038,8 +1039,9 @@ export function AIPlansPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-zinc-400">Số tuần (1-52)</label>
+            <label htmlFor="ai-plan-duration-weeks" className="text-xs font-semibold text-zinc-400">Số tuần (1-52)</label>
             <input
+              id="ai-plan-duration-weeks"
               type="number"
               min={1}
               max={52}
@@ -1050,8 +1052,9 @@ export function AIPlansPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-zinc-400">Buổi/tuần (1-7)</label>
+            <label htmlFor="ai-plan-days-per-week" className="text-xs font-semibold text-zinc-400">Buổi/tuần (1-7)</label>
             <input
+              id="ai-plan-days-per-week"
               type="number"
               min={1}
               max={7}
@@ -1062,8 +1065,9 @@ export function AIPlansPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-zinc-400">Số bài / buổi (1-8)</label>
+            <label htmlFor="ai-plan-exercises-per-day" className="text-xs font-semibold text-zinc-400">Số bài / buổi (1-8)</label>
             <input
+              id="ai-plan-exercises-per-day"
               type="number"
               min={1}
               max={8}
@@ -1076,7 +1080,7 @@ export function AIPlansPage() {
 
         {/* Training location */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-zinc-400">Nơi tập</label>
+          <span className="text-xs font-semibold text-zinc-400">Nơi tập</span>
           <div className="flex gap-2">
             {([
               { value: 'GYM', label: 'Phòng gym', desc: 'Máy, tạ, cable' },
@@ -1102,7 +1106,7 @@ export function AIPlansPage() {
         {/* Equipment preference (only for GYM) */}
         {trainingLocation === 'GYM' && (
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-zinc-400">Nguồn thiết bị</label>
+            <span className="text-xs font-semibold text-zinc-400">Nguồn thiết bị</span>
             <div className="flex gap-2">
               {([
                 { value: 'MACHINE_ONLY', label: 'Tập hoàn toàn bằng máy', desc: 'Chỉ machine/cable/smith' },
@@ -1220,46 +1224,51 @@ export function AIPlansPage() {
               return (
                 <div
                   key={plan.id}
-                  onClick={() => setSelectedPlanId(plan.id)}
-                  className={`w-full text-left rounded-xl border p-3 transition-all ${
+                  className={`w-full rounded-xl border p-3 transition-all ${
                     selected
                       ? 'border-green-500/50 bg-green-500/10'
                       : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="text-sm font-semibold text-zinc-100 truncate">
-                      {plan.name || 'Workout Plan'}
-                    </div>
-                    <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlanId(plan.id)}
+                      className="flex-1 text-left min-w-0"
+                    >
+                      <div className="text-sm font-semibold text-white truncate">
+                        {plan.name || 'Workout Plan'}
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                       <span className={`text-[11px] px-2 py-0.5 rounded-full border ${statusClass(plan.status)}`}>
                         {statusLabel(plan.status)}
                       </span>
                       <button
                         type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleArchive(plan);
-                        }}
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-zinc-700 text-zinc-400 hover:text-red-300 hover:border-red-500/40 hover:bg-red-500/10"
+                        onClick={() => handleArchive(plan)}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-zinc-700 text-white hover:text-red-300 hover:border-red-500/40 hover:bg-red-500/10"
                         title="Ẩn kế hoạch"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
-                  <div className="text-xs text-zinc-500 mt-1 truncate">
-                    Goal: {plan.goal || '--'} | v{plan.version ?? 1}
-                  </div>
-                  <div className="text-[11px] text-zinc-600 mt-1">{formatDate(plan.updatedAt || plan.createdAt)}</div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPlanId(plan.id)}
+                    className="block w-full text-left mt-1"
+                  >
+                    <div className="text-xs text-zinc-500 truncate">
+                      Goal: {plan.goal || '--'} | v{plan.version ?? 1}
+                    </div>
+                    <div className="text-[11px] text-zinc-600 mt-1">{formatDate(plan.updatedAt || plan.createdAt)}</div>
+                  </button>
                   {plan.status === 'FAILED' && (
                     <div className="flex flex-wrap gap-2 mt-3">
                       <button
                         type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleRetryFailedPlan(plan);
-                        }}
+                        onClick={() => handleRetryFailedPlan(plan)}
                         disabled={blockLlmActions || generateMutation.isPending || pendingPlanTasks.length > 0}
                         className="px-2.5 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs hover:bg-amber-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
@@ -1267,10 +1276,7 @@ export function AIPlansPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleArchive(plan);
-                        }}
+                        onClick={() => handleArchive(plan)}
                         className="px-2.5 py-1.5 rounded-lg border border-zinc-700 text-zinc-300 text-xs hover:bg-zinc-800"
                       >
                         Ẩn
@@ -1333,7 +1339,7 @@ export function AIPlansPage() {
                 </div>
 
                 {planWarnings.length > 0 && (
-                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200 space-y-2">
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-white space-y-2">
                     <div className="font-semibold">Cảnh báo từ AI</div>
                     <ul className="list-disc pl-5 space-y-1">
                       {planWarnings.map((warning, index) => (
@@ -1344,12 +1350,12 @@ export function AIPlansPage() {
                 )}
 
                 {(planEvidence.adjustmentReason.length > 0 || planEvidence.evidenceUsed.length > 0 || planEvidence.safetyNotes.length > 0) && (
-                  <details className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-sm text-zinc-300">
+                  <details className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-sm text-white">
                     <summary className="cursor-pointer text-cyan-200 font-semibold">Vì sao AI điều chỉnh kế hoạch</summary>
                     <div className="mt-3 space-y-3">
                       {planEvidence.adjustmentReason.length > 0 && (
                         <div>
-                          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 mb-1">Điều chỉnh theo chỉ số</div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-white mb-1">Điều chỉnh theo chỉ số</div>
                           <ul className="space-y-2">
                             {planEvidence.adjustmentReason.map((item, index) => (
                               <li key={`${item.metric}-${index}`} className="rounded-lg border border-zinc-800 bg-zinc-950/70 p-2">
@@ -1459,7 +1465,7 @@ export function AIPlansPage() {
 
                     {/* Replace vs Append mode */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-zinc-400">Lịch tập hiện tại</label>
+                      <span className="block text-xs font-semibold text-zinc-400">Lịch tập hiện tại</span>
                       <div className="flex gap-2">
                         {([
                           { value: true, label: 'Thay thế lịch cũ', desc: 'Xóa lịch cũ chưa hoàn thành' },
@@ -1484,8 +1490,9 @@ export function AIPlansPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="block text-xs font-semibold text-zinc-400">Ngày bắt đầu</label>
+                        <label htmlFor="ai-plan-save-start-date" className="block text-xs font-semibold text-zinc-400">Ngày bắt đầu</label>
                         <input
+                          id="ai-plan-save-start-date"
                           type="date"
                           value={saveStartDate}
                           onChange={(e) => setSaveStartDate(e.target.value)}
@@ -1493,8 +1500,9 @@ export function AIPlansPage() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="block text-xs font-semibold text-zinc-400">Số tuần áp dụng (optional)</label>
+                        <label htmlFor="ai-plan-save-repeat-weeks" className="block text-xs font-semibold text-zinc-400">Số tuần áp dụng (optional)</label>
                         <input
+                          id="ai-plan-save-repeat-weeks"
                           type="number"
                           min={1}
                           max={52}
@@ -1507,7 +1515,7 @@ export function AIPlansPage() {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-3">
-                        <label className="block text-xs font-semibold text-zinc-400">Chọn ngày tập trong tuần</label>
+                        <span className="block text-xs font-semibold text-zinc-400">Chọn ngày tập trong tuần</span>
                         <span className="text-xs text-zinc-500">
                           Đã chọn {selectedWeekdays.length}/{saveDaysPerWeek} ngày
                         </span>
@@ -1597,8 +1605,9 @@ export function AIPlansPage() {
 
                 {showAdjustPanel && (
                   <div className="rounded-xl border border-zinc-700 bg-zinc-950 p-3 space-y-3">
-                    <label className="block text-xs font-semibold text-zinc-400">Yêu cầu điều chỉnh</label>
+                    <label htmlFor="ai-plan-adjustments" className="block text-xs font-semibold text-zinc-400">Yêu cầu điều chỉnh</label>
                     <textarea
+                      id="ai-plan-adjustments"
                       value={adjustments}
                       onChange={(e) => setAdjustments(e.target.value)}
                       rows={4}
@@ -1606,8 +1615,9 @@ export function AIPlansPage() {
                       className="w-full rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-amber-500/50"
                     />
                     <div className="w-full md:w-48 space-y-1">
-                      <label className="block text-xs font-semibold text-zinc-400">daysPerWeek mới (optional)</label>
+                      <label htmlFor="ai-plan-adjust-days-per-week" className="block text-xs font-semibold text-zinc-400">daysPerWeek mới (optional)</label>
                       <input
+                        id="ai-plan-adjust-days-per-week"
                         type="number"
                         min={1}
                         max={7}
@@ -1617,8 +1627,9 @@ export function AIPlansPage() {
                       />
                     </div>
                     <div className="w-full md:w-48 space-y-1">
-                      <label className="block text-xs font-semibold text-zinc-400">Số bài / buổi mới (optional)</label>
+                      <label htmlFor="ai-plan-adjust-exercises-per-day" className="block text-xs font-semibold text-zinc-400">Số bài / buổi mới (optional)</label>
                       <input
+                        id="ai-plan-adjust-exercises-per-day"
                         type="number"
                         min={1}
                         max={8}

@@ -279,9 +279,11 @@ export function PTApplicationPage() {
 
   const removeTrainingLoc = (idx: number) => setTrainingLocations(prev => prev.filter((_, i) => i !== idx));
 
-  const getValidTrainingLocations = () => trainingLocations.filter(
-    loc => loc.provinceCode && (loc.gymName.trim() || loc.addressLine.trim())
-  ).map((loc, i, arr) => ({
+  const getValidTrainingLocations = () => {
+    const valid = trainingLocations.filter(
+      loc => loc.provinceCode && (loc.gymName.trim() || loc.addressLine.trim())
+    );
+    return valid.map((loc, i, arr) => ({
     provinceCode: Number(loc.provinceCode),
     wardCode: loc.wardCode ? Number(loc.wardCode) : undefined,
     gymName: loc.gymName.trim() || undefined,
@@ -290,6 +292,7 @@ export function PTApplicationPage() {
     isPrimary: arr.findIndex(l => l.isPrimary) === i || i === 0,
     note: loc.note.trim() || undefined,
   }));
+  };
 
   const saveMutation = useMutation({
     mutationFn: (data: Partial<PTApplication>) => ptApplicationService.saveDraft(data),
@@ -553,17 +556,17 @@ export function PTApplicationPage() {
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>Số điện thoại</label>
-                  <input type="tel" className={inp} placeholder="+84 ..." value={formData.phoneNumber || ""} onChange={e => updateField("phoneNumber", e.target.value)} />
+                  <label htmlFor="pta-phone" className={lbl}>Số điện thoại</label>
+                  <input id="pta-phone" type="tel" className={inp} placeholder="+84 ..." value={formData.phoneNumber || ""} onChange={e => updateField("phoneNumber", e.target.value)} />
                 </div>
                 <div>
-                  <label className={lbl}>CMND / Hộ chiếu</label>
-                  <input type="text" className={inp} placeholder="Số CMND/Hộ chiếu..." value={formData.nationalIdNumber || ""} onChange={e => updateField("nationalIdNumber", e.target.value)} />
+                  <label htmlFor="pta-national-id" className={lbl}>CMND / Hộ chiếu</label>
+                  <input id="pta-national-id" type="text" className={inp} placeholder="Số CMND/Hộ chiếu..." value={formData.nationalIdNumber || ""} onChange={e => updateField("nationalIdNumber", e.target.value)} />
                 </div>
               </div>
               <div>
-                <label className={lbl}>Địa chỉ hiện tại</label>
-                <input type="text" className={inp} placeholder="Số nhà, Thành phố, Quốc gia..." value={formData.currentAddress || ""} onChange={e => updateField("currentAddress", e.target.value)} />
+                <label htmlFor="pta-current-address" className={lbl}>Địa chỉ hiện tại</label>
+                <input id="pta-current-address" type="text" className={inp} placeholder="Số nhà, Thành phố, Quốc gia..." value={formData.currentAddress || ""} onChange={e => updateField("currentAddress", e.target.value)} />
               </div>
 
               <div className="border-t border-zinc-800/60 pt-4">
@@ -572,26 +575,26 @@ export function PTApplicationPage() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className={lbl}>Tỉnh/Thành phố</label>
-                    <select className={inp} value={formData.residenceProvinceCode ?? ''} onChange={e => handleResidenceProvinceChange(e.target.value)}>
+                    <label htmlFor="pta-residence-province" className={lbl}>Tỉnh/Thành phố</label>
+                    <select id="pta-residence-province" className={inp} value={formData.residenceProvinceCode ?? ''} onChange={e => handleResidenceProvinceChange(e.target.value)}>
                       <option value="">-- Chọn tỉnh/thành --</option>
                       {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className={lbl}>Phường/Xã</label>
-                    <select className={inp} value={formData.residenceWardCode ?? ''} onChange={e => updateField('residenceWardCode', e.target.value ? Number(e.target.value) : undefined)} disabled={!formData.residenceProvinceCode}>
+                    <label htmlFor="pta-residence-ward" className={lbl}>Phường/Xã</label>
+                    <select id="pta-residence-ward" className={inp} value={formData.residenceWardCode ?? ''} onChange={e => updateField('residenceWardCode', e.target.value ? Number(e.target.value) : undefined)} disabled={!formData.residenceProvinceCode}>
                       <option value="">-- Chọn phường/xã --</option>
                       {residenceWards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className={lbl}>Địa chỉ chi tiết</label>
-                    <input type="text" className={inp} placeholder="Số nhà, tên đường..." maxLength={255} value={formData.residenceAddressLine || ''} onChange={e => updateField('residenceAddressLine', e.target.value)} />
+                    <label htmlFor="pta-residence-address-line" className={lbl}>Địa chỉ chi tiết</label>
+                    <input id="pta-residence-address-line" type="text" className={inp} placeholder="Số nhà, tên đường..." maxLength={255} value={formData.residenceAddressLine || ''} onChange={e => updateField('residenceAddressLine', e.target.value)} />
                   </div>
                   <div>
-                    <label className={lbl}>Quận/Huyện (nếu cần)</label>
-                    <input type="text" className={inp} placeholder="VD: Quận Bình Thạnh" value={formData.residenceLegacyDistrictName || ''} onChange={e => updateField('residenceLegacyDistrictName', e.target.value)} />
+                    <label htmlFor="pta-residence-district" className={lbl}>Quận/Huyện (nếu cần)</label>
+                    <input id="pta-residence-district" type="text" className={inp} placeholder="VD: Quận Bình Thạnh" value={formData.residenceLegacyDistrictName || ''} onChange={e => updateField('residenceLegacyDistrictName', e.target.value)} />
                   </div>
                 </div>
               </div>
@@ -627,8 +630,8 @@ export function PTApplicationPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>Số năm kinh nghiệm PT *</label>
-                  <select className={inp} value={formData.yearsOfExperience || ""} onChange={e => updateField("yearsOfExperience", e.target.value)}>
+                  <label htmlFor="pta-years-exp" className={lbl}>Số năm kinh nghiệm PT *</label>
+                  <select id="pta-years-exp" className={inp} value={formData.yearsOfExperience || ""} onChange={e => updateField("yearsOfExperience", e.target.value)}>
                     <option value="">Chọn kinh nghiệm...</option>
                     <option value="<1">Dưới 1 năm</option>
                     <option value="1-3">1 - 3 năm</option>
@@ -640,17 +643,17 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Trình độ học vấn *</label>
-                <input type="text" className={inp} placeholder="VD: Cử nhân Khoa học Thể thao, Đại học TDTT" value={formData.educationBackground || ""} onChange={e => updateField("educationBackground", e.target.value)} />
+                <label htmlFor="pta-education" className={lbl}>Trình độ học vấn *</label>
+                <input id="pta-education" type="text" className={inp} placeholder="VD: Cử nhân Khoa học Thể thao, Đại học TDTT" value={formData.educationBackground || ""} onChange={e => updateField("educationBackground", e.target.value)} />
               </div>
 
               <div>
-                <label className={lbl}>Kinh nghiệm làm việc</label>
-                <textarea className={`${inp} min-h-[100px] resize-none`} placeholder="Mô tả các vị trí bạn đã làm, phòng gym, hoặc học viên bạn đã huấn luyện..." value={formData.previousWorkExperience || ""} onChange={e => updateField("previousWorkExperience", e.target.value)} />
+                <label htmlFor="pta-work-experience" className={lbl}>Kinh nghiệm làm việc</label>
+                <textarea id="pta-work-experience" className={`${inp} min-h-[100px] resize-none`} placeholder="Mô tả các vị trí bạn đã làm, phòng gym, hoặc học viên bạn đã huấn luyện..." value={formData.previousWorkExperience || ""} onChange={e => updateField("previousWorkExperience", e.target.value)} />
               </div>
 
               <div>
-                <label className={lbl}>Chuyên môn chính * (Chọn tất cả phù hợp)</label>
+                <p className={lbl}>Chuyên môn chính * (Chọn tất cả phù hợp)</p>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {specialtyOptions.map(opt => (
                     <Chip key={opt} label={opt} active={formData.mainSpecialties?.includes(opt) || false} onClick={() => toggle("mainSpecialties", opt)} />
@@ -662,8 +665,8 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Giới thiệu bản thân *</label>
-                <textarea className={`${inp} min-h-[120px] resize-none`} placeholder="Mô tả triết lý huấn luyện, phong cách và điểm khác biệt của bạn... (tối thiểu 100 ký tự)" value={formData.professionalBio || ""} onChange={e => updateField("professionalBio", e.target.value)} />
+                <label htmlFor="pta-professional-bio" className={lbl}>Giới thiệu bản thân *</label>
+                <textarea id="pta-professional-bio" className={`${inp} min-h-[120px] resize-none`} placeholder="Mô tả triết lý huấn luyện, phong cách và điểm khác biệt của bạn... (tối thiểu 100 ký tự)" value={formData.professionalBio || ""} onChange={e => updateField("professionalBio", e.target.value)} />
                 <p className="text-xs text-zinc-600 mt-1">{(formData.professionalBio || "").length}/100 ký tự tối thiểu</p>
               </div>
             </div>
@@ -697,28 +700,28 @@ export function PTApplicationPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className={lbl}>Tên chứng chỉ {index === 0 ? '*' : ''}</label>
-                      <input type="text" className={inp} placeholder="VD: NASM Certified Personal Trainer" value={cert.certificateName || ""} onChange={e => updateCertificate(index, 'certificateName', e.target.value)} />
+                      <label htmlFor={`pta-cert-name-${index}`} className={lbl}>Tên chứng chỉ {index === 0 ? '*' : ''}</label>
+                      <input id={`pta-cert-name-${index}`} type="text" aria-label={`Tên chứng chỉ ${index + 1}`} className={inp} placeholder="VD: NASM Certified Personal Trainer" value={cert.certificateName || ""} onChange={e => updateCertificate(index, 'certificateName', e.target.value)} />
                     </div>
                     <div>
-                      <label className={lbl}>Tổ chức cấp {index === 0 ? '*' : ''}</label>
-                      <input type="text" className={inp} placeholder="VD: NASM, ACE, ISSA, CSCS" value={cert.issuingOrganization || ""} onChange={e => updateCertificate(index, 'issuingOrganization', e.target.value)} />
+                      <label htmlFor={`pta-cert-org-${index}`} className={lbl}>Tổ chức cấp {index === 0 ? '*' : ''}</label>
+                      <input id={`pta-cert-org-${index}`} type="text" aria-label={`Tổ chức cấp chứng chỉ ${index + 1}`} className={inp} placeholder="VD: NASM, ACE, ISSA, CSCS" value={cert.issuingOrganization || ""} onChange={e => updateCertificate(index, 'issuingOrganization', e.target.value)} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className={lbl}>Ngày cấp {index === 0 ? '*' : ''}</label>
-                      <input type="date" className={inp} value={cert.issueDate ? cert.issueDate.substring(0, 10) : ""} onChange={e => updateCertificate(index, 'issueDate', e.target.value)} />
+                      <label htmlFor={`pta-cert-issue-date-${index}`} className={lbl}>Ngày cấp {index === 0 ? '*' : ''}</label>
+                      <input id={`pta-cert-issue-date-${index}`} type="date" aria-label={`Ngày cấp chứng chỉ ${index + 1}`} className={inp} value={cert.issueDate ? cert.issueDate.substring(0, 10) : ""} onChange={e => updateCertificate(index, 'issueDate', e.target.value)} />
                     </div>
                     <div>
-                      <label className={lbl}>Ngày hết hạn</label>
-                      <input type="date" className={inp} value={cert.expirationDate ? cert.expirationDate.substring(0, 10) : ""} onChange={e => updateCertificate(index, 'expirationDate', e.target.value)} />
+                      <label htmlFor={`pta-cert-exp-date-${index}`} className={lbl}>Ngày hết hạn</label>
+                      <input id={`pta-cert-exp-date-${index}`} type="date" aria-label={`Ngày hết hạn chứng chỉ ${index + 1}`} className={inp} value={cert.expirationDate ? cert.expirationDate.substring(0, 10) : ""} onChange={e => updateCertificate(index, 'expirationDate', e.target.value)} />
                     </div>
                   </div>
 
                   <div>
-                    <label className={lbl}>Trạng thái chứng chỉ {index === 0 ? '*' : ''}</label>
+                    <p className={lbl}>Trạng thái chứng chỉ {index === 0 ? '*' : ''}</p>
                     <div className="flex gap-2 mt-1">
                       {[{ label: "Valid", val: "Valid" }, { label: "Expired", val: "Expired" }, { label: "Lifetime (No Expiry)", val: "Lifetime" }].map(s => (
                         <button key={s.val} type="button"
@@ -764,7 +767,7 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Nhóm học viên mục tiêu * (Chọn tất cả phù hợp)</label>
+                <p className={lbl}>Nhóm học viên mục tiêu * (Chọn tất cả phù hợp)</p>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {targetOptions.map(opt => (
                     <Chip key={opt} label={opt} active={formData.targetClientGroups?.includes(opt) || false} onClick={() => toggle("targetClientGroups", opt)} />
@@ -773,7 +776,7 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Mục tiêu huấn luyện chính *</label>
+                <p className={lbl}>Mục tiêu huấn luyện chính *</p>
                 <div className="space-y-2 mt-2">
                   {trainingGoalOptions.map(goal => (
                     <label key={goal} className="flex items-center gap-3 p-3 bg-zinc-800/40 border border-zinc-700/40 rounded-xl cursor-pointer hover:border-zinc-600 transition-all">
@@ -789,8 +792,8 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Phương pháp & Cách tiếp cận</label>
-                <textarea className={`${inp} min-h-[100px] resize-none`} placeholder="Mô tả cách bạn cấu trúc buổi tập, phong cách huấn luyện và những gì học viên có thể mong đợi..." value={formData.trainingMethodsApproach || ""} onChange={e => updateField("trainingMethodsApproach", e.target.value)} />
+                <label htmlFor="pta-training-methods" className={lbl}>Phương pháp & Cách tiếp cận</label>
+                <textarea id="pta-training-methods" className={`${inp} min-h-[100px] resize-none`} placeholder="Mô tả cách bạn cấu trúc buổi tập, phong cách huấn luyện và những gì học viên có thể mong đợi..." value={formData.trainingMethodsApproach || ""} onChange={e => updateField("trainingMethodsApproach", e.target.value)} />
               </div>
             </div>
           )}
@@ -806,7 +809,7 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Thời lượng buổi tập *</label>
+                <p className={lbl}>Thời lượng buổi tập *</p>
                 <div className="grid grid-cols-4 gap-3 mt-1">
                   {[30, 45, 60, 90].map(mins => (
                     <button key={mins} type="button" onClick={() => updateField("sessionDurationMinutes", mins)}
@@ -823,7 +826,7 @@ export function PTApplicationPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className={lbl}>Lịch làm việc hàng tuần *</label>
+                  <p className={lbl}>Lịch làm việc hàng tuần *</p>
                   <button type="button" 
                     onClick={() => {
                       const current = formData.availabilityBlocks || [];
@@ -836,10 +839,10 @@ export function PTApplicationPage() {
 
                 <div className="space-y-3">
                   {(formData.availabilityBlocks || []).map((block: any, idx: number) => (
-                    <div key={idx} className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-3 flex flex-wrap items-center gap-3">
+                    <div key={block.dayOfWeek ? `${block.dayOfWeek}-${block.startTime}-${idx}` : idx} className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-3 flex flex-wrap items-center gap-3">
                       <div className="flex-1 min-w-[100px]">
-                        <select className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300 focus:outline-none"
-                          value={block.dayOfWeek} 
+                        <select aria-label={`Ngày trong tuần (khung giờ ${idx + 1})`} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300 focus:outline-none"
+                          value={block.dayOfWeek}
                           onChange={(e) => {
                             const blocks = [...(formData.availabilityBlocks || [])];
                             blocks[idx].dayOfWeek = e.target.value;
@@ -849,7 +852,7 @@ export function PTApplicationPage() {
                         </select>
                       </div>
                       <div className="flex items-center gap-2">
-                        <input type="time" className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300"
+                        <input aria-label={`Giờ bắt đầu (khung giờ ${idx + 1})`} type="time" className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300"
                           value={block.startTime}
                           onChange={(e) => {
                             const blocks = [...(formData.availabilityBlocks || [])];
@@ -858,7 +861,7 @@ export function PTApplicationPage() {
                           }}
                         />
                         <span className="text-zinc-600">đến</span>
-                        <input type="time" className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300"
+                        <input aria-label={`Giờ kết thúc (khung giờ ${idx + 1})`} type="time" className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1.5 text-xs text-zinc-300"
                           value={block.endTime}
                           onChange={(e) => {
                             const blocks = [...(formData.availabilityBlocks || [])];
@@ -888,12 +891,12 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Phòng gym / Cơ sở</label>
-                <input type="text" className={inp} placeholder="VD: California Fitness, freelance" value={formData.gymAffiliation || ""} onChange={e => updateField("gymAffiliation", e.target.value)} />
+                <label htmlFor="pta-gym-affiliation" className={lbl}>Phòng gym / Cơ sở</label>
+                <input id="pta-gym-affiliation" type="text" className={inp} placeholder="VD: California Fitness, freelance" value={formData.gymAffiliation || ""} onChange={e => updateField("gymAffiliation", e.target.value)} />
               </div>
 
               <div>
-                <label className={lbl}>Hình thức dịch vụ *</label>
+                <p className={lbl}>Hình thức dịch vụ *</p>
                 <div className="grid grid-cols-3 gap-3 mt-1">
                   {([
                     { val: 'ONLINE', label: 'Online qua video call' },
@@ -911,7 +914,7 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Giá dịch vụ *</label>
+                <p className={lbl}>Giá dịch vụ *</p>
                 {!formData.serviceMode ? (
                   <p className="text-xs text-zinc-600 italic mt-1">Chọn hình thức dịch vụ ở trên để nhập giá</p>
                 ) : (
@@ -922,11 +925,11 @@ export function PTApplicationPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <p className="text-[10px] text-zinc-600 mb-1">Giá theo buổi (VND) *</p>
-                            <input type="number" className={inp} placeholder="VD: 500" value={formData.onlinePricePerSession ?? ""} onChange={e => updateField("onlinePricePerSession", e.target.value ? parseFloat(e.target.value) : null)} />
+                            <input aria-label="Giá online theo buổi (VND)" type="number" className={inp} placeholder="VD: 500" value={formData.onlinePricePerSession ?? ""} onChange={e => updateField("onlinePricePerSession", e.target.value ? parseFloat(e.target.value) : null)} />
                           </div>
                           <div>
                             <p className="text-[10px] text-zinc-600 mb-1">Giá gói (VND)</p>
-                            <input type="number" className={inp} placeholder="VD: 4500" value={formData.onlinePackagePrice ?? ""} onChange={e => updateField("onlinePackagePrice", e.target.value ? parseFloat(e.target.value) : null)} />
+                            <input aria-label="Giá gói online (VND)" type="number" className={inp} placeholder="VD: 4500" value={formData.onlinePackagePrice ?? ""} onChange={e => updateField("onlinePackagePrice", e.target.value ? parseFloat(e.target.value) : null)} />
                           </div>
                         </div>
                       </div>
@@ -937,11 +940,11 @@ export function PTApplicationPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <p className="text-[10px] text-zinc-600 mb-1">Giá theo buổi (VND) *</p>
-                            <input type="number" className={inp} placeholder="VD: 800" value={formData.offlinePricePerSession ?? ""} onChange={e => updateField("offlinePricePerSession", e.target.value ? parseFloat(e.target.value) : null)} />
+                            <input aria-label="Giá offline theo buổi (VND)" type="number" className={inp} placeholder="VD: 800" value={formData.offlinePricePerSession ?? ""} onChange={e => updateField("offlinePricePerSession", e.target.value ? parseFloat(e.target.value) : null)} />
                           </div>
                           <div>
                             <p className="text-[10px] text-zinc-600 mb-1">Giá gói (VND)</p>
-                            <input type="number" className={inp} placeholder="VD: 7000" value={formData.offlinePackagePrice ?? ""} onChange={e => updateField("offlinePackagePrice", e.target.value ? parseFloat(e.target.value) : null)} />
+                            <input aria-label="Giá gói offline (VND)" type="number" className={inp} placeholder="VD: 7000" value={formData.offlinePackagePrice ?? ""} onChange={e => updateField("offlinePackagePrice", e.target.value ? parseFloat(e.target.value) : null)} />
                           </div>
                         </div>
                       </div>
@@ -949,11 +952,11 @@ export function PTApplicationPage() {
                     <div className="grid grid-cols-3 gap-3">
                       <div>
                         <p className="text-[10px] text-zinc-600 mb-1">Buổi trong gói</p>
-                        <input type="number" className={inp} placeholder="VD: 10" value={formData.sessionsPerPackage ?? ""} onChange={e => updateField("sessionsPerPackage", e.target.value ? parseInt(e.target.value) : null)} />
+                        <input aria-label="Số buổi trong gói" type="number" className={inp} placeholder="VD: 10" value={formData.sessionsPerPackage ?? ""} onChange={e => updateField("sessionsPerPackage", e.target.value ? parseInt(e.target.value) : null)} />
                       </div>
                       <div>
                         <p className="text-[10px] text-zinc-600 mb-1">Gói tháng (VND)</p>
-                        <input type="number" className={inp} placeholder="VD: 3500" value={formData.monthlyProgramPrice ?? ""} onChange={e => updateField("monthlyProgramPrice", e.target.value ? parseFloat(e.target.value) : null)} />
+                        <input aria-label="Giá gói tháng (VND)" type="number" className={inp} placeholder="VD: 3500" value={formData.monthlyProgramPrice ?? ""} onChange={e => updateField("monthlyProgramPrice", e.target.value ? parseFloat(e.target.value) : null)} />
                       </div>
                     </div>
                   </div>
@@ -961,8 +964,8 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Ghi chú thêm về giá</label>
-                <textarea className={`${inp} min-h-[80px] resize-none`} placeholder="Giảm giá, gói đặc biệt, buổi thử..." value={formData.additionalPricingNotes || ""} onChange={e => updateField("additionalPricingNotes", e.target.value)} />
+                <label htmlFor="pta-pricing-notes" className={lbl}>Ghi chú thêm về giá</label>
+                <textarea id="pta-pricing-notes" className={`${inp} min-h-[80px] resize-none`} placeholder="Giảm giá, gói đặc biệt, buổi thử..." value={formData.additionalPricingNotes || ""} onChange={e => updateField("additionalPricingNotes", e.target.value)} />
               </div>
 
               {/* Training locations */}
@@ -978,7 +981,7 @@ export function PTApplicationPage() {
                   </div>
                   <div className="space-y-4">
                     {trainingLocations.map((loc, idx) => (
-                      <div key={idx} className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-4 space-y-3">
+                      <div key={loc.provinceCode ? `${loc.provinceCode}-${loc.gymName}-${idx}` : idx} className="bg-zinc-800/40 border border-zinc-700/50 rounded-xl p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-semibold text-zinc-400">Địa điểm {idx + 1}{loc.isPrimary ? ' · Chính' : ''}</span>
                           <div className="flex items-center gap-2">
@@ -992,28 +995,28 @@ export function PTApplicationPage() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
-                            <label className={lbl}>Tỉnh/Thành phố *</label>
-                            <select className={inp} value={loc.provinceCode} onChange={e => handleTrainingProvinceChange(idx, e.target.value)}>
+                            <label htmlFor={`pta-loc-province-${idx}`} className={lbl}>Tỉnh/Thành phố *</label>
+                            <select id={`pta-loc-province-${idx}`} className={inp} value={loc.provinceCode} onChange={e => handleTrainingProvinceChange(idx, e.target.value)}>
                               <option value="">-- Chọn tỉnh/thành --</option>
                               {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
                             </select>
                           </div>
                           {loc.wards.length > 0 && (
                             <div>
-                              <label className={lbl}>Phường/Xã</label>
-                              <select className={inp} value={loc.wardCode} onChange={e => updateTrainingLoc(idx, 'wardCode', e.target.value)}>
+                              <label htmlFor={`pta-loc-ward-${idx}`} className={lbl}>Phường/Xã</label>
+                              <select id={`pta-loc-ward-${idx}`} className={inp} value={loc.wardCode} onChange={e => updateTrainingLoc(idx, 'wardCode', e.target.value)}>
                                 <option value="">-- Chọn phường/xã --</option>
                                 {loc.wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
                               </select>
                             </div>
                           )}
                           <div>
-                            <label className={lbl}>Tên phòng gym</label>
-                            <input type="text" className={inp} placeholder="VD: California Fitness" maxLength={120} value={loc.gymName} onChange={e => updateTrainingLoc(idx, 'gymName', e.target.value)} />
+                            <label htmlFor={`pta-loc-gym-name-${idx}`} className={lbl}>Tên phòng gym</label>
+                            <input id={`pta-loc-gym-name-${idx}`} type="text" aria-label={`Tên phòng gym ${idx + 1}`} className={inp} placeholder="VD: California Fitness" maxLength={120} value={loc.gymName} onChange={e => updateTrainingLoc(idx, 'gymName', e.target.value)} />
                           </div>
                           <div>
-                            <label className={lbl}>Địa chỉ chi tiết</label>
-                            <input type="text" className={inp} placeholder="Số nhà, tên đường..." maxLength={255} value={loc.addressLine} onChange={e => updateTrainingLoc(idx, 'addressLine', e.target.value)} />
+                            <label htmlFor={`pta-loc-address-${idx}`} className={lbl}>Địa chỉ chi tiết</label>
+                            <input id={`pta-loc-address-${idx}`} type="text" aria-label={`Địa chỉ chi tiết ${idx + 1}`} className={inp} placeholder="Số nhà, tên đường..." maxLength={255} value={loc.addressLine} onChange={e => updateTrainingLoc(idx, 'addressLine', e.target.value)} />
                           </div>
                         </div>
                       </div>
@@ -1036,62 +1039,62 @@ export function PTApplicationPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>
+                  <label htmlFor="pta-linkedin" className={lbl}>
                     <Linkedin className="inline w-3.5 h-3.5 mr-1.5 text-blue-400" />
                     LinkedIn Profile
                   </label>
-                  <input type="url" className={inp} placeholder="https://linkedin.com/in/yourname" value={formData.linkedinUrl || ""} onChange={e => updateField("linkedinUrl", e.target.value)} />
+                  <input id="pta-linkedin" type="url" className={inp} placeholder="https://linkedin.com/in/yourname" value={formData.linkedinUrl || ""} onChange={e => updateField("linkedinUrl", e.target.value)} />
                 </div>
                 <div>
-                  <label className={lbl}>
+                  <label htmlFor="pta-website" className={lbl}>
                     <Globe className="inline w-3.5 h-3.5 mr-1.5 text-green-400" />
                     Website cá nhân / Portfolio
                   </label>
-                  <input type="url" className={inp} placeholder="https://yourwebsite.com" value={formData.websiteUrl || ""} onChange={e => updateField("websiteUrl", e.target.value)} />
+                  <input id="pta-website" type="url" className={inp} placeholder="https://yourwebsite.com" value={formData.websiteUrl || ""} onChange={e => updateField("websiteUrl", e.target.value)} />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>
+                  <label htmlFor="pta-instagram" className={lbl}>
                     <Instagram className="inline w-3.5 h-3.5 mr-1.5 text-pink-400" />
                     Instagram
                   </label>
-                  <input type="text" className={inp} placeholder="@your_handle" value={formData.socialLinks?.instagram || ""} onChange={e => updateField("socialLinks", { ...formData.socialLinks, instagram: e.target.value })} />
+                  <input id="pta-instagram" type="text" className={inp} placeholder="@your_handle" value={formData.socialLinks?.instagram || ""} onChange={e => updateField("socialLinks", { ...formData.socialLinks, instagram: e.target.value })} />
                 </div>
                 <div>
-                  <label className={lbl}>
+                  <label htmlFor="pta-facebook" className={lbl}>
                     <Facebook className="inline w-3.5 h-3.5 mr-1.5 text-blue-500" />
                     Facebook Page
                   </label>
-                  <input type="text" className={inp} placeholder="facebook.com/yourpage" value={formData.socialLinks?.facebook || ""} onChange={e => updateField("socialLinks", { ...formData.socialLinks, facebook: e.target.value })} />
+                  <input id="pta-facebook" type="text" className={inp} placeholder="facebook.com/yourpage" value={formData.socialLinks?.facebook || ""} onChange={e => updateField("socialLinks", { ...formData.socialLinks, facebook: e.target.value })} />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={lbl}>
+                  <label htmlFor="pta-tiktok" className={lbl}>
                     <svg className="inline w-3.5 h-3.5 mr-1.5 text-cyan-400" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.06a6.27 6.27 0 00-.79-.05A6.34 6.34 0 003.15 15.5a6.27 6.27 0 006.34 6.34 6.21 6.21 0 004.49-1.92 6.34 6.34 0 001.85-4.42V8.87a8.16 8.16 0 004.76 1.52V6.94a4.83 4.83 0 01-1-.25z" /></svg>
                     TikTok
                   </label>
-                  <input type="text" className={inp} placeholder="@your_tiktok" value={formData.socialLinks?.tiktok || ""} onChange={e => updateField("socialLinks", { ...formData.socialLinks, tiktok: e.target.value })} />
+                  <input id="pta-tiktok" type="text" className={inp} placeholder="@your_tiktok" value={formData.socialLinks?.tiktok || ""} onChange={e => updateField("socialLinks", { ...formData.socialLinks, tiktok: e.target.value })} />
                 </div>
                 <div>
-                  <label className={lbl}>
+                  <label htmlFor="pta-youtube" className={lbl}>
                     <Youtube className="inline w-3.5 h-3.5 mr-1.5 text-red-500" />
                     YouTube
                   </label>
-                  <input type="text" className={inp} placeholder="youtube.com/@yourchannel" value={formData.socialLinks?.youtube || ""} onChange={e => updateField("socialLinks", { ...formData.socialLinks, youtube: e.target.value })} />
+                  <input id="pta-youtube" type="text" className={inp} placeholder="youtube.com/@yourchannel" value={formData.socialLinks?.youtube || ""} onChange={e => updateField("socialLinks", { ...formData.socialLinks, youtube: e.target.value })} />
                 </div>
               </div>
 
               {/* Portfolio Images */}
               <div>
-                <label className={lbl}>Ảnh Portfolio / Trước & Sau (Tùy chọn)</label>
-                <label className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                <label htmlFor="pta-portfolio-upload" className={lbl}>Ảnh Portfolio / Trước & Sau (Tùy chọn)</label>
+                <label htmlFor="pta-portfolio-upload" className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
                   portfolioMedia.length > 0 ? "border-green-500/30 bg-green-500/5" : "border-zinc-700 hover:border-green-500/40 hover:bg-zinc-800/40"
                 }`}>
-                  <input type="file" accept="image/*" className="hidden" onChange={handlePortfolioUpload} disabled={portfolioUploading} />
+                  <input id="pta-portfolio-upload" type="file" accept="image/*" className="hidden" onChange={handlePortfolioUpload} disabled={portfolioUploading} />
                   {portfolioUploading ? (
                     <div className="flex flex-col items-center gap-2">
                       <Loader2 className="w-6 h-6 text-green-400 animate-spin" />
@@ -1107,7 +1110,7 @@ export function PTApplicationPage() {
                 {portfolioMedia.length > 0 && (
                   <div className="mt-3 space-y-2">
                     {portfolioMedia.map((m: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between bg-zinc-800/40 rounded-lg px-3 py-2">
+                      <div key={m.name ?? m.fileUrl ?? i} className="flex items-center justify-between bg-zinc-800/40 rounded-lg px-3 py-2">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-green-400" />
                           <span className="text-xs text-zinc-300">{m.label || `Ảnh portfolio ${i + 1}`}</span>
@@ -1122,8 +1125,8 @@ export function PTApplicationPage() {
               </div>
 
               <div>
-                <label className={lbl}>Link hoặc tài liệu tham khảo khác</label>
-                <textarea className={`${inp} min-h-[80px] resize-none`} placeholder="Testimonial học viên, media, kết quả thi đấu..." value={formData.otherReferences || ""} onChange={e => updateField("otherReferences", e.target.value)} />
+                <label htmlFor="pta-other-references" className={lbl}>Link hoặc tài liệu tham khảo khác</label>
+                <textarea id="pta-other-references" className={`${inp} min-h-[80px] resize-none`} placeholder="Testimonial học viên, media, kết quả thi đấu..." value={formData.otherReferences || ""} onChange={e => updateField("otherReferences", e.target.value)} />
               </div>
             </div>
           )}
@@ -1163,12 +1166,12 @@ export function PTApplicationPage() {
 
               {/* Certifications */}
               <ReviewSection icon={<Award className="w-4 h-4 text-purple-400" />} title="Chứng chỉ" onEdit={() => setCurrentStep(3)}>
-                {(formData.certificates || []).filter(c => c.certificateName).map((cert, i) => (
+                {(formData.certificates || []).flatMap((cert, i) => cert.certificateName ? [
                   <div key={cert.id ?? String(i)}>
                     <ReviewRow label={`Chứng chỉ ${i + 1}`} value={`${cert.certificateName} (${cert.certificationStatus || 'Valid'})`} />
                     <ReviewRow label="Tệp" value={cert.certificateFileUrl ? "✓ Đã tải" : "Chưa tải"} isStatus />
                   </div>
-                ))}
+                ] : [])}
                 {(!formData.certificates || formData.certificates.filter(c => c.certificateName).length === 0) && (
                   <ReviewRow label="Chứng chỉ" value="Chưa thêm" />
                 )}
@@ -1192,7 +1195,7 @@ export function PTApplicationPage() {
                 <div className="mt-1 space-y-1 pl-4 border-l border-zinc-700/50">
                   <p className="text-[10px] text-zinc-600 uppercase font-bold">Khung giờ tuần</p>
                   {(formData.availabilityBlocks || []).map((b: any, i: number) => (
-                    <div key={i} className="flex justify-between text-xs py-0.5">
+                    <div key={b.dayOfWeek ? `${b.dayOfWeek}-${b.startTime}-${i}` : i} className="flex justify-between text-xs py-0.5">
                       <span className="text-zinc-500">{b.dayOfWeek}</span>
                       <span className="text-zinc-300 font-medium">{b.startTime} - {b.endTime}</span>
                     </div>

@@ -245,7 +245,7 @@ export function SystemMonitoring() {
           <div className="space-y-2">
             {services.filter(s => s.uptimeSeconds !== null).map(s => {
               const uptimeHours = (s.uptimeSeconds || 0) / 3600;
-              const maxHours = Math.max(...services.filter(sv => sv.uptimeSeconds).map(sv => (sv.uptimeSeconds || 0) / 3600), 1);
+              const maxHours = Math.max(...services.flatMap(sv => sv.uptimeSeconds ? [(sv.uptimeSeconds || 0) / 3600] : []), 1);
               const pct = Math.min((uptimeHours / maxHours) * 100, 100);
               const isHealthy = s.status === "healthy";
               return (

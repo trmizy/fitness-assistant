@@ -7,6 +7,17 @@ import { toast } from "sonner";
 
 const steps = ["Tài khoản", "Xác nhận", "Hồ sơ", "Mục tiêu", "Xong"];
 
+const goals = [
+  { key: "WEIGHT_LOSS",           label: "Giảm mỡ",              emoji: "🔥" },
+  { key: "MUSCLE_GAIN",           label: "Tăng cơ",              emoji: "💪" },
+  { key: "MAINTENANCE",           label: "Duy trì cân nặng",     emoji: "⚖️" },
+  { key: "ATHLETIC_PERFORMANCE",  label: "Cải thiện sức khỏe",   emoji: "❤️" },
+];
+
+const handleFinish = () => {
+  window.location.href = "/client/dashboard";
+};
+
 export function RegisterPage() {
   const { login, setUser } = useApp();
   const navigate = useNavigate();
@@ -26,13 +37,6 @@ export function RegisterPage() {
     activityLevel: "LIGHTLY_ACTIVE",
     goal: ""
   });
-
-  const goals = [
-    { key: "WEIGHT_LOSS",           label: "Giảm mỡ",              emoji: "🔥" },
-    { key: "MUSCLE_GAIN",           label: "Tăng cơ",              emoji: "💪" },
-    { key: "MAINTENANCE",           label: "Duy trì cân nặng",     emoji: "⚖️" },
-    { key: "ATHLETIC_PERFORMANCE",  label: "Cải thiện sức khỏe",   emoji: "❤️" },
-  ];
 
   const handleRegister = async () => {
     if (!email || !password || !fullName) {
@@ -125,9 +129,6 @@ export function RegisterPage() {
     }
   };
 
-  const handleFinish = () => {
-    window.location.href = "/client/dashboard";
-  };
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 relative overflow-hidden">
@@ -179,6 +180,7 @@ export function RegisterPage() {
                 <div className="relative">
                   <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
+                    aria-label="Full name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 text-zinc-200"
@@ -188,6 +190,7 @@ export function RegisterPage() {
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
+                    aria-label="Email address"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 text-zinc-200"
@@ -197,6 +200,7 @@ export function RegisterPage() {
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                   <input
+                    aria-label="Password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -220,6 +224,7 @@ export function RegisterPage() {
               </p>
 
               <input
+                aria-label="6-digit verification code"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 className="w-full bg-zinc-800 border-2 border-zinc-700 rounded-xl py-3 text-center text-2xl font-bold tracking-[0.5em] text-green-500 focus:border-green-500 outline-none transition-all"
@@ -227,6 +232,7 @@ export function RegisterPage() {
               />
 
               <button
+                type="button"
                 onClick={handleRegister}
                 className="text-xs text-zinc-500 hover:text-green-500 transition-colors"
                 disabled={loading}
@@ -242,8 +248,9 @@ export function RegisterPage() {
               <h2 className="text-xl font-bold text-zinc-100">Hồ sơ của bạn</h2>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Tuổi</label>
+                  <label htmlFor="profile-age" className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Tuổi</label>
                   <input
+                    id="profile-age"
                     value={profile.age}
                     onChange={(e) => setProfile({...profile, age: e.target.value})}
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
@@ -251,8 +258,9 @@ export function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold tracking-wider">Giới tính</label>
+                  <label htmlFor="profile-gender" className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold tracking-wider">Giới tính</label>
                   <select
+                    id="profile-gender"
                     value={profile.gender}
                     onChange={(e) => setProfile({...profile, gender: e.target.value})}
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500 transition-all cursor-pointer"
@@ -263,8 +271,9 @@ export function RegisterPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Chiều cao (cm)</label>
+                  <label htmlFor="profile-height" className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Chiều cao (cm)</label>
                   <input
+                    id="profile-height"
                     value={profile.heightCm}
                     onChange={(e) => setProfile({...profile, heightCm: e.target.value})}
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
@@ -272,8 +281,9 @@ export function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Cân nặng (kg)</label>
+                  <label htmlFor="profile-weight" className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Cân nặng (kg)</label>
                   <input
+                    id="profile-weight"
                     value={profile.currentWeight}
                     onChange={(e) => setProfile({...profile, currentWeight: e.target.value})}
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
@@ -291,6 +301,7 @@ export function RegisterPage() {
               <div className="space-y-2">
                 {goals.map((g) => (
                   <button
+                    type="button"
                     key={g.key}
                     onClick={() => setProfile({...profile, goal: g.key})}
                     className={`flex items-center gap-3 w-full px-4 py-3 border rounded-xl transition-all text-left ${
@@ -321,7 +332,8 @@ export function RegisterPage() {
           <div className="mt-8 flex gap-3">
             {step > 0 && step < 4 && (
               <button
-                onClick={() => setStep(step - 1)}
+                type="button"
+                onClick={() => setStep(prev => prev - 1)}
                 className="px-4 py-2.5 bg-zinc-800 text-zinc-400 rounded-xl text-sm font-semibold hover:bg-zinc-700 transition-all border border-zinc-700"
               >
                 Quay lại
@@ -330,6 +342,7 @@ export function RegisterPage() {
 
             {step === 0 && (
               <button
+                type="button"
                 onClick={handleRegister}
                 disabled={loading}
                 className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 transition-all flex items-center justify-center gap-2"
@@ -340,6 +353,7 @@ export function RegisterPage() {
 
             {step === 1 && (
               <button
+                type="button"
                 onClick={handleVerify}
                 disabled={loading}
                 className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 transition-all flex items-center justify-center gap-2"
@@ -350,6 +364,7 @@ export function RegisterPage() {
 
             {(step === 2 || step === 3) && (
               <button
+                type="button"
                 onClick={() => step === 2 ? setStep(3) : handleSaveProfile()}
                 disabled={loading || (step === 2 && (!profile.age || !profile.gender || !profile.heightCm || !profile.currentWeight)) || (step === 3 && !profile.goal)}
                 className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
@@ -360,6 +375,7 @@ export function RegisterPage() {
 
             {step === 4 && (
               <button
+                type="button"
                 onClick={handleFinish}
                 className="flex-1 py-3 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 transition-all shadow-lg shadow-green-500/20"
               >
