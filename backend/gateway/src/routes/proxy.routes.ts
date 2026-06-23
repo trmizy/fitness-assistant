@@ -1737,6 +1737,18 @@ router.use(
   }),
 );
 
+// Protected — PT Training Locations (User Service)
+router.use(
+  '/pt/training-locations',
+  authMiddleware,
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/pt/training-locations': '/pt/training-locations' },
+    onError: serviceUnavailable('User service'),
+  }),
+);
+
 // Public — Uploads (User Service)
 router.use(
   '/uploads',

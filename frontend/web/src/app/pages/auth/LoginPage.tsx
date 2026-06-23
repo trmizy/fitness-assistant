@@ -120,8 +120,9 @@ export function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-4 mb-6">
             <div>
-              <label className="text-xs font-semibold text-zinc-400 mb-1.5 block uppercase tracking-wider">Địa chỉ email</label>
+              <label htmlFor="login-email" className="text-xs font-semibold text-zinc-400 mb-1.5 block uppercase tracking-wider">Địa chỉ email</label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -132,11 +133,12 @@ export function LoginPage() {
             </div>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Mật khẩu</label>
+                <label htmlFor="login-password" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Mật khẩu</label>
                 <Link to="/login" className="text-xs text-green-400 hover:text-green-300 transition-colors">Quên mật khẩu?</Link>
               </div>
               <div className="relative">
                 <input
+                  id="login-password"
                   type={showPw ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { connectSocket, getSocket } from '../services/socket';
 import { useWebRTC } from '../hooks/useWebRTC';
@@ -110,6 +110,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const durationRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const iceServersRef = useRef<RTCIceServer[]>([]);
   const isCallerRef = useRef(false);
+  const doCleanupRef = useRef<() => void>(() => {});
 
   // ── WebRTC ─────────────────────────────────────────────────
   const handleIceCandidate = useCallback((candidate: RTCIceCandidate) => {
@@ -135,7 +136,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
         socket.emit('call:end', { callSessionId: s.callInfo.callSessionId, reason: 'ice_failed' });
       }
       toast.error('Connection failed');
-      doCleanup();
+      doCleanupRef.current();
     }
   }, []);
 
@@ -151,6 +152,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
     dispatch({ type: 'SET_IDLE' });
   }, []);
+  doCleanupRef.current = doCleanup;
 
   // ── Socket listeners (registered once) ─────────────────────
   useEffect(() => {
@@ -462,22 +464,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const callContextValue = useMemo(() => ({
+    state,
+    initiateCall,
+    joinCoachingSession,
+    acceptCall,
+    rejectCall,
+    cancelCall,
+    endCall,
+    toggleMute,
+    toggleVideo,
+    localStream: webrtc.localStream,
+    remoteStream: webrtc.remoteStream,
+  }), [state, initiateCall, joinCoachingSession, acceptCall, rejectCall, cancelCall, endCall, toggleMute, toggleVideo, webrtc.localStream, webrtc.remoteStream]);
+
   return (
-    <CallContext.Provider
-      value={{
-        state,
-        initiateCall,
-        joinCoachingSession,
-        acceptCall,
-        rejectCall,
-        cancelCall,
-        endCall,
-        toggleMute,
-        toggleVideo,
-        localStream: webrtc.localStream,
-        remoteStream: webrtc.remoteStream,
-      }}
-    >
+    <CallContext.Provider value={callContextValue}>
       {children}
     </CallContext.Provider>
   );

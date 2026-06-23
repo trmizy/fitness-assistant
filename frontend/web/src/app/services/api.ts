@@ -186,7 +186,7 @@ function inBodyDateKey(entry: any): string {
 }
 
 function sortInBodyHistoryByMeasurementDate(history: any[]) {
-  return [...history].sort((a, b) => {
+  return history.toSorted((a, b) => {
     const cmp = inBodyDateKey(b).localeCompare(inBodyDateKey(a)); // descending
     if (cmp !== 0) return cmp;
     return Date.parse(String(b?.createdAt ?? 0)) - Date.parse(String(a?.createdAt ?? 0));
@@ -888,7 +888,8 @@ export const coachService = {
           signal: controller.signal,
         });
 
-        let response = await sendStreamRequest(localStorage.getItem('accessToken'));
+        const accessToken = localStorage.getItem('accessToken');
+        let response = await sendStreamRequest(accessToken);
 
         if (response.status === 401) {
           const newToken = await refreshOnce();
@@ -1119,7 +1120,7 @@ export const nutritionService = {
     return data;
   },
   updateLog: async (id: string, log: any) => {
-    const { data } = await api.put(`/nutrition/${id}`, log);
+    const { data } = await api.patch(`/nutrition/${id}`, log);
     return data;
   },
   deleteLog: async (id: string) => {

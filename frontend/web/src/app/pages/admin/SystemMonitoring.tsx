@@ -96,7 +96,7 @@ export function SystemMonitoring() {
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center">
           <AlertTriangle className="w-6 h-6 text-red-400 mx-auto mb-2" />
           <p className="text-red-400 text-sm font-semibold">{error || "No data available"}</p>
-          <button onClick={fetchData} className="mt-2 text-xs text-red-300 hover:text-red-200 underline">Retry</button>
+          <button type="button" onClick={fetchData} className="mt-2 text-xs text-red-300 hover:text-red-200 underline">Retry</button>
         </div>
       </div>
     );
@@ -107,8 +107,7 @@ export function SystemMonitoring() {
 
   // Build latency data for the chart from real service probes
   const latencyData = services
-    .filter(s => s.latencyMs > 0)
-    .map(s => ({ name: s.name.replace(" Service", "").replace("API ", ""), latency: s.latencyMs }));
+    .flatMap(s => s.latencyMs > 0 ? [{ name: s.name.replace(" Service", "").replace("API ", ""), latency: s.latencyMs }] : []);
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
@@ -120,6 +119,7 @@ export function SystemMonitoring() {
         </div>
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={fetchData}
             disabled={refreshing}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-lg border border-zinc-700 transition-colors disabled:opacity-50"
@@ -245,7 +245,7 @@ export function SystemMonitoring() {
           <div className="space-y-2">
             {services.filter(s => s.uptimeSeconds !== null).map(s => {
               const uptimeHours = (s.uptimeSeconds || 0) / 3600;
-              const maxHours = Math.max(...services.filter(sv => sv.uptimeSeconds).map(sv => (sv.uptimeSeconds || 0) / 3600), 1);
+              const maxHours = Math.max(...services.flatMap(sv => sv.uptimeSeconds ? [(sv.uptimeSeconds || 0) / 3600] : []), 1);
               const pct = Math.min((uptimeHours / maxHours) * 100, 100);
               const isHealthy = s.status === "healthy";
               return (
@@ -334,8 +334,8 @@ export function SystemMonitoring() {
             </div>
           ) : (
             <div className="divide-y divide-zinc-800/40">
-              {data.recentErrors.map((e, i) => (
-                <div key={i} className={`px-4 py-3 ${e.level === "error" ? "bg-red-500/5" : "bg-amber-500/5"}`}>
+              {data.recentErrors.map((e) => (
+                <div key={`${e.service}-${e.time}`} className={`px-4 py-3 ${e.level === "error" ? "bg-red-500/5" : "bg-amber-500/5"}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
                       e.level === "error" ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400"

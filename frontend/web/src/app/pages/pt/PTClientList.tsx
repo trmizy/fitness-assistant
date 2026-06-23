@@ -78,6 +78,7 @@ export function PTClientList() {
         <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700/60 rounded-xl px-4 py-2.5 flex-1">
           <Search className="w-4 h-4 text-zinc-500" />
           <input
+            aria-label="Search clients"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search clients…"
@@ -87,6 +88,7 @@ export function PTClientList() {
         <div className="flex gap-2 overflow-x-auto">
           {FILTER_OPTIONS.map(f => (
             <button
+              type="button"
               key={f}
               onClick={() => setFilter(f)}
               className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${filter === f ? "bg-green-500 text-black shadow-lg shadow-green-500/20" : "bg-zinc-900 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200"}`}
@@ -103,7 +105,7 @@ export function PTClientList() {
           <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-red-300">Failed to load clients</p>
-            <button onClick={() => refetch()} className="text-xs text-red-400 hover:text-red-300 mt-0.5 underline">Try again</button>
+            <button type="button" onClick={() => refetch()} className="text-xs text-red-400 hover:text-red-300 mt-0.5 underline">Try again</button>
           </div>
         </div>
       )}
@@ -120,25 +122,25 @@ export function PTClientList() {
                 <th className="px-4 py-3">Sessions</th>
                 <th className="px-4 py-3">Package</th>
                 <th className="px-4 py-3">Progress</th>
-                <th className="px-4 py-3"></th>
+                <th className="px-4 py-3" aria-label="Actions"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className="border-b border-zinc-800/40">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
+                    <td className="px-4 py-3" aria-label="Loading client name">
+                      <div className="flex items-center gap-2" aria-hidden="true">
                         <div className="w-8 h-8 bg-zinc-800 rounded-full animate-pulse" />
                         <div className="h-4 w-28 bg-zinc-800 rounded animate-pulse" />
                       </div>
                     </td>
                     {Array.from({ length: 5 }).map((_, j) => (
-                      <td key={j} className="px-4 py-3">
-                        <div className="h-4 w-16 bg-zinc-800 rounded animate-pulse" />
+                      <td key={j} className="px-4 py-3" aria-label="Loading">
+                        <div aria-hidden="true" className="h-4 w-16 bg-zinc-800 rounded animate-pulse" />
                       </td>
                     ))}
-                    <td className="px-4 py-3" />
+                    <td className="px-4 py-3" aria-label="Loading actions" />
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
@@ -243,6 +245,7 @@ export function PTClientList() {
               const isPending = c.status === "PENDING_REVIEW";
               return (
                 <button
+                  type="button"
                   key={c.id}
                   onClick={() => navigate(`/pt/clients/${c.clientUserId}`)}
                   className="w-full bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 text-left hover:border-zinc-700 transition-colors"

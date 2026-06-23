@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Brain, Check, X, MessageSquare, Clock, User } from "lucide-react";
 import { ptPlanReviewService } from "../../services/api";
@@ -14,7 +14,7 @@ function formatDate(iso: string): string {
 
 export function PlanReviewPage() {
   const queryClient = useQueryClient();
-  const [selected, setSelected] = useState<any>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [ptNote, setPtNote] = useState("");
 
   const { data: plans = [], isLoading } = useQuery({
@@ -22,12 +22,7 @@ export function PlanReviewPage() {
     queryFn: () => ptPlanReviewService.getPendingReviews(),
   });
 
-  useEffect(() => {
-    if (plans.length > 0 && !selected) {
-      setSelected(plans[0]);
-      setPtNote("");
-    }
-  }, [plans]);
+  const selected = plans.find((p: any) => p.id === selectedId) ?? plans[0] ?? null;
 
   const reviewMutation = useMutation({
     mutationFn: ({ action }: { action: "APPROVE" | "REJECT" }) =>
@@ -35,7 +30,7 @@ export function PlanReviewPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pt-pending-plans"] });
       queryClient.invalidateQueries({ queryKey: ["pt-pending-plans-count"] });
-      setSelected(null);
+      setSelectedId(null);
       setPtNote("");
     },
     onError: (err: any) => {
@@ -44,7 +39,7 @@ export function PlanReviewPage() {
   });
 
   const handleSelect = (plan: any) => {
-    setSelected(plan);
+    setSelectedId(plan.id);
     setPtNote("");
   };
 
@@ -77,6 +72,7 @@ export function PlanReviewPage() {
             </h4>
             {plans.map((p: any) => (
               <button
+                type="button"
                 key={p.id}
                 onClick={() => handleSelect(p)}
                 className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
@@ -118,6 +114,7 @@ export function PlanReviewPage() {
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <button
+                      type="button"
                       onClick={() => reviewMutation.mutate({ action: "APPROVE" })}
                       disabled={reviewMutation.isPending}
                       className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/20"
@@ -125,6 +122,7 @@ export function PlanReviewPage() {
                       <Check className="w-4 h-4" /> Duyệt
                     </button>
                     <button
+                      type="button"
                       onClick={() => reviewMutation.mutate({ action: "REJECT" })}
                       disabled={reviewMutation.isPending}
                       className="flex items-center gap-1.5 bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-red-500/15 disabled:opacity-50 transition-colors"
@@ -136,10 +134,11 @@ export function PlanReviewPage() {
 
                 {/* PT Note */}
                 <div className="mt-3">
-                  <label className="text-xs text-zinc-500 mb-1.5 flex items-center gap-1.5 uppercase tracking-wider font-semibold">
+                  <label htmlFor="pr-pt-note" className="text-xs text-zinc-500 mb-1.5 flex items-center gap-1.5 uppercase tracking-wider font-semibold">
                     <MessageSquare className="w-3.5 h-3.5" /> Ghi chú cho client (tùy chọn)
                   </label>
                   <textarea
+                    id="pr-pt-note"
                     value={ptNote}
                     onChange={(e) => setPtNote(e.target.value)}
                     maxLength={1000}
@@ -162,8 +161,8 @@ export function PlanReviewPage() {
                     </div>
                   </div>
                   <div className="divide-y divide-zinc-800/40">
-                    {weeklySchedule.map((day: any, i: number) => (
-                      <div key={i} className="px-4 py-3">
+                    {weeklySchedule.map((day: any) => (
+                      <div key={day.day} className="px-4 py-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
                             <div className="text-xs font-bold text-zinc-300 mb-0.5">{day.day}</div>

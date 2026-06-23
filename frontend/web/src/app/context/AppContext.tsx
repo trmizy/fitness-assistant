@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { User } from "../types";
 import { authService } from "../services/api";
@@ -33,32 +33,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [isAuthenticated, setIsAuth]  = useState(() => hasUsableToken(localStorage.getItem("accessToken")));
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeView, setActiveView]   = useState<WorkspaceView>("client");
   const [user, setUser]               = useState<User | null>(() => {
     try {
       const stored = localStorage.getItem("user");
       return stored ? JSON.parse(stored) : null;
     } catch { return null; }
   });
+  const [activeView, setActiveView]   = useState<WorkspaceView>(() =>
+    (user?.isPT || user?.role === "PT") ? "pt" : "client"
+  );
 
   const role: UserRole = user?.role === "ADMIN" ? "admin" : (user?.isPT || user?.role === "PT" ? "pt" : "client");
   const isPT    = role === "pt";
   const isAdmin = role === "admin";
 
-  // Set default view based on role when user changes
-  useEffect(() => {
-    if (user) {
-      setActiveView(user.isPT || user.role === "PT" ? "pt" : "client");
-    }
-  }, [user]);
-
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     try {
       const res = await authService.login(email, password);
       if (res.success && res.user) {
         queryClient.clear();
         localStorage.setItem("user", JSON.stringify(res.user));
         setUser(res.user);
+        setActiveView(res.user.isPT || res.user.role === "PT" ? "pt" : "client");
         setIsAuth(true);
         return true;
       }
@@ -67,22 +63,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.error("Login failed:", err);
       return false;
     }
-  };
+  }, [queryClient]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     if (user?.id) {
       clearPendingAiState(user.id);
     }
     queryClient.clear();
-    authService.logout(); // Clears localStorage and redirects to /login in the old code
-    // But since we want to handle it here too:
+    authService.logout();
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     setIsAuth(false);
     setUser(null);
     setActiveView("client");
-  };
+  }, [user, queryClient]);
 
   const updateUser = useCallback((updates: Partial<User>) => {
     setUser(prev => {
@@ -93,15 +88,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const contextValue = useMemo(() => ({
+    user, role, isPT, isAdmin,
+    activeView, setActiveView,
+    isAuthenticated, login, logout,
+    setUser,
+    sidebarOpen, setSidebarOpen,
+    updateUser
+  }), [user, role, isPT, isAdmin, activeView, setActiveView, isAuthenticated, login, logout, setUser, sidebarOpen, setSidebarOpen, updateUser]);
+
   return (
-    <AppContext.Provider value={{
-      user, role, isPT, isAdmin,
-      activeView, setActiveView,
-      isAuthenticated, login, logout,
-      setUser,
-      sidebarOpen, setSidebarOpen,
-      updateUser
-    }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

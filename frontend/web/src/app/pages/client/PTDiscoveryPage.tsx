@@ -179,6 +179,7 @@ export function PTDiscoveryPage() {
         <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700/60 rounded-xl px-4 py-2.5 flex-1">
           <Search className="w-4 h-4 text-zinc-500" />
           <input
+            aria-label="Tìm kiếm PT"
             value={pendingFilters.q}
             onChange={e => setPendingFilters(prev => ({ ...prev, q: e.target.value }))}
             onKeyDown={e => e.key === 'Enter' && applyFilters()}
@@ -186,12 +187,13 @@ export function PTDiscoveryPage() {
             className="flex-1 text-sm outline-none text-zinc-300 placeholder-zinc-600 bg-transparent"
           />
           {pendingFilters.q && (
-            <button onClick={() => { setPendingFilters(prev => ({ ...prev, q: '' })); setActiveFilters(prev => ({ ...prev, q: '' })); }} className="text-zinc-600 hover:text-zinc-400">
+            <button type="button" onClick={() => { setPendingFilters(prev => ({ ...prev, q: '' })); setActiveFilters(prev => ({ ...prev, q: '' })); }} className="text-zinc-600 hover:text-zinc-400">
               <X className="w-3 h-3" />
             </button>
           )}
         </div>
         <button
+          type="button"
           onClick={() => { setPendingFilters(activeFilters); setFilterOpen(true); }}
           className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-sm transition-colors ${Object.values(activeFilters).some(v => v && v !== activeFilters.q) ? "border-green-500/60 bg-green-500/10 text-green-400" : "border-zinc-700/60 bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"}`}
         >
@@ -204,12 +206,13 @@ export function PTDiscoveryPage() {
         <div className="bg-zinc-900 border border-zinc-700/60 rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold text-zinc-200">Bộ lọc</span>
-            <button onClick={() => setFilterOpen(false)} className="text-zinc-500 hover:text-zinc-300"><X className="w-4 h-4" /></button>
+            <button type="button" onClick={() => setFilterOpen(false)} className="text-zinc-500 hover:text-zinc-300"><X className="w-4 h-4" /></button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Hình thức</label>
+              <label htmlFor="ptd-filter-session-mode" className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Hình thức</label>
               <select
+                id="ptd-filter-session-mode"
                 value={pendingFilters.sessionMode}
                 onChange={e => setPendingFilters(prev => ({ ...prev, sessionMode: e.target.value }))}
                 className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
@@ -221,8 +224,9 @@ export function PTDiscoveryPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Giá tối thiểu (VND)</label>
+              <label htmlFor="ptd-filter-min-price" className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Giá tối thiểu (VND)</label>
               <input
+                id="ptd-filter-min-price"
                 type="number"
                 min={0}
                 placeholder="0"
@@ -232,8 +236,9 @@ export function PTDiscoveryPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Giá tối đa (VND)</label>
+              <label htmlFor="ptd-filter-max-price" className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Giá tối đa (VND)</label>
               <input
+                id="ptd-filter-max-price"
                 type="number"
                 min={0}
                 placeholder="Không giới hạn"
@@ -243,8 +248,9 @@ export function PTDiscoveryPage() {
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Tỉnh/Thành phố</label>
+              <label htmlFor="ptd-filter-province" className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Tỉnh/Thành phố</label>
               <select
+                id="ptd-filter-province"
                 value={pendingFilters.provinceCode}
                 onChange={e => handleProvinceChange(e.target.value)}
                 className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
@@ -255,8 +261,9 @@ export function PTDiscoveryPage() {
             </div>
             {wards.length > 0 && (
               <div>
-                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Phường/Xã</label>
+                <label htmlFor="ptd-filter-ward" className="text-xs text-zinc-500 uppercase tracking-wider mb-1 block">Phường/Xã</label>
                 <select
+                  id="ptd-filter-ward"
                   value={pendingFilters.wardCode}
                   onChange={e => setPendingFilters(prev => ({ ...prev, wardCode: e.target.value }))}
                   className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none"
@@ -268,15 +275,15 @@ export function PTDiscoveryPage() {
             )}
           </div>
           <div className="flex gap-2 pt-1">
-            <button onClick={clearFilters} className="flex-1 py-2 border border-zinc-700/60 text-zinc-400 text-sm rounded-lg hover:bg-zinc-800 transition-colors">Xóa bộ lọc</button>
-            <button onClick={applyFilters} className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all">Áp dụng</button>
+            <button type="button" onClick={clearFilters} className="flex-1 py-2 border border-zinc-700/60 text-zinc-400 text-sm rounded-lg hover:bg-zinc-800 transition-colors">Xóa bộ lọc</button>
+            <button type="button" onClick={applyFilters} className="flex-1 py-2 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all">Áp dụng</button>
           </div>
         </div>
       )}
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {filters.map((f, i) => (
-          <button key={f} onClick={() => setActiveFilter(filterValues[i])} className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${activeFilter === filterValues[i] ? "bg-green-500 text-black border-green-500 shadow-lg shadow-green-500/20" : "bg-zinc-900 border-zinc-700/60 text-zinc-400 hover:border-green-500/40 hover:text-zinc-200"}`}>
+          <button type="button" key={f} onClick={() => setActiveFilter(filterValues[i])} className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${activeFilter === filterValues[i] ? "bg-green-500 text-black border-green-500 shadow-lg shadow-green-500/20" : "bg-zinc-900 border-zinc-700/60 text-zinc-400 hover:border-green-500/40 hover:text-zinc-200"}`}>
             {f}
           </button>
         ))}
@@ -294,6 +301,7 @@ export function PTDiscoveryPage() {
               : pt.ptApplication?.serviceMode === 'ONLINE' ? 'Coaching online' : undefined;
             return (
               <button
+                type="button"
                 key={pt.userId}
                 onClick={() => setSelectedId(selectedId === pt.userId ? null : pt.userId)}
                 className={`w-full text-left bg-zinc-900 rounded-xl border-2 p-4 transition-all ${selectedId === pt.userId ? "border-green-500 bg-green-500/5" : "border-zinc-800/60 hover:border-zinc-700"}`}
@@ -533,10 +541,10 @@ export function PTDiscoveryPage() {
                   <h4 className="text-sm font-bold text-zinc-200 mb-3">Bảng giá</h4>
                   <div className="space-y-3">
                     {/* Per-session options */}
-                    {perSessionOptions.map((opt, idx) => {
+                    {perSessionOptions.map((opt) => {
                       const isBest = opt.price === lowestPerSess;
                       return (
-                        <div key={idx} className={`border-2 rounded-xl p-4 transition-all ${isBest ? "border-green-500 bg-green-500/5" : "border-zinc-700/60"}`}>
+                        <div key={opt.label} className={`border-2 rounded-xl p-4 transition-all ${isBest ? "border-green-500 bg-green-500/5" : "border-zinc-700/60"}`}>
                           <div className="flex items-start justify-between mb-2">
                             <div>
                               <div className="flex items-center gap-2 flex-wrap">
@@ -553,6 +561,7 @@ export function PTDiscoveryPage() {
                           </ul>
                           {opt.mode !== null ? (
                             <button
+                              type="button"
                               onClick={() => handleRequestCoaching("PER_SESSION", opt.mode!)}
                               className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20"
                             >
@@ -566,10 +575,10 @@ export function PTDiscoveryPage() {
                     })}
 
                     {/* Package options */}
-                    {packageOptions.map((opt, idx) => {
+                    {packageOptions.map((opt) => {
                       const isBest = opt.pricePerSess === bestPkgRate;
                       return (
-                        <div key={idx} className={`border rounded-xl p-4 transition-all ${isBest ? "border-green-500/50 bg-green-500/5" : "border-zinc-700/60"}`}>
+                        <div key={opt.label} className={`border rounded-xl p-4 transition-all ${isBest ? "border-green-500/50 bg-green-500/5" : "border-zinc-700/60"}`}>
                           <div className="flex items-start justify-between mb-2">
                             <div>
                               <div className="flex items-center gap-2 flex-wrap">
@@ -582,6 +591,7 @@ export function PTDiscoveryPage() {
                           </div>
                           {opt.mode !== null ? (
                             <button
+                              type="button"
                               onClick={() => handleRequestCoaching("PACKAGE", opt.mode!)}
                               className="w-full py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-bold rounded-lg transition-all border border-zinc-700/60"
                             >
@@ -608,6 +618,7 @@ export function PTDiscoveryPage() {
 
                   {/* Message button */}
                   <button
+                    type="button"
                     onClick={() => handleMessage(selectedPT.userId)}
                     disabled={messagingPT}
                     className="w-full py-2.5 mt-3 border border-zinc-700/60 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2"
@@ -628,7 +639,7 @@ export function PTDiscoveryPage() {
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
               <h3 className="text-zinc-100 font-bold">Yêu cầu huấn luyện</h3>
-              <button onClick={() => setShowRequestModal(false)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+              <button type="button" onClick={() => setShowRequestModal(false)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -648,8 +659,9 @@ export function PTDiscoveryPage() {
 
               {requestType === "PER_SESSION" ? (
                 <div>
-                  <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Số buổi tập</label>
+                  <label htmlFor="ptd-modal-sessions" className="text-xs font-semibold text-zinc-400 mb-1.5 block">Số buổi tập</label>
                   <input
+                    id="ptd-modal-sessions"
                     type="number"
                     min={1}
                     max={100}
@@ -662,8 +674,9 @@ export function PTDiscoveryPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Số lượng gói</label>
+                      <label htmlFor="ptd-modal-pkg-qty" className="text-xs font-semibold text-zinc-400 mb-1.5 block">Số lượng gói</label>
                       <input
+                        id="ptd-modal-pkg-qty"
                         type="number"
                         min={1}
                         value={packageQuantity}
@@ -672,8 +685,9 @@ export function PTDiscoveryPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Buổi thêm</label>
+                      <label htmlFor="ptd-modal-extra-sessions" className="text-xs font-semibold text-zinc-400 mb-1.5 block">Buổi thêm</label>
                       <input
+                        id="ptd-modal-extra-sessions"
                         type="number"
                         min={0}
                         value={extraSessions}
@@ -731,8 +745,9 @@ export function PTDiscoveryPage() {
               })()}
 
               <div>
-                <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Gửi lời nhắn cho huấn luyện viên (không bắt buộc)</label>
+                <label htmlFor="ptd-modal-message" className="text-xs font-semibold text-zinc-400 mb-1.5 block">Gửi lời nhắn cho huấn luyện viên (không bắt buộc)</label>
                 <textarea
+                  id="ptd-modal-message"
                   value={requestMessage}
                   onChange={e => setRequestMessage(e.target.value)}
                   rows={2}
@@ -743,15 +758,17 @@ export function PTDiscoveryPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowRequestModal(false)}
                 className="flex-1 py-3 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 onClick={submitRequest}
                 disabled={requestMutation.isPending}
-                className="flex-1 py-3 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-white text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
               >
                 {requestMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {requestMutation.isPending ? "Đang gửi…" : "Gửi yêu cầu"}

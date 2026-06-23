@@ -14,7 +14,7 @@ export function ChatPage() {
   const userScopeId = user?.id ?? "guest";
   const { initiateCall } = useCall();
   const [activeConvId, setActiveConvId] = useState<string | null>(
-    searchParams.get("conversationId"),
+    () => searchParams.get("conversationId"),
   );
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -99,10 +99,14 @@ export function ChatPage() {
     enabled: !!activeConvId,
   });
 
-  useEffect(() => {
+  const [prevSearchParams, setPrevSearchParams] = useState(searchParams);
+  const [prevUserScopeId, setPrevUserScopeId] = useState(userScopeId);
+  if (prevSearchParams !== searchParams || prevUserScopeId !== userScopeId) {
+    setPrevSearchParams(searchParams);
+    setPrevUserScopeId(userScopeId);
     setActiveConvId(searchParams.get("conversationId"));
     setMobileView(searchParams.get("conversationId") ? "chat" : "list");
-  }, [userScopeId]);
+  }
 
   // ── Auto-scroll on new messages ───────────────────────────────
   useEffect(() => {
@@ -142,13 +146,14 @@ export function ChatPage() {
           <h2 className="font-bold text-zinc-100 mb-3">Messages</h2>
           <div className="flex items-center gap-2 bg-zinc-800/60 border border-zinc-700/40 rounded-xl px-3 py-2">
             <Search className="w-4 h-4 text-zinc-500" />
-            <input type="text" placeholder="Search conversations…" className="bg-transparent text-sm outline-none flex-1 text-zinc-300 placeholder-zinc-600" />
+            <input type="text" aria-label="Search conversations" placeholder="Search conversations…" className="bg-transparent text-sm outline-none flex-1 text-zinc-300 placeholder-zinc-600" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {conversations.length > 0 ? (
             conversations.map((c: any) => (
               <button
+                type="button"
                 key={c.id}
                 onClick={() => { setActiveConvId(c.id); setMobileView("chat"); }}
                 className={`w-full flex items-start gap-3 px-4 py-3.5 text-left border-b border-zinc-800/40 transition-colors ${activeConvId === c.id ? "bg-green-500/8 border-l-2 border-l-green-500" : "hover:bg-zinc-800/40"}`}
@@ -193,7 +198,7 @@ export function ChatPage() {
             {/* Chat header */}
             <div className="bg-zinc-900 border-b border-zinc-800/60 px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
-                <button onClick={() => setMobileView("list")} className="lg:hidden text-zinc-500 hover:text-zinc-300 mr-1 transition-colors">
+                <button type="button" onClick={() => setMobileView("list")} className="lg:hidden text-zinc-500 hover:text-zinc-300 mr-1 transition-colors">
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <div className="relative">
@@ -209,6 +214,7 @@ export function ChatPage() {
               </div>
               <div className="flex items-center gap-1">
                 <button
+                  type="button"
                   onClick={() => {
                     const otherUserId = activeConv.otherUser?.id;
                     if (otherUserId && activeConvId) initiateCall(otherUserId, 'VOICE', activeConvId);
@@ -219,6 +225,7 @@ export function ChatPage() {
                   <Phone className="w-4 h-4" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     const otherUserId = activeConv.otherUser?.id;
                     if (otherUserId && activeConvId) initiateCall(otherUserId, 'VIDEO', activeConvId);
@@ -228,7 +235,7 @@ export function ChatPage() {
                 >
                   <Video className="w-4 h-4" />
                 </button>
-                <button className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
+                <button type="button" className="p-2 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
                   <MoreVertical className="w-4 h-4" />
                 </button>
               </div>
@@ -268,11 +275,12 @@ export function ChatPage() {
         {/* Input */}
         <div className="bg-zinc-900 border-t border-zinc-800/60 p-3 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <button className="p-2 text-zinc-500 hover:text-zinc-300 flex-shrink-0 transition-colors">
+            <button type="button" className="p-2 text-zinc-500 hover:text-zinc-300 flex-shrink-0 transition-colors">
               <Paperclip className="w-4 h-4" />
             </button>
             <input
               type="text"
+              aria-label="Message input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
@@ -280,9 +288,10 @@ export function ChatPage() {
               className="flex-1 px-4 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-zinc-200 placeholder-zinc-600 transition-all"
             />
             <button
+              type="button"
               onClick={sendMessage}
               disabled={!input.trim() || sending}
-              className="w-9 h-9 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black rounded-xl flex items-center justify-center transition-all flex-shrink-0 shadow-lg shadow-green-500/20"
+              className="w-9 h-9 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-white text-black rounded-xl flex items-center justify-center transition-all flex-shrink-0 shadow-lg shadow-green-500/20"
             >
               <Send className="w-4 h-4" />
             </button>

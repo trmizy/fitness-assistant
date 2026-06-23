@@ -19,8 +19,6 @@ RUN pnpm --filter @gym-coach/shared build
 
 # ── Copy gateway config (src/ is bind-mounted at runtime) ─────────────────────
 COPY backend/gateway/tsconfig.json  ./backend/gateway/
-
 WORKDIR /app/backend/gateway
 EXPOSE 3000
-
 CMD ["pnpm", "run", "dev"]

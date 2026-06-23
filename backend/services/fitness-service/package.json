@@ -14,6 +14,7 @@
     "db:seed": "./node_modules/.bin/tsx prisma/seed_exercises_json.ts",
     "db:seed:legacy": "tsx prisma/seed.ts",
     "db:process-usda": "tsx prisma/process-usda.ts",
+    "test": "tsx --test src/__tests__/workout.validation.test.ts src/__tests__/workout.appendSet.test.ts",
     "workout:test:completion": "tsx src/scripts/testWorkoutCompletion.ts"
   },
   "dependencies": {

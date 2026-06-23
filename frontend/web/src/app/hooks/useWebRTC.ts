@@ -22,9 +22,10 @@ export function useWebRTC(
 ): WebRTCHandle {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
-  const remoteStreamRef = useRef<MediaStream>(new MediaStream());
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+  remoteStreamRef.current ??= new MediaStream();
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [remoteStream] = useState<MediaStream>(() => remoteStreamRef.current);
+  const [remoteStream] = useState<MediaStream>(() => remoteStreamRef.current!);
 
   const onIceCandidateRef = useRef(onIceCandidate);
   onIceCandidateRef.current = onIceCandidate;
@@ -62,7 +63,7 @@ export function useWebRTC(
 
     pc.ontrack = (event) => {
       for (const track of event.streams[0]?.getTracks() || []) {
-        remoteStreamRef.current.addTrack(track);
+        remoteStreamRef.current!.addTrack(track);
       }
     };
 
@@ -128,8 +129,8 @@ export function useWebRTC(
     pcRef.current?.close();
     pcRef.current = null;
 
-    remoteStreamRef.current.getTracks().forEach((t) => {
-      remoteStreamRef.current.removeTrack(t);
+    remoteStreamRef.current!.getTracks().forEach((t) => {
+      remoteStreamRef.current!.removeTrack(t);
       t.stop();
     });
   }, []);

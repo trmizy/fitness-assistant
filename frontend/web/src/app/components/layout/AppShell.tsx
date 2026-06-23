@@ -24,7 +24,7 @@ export function AppShell() {
     } else if (location.pathname.startsWith("/client")) {
       setActiveView("client");
     }
-  }, [location.pathname, isPT, setActiveView]);
+  }, [location, isPT, setActiveView]);
 
   if (!isAuthenticated) return null;
   return (
@@ -53,8 +53,10 @@ function AppShellInner() {
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div
+          <button
+            type="button"
             className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            aria-label="Close sidebar"
             onClick={() => setSidebarOpen(false)}
           />
           <aside className="relative w-72 flex-shrink-0 flex flex-col shadow-2xl z-10">

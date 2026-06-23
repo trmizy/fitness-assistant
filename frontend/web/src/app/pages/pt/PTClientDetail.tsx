@@ -22,15 +22,16 @@ function formatDateTime(d: string | null | undefined) {
   return new Date(d).toLocaleString("vi-VN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
+const sessionStatusMap: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
+  CONFIRMED:  { label: "Đã xác nhận",  cls: "bg-green-500/10 text-green-400 border-green-500/20",   icon: <CheckCircle className="w-3 h-3" /> },
+  REQUESTED:  { label: "Đã yêu cầu",   cls: "bg-blue-500/10 text-blue-400 border-blue-500/20",     icon: <Clock className="w-3 h-3" /> },
+  COMPLETED:  { label: "Hoàn thành",   cls: "bg-zinc-700/60 text-zinc-400 border-zinc-600/40",     icon: <CheckCircle className="w-3 h-3" /> },
+  CANCELLED:  { label: "Đã hủy",       cls: "bg-red-500/10 text-red-400 border-red-500/20",        icon: <XCircle className="w-3 h-3" /> },
+  NO_SHOW:    { label: "Vắng mặt",     cls: "bg-amber-500/10 text-amber-400 border-amber-500/20",  icon: <AlertCircle className="w-3 h-3" /> },
+};
+
 function SessionStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-    CONFIRMED:  { label: "Đã xác nhận",  cls: "bg-green-500/10 text-green-400 border-green-500/20",   icon: <CheckCircle className="w-3 h-3" /> },
-    REQUESTED:  { label: "Đã yêu cầu",   cls: "bg-blue-500/10 text-blue-400 border-blue-500/20",     icon: <Clock className="w-3 h-3" /> },
-    COMPLETED:  { label: "Hoàn thành",   cls: "bg-zinc-700/60 text-zinc-400 border-zinc-600/40",     icon: <CheckCircle className="w-3 h-3" /> },
-    CANCELLED:  { label: "Đã hủy",       cls: "bg-red-500/10 text-red-400 border-red-500/20",        icon: <XCircle className="w-3 h-3" /> },
-    NO_SHOW:    { label: "Vắng mặt",     cls: "bg-amber-500/10 text-amber-400 border-amber-500/20",  icon: <AlertCircle className="w-3 h-3" /> },
-  };
-  const s = map[status] ?? { label: status, cls: "bg-zinc-800 text-zinc-500 border-zinc-700/60", icon: null };
+  const s = sessionStatusMap[status] ?? { label: status, cls: "bg-zinc-800 text-zinc-500 border-zinc-700/60", icon: null };
   return (
     <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold border ${s.cls}`}>
       {s.icon}{s.label}
@@ -77,7 +78,7 @@ export function PTClientDetail() {
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
-        <button onClick={() => navigate("/pt/clients")} className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors mb-6">
+        <button type="button" onClick={() => navigate("/pt/clients")} className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors mb-6">
           <ChevronLeft className="w-4 h-4" /> Tất cả học viên
         </button>
         <div className="flex items-center justify-center py-20">
@@ -90,7 +91,7 @@ export function PTClientDetail() {
   if (!contract) {
     return (
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
-        <button onClick={() => navigate("/pt/clients")} className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors mb-6">
+        <button type="button" onClick={() => navigate("/pt/clients")} className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors mb-6">
           <ChevronLeft className="w-4 h-4" /> Tất cả học viên
         </button>
         <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-12 text-center text-zinc-500 text-sm">
@@ -103,6 +104,7 @@ export function PTClientDetail() {
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
       <button
+        type="button"
         onClick={() => navigate("/pt/clients")}
         className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors"
       >
@@ -132,12 +134,14 @@ export function PTClientDetail() {
           </div>
           <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             <button
+              type="button"
               onClick={() => navigate("/pt/chat")}
               className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 border border-zinc-700/60 text-zinc-300 rounded-xl text-sm font-medium hover:bg-zinc-700 transition-colors"
             >
               <MessageSquare className="w-4 h-4" /> Chat
             </button>
             <button
+              type="button"
               onClick={() => navigate("/pt/schedule")}
               className="flex items-center gap-1.5 px-3 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl text-sm font-medium hover:bg-blue-500/15 transition-colors"
             >
@@ -162,8 +166,8 @@ export function PTClientDetail() {
             <div className="px-4 py-10 text-center text-zinc-500 text-sm">Chưa có buổi tập nào.</div>
           ) : (
             <div className="divide-y divide-zinc-800/40">
-              {[...sessions]
-                .sort((a: any, b: any) => new Date(b.scheduledStartAt).getTime() - new Date(a.scheduledStartAt).getTime())
+              {sessions
+                .toSorted((a: any, b: any) => new Date(b.scheduledStartAt).getTime() - new Date(a.scheduledStartAt).getTime())
                 .map((s: any) => (
                   <div key={s.id} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/20 transition-colors">
                     <div>

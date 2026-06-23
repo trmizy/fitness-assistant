@@ -175,6 +175,22 @@ export function NutritionPage() {
     fat: 0,
     notes: "",
   });
+  const [prevEditingLog, setPrevEditingLog] = useState(editingLog);
+  if (prevEditingLog !== editingLog) {
+    setPrevEditingLog(editingLog);
+    if (editingLog) {
+      setEditForm({
+        mealType: editingLog.mealType,
+        foodName: editingLog.foodName,
+        quantity: editingLog.quantity ?? 100,
+        calories: editingLog.calories,
+        protein: editingLog.protein ?? 0,
+        carbs: editingLog.carbs ?? 0,
+        fat: editingLog.fat ?? 0,
+        notes: editingLog.notes ?? "",
+      });
+    }
+  }
 
   // Delete confirm
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -271,8 +287,8 @@ export function NutritionPage() {
   const deletePlanMealMutation = useMutation({
     mutationFn: (mealId: string) => nutritionService.deletePlanMeal(mealId),
     onSuccess: () => {
-      void refetchDailyTask();
-      void refetchMonthly();
+      queryClient.invalidateQueries({ queryKey: ["nutrition-daily-task", dateStr] });
+      queryClient.invalidateQueries({ queryKey: ["nutrition-monthly-summary", calMonthStart] });
       toast.success('Đã xoá bữa ăn khỏi kế hoạch.');
     },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'Không thể xoá bữa ăn.'),
@@ -317,13 +333,13 @@ export function NutritionPage() {
   const updateItemMutation = useMutation({
     mutationFn: ({ itemId, quantity }: { itemId: string; quantity: number }) =>
       nutritionService.updateMealItem(itemId, { quantity }),
-    onSuccess: () => { void refetchDailyTask(); setEditingItemId(null); toast.success('Đã cập nhật lượng.'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["nutrition-daily-task", dateStr] }); setEditingItemId(null); toast.success('Đã cập nhật lượng.'); },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'Không thể cập nhật.'),
   });
 
   const deleteItemMutation = useMutation({
     mutationFn: (itemId: string) => nutritionService.deleteMealItem(itemId),
-    onSuccess: () => { void refetchDailyTask(); toast.success('Đã xoá món.'); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["nutrition-daily-task", dateStr] }); toast.success('Đã xoá món.'); },
     onError: (e: any) => toast.error(e?.response?.data?.error || 'Không thể xoá món.'),
   });
 
@@ -341,7 +357,7 @@ export function NutritionPage() {
       });
     },
     onSuccess: () => {
-      void refetchDailyTask();
+      queryClient.invalidateQueries({ queryKey: ["nutrition-daily-task", dateStr] });
       setAddItemMealId(null);
       setSelectedFoodForAdd(null);
       setFoodSearch('');
@@ -408,25 +424,12 @@ export function NutritionPage() {
     }
   }, [goal]);
 
-  useEffect(() => {
-    if (editingLog) {
-      setEditForm({
-        mealType: editingLog.mealType,
-        foodName: editingLog.foodName,
-        quantity: editingLog.quantity ?? 100,
-        calories: editingLog.calories,
-        protein: editingLog.protein ?? 0,
-        carbs: editingLog.carbs ?? 0,
-        fat: editingLog.fat ?? 0,
-        notes: editingLog.notes ?? "",
-      });
-    }
-  }, [editingLog]);
 
   // ── Derived data ─────────────────────────────────────────────────────────
 
   // mealGroups now contains ONLY actual NutritionLog entries.
   // Planned items are shown separately in the "Theo kế hoạch" section via planMeal (from dailyTask).
+  // eslint-disable-next-line react-doctor/prefer-module-scope-static-value
   const mealGroups: Record<MealType, NutritionLog[]> = {
     breakfast: [],
     lunch: [],
@@ -727,12 +730,14 @@ export function NutritionPage() {
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
           <button
+            type="button"
             onClick={() => setShowGoalModal(true)}
             className="flex items-center gap-1.5 px-3 py-2 border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 text-sm rounded-xl transition-colors"
           >
             <Target className="w-4 h-4" /> Mục tiêu
           </button>
           <button
+            type="button"
             onClick={openDefaultAddModal}
             className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/20"
           >
@@ -759,6 +764,7 @@ export function NutritionPage() {
       {/* ── Date navigation (mini) ── */}
       <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={prevDay}
           className="p-1.5 rounded-lg border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
         >
@@ -773,6 +779,7 @@ export function NutritionPage() {
           )}
         </span>
         <button
+          type="button"
           onClick={nextDay}
           disabled={isToday}
           className="p-1.5 rounded-lg border border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -781,6 +788,7 @@ export function NutritionPage() {
         </button>
         {!isToday && (
           <button
+            type="button"
             onClick={() => setSelectedDate(new Date())}
             className="text-xs text-orange-400 hover:text-orange-300 transition-colors ml-1"
           >
@@ -795,6 +803,7 @@ export function NutritionPage() {
           <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
           Đang dùng mục tiêu mặc định —{" "}
           <button
+            type="button"
             onClick={() => setShowGoalModal(true)}
             className="text-green-400 hover:text-green-300 underline underline-offset-2"
           >
@@ -835,6 +844,7 @@ export function NutritionPage() {
             </p>
           </div>
           <button
+            type="button"
             onClick={() => setSelectedDate(new Date())}
             className="text-xs text-orange-400 hover:text-orange-300 shrink-0 transition-colors"
           >
@@ -859,6 +869,7 @@ export function NutritionPage() {
             {/* Deactivate program button */}
             {dailyTask.program?.id && (
               <button
+                type="button"
                 onClick={() => setConfirmDeactivate(true)}
                 className="text-[10px] text-red-400/70 hover:text-red-400 border border-red-500/20 hover:border-red-500/40 px-2 py-1 rounded-lg transition-colors shrink-0"
               >
@@ -902,8 +913,9 @@ export function NutritionPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setConfirmDeleteMeal(null)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-xl hover:bg-zinc-800 transition-colors">Hủy</button>
+              <button type="button" onClick={() => setConfirmDeleteMeal(null)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-xl hover:bg-zinc-800 transition-colors">Hủy</button>
               <button
+                type="button"
                 onClick={() => { deletePlanMealMutation.mutate(confirmDeleteMeal.mealId); setConfirmDeleteMeal(null); }}
                 disabled={deletePlanMealMutation.isPending}
                 className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
@@ -942,8 +954,9 @@ export function NutritionPage() {
               })()}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setConfirmDeactivate(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-xl hover:bg-zinc-800 transition-colors">Hủy</button>
+              <button type="button" onClick={() => setConfirmDeactivate(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-xl hover:bg-zinc-800 transition-colors">Hủy</button>
               <button
+                type="button"
                 onClick={() => { deactivateProgramMutation.mutate(dailyTask.program!.id); setConfirmDeactivate(false); }}
                 disabled={deactivateProgramMutation.isPending}
                 className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
@@ -961,7 +974,7 @@ export function NutritionPage() {
           <div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800/60">
               <h3 className="text-zinc-100 font-bold text-sm">Thêm món vào bữa</h3>
-              <button onClick={() => { setAddItemMealId(null); setSelectedFoodForAdd(null); setFoodSearch(''); setFoodResults([]); }}
+              <button type="button" onClick={() => { setAddItemMealId(null); setSelectedFoodForAdd(null); setFoodSearch(''); setFoodResults([]); }}
                 className="text-zinc-500 hover:text-zinc-300"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-4 space-y-3">
@@ -970,11 +983,11 @@ export function NutritionPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                 <input
                   type="text"
+                  aria-label="Tìm món ăn"
                   placeholder="Tìm món ăn (e.g. chicken breast)..."
                   value={foodSearch}
                   onChange={e => handleFoodSearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-xl text-sm text-zinc-200 outline-none focus:border-orange-500/50"
-                  autoFocus
                 />
               </div>
 
@@ -983,7 +996,7 @@ export function NutritionPage() {
               {!foodSearchLoading && foodResults.length > 0 && !selectedFoodForAdd && (
                 <div className="max-h-48 overflow-y-auto space-y-1 border border-zinc-800/60 rounded-xl p-1">
                   {foodResults.map(food => (
-                    <button key={food.id} onClick={() => setSelectedFoodForAdd(food)}
+                    <button type="button" key={food.id} onClick={() => setSelectedFoodForAdd(food)}
                       className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors text-left">
                       <span className="text-sm text-zinc-200 truncate">{food.name}</span>
                       <span className="text-xs text-zinc-500 shrink-0 ml-2">{food.calories}kcal/100g</span>
@@ -997,12 +1010,12 @@ export function NutritionPage() {
                 <div className="bg-zinc-800/50 border border-zinc-700/40 rounded-xl p-3 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-zinc-200">{selectedFoodForAdd.name}</span>
-                    <button onClick={() => setSelectedFoodForAdd(null)} className="text-zinc-600 hover:text-zinc-400"><X className="w-4 h-4" /></button>
+                    <button type="button" onClick={() => setSelectedFoodForAdd(null)} className="text-zinc-600 hover:text-zinc-400"><X className="w-4 h-4" /></button>
                   </div>
                   <div className="text-xs text-zinc-500">Per 100g: {selectedFoodForAdd.calories}kcal · P{selectedFoodForAdd.protein}g · C{selectedFoodForAdd.carbs}g · F{selectedFoodForAdd.fats ?? selectedFoodForAdd.fat ?? 0}g</div>
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-zinc-500 shrink-0">Lượng (g):</label>
-                    <input type="number" min="1" value={addItemQty}
+                    <label htmlFor="np-add-item-qty" className="text-xs text-zinc-500 shrink-0">Lượng (g):</label>
+                    <input id="np-add-item-qty" type="number" min="1" value={addItemQty}
                       onChange={e => setAddItemQty(e.target.value)}
                       className="w-24 px-2.5 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-200 outline-none focus:border-orange-500/50" />
                     <span className="text-xs text-zinc-400">
@@ -1013,9 +1026,10 @@ export function NutritionPage() {
               )}
             </div>
             <div className="px-4 pb-4 flex gap-2">
-              <button onClick={() => { setAddItemMealId(null); setSelectedFoodForAdd(null); setFoodSearch(''); setFoodResults([]); }}
+              <button type="button" onClick={() => { setAddItemMealId(null); setSelectedFoodForAdd(null); setFoodSearch(''); setFoodResults([]); }}
                 className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm rounded-xl hover:bg-zinc-800 transition-colors">Hủy</button>
               <button
+                type="button"
                 onClick={() => { if (selectedFoodForAdd && addItemMealId) addItemMutation.mutate({ mealId: addItemMealId, food: selectedFoodForAdd, qty: Number(addItemQty) || 100 }); }}
                 disabled={!selectedFoodForAdd || addItemMutation.isPending}
                 className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-400 text-black text-sm font-bold rounded-xl disabled:opacity-40 transition-colors"
@@ -1078,7 +1092,7 @@ export function NutritionPage() {
                   <h3 className="text-zinc-100 font-bold text-sm">Ghi nhận lượng thực ăn</h3>
                   <p className="text-xs text-zinc-500 mt-0.5">{partialMeal.mealName} · {partialMeal.plannedCal} kcal theo kế hoạch</p>
                 </div>
-                <button onClick={() => setPartialMeal(null)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+                <button type="button" onClick={() => setPartialMeal(null)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1090,6 +1104,7 @@ export function NutritionPage() {
                   { key: 'amount', label: 'Nhập lượng thực ăn' },
                 ] as const).map(tab => (
                   <button
+                    type="button"
                     key={tab.key}
                     onClick={() => setPartialMode(tab.key)}
                     className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${
@@ -1109,12 +1124,13 @@ export function NutritionPage() {
                 {partialMode === 'pct' && (
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs text-zinc-500 font-semibold mb-1.5 flex items-center justify-between">
+                      <label htmlFor="np-partial-pct" className="text-xs text-zinc-500 font-semibold mb-1.5 flex items-center justify-between">
                         <span>Phần đã ăn (%)</span>
                         {isOverPlan && <span className="text-amber-400 text-[10px]">⚠ Ăn nhiều hơn kế hoạch</span>}
                         {isExactPlan && <span className="text-green-400 text-[10px]">✓ Đúng kế hoạch</span>}
                       </label>
                       <input
+                        id="np-partial-pct"
                         type="number" min="1" max="500"
                         value={partialPct}
                         onChange={e => setPartialPct(e.target.value)}
@@ -1127,6 +1143,7 @@ export function NutritionPage() {
                     <div className="grid grid-cols-5 gap-1.5">
                       {[25, 50, 75, 100, 125].map(p => (
                         <button
+                          type="button"
                           key={p}
                           onClick={() => setPartialPct(String(p))}
                           className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
@@ -1170,7 +1187,7 @@ export function NutritionPage() {
 
                     {/* Calories — primary */}
                     <div>
-                      <label className="text-xs text-zinc-500 font-semibold mb-1.5 flex items-center justify-between">
+                      <label htmlFor="np-partial-cal" className="text-xs text-zinc-500 font-semibold mb-1.5 flex items-center justify-between">
                         <span>Calories thực tế (kcal) <span className="text-red-400">*</span></span>
                         {calInput > 0 && (
                           <span className={`text-[10px] font-bold ${pctEquiv > 100 ? 'text-orange-400' : pctEquiv === 100 ? 'text-green-400' : 'text-amber-400'}`}>
@@ -1179,29 +1196,31 @@ export function NutritionPage() {
                         )}
                       </label>
                       <input
+                        id="np-partial-cal"
                         type="number" min="0"
                         value={partialCal}
                         onChange={e => setPartialCal(e.target.value)}
                         className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-xl text-zinc-100 text-sm outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 transition-all"
                         placeholder={`Kế hoạch: ${partialMeal.plannedCal} kcal`}
-                        autoFocus
                       />
                     </div>
 
                     {/* Macros — optional */}
                     <div>
-                      <label className="text-xs text-zinc-500 font-semibold mb-1.5 block">Macros chi tiết (tùy chọn, đơn vị: g)</label>
+                      <p className="text-xs text-zinc-500 font-semibold mb-1.5">Macros chi tiết (tùy chọn, đơn vị: g)</p>
                       <div className="grid grid-cols-3 gap-2">
                         {[
-                          { label: 'Protein', val: partialPro,    set: setPartialPro,    ph: String(partialMeal.plannedProtein.toFixed(0)), color: 'focus:border-green-500/60' },
-                          { label: 'Carbs',   val: partialCarb,   set: setPartialCarb,   ph: String(partialMeal.plannedCarbs.toFixed(0)),   color: 'focus:border-blue-500/60' },
-                          { label: 'Fat',     val: partialFatAmt, set: setPartialFatAmt, ph: String(partialMeal.plannedFat.toFixed(0)),     color: 'focus:border-amber-500/60' },
+                          { label: 'Protein', id: 'np-partial-pro',  val: partialPro,    set: setPartialPro,    ph: String(partialMeal.plannedProtein.toFixed(0)), color: 'focus:border-green-500/60' },
+                          { label: 'Carbs',   id: 'np-partial-carb', val: partialCarb,   set: setPartialCarb,   ph: String(partialMeal.plannedCarbs.toFixed(0)),   color: 'focus:border-blue-500/60' },
+                          { label: 'Fat',     id: 'np-partial-fat',  val: partialFatAmt, set: setPartialFatAmt, ph: String(partialMeal.plannedFat.toFixed(0)),     color: 'focus:border-amber-500/60' },
                         ].map(f => (
                           <div key={f.label}>
-                            <label className="text-[10px] text-zinc-600 mb-1 block">{f.label}</label>
+                            <label htmlFor={f.id} className="text-[10px] text-zinc-600 mb-1 block">{f.label}</label>
                             <input
+                              id={f.id}
                               type="number" min="0"
                               value={f.val}
+                              aria-label={f.label}
                               onChange={e => f.set(e.target.value)}
                               className={`w-full px-2.5 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-zinc-100 text-xs outline-none ${f.color} transition-all`}
                               placeholder={`~${f.ph}g`}
@@ -1222,12 +1241,14 @@ export function NutritionPage() {
                 {/* Confirm/Cancel */}
                 <div className="flex gap-2 pt-1">
                   <button
+                    type="button"
                     onClick={() => setPartialMeal(null)}
                     className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-xl hover:bg-zinc-800 transition-colors"
                   >
                     Hủy
                   </button>
                   <button
+                    type="button"
                     onClick={handleConfirm}
                     disabled={completeMealMutation.isPending || (partialMode === 'amount' && !calInput)}
                     className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold rounded-xl transition-all shadow-sm shadow-amber-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1274,9 +1295,9 @@ export function NutritionPage() {
       {/* ── Feedback alerts ── */}
       {feedback.length > 0 && (
         <div className="space-y-2">
-          {feedback.map((f, i) => (
+          {feedback.map((f) => (
             <div
-              key={i}
+              key={f.text}
               className={`flex items-start gap-2.5 px-4 py-3 rounded-xl text-sm border ${
                 f.type === "warning"
                   ? "bg-amber-500/10 border-amber-500/20 text-amber-300"
@@ -1308,6 +1329,7 @@ export function NutritionPage() {
               <Utensils className="w-12 h-12 text-zinc-800 mx-auto mb-3" />
               <p className="text-zinc-500 text-sm">Bạn chưa log món nào cho ngày này</p>
               <button
+                type="button"
                 onClick={openDefaultAddModal}
                 className="mt-4 flex items-center gap-1.5 mx-auto text-green-400 hover:text-green-300 text-sm font-semibold transition-colors"
               >
@@ -1367,6 +1389,7 @@ export function NutritionPage() {
                 {/* Meal header */}
                 <div className="flex items-center justify-between px-4 py-3 gap-2 flex-wrap">
                   <button
+                    type="button"
                     onClick={() => toggleMeal(meal)}
                     className="flex items-center gap-2 flex-1 text-left min-w-0"
                   >
@@ -1388,6 +1411,7 @@ export function NutritionPage() {
                     {planMeal && isPending && (
                       <>
                         <button
+                          type="button"
                           onClick={() => completeMealMutation.mutate({ mealId: planMeal.id, status: 'COMPLETED' })}
                           disabled={completeMealMutation.isPending}
                           className="flex items-center gap-0.5 px-2 py-1 bg-green-500/10 border border-green-500/25 text-green-400 text-[11px] rounded-lg hover:bg-green-500/20 transition-colors disabled:opacity-40"
@@ -1395,6 +1419,7 @@ export function NutritionPage() {
                           <Check className="w-3 h-3" /> Hoàn thành
                         </button>
                         <button
+                          type="button"
                           onClick={() => {
                             setPartialMeal({ mealId: planMeal.id, mealName: MEAL_VI[meal], plannedCal: Math.round(mealCal), plannedProtein: mealProtein, plannedCarbs: mealCarbs, plannedFat: mealFat });
                             setPartialMode('pct'); setPartialPct("50");
@@ -1405,6 +1430,7 @@ export function NutritionPage() {
                           <Minus className="w-3 h-3" /> Một phần
                         </button>
                         <button
+                          type="button"
                           onClick={() => completeMealMutation.mutate({ mealId: planMeal.id, status: 'SKIPPED' })}
                           disabled={completeMealMutation.isPending}
                           className="flex items-center gap-0.5 px-2 py-1 bg-zinc-800 border border-zinc-700/40 text-zinc-500 text-[11px] rounded-lg hover:bg-zinc-700 transition-colors disabled:opacity-40"
@@ -1415,6 +1441,7 @@ export function NutritionPage() {
                     )}
                     {planMeal && !isPending && (
                       <button
+                        type="button"
                         onClick={() => undoMealMutation.mutate(planMeal.id)}
                         disabled={undoMealMutation.isPending}
                         className="px-2 py-1 bg-zinc-800 border border-zinc-700/40 text-zinc-500 text-[11px] rounded-lg hover:bg-zinc-700 transition-colors disabled:opacity-40"
@@ -1426,8 +1453,9 @@ export function NutritionPage() {
                     {/* Delete plan meal */}
                     {canDeletePlanMeal && (
                       <button
+                        type="button"
                         onClick={() => setConfirmDeleteMeal({ mealId: planMeal.id, mealName: MEAL_VI[meal] })}
-                        className="p-1 text-zinc-700 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10"
+                        className="p-1 text-white hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10"
                         title="Xoá bữa ăn này khỏi kế hoạch"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1443,6 +1471,7 @@ export function NutritionPage() {
                       </span>
                     ) : (
                       <button
+                        type="button"
                         onClick={() => {
                           if (planMeal?.id) setAddItemMealId(planMeal.id);
                           else openAddModal(meal);
@@ -1452,7 +1481,7 @@ export function NutritionPage() {
                         <Plus className="w-3.5 h-3.5" /> Thêm
                       </button>
                     )}
-                    <button onClick={() => toggleMeal(meal)} className="text-zinc-600 hover:text-zinc-400 transition-colors">
+                    <button type="button" onClick={() => toggleMeal(meal)} className="text-zinc-600 hover:text-zinc-400 transition-colors">
                       {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
                   </div>
@@ -1477,15 +1506,15 @@ export function NutritionPage() {
                               <div className="flex items-center gap-1 shrink-0">
                                 <input
                                   type="number" min="1"
+                                  aria-label="Khối lượng (g)"
                                   value={editingQty}
                                   onChange={e => setEditingQty(e.target.value)}
                                   className="w-16 px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-200 outline-none focus:border-orange-500/50 text-[11px]"
-                                  autoFocus
                                 />
                                 <span className="text-zinc-600">{item.unit ?? 'g'}</span>
-                                <button onClick={() => { if (item.id && editingQty) updateItemMutation.mutate({ itemId: item.id, quantity: Number(editingQty) }); }}
+                                <button type="button" onClick={() => { if (item.id && editingQty) updateItemMutation.mutate({ itemId: item.id, quantity: Number(editingQty) }); }}
                                   className="text-green-400 hover:text-green-300 transition-colors"><Check className="w-3 h-3" /></button>
-                                <button onClick={() => setEditingItemId(null)} className="text-zinc-600 hover:text-zinc-400"><X className="w-3 h-3" /></button>
+                                <button type="button" onClick={() => setEditingItemId(null)} className="text-zinc-600 hover:text-zinc-400"><X className="w-3 h-3" /></button>
                               </div>
                             ) : (
                               <>
@@ -1493,9 +1522,9 @@ export function NutritionPage() {
                                 <span className="text-zinc-500 shrink-0">{item.calories ?? 0}kcal</span>
                                 {!isCompleted && !isPartial && item.id && (
                                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                    <button onClick={() => { setEditingItemId(item.id); setEditingQty(String(item.quantity ?? 100)); }}
+                                    <button type="button" onClick={() => { setEditingItemId(item.id); setEditingQty(String(item.quantity ?? 100)); }}
                                       className="text-zinc-600 hover:text-orange-400 transition-colors"><Pencil className="w-3 h-3" /></button>
-                                    <button onClick={() => deleteItemMutation.mutate(item.id)}
+                                    <button type="button" onClick={() => deleteItemMutation.mutate(item.id)}
                                       disabled={deleteItemMutation.isPending}
                                       className="text-zinc-600 hover:text-red-400 transition-colors disabled:opacity-40"><Trash2 className="w-3 h-3" /></button>
                                   </div>
@@ -1530,7 +1559,7 @@ export function NutritionPage() {
                               <th className="px-4 py-2 font-semibold">P</th>
                               <th className="px-4 py-2 font-semibold">C</th>
                               <th className="px-4 py-2 font-semibold">F</th>
-                              <th className="px-4 py-2 w-16" />
+                              <th className="px-4 py-2 w-16" aria-label="Actions" />
                             </tr>
                           </thead>
                           <tbody>
@@ -1548,10 +1577,10 @@ export function NutritionPage() {
                                       <input
                                         type="number"
                                         min="1"
+                                        aria-label="Khối lượng (g)"
                                         value={editingQty}
                                         onChange={e => setEditingQty(e.target.value)}
                                         className="w-16 px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-200 outline-none focus:border-orange-500/50 text-[11px]"
-                                        autoFocus
                                       />
                                       <span className="ml-1">{log.unit ?? 'g'}</span>
                                     </>
@@ -1571,6 +1600,7 @@ export function NutritionPage() {
                                   {!isCompleted && !isPartial && (
                                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <button
+                                        type="button"
                                         onClick={() => {
                                           const itemId = log.programMealItemId || log.id;
                                           if (log.sourceType === 'PLAN_ITEM' && editingItemId === itemId) {
@@ -1594,6 +1624,7 @@ export function NutritionPage() {
                                         )}
                                       </button>
                                       <button
+                                        type="button"
                                         onClick={() => {
                                           const itemId = log.programMealItemId || log.id;
                                           if (log.sourceType === 'PLAN_ITEM' && editingItemId === itemId) {
@@ -1728,13 +1759,14 @@ export function NutritionPage() {
       ════════════════════════════════════════════════════════════════════ */}
       {showAddModal && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={(e) => { if (e.target === e.currentTarget) closeAddModal(); }}
         >
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
               <h3 className="text-zinc-100 font-bold">Thêm món ăn</h3>
-              <button onClick={closeAddModal} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+              <button type="button" onClick={closeAddModal} className="text-zinc-500 hover:text-zinc-300 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1746,6 +1778,7 @@ export function NutritionPage() {
                 <div className="grid grid-cols-4 gap-2">
                   {MEAL_TYPES.map((m) => (
                     <button
+                      type="button"
                       key={m}
                       onClick={() => setAddMealType(m)}
                       className={`py-1.5 rounded-lg border text-xs font-semibold transition-all ${
@@ -1766,7 +1799,7 @@ export function NutritionPage() {
                 <div className="flex items-center gap-2 bg-zinc-800 border border-zinc-700/60 rounded-xl px-3 py-2.5">
                   <Search className="w-4 h-4 text-zinc-500 flex-shrink-0" />
                   <input
-                    autoFocus
+                    aria-label="Tìm thực phẩm"
                     value={foodQuery}
                     onChange={(e) => handleFoodQueryChange(e.target.value)}
                     placeholder="VD: gà, cơm, trứng…"
@@ -1806,6 +1839,7 @@ export function NutritionPage() {
                       <div className="mt-2 bg-zinc-800/60 border border-zinc-700/40 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
                         {searchedFoods.map((food) => (
                           <button
+                            type="button"
                             key={food.id}
                             onClick={() => setSelectedFood(food)}
                             className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-700/50 transition-colors text-left border-b border-zinc-700/30 last:border-0"
@@ -1858,6 +1892,7 @@ export function NutritionPage() {
                       <p className="text-xs text-zinc-500">per 100g: {selectedFood.calories} kcal</p>
                     </div>
                     <button
+                      type="button"
                       onClick={() => setSelectedFood(null)}
                       className="text-zinc-600 hover:text-zinc-400 flex-shrink-0 transition-colors"
                     >
@@ -1865,10 +1900,11 @@ export function NutritionPage() {
                     </button>
                   </div>
                   <div>
-                    <label className="text-xs text-zinc-500 mb-1.5 block font-semibold">
+                    <label htmlFor="np-add-qty" className="text-xs text-zinc-500 mb-1.5 block font-semibold">
                       Khối lượng (grams)
                     </label>
                     <input
+                      id="np-add-qty"
                       type="number"
                       min={1}
                       max={5000}
@@ -1902,15 +1938,17 @@ export function NutritionPage() {
 
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={closeAddModal}
-                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="flex-1 py-2.5 border border-zinc-700/60 text-white text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 onClick={handleAddFood}
                 disabled={!selectedFood || createMutation.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-white text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
               >
                 {createMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1929,6 +1967,7 @@ export function NutritionPage() {
       ════════════════════════════════════════════════════════════════════ */}
       {editingLog && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setEditingLog(null); }}
         >
@@ -1936,6 +1975,7 @@ export function NutritionPage() {
             <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
               <h3 className="text-zinc-100 font-bold">Sửa nhật ký</h3>
               <button
+                type="button"
                 onClick={() => setEditingLog(null)}
                 className="text-zinc-500 hover:text-zinc-300 transition-colors"
               >
@@ -1950,6 +1990,7 @@ export function NutritionPage() {
                 <div className="grid grid-cols-4 gap-2">
                   {MEAL_TYPES.map((m) => (
                     <button
+                      type="button"
                       key={m}
                       onClick={() => setEditForm((f) => ({ ...f, mealType: m }))}
                       className={`py-1.5 rounded-lg border text-xs font-semibold transition-all ${
@@ -1966,10 +2007,11 @@ export function NutritionPage() {
 
               {/* Food name */}
               <div>
-                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold">
+                <label htmlFor="np-edit-food-name" className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold">
                   Tên thực phẩm
                 </label>
                 <input
+                  id="np-edit-food-name"
                   value={editForm.foodName}
                   onChange={(e) => setEditForm((f) => ({ ...f, foodName: e.target.value }))}
                   className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
@@ -1978,10 +2020,11 @@ export function NutritionPage() {
 
               {/* Quantity */}
               <div>
-                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold">
+                <label htmlFor="np-edit-qty" className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold">
                   Khối lượng (g)
                 </label>
                 <input
+                  id="np-edit-qty"
                   type="number"
                   min={1}
                   max={5000}
@@ -2005,11 +2048,13 @@ export function NutritionPage() {
                     { key: "fat", label: "Fat (g)", color: "text-amber-400" },
                   ].map(({ key, label, color }) => (
                     <div key={key}>
-                      <label className={`text-xs ${color} mb-1.5 block font-semibold`}>{label}</label>
+                      <label htmlFor={`np-edit-${key}`} className={`text-xs ${color} mb-1.5 block font-semibold`}>{label}</label>
                       <input
+                        id={`np-edit-${key}`}
                         type="number"
                         min={0}
                         step={key === "calories" ? 1 : 0.1}
+                        aria-label={label}
                         value={editForm[key as keyof EditForm] as number}
                         onChange={(e) =>
                           setEditForm((f) => ({ ...f, [key]: parseFloat(e.target.value) || 0 }))
@@ -2023,10 +2068,11 @@ export function NutritionPage() {
 
               {/* Notes */}
               <div>
-                <label className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold">
+                <label htmlFor="np-edit-notes" className="text-xs text-zinc-500 uppercase tracking-wider mb-1.5 block font-semibold">
                   Ghi chú (tùy chọn)
                 </label>
                 <input
+                  id="np-edit-notes"
                   value={editForm.notes}
                   onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
                   placeholder="Ghi chú thêm…"
@@ -2037,15 +2083,17 @@ export function NutritionPage() {
 
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => setEditingLog(null)}
-                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="flex-1 py-2.5 border border-zinc-700/60 text-white text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 onClick={handleUpdateLog}
                 disabled={updateMutation.isPending}
-                className="flex-1 py-2.5 bg-blue-500 hover:bg-blue-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 bg-blue-500 hover:bg-blue-400 disabled:bg-zinc-700 disabled:text-white text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {updateMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -2064,6 +2112,7 @@ export function NutritionPage() {
       ════════════════════════════════════════════════════════════════════ */}
       {deletingId && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setDeletingId(null); }}
         >
@@ -2079,12 +2128,14 @@ export function NutritionPage() {
             </div>
             <div className="flex gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => setDeletingId(null)}
                 className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 onClick={() => deleteMutation.mutate(deletingId)}
                 disabled={deleteMutation.isPending}
                 className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
@@ -2102,6 +2153,7 @@ export function NutritionPage() {
       ════════════════════════════════════════════════════════════════════ */}
       {showGoalModal && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setShowGoalModal(false); }}
         >
@@ -2111,6 +2163,7 @@ export function NutritionPage() {
                 <Target className="w-4 h-4 text-green-400" /> Mục tiêu dinh dưỡng
               </h3>
               <button
+                type="button"
                 onClick={() => setShowGoalModal(false)}
                 className="text-zinc-500 hover:text-zinc-300 transition-colors"
               >
@@ -2126,13 +2179,15 @@ export function NutritionPage() {
                 { key: "fat", label: "Fat", unit: "g", color: "text-amber-400" },
               ].map(({ key, label, unit, color }) => (
                 <div key={key} className="flex items-center gap-3">
-                  <label className={`text-sm font-semibold ${color} w-32 flex-shrink-0`}>
+                  <label htmlFor={`np-goal-${key}`} className={`text-sm font-semibold ${color} w-32 flex-shrink-0`}>
                     {label}
                   </label>
                   <div className="flex-1 relative">
                     <input
+                      id={`np-goal-${key}`}
                       type="number"
                       min={1}
+                      aria-label={label}
                       value={goalForm[key as keyof typeof goalForm]}
                       onChange={(e) =>
                         setGoalForm((f) => ({ ...f, [key]: parseFloat(e.target.value) || 0 }))
@@ -2149,15 +2204,17 @@ export function NutritionPage() {
 
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowGoalModal(false)}
-                className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
+                className="flex-1 py-2.5 border border-zinc-700/60 text-white text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Hủy
               </button>
               <button
+                type="button"
                 onClick={handleSaveGoal}
                 disabled={goalMutation.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-white text-black text-sm font-bold rounded-lg transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
               >
                 {goalMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
                 {goalMutation.isPending ? "Đang lưu…" : "Lưu mục tiêu"}
@@ -2187,6 +2244,8 @@ const STATUS_CELL: Record<string, string> = {
   skipped:     'bg-zinc-800/40 border-zinc-700/30 text-zinc-500',
 };
 
+const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
 function NutritionCalendarGrid({
   month,
   today,
@@ -2206,7 +2265,6 @@ function NutritionCalendarGrid({
   onDayClick: (date: string) => void;
   onAddClick: () => void;
 }) {
-  const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
   const year = month.getFullYear();
   const monthIdx = month.getMonth();
   const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
@@ -2235,6 +2293,7 @@ function NutritionCalendarGrid({
           <span className="text-sm font-bold text-zinc-200">Lịch tập</span>
         </div>
         <button
+          type="button"
           onClick={onAddClick}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-400 text-black text-xs font-bold rounded-xl transition-all shadow-sm shadow-green-500/20"
         >
@@ -2245,6 +2304,7 @@ function NutritionCalendarGrid({
       {/* Month navigation */}
       <div className="flex items-center justify-center gap-5 mb-4">
         <button
+          type="button"
           onClick={onPrevMonth}
           className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/40 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
         >
@@ -2254,6 +2314,7 @@ function NutritionCalendarGrid({
           {monthLabel}
         </span>
         <button
+          type="button"
           onClick={onNextMonth}
           className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/40 flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
         >
@@ -2282,6 +2343,7 @@ function NutritionCalendarGrid({
 
           return (
             <button
+              type="button"
               key={ds}
               onClick={() => onDayClick(ds)}
               className={`

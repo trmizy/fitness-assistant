@@ -139,6 +139,7 @@ export function Sidebar() {
           </div>
         </div>
         <button
+          type="button"
           className="lg:hidden text-zinc-500 hover:text-white p-1 rounded transition-colors"
           onClick={() => setSidebarOpen(false)}
         >
@@ -160,6 +161,7 @@ export function Sidebar() {
           {/* Segmented toggle */}
           <div className="flex bg-zinc-900/40 border border-zinc-700/50 rounded-xl p-1 gap-1">
             <button
+              type="button"
               onClick={switchToClientView}
               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeView === "client"
@@ -171,6 +173,7 @@ export function Sidebar() {
               Client
             </button>
             <button
+              type="button"
               onClick={switchToPTView}
               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeView === "pt"
@@ -214,6 +217,7 @@ export function Sidebar() {
           </div>
         </div>
         <button
+          type="button"
           onClick={handleLogout}
           className="flex items-center gap-2 w-full px-3 py-2 text-zinc-500 hover:text-red-400 hover:bg-zinc-800/60 rounded-lg text-sm transition-all"
         >

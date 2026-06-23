@@ -286,25 +286,27 @@ function FallbackBadge({ used }: { used: boolean }) {
 // ─── Trace detail drawer ──────────────────────────────────────────────────────
 
 function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
-  const [detail, setDetail] = useState<RequestDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [prevId, setPrevId] = useState(id);
+  const [{ detail, loading, error }, setState] = useState<{ detail: RequestDetail | null; loading: boolean; error: string | null }>({ detail: null, loading: true, error: null });
+
+  if (prevId !== id) {
+    setPrevId(id);
+    setState({ detail: null, loading: true, error: null });
+  }
 
   useEffect(() => {
-    setLoading(true);
     adminService.getAIRequestDetail(id)
       .then((res) => {
-        if (res.success) setDetail(res.data.conversation);
-        else setError("Failed to load detail");
+        if (res.success) setState({ detail: res.data.conversation, loading: false, error: null });
+        else setState({ detail: null, loading: false, error: "Failed to load detail" });
       })
-      .catch((err: unknown) => setError((err as Error).message))
-      .finally(() => setLoading(false));
+      .catch((err: unknown) => setState({ detail: null, loading: false, error: (err as Error).message }));
   }, [id]);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      <button type="button" className="absolute inset-0 bg-black/60" aria-label="Close" onClick={onClose} />
 
       {/* Drawer */}
       <div className="relative w-full max-w-2xl bg-zinc-950 border-l border-zinc-800 overflow-y-auto flex flex-col">
@@ -314,7 +316,7 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
             <Brain className="w-4 h-4 text-violet-400" />
             <span className="text-sm font-semibold text-zinc-200">Request Trace</span>
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+          <button type="button" onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -583,7 +585,7 @@ export function AdminAIObservability() {
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-5 text-center">
           <AlertTriangle className="w-6 h-6 text-red-400 mx-auto mb-2" />
           <p className="text-red-400 text-sm font-semibold">{apiError}</p>
-          <button onClick={() => fetchAll()} className="mt-3 text-xs text-red-300 hover:text-red-200 underline">
+          <button type="button" onClick={() => fetchAll()} className="mt-3 text-xs text-red-300 hover:text-red-200 underline">
             Retry
           </button>
         </div>
@@ -609,6 +611,7 @@ export function AdminAIObservability() {
         </div>
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => fetchAll(true)}
             disabled={refreshing}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-lg border border-zinc-700 transition-colors disabled:opacity-50"
@@ -696,8 +699,8 @@ export function AdminAIObservability() {
                     labelFormatter={(v: string) => v.replace(/_/g, " ")}
                   />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                    {ov.intents.map((_, i) => (
-                      <Cell key={i} fill={INTENT_COLORS[i % INTENT_COLORS.length]} />
+                    {ov.intents.map((intent, i) => (
+                      <Cell key={intent.intent ?? i} fill={INTENT_COLORS[i % INTENT_COLORS.length]} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -720,8 +723,8 @@ export function AdminAIObservability() {
                   <ResponsiveContainer width={80} height={80}>
                     <PieChart>
                       <Pie data={ov.languages} dataKey="count" cx="50%" cy="50%" innerRadius={20} outerRadius={38}>
-                        {ov.languages.map((_, i) => (
-                          <Cell key={i} fill={i === 0 ? "#6366f1" : "#22c55e"} />
+                        {ov.languages.map((lang, i) => (
+                          <Cell key={lang.language ?? i} fill={i === 0 ? "#6366f1" : "#22c55e"} />
                         ))}
                       </Pie>
                     </PieChart>
@@ -770,6 +773,7 @@ export function AdminAIObservability() {
       <div className="flex gap-1 bg-zinc-900/60 rounded-lg p-1 w-fit border border-zinc-800/60">
         {(["requests", "queue", "errors"] as const).map((tab) => (
           <button
+            type="button"
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors capitalize ${
@@ -795,6 +799,7 @@ export function AdminAIObservability() {
             <Filter className="w-4 h-4 text-zinc-500" />
             {(["all", "fallback", "slow", "warnings"] as FilterType[]).map((f) => (
               <button
+                type="button"
                 key={f}
                 onClick={() => { setFilter(f); setPage(1); }}
                 className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
@@ -893,6 +898,7 @@ export function AdminAIObservability() {
           {requests && requests.pages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-800/60">
               <button
+                type="button"
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
                 className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
@@ -903,6 +909,7 @@ export function AdminAIObservability() {
                 Page {requests.page} / {requests.pages}
               </span>
               <button
+                type="button"
                 disabled={page >= requests.pages}
                 onClick={() => setPage((p) => p + 1)}
                 className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30"
@@ -1039,9 +1046,10 @@ export function AdminAIObservability() {
             ) : (
               <div className="divide-y divide-zinc-800/40">
                 {errors.highWarnConversations.map((c) => (
-                  <div
+                  <button
                     key={c.id}
-                    className="px-4 py-3 cursor-pointer hover:bg-zinc-800/30 transition-colors"
+                    type="button"
+                    className="px-4 py-3 cursor-pointer hover:bg-zinc-800/30 transition-colors w-full text-left"
                     onClick={() => setSelectedId(c.id)}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
@@ -1060,7 +1068,7 @@ export function AdminAIObservability() {
                       </span>
                       <span className="ml-auto text-zinc-700">→ click for trace</span>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

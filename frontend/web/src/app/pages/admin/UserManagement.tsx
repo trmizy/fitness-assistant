@@ -24,6 +24,26 @@ const initials = (name: string) =>
     .toUpperCase()
     .slice(0, 2);
 
+const statusBadge = (status: string) => {
+  if (status === "Active")  return "bg-green-500/10 text-green-400 border-green-500/20";
+  if (status === "Pending") return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+  return "bg-zinc-700/50 text-zinc-500 border-zinc-700";
+};
+
+const roleBadge = (role: string) =>
+  role === "PT"
+    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+    : role === "Admin"
+    ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+    : "bg-blue-500/10 text-blue-400 border-blue-500/20";
+
+const avatarBg = (role: string) =>
+  role === "PT"
+    ? "bg-emerald-500/20 text-emerald-400"
+    : role === "Admin"
+    ? "bg-purple-500/20 text-purple-400"
+    : "bg-blue-500/20 text-blue-400";
+
 export function UserManagement() {
   const [users, setUsers]             = useState<AdminUser[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -61,25 +81,6 @@ export function UserManagement() {
       (statusFilter === "All" || u.status === statusFilter)
   );
 
-  const statusBadge = (status: string) => {
-    if (status === "Active")  return "bg-green-500/10 text-green-400 border-green-500/20";
-    if (status === "Pending") return "bg-amber-500/10 text-amber-400 border-amber-500/20";
-    return "bg-zinc-700/50 text-zinc-500 border-zinc-700";
-  };
-
-  const roleBadge = (role: string) =>
-    role === "PT"
-      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-      : role === "Admin"
-      ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-      : "bg-blue-500/10 text-blue-400 border-blue-500/20";
-
-  const avatarBg = (role: string) =>
-    role === "PT"
-      ? "bg-emerald-500/20 text-emerald-400"
-      : role === "Admin"
-      ? "bg-purple-500/20 text-purple-400"
-      : "bg-blue-500/20 text-blue-400";
 
   const activeCount = users.filter((u) => u.status === "Active").length;
 
@@ -96,6 +97,7 @@ export function UserManagement() {
           )}
         </div>
         <button
+          type="button"
           onClick={fetchUsers}
           disabled={loading}
           className="flex items-center gap-1.5 px-3 py-2 text-xs text-zinc-400 border border-zinc-700/50 rounded-lg hover:bg-zinc-800/50 transition-colors disabled:opacity-50"
@@ -112,6 +114,7 @@ export function UserManagement() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search users"
             placeholder="Search users…"
             className="flex-1 text-sm bg-transparent outline-none text-zinc-300 placeholder-zinc-600"
           />
@@ -153,6 +156,7 @@ export function UserManagement() {
         <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6 text-center">
           <p className="text-red-400 text-sm mb-3">{error}</p>
           <button
+            type="button"
             onClick={fetchUsers}
             className="text-xs px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors"
           >
@@ -221,7 +225,7 @@ export function UserManagement() {
                       <td className="px-4 py-3 text-sm text-zinc-500">{u.joined}</td>
                       <td className="px-4 py-3 text-sm text-zinc-500">{u.lastActive}</td>
                       <td className="px-4 py-3">
-                        <button className="p-1 text-zinc-600 hover:text-zinc-300 rounded transition-colors">
+                        <button type="button" className="p-1 text-zinc-600 hover:text-zinc-300 rounded transition-colors">
                           <MoreVertical className="w-4 h-4" />
                         </button>
                       </td>
@@ -277,15 +281,15 @@ export function UserManagement() {
               </div>
 
               <div className="space-y-2">
-                <button className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
+                <button type="button" className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors">
                   <Shield className="w-4 h-4 text-blue-400" /> View full profile
                 </button>
                 {selectedUser.status === "Pending" && (
-                  <button className="flex items-center gap-2 w-full px-3 py-2.5 text-sm bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-500/15 transition-colors font-semibold">
+                  <button type="button" className="flex items-center gap-2 w-full px-3 py-2.5 text-sm bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-500/15 transition-colors font-semibold">
                     <UserCheck className="w-4 h-4" /> Approve PT
                   </button>
                 )}
-                <button className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                <button type="button" className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
                   <UserX className="w-4 h-4" /> Suspend account
                 </button>
               </div>

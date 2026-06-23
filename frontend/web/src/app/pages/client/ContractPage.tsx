@@ -81,6 +81,7 @@ export function ContractPage() {
           <p className="text-zinc-500 text-sm mt-0.5">Your coaching agreements and service packages</p>
         </div>
         <button
+          type="button"
           onClick={() => navigate("/client/coaches")}
           className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/25"
         >
@@ -92,6 +93,7 @@ export function ContractPage() {
       <div className="flex gap-2 overflow-x-auto pb-1">
         {tabs.map(t => (
           <button
+            type="button"
             key={t.value}
             onClick={() => { setActiveTab(t.value); setSelectedId(null); }}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${activeTab === t.value ? "bg-green-500 text-black border-green-500" : "bg-zinc-900 border-zinc-700/60 text-zinc-400 hover:border-green-500/40"}`}
@@ -106,7 +108,7 @@ export function ContractPage() {
           <FileText className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
           <h3 className="text-zinc-200 font-bold mb-1">No contracts yet</h3>
           <p className="text-sm text-zinc-500 max-w-xs mx-auto mb-6">Browse our trainers to get started with coaching!</p>
-          <button onClick={() => navigate("/client/coaches")} className="px-6 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-xl transition-all shadow-lg shadow-green-500/20">
+          <button type="button" onClick={() => navigate("/client/coaches")} className="px-6 py-2.5 bg-green-500 hover:bg-green-400 text-black text-sm font-bold rounded-xl transition-all shadow-lg shadow-green-500/20">
             Find a Coach
           </button>
         </div>
@@ -118,6 +120,7 @@ export function ContractPage() {
               const cfg = statusConfig[c.status];
               return (
                 <button
+                  type="button"
                   key={c.id}
                   onClick={() => setSelectedId(selectedId === c.id ? null : c.id)}
                   className={`w-full text-left p-4 rounded-xl border-2 transition-all ${selectedId === c.id ? "border-green-500 bg-green-500/8" : "border-zinc-800/60 bg-zinc-900 hover:border-zinc-700"}`}
@@ -214,6 +217,7 @@ export function ContractPage() {
               <div className="flex flex-wrap gap-2">
                 {selected.status === "ACTIVE" && (
                   <button
+                    type="button"
                     onClick={() => navigate("/client/booking")}
                     className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/20"
                   >
@@ -222,6 +226,7 @@ export function ContractPage() {
                 )}
                 {(selected.status === "ACTIVE" || selected.status === "PENDING_REVIEW") && (
                   <button
+                    type="button"
                     onClick={() => setShowCancelDialog(true)}
                     className="flex items-center gap-2 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
                   >
@@ -251,8 +256,9 @@ export function ContractPage() {
                   : "Are you sure you want to cancel this contract? This action cannot be undone."}
               </p>
               <div>
-                <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Reason</label>
+                <label htmlFor="contract-cancel-reason" className="text-xs font-semibold text-zinc-400 mb-1.5 block">Reason</label>
                 <textarea
+                  id="contract-cancel-reason"
                   value={cancelReason}
                   onChange={e => setCancelReason(e.target.value)}
                   rows={3}
@@ -263,15 +269,17 @@ export function ContractPage() {
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
+                type="button"
                 onClick={() => { setShowCancelDialog(false); setCancelReason(""); }}
                 className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors"
               >
                 Keep
               </button>
               <button
+                type="button"
                 onClick={() => cancelMutation.mutate({ id: selected.id, reason: cancelReason })}
                 disabled={!cancelReason.trim() || cancelMutation.isPending}
-                className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-white text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {cancelMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 {selected.status === "PENDING_REVIEW" ? "Withdraw" : "Cancel"}
