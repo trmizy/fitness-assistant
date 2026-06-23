@@ -210,7 +210,7 @@ export const workoutRepository = {
         data: {
           workoutId,
           exerciseId,
-          sets: 0,
+          sets: 1,
           order: (maxOrder?.order ?? -1) + 1,
         },
         include: { workoutSets: true },

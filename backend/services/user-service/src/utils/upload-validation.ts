@@ -21,3 +21,12 @@ export function validateUploadMime(mimetype: string, originalname: string): stri
   }
   return null;
 }
+
+// InBody scans accept images only (JPG/PNG). PDF is not supported because
+// the VLM extraction pipeline expects a raster image, not a document.
+export function validateInBodyMime(mimetype: string, originalname: string): string | null {
+  if (mimetype === 'application/pdf' || originalname.toLowerCase().endsWith('.pdf')) {
+    return 'PDF files are not accepted for InBody scans. Please upload a JPG or PNG image (max 5 MB).';
+  }
+  return validateUploadMime(mimetype, originalname);
+}

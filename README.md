@@ -4,6 +4,12 @@
 
 ## 🚀 Quick Start
 
+### 0. Setup Environment
+```bash
+cp .env.example .env
+# Edit .env and fill in your real values (database, API keys, etc.)
+```
+
 ### 1. Start Infrastructure
 ```powershell
 # Chạy từ root folder

@@ -2,9 +2,9 @@ import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { inbodyController } from '../controllers/inbody.controller';
-import { validateUploadFilename, validateUploadMime } from '../utils/upload-validation';
+import { validateUploadFilename, validateInBodyMime } from '../utils/upload-validation';
 
-export { validateUploadFilename, validateUploadMime };
+export { validateUploadFilename, validateInBodyMime };
 
 const router = Router();
 
@@ -18,7 +18,7 @@ const upload = multer({
   fileFilter: (_req, file, cb) => {
     const nameErr = validateUploadFilename(file.originalname);
     if (nameErr) { cb(new Error(nameErr)); return; }
-    const mimeErr = validateUploadMime(file.mimetype, file.originalname);
+    const mimeErr = validateInBodyMime(file.mimetype, file.originalname);
     if (mimeErr) { cb(new Error(mimeErr)); return; }
     cb(null, true);
   },
