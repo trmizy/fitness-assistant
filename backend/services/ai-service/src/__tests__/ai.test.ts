@@ -41,6 +41,14 @@ import app, { setQdrantAvailable } from '../app';
 const TEST_USER_ID = 'test-user-00000001';
 const agent = supertest(app);
 
+function withAuth(request: supertest.Test): supertest.Test {
+  request.set('x-user-id', TEST_USER_ID);
+  if (process.env.INTERNAL_SERVICE_SECRET) {
+    request.set('x-internal-token', process.env.INTERNAL_SERVICE_SECRET);
+  }
+  return request;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // A. Schema validation
 // ─────────────────────────────────────────────────────────────────────────────
@@ -255,22 +263,22 @@ const VALID_PLAN_OBJ = {
       day: 'Day 1 — Push',
       goal: 'Chest, shoulders, triceps',
       exercises: [
-        { order: 1, name: 'Bench Press', sets: 4, reps: '8-10', restSeconds: 90 },
-        { order: 2, name: 'Overhead Press', sets: 3, reps: '10-12', restSeconds: 75 },
+        { exerciseId: 'bench-press', order: 1, name: 'Bench Press', sets: 4, reps: '8-10', restSeconds: 90 },
+        { exerciseId: 'overhead-press', order: 2, name: 'Overhead Press', sets: 3, reps: '10-12', restSeconds: 75 },
       ],
     },
     {
       day: 'Day 2 — Pull',
       goal: 'Back and biceps',
       exercises: [
-        { order: 1, name: 'Bent-over Row', sets: 4, reps: '8-10', restSeconds: 90 },
+        { exerciseId: 'bent-over-row', order: 1, name: 'Bent-over Row', sets: 4, reps: '8-10', restSeconds: 90 },
       ],
     },
     {
       day: 'Day 3 — Legs',
       goal: 'Quads and hamstrings',
       exercises: [
-        { order: 1, name: 'Squat', sets: 4, reps: '8-12', restSeconds: 120 },
+        { exerciseId: 'squat', order: 1, name: 'Squat', sets: 4, reps: '8-12', restSeconds: 120 },
       ],
     },
   ],
@@ -305,10 +313,10 @@ describe('B. parsePlanContent — valid inputs', () => {
   });
 
   it('preserves optional nutritionSummary when present', () => {
-    const withNutrition = { ...VALID_PLAN_OBJ, nutritionSummary: 'Aim for 2 g protein per kg.' };
+    const withNutrition = { ...VALID_PLAN_OBJ, nutritionSummary: 'An du bua trong ngay.' };
     const result = parsePlanContent(JSON.stringify(withNutrition));
     assert.equal(result.ok, true);
-    if (result.ok) assert.equal(result.content.nutritionSummary, 'Aim for 2 g protein per kg.');
+    if (result.ok) assert.equal(result.content.nutritionSummary, 'An du bua trong ngay.');
   });
 });
 
@@ -471,28 +479,19 @@ describe('D. Auth middleware — identity mismatch with INTERNAL_SERVICE_SECRET'
 
 describe('E. POST /ai/ask — request validation', () => {
   it('returns 400 for empty body', async () => {
-    const res = await agent
-      .post('/ai/ask')
-      .set('x-user-id', TEST_USER_ID)
-      .send({});
+    const res = await withAuth(agent.post('/ai/ask')).send({});
     assert.equal(res.status, 400);
     assert.equal(res.body.error?.code, 'VALIDATION_ERROR');
   });
 
   it('returns 400 for empty question string', async () => {
-    const res = await agent
-      .post('/ai/ask')
-      .set('x-user-id', TEST_USER_ID)
-      .send({ question: '' });
+    const res = await withAuth(agent.post('/ai/ask')).send({ question: '' });
     assert.equal(res.status, 400);
     assert.equal(res.body.error?.code, 'VALIDATION_ERROR');
   });
 
   it('returns 400 for question exceeding 2000 chars', async () => {
-    const res = await agent
-      .post('/ai/ask')
-      .set('x-user-id', TEST_USER_ID)
-      .send({ question: 'a'.repeat(2001) });
+    const res = await withAuth(agent.post('/ai/ask')).send({ question: 'a'.repeat(2001) });
     assert.equal(res.status, 400);
     assert.equal(res.body.error?.code, 'VALIDATION_ERROR');
   });
@@ -500,37 +499,25 @@ describe('E. POST /ai/ask — request validation', () => {
 
 describe('E. POST /plans/workout/generate — request validation', () => {
   it('returns 400 for missing goal', async () => {
-    const res = await agent
-      .post('/plans/workout/generate')
-      .set('x-user-id', TEST_USER_ID)
-      .send({ durationWeeks: 4, daysPerWeek: 3 });
+    const res = await withAuth(agent.post('/plans/workout/generate')).send({ durationWeeks: 4, daysPerWeek: 3 });
     assert.equal(res.status, 400);
     assert.equal(res.body.error?.code, 'VALIDATION_ERROR');
   });
 
   it('returns 400 when durationWeeks exceeds 52', async () => {
-    const res = await agent
-      .post('/plans/workout/generate')
-      .set('x-user-id', TEST_USER_ID)
-      .send({ goal: 'muscle gain', durationWeeks: 100, daysPerWeek: 3 });
+    const res = await withAuth(agent.post('/plans/workout/generate')).send({ goal: 'muscle gain', durationWeeks: 100, daysPerWeek: 3 });
     assert.equal(res.status, 400);
     assert.equal(res.body.error?.code, 'VALIDATION_ERROR');
   });
 
   it('returns 400 when daysPerWeek exceeds 7', async () => {
-    const res = await agent
-      .post('/plans/workout/generate')
-      .set('x-user-id', TEST_USER_ID)
-      .send({ goal: 'muscle gain', durationWeeks: 4, daysPerWeek: 8 });
+    const res = await withAuth(agent.post('/plans/workout/generate')).send({ goal: 'muscle gain', durationWeeks: 4, daysPerWeek: 8 });
     assert.equal(res.status, 400);
     assert.equal(res.body.error?.code, 'VALIDATION_ERROR');
   });
 
   it('returns 400 when daysPerWeek is 0', async () => {
-    const res = await agent
-      .post('/plans/workout/generate')
-      .set('x-user-id', TEST_USER_ID)
-      .send({ goal: 'muscle gain', durationWeeks: 4, daysPerWeek: 0 });
+    const res = await withAuth(agent.post('/plans/workout/generate')).send({ goal: 'muscle gain', durationWeeks: 4, daysPerWeek: 0 });
     assert.equal(res.status, 400);
   });
 });
@@ -539,28 +526,19 @@ describe('E. POST /plans/adjust — request validation', () => {
   const validPlanId = '550e8400-e29b-41d4-a716-446655440000';
 
   it('returns 400 for non-UUID planId', async () => {
-    const res = await agent
-      .post('/plans/adjust')
-      .set('x-user-id', TEST_USER_ID)
-      .send({ planId: 'not-a-uuid', adjustments: 'More cardio please' });
+    const res = await withAuth(agent.post('/plans/adjust')).send({ planId: 'not-a-uuid', adjustments: 'More cardio please' });
     assert.equal(res.status, 400);
     assert.equal(res.body.error?.code, 'VALIDATION_ERROR');
   });
 
   it('returns 400 when adjustments is too short (< 5 chars)', async () => {
-    const res = await agent
-      .post('/plans/adjust')
-      .set('x-user-id', TEST_USER_ID)
-      .send({ planId: validPlanId, adjustments: 'Hi' });
+    const res = await withAuth(agent.post('/plans/adjust')).send({ planId: validPlanId, adjustments: 'Hi' });
     assert.equal(res.status, 400);
     assert.equal(res.body.error?.code, 'VALIDATION_ERROR');
   });
 
   it('returns 400 when adjustments exceeds 1000 chars', async () => {
-    const res = await agent
-      .post('/plans/adjust')
-      .set('x-user-id', TEST_USER_ID)
-      .send({ planId: validPlanId, adjustments: 'x'.repeat(1001) });
+    const res = await withAuth(agent.post('/plans/adjust')).send({ planId: validPlanId, adjustments: 'x'.repeat(1001) });
     assert.equal(res.status, 400);
     assert.equal(res.body.error?.code, 'VALIDATION_ERROR');
   });
@@ -568,19 +546,13 @@ describe('E. POST /plans/adjust — request validation', () => {
 
 describe('E. POST /plans/explain — request validation', () => {
   it('returns 400 for missing planId', async () => {
-    const res = await agent
-      .post('/plans/explain')
-      .set('x-user-id', TEST_USER_ID)
-      .send({});
+    const res = await withAuth(agent.post('/plans/explain')).send({});
     assert.equal(res.status, 400);
     assert.equal(res.body.error?.code, 'VALIDATION_ERROR');
   });
 
   it('returns 400 for non-UUID planId', async () => {
-    const res = await agent
-      .post('/plans/explain')
-      .set('x-user-id', TEST_USER_ID)
-      .send({ planId: 'plain-string' });
+    const res = await withAuth(agent.post('/plans/explain')).send({ planId: 'plain-string' });
     assert.equal(res.status, 400);
     assert.equal(res.body.error?.code, 'VALIDATION_ERROR');
   });
@@ -640,10 +612,7 @@ describe('G. LLM self-eval disabled by default', () => {
 
 describe('H. Response envelope', () => {
   it('validation error response has success:false and error.code', async () => {
-    const res = await agent
-      .post('/ai/ask')
-      .set('x-user-id', TEST_USER_ID)
-      .send({ question: '' });
+    const res = await withAuth(agent.post('/ai/ask')).send({ question: '' });
     assert.equal(res.body.success, false);
     assert.ok(res.body.error, 'error field must be present');
     assert.ok(typeof res.body.error.code === 'string', 'error.code must be a string');

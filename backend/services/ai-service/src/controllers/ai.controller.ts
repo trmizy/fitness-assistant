@@ -84,7 +84,12 @@ export const aiController = {
         await tokenTick(TOKEN_INTERVAL_MS);
       }
 
-      sendEvent('done', { conversationId: result.conversationId });
+      sendEvent('done', {
+        conversationId: result.conversationId,
+        evidenceUsed: result.evidenceUsed ?? [],
+        adjustmentReasons: result.adjustmentReasons ?? [],
+        safetyNotes: result.safetyNotes ?? [],
+      });
     } catch (err) {
       aiCoachQueriesTotal.inc({ status: 'failure' });
       aiCoachQueryDuration.observe((Date.now() - startTime) / 1000);

@@ -10,6 +10,7 @@ const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'nomic-embed-text';
 
 const qdrantClient = new QdrantClient({
   url: `http://${QDRANT_HOST}:${QDRANT_PORT}`,
+  checkCompatibility: false,
 });
 
 async function generateEmbedding(text: string): Promise<number[]> {

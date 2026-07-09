@@ -1,13 +1,13 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { conversationRepository, PlanStatus } from '../repositories/conversation.repository';
 import { llmService } from './llm.service';
-import { aiQueue } from '../workers/ai.worker';
+import { aiQueue } from '../workers/ai.queue';
 import type { GenerateWorkoutRequest } from '../schemas/ai.schemas';
 import type { GeneratePlanRequest as PlanGenerateRequest } from '../schemas/plan.schemas';
 import { ApiError, LlmGenerationError } from '../errors/api-error';
 
-// ── Quick-workout exercise schema (simpler than full plan) ────────────────────
+// Quick-workout exercise schema, simpler than the full multi-week plan.
 const QuickExerciseSchema = z.object({
   name: z.string().min(1).max(200),
   sets: z.number().int().min(1).max(10),
@@ -186,7 +186,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     return { planId: newPlan.id, jobId: job.id!, version: newVersion, status: PlanStatus.QUEUED };
   },
 
-  // ── Nutrition Plan ────────────────────────────────────────────────────────────
+  // Nutrition plan queueing.
 
   async queueNutritionPlanGeneration(params: {
     userId: string;
@@ -221,7 +221,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
 
     const plan = await conversationRepository.createNutritionPlan({
       userId,
-      name: `Kế hoạch dinh dưỡng – ${goal}`,
+      name: `Ke hoach dinh duong - ${goal}`,
       goal,
       durationWeeks,
       mealsPerDay,

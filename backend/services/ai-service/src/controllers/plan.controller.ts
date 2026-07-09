@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import axios, { AxiosError } from 'axios';
 import { logger, aiPlanGenerationsTotal } from '@gym-coach/shared';
-import { aiQueue } from '../workers/ai.worker';
+import { aiQueue } from '../workers/ai.queue';
 import { conversationService } from '../services/conversation.service';
 import { conversationRepository, prisma, PlanStatus } from '../repositories/conversation.repository';
 import { llmService } from '../services/llm.service';
@@ -337,13 +337,26 @@ export const planController = {
         return;
       }
 
+      let status = dbPlan?.status ?? bullState ?? 'UNKNOWN';
+      let failReason = dbPlan?.failReason ?? null;
+
+      if (
+        dbPlan &&
+        bullState === 'failed' &&
+        (dbPlan.status === PlanStatus.QUEUED || dbPlan.status === PlanStatus.PROCESSING)
+      ) {
+        status = PlanStatus.FAILED;
+        failReason = bullJob?.failedReason || dbPlan.failReason || 'AI plan generation job failed before completion';
+        await conversationRepository.updatePlanFailed(dbPlan.id, failReason);
+      }
+
       res.json(
         formatSuccessResponse({
           jobId,
           planId: dbPlan?.id ?? null,
-          status: dbPlan?.status ?? bullState ?? 'UNKNOWN',
+          status,
           plan: dbPlan?.status === PlanStatus.COMPLETED ? dbPlan.plan : null,
-          failReason: dbPlan?.failReason ?? null,
+          failReason,
           createdAt: dbPlan?.createdAt ?? null,
           updatedAt: dbPlan?.updatedAt ?? null,
         }),

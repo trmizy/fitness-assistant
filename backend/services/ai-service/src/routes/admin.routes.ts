@@ -23,4 +23,11 @@ router.get('/queue', adminController.getQueue);
 /** GET /admin/ai/errors — failed plans + high-warning conversations */
 router.get('/errors', adminController.getErrors);
 
+router.get('/knowledge', adminController.getKnowledgePipeline);
+router.post('/knowledge/jobs/:kind', adminController.enqueueKnowledgePipeline);
+router.post('/knowledge/review/:reviewId/approve', adminController.approveKnowledgeReviewItem);
+router.post('/knowledge/review/:reviewId/reject', adminController.rejectKnowledgeReviewItem);
+router.post('/knowledge/schedule', adminController.scheduleKnowledgePipeline);
+router.delete('/knowledge/schedule', adminController.clearKnowledgeSchedule);
+
 export default router;

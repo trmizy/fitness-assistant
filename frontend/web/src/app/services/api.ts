@@ -22,6 +22,21 @@ type RetriableRequestConfig = {
   url?: string;
 };
 
+export interface CoachEvidenceItem {
+  title: string;
+  source_url: string;
+  category: string;
+  source_type: string;
+  summary: string;
+}
+
+export interface CoachStreamDonePayload {
+  conversationId?: string;
+  evidenceUsed?: CoachEvidenceItem[];
+  adjustmentReasons?: unknown[];
+  safetyNotes?: string[];
+}
+
 const refreshClient = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -340,6 +355,14 @@ export const workoutService = {
     return data?.data ?? data;
   },
 
+  completeScheduleExercise: async (
+    scheduleId: string,
+    programExerciseId: string,
+  ): Promise<WorkoutExerciseCompletionResponse> => {
+    const { data } = await api.post(`/workouts/schedules/${scheduleId}/exercises/${programExerciseId}/complete`);
+    return data?.data ?? data;
+  },
+
   createManualProgram: async (input: {
     name: string;
     goal?: string | null;
@@ -440,6 +463,7 @@ export interface WorkoutPlanRecord {
 }
 
 export interface WorkoutScheduleExerciseRecord {
+  id: string;
   order: number;
   sets: number;
   reps: number | null;
@@ -494,6 +518,24 @@ export interface WorkoutScheduleRecord {
   exerciseCount?: number;
   programDay?: WorkoutScheduleProgramDayRecord | null;
   workout?: { id?: string } | null;
+}
+
+export interface WorkoutExerciseCompletionResponse {
+  sessionId: string | null;
+  workoutId: string | null;
+  planId: string | null;
+  dayId: string | null;
+  exerciseId?: string | null;
+  programExerciseId?: string | null;
+  exerciseCompleted?: boolean;
+  completedExercises: number;
+  totalExercises: number;
+  completedSets: number;
+  totalSets: number;
+  progressPercent: number;
+  sessionStatus: 'not_started' | 'in_progress' | 'completed';
+  dayStatus: 'not_started' | 'in_progress' | 'completed';
+  completedAt: string | null;
 }
 
 export interface PlanJobResponse {
@@ -870,7 +912,7 @@ export const coachService = {
     callbacks: {
       onStatus: (status: string) => void;
       onToken: (token: string) => void;
-      onDone: () => void;
+      onDone: (payload: CoachStreamDonePayload) => void;
       onError: (message: string) => void;
     },
   ): () => void {
@@ -926,17 +968,17 @@ export const coachService = {
           for (const line of lines) {
             if (!line.startsWith('data: ')) continue;
             try {
-              const event = JSON.parse(line.slice(6)) as Record<string, string>;
+              const event = JSON.parse(line.slice(6)) as Record<string, unknown>;
               if (event['type'] === 'status') {
-                callbacks.onStatus(event['message'] ?? '');
+                callbacks.onStatus(typeof event['message'] === 'string' ? event['message'] : '');
               } else if (event['type'] === 'token') {
-                callbacks.onToken(event['content'] ?? '');
+                callbacks.onToken(typeof event['content'] === 'string' ? event['content'] : '');
               } else if (event['type'] === 'done') {
                 receivedFinalEvent = true;
-                callbacks.onDone();
+                callbacks.onDone(event as CoachStreamDonePayload);
               } else if (event['type'] === 'error') {
                 receivedFinalEvent = true;
-                callbacks.onError(event['message'] ?? 'Unknown error');
+                callbacks.onError(typeof event['message'] === 'string' ? event['message'] : 'Unknown error');
               }
             } catch {
               // Ignore malformed SSE lines.
@@ -1094,6 +1136,45 @@ export const adminService = {
 
   getAIErrors: async () => {
     const { data } = await api.get('/admin/ai/errors');
+    return data;
+  },
+
+  getAIKnowledgePipeline: async () => {
+    const { data } = await api.get('/admin/ai/knowledge');
+    return data;
+  },
+
+  enqueueAIKnowledgeJob: async (
+    kind: 'local' | 'pubmed' | 'rss' | 'web',
+    params?: {
+      embed?: boolean;
+      force?: boolean;
+      limit?: number;
+      query?: string;
+      sourceId?: string;
+    },
+  ) => {
+    const { data } = await api.post(`/admin/ai/knowledge/jobs/${kind}`, params ?? {});
+    return data;
+  },
+
+  approveAIKnowledgeReview: async (reviewId: string, params?: { embed?: boolean }) => {
+    const { data } = await api.post(`/admin/ai/knowledge/review/${reviewId}/approve`, params ?? {});
+    return data;
+  },
+
+  rejectAIKnowledgeReview: async (reviewId: string, params?: { reason?: string }) => {
+    const { data } = await api.post(`/admin/ai/knowledge/review/${reviewId}/reject`, params ?? {});
+    return data;
+  },
+
+  scheduleAIKnowledgePipeline: async () => {
+    const { data } = await api.post('/admin/ai/knowledge/schedule', {});
+    return data;
+  },
+
+  clearAIKnowledgeSchedule: async () => {
+    const { data } = await api.delete('/admin/ai/knowledge/schedule');
     return data;
   },
 };

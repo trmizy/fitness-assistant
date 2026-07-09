@@ -14,7 +14,9 @@
     "db:seed": "./node_modules/.bin/tsx prisma/seed_exercises_json.ts",
     "db:seed:legacy": "tsx prisma/seed.ts",
     "db:process-usda": "tsx prisma/process-usda.ts",
-    "workout:test:completion": "tsx src/scripts/testWorkoutCompletion.ts"
+    "test": "tsx --test src/__tests__/*.test.ts",
+    "workout:test:completion": "tsx src/scripts/testWorkoutCompletion.ts",
+    "workout:check-consistency": "tsx src/scripts/checkWorkoutConsistency.ts"
   },
   "dependencies": {
     "@gym-coach/shared": "workspace:*",

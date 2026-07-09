@@ -43,7 +43,7 @@ function normalizePlanMealItem(item: any) {
     logItemId: null,
     foodId: item.foodId ?? item.food?.id ?? null,
     customFoodName: item.customFoodName ?? null,
-    foodName: item.customFoodName || item.food?.name || 'Món ăn',
+    foodName: item.customFoodName || item.food?.name || 'Mon an',
     quantity: item.quantity ?? 100,
     unit: item.unit ?? 'g',
     calories: item.calories ?? 0,
@@ -110,7 +110,7 @@ export const nutritionService = {
     return { message: 'Nutrition log deleted' };
   },
 
-  // PATCH /nutrition/:id â€” owner-only partial update of a snapshot row.
+  // PATCH /nutrition/:id - owner-only partial update of a snapshot row.
   // NutritionLog stores macros directly (not auto-computed from Food), so we accept
   // edits on the snapshot fields consistent with create. We do NOT recompute macros.
   async updateLog(id: string, userId: string, data: any) {
@@ -260,7 +260,7 @@ export const nutritionService = {
 
   /**
    * Delete a planned meal from the program.
-   * COMPLETED or PARTIAL → blocked. PENDING / SKIPPED → allowed.
+   * COMPLETED or PARTIAL -> blocked. PENDING / SKIPPED -> allowed.
    */
   async deletePlanMeal(mealId: string, userId: string) {
     const { prisma } = await import('../repositories/prisma');
@@ -269,14 +269,14 @@ export const nutritionService = {
       where: { id: mealId },
       include: { day: { include: { program: { select: { userId: true } } } } },
     });
-    if (!meal) throw { status: 404, message: 'Bữa ăn không tồn tại' };
-    if ((meal as any).day?.program?.userId !== userId) throw { status: 403, message: 'Không có quyền' };
+    if (!meal) throw { status: 404, message: 'Meal not found' };
+    if ((meal as any).day?.program?.userId !== userId) throw { status: 403, message: 'Forbidden' };
 
     const blockedCompletion = await prisma.nutritionMealCompletion.findFirst({
       where: { mealId, userId, status: { in: ['COMPLETED', 'PARTIAL'] } },
     });
     if (blockedCompletion) {
-      throw { status: 409, message: 'Không thể xoá bữa ăn đã thực hiện. Lịch sử ăn uống cần được giữ lại.' };
+      throw { status: 409, message: 'Cannot delete a meal that already has consumption history.' };
     }
 
     await prisma.nutritionMealCompletion.deleteMany({ where: { mealId, userId } });
@@ -286,14 +286,14 @@ export const nutritionService = {
 
   /**
    * Deactivate / archive the active nutrition program with business-rule enforcement.
-   * - No COMPLETED/PARTIAL meals → full archive, remove pending completions
-   * - Any COMPLETED/PARTIAL meal → soft archive only (keep history)
+   * - No COMPLETED/PARTIAL meals -> full archive, remove pending completions
+   * - Any COMPLETED/PARTIAL meal -> soft archive only (keep history)
    */
   async deactivateNutritionProgram(programId: string, userId: string) {
     const { prisma } = await import('../repositories/prisma');
 
     const program = await prisma.nutritionProgram.findFirst({ where: { id: programId, userId } });
-    if (!program) throw { status: 404, message: 'Kế hoạch dinh dưỡng không tồn tại' };
+    if (!program) throw { status: 404, message: 'Nutrition plan not found' };
 
     const completedOrPartial = await prisma.nutritionMealCompletion.findFirst({
       where: { userId, status: { in: ['COMPLETED', 'PARTIAL'] }, meal: { day: { programId } } },
@@ -377,7 +377,7 @@ export const nutritionService = {
   /**
    * Map a calendar date to a day number within the plan.
    * Returns null if the date is before startDate OR after the last plan day.
-   * Does NOT cycle — each plan day is tied to a specific calendar date.
+   * Does NOT cycle - each plan day is tied to a specific calendar date.
    * @param totalDays - number of days in the plan (e.g. 7)
    */
   getDayNumberForDate(startDate: Date, selectedDate: Date, totalDays: number): number | null {
@@ -386,7 +386,7 @@ export const nutritionService = {
     const diffDays = Math.round((selMs - startMs) / (1000 * 60 * 60 * 24));
     if (diffDays < 0) return null;           // before plan starts
     if (diffDays >= totalDays) return null;  // after plan ends (e.g. day 8+ for a 7-day plan)
-    return diffDays + 1;                     // Day 1 … Day N
+    return diffDays + 1;                     // Day 1 ... Day N
   },
 
   /** Return today's (or any date's) nutrition task from the active program. */
@@ -457,7 +457,7 @@ export const nutritionService = {
       const endMs = Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
       if (selMs > endMs) {
         const programSummary = { id: program.id, name: program.name, goal: program.goal, dailyCaloriesTarget: program.dailyCaloriesTarget, proteinTargetGrams: program.proteinTargetGrams, carbTargetGrams: program.carbTargetGrams, fatTargetGrams: program.fatTargetGrams };
-        return { hasProgram: true, date: dateStr, program: programSummary, day: null, meals: [], actualProgress: null, outOfRange: true, message: 'Kế hoạch dinh dưỡng đã kết thúc vào ngày này.' };
+        return { hasProgram: true, date: dateStr, program: programSummary, day: null, meals: [], actualProgress: null, outOfRange: true, message: 'Nutrition plan has ended for this date.' };
       }
     }
 
@@ -491,8 +491,8 @@ export const nutritionService = {
         actualProgress: null,
         outOfRange: true,
         message: isBeforeStart
-          ? 'Kế hoạch chưa bắt đầu vào ngày này.'
-          : `Ngày này nằm ngoài phạm vi ${totalDays} ngày của kế hoạch dinh dưỡng. Bật "Lặp lại thực đơn" để áp dụng chu kỳ.`,
+          ? 'Nutrition plan has not started on this date.'
+          : `This date is outside the ${totalDays}-day nutrition plan range. Enable repeat menu to apply the cycle.`,
       };
     }
 
@@ -595,7 +595,7 @@ export const nutritionService = {
       ...dailyLogs.map(normalizeLogMealItem),
     ]);
 
-    // percentConsumed can be 0–999 (e.g. 120 = ate 20% more than planned)
+    // percentConsumed can be 0-999 (e.g. 120 = ate 20% more than planned)
     const rawPct = body.status === 'SKIPPED' ? 0
       : body.status === 'PARTIAL' ? Math.max(0, body.percentConsumed ?? 50)
       : body.status === 'COMPLETED' ? (body.percentConsumed ?? 100)
@@ -608,13 +608,13 @@ export const nutritionService = {
     let consumedFat: number;
 
     if (body.overrideCalories !== undefined && body.overrideCalories >= 0) {
-      // User entered actual calories directly — use overrides, compute pct from calories
+      // User entered actual calories directly - use overrides, compute pct from calories
       consumedCalories = Math.round(body.overrideCalories);
       consumedProtein  = body.overrideProtein  !== undefined ? Math.round(body.overrideProtein  * 10) / 10 : 0;
       consumedCarbs    = body.overrideCarbs    !== undefined ? Math.round(body.overrideCarbs    * 10) / 10 : 0;
       consumedFat      = body.overrideFat      !== undefined ? Math.round(body.overrideFat      * 10) / 10 : 0;
     } else {
-      // Percentage mode — multiply planned macros by factor
+      // Percentage mode - multiply planned macros by factor
       const factor = pct / 100;
       consumedCalories = Math.round((mealTotals.calories ?? 0) * factor);
       consumedProtein  = roundMacro((mealTotals.protein ?? 0) * factor);
@@ -670,10 +670,10 @@ export const nutritionService = {
     const { prisma } = await import('../repositories/prisma');
 
     if (payload.durationWeeks !== 1) {
-      throw { status: 400, message: 'Kế hoạch dinh dưỡng AI hiện chỉ hỗ trợ tối đa 1 tuần.' };
+      throw { status: 400, message: 'AI nutrition plans currently support up to 1 week.' };
     }
     if (!Array.isArray(payload.weeklySchedule) || payload.weeklySchedule.length !== 7) {
-      throw { status: 400, message: 'Kế hoạch dinh dưỡng phải có đúng 7 ngày.' };
+      throw { status: 400, message: 'Nutrition plan must contain exactly 7 days.' };
     }
 
     const foodIds = Array.from(new Set(
@@ -711,7 +711,7 @@ export const nutritionService = {
           createdDayCount: 0,
           createdMealCount: 0,
           createdItemCount: 0,
-          message: 'Kế hoạch này đã được lưu trước đó.',
+          message: 'This plan was already saved.',
         };
       }
 
@@ -752,7 +752,7 @@ export const nutritionService = {
           data: {
             programId: program.id,
             dayNumber: Number(dayPayload.dayNumber ?? dayPayload.day ?? dayIndex + 1),
-            title: (dayPayload.title || `Ngày ${dayIndex + 1}`).normalize('NFC'),
+            title: (dayPayload.title || `Day ${dayIndex + 1}`).normalize('NFC'),
             totalCalories: dayPayload.totalCalories ?? dayPayload.dailyCaloriesTarget,
             proteinGrams: dayPayload.protein ?? dayPayload.proteinGrams ?? dayPayload.proteinTargetGrams,
             carbGrams: dayPayload.carbs ?? dayPayload.carbGrams ?? dayPayload.carbTargetGrams,
@@ -762,7 +762,7 @@ export const nutritionService = {
         createdDayCount += 1;
 
         if (!Array.isArray(dayPayload.meals) || dayPayload.meals.length === 0) {
-          throw { status: 400, message: 'Mỗi ngày trong kế hoạch dinh dưỡng phải có bữa ăn.' };
+          throw { status: 400, message: 'Each nutrition plan day must include meals.' };
         }
 
         for (const mealPayload of dayPayload.meals) {
@@ -781,7 +781,7 @@ export const nutritionService = {
           createdMealCount += 1;
 
           if (!Array.isArray(mealPayload.items) || mealPayload.items.length === 0) {
-            throw { status: 400, message: 'Mỗi bữa ăn trong kế hoạch dinh dưỡng phải có thực phẩm.' };
+            throw { status: 400, message: 'Each nutrition plan meal must include foods.' };
           }
 
           for (const itemPayload of mealPayload.items) {
@@ -811,9 +811,8 @@ export const nutritionService = {
         createdMealCount,
         createdItemCount,
         alreadyExists: false,
-        message: 'Đã lưu kế hoạch dinh dưỡng thành công.',
+        message: 'Nutrition plan saved successfully.',
       };
     });
   },
 };
-

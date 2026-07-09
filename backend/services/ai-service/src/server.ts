@@ -4,6 +4,7 @@ dotenv.config();
 import app, { setQdrantAvailable } from './app';
 import { prisma } from './repositories/conversation.repository';
 import { aiWorker } from './workers/ai.worker';
+import { closeAiQueue } from './workers/ai.queue';
 import { logger } from '@gym-coach/shared';
 import { getQdrantClient } from './repositories/qdrant';
 
@@ -43,5 +44,6 @@ process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
   await prisma.$disconnect();
   await aiWorker.close();
+  await closeAiQueue();
   process.exit(0);
 });

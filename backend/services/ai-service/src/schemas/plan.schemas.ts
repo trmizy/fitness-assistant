@@ -22,6 +22,12 @@ function asBoundedInt(value: unknown, fallback: number, min: number, max: number
   return int;
 }
 
+function asIntOrFallback(value: unknown, fallback: number): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.trunc(n);
+}
+
 function normalizeTextKey(value: string): string {
   return value
     .toLowerCase()
@@ -130,10 +136,10 @@ function normalizePlanCandidate(parsed: unknown): unknown {
 
   const normalizedGoal = asNonEmptyString(wrapped.goal, asNonEmptyString(wrapped.name, 'General fitness'));
   normalized.goal = normalizedGoal;
-  normalized.durationWeeks = asBoundedInt(wrapped.durationWeeks ?? wrapped.duration, 4, 1, 52);
-  normalized.daysPerWeek = asBoundedInt(wrapped.daysPerWeek, 3, 1, 7);
+  normalized.durationWeeks = asIntOrFallback(wrapped.durationWeeks ?? wrapped.duration, 4);
+  normalized.daysPerWeek = asIntOrFallback(wrapped.daysPerWeek, 3);
   if (wrapped.exercisesPerDay !== undefined) {
-    normalized.exercisesPerDay = asBoundedInt(wrapped.exercisesPerDay, 4, 1, 8);
+    normalized.exercisesPerDay = asIntOrFallback(wrapped.exercisesPerDay, 4);
   }
 
   const schedule = Array.isArray(wrapped.weeklySchedule)
@@ -495,6 +501,7 @@ Training days per week: ${daysPerWeek}
 Exercises per training day: ${exercisesPerDay}
 ${locationNote}${adjustNote}
 ${goalInstruction}
+Exercise source policy: use ONLY the exercise catalog supplied by fitness-service DB. Do NOT use Qdrant/RAG exercise documents when selecting AI Plan exercises.
 ${evidenceContext?.bodyCompText ? `\n=== BODY COMPOSITION ANALYSIS (RULE ENGINE) ===\n${evidenceContext.bodyCompText}\n=== END BODY COMPOSITION ANALYSIS ===\n` : ''}
 ${evidenceContext?.evidenceText ? `\n=== RETRIEVED FITNESS EVIDENCE (ALLOWED SOURCES ONLY) ===\n${evidenceContext.evidenceText}\n=== END RETRIEVED FITNESS EVIDENCE ===\n` : ''}
 ${exerciseCatalogText}

@@ -3,16 +3,60 @@ import { llmService } from '../services/llm.service';
 import { getQdrantClient } from '../repositories/qdrant';
 import type { RetrievalDocument, RetrievalResult } from './types';
 
-// fitness_evidence = ingested research papers + NHANES norms (may not exist yet — handled gracefully)
-const COLLECTIONS = ['exercises', 'fitness_knowledge', 'fitness_faq', 'fitness_evidence'];
+// Chat may use semantic exercise data. AI Plan generation must not use the
+// Qdrant exercises collection for exercise selection; it receives exercises
+// only from fitness-service DB catalogs and may retrieve evidence only.
+const CHAT_COLLECTIONS = ['exercises', 'fitness_knowledge', 'fitness_faq', 'fitness_evidence'] as const;
+const PLAN_EVIDENCE_COLLECTIONS = ['fitness_evidence'] as const;
+export const RETRIEVER_COLLECTION_SCOPES = {
+  chat: CHAT_COLLECTIONS,
+  planEvidence: PLAN_EVIDENCE_COLLECTIONS,
+} as const;
 const MIN_SCORE = Number(process.env.RAG_MIN_SCORE || '0.35');
 const TOP_K = Number(process.env.RAG_TOP_K || '5');
-// Max chars for instructions field — long how-to text bloats the prompt without adding value for the LLM
+const DEBUG_RAG = process.env.DEBUG_RAG === 'true';
+// Max chars for instructions field - long how-to text bloats the prompt without adding value for the LLM
 const INSTRUCTION_MAX_CHARS = 120;
+
+function safeQueryPreview(query: string): string {
+  return query
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email]')
+    .replace(/\b\d{8,}\b/g, '[number]')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 140);
+}
+
+function debugRag(event: string, data: Record<string, unknown>): void {
+  if (!DEBUG_RAG) return;
+  logger.debug(data, event);
+}
+
+function readPayloadString(payload: Record<string, unknown>, keys: string[], fallback = ''): string {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return fallback;
+}
+
+function readPayloadUrl(payload: Record<string, unknown>): string | null {
+  const value = readPayloadString(payload, ['source_url', 'url', 'base_url']);
+  return /^https?:\/\//i.test(value) ? value : null;
+}
+
+function foldVietnameseForQuery(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd');
+}
 
 function expandQueries(question: string): string[] {
   const variants = new Set<string>([question]);
-  const q = question.toLowerCase();
+  const q = foldVietnameseForQuery(question);
 
   if (/(fat loss|giam mo|siet mo|giam can)/i.test(q)) {
     variants.add(`${question} calorie deficit high protein`);
@@ -27,33 +71,37 @@ function expandQueries(question: string): string[] {
     variants.add(`${question} bodyweight dumbbell resistance band`);
   }
   // Body composition evidence queries
-  if (/(body fat|mo co the|beo phi|bodyfat|inbody|BIA|bia)/i.test(q)) {
+  if (/(body fat|mo co the|beo phi|bodyfat|inbody|bia)/i.test(q)) {
     variants.add(`${question} body fat percentage BMI body composition assessment`);
   }
-  if (/(bmi|can nang|weight|cân nặng)/i.test(q)) {
+  if (/(bmi|can nang|weight)/i.test(q)) {
     variants.add(`${question} BMI body weight body composition interpretation`);
   }
   if (/(protein|dam|macros)/i.test(q)) {
     variants.add(`${question} protein intake muscle resistance training g/kg`);
   }
-  if (/(beginner|moi bat dau|người mới)/i.test(q)) {
+  if (/(beginner|moi bat dau|nguoi moi)/i.test(q)) {
     variants.add(`${question} beginner progressive overload training volume frequency`);
   }
 
-  // Muscle group expansions for better English-centric embedding retrieval
-  if (/(ng[uự]c|chest)/i.test(q)) variants.add(`${question} chest pectorals`);
-  if (/(l[uư]ng|x[oô]|back)/i.test(q)) variants.add(`${question} back lats`);
+  // Muscle group expansions for better English-centric embedding retrieval.
+  if (/(nguc|chest)/i.test(q)) variants.add(`${question} chest pectorals`);
+  if (/(lung|xo|back)/i.test(q)) variants.add(`${question} back lats`);
   if (/(vai|shoulder)/i.test(q)) variants.add(`${question} shoulders deltoids`);
-  if (/(tay tr[uướ]c|biceps)/i.test(q)) variants.add(`${question} biceps arms`);
+  if (/(tay truoc|biceps)/i.test(q)) variants.add(`${question} biceps arms`);
   if (/(tay sau|triceps)/i.test(q)) variants.add(`${question} triceps arms`);
-  if (/(m[oô]ng|glutes)/i.test(q)) variants.add(`${question} glutes`);
-  if (/(đ[uù]i|ch[aâ]n|legs)/i.test(q)) variants.add(`${question} legs quadriceps hamstrings`);
-  if (/(b[uụ]ng|core)/i.test(q)) variants.add(`${question} abs core`);
+  if (/(mong|glutes)/i.test(q)) variants.add(`${question} glutes`);
+  if (/(dui|chan|legs)/i.test(q)) variants.add(`${question} legs quadriceps hamstrings`);
+  if (/(bung|core)/i.test(q)) variants.add(`${question} abs core`);
 
   return Array.from(variants);
 }
-
-function docFromPayload(collection: string, payload: Record<string, unknown>, score: number, id: string): RetrievalDocument {
+export function retrievalDocumentFromPayload(
+  collection: string,
+  payload: Record<string, unknown>,
+  score: number,
+  id: string,
+): RetrievalDocument {
   if (collection === 'exercises') {
     const exerciseName = String(payload.exerciseName || 'Unknown exercise');
     const typeOfActivity = String(payload.typeOfActivity || 'unknown');
@@ -63,7 +111,7 @@ function docFromPayload(collection: string, payload: Record<string, unknown>, sc
     const muscles = String(payload.muscleGroupsActivated || 'unknown');
     const rawInstructions = String(payload.instructions || 'No instructions');
     const instructions = rawInstructions.length > INSTRUCTION_MAX_CHARS
-      ? rawInstructions.slice(0, INSTRUCTION_MAX_CHARS) + '…'
+      ? rawInstructions.slice(0, INSTRUCTION_MAX_CHARS) + '...'
       : rawInstructions;
 
     return {
@@ -108,26 +156,42 @@ function docFromPayload(collection: string, payload: Record<string, unknown>, sc
   }
   
   if (collection === 'fitness_evidence') {
+    const title = readPayloadString(payload, ['title'], 'Untitled evidence');
+    const sourceType = readPayloadString(payload, ['source_type', 'sourceType'], 'curated_summary');
+    const category = readPayloadString(payload, ['category', 'topic'], 'body_composition').toLowerCase();
+    const evidenceLevel = readPayloadString(payload, ['evidence_level', 'evidenceLevel'], 'unknown');
+    const content = readPayloadString(payload, ['content', 'text', 'clean_text']);
+    const sourceUrl = readPayloadUrl(payload);
+
     return {
       id: `${collection}_${id}`,
       pageContent: [
-        `[${payload.source_type ?? 'evidence'}] ${payload.title}`,
-        `Category: ${payload.category} | Evidence level: ${payload.evidence_level}`,
-        String(payload.content ?? ''),
+        `[${sourceType}] ${title}`,
+        `Category: ${category} | Evidence level: ${evidenceLevel}`,
+        content,
       ].join('\n'),
       score,
       source: `qdrant:${collection}`,
-      category: String(payload.category || 'body_composition'),
+      category,
       metadata: {
-        title:             String(payload.title ?? ''),
-        source_url:        payload.source_url != null ? String(payload.source_url) : null,
-        source_type:       String(payload.source_type ?? 'curated_summary'),
-        evidence_level:    String(payload.evidence_level ?? 'unknown'),
+        title,
+        source_url:        sourceUrl,
+        source_type:       sourceType,
+        evidence_level:    evidenceLevel,
+        category,
+        topic:             readPayloadString(payload, ['topic'], category.toUpperCase()),
         tags:              Array.isArray(payload.tags) ? payload.tags : [],
-        created_from:      'external_evidence_dataset',
+        created_from:      String(payload.created_from ?? 'external_evidence_dataset'),
         source_file:       String(payload.source_file ?? 'data/processed/evidence'),
         chunk_id:          String(payload.chunk_id ?? id),
         extraction_method: String(payload.extraction_method ?? 'knowledge_curated'),
+        document_id:       payload.document_id != null ? String(payload.document_id) : null,
+        source_name:       payload.source_name != null ? String(payload.source_name) : null,
+        source_tier:       payload.source_tier,
+        trust_score:       payload.trust_score,
+        quality_score:     payload.quality_score,
+        language:          payload.language != null ? String(payload.language) : null,
+        published_at:      payload.published_at != null ? String(payload.published_at) : null,
       },
     };
   }
@@ -157,13 +221,21 @@ function dedupeAndSort(docs: RetrievalDocument[]): RetrievalDocument[] {
 
 async function searchCollection(collection: string, vector: number[]): Promise<RetrievalDocument[]> {
   try {
-    const results = await getQdrantClient().search(collection, { vector, limit: TOP_K });
+    const results = await getQdrantClient().search(collection, { vector, limit: TOP_K, with_payload: true });
     const docs: RetrievalDocument[] = [];
     for (const item of results) {
       const payload = (item.payload || {}) as Record<string, unknown>;
       const score = typeof item.score === 'number' ? item.score : 0;
-      if (score >= MIN_SCORE) docs.push(docFromPayload(collection, payload, score, String(item.id)));
+      if (score >= MIN_SCORE) docs.push(retrievalDocumentFromPayload(collection, payload, score, String(item.id)));
     }
+    debugRag('RAG collection search completed', {
+      collection,
+      retrieved: docs.length,
+      rawMatches: results.length,
+      topScore: results[0]?.score,
+      documentIds: docs.slice(0, 3).map((doc) => doc.id),
+      sources: docs.slice(0, 3).map((doc) => doc.metadata.source_url || doc.metadata.source_file || doc.source),
+    });
     return docs;
   } catch (err) {
     logger.warn({ collection, err }, 'Failed to search collection (may not exist yet)');
@@ -182,9 +254,16 @@ export const retriever = {
 
     for (const query of queries.slice(0, 5)) {
       try {
+        debugRag('RAG evidence query started', {
+          scope: 'planEvidence',
+          queryPreview: safeQueryPreview(query),
+          collections: [...PLAN_EVIDENCE_COLLECTIONS],
+        });
         const vector = await llmService.generateEmbedding(query);
-        const docs = await searchCollection('fitness_evidence', vector);
-        collected.push(...docs);
+        const collectionResults = await Promise.all(
+          PLAN_EVIDENCE_COLLECTIONS.map((collection) => searchCollection(collection, vector)),
+        );
+        collected.push(...collectionResults.flat());
       } catch (err) {
         logger.debug({ err, query }, 'Evidence retrieval query failed');
       }
@@ -193,16 +272,23 @@ export const retriever = {
     return dedupeAndSort(collected).slice(0, 4);
   },
 
-  async retrieve(question: string): Promise<RetrievalResult> {
+  async retrieveForChat(question: string): Promise<RetrievalResult> {
     const queries = expandQueries(question);
+    debugRag('RAG chat query expanded', {
+      scope: 'chat',
+      queryCount: queries.length,
+      queryPreviews: queries.map(safeQueryPreview),
+      collections: [...CHAT_COLLECTIONS],
+    });
 
     const collected: RetrievalDocument[] = [];
     
-    // Search all variants across all collections concurrently
+    // Search all variants across chat collections concurrently. This is the
+    // only runtime path allowed to use qdrant:exercises.
     const searchPromises = queries.map(async (query) => {
       try {
         const vector = await llmService.generateEmbedding(query);
-        const collectionPromises = COLLECTIONS.map(col => searchCollection(col, vector));
+        const collectionPromises = CHAT_COLLECTIONS.map(col => searchCollection(col, vector));
         const collectionResults = await Promise.all(collectionPromises);
         return collectionResults.flat();
       } catch (err) {
@@ -231,5 +317,9 @@ export const retriever = {
       documents,
       isEmpty: false,
     };
+  },
+
+  async retrieve(question: string): Promise<RetrievalResult> {
+    return this.retrieveForChat(question);
   },
 };

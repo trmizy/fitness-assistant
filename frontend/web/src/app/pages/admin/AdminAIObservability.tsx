@@ -149,7 +149,57 @@ type ErrorsData = {
   }>;
 };
 
+type KnowledgeRun = {
+  id: string;
+  runType: string;
+  startedAt: string;
+  finishedAt: string | null;
+  docsCrawled: number;
+  docsAccepted: number;
+  docsRejected: number;
+  docsReview: number;
+  status: string;
+};
+
+type KnowledgeReviewItem = {
+  id: string;
+  documentId: string;
+  reason: string | null;
+  status: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  title: string | null;
+  url: string;
+  trustScore: number | null;
+  topic: string | null;
+  sourceName: string;
+};
+
+type KnowledgeData = {
+  generatedAt: string;
+  runs: KnowledgeRun[];
+  reviewItems: KnowledgeReviewItem[];
+  queue: {
+    name: string;
+    waiting: number | null;
+    active: number | null;
+    completed: number | null;
+    failed: number | null;
+    delayed: number | null;
+    repeatable: Array<{
+      key?: string;
+      id?: string;
+      name?: string;
+      pattern?: string;
+      cron?: string;
+      next?: number;
+    }>;
+  };
+};
+
 type FilterType = "all" | "fallback" | "slow" | "warnings";
+type AdminTab = "requests" | "queue" | "errors" | "knowledge";
+type KnowledgeJobKind = "local" | "pubmed" | "rss" | "web";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -191,6 +241,14 @@ const STATUS_COLORS: Record<string, string> = {
   PROCESSING: "text-blue-400 bg-blue-500/10",
   COMPLETED:  "text-green-400 bg-green-500/10",
   FAILED:     "text-red-400 bg-red-500/10",
+  RUNNING:    "text-blue-400 bg-blue-500/10",
+  SUCCESS:    "text-green-400 bg-green-500/10",
+  PENDING:    "text-amber-400 bg-amber-500/10",
+  APPROVED:   "text-green-400 bg-green-500/10",
+  REJECTED:   "text-red-400 bg-red-500/10",
+  REVIEW:     "text-amber-400 bg-amber-500/10",
+  SCORED:     "text-blue-400 bg-blue-500/10",
+  EMBEDDED:   "text-green-400 bg-green-500/10",
 };
 
 const INTENT_COLORS = [
@@ -250,6 +308,28 @@ const DEFAULT_ERRORS: ErrorsData = {
   failedPlans: [],
   highWarnConversations: [],
 };
+
+const DEFAULT_KNOWLEDGE: KnowledgeData = {
+  generatedAt: "",
+  runs: [],
+  reviewItems: [],
+  queue: {
+    name: "knowledge-pipeline",
+    waiting: 0,
+    active: 0,
+    completed: 0,
+    failed: 0,
+    delayed: 0,
+    repeatable: [],
+  },
+};
+
+const KNOWLEDGE_JOBS: Array<{ kind: KnowledgeJobKind; label: string; accent: string }> = [
+  { kind: "local", label: "Local", accent: "text-green-400 border-green-500/30 hover:bg-green-500/10" },
+  { kind: "pubmed", label: "PubMed", accent: "text-blue-400 border-blue-500/30 hover:bg-blue-500/10" },
+  { kind: "rss", label: "RSS", accent: "text-amber-400 border-amber-500/30 hover:bg-amber-500/10" },
+  { kind: "web", label: "Web", accent: "text-violet-400 border-violet-500/30 hover:bg-violet-500/10" },
+];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -444,10 +524,16 @@ export function AdminAIObservability() {
   const [requests, setRequests]       = useState<RequestsData | null>(null);
   const [queue, setQueue]             = useState<QueueData | null>(null);
   const [errors, setErrors]           = useState<ErrorsData | null>(null);
+  const [knowledge, setKnowledge]     = useState<KnowledgeData | null>(null);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [apiError, setApiError]       = useState<string | null>(null);
-  const [activeTab, setActiveTab]     = useState<"requests" | "queue" | "errors">("requests");
+  const [knowledgeError, setKnowledgeError] = useState<string | null>(null);
+  const [knowledgeBusy, setKnowledgeBusy] = useState<string | null>(null);
+  const [knowledgeEmbed, setKnowledgeEmbed] = useState(true);
+  const [knowledgeForce, setKnowledgeForce] = useState(false);
+  const [knowledgeLimit, setKnowledgeLimit] = useState(10);
+  const [activeTab, setActiveTab]     = useState<AdminTab>("requests");
   const [filter, setFilter]           = useState<FilterType>("all");
   const [page, setPage]               = useState(1);
   const [selectedId, setSelectedId]   = useState<string | null>(null);
@@ -458,17 +544,19 @@ export function AdminAIObservability() {
     else setLoading(true);
 
     try {
-      const [ovRes, rqRes, qRes, erRes] = await Promise.all([
+      const [ovRes, rqRes, qRes, erRes, kRes] = await Promise.all([
         adminService.getAIOverview(),
         adminService.getAIRequests({ filter: filter === "all" ? undefined : filter, page, limit: 20 }),
         adminService.getAIQueue(),
         adminService.getAIErrors(),
+        adminService.getAIKnowledgePipeline(),
       ]);
 
       const ovPayload = unwrapApiData<any>(ovRes);
       const rqPayload = unwrapApiData<any>(rqRes);
       const qPayload = unwrapApiData<any>(qRes);
       const erPayload = unwrapApiData<any>(erRes);
+      const kPayload = unwrapApiData<any>(kRes);
 
       if (ovRes?.success && ovPayload) {
         setOverview({
@@ -550,6 +638,23 @@ export function AdminAIObservability() {
         setErrors(DEFAULT_ERRORS);
       }
 
+      if (kRes?.success && kPayload) {
+        const knowledgeQueue = asObject(kPayload.queue, DEFAULT_KNOWLEDGE.queue);
+        setKnowledge({
+          ...DEFAULT_KNOWLEDGE,
+          ...kPayload,
+          runs: asArray(kPayload.runs),
+          reviewItems: asArray(kPayload.reviewItems),
+          queue: {
+            ...DEFAULT_KNOWLEDGE.queue,
+            ...knowledgeQueue,
+            repeatable: asArray(knowledgeQueue.repeatable),
+          },
+        });
+      } else {
+        setKnowledge(DEFAULT_KNOWLEDGE);
+      }
+
       setApiError(null);
     } catch (err: unknown) {
       setApiError((err as Error).message || "Failed to load observability data");
@@ -566,6 +671,19 @@ export function AdminAIObservability() {
   useEffect(() => {
     const t = setInterval(() => fetchAll(true), 30_000);
     return () => clearInterval(t);
+  }, [fetchAll]);
+
+  const runKnowledgeAction = useCallback(async (busyKey: string, action: () => Promise<unknown>) => {
+    setKnowledgeBusy(busyKey);
+    setKnowledgeError(null);
+    try {
+      await action();
+      await fetchAll(true);
+    } catch (err: unknown) {
+      setKnowledgeError((err as Error).message || "Knowledge pipeline action failed");
+    } finally {
+      setKnowledgeBusy(null);
+    }
   }, [fetchAll]);
 
   if (loading) {
@@ -717,15 +835,13 @@ export function AdminAIObservability() {
                 <div className="text-xs text-zinc-600 text-center py-4">No data yet</div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <ResponsiveContainer width={80} height={80}>
-                    <PieChart>
-                      <Pie data={ov.languages} dataKey="count" cx="50%" cy="50%" innerRadius={20} outerRadius={38}>
-                        {ov.languages.map((_, i) => (
-                          <Cell key={i} fill={i === 0 ? "#6366f1" : "#22c55e"} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <PieChart width={80} height={80}>
+                    <Pie data={ov.languages} dataKey="count" cx="50%" cy="50%" innerRadius={20} outerRadius={38}>
+                      {ov.languages.map((_, i) => (
+                        <Cell key={i} fill={i === 0 ? "#6366f1" : "#22c55e"} />
+                      ))}
+                    </Pie>
+                  </PieChart>
                   <div className="space-y-1">
                     {ov.languages.map((l, i) => (
                       <div key={l.language} className="flex items-center gap-2 text-xs">
@@ -768,7 +884,7 @@ export function AdminAIObservability() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-zinc-900/60 rounded-lg p-1 w-fit border border-zinc-800/60">
-        {(["requests", "queue", "errors"] as const).map((tab) => (
+        {(["requests", "queue", "errors", "knowledge"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -780,6 +896,8 @@ export function AdminAIObservability() {
           >
             {tab === "errors"
               ? `Errors${errors ? ` (${errors.failedPlans.length + errors.highWarnConversations.length})` : ""}`
+              : tab === "knowledge"
+              ? `Knowledge${knowledge ? ` (${knowledge.reviewItems.length})` : ""}`
               : tab === "queue"
               ? `Plan Queue${queue ? ` (${queue.plans.length})` : ""}`
               : "Requests"}
@@ -1064,6 +1182,238 @@ export function AdminAIObservability() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "knowledge" && knowledge && (
+        <div className="space-y-4">
+          {knowledgeError && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-300">
+              {knowledgeError}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {[
+              { label: "Waiting", value: knowledge.queue.waiting, color: "text-zinc-400" },
+              { label: "Active", value: knowledge.queue.active, color: "text-blue-400" },
+              { label: "Delayed", value: knowledge.queue.delayed, color: "text-amber-400" },
+              { label: "Completed", value: knowledge.queue.completed, color: "text-green-400" },
+              { label: "Failed", value: knowledge.queue.failed, color: "text-red-400" },
+            ].map((s) => (
+              <div key={s.label} className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4 text-center">
+                <div className={`text-2xl font-bold ${s.color}`}>
+                  {s.value !== null ? s.value.toLocaleString() : "-"}
+                </div>
+                <div className="text-xs text-zinc-500 mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-green-400" />
+                  <h3 className="text-sm font-semibold text-zinc-200">Knowledge Pipeline</h3>
+                </div>
+                <div className="text-[10px] text-zinc-600 mt-1 font-mono truncate">
+                  {knowledge.queue.name} - {knowledge.queue.repeatable.length} scheduled
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 lg:ml-auto">
+                <label className="flex items-center gap-2 text-xs text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={knowledgeEmbed}
+                    onChange={(e) => setKnowledgeEmbed(e.target.checked)}
+                    className="h-3.5 w-3.5 accent-green-500"
+                  />
+                  Embed
+                </label>
+                <label className="flex items-center gap-2 text-xs text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={knowledgeForce}
+                    onChange={(e) => setKnowledgeForce(e.target.checked)}
+                    className="h-3.5 w-3.5 accent-amber-500"
+                  />
+                  Force
+                </label>
+                <label className="flex items-center gap-2 text-xs text-zinc-400">
+                  Limit
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={knowledgeLimit}
+                    onChange={(e) => {
+                      const next = Number(e.target.value);
+                      setKnowledgeLimit(Number.isFinite(next) ? Math.max(1, Math.min(50, next)) : 10);
+                    }}
+                    className="w-16 bg-zinc-950 border border-zinc-700 rounded-md px-2 py-1 text-xs text-zinc-200 outline-none focus:border-green-500"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-4">
+              {KNOWLEDGE_JOBS.map((job) => {
+                const busyKey = `job:${job.kind}`;
+                const isBusy = knowledgeBusy === busyKey;
+                return (
+                  <button
+                    key={job.kind}
+                    disabled={knowledgeBusy !== null}
+                    onClick={() => runKnowledgeAction(
+                      busyKey,
+                      () => adminService.enqueueAIKnowledgeJob(job.kind, {
+                        embed: knowledgeEmbed,
+                        force: knowledgeForce,
+                        limit: knowledgeLimit,
+                      }),
+                    )}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-zinc-950 text-xs font-medium transition-colors disabled:opacity-50 ${job.accent}`}
+                  >
+                    {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                    {job.label}
+                  </button>
+                );
+              })}
+
+              <button
+                disabled={knowledgeBusy !== null}
+                onClick={() => runKnowledgeAction("schedule", () => adminService.scheduleAIKnowledgePipeline())}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-700 bg-zinc-950 text-xs font-medium text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              >
+                {knowledgeBusy === "schedule" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Clock className="w-3.5 h-3.5" />}
+                Schedule
+              </button>
+              <button
+                disabled={knowledgeBusy !== null}
+                onClick={() => runKnowledgeAction("clear-schedule", () => adminService.clearAIKnowledgeSchedule())}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/30 bg-zinc-950 text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              >
+                {knowledgeBusy === "clear-schedule" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                Clear
+              </button>
+            </div>
+
+            {knowledge.queue.repeatable.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {knowledge.queue.repeatable.slice(0, 4).map((job, index) => (
+                  <span key={job.key ?? `${job.name}-${index}`} className="text-[10px] text-zinc-500 bg-zinc-950 border border-zinc-800 rounded-full px-2 py-1">
+                    {job.name ?? job.id ?? "repeatable"} - {job.pattern ?? job.cron ?? "repeat"}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-400" />
+                <span className="text-sm font-semibold text-zinc-200">Recent Pipeline Runs</span>
+                <span className="ml-auto text-xs text-zinc-600">{knowledge.runs.length}</span>
+              </div>
+              {knowledge.runs.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-zinc-600">No pipeline runs yet.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-zinc-800/60">
+                        {["Status", "Type", "Crawled", "Accepted", "Review", "Rejected", "Started"].map((h) => (
+                          <th key={h} className="px-4 py-2.5 text-left text-zinc-600 font-medium whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/40">
+                      {knowledge.runs.map((run) => (
+                        <tr key={run.id} className="hover:bg-zinc-800/20">
+                          <td className="px-4 py-2.5"><StatusBadge status={run.status} /></td>
+                          <td className="px-4 py-2.5 text-zinc-300 whitespace-nowrap">{run.runType.replace(/_/g, " ")}</td>
+                          <td className="px-4 py-2.5 text-zinc-500">{run.docsCrawled}</td>
+                          <td className="px-4 py-2.5 text-green-400">{run.docsAccepted}</td>
+                          <td className="px-4 py-2.5 text-amber-400">{run.docsReview}</td>
+                          <td className="px-4 py-2.5 text-red-400">{run.docsRejected}</td>
+                          <td className="px-4 py-2.5 text-zinc-600 whitespace-nowrap">{formatTime(run.startedAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
+                <span className="text-sm font-semibold text-zinc-200">Review Queue</span>
+                <span className="ml-auto text-xs text-zinc-600">{knowledge.reviewItems.length}</span>
+              </div>
+              {knowledge.reviewItems.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto mb-1" />
+                  <div className="text-xs text-zinc-600">No knowledge items waiting for review.</div>
+                </div>
+              ) : (
+                <div className="divide-y divide-zinc-800/40">
+                  {knowledge.reviewItems.map((item) => (
+                    <div key={item.id} className="px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <StatusBadge status={item.status} />
+                            <span className="text-[10px] text-zinc-600">{item.sourceName}</span>
+                            {item.topic && <span className="text-[10px] text-violet-400">{item.topic}</span>}
+                          </div>
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block text-xs font-semibold text-zinc-200 hover:text-green-300 truncate"
+                          >
+                            {item.title ?? item.url}
+                          </a>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-zinc-600">
+                            <span>Trust: {item.trustScore !== null ? item.trustScore.toFixed(2) : "-"}</span>
+                            {item.reason && <span>{truncate(item.reason, 60)}</span>}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 gap-1.5">
+                          <button
+                            disabled={knowledgeBusy !== null}
+                            onClick={() => runKnowledgeAction(
+                              `approve:${item.id}`,
+                              () => adminService.approveAIKnowledgeReview(item.id, { embed: knowledgeEmbed }),
+                            )}
+                            className="flex items-center gap-1 px-2 py-1 rounded-md border border-green-500/30 text-[10px] font-medium text-green-400 hover:bg-green-500/10 disabled:opacity-50"
+                          >
+                            {knowledgeBusy === `approve:${item.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                            Approve
+                          </button>
+                          <button
+                            disabled={knowledgeBusy !== null}
+                            onClick={() => runKnowledgeAction(
+                              `reject:${item.id}`,
+                              () => adminService.rejectAIKnowledgeReview(item.id, { reason: "rejected_in_admin_ui" }),
+                            )}
+                            className="flex items-center gap-1 px-2 py-1 rounded-md border border-red-500/30 text-[10px] font-medium text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+                          >
+                            {knowledgeBusy === `reject:${item.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

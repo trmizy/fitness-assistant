@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from 'express';
+﻿import express, { Request, Response, NextFunction } from 'express';
 import { metricsMiddleware, register, logger } from '@gym-coach/shared';
 import aiRoutes from './routes/ai.routes';
 import planRoutes from './routes/plan.routes';
@@ -12,7 +12,7 @@ const app = express();
 app.use(express.json());
 app.use(metricsMiddleware());
 
-// ── Health endpoint (includes Qdrant availability status) ────────────────────
+// Health endpoint, including Qdrant availability status.
 // qdrantAvailable is set by server.ts at startup and exported so tests can mock.
 export let qdrantAvailable = false;
 export function setQdrantAvailable(available: boolean): void {
@@ -43,7 +43,7 @@ app.use('/plans', planRoutes);
 app.use('/admin/ai', adminAiRoutes);
 app.use('/internal', internalRoutes);
 
-// ── Global error handler ─────────────────────────────────────────────────────
+// Global error handler.
 // Must have 4 parameters so Express recognises it as an error-handling middleware.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

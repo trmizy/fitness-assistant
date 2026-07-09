@@ -1,0 +1,145 @@
+name: gymcoach-test
+
+services:
+  test-runner-fast:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    profiles: ["fast"]
+    working_dir: /workspace
+    command: sh docker/test/run-tests.sh
+    environment:
+      DOCKER_TEST_PROFILE: fast
+      NODE_ENV: test
+      LLM_PROVIDER: mock
+      REDIS_URL: redis://redis-test:6379
+      REDIS_HOST: redis-test
+      REDIS_PORT: 6379
+      ENABLE_RESEARCH_AUTOMATION: "false"
+      RESEARCH_REQUIRE_REVIEW_FOR_WEB: "true"
+      DISABLE_EXTERNAL_RESEARCH_FETCH: "true"
+      DEBUG_RAG: "false"
+      INTERNAL_SERVICE_SECRET: test_internal_service_secret_32_chars_minimum
+      JWT_SECRET: test_jwt_secret_32_chars_minimum_value
+    depends_on:
+      redis-test:
+        condition: service_healthy
+    networks: [gymcoach-test]
+
+  test-runner-full:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    profiles: ["full"]
+    working_dir: /workspace
+    command: sh docker/test/run-tests.sh
+    environment:
+      DOCKER_TEST_PROFILE: full
+      NODE_ENV: test
+      POSTGRES_USER: gymcoach_test
+      POSTGRES_PASSWORD: gymcoach_test_password
+      DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@postgres-test:5432/gymcoach_ai_test
+      AUTH_DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@postgres-test:5432/gymcoach_auth_test
+      USER_DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@postgres-test:5432/gymcoach_user_test
+      FITNESS_DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@postgres-test:5432/gymcoach_fitness_test
+      AI_DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@postgres-test:5432/gymcoach_ai_test
+      CHAT_DATABASE_URL: postgresql://gymcoach_test:gymcoach_test_password@postgres-test:5432/gymcoach_chat_test
+      REDIS_URL: redis://redis-test:6379
+      REDIS_HOST: redis-test
+      REDIS_PORT: 6379
+      QDRANT_URL: http://qdrant-test:6333
+      QDRANT_HOST: qdrant-test
+      QDRANT_PORT: 6333
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LLM_BASE_URL: http://ollama-test:11434
+      OLLAMA_BASE_URL: http://ollama-test:11434
+      LLM_MODEL: llama3.2:3b
+      EMBEDDING_MODEL: nomic-embed-text
+      ENABLE_RESEARCH_AUTOMATION: "false"
+      RESEARCH_REQUIRE_REVIEW_FOR_WEB: "true"
+      DISABLE_EXTERNAL_RESEARCH_FETCH: "true"
+      DEBUG_RAG: "false"
+      INTERNAL_SERVICE_SECRET: test_internal_service_secret_32_chars_minimum
+      JWT_SECRET: test_jwt_secret_32_chars_minimum_value
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      qdrant-test:
+        condition: service_healthy
+    networks: [gymcoach-test]
+
+  postgres-test:
+    image: postgres:15-alpine
+    profiles: ["full"]
+    environment:
+      POSTGRES_USER: gymcoach_test
+      POSTGRES_PASSWORD: gymcoach_test_password
+      POSTGRES_DB: gymcoach_test
+    ports:
+      - "55433:5432"
+    volumes:
+      - ./docker/test/postgres-init-test.sql:/docker-entrypoint-initdb.d/postgres-init-test.sql:ro
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gymcoach_test -d gymcoach_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [gymcoach-test]
+
+  redis-test:
+    image: redis:7-alpine
+    profiles: ["fast", "full"]
+    command: redis-server --save "" --appendonly no
+    ports:
+      - "56379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [gymcoach-test]
+
+  qdrant-test:
+    image: qdrant/qdrant:latest
+    profiles: ["full"]
+    ports:
+      - "56333:6333"
+      - "56334:6334"
+    volumes:
+      - qdrant_test_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "bash -ec ': > /dev/tcp/127.0.0.1/6333'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [gymcoach-test]
+
+  ollama-test:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      NVIDIA_VISIBLE_DEVICES: void
+      CUDA_VISIBLE_DEVICES: ""
+    ports:
+      - "51434:11434"
+    volumes:
+      - ollama_test_data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks: [gymcoach-test]
+
+volumes:
+  postgres_test_data:
+  qdrant_test_data:
+  ollama_test_data:
+
+networks:
+  gymcoach-test:
+    name: gymcoach-test-network

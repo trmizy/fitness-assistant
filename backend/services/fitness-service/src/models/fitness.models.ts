@@ -93,6 +93,7 @@ export const createWorkoutSchema = z.object({
       z.object({
         // Note: existing datasets use non-UUID ids such as seed_ex_001
         exerciseId: z.string().min(1, 'Exercise ID is required'),
+        programExerciseId: z.string().min(1).optional().nullable(),
         sets: z
           .number()
           .int('Sets must be a whole number')
@@ -110,6 +111,7 @@ export const createWorkoutSchema = z.object({
           .min(L.WEIGHT_MIN, 'Weight cannot be negative')
           .max(L.WEIGHT_MAX, `Weight cannot exceed ${L.WEIGHT_MAX} kg`)
           .optional(),
+        completed: z.boolean().optional(),
         notes: z.string().optional(),
       }),
     )

@@ -96,3 +96,12 @@ data/nutrition/*.csv
 data/nutrition/*.zip
 data/nutrition/*.xlsx
 data/nutrition/FoodData_Central_csv_2026-04-30
+
+# Optional coach fine-tuning artifacts
+training/outputs/
+training/checkpoints/
+training/adapters/
+training/merged_models/
+training/reports/
+*.safetensors
+*.gguf

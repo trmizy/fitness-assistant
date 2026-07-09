@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dumbbell, ChevronLeft, ChevronRight, Plus, Lock,
   AlertCircle, Share2, Star, ArrowUpDown, ChevronDown,
-  Minus, Clock, MessageSquare, Timer, Target, BarChart3,
+  Clock, MessageSquare, Timer, Target, BarChart3,
   Zap, Calendar, TrendingUp, Play, GripVertical, Trash2,
   Check, X, SkipForward, Pause, RotateCcw, Trophy, PartyPopper,
   Search, SlidersHorizontal
@@ -203,12 +203,6 @@ function mapProgramExercise(ex: any) {
   };
 }
 
-const weightData = [
-  { week: "W1", kg: 80 }, { week: "W2", kg: 79.5 }, { week: "W3", kg: 79.2 },
-  { week: "W4", kg: 78.8 }, { week: "W5", kg: 78.5 }, { week: "W6", kg: 78.3 },
-  { week: "W7", kg: 78.1 }, { week: "W8", kg: 78 },
-];
-
 const muscleChartData = [
   { name: "Chest", value: 25, color: "#22c55e" },
   { name: "Back", value: 22, color: "#2dd4bf" },
@@ -230,28 +224,115 @@ const FIRST_DAY_OFFSET = 2;
 const trainingMarkers = [1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29];
 
 
-const bodyFatData = [
-  { week: "W1", pct: 18.5 }, { week: "W2", pct: 18.3 }, { week: "W3", pct: 18.0 },
-  { week: "W4", pct: 17.8 }, { week: "W5", pct: 17.5 }, { week: "W6", pct: 17.2 },
-  { week: "W7", pct: 17.0 }, { week: "W8", pct: 16.8 },
-];
-const muscleMassData = [
-  { week: "W1", kg: 35.2 }, { week: "W2", kg: 35.4 }, { week: "W3", kg: 35.5 },
-  { week: "W4", kg: 35.7 }, { week: "W5", kg: 35.9 }, { week: "W6", kg: 36.0 },
-  { week: "W7", kg: 36.2 }, { week: "W8", kg: 36.4 },
-];
-const waterData = [
-  { week: "W1", pct: 55 }, { week: "W2", pct: 56 }, { week: "W3", pct: 55.5 },
-  { week: "W4", pct: 56.5 }, { week: "W5", pct: 57 }, { week: "W6", pct: 56.8 },
-  { week: "W7", pct: 57.2 }, { week: "W8", pct: 57.5 },
+type MetricKey = "weight" | "bodyfat" | "muscle" | "water";
+type MetricUnit = "kg" | "%";
+type MetricDataKey = "kg" | "pct";
+type BodyMetricPoint = { week: string; fullDate: string; kg?: number; pct?: number };
+type BodyMetricOption = {
+  key: MetricKey;
+  label: string;
+  unit: MetricUnit;
+  color: string;
+  current: string;
+  target?: string;
+  data: BodyMetricPoint[];
+  dataKey: MetricDataKey;
+  domain: [number, number] | ["auto", "auto"];
+  hasData: boolean;
+  canPersist: boolean;
+};
+
+const METRIC_BASE_OPTIONS: Array<Pick<BodyMetricOption, "key" | "label" | "unit" | "color" | "dataKey" | "canPersist">> = [
+  { key: "weight", label: "Cân nặng", unit: "kg", color: "#10b981", dataKey: "kg", canPersist: true },
+  { key: "bodyfat", label: "Mỡ cơ thể", unit: "%", color: "#f59e0b", dataKey: "pct", canPersist: true },
+  { key: "muscle", label: "Cơ bắp", unit: "kg", color: "#3b82f6", dataKey: "kg", canPersist: true },
+  { key: "water", label: "Nước cơ thể", unit: "%", color: "#06b6d4", dataKey: "pct", canPersist: false },
 ];
 
-const metricOptions = [
-  { key: "weight", label: "Cân nặng", unit: "kg", color: "#10b981", current: "78 kg", target: "75 kg", data: weightData, dataKey: "kg", domain: [76, 82] },
-  { key: "bodyfat", label: "Mỡ cơ thể", unit: "%", color: "#f59e0b", current: "16.8%", target: "15%", data: bodyFatData, dataKey: "pct", domain: [15, 20] },
-  { key: "muscle", label: "Cơ bắp", unit: "kg", color: "#3b82f6", current: "36.4 kg", target: "38 kg", data: muscleMassData, dataKey: "kg", domain: [34, 38] },
-  { key: "water", label: "Nước cơ thể", unit: "%", color: "#06b6d4", current: "57.5%", target: "60%", data: waterData, dataKey: "pct", domain: [53, 60] },
-] as const;
+function inBodyDateKey(entry: any): string {
+  const raw = entry?.dateOnly ?? entry?.date ?? entry?.createdAt;
+  const s = raw ? String(raw) : "";
+  const iso = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+  if (iso) return iso[1];
+  const dmy = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  const dmy2 = /^(\d{2})-(\d{2})-(\d{4})/.exec(s);
+  if (dmy2) return `${dmy2[3]}-${dmy2[2]}-${dmy2[1]}`;
+  return "9999-12-31";
+}
+
+function parseInBodyMeasurementDate(entry: any): Date {
+  const key = inBodyDateKey(entry);
+  if (key === "9999-12-31") return new Date(NaN);
+  const [year, month, day] = key.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function metricNumber(...values: any[]): number | null {
+  for (const value of values) {
+    if (value === undefined || value === null || value === "") continue;
+    const n = Number(value);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+function bodyMetricValue(entry: any, key: MetricKey): number | null {
+  if (!entry) return null;
+  if (key === "weight") return metricNumber(entry.weight, entry.weightKg);
+  if (key === "muscle") return metricNumber(entry.muscleMass, entry.muscleMassKg, entry.skeletalMuscleKg);
+  if (key === "water") {
+    return metricNumber(entry.bodyWaterPct, entry.bodyWaterPercentage, entry.bodyWater, entry.waterPct, entry.totalBodyWaterPct);
+  }
+
+  const bodyFatPct = metricNumber(entry.bodyFatPct, entry.bodyFatPercentage);
+  if (bodyFatPct !== null) return bodyFatPct;
+  const bodyFatKg = metricNumber(entry.bodyFat, entry.bodyFatKg);
+  const weight = metricNumber(entry.weight, entry.weightKg);
+  if (bodyFatKg !== null && weight && weight > 0) {
+    return Math.round((bodyFatKg / weight) * 1000) / 10;
+  }
+  return null;
+}
+
+function bodyFatKgFromEntry(entry: any): number | null {
+  const bodyFatKg = metricNumber(entry?.bodyFat, entry?.bodyFatKg);
+  if (bodyFatKg !== null) return bodyFatKg;
+  const pct = bodyMetricValue(entry, "bodyfat");
+  const weight = bodyMetricValue(entry, "weight");
+  if (pct !== null && weight !== null) return Math.round(weight * pct) / 100;
+  return null;
+}
+
+function metricTarget(profile: any, key: MetricKey): number | null {
+  if (!profile) return null;
+  if (key === "weight") return metricNumber(profile.targetWeight, profile.targetWeightKg);
+  if (key === "bodyfat") return metricNumber(profile.targetBodyFatPct, profile.bodyFatTargetPct);
+  if (key === "muscle") return metricNumber(profile.targetMuscleMass, profile.targetMuscleMassKg, profile.skeletalMuscleTargetKg);
+  return metricNumber(profile.targetBodyWaterPct, profile.bodyWaterTargetPct, profile.waterTargetPct);
+}
+
+function formatMetricValue(value: number | null, unit: MetricUnit): string {
+  if (value === null) return "--";
+  const rounded = Math.round(value * 10) / 10;
+  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return unit === "%" ? `${text}%` : `${text} ${unit}`;
+}
+
+function metricDomain(data: BodyMetricPoint[], dataKey: MetricDataKey): [number, number] | ["auto", "auto"] {
+  const values = data
+    .map((point) => point[dataKey])
+    .filter((value): value is number => Number.isFinite(value));
+  if (!values.length) return ["auto", "auto"];
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = Math.max(max - min, dataKey === "pct" ? 2 : 1);
+  const pad = span * 0.25;
+  return [
+    Math.floor((min - pad) * 10) / 10,
+    Math.ceil((max + pad) * 10) / 10,
+  ];
+}
 
 type Tab = "overview" | "plan";
 type TimeFilter = "last" | "week" | "month" | "all";
@@ -349,13 +430,6 @@ export function WorkoutLogPage() {
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [showOnOverview, setShowOnOverview] = useState(true);
-  const [showAllPrograms, setShowAllPrograms] = useState(false);
-  const [autoSchedule, setAutoSchedule] = useState(true);
-  const [editableSchedule, setEditableSchedule] = useState(true);
-  const [scheduleMode, setScheduleMode] = useState<"day" | "cycle">("cycle");
-  const [consecutiveTrain, setConsecutiveTrain] = useState(3);
-  const [consecutiveRest, setConsecutiveRest] = useState(1);
   const [calendarExpanded, setCalendarExpanded] = useState(true);
   const [selectedExercise, setSelectedExercise] = useState<any | null>(null);
   const [selectedProgramDayId, setSelectedProgramDayId] = useState<string | null>(null);
@@ -363,6 +437,7 @@ export function WorkoutLogPage() {
   // Dynamic Navigation & Stats
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [latestInBody, setLatestInBody] = useState<any>(null);
+  const [inbodyHistory, setInbodyHistory] = useState<any[]>([]);
   const [workoutStats, setWorkoutStats] = useState<any>(null);
   const [currentProgram, setCurrentProgram] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -379,15 +454,42 @@ export function WorkoutLogPage() {
     setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1));
   };
 
+  const applyInBodyHistory = useCallback((value: any) => {
+    const sorted = Array.isArray(value)
+      ? [...value].sort((a: any, b: any) => {
+          const cmp = inBodyDateKey(b).localeCompare(inBodyDateKey(a));
+          if (cmp !== 0) return cmp;
+          return Date.parse(String(b?.createdAt ?? 0)) - Date.parse(String(a?.createdAt ?? 0));
+        })
+      : [];
+
+    setInbodyHistory(sorted);
+    const inbody = sorted[0] ?? null;
+    if (!inbody) {
+      setLatestInBody(null);
+      setDaysSinceInBody(null);
+      return;
+    }
+
+    setLatestInBody(inbody);
+    const measuredAt = parseInBodyMeasurementDate(inbody);
+    const fallbackCreatedAt = new Date(inbody.createdAt);
+    const metricDate = !Number.isNaN(measuredAt.getTime()) ? measuredAt : fallbackCreatedAt;
+    const diff = Number.isNaN(metricDate.getTime())
+      ? null
+      : Math.floor((Date.now() - metricDate.getTime()) / (1000 * 60 * 60 * 24));
+    setDaysSinceInBody(diff);
+  }, []);
+
   // Fetch initial workout and stats from DB
   useEffect(() => {
     const fetchAllData = async () => {
       setIsLoading(true);
       try {
         const { inbodyService, profileService } = await import("../../services/api");
-        const [historyResult, inbodyResult, statsResult, schedulesResult, programResult, profileResult] = await Promise.allSettled([
+        const [historyResult, inbodyHistoryResult, statsResult, schedulesResult, programResult, profileResult] = await Promise.allSettled([
           workoutService.getHistory(1, 50), // Fetch last 50 workouts to fill cache
-          inbodyService.getLatest(),
+          inbodyService.getHistory(),
           workoutService.getStats(),
           workoutService.getSchedules(100, getMonthRange(calendarMonth)),
           workoutService.getCurrentProgram(),
@@ -436,12 +538,7 @@ export function WorkoutLogPage() {
         }
 
         // 3. InBody Stats
-        const inbody = inbodyResult.status === 'fulfilled' ? inbodyResult.value : null;
-        if (inbody && inbody.createdAt) {
-          setLatestInBody(inbody);
-          const diff = Math.floor((Date.now() - new Date(inbody.createdAt).getTime()) / (1000 * 60 * 60 * 24));
-          setDaysSinceInBody(diff);
-        }
+        applyInBodyHistory(inbodyHistoryResult.status === 'fulfilled' ? inbodyHistoryResult.value : []);
         setWorkoutStats(statsResult.status === 'fulfilled' ? statsResult.value : null);
         const schedules = schedulesResult.status === 'fulfilled' ? schedulesResult.value : [];
         setAiSchedules(Array.isArray(schedules) ? schedules : []);
@@ -453,7 +550,7 @@ export function WorkoutLogPage() {
     };
 
     fetchAllData();
-  }, [calendarMonth]);
+  }, [calendarMonth, applyInBodyHistory]);
 
   useEffect(() => {
     const programDays = currentProgram?.days;
@@ -536,9 +633,10 @@ export function WorkoutLogPage() {
 
   // Log modal
   const [showLogModal, setShowLogModal] = useState(false);
-  const [logMetric, setLogMetric] = useState<"weight" | "bodyfat" | "muscle" | "water">("weight");
+  const [logMetric, setLogMetric] = useState<MetricKey>("weight");
   const [logValue, setLogValue] = useState("");
-  const [activeCharts, setActiveCharts] = useState<Set<string>>(new Set(["weight"]));
+  const [isSavingMetric, setIsSavingMetric] = useState(false);
+  const [activeCharts, setActiveCharts] = useState<Set<MetricKey>>(new Set<MetricKey>(["weight"]));
 
   // Edit mode
   const [editMode, setEditMode] = useState(false);
@@ -565,6 +663,24 @@ export function WorkoutLogPage() {
     }
     return findScheduleForDate(selectedDate);
   }, [aiSchedules, findScheduleForDate, selectedDate, selectedScheduleId]);
+
+  const applyScheduleProgress = useCallback((scheduleId: string, result: any) => {
+    setAiSchedules((previous) => previous.map((schedule) => {
+      if (schedule.id !== scheduleId) return schedule;
+      return {
+        ...schedule,
+        workoutId: result.workoutId ?? schedule.workoutId,
+        workout: result.workoutId ? { ...(schedule.workout || {}), id: result.workoutId } : schedule.workout,
+        status: result.dayStatus === "completed" ? "COMPLETED" : "IN_PROGRESS",
+        progressPercent: result.progressPercent,
+        completedExercises: result.completedExercises,
+        totalExercises: result.totalExercises,
+        completedSets: result.completedSets,
+        totalSets: result.totalSets,
+        completedAt: result.completedAt ?? schedule.completedAt,
+      };
+    }));
+  }, []);
 
   const openScheduleModal = useCallback((date = selectedDate) => {
     setScheduleDateInput(toDateInputValue(date));
@@ -757,7 +873,7 @@ export function WorkoutLogPage() {
           setWorkoutCache({ ...workoutCache, [dStr]: { ...res, exercises: editExercises.map(e => ({ ...e, exercise: { exerciseName: e.name, videoUrl: e.img, instructions: e.description, muscleGroupsActivated: e.muscles } })) } });
         }
       }
-      
+
       setDayExercises(editExercises);
       if (!silent) setEditMode(false);
     } catch (err: any) {
@@ -1088,37 +1204,56 @@ export function WorkoutLogPage() {
       }
     }
 
+    const scheduleForCompletion = selectedSchedule();
+    const currentExercise = dayExercises[activeExIdx];
+    const previousCompleted = completedExercises;
     const newCompleted = new Set(completedExercises);
-    newCompleted.add(activeExIdx);
-    setCompletedExercises(newCompleted);
-    setTimerRunning(false);
-    setTimerSeconds(0);
 
-    if (newCompleted.size === dayExercises.length) {
-      setIsCompletingWorkout(true);
-      try {
-        await persistCompletedWorkout();
-        setShowCompletion(true);
-        setTimeout(() => fireConfetti(), 300);
-        toast.success("Đã lưu hoàn thành buổi tập.");
-      } catch (error: any) {
-        toast.error(error?.response?.data?.error || "Không thể lưu buổi tập đã hoàn thành.");
-        setCompletedExercises(completedExercises);
-      } finally {
-        setIsCompletingWorkout(false);
+    setIsCompletingWorkout(true);
+    try {
+      if (scheduleForCompletion?.id && currentExercise?.programExerciseId) {
+        const result = await workoutService.completeScheduleExercise(
+          scheduleForCompletion.id,
+          currentExercise.programExerciseId,
+        );
+        applyScheduleProgress(scheduleForCompletion.id, result);
+        if (result.workoutId) setCurrentWorkoutId(result.workoutId);
+        setSelectedScheduleId(scheduleForCompletion.id);
+        newCompleted.add(activeExIdx);
+        setCompletedExercises(newCompleted);
+
+        if (result.progressPercent >= 100 || result.completedExercises >= result.totalExercises) {
+          setTimerRunning(false);
+          setTimerSeconds(0);
+          setShowCompletion(true);
+          setTimeout(() => fireConfetti(), 300);
+          toast.success("Da luu hoan thanh buoi tap.");
+          void refetchProgramAndSchedules();
+          return;
+        }
+      } else {
+        newCompleted.add(activeExIdx);
+        setCompletedExercises(newCompleted);
+        if (newCompleted.size === dayExercises.length) {
+          await persistCompletedWorkout();
+          setShowCompletion(true);
+          setTimeout(() => fireConfetti(), 300);
+          toast.success("Da luu hoan thanh buoi tap.");
+          return;
+        }
       }
-    } else if (activeExIdx < dayExercises.length - 1) {
-      // Start rest timer then move to next
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || "Khong the luu trang thai hoan thanh bai tap.");
+      setCompletedExercises(previousCompleted);
+      return;
+    } finally {
+      setIsCompletingWorkout(false);
+      setTimerRunning(false);
+      setTimerSeconds(0);
+    }
+    if (activeExIdx < dayExercises.length - 1) {
       setRestSeconds(90);
       setRestTimerRunning(true);
-      setActiveExIdx(activeExIdx + 1);
-    }
-  };
-
-  const handleSkipExercise = () => {
-    setTimerRunning(false);
-    setTimerSeconds(0);
-    if (activeExIdx < dayExercises.length - 1) {
       setActiveExIdx(activeExIdx + 1);
     }
   };
@@ -1136,6 +1271,118 @@ export function WorkoutLogPage() {
       setIsCompletingWorkout(false);
     }
   }, [planView]);
+
+  const bodyMetricHistoryAsc = useMemo(() => {
+    return [...inbodyHistory]
+      .sort((a: any, b: any) => {
+        const cmp = inBodyDateKey(a).localeCompare(inBodyDateKey(b));
+        if (cmp !== 0) return cmp;
+        return Date.parse(String(a?.createdAt ?? 0)) - Date.parse(String(b?.createdAt ?? 0));
+      })
+      .slice(-8);
+  }, [inbodyHistory]);
+
+  const metricOptions = useMemo<BodyMetricOption[]>(() => {
+    const latestMetricEntry = bodyMetricHistoryAsc[bodyMetricHistoryAsc.length - 1] ?? latestInBody;
+
+    return METRIC_BASE_OPTIONS.map((base) => {
+      const data = bodyMetricHistoryAsc
+        .map((entry, index) => {
+          const value = bodyMetricValue(entry, base.key);
+          if (value === null) return null;
+          const rounded = Math.round(value * 10) / 10;
+          const measuredAt = parseInBodyMeasurementDate(entry);
+          const week = Number.isNaN(measuredAt.getTime())
+            ? `L${index + 1}`
+            : measuredAt.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+          const fullDate = Number.isNaN(measuredAt.getTime())
+            ? "Không rõ ngày đo"
+            : measuredAt.toLocaleDateString("vi-VN");
+          return base.dataKey === "kg"
+            ? { week, fullDate, kg: rounded }
+            : { week, fullDate, pct: rounded };
+        })
+        .filter((point): point is BodyMetricPoint => Boolean(point));
+      const currentValue = bodyMetricValue(latestMetricEntry, base.key);
+      const targetValue = metricTarget(userProfile, base.key);
+
+      return {
+        ...base,
+        current: formatMetricValue(currentValue, base.unit),
+        target: targetValue === null ? undefined : formatMetricValue(targetValue, base.unit),
+        data,
+        domain: metricDomain(data, base.dataKey),
+        hasData: data.length > 0,
+      };
+    });
+  }, [bodyMetricHistoryAsc, latestInBody, userProfile]);
+
+  const selectedLogMetric = metricOptions.find((m) => m.key === logMetric) ?? metricOptions[0];
+
+  const handleSaveMetricLog = async () => {
+    if (!selectedLogMetric) return;
+    if (!selectedLogMetric.canPersist) {
+      toast.warning("Chỉ số nước cơ thể chưa có cột lưu trong InBody. Hãy nhập qua phiếu InBody khi backend hỗ trợ.");
+      return;
+    }
+
+    const value = Number(logValue);
+    if (!Number.isFinite(value) || value <= 0) {
+      toast.error("Vui lòng nhập giá trị hợp lệ.");
+      return;
+    }
+
+    const source = latestInBody ?? inbodyHistory[0] ?? {};
+    let weight = bodyMetricValue(source, "weight");
+    let muscleMass = bodyMetricValue(source, "muscle");
+    let bodyFatPct = bodyMetricValue(source, "bodyfat");
+    let bodyFat = bodyFatKgFromEntry(source);
+
+    if (logMetric === "weight") {
+      weight = value;
+      if (bodyFatPct !== null) bodyFat = Math.round(weight * bodyFatPct) / 100;
+      else if (bodyFat !== null && weight > 0) bodyFatPct = Math.round((bodyFat / weight) * 1000) / 10;
+    } else if (logMetric === "bodyfat") {
+      bodyFatPct = value;
+      bodyFat = weight !== null ? Math.round(weight * value) / 100 : null;
+    } else if (logMetric === "muscle") {
+      muscleMass = value;
+    }
+
+    if (weight === null || muscleMass === null || bodyFat === null) {
+      toast.error("Cần có đủ cân nặng, cơ bắp và mỡ cơ thể để ghi InBody. Hãy nhập InBody đầy đủ trước.");
+      return;
+    }
+
+    const height = metricNumber(source.height, source.heightCm, userProfile?.heightCm, userProfile?.height);
+    const bmi = height && height > 0 ? Math.round((weight / ((height / 100) ** 2)) * 10) / 10 : undefined;
+
+    setIsSavingMetric(true);
+    try {
+      await inbodyService.create({
+        date: new Date().toISOString(),
+        weight: Math.round(weight * 10) / 10,
+        height: height ?? undefined,
+        bmi,
+        muscleMass: Math.round(muscleMass * 10) / 10,
+        bodyFat: Math.round(bodyFat * 10) / 10,
+        bodyFatPct: bodyFatPct === null ? undefined : Math.round(bodyFatPct * 10) / 10,
+        status: "manual",
+      });
+      const refreshed = await inbodyService.getHistory();
+      applyInBodyHistory(refreshed);
+      const next = new Set(activeCharts);
+      next.add(logMetric);
+      setActiveCharts(next);
+      setShowLogModal(false);
+      setLogValue("");
+      toast.success("Đã lưu chỉ số cơ thể.");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error || "Không thể lưu chỉ số cơ thể.");
+    } finally {
+      setIsSavingMetric(false);
+    }
+  };
 
   const profileGoal = userProfile?.goal;
   const programGoal = currentProgram?.goal;
@@ -1240,7 +1487,7 @@ export function WorkoutLogPage() {
                       : "Chưa có dữ liệu InBody · Bắt đầu bằng cách tải ảnh lên"}
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={() => setShowLogModal(true)}
                   className="px-4 py-2 rounded-xl bg-emerald-500/8 border border-emerald-500/15 text-xs text-emerald-300 hover:bg-emerald-500/15 transition-all shrink-0"
                 >
@@ -1297,8 +1544,8 @@ export function WorkoutLogPage() {
                   </div>
                 )}
                 <div className="mt-3 h-1.5 bg-white/[0.06] rounded-full overflow-hidden max-w-sm">
-                  <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-1000" 
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-1000"
                     style={{ width: `${Math.min(100, ((workoutStats?.totalWorkouts || 0) / 36) * 100)}%` }}
                   />
                 </div>
@@ -1454,20 +1701,30 @@ export function WorkoutLogPage() {
 
               {/* Chart area */}
               {Array.from(activeCharts).map((chartKey) => {
-                const m = metricOptions.find((o) => o.key === chartKey)!;
+                const m = metricOptions.find((o) => o.key === chartKey);
+                if (!m) return null;
                 return (
                   <div key={chartKey} className="mb-4 last:mb-0">
-                    <p className="text-xs text-zinc-500 mb-2">{m.label}: <span style={{ color: m.color }}>{m.current}</span> · Mục tiêu: <span className="text-zinc-400">{m.target}</span></p>
+                    <p className="text-xs text-zinc-500 mb-2">
+                      {m.label}: <span style={{ color: m.color }}>{m.current}</span>
+                      {m.target ? <> · Mục tiêu: <span className="text-zinc-400">{m.target}</span></> : null}
+                    </p>
                     <div className="h-40">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={m.data as any}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
-                          <XAxis dataKey="week" tick={{ fontSize: 10, fill: "#3f3f46" }} axisLine={false} tickLine={false} />
-                          <YAxis domain={m.domain as any} tick={{ fontSize: 10, fill: "#3f3f46" }} axisLine={false} tickLine={false} />
-                          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 14, border: "1px solid #1e1e24", backgroundColor: "rgba(8,8,12,0.96)", color: "#e4e4e7" }} formatter={(v: number) => [`${v} ${m.unit}`, m.label]} />
-                          <Line type="monotone" dataKey={m.dataKey} stroke={m.color} strokeWidth={2.5} dot={{ r: 3, fill: m.color, strokeWidth: 0 }} activeDot={{ r: 6, fill: m.color, stroke: "#0a0a0f", strokeWidth: 3 }} />
-                        </LineChart>
-                      </ResponsiveContainer>
+                      {m.hasData ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={m.data as any}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
+                            <XAxis dataKey="week" tick={{ fontSize: 10, fill: "#3f3f46" }} axisLine={false} tickLine={false} />
+                            <YAxis domain={m.domain as any} tick={{ fontSize: 10, fill: "#3f3f46" }} axisLine={false} tickLine={false} />
+                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 14, border: "1px solid #1e1e24", backgroundColor: "rgba(8,8,12,0.96)", color: "#e4e4e7" }} formatter={(v: number) => [`${v}${m.unit === "%" ? "%" : ` ${m.unit}`}`, m.label]} labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate || ""} />
+                            <Line type="monotone" dataKey={m.dataKey} stroke={m.color} strokeWidth={2.5} dot={{ r: 3, fill: m.color, strokeWidth: 0 }} activeDot={{ r: 6, fill: m.color, stroke: "#0a0a0f", strokeWidth: 3 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-full rounded-xl border border-dashed border-zinc-800/60 bg-zinc-950/20 flex items-center justify-center px-4 text-center">
+                          <span className="text-xs text-zinc-500">Chưa có dữ liệu {m.label.toLowerCase()} trong InBody.</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -1642,8 +1899,8 @@ export function WorkoutLogPage() {
                 </div>
               )}
               <div className="mt-3 h-1.5 bg-white/[0.05] rounded-full overflow-hidden max-w-md">
-                <div 
-                  className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.35)] transition-all duration-1000" 
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.35)] transition-all duration-1000"
                   style={{ width: `${Math.min(100, ((workoutStats?.totalWorkouts || 0) / 36) * 100)}%` }}
                 />
               </div>
@@ -1656,18 +1913,24 @@ export function WorkoutLogPage() {
             <div className="xl:col-span-2">
               <SectionTitle title="Ngày tập" />
               <div className="space-y-3 mt-4">
-                {currentProgram?.days?.length ? currentProgram.days.map((w: any) => (
+                {currentProgram?.days?.length ? currentProgram.days.map((w: any) => {
+                  const schedules = [
+                    ...aiSchedules.filter((schedule) => schedule.programDay?.id === w.id),
+                    ...(Array.isArray(w.schedules) ? w.schedules : []),
+                  ];
+                  const todayStart = new Date();
+                  todayStart.setHours(0, 0, 0, 0);
+                  const nextSchedule =
+                    schedules.find((schedule: any) => !schedule.workoutId && new Date(schedule.date) >= todayStart) ||
+                    schedules.find((schedule: any) => !schedule.workoutId) ||
+                    schedules[0] ||
+                    aiSchedules.find((schedule) => schedule.programDay?.id === w.id);
+                  const dayProgress = scheduleProgressPercent(nextSchedule);
+                  return (
                   <button
                     key={`td-${w.day || w.dayNumber}`}
                     onClick={() => {
                       if (!w.locked) {
-                        const schedules = Array.isArray(w.schedules) ? w.schedules : [];
-                        const todayStart = new Date();
-                        todayStart.setHours(0, 0, 0, 0);
-                        const nextSchedule =
-                          schedules.find((schedule: any) => !schedule.workoutId && new Date(schedule.date) >= todayStart) ||
-                          schedules.find((schedule: any) => !schedule.workoutId) ||
-                          schedules[0];
                         setSelectedDay(w.day || w.dayNumber);
                         setSelectedDate(nextSchedule?.date ? new Date(nextSchedule.date) : new Date());
                         setSelectedScheduleId(nextSchedule?.id || null);
@@ -1689,13 +1952,13 @@ export function WorkoutLogPage() {
                       <div className="relative shrink-0">
                         <svg width="52" height="52" viewBox="0 0 52 52">
                           <circle cx="26" cy="26" r="22" fill="none" stroke={w.locked ? "#18181b" : "#064e3b"} strokeWidth="3" />
-                          {!w.locked && w.progress > 0 && (
+                          {!w.locked && dayProgress > 0 && (
                             <circle cx="26" cy="26" r="22" fill="none" stroke="#10b981" strokeWidth="3"
-                              strokeDasharray={`${(w.progress / 100) * 138} 138`} strokeLinecap="round" transform="rotate(-90 26 26)" />
+                              strokeDasharray={`${(dayProgress / 100) * 138} 138`} strokeLinecap="round" transform="rotate(-90 26 26)" />
                           )}
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          {w.locked ? <Lock className="w-4 h-4 text-zinc-700" /> : <span className="text-[11px] text-emerald-400">{w.progress}%</span>}
+                          {w.locked ? <Lock className="w-4 h-4 text-zinc-700" /> : <span className="text-[11px] text-emerald-400">{dayProgress}%</span>}
                         </div>
                       </div>
 
@@ -1713,7 +1976,8 @@ export function WorkoutLogPage() {
                       {!w.locked && <ChevronRight className="w-4 h-4 text-zinc-700 group-hover/card:text-emerald-400 transition-colors shrink-0" />}
                     </div>
                   </button>
-                )) : (
+                  );
+                }) : (
                   <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-6 text-center">
                     <p className="text-sm text-zinc-400">Bạn chưa có lịch tập hiện tại</p>
                     <div className="mt-4 flex justify-center gap-2">
@@ -1753,7 +2017,7 @@ export function WorkoutLogPage() {
                         setSelectedDay(scheduleForDay?.programDay?.dayNumber || day);
                         setSelectedScheduleId(scheduleForDay?.id || null);
                         setCurrentWorkoutId(scheduleForDay?.workoutId || scheduleForDay?.workout?.id || null);
-                        
+
                         if (scheduleForDay?.programDay?.dayNumber) {
                           setSelectedDay(scheduleForDay.programDay.dayNumber);
                           setPlanView("dayDetail");
@@ -1763,48 +2027,6 @@ export function WorkoutLogPage() {
                       }}
                     />
                   )}
-                </div>
-              </div>
-
-              {/* Schedule Settings */}
-              <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 relative overflow-hidden">
-                <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-500/[0.02] rounded-full blur-[50px] pointer-events-none" />
-                <div className="relative">
-                  <SectionTitle title="Lịch tập luyện" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-0 mt-5">
-                    <div>
-                      <ToggleRow label="Hiện ở Tổng quan" value={showOnOverview} onChange={setShowOnOverview} />
-                      <ToggleRow label="Hiện tất cả chương trình" value={showAllPrograms} onChange={setShowAllPrograms} />
-                      <ToggleRow label="Lịch tự động" value={autoSchedule} onChange={setAutoSchedule} />
-                      <ToggleRow label="Lịch chỉnh sửa được" value={editableSchedule} onChange={setEditableSchedule} />
-                    </div>
-
-                    {editableSchedule && (
-                      <div className="space-y-4 pt-2 md:pt-0">
-                        {/* Mode */}
-                        <div className="flex bg-zinc-800/30 rounded-xl p-1 border border-zinc-700/20">
-                          {(["day", "cycle"] as const).map((m) => (
-                            <button key={m} onClick={() => setScheduleMode(m)} className={`flex-1 py-2 rounded-lg text-xs transition-all ${
-                              scheduleMode === m
-                                ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/15 shadow-[0_0_10px_rgba(16,185,129,0.08)]"
-                                : "text-zinc-500 hover:text-zinc-400 border border-transparent"
-                            }`}>
-                              {m === "day" ? "Theo ngày" : "Chu kỳ"}
-                            </button>
-                          ))}
-                        </div>
-                        <SettingRow label="Ngày bắt đầu">
-                          <button className="px-4 py-2 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-xs text-emerald-400 hover:border-emerald-500/20 transition-colors">Apr 1, 2026</button>
-                        </SettingRow>
-                        <SettingRow label="Ngày tập liên tiếp">
-                          <Stepper value={consecutiveTrain} onChange={setConsecutiveTrain} min={1} max={7} />
-                        </SettingRow>
-                        <SettingRow label="Ngày nghỉ liên tiếp">
-                          <Stepper value={consecutiveRest} onChange={setConsecutiveRest} min={1} max={7} />
-                        </SettingRow>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -1900,9 +2122,20 @@ export function WorkoutLogPage() {
                   </div>
 
                   <button
-                    onClick={() => {
-                      if (detailSchedule?.id) setSelectedScheduleId(detailSchedule.id);
-                      setCurrentWorkoutId(detailSchedule?.workoutId || detailSchedule?.workout?.id || null);
+                    onClick={async () => {
+                      if (detailSchedule?.id) {
+                        try {
+                          const started = await workoutService.startSchedule(detailSchedule.id);
+                          applyScheduleProgress(detailSchedule.id, started);
+                          setSelectedScheduleId(detailSchedule.id);
+                          setCurrentWorkoutId(started.workoutId || detailSchedule.workoutId || detailSchedule.workout?.id || null);
+                        } catch (error: any) {
+                          toast.error(error?.response?.data?.error || "Khong the bat dau buoi tap. Vui long thu lai.");
+                          return;
+                        }
+                      } else {
+                        setCurrentWorkoutId(detailSchedule?.workoutId || detailSchedule?.workout?.id || null);
+                      }
                       setPlanView("activeExercise");
                     }}
                     className="w-full py-3.5 rounded-xl bg-emerald-500 text-black text-sm tracking-wider transition-all hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-[0.98] flex items-center justify-center gap-2"
@@ -1923,17 +2156,17 @@ export function WorkoutLogPage() {
                           {isSaving ? "Đang lưu..." : "Đã lưu"}
                         </span>
                       )}
-                      <button 
-                        onClick={() => { 
-                          setDayExercises(editExercises); 
-                          setEditMode(false); 
-                        }} 
+                      <button
+                        onClick={() => {
+                          setDayExercises(editExercises);
+                          setEditMode(false);
+                        }}
                         className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 hover:border-zinc-600/30"
                       >
                         <Check className="w-3 h-3 text-emerald-400" /> Xong
                       </button>
-                      <button 
-                        onClick={() => handleSaveWorkout(false)} 
+                      <button
+                        onClick={() => handleSaveWorkout(false)}
                         disabled={isSaving}
                         className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/25 disabled:opacity-50"
                       >
@@ -1986,11 +2219,11 @@ export function WorkoutLogPage() {
                         </div>
                         <span className="w-6 h-6 rounded-lg bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center text-[10px] text-zinc-500 shrink-0">{i + 1}</span>
                         <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25" onClick={() => setShowExerciseDetail(ex)}>
-                          <ExerciseFlipDemo 
-                            img1={ex.img} 
-                            img2={ex.img2} 
-                            alt={ex.name} 
-                            className="w-full h-full" 
+                          <ExerciseFlipDemo
+                            img1={ex.img}
+                            img2={ex.img2}
+                            alt={ex.name}
+                            className="w-full h-full"
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -2053,7 +2286,7 @@ export function WorkoutLogPage() {
                       </div>
                     ))}
                     {!isLoading && (
-                      <button 
+                      <button
                         onClick={() => {
                           clearExerciseFilters();
                           setReplaceExerciseIndex(null);
@@ -2081,11 +2314,11 @@ export function WorkoutLogPage() {
                       >
                         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 group-hover/ex:from-emerald-500/[0.015] to-transparent transition-all duration-300" />
                         <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25">
-                          <ExerciseFlipDemo 
-                            img1={ex.img} 
-                            img2={ex.img2} 
-                            alt={ex.name} 
-                            className="w-full h-full" 
+                          <ExerciseFlipDemo
+                            img1={ex.img}
+                            img2={ex.img2}
+                            alt={ex.name}
+                            className="w-full h-full"
                           />
                         </div>
                         <div className="relative flex-1 min-w-0">
@@ -2827,7 +3060,7 @@ export function WorkoutLogPage() {
                 {metricOptions.map((m) => (
                   <button
                     key={m.key}
-                    onClick={() => setLogMetric(m.key as any)}
+                    onClick={() => setLogMetric(m.key)}
                     className={`p-3.5 rounded-xl border text-left transition-all ${
                       logMetric === m.key
                         ? "border-opacity-30 bg-opacity-10"
@@ -2853,11 +3086,16 @@ export function WorkoutLogPage() {
                   type="number"
                   value={logValue}
                   onChange={(e) => setLogValue(e.target.value)}
-                  placeholder={`Nhập ${metricOptions.find((m) => m.key === logMetric)?.unit}...`}
+                  placeholder={`Nhập ${selectedLogMetric?.unit ?? ""}...`}
                   className="flex-1 px-5 py-4 rounded-xl bg-zinc-800/30 border border-zinc-700/25 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/25 focus:ring-1 focus:ring-emerald-500/10 transition-all"
                 />
-                <span className="text-sm text-zinc-500">{metricOptions.find((m) => m.key === logMetric)?.unit}</span>
+                <span className="text-sm text-zinc-500">{selectedLogMetric?.unit}</span>
               </div>
+              {!selectedLogMetric?.canPersist && (
+                <p className="text-xs text-amber-300/80 mt-2">
+                  Chỉ số này chưa có cột lưu trong InBody, nên không thể ghi vào DB lúc này.
+                </p>
+              )}
             </div>
 
             {/* Auto-add chart toggle */}
@@ -2872,16 +3110,12 @@ export function WorkoutLogPage() {
 
             <div className="flex gap-3">
               <button onClick={() => setShowLogModal(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
-              <button onClick={() => {
-                if (logValue) {
-                  const next = new Set(activeCharts);
-                  next.add(logMetric);
-                  setActiveCharts(next);
-                }
-                setShowLogModal(false);
-                setLogValue("");
-              }} className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all">
-                Lưu
+              <button
+                onClick={handleSaveMetricLog}
+                disabled={isSavingMetric || !selectedLogMetric?.canPersist}
+                className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isSavingMetric ? "Đang lưu..." : "Lưu"}
               </button>
             </div>
           </div>
@@ -2891,7 +3125,7 @@ export function WorkoutLogPage() {
       {showAddExercise && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowAddExercise(false)}>
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-          <div 
+          <div
             className="relative w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl border border-zinc-700/30 bg-zinc-900 shadow-2xl shadow-black/50 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
@@ -2988,7 +3222,7 @@ export function WorkoutLogPage() {
                 </button>
               </div>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-4">
               {dbLoading ? (
                 <div className="space-y-3">
@@ -3248,44 +3482,6 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex items-center justify-between py-3">
-      <span className="text-sm text-zinc-400">{label}</span>
-      <button
-        onClick={() => onChange(!value)}
-        className={`relative rounded-full transition-all ${value ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-zinc-700"}`}
-        style={{ width: 42, height: 24 }}
-      >
-        <div className={`absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-md transition-transform ${value ? "left-[21px]" : "left-[3px]"}`} />
-      </button>
-    </div>
-  );
-}
-
-function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-sm text-zinc-400">{label}</span>
-      {children}
-    </div>
-  );
-}
-
-function Stepper({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <button onClick={() => onChange(Math.max(min, value - 1))} className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center hover:border-emerald-500/20 transition-colors">
-        <Minus className="w-3 h-3 text-zinc-400" />
-      </button>
-      <span className="w-7 text-center text-sm text-emerald-400">{value}</span>
-      <button onClick={() => onChange(Math.min(max, value + 1))} className="w-8 h-8 rounded-lg bg-zinc-800/50 border border-zinc-700/30 flex items-center justify-center hover:border-emerald-500/20 transition-colors">
-        <Plus className="w-3 h-3 text-zinc-400" />
-      </button>
     </div>
   );
 }

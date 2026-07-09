@@ -200,6 +200,35 @@ function isScheduleConversation(chatHistory?: any[]): boolean {
   });
 }
 
+function isWorkoutSafetyQuestion(q: string): boolean {
+  return (
+    /(chan thuong|injury|pain|dau\s*(goi|lung|vai|khop)|bi dau|gay chan thuong|co bi chan thuong|co gay chan thuong)/.test(q) ||
+    (/co\s*(nen|the)\b/.test(q) && /\bkhong\b/.test(q))
+  );
+}
+
+function asksStoredWorkoutDetails(q: string): boolean {
+  return /(lich tap|lich cua toi|toi tap gi|tap gi|workout schedule|what should i train)/.test(q);
+}
+
+function hasScheduleFollowUpSignal(q: string): boolean {
+  return /(^|\b)(con|vay|the|thi sao|what about|how about|and|then)\b/.test(q);
+}
+
+function asksForWeeklySchedule(q: string): boolean {
+  return (
+    /(lich tap|workout schedule|training schedule|workout plan)/.test(q) &&
+    /(1\s*tuan|mot\s*tuan|ca\s*tuan|tuan\s*nay|weekly|one\s*week|7\s*ngay)/.test(q)
+  );
+}
+
+function isWorkoutPlanCreationRequest(q: string): boolean {
+  const hasCreateVerb = /\b(tao|lap|len|thiet ke|build|create|generate|make)\b/.test(q);
+  const hasPlanNoun = /(lich tap|ke hoach tap|chuong trinh tap|workout plan|training plan|program)/.test(q);
+  const wantsDifferentPlan = /(khac voi|doi lich|lich moi|plan moi|chuong trinh moi|khac lich hien tai)/.test(q);
+  return (hasCreateVerb && hasPlanNoun) || (hasPlanNoun && wantsDifferentPlan);
+}
+
 export function detectWorkoutScheduleIntent(question: string, chatHistory?: any[]): WorkoutScheduleIntent {
   const q = normalizeText(question);
   const today = formatDateInTz(new Date());
@@ -207,17 +236,30 @@ export function detectWorkoutScheduleIntent(question: string, chatHistory?: any[
   const parsedDayOfWeek = detectSpecificWeekday(q);
   const inheritedIntent = isScheduleConversation(chatHistory);
 
-  if (/^(tao|create|generate|lap)\b/.test(q)) {
+  if (/^(tao|create|generate|lap)\b/.test(q) || isWorkoutPlanCreationRequest(q)) {
     return { enabled: false, target: 'current_schedule', rawMessage: question, normalizedMessage: q, inheritedIntent };
   }
 
   const scheduleSignals =
-    /(hom nay|ngay mai|tuan nay|tuan sau|lich tap|lich cua toi|toi tap gi|tap gi|workout schedule|train today|train tomorrow|workout today|workout tomorrow|what should i train|what about|con|vay|thi sao)/;
+    /(hom nay|ngay mai|tuan nay|tuan sau|lich tap|lich cua toi|toi tap gi|tap gi|workout schedule|train today|train tomorrow|workout today|workout tomorrow|what should i train|what about)/;
   const hasDateOrDay = parsedDate !== undefined || parsedDayOfWeek !== undefined;
+  const hasDirectScheduleSignal = scheduleSignals.test(q) || asksForWeeklySchedule(q);
+  const inheritedFollowUp = inheritedIntent && (hasDateOrDay || hasScheduleFollowUpSignal(q) || /(hom nay|ngay mai|today|tomorrow)/.test(q));
+  if (isWorkoutSafetyQuestion(q) && !asksStoredWorkoutDetails(q)) {
+    return {
+      enabled: false,
+      target: 'current_schedule',
+      rawMessage: question,
+      normalizedMessage: q,
+      inheritedIntent,
+      parsedDate,
+      parsedDayOfWeek,
+    };
+  }
   const asksWorkoutLookup =
-    scheduleSignals.test(q) ||
+    hasDirectScheduleSignal ||
     hasDateOrDay ||
-    inheritedIntent;
+    inheritedFollowUp;
 
   if (!asksWorkoutLookup) {
     return {
@@ -244,6 +286,19 @@ export function detectWorkoutScheduleIntent(question: string, chatHistory?: any[
       targetDate: parsedDate,
       targetDayOfWeek: weekdayLabel(parsedDate),
       dateWeekdayMismatch: mismatch,
+    };
+  }
+
+  if (asksForWeeklySchedule(q)) {
+    const start = mondayOf(today);
+    return {
+      enabled: true,
+      target: 'this_week',
+      rawMessage: question,
+      normalizedMessage: q,
+      inheritedIntent,
+      weekStart: start,
+      weekEnd: addDays(start, 6),
     };
   }
 

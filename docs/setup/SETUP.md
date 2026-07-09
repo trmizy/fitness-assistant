@@ -560,3 +560,39 @@ Visit **http://localhost:5173** and login with:
 - Password: `password123`
 
 Enjoy your AI Gym Coach! 🏋️‍♂️
+Chạy từ root project:
+
+```powershell
+cd d:\project_personal\fitness-assistant
+
+docker compose -f infra/compose/docker-compose.dev.yml build --no-cache
+
+docker compose -f infra/compose/docker-compose.dev.yml up -d
+
+docker compose -f infra/compose/docker-compose.dev.yml ps
+```
+
+Xem log nếu service nào lỗi:
+
+```powershell
+docker compose -f infra/compose/docker-compose.dev.yml logs ai-service --tail=150
+docker compose -f infra/compose/docker-compose.dev.yml logs gateway --tail=150
+docker compose -f infra/compose/docker-compose.dev.yml logs web --tail=150
+docker compose -f infra/compose/docker-compose.dev.yml logs user-service --tail=150
+docker compose -f infra/compose/docker-compose.dev.yml logs fitness-service --tail=150
+```
+
+Nếu Ollama/model bị mất sau khi xoá Docker:
+
+```powershell
+docker compose -f infra/compose/docker-compose.dev.yml exec ollama ollama pull llama3.2:3b
+docker compose -f infra/compose/docker-compose.dev.yml exec ollama ollama pull nomic-embed-text
+```
+
+Sau đó mở:
+
+```text
+http://localhost:5173
+```
+
+Không dùng `down -v` nếu không muốn xoá volume/DB.

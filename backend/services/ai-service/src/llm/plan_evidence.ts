@@ -7,6 +7,25 @@ export type PlanEvidenceBundle = {
   safety_notes: string[];
 };
 
+function readMetadataString(metadata: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = metadata[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return '';
+}
+
+function readEvidenceDate(metadata: Record<string, unknown>): { date?: string; year?: string } {
+  const raw = readMetadataString(metadata, ['published_at', 'date', 'year']);
+  if (!raw) return {};
+  const yearMatch = raw.match(/\b(19|20)\d{2}\b/);
+  return {
+    date: raw,
+    year: yearMatch?.[0],
+  };
+}
+
 export function evidenceUsedFromDocs(docs: RetrievalDocument[]): EvidenceUsed[] {
   const seen = new Set<string>();
   const evidence: EvidenceUsed[] = [];
@@ -16,6 +35,8 @@ export function evidenceUsedFromDocs(docs: RetrievalDocument[]): EvidenceUsed[] 
     const sourceUrl = typeof metadata.source_url === 'string' ? metadata.source_url.trim() : '';
     const title = typeof metadata.title === 'string' ? metadata.title.trim() : '';
     const sourceType = typeof metadata.source_type === 'string' ? metadata.source_type.trim() : 'curated_summary';
+    const source = readMetadataString(metadata, ['source_name', 'source', 'publisher']);
+    const { date, year } = readEvidenceDate(metadata);
 
     if (!sourceUrl || !title) continue;
 
@@ -29,6 +50,10 @@ export function evidenceUsedFromDocs(docs: RetrievalDocument[]): EvidenceUsed[] 
       category: typeof metadata.category === 'string' ? metadata.category : doc.category,
       source_type: sourceType,
       summary: doc.pageContent.replace(/\s+/g, ' ').slice(0, 180),
+      ...(source ? { source } : {}),
+      ...(date ? { date } : {}),
+      ...(year ? { year } : {}),
+      citation: [title, year].filter(Boolean).join(', '),
     });
   }
 
@@ -81,6 +106,8 @@ export function formatEvidenceForPlanPrompt(docs: RetrievalDocument[]): string {
       `E${index + 1}: ${metadata.title || 'Untitled evidence'}`,
       `source_type: ${metadata.source_type || 'curated_summary'}`,
       `source_url: ${metadata.source_url || 'unknown'}`,
+      `source: ${metadata.source_name || metadata.source || 'unknown'}`,
+      `date: ${metadata.published_at || metadata.date || metadata.year || 'unknown'}`,
       `category: ${doc.category}`,
       `summary: ${doc.pageContent.replace(/\s+/g, ' ').slice(0, 180)}`,
     ].join('\n');

@@ -1,0 +1,18 @@
+{
+  "external_id": "https://openalex.org/W123",
+  "title": "Bioelectrical impedance analysis standardized conditions",
+  "abstract_or_summary": "A review describing standardized measurement conditions and limitations for bioelectrical impedance analysis.",
+  "source": "OpenAlex",
+  "source_url": "https://openalex.org/W123",
+  "doi": "10.1000/openalex-bia",
+  "authors": ["D Author"],
+  "journal": "Clinical Nutrition",
+  "publisher": "OpenAlex",
+  "year": 2019,
+  "date": "2019-01-01",
+  "license": "metadata",
+  "access_status": "metadata",
+  "topic": "inbody_bia_limitations",
+  "raw_metadata": { "fixture": true },
+  "fetched_at": "2026-07-08T00:00:00.000Z"
+}

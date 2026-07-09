@@ -1,4 +1,4 @@
-import { Queue, Worker } from 'bullmq';
+import { Worker } from 'bullmq';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import axios from 'axios';
@@ -15,15 +15,12 @@ import {
   formatEvidenceForPlanPrompt,
   type PlanEvidenceBundle,
 } from '../llm/plan_evidence';
+import { buildCoachContext, sanitizeCoachContextForPrompt } from '../coach/coach_context_builder';
+import { buildLegacyDeterministicPlanContent, validateLegacyPlanContent } from '../coach/plan_schema';
+import type { CoachContext } from '../coach/coach_context.types';
 import type { UserProfile } from '../llm/types';
 import type { WorkerUserContext } from './worker-user-context';
-
-const redisConnection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-};
-
-export const aiQueue = new Queue('ai-tasks', { connection: redisConnection });
+import { redisConnection } from './ai.queue';
 
 type AllowedExercise = AllowedExerciseItem;
 
@@ -74,7 +71,7 @@ function buildEvidenceProfile(ctx: WorkerUserContext | null, fallbackGoal: strin
   };
 }
 
-// ── Muscle group matching ────────────────────────────────────────────────────
+// Muscle group matching
 
 /** Returns true if the exercise matches the given focus group */
 function exerciseMatchesMuscleGroup(ex: AllowedExercise, group: string): boolean {
@@ -100,10 +97,11 @@ function exerciseMatchesMuscleGroup(ex: AllowedExercise, group: string): boolean
              /bicep|curl/.test(name);
     case 'LEGS':
       return bp === 'LOWER_BODY' &&
-             muscles.some((m) => /quad|hamstring|calf|calves|tibial|leg/.test(m));
+             (muscles.some((m) => /quad|hamstring|calf|glute|leg/.test(m)) ||
+              /squat|deadlift|lunge|leg|calf|step.up/.test(name));
     case 'GLUTES':
-      return (bp === 'LOWER_BODY') &&
-             (muscles.some((m) => /glute|hip|abductor/.test(m)) ||
+      return bp === 'LOWER_BODY' &&
+             (muscles.some((m) => /glute|hip/.test(m)) ||
               /squat|lunge|deadlift|hip.thrust|glute|step.up/.test(name));
     case 'CORE':
       return bp === 'CORE' ||
@@ -125,7 +123,7 @@ function parseDayFocusMuscleGroups(dayGoal: string): string[] {
   const s = dayGoal.toLowerCase();
 
   // Full body / conditioning patterns first
-  if (/full.body|toan.*than|toàn.*thân|conditioning.*all|general.*strength/.test(s)) {
+  if (/full.body|toan.*than|conditioning.*all|general.*strength/.test(s)) {
     return ['FULL_BODY'];
   }
   // Push day
@@ -141,17 +139,17 @@ function parseDayFocusMuscleGroups(dayGoal: string): string[] {
   }
 
   const groups: string[] = [];
-  if (/nguc|ngực|chest|pec|bench/.test(s)) groups.push('CHEST');
+  if (/nguc|chest|pec|bench/.test(s)) groups.push('CHEST');
   if (/vai|shoulder|delt|overhead/.test(s)) groups.push('SHOULDERS');
   if (/tay sau|tricep/.test(s)) groups.push('TRICEPS');
   // BACK can coexist with CHEST (e.g. "Nguc + Lung" full-body upper day)
-  if (/lung|lưng|back|lat|row|pull/.test(s) && !/pull.up|pullover/.test(s)) groups.push('BACK');
-  if (/tay tr[ưu]oc|truoc|bicep|curl/.test(s)) groups.push('BICEPS');
-  if (/ch[aâ]n|leg|quad|hamstring|squat|deadlift|lunge|bap chan/.test(s)) groups.push('LEGS');
-  if (/m[oô]ng|glute|hip/.test(s)) groups.push('GLUTES');
-  if (/core|b[uụ]ng|ab|plank/.test(s)) groups.push('CORE');
+  if (/lung|back|lat|row|pull/.test(s) && !/pull.up|pullover/.test(s)) groups.push('BACK');
+  if (/tay truoc|truoc|bicep|curl/.test(s)) groups.push('BICEPS');
+  if (/chan|leg|quad|hamstring|squat|deadlift|lunge|bap chan/.test(s)) groups.push('LEGS');
+  if (/mong|glute|hip/.test(s)) groups.push('GLUTES');
+  if (/core|bung|ab|plank/.test(s)) groups.push('CORE');
 
-  // Conditioning-only day → lower body as default
+  // Conditioning-only day -> lower body as default
   if (groups.length === 0 && /condition|dieu.*hoa/.test(s)) return ['LEGS', 'CORE'];
 
   return groups.length > 0 ? groups : ['FULL_BODY'];
@@ -255,7 +253,7 @@ function validateExerciseMuscleMatch(
 
 function splitGoalForDay(planGoal: string, dayIndex: number, daysPerWeek: number): string {
   const normalizedGoal = String(planGoal || '').toLowerCase();
-  const muscleGain = /tang co|tăng cơ|muscle|hypertrophy|mass/.test(normalizedGoal);
+  const muscleGain = /tang co|muscle|hypertrophy|mass/.test(normalizedGoal);
 
   const hypertrophySplits =
     daysPerWeek >= 6
@@ -642,6 +640,7 @@ function buildFastPlanPrompt(args: {
     catalog,
     'Rules:',
     '- Keep the JSON compact. No markdown, no commentary, no duplicate exercise details.',
+    '- exercise source policy: use ONLY the fitness-service DB catalog below; do NOT use Qdrant/RAG exercise documents.',
     `- weeklySchedule length exactly ${args.daysPerWeek}.`,
     `- each day exactly ${args.exercisesPerDay} exercises.`,
     '- each exercise object must contain only: exerciseId, order, name, sets, reps, restSeconds, note.',
@@ -653,7 +652,7 @@ function buildFastPlanPrompt(args: {
   ].filter(Boolean).join('\n\n');
 }
 
-// ── Job data schema ───────────────────────────────────────────────────────────
+// Job data schema
 function buildDeterministicPlanFromCatalogs(args: {
   goal: string;
   durationWeeks: number;
@@ -686,7 +685,7 @@ function buildDeterministicPlanFromCatalogs(args: {
           'Auto-repaired from per-day exercise catalog after incomplete LLM output',
         ),
       ),
-      cardio: 'Khởi động nhẹ 5-10 phút trước buổi tập.',
+      cardio: 'Khoi dong nhe 5-10 phut truoc buoi tap.',
     };
   });
 
@@ -697,14 +696,14 @@ function buildDeterministicPlanFromCatalogs(args: {
     exercisesPerDay: args.exercisesPerDay,
     weeklySchedule,
     progressionNotes: [
-      'Tăng dần mức tạ hoặc số lần lặp khi hoàn thành đủ hiệp với kỹ thuật tốt.',
-      'Giữ form chuẩn trước khi tăng cường độ.',
+      'Tang dan muc ta hoac so lan lap khi hoan thanh du hiep voi ky thuat tot.',
+      'Giu form chuan truoc khi tang cuong do.',
     ],
     recoveryNotes: [
-      'Ngủ 7-9 giờ mỗi ngày và duy trì ít nhất một ngày phục hồi mỗi tuần.',
-      'Nếu đau nhức kéo dài, hãy giảm khối lượng tập hoặc nghỉ thêm.',
+      'Ngu 7-9 gio moi ngay va duy tri it nhat mot ngay phuc hoi moi tuan.',
+      'Neu dau nhuc keo dai, hay giam khoi luong tap hoac nghi them.',
     ],
-    nutritionSummary: 'Ưu tiên đủ protein, kiểm soát tổng calo theo mục tiêu và uống đủ nước.',
+    nutritionSummary: 'Uu tien du protein, kiem soat tong calo theo muc tieu va uong du nuoc.',
   };
 
   appendPlanWarnings(content, [{
@@ -744,12 +743,12 @@ export const aiWorker = new Worker(
       return processNutritionPlanJob(job);
     }
 
-    // ── 1. Validate job data ───────────────────────────────────────────────
+    // 1. Validate job data
     const dataResult = PlanJobDataSchema.safeParse(job.data);
     if (!dataResult.success) {
       const reason = `Invalid job data: ${dataResult.error.errors.map((e) => e.message).join('; ')}`;
       logger.error({ jobId: job.id, data: job.data }, reason);
-      // Do NOT update DB — we don't have a planId to update.
+      // Do NOT update DB - we don't have a planId to update.
       throw new Error(reason);
     }
     const { planId, userId, goal, durationWeeks, daysPerWeek, exercisesPerDay, adjustmentContext, trainingLocation = 'GYM', equipmentPreference = 'MIXED_GYM' } =
@@ -758,10 +757,10 @@ export const aiWorker = new Worker(
 
     logger.info({ jobId: job.id, planId, userId }, 'Plan generation job started');
 
-    // ── 2. Mark plan as PROCESSING ─────────────────────────────────────────
+    // 2. Mark plan as PROCESSING
     await conversationRepository.updatePlanStatus(planId, PlanStatus.PROCESSING);
 
-    // ── 3. Fetch allowed exercises from fitness-service (internal API) ─────
+    // 3. Fetch allowed exercises from fitness-service (internal API)
     const fitnessServiceUrl = process.env.FITNESS_SERVICE_URL || 'http://localhost:3002';
     const internalSecret = process.env.INTERNAL_SERVICE_SECRET;
 
@@ -798,23 +797,37 @@ export const aiWorker = new Worker(
       return;
     }
 
-    // ── 3b. Fetch personal user context (InBody, workout history, nutrition) ─
+    // 3b. Fetch personal user context (InBody, workout history, nutrition)
     // Non-critical: failures are swallowed; plan will still be generated
     let userContextText = '';
+    let coachContextText = '';
     let workerContext: WorkerUserContext | null = null;
+    let coachContext: CoachContext | null = null;
     try {
       const { fetchWorkerUserContext, formatWorkerContextForPrompt } = await import('./worker-user-context');
       const ctx = await fetchWorkerUserContext(userId);
       workerContext = ctx;
       userContextText = formatWorkerContextForPrompt(ctx);
+      coachContext = buildCoachContext({
+        userId,
+        profile: ctx.profile as any,
+        latestInBody: ctx.latestInBody as any,
+        inBodyHistory: ctx.inBodyHistory as any,
+        workoutHistory: ctx.recentWorkouts as any,
+        nutritionHistory: ctx.recentNutritionDays as any,
+        requestedDaysPerWeek: daysPerWeek,
+        timeframeWeeks: durationWeeks,
+        goal,
+      });
+      coachContextText = JSON.stringify(sanitizeCoachContextForPrompt(coachContext));
       if (userContextText) {
         logger.info({ planId, hasInBody: !!ctx.latestInBody, workoutDays: ctx.recentWorkouts.length }, 'Fetched personal user context for plan generation');
       }
     } catch (err) {
-      logger.warn({ err, planId }, 'Could not fetch personal user context — plan will use goal/params only');
+      logger.warn({ err, planId }, 'Could not fetch personal user context - plan will use goal/params only');
     }
 
-    // ── 4. Build per-day exercise catalogs and prompt ──────────────────────
+    // 4. Build per-day exercise catalogs and prompt
     const perDayCatalogs = buildPerDayCatalogs(goal, daysPerWeek, allowedExercises, trainingLocation, equipmentPreference, exercisesPerDay);
     logger.info(
       { planId, daysPerWeek, catalogs: perDayCatalogs.map(c => ({ day: c.dayGoal, groups: c.focusMuscleGroups, count: c.exercises.length })) },
@@ -830,7 +843,8 @@ export const aiWorker = new Worker(
     // Append personal context to adjustmentContext so prompt builder can include it
     const enrichedAdjustmentContext = [
       adjustmentContext,
-      userContextText ? `[Thông tin cá nhân hóa]\n${userContextText}` : '',
+      userContextText ? `[Thong tin ca nhan hoa]\n${userContextText}` : '',
+      coachContextText ? `[CoachContext JSON - sanitized]\n${coachContextText}` : '',
     ].filter(Boolean).join('\n\n') || undefined;
     const evidenceProfile = buildEvidenceProfile(workerContext, goal);
     const bodyCompAnalysis = analyzeBodyComposition(evidenceProfile);
@@ -853,6 +867,8 @@ export const aiWorker = new Worker(
         planTimeoutMs,
         planRetryTimeoutMs,
         hasUserContext: Boolean(userContextText),
+        exerciseCatalogSource: 'fitness-service-db',
+        qdrantExerciseRetrieval: false,
         bodyCompAdjustments: evidenceBundle.adjustment_reason.map((item) => item.metric),
         evidenceUsed: evidenceBundle.evidence_used.map((item) => ({
           title: item.title,
@@ -945,7 +961,7 @@ export const aiWorker = new Worker(
       throw err; // Let BullMQ mark the job as failed and apply retry policy.
     }
 
-    // ── 4. Parse and validate LLM output ──────────────────────────────────
+    // 4. Parse and validate LLM output
     let parseResult = parsePlanContent(rawAnswer);
     let looseCandidate = safeParseJsonCandidate(rawAnswer);
 
@@ -1057,7 +1073,7 @@ export const aiWorker = new Worker(
       // surface a friendly message but keep the technical reason in logs.
       const tech = parseResult.reason || '';
       if (tech.includes('LLM did not return any JSON')) {
-        const reason = 'AI chưa trả về đúng định dạng kế hoạch. Vui lòng thử lại hoặc giảm số buổi/tuần.';
+        const reason = 'AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.';
         logger.error(
           { jobId: job.id, planId, technicalReason: 'LLM did not return any JSON object after retry', rawSnippet: String(rawAnswer).slice(0, 500) },
           'Plan generation: structured output validation failed',
@@ -1066,7 +1082,7 @@ export const aiWorker = new Worker(
         return;
       }
 
-      const reason = 'AI không tạo đủ bài tập cho một số ngày. Vui lòng thử lại hoặc giảm số buổi/tuần.';
+      const reason = 'AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.';
       logger.error(
         { jobId: job.id, planId, technicalReason: parseResult.reason, rawSnippet: String(rawAnswer).slice(0, 500) },
         'Plan generation: structured output validation failed',
@@ -1093,7 +1109,7 @@ export const aiWorker = new Worker(
       }
     }
 
-    // ── 4b. Repair muscle-group mismatches (exercise in wrong day) ───────────
+    // 4b. Repair muscle-group mismatches (exercise in wrong day)
     const mismatchWarnings: Array<Record<string, unknown>> = [];
     const catalogById = new Map(perDayCatalogs.map((c) => [c.dayIndex, c]));
     const planContentForRepair = parseResult.content as any;
@@ -1321,7 +1337,7 @@ export const aiWorker = new Worker(
             return;
           }
 
-          await conversationRepository.updatePlanFailed(planId, 'AI không tạo đủ bài tập cho một số ngày. Vui lòng thử lại hoặc giảm số buổi/tuần.');
+          await conversationRepository.updatePlanFailed(planId, 'AI khong tao du bai tap cho mot so ngay. Vui long thu lai hoac giam so buoi/tuan.');
           logger.warn({ jobId: job.id, planId, missing: idCheck.missing, repairedDays }, 'Plan generation failed after repair attempts');
           return;
         }
@@ -1384,7 +1400,7 @@ export const aiWorker = new Worker(
         }
       }
 
-      // Re-run id validation — if successful, persist and finish.
+      // Re-run id validation - if successful, persist and finish.
       let newCheck = await idsValid(content);
       if (newCheck.ok) {
         await completePlan(content, 'Plan generation completed after allowedExercises name->id mapping');
@@ -1423,12 +1439,12 @@ export const aiWorker = new Worker(
             }
           }
         } catch (e) {
-          // ignore individual lookup errors — continue best-effort
+          // Ignore individual lookup errors - continue best-effort.
           logger.warn({ err: e, name: nm, planId }, 'Name->ID mapping lookup failed (continuing)');
         }
       }
 
-      // Re-run id validation
+      // Re-run id validation - if successful, persist and finish.
       const finalCheck = await idsValid(content);
       if (finalCheck.ok) {
         // Persist mapping warnings into the plan JSON so downstream consumers
@@ -1454,11 +1470,44 @@ export const aiWorker = new Worker(
 
     // Normalize exercise names using canonical names from fitness-service
     const canonicalById = new Map(allowedExercises.map((e) => [e.id, e.exerciseName]));
-    const content = parseResult.content as any;
+    let content = parseResult.content as any;
     for (const day of content.weeklySchedule) {
       for (const ex of day.exercises) {
         const canonical = canonicalById.get(ex.exerciseId);
         if (canonical) ex.name = canonical;
+      }
+    }
+
+    if (coachContext) {
+      const professionalValidation = validateLegacyPlanContent(content, coachContext, evidenceBundle.evidence_used);
+      if (professionalValidation.errors.length > 0 || professionalValidation.warnings.length > 0) {
+        appendPlanWarnings(content, [{
+          type: 'coach_plan_validation',
+          errors: professionalValidation.errors,
+          warnings: professionalValidation.warnings,
+        }]);
+        logger.warn({
+          planId,
+          jobId: job.id,
+          errorCodes: professionalValidation.errors.map((item) => item.code),
+          warningCodes: professionalValidation.warnings.map((item) => item.code),
+        }, 'Coach plan validator reported issues');
+      }
+
+      const hardFallbackCodes = new Set(['available_days_exceeded', 'beginner_volume_too_high']);
+      if (professionalValidation.errors.some((item) => hardFallbackCodes.has(item.code))) {
+        content = buildLegacyDeterministicPlanContent(coachContext, {
+          goal,
+          durationWeeks,
+          daysPerWeek,
+          exercisesPerDay,
+          allowedExercises,
+        }) as any;
+        appendPlanWarnings(content, [{
+          type: 'coach_plan_validation_fallback',
+          reason: 'structured_plan_failed_backend_validation',
+          errorCodes: professionalValidation.errors.map((item) => item.code),
+        }]);
       }
     }
 
@@ -1467,7 +1516,7 @@ export const aiWorker = new Worker(
     content._metadata.trainingLocation = trainingLocation;
     content._metadata.equipmentPreference = equipmentPreference;
 
-    // ── 5. Persist structured plan ─────────────────────────────────────────
+    // 5. Persist structured plan
     await completePlan(content, 'Plan generation completed successfully');
   },
   {

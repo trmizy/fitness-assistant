@@ -261,16 +261,60 @@ services:
         condition: service_started
       ollama:
         condition: service_healthy
+      ollama-model-puller:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
       interval: 20s
       timeout: 5s
-      retries: 5
-      start_period: 25s
+      retries: 30
+      start_period: 10m
     dns:
       - 8.8.8.8
 
   # ── Chat Service ─────────────────────────────────────────────────────────────
+  knowledge-worker:
+    build:
+      context: ../..
+      dockerfile: backend/services/ai-service/Dockerfile.dev
+    container_name: gymcoach-knowledge-worker-dev
+    profiles:
+      - knowledge
+    command: pnpm run knowledge:worker
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_ai
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_BASE_URL: http://ollama:11434
+      OLLAMA_BASE_URL: http://ollama:11434
+      LLM_MODEL: llama3.2:3b
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      KNOWLEDGE_ENABLE_LLM_SAFETY_JUDGE: ${KNOWLEDGE_ENABLE_LLM_SAFETY_JUDGE:-false}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
+      CHOKIDAR_USEPOLLING: "true"
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../backend/services/ai-service/src:/app/backend/services/ai-service/src
+      - ../../backend/services/ai-service/prisma:/app/backend/services/ai-service/prisma
+      - ../../data:/app/data
+    depends_on:
+      ai-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      ollama:
+        condition: service_healthy
+    restart: "no"
+    dns:
+      - 8.8.8.8
+
   chat-service:
     build:
       context: ../..
@@ -360,6 +404,10 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+    environment:
+      NVIDIA_VISIBLE_DEVICES: void
+      CUDA_VISIBLE_DEVICES: ""
+      OLLAMA_HOST: 0.0.0.0:11434
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
@@ -367,13 +415,6 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
     networks:
       - default
 
@@ -389,6 +430,8 @@ services:
   n8n:
     image: n8nio/n8n:latest
     container_name: gymcoach-n8n
+    profiles:
+      - automation
     ports:
       - "5678:5678"
     environment:
@@ -411,13 +454,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    restart: unless-stopped
+    restart: "no"
     networks:
       - default
 
   prometheus:
     image: prom/prometheus:v2.51.0
     container_name: gymcoach-prometheus
+    profiles:
+      - observability
     ports:
       - "9090:9090"
     volumes:
@@ -427,13 +472,15 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.retention.time=7d'
       - '--web.enable-lifecycle'
-    restart: unless-stopped
+    restart: "no"
     networks:
       - default
 
   grafana:
     image: grafana/grafana:10.4.0
     container_name: gymcoach-grafana
+    profiles:
+      - observability
     ports:
       - "3100:3000"
     environment:
@@ -448,31 +495,35 @@ services:
       - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
-    restart: unless-stopped
+    restart: "no"
     networks:
       - default
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.15.0
     container_name: gymcoach-pg-exporter
+    profiles:
+      - observability
     environment:
       DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_auth?sslmode=disable"
     depends_on:
       postgres:
         condition: service_healthy
-    restart: unless-stopped
+    restart: "no"
     networks:
       - default
 
   redis-exporter:
     image: oliver006/redis_exporter:v1.58.0
     container_name: gymcoach-redis-exporter
+    profiles:
+      - observability
     environment:
       REDIS_ADDR: "redis://redis:6379"
     depends_on:
       redis:
         condition: service_healthy
-    restart: unless-stopped
+    restart: "no"
     networks:
       - default
 

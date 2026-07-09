@@ -86,6 +86,7 @@ model WorkoutExercise {
   id         String   @id @default(uuid())
   workoutId  String   @map("workout_id")
   exerciseId String   @map("exercise_id")
+  programExerciseId String? @map("program_exercise_id")
   sets       Int
   reps       Int?
   duration   Int?     // seconds for holds/cardio
@@ -100,6 +101,8 @@ model WorkoutExercise {
 
   @@index([workoutId])
   @@index([exerciseId])
+  @@index([programExerciseId])
+  @@unique([workoutId, programExerciseId], map: "workout_exercises_workout_program_exercise_unique")
   @@map("workout_exercises")
 }
 

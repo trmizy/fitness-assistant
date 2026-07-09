@@ -820,7 +820,12 @@ function buildFollowUps(intent: RoutedIntentType, missingFields: string[], langu
 
 export const recommendationEngine = {
   recommend(profile: UserProfile, intent: InputIntent, language: ResponseLanguage = 'en'): RecommendationResult {
-    const responseIntent = intent.routeIntent || 'general_fitness_knowledge';
+    const routedIntent = intent.routeIntent || 'general_fitness_knowledge';
+    const asksForMuscleRoutine = Boolean(intent.muscleGroupHint) &&
+      /(lich tap|routine|buoi tap|bai tap|workout|exercise)/i.test(intent.normalizedQuestion);
+    const responseIntent = routedIntent === 'general_fitness_knowledge' && asksForMuscleRoutine
+      ? 'muscle_group_routine_request'
+      : routedIntent;
     const objective = objectiveFromGoal(profile.goal, intent.goalHint);
     const nutrition = nutritionCalculator.calculate(profile, intent);
     const workout = workoutPlanSelector.select(profile, intent);

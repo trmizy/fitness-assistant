@@ -1,11 +1,12 @@
 GYM RAG DATASET (VI) - synthetic domain dataset
 ================================================
 
-Mục tiêu:
-- Dùng cho RAG tiếng Việt về gym/fitness/nutrition/workout planning.
-- Có thể dùng một phần cho instruction-tuning / evaluation.
+Muc tieu:
+- Dung cho RAG tieng Viet ve gym, fitness, nutrition va workout planning.
+- Dung cho retrieval evaluation, prompt policy tests va instruction examples.
+- Khong phai bo du lieu fine-tune dang duoc train trong repo hien tai.
 
-File nên index trực tiếp cho RAG:
+File nen index truc tiep cho RAG:
 1. data/catalog/rag/gym_rag_master_dataset.csv
 2. data/catalog/qa/gym_faq_qa.csv
 3. data/catalog/qa/gym_health_guidance.csv
@@ -13,46 +14,53 @@ File nên index trực tiếp cho RAG:
 5. data/catalog/plans/gym_workout_plans.csv + data/catalog/plans/gym_workout_plan_days.csv
 6. data/catalog/nutrition/gym_meal_plans.csv + data/catalog/nutrition/gym_foods.csv
 
-File hữu ích cho retrieval/eval:
+File huu ich cho retrieval/eval:
 - data/catalog/rag/gym_queries.csv
+- data/catalog/rag/gym_instruction_tuning_pairs.csv
 - data/catalog/meta/manifest.csv
 
-File hữu ích cho supervised fine-tuning:
-- data/catalog/rag/gym_instruction_tuning_pairs.csv
+Ghi chu ve instruction examples:
+- data/catalog/rag/gym_instruction_tuning_pairs.csv la cac cap prompt-response co the dung cho evaluation, regression tests, prompt examples hoac future fine-tuning research.
+- Repo hien tai khong co pipeline LoRA/QLoRA/Transformers va khong fine-tune model weights.
 
-File đầu vào cho AI ingest (Qdrant):
+File dau vao cho AI ingest (Qdrant):
 - data/processed/rag/exercises.csv
+- data/catalog/rag/gym_rag_master_dataset.csv
+- data/catalog/qa/gym_faq_qa.csv
+- data/processed/evidence/*.jsonl
 
-So đồ thư mục data (moi):
+So do thu muc data:
 - data/raw: du lieu tho
 - data/processed/rag: du lieu da xu ly de ingest
+- data/processed/evidence: evidence chunks da xu ly cho fitness_evidence
 - data/catalog: du lieu domain da phan nhom theo muc dich
 - data/eval/retrieval: ground truth cho retrieval
-- data/eval/model: ket qua danh gia model
+- data/eval/model: ket qua danh gia model/response
 
-Lưu ý quan trọng:
-- Đây là bộ dữ liệu tổng hợp (synthetic) được tạo từ tri thức miền gym/fitness phổ thông.
-- Macro thực phẩm là xấp xỉ.
-- Các mục liên quan đau, chấn thương, bệnh lý chỉ mang tính giáo dục; cần thêm lớp an toàn trong production.
-- Khi đưa vào RAG, nên chunk theo doc_id hoặc title_vi + content_vi; lưu tags và metadata_json làm metadata vector.
+Luu y quan trong:
+- Day la bo du lieu tong hop (synthetic) duoc tao tu tri thuc mien gym/fitness pho thong.
+- Macro thuc pham la xap xi.
+- Cac muc lien quan dau, chan thuong, benh ly chi mang tinh giao duc; can safety guard trong production.
+- Khi dua vao RAG, nen chunk theo doc_id hoac title_vi + content_vi; luu tags va metadata_json lam metadata vector.
 
-Khuyến nghị schema cho vector DB:
-- id = doc_id
+Khuyen nghi schema cho vector DB:
+- id = doc_id hoac row id on dinh
 - text = title_vi + "\n" + content_vi
 - metadata = doc_type, category, subcategory, tags, metadata_json
 
-Tổng số hàng:
+Tong so hang:
 - master_dataset: 7072
 - faq_qa: 5946
 - queries: 25220
-- instruction_tuning_pairs: 25220
+- instruction_examples: 25220
 - exercises: 205
 - foods: 149
 - workout_plans: 57
 - meal_plans: 120
 
-Gợi ý pipeline:
-1. Làm sạch / normalize dấu câu
-2. Index data/catalog/rag/gym_rag_master_dataset.csv vào vector store
-3. Dùng data/catalog/rag/gym_queries.csv để test recall@k
-4. Nếu muốn fine-tune, dùng data/catalog/rag/gym_instruction_tuning_pairs.csv
+Goi y pipeline:
+1. Lam sach / normalize dau cau
+2. Index data/catalog/rag/gym_rag_master_dataset.csv vao vector store
+3. Index data/catalog/qa/gym_faq_qa.csv vao vector store
+4. Index data/processed/evidence/*.jsonl vao fitness_evidence
+5. Dung data/eval/retrieval/*.csv de test hit@k, recall@k va MRR

@@ -10,6 +10,8 @@ router.post('/from-ai-plan', internalAuthMiddleware, workoutController.importAiP
 router.get('/prs', authMiddleware, workoutController.getPRs as any);
 router.get('/schedules', authMiddleware, workoutController.listSchedules as any);
 router.post('/schedules', authMiddleware, workoutController.createSchedule as any);
+router.post('/schedules/:id/start', authMiddleware, workoutController.startSchedule as any);
+router.post('/schedules/:id/exercises/:programExerciseId/complete', authMiddleware, workoutController.completeScheduleExercise as any);
 router.delete('/schedules/:id', authMiddleware, workoutController.deleteSchedule as any);
 
 router.get('/programs/current', authMiddleware, workoutController.getCurrentProgram as any);

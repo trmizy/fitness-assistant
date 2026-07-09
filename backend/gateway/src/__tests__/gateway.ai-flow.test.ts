@@ -14,14 +14,25 @@ let authServer: http.Server;
 let gatewayBaseUrl = '';
 let forwardedInternalToken = '';
 let forwardedUserId = '';
+let forwardedAdminBody = '';
+let forwardedAdminInternalToken = '';
+let forwardedAdminUserId = '';
 
 test.before(async () => {
   ({ default: app } = await import('../app'));
 
   authServer = http.createServer((req, res) => {
     if (req.method === 'POST' && req.url === '/auth/verify') {
+      const authorization = String(req.headers.authorization || '');
+      const isAdmin = authorization.includes('admin-token');
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ user: { id: 'user-42', email: 'u@example.com', role: 'CUSTOMER' } }));
+      res.end(JSON.stringify({
+        user: {
+          id: isAdmin ? 'admin-42' : 'user-42',
+          email: isAdmin ? 'admin@example.com' : 'u@example.com',
+          role: isAdmin ? 'ADMIN' : 'CUSTOMER',
+        },
+      }));
       return;
     }
 
@@ -83,6 +94,50 @@ test.before(async () => {
       return;
     }
 
+    if (req.method === 'POST' && req.url === '/admin/ai/knowledge/jobs/local') {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      req.on('end', () => {
+        forwardedAdminBody = Buffer.concat(chunks).toString('utf8');
+        forwardedAdminInternalToken = String(req.headers['x-internal-token'] || '');
+        forwardedAdminUserId = String(req.headers['x-user-id'] || '');
+
+        res.writeHead(202, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          data: {
+            queued: true,
+            kind: 'local',
+            jobId: 'job-1',
+            queue: 'knowledge-pipeline',
+          },
+        }));
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/admin/ai/knowledge/review/review-1/approve') {
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      req.on('end', () => {
+        forwardedAdminBody = Buffer.concat(chunks).toString('utf8');
+        forwardedAdminInternalToken = String(req.headers['x-internal-token'] || '');
+        forwardedAdminUserId = String(req.headers['x-user-id'] || '');
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          data: {
+            approved: true,
+            reviewId: 'review-1',
+            documentId: 'doc-1',
+            embeddedChunks: 0,
+          },
+        }));
+      });
+      return;
+    }
+
     res.statusCode = 404;
     res.end();
   });
@@ -139,4 +194,51 @@ test('gateway streams AI SSE responses through to the client', async () => {
   assert.equal(res.status, 200);
   assert.match(text, /data: \{"type":"status","message":"working"\}/);
   assert.match(text, /data: \{"type":"done","conversationId":"conv-1"\}/);
+});
+
+test('gateway forwards admin AI POST body, token, and admin identity', async () => {
+  const res = await fetch(`${gatewayBaseUrl}/admin/ai/knowledge/jobs/local`, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer admin-token',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ embed: false, limit: 1 }),
+  });
+
+  const responseBody = (await res.json()) as { success: boolean; data: { queued: boolean } };
+  const forwardedBody = JSON.parse(forwardedAdminBody) as { embed: boolean; limit: number };
+
+  assert.equal(res.status, 202);
+  assert.equal(responseBody.success, true);
+  assert.equal(responseBody.data.queued, true);
+  assert.equal(forwardedAdminInternalToken, 'gateway-secret');
+  assert.equal(forwardedAdminUserId, 'admin-42');
+  assert.equal(forwardedBody.embed, false);
+  assert.equal(forwardedBody.limit, 1);
+});
+
+test('gateway forwards admin knowledge review approval body', async () => {
+  const res = await fetch(`${gatewayBaseUrl}/admin/ai/knowledge/review/review-1/approve`, {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer admin-token',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ embed: false }),
+  });
+
+  const responseBody = (await res.json()) as {
+    success: boolean;
+    data: { approved: boolean; embeddedChunks: number };
+  };
+  const forwardedBody = JSON.parse(forwardedAdminBody) as { embed: boolean };
+
+  assert.equal(res.status, 200);
+  assert.equal(responseBody.success, true);
+  assert.equal(responseBody.data.approved, true);
+  assert.equal(responseBody.data.embeddedChunks, 0);
+  assert.equal(forwardedAdminInternalToken, 'gateway-secret');
+  assert.equal(forwardedAdminUserId, 'admin-42');
+  assert.equal(forwardedBody.embed, false);
 });

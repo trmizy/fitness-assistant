@@ -83,23 +83,26 @@ model Workout {
 }
 
 model WorkoutExercise {
-  id         String   @id @default(uuid())
-  workoutId  String   @map("workout_id")
-  exerciseId String   @map("exercise_id")
-  sets       Int
-  reps       Int?
-  duration   Int? // seconds for holds/cardio
-  weight     Float? // kg
-  notes      String?
-  order      Int      @default(0)
-  createdAt  DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid())
+  workoutId         String   @map("workout_id")
+  exerciseId        String   @map("exercise_id")
+  programExerciseId String?  @map("program_exercise_id")
+  sets              Int
+  reps              Int?
+  duration          Int? // seconds for holds/cardio
+  weight            Float? // kg
+  notes             String?
+  order             Int      @default(0)
+  createdAt         DateTime @default(now()) @map("created_at")
 
   workout     Workout      @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   exercise    Exercise     @relation(fields: [exerciseId], references: [id])
   workoutSets WorkoutSet[]
 
+  @@unique([workoutId, programExerciseId], map: "workout_exercises_workout_program_exercise_unique")
   @@index([workoutId])
   @@index([exerciseId])
+  @@index([programExerciseId])
   @@map("workout_exercises")
 }
 

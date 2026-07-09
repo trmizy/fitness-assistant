@@ -1,0 +1,19 @@
+{
+  "external_id": "pmid:123456",
+  "title": "Resistance training volume and hypertrophy: systematic review",
+  "abstract_or_summary": "A systematic review of resistance training volume and muscle hypertrophy outcomes in adults.",
+  "source": "PubMed",
+  "source_url": "https://pubmed.ncbi.nlm.nih.gov/123456/",
+  "doi": "10.1000/pubmed-volume",
+  "pmid": "123456",
+  "authors": ["A Researcher", "B Scientist"],
+  "journal": "Sports Medicine",
+  "publisher": "NCBI PubMed",
+  "year": 2020,
+  "date": "2020",
+  "license": "metadata",
+  "access_status": "abstract",
+  "topic": "hypertrophy_training_volume",
+  "raw_metadata": { "fixture": true },
+  "fetched_at": "2026-07-08T00:00:00.000Z"
+}

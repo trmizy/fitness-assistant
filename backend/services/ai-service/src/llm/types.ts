@@ -265,6 +265,10 @@ export interface EvidenceUsed {
   source_url:  string;
   category:    string;
   source_type: string;  // "guideline" | "paper" | "dataset" | "curated_summary"
+  source?:     string;
+  year?:       string;
+  date?:       string;
+  citation?:   string;
   summary:     string;  // 1–2 sentence summary of the relevant finding
 }
 

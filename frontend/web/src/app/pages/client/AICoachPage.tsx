@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Bot, Send, Lightbulb, AlertCircle, RefreshCw, User, Loader2 } from "lucide-react";
+import { Bot, Send, Lightbulb, AlertCircle, RefreshCw, User, Loader2, BookOpen, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { inbodyService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
@@ -10,6 +10,13 @@ type ChatMessage = {
   from: "user" | "ai";
   text: string;
   time: string;
+  evidenceUsed?: Array<{
+    title: string;
+    source_url: string;
+    category: string;
+    source_type: string;
+    summary: string;
+  }>;
 };
 
 const BASE_SUGGESTIONS = [
@@ -185,6 +192,44 @@ export function AICoachPage() {
     return result;
   };
 
+  const renderEvidenceSources = (msg: ChatMessage) => {
+    const evidence = Array.isArray(msg.evidenceUsed) ? msg.evidenceUsed.slice(0, 3) : [];
+    if (msg.from !== "ai" || evidence.length === 0) return null;
+
+    return (
+      <div className="mt-3 border-t border-zinc-800/80 pt-2 space-y-1.5">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-300">
+          <BookOpen className="w-3 h-3" />
+          Sources
+        </div>
+        {evidence.map((item, index) => (
+          <a
+            key={`${item.source_url || item.title}-${index}`}
+            href={item.source_url || undefined}
+            target="_blank"
+            rel="noreferrer"
+            className="group block rounded-lg border border-zinc-800 bg-zinc-950/70 px-2.5 py-2 hover:border-cyan-500/50 transition-colors"
+          >
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5 shrink-0 text-[10px] font-mono text-cyan-400">E{index + 1}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start gap-1.5">
+                  <span className="truncate text-xs font-medium text-zinc-200 group-hover:text-cyan-200">
+                    {item.title || item.source_url}
+                  </span>
+                  {item.source_url && <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-zinc-500 group-hover:text-cyan-300" />}
+                </div>
+                <div className="mt-0.5 text-[10px] text-zinc-500">
+                  {[item.source_type, item.category].filter(Boolean).join(" · ")}
+                </div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col w-full">
       {/* Header */}
@@ -224,6 +269,7 @@ export function AICoachPage() {
                 : "bg-zinc-900 border border-zinc-800/60 text-zinc-300 rounded-bl-sm"
             }`}>
               {renderText(msg.text)}
+              {renderEvidenceSources(msg)}
             </div>
             {msg.from === "user" && (
               <div className="w-7 h-7 bg-zinc-800 rounded-full flex items-center justify-center flex-shrink-0 mt-1 border border-zinc-700">

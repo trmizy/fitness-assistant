@@ -1,0 +1,16 @@
+{
+  "external_id": "web:https://example.org/fitness-guideline",
+  "title": "Example fitness guideline webpage",
+  "abstract_or_summary": "A short public webpage summary that must remain pending review before indexing.",
+  "source": "Allowlisted Webpage",
+  "source_url": "https://example.org/fitness-guideline",
+  "authors": [],
+  "publisher": "example.org",
+  "year": 2024,
+  "date": "2024",
+  "license": "unknown",
+  "access_status": "metadata",
+  "topic": "beginner_gym_programming",
+  "raw_metadata": { "fixture": true },
+  "fetched_at": "2026-07-08T00:00:00.000Z"
+}

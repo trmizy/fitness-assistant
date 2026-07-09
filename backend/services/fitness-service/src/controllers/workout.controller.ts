@@ -171,6 +171,38 @@ export const workoutController = {
     }
   },
 
+  async startSchedule(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.startSchedule(req.user!.id, req.params.id);
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, 'Error starting workout schedule');
+      res.status(500).json({ error: 'Failed to start workout schedule' });
+    }
+  },
+
+  async completeScheduleExercise(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await workoutService.completeScheduleExercise(
+        req.user!.id,
+        req.params.id,
+        req.params.programExerciseId,
+      );
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, 'Error completing workout schedule exercise');
+      res.status(500).json({ error: 'Failed to complete workout exercise' });
+    }
+  },
+
   async createManualProgram(req: AuthRequest, res: Response): Promise<void> {
     try {
       const data = createManualProgramSchema.parse(req.body);

@@ -368,9 +368,15 @@ async function seedUserService(client, ptUsers, customers) {
       const bodyFatPct = rFloat(10, 30, 1);
       const bodyFat = parseFloat((w * bodyFatPct / 100).toFixed(2));
       const muscle = parseFloat((w - bodyFat - w * 0.15).toFixed(2));
+      const measuredAt = rDate(k * 20, k * 20 + 30);
+      const measuredDateOnly = new Date(Date.UTC(
+        measuredAt.getUTCFullYear(),
+        measuredAt.getUTCMonth(),
+        measuredAt.getUTCDate(),
+      ));
       await client.query(
         `INSERT INTO inbody_entries
-           (id, "user_id", date, weight, height, bmi, bmr,
+           (id, "user_id", date, date_only, weight, height, bmi,
             "body_fat", "body_fat_pct", "muscle_mass",
             "right_arm_muscle","left_arm_muscle","trunk_muscle","right_leg_muscle","left_leg_muscle",
             "right_arm_fat","left_arm_fat","trunk_fat","right_leg_fat","left_leg_fat",
@@ -378,9 +384,8 @@ async function seedUserService(client, ptUsers, customers) {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$23)
          ON CONFLICT DO NOTHING`,
         [
-          uid(), u.id, rDate(k * 20, k * 20 + 30),
+          uid(), u.id, measuredAt, measuredDateOnly,
           w, p.height, p.bmi,
-          Math.round(10 * (w * 24 + 5 * p.height - 4.92 * p.age + (p.gender === 'MALE' ? 5 : -161))),
           bodyFat, bodyFatPct, muscle,
           rFloat(2, 4, 2), rFloat(2, 4, 2), rFloat(15, 25, 2),
           rFloat(7, 12, 2), rFloat(7, 12, 2),

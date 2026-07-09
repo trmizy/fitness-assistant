@@ -27,14 +27,14 @@ type MappedAiDay = {
 };
 
 const GOAL_LABELS: Record<string, string> = {
-  WEIGHT_LOSS: 'Giảm mỡ',
-  MUSCLE_GAIN: 'Tăng cơ',
-  MAINTENANCE: 'Duy trì',
-  ATHLETIC_PERFORMANCE: 'Cải thiện sức khỏe',
-  lose_fat: 'Giảm mỡ',
-  gain_muscle: 'Tăng cơ',
-  maintain: 'Duy trì',
-  improve_health: 'Cải thiện sức khỏe',
+  WEIGHT_LOSS: 'Giam mo',
+  MUSCLE_GAIN: 'Tang co',
+  MAINTENANCE: 'Duy tri',
+  ATHLETIC_PERFORMANCE: 'Cai thien suc khoe',
+  lose_fat: 'Giam mo',
+  gain_muscle: 'Tang co',
+  maintain: 'Duy tri',
+  improve_health: 'Cai thien suc khoe',
 };
 
 function goalLabel(goal?: string | null) {
@@ -63,7 +63,7 @@ const CLEAN_WEEKDAY_LABELS: Record<number, string> = {
   6: 'Thu 7',
 };
 
-const CORRUPTED_TEXT_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u0370-\u04FF\u0E00-\u0E7F\u0E80-\u0EFF]|[ƷƵƳƪǍǭȸ½¿]|\uFFFD|\?|Āng|ᬺ|ǈi|ī|ǉ|ĝ|Âng|Ñ|Ȃ|ӣ|Ã|Ä|Æ|áº|»/i;
+const CORRUPTED_TEXT_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]|\uFFFD|\?|\u00C3|\u00C4|\u00C6|\u00C7|\u00C8|\u00D3|\u00E1\u00BA|\u00C2|\u00BB/i;
 
 const DAY_FALLBACK_TITLES = [
   'Chan + Mong',
@@ -95,14 +95,161 @@ function sanitizeImportedExerciseNote(value?: string | null) {
   );
 }
 
+type WorkoutProgressSummary = {
+  sessionId: string | null;
+  workoutId: string | null;
+  planId: string | null;
+  dayId: string | null;
+  exerciseId?: string | null;
+  programExerciseId?: string | null;
+  exerciseCompleted?: boolean;
+  completedExercises: number;
+  totalExercises: number;
+  completedSets: number;
+  totalSets: number;
+  progressPercent: number;
+  sessionStatus: 'not_started' | 'in_progress' | 'completed';
+  dayStatus: 'not_started' | 'in_progress' | 'completed';
+  completedAt: Date | null;
+};
+
+function progressPercent(completedExercises: number, totalExercises: number): number {
+  return totalExercises === 0 ? 0 : Math.round((completedExercises / totalExercises) * 100);
+}
+
+function isWorkoutExerciseCompleted(workoutExercise: any): boolean {
+  const sets = Array.isArray(workoutExercise?.workoutSets) ? workoutExercise.workoutSets : [];
+  return sets.length > 0 && sets.every((set: any) => set.completed === true);
+}
+
+async function createStartedWorkoutForSchedule(tx: any, schedule: any, userId: string) {
+  if (!schedule.programDay?.exercises?.length) {
+    throw { status: 400, message: 'Schedule has no planned exercises' };
+  }
+
+  return tx.workout.create({
+    data: {
+      userId,
+      name: schedule.programDay.title || `Workout ${formatDateOnly(schedule.date)}`,
+      description: schedule.programDay.description || null,
+      date: schedule.date,
+      exercises: {
+        create: schedule.programDay.exercises.map((programExercise: any, index: number) => ({
+          exerciseId: programExercise.exerciseId,
+          programExerciseId: programExercise.id,
+          sets: Number(programExercise.sets) || 1,
+          reps: programExercise.reps ?? null,
+          duration: programExercise.duration ?? null,
+          weight: programExercise.weight ?? null,
+          notes: programExercise.notes ?? null,
+          order: programExercise.order ?? index + 1,
+          workoutSets: {
+            create: Array.from({ length: Number(programExercise.sets) || 1 }, (_unused, setIndex) => ({
+              setNumber: setIndex + 1,
+              reps: programExercise.reps ?? null,
+              weight: programExercise.weight ?? null,
+              completed: false,
+            })),
+          },
+        })),
+      },
+    },
+  });
+}
+
+async function recomputeScheduleProgress(tx: any, scheduleId: string, userId: string, patch: Partial<WorkoutProgressSummary> = {}) {
+  const schedule = await tx.workoutSchedule.findFirst({
+    where: { id: scheduleId, userId },
+    include: {
+      workout: {
+        include: {
+          exercises: {
+            include: { workoutSets: true },
+            orderBy: { order: 'asc' },
+          },
+        },
+      },
+      programDay: {
+        include: {
+          program: { select: { id: true } },
+          exercises: { orderBy: { order: 'asc' } },
+        },
+      },
+    },
+  });
+  if (!schedule) throw { status: 404, message: 'Schedule not found' };
+
+  const plannedExercises = schedule.programDay?.exercises ?? [];
+  const loggedExercises = schedule.workout?.exercises ?? [];
+  const completedByProgramExerciseId = new Set(
+    loggedExercises
+      .filter((exercise: any) => exercise.programExerciseId && isWorkoutExerciseCompleted(exercise))
+      .map((exercise: any) => exercise.programExerciseId),
+  );
+  const fallbackCompletedExerciseIds = new Set(
+    loggedExercises
+      .filter((exercise: any) => !exercise.programExerciseId && isWorkoutExerciseCompleted(exercise))
+      .map((exercise: any) => exercise.exerciseId),
+  );
+
+  const totalExercises = plannedExercises.length || loggedExercises.length;
+  const completedExercises = plannedExercises.length > 0
+    ? plannedExercises.filter((exercise: any) =>
+        completedByProgramExerciseId.has(exercise.id) ||
+        fallbackCompletedExerciseIds.has(exercise.exerciseId),
+      ).length
+    : loggedExercises.filter(isWorkoutExerciseCompleted).length;
+  const totalSets = plannedExercises.length > 0
+    ? plannedExercises.reduce((sum: number, exercise: any) => sum + (Number(exercise.sets) || 1), 0)
+    : loggedExercises.reduce((sum: number, exercise: any) => sum + (Array.isArray(exercise.workoutSets) ? exercise.workoutSets.length : 0), 0);
+  const completedSets = loggedExercises.reduce(
+    (sum: number, exercise: any) => sum + (exercise.workoutSets || []).filter((set: any) => set.completed).length,
+    0,
+  );
+  const percent = progressPercent(completedExercises, totalExercises);
+  const completed = totalExercises > 0 && completedExercises === totalExercises;
+  const status = completed ? 'COMPLETED' : (schedule.workoutId || schedule.startedAt || completedExercises > 0 ? 'IN_PROGRESS' : 'NOT_STARTED');
+  const completedAt = completed ? (schedule.completedAt || new Date()) : null;
+
+  await tx.workoutSchedule.update({
+    where: { id: scheduleId },
+    data: {
+      status,
+      progressPercent: percent,
+      totalExercises,
+      completedExercises,
+      totalSets,
+      completedSets,
+      completedAt,
+      startedAt: schedule.startedAt || (schedule.workoutId ? new Date() : null),
+    },
+  });
+
+  return {
+    sessionId: schedule.workoutId,
+    workoutId: schedule.workoutId,
+    planId: schedule.programDay?.program?.id ?? null,
+    dayId: schedule.programDayId,
+    completedExercises,
+    totalExercises,
+    completedSets,
+    totalSets,
+    progressPercent: percent,
+    sessionStatus: completed ? 'completed' : (status === 'IN_PROGRESS' ? 'in_progress' : 'not_started'),
+    dayStatus: completed ? 'completed' : (status === 'IN_PROGRESS' ? 'in_progress' : 'not_started'),
+    completedAt,
+    ...patch,
+  } satisfies WorkoutProgressSummary;
+}
+
 const WEEKDAY_LABELS: Record<number, string> = {
-  0: 'Chủ nhật',
-  1: 'Thứ 2',
-  2: 'Thứ 3',
-  3: 'Thứ 4',
-  4: 'Thứ 5',
-  5: 'Thứ 6',
-  6: 'Thứ 7',
+  0: 'Chu nhat',
+  1: 'Thu 2',
+  2: 'Thu 3',
+  3: 'Thu 4',
+  4: 'Thu 5',
+  5: 'Thu 6',
+  6: 'Thu 7',
 };
 
 function nextDateForWeekday(startDate: Date, weekday: number, weekOffset: number) {
@@ -199,10 +346,24 @@ export const workoutService = {
   async updateSet(setId: string, userId: string, data: UpdateWorkoutSetDto) {
     const existing = await workoutRepository.findSetWithOwner(setId, userId);
     if (!existing) throw { status: 404, message: 'Set not found' };
-    return workoutRepository.updateSet(setId, data);
+    const updated = await workoutRepository.updateSet(setId, data);
+    const workoutExercise = await prisma.workoutExercise.findFirst({
+      where: { id: existing.workoutExerciseId, workout: { userId } },
+      select: { workoutId: true },
+    });
+    if (workoutExercise?.workoutId) {
+      const schedule = await prisma.workoutSchedule.findFirst({
+        where: { userId, workoutId: workoutExercise.workoutId },
+        select: { id: true },
+      });
+      if (schedule) {
+        await prisma.$transaction((tx) => recomputeScheduleProgress(tx, schedule.id, userId));
+      }
+    }
+    return updated;
   },
 
-  // POST /workouts/:id/sets — append a single set to an existing workout. Finds or
+  // POST /workouts/:id/sets - append a single set to an existing workout. Finds or
   // creates the WorkoutExercise(workoutId, exerciseId), then appends a new WorkoutSet
   // with the next set_number for that exercise.
   async addSet(workoutId: string, userId: string, body: {
@@ -245,7 +406,7 @@ export const workoutService = {
       if (params.endDate) where.date.lte = parseDateOnly(params.endDate);
     }
     // When a date range is provided (calendar month query), don't cap results with a low
-    // default — a month with 6 training days/week can have up to ~26 schedules.
+    // default - a month with 6 training days/week can have up to ~26 schedules.
     // Only apply the limit when explicitly passed (or fallback to 200 for safety).
     const takeLimit = params.startDate || params.endDate
       ? (params.limit ?? 200)
@@ -336,6 +497,130 @@ export const workoutService = {
     });
 
     return { alreadyExists: false, schedule };
+  },
+
+  async startSchedule(userId: string, scheduleId: string) {
+    return prisma.$transaction(async (tx) => {
+      const schedule = await tx.workoutSchedule.findFirst({
+        where: { id: scheduleId, userId },
+        include: {
+          workout: true,
+          programDay: {
+            include: {
+              program: { select: { id: true } },
+              exercises: { orderBy: { order: 'asc' } },
+            },
+          },
+        },
+      });
+      if (!schedule) throw { status: 404, message: 'Schedule not found' };
+
+      let workoutId = schedule.workoutId;
+      if (!workoutId) {
+        const workout = await createStartedWorkoutForSchedule(tx, schedule, userId);
+        workoutId = workout.id;
+        await tx.workoutSchedule.update({
+          where: { id: schedule.id },
+          data: {
+            workoutId,
+            status: 'IN_PROGRESS',
+            startedAt: schedule.startedAt || new Date(),
+            totalExercises: schedule.programDay?.exercises?.length ?? 0,
+            completedExercises: 0,
+            totalSets: (schedule.programDay?.exercises ?? []).reduce(
+              (sum: number, exercise: any) => sum + (Number(exercise.sets) || 1),
+              0,
+            ),
+            completedSets: 0,
+            progressPercent: 0,
+          },
+        });
+      }
+
+      return recomputeScheduleProgress(tx, schedule.id, userId, {
+        sessionId: workoutId,
+        workoutId,
+      });
+    });
+  },
+
+  async completeScheduleExercise(userId: string, scheduleId: string, programExerciseId: string) {
+    return prisma.$transaction(async (tx) => {
+      const schedule = await tx.workoutSchedule.findFirst({
+        where: { id: scheduleId, userId },
+        include: {
+          workout: { include: { exercises: { include: { workoutSets: true } } } },
+          programDay: {
+            include: {
+              program: { select: { id: true } },
+              exercises: { orderBy: { order: 'asc' } },
+            },
+          },
+        },
+      });
+      if (!schedule) throw { status: 404, message: 'Schedule not found' };
+
+      const plannedExercise = schedule.programDay?.exercises?.find((exercise: any) => exercise.id === programExerciseId);
+      if (!plannedExercise) throw { status: 404, message: 'Planned exercise not found in this schedule' };
+
+      let workoutId = schedule.workoutId;
+      if (!workoutId) {
+        const workout = await createStartedWorkoutForSchedule(tx, schedule, userId);
+        workoutId = workout.id;
+        await tx.workoutSchedule.update({
+          where: { id: schedule.id },
+          data: {
+            workoutId,
+            status: 'IN_PROGRESS',
+            startedAt: schedule.startedAt || new Date(),
+          },
+        });
+      }
+      if (!workoutId) throw { status: 500, message: 'Workout session could not be started' };
+
+      let workoutExercise = await tx.workoutExercise.findFirst({
+        where: { workoutId, programExerciseId },
+        include: { workoutSets: true },
+      });
+
+      if (!workoutExercise) {
+        workoutExercise = await tx.workoutExercise.create({
+          data: {
+            workoutId,
+            exerciseId: plannedExercise.exerciseId,
+            programExerciseId: plannedExercise.id,
+            sets: Number(plannedExercise.sets) || 1,
+            reps: plannedExercise.reps ?? null,
+            duration: plannedExercise.duration ?? null,
+            weight: plannedExercise.weight ?? null,
+            notes: plannedExercise.notes ?? null,
+            order: plannedExercise.order ?? 0,
+            workoutSets: {
+              create: Array.from({ length: Number(plannedExercise.sets) || 1 }, (_unused, index) => ({
+                setNumber: index + 1,
+                reps: plannedExercise.reps ?? null,
+                weight: plannedExercise.weight ?? null,
+                completed: false,
+              })),
+            },
+          },
+          include: { workoutSets: true },
+        });
+      }
+
+      await tx.workoutSet.updateMany({
+        where: { workoutExerciseId: workoutExercise.id },
+        data: { completed: true },
+      });
+
+      return recomputeScheduleProgress(tx, schedule.id, userId, {
+        sessionId: workoutId,
+        workoutId,
+        exerciseId: plannedExercise.exerciseId,
+        programExerciseId,
+        exerciseCompleted: true,
+      });
+    });
   },
 
   async createManualProgram(userId: string, input: CreateManualProgramDto) {
@@ -665,7 +950,7 @@ export const workoutService = {
         if (uniqueWeekdays.size !== selectedWeekdays.length || selectedWeekdays.length !== input.daysPerWeek) {
           throw {
             status: 400,
-            message: `Kế hoạch này có ${input.daysPerWeek} buổi/tuần. Vui lòng chọn đúng ${input.daysPerWeek} ngày tập.`,
+            message: `Plan has ${input.daysPerWeek} sessions per week. Please select exactly ${input.daysPerWeek} training days.`,
           };
         }
       }
@@ -910,7 +1195,7 @@ export const workoutService = {
       if (uniqueWeekdays.size !== selectedWeekdays.length || selectedWeekdays.length !== input.daysPerWeek) {
         throw {
           status: 400,
-          message: `Kế hoạch này có ${input.daysPerWeek} buổi/tuần. Vui lòng chọn đúng ${input.daysPerWeek} ngày tập.`,
+          message: `Plan has ${input.daysPerWeek} sessions per week. Please select exactly ${input.daysPerWeek} training days.`,
         };
       }
     }

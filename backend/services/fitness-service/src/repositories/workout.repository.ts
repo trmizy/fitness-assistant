@@ -38,6 +38,7 @@ export const workoutRepository = {
           exercises: {
             create: data.exercises.map((ex: any, index: number) => ({
               exerciseId: ex.exerciseId,
+              programExerciseId: ex.programExerciseId ?? null,
               sets: ex.sets,
               reps: ex.reps,
               duration: ex.duration,
@@ -49,7 +50,7 @@ export const workoutRepository = {
                   setNumber: i + 1,
                   reps: ex.reps ?? null,
                   weight: ex.weight ?? null,
-                  completed: true,
+                  completed: ex.completed === false ? false : true,
                 })),
               },
             })),
@@ -94,6 +95,7 @@ export const workoutRepository = {
           exercises: {
             create: data.exercises.map((ex: any, index: number) => ({
               exerciseId: ex.exerciseId,
+              programExerciseId: ex.programExerciseId ?? null,
               sets: ex.sets,
               reps: ex.reps,
               duration: ex.duration,
@@ -105,7 +107,7 @@ export const workoutRepository = {
                   setNumber: i + 1,
                   reps: ex.reps ?? null,
                   weight: ex.weight ?? null,
-                  completed: true,
+                  completed: ex.completed === false ? false : true,
                 })),
               },
             })),

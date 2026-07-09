@@ -45,7 +45,10 @@ const NHANES   = path.join(ROOT, 'processed', 'nhanes');
 const FORCE          = process.argv.includes('--force');
 const INCLUDE_NHANES = process.argv.includes('--nhanes');
 
-const qdrant = new QdrantClient({ url: `http://${QDRANT_HOST}:${QDRANT_PORT}` });
+const qdrant = new QdrantClient({
+  url: `http://${QDRANT_HOST}:${QDRANT_PORT}`,
+  checkCompatibility: false,
+});
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

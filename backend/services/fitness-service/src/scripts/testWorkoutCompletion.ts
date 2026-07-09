@@ -16,6 +16,10 @@ async function getToken(): Promise<string> {
   return token;
 }
 
+function unwrap(payload: any) {
+  return payload?.data ?? payload;
+}
+
 async function main() {
   const token = await getToken();
   const headers = { Authorization: `Bearer ${token}` };
@@ -33,25 +37,35 @@ async function main() {
   if (!target) throw new Error('No non-completed scheduled workout with exercises was found.');
 
   const startRes = await axios.post(`${API_BASE_URL}/workouts/schedules/${target.id}/start`, {}, { headers, timeout: 10000 });
-  const started = startRes.data?.data?.schedule;
-  if (started?.status !== 'IN_PROGRESS') {
-    throw new Error(`Expected IN_PROGRESS after start, got ${started?.status}`);
+  const started = unwrap(startRes.data);
+  if (started.sessionStatus !== 'in_progress') {
+    throw new Error(`Expected in_progress after start, got ${started.sessionStatus}`);
+  }
+  if (started.progressPercent !== 0) {
+    throw new Error(`Expected progressPercent=0 after start, got ${started.progressPercent}`);
   }
 
-  const exercises = target.programDay.exercises.map((item: any) => ({
-    exerciseId: item.exercise?.id,
-    sets: item.sets || 1,
-    reps: item.reps || 10,
-    weight: 1,
-  })).filter((item: any) => item.exerciseId);
+  const exercises = target.programDay.exercises;
+  let lastResult = started;
+  for (const exercise of exercises) {
+    const completeRes = await axios.post(
+      `${API_BASE_URL}/workouts/schedules/${target.id}/exercises/${exercise.id}/complete`,
+      {},
+      { headers, timeout: 10000 },
+    );
+    lastResult = unwrap(completeRes.data);
+    const expectedProgress = Math.round((lastResult.completedExercises / lastResult.totalExercises) * 100);
+    if (lastResult.progressPercent !== expectedProgress) {
+      throw new Error(`Expected progress ${expectedProgress}, got ${lastResult.progressPercent}`);
+    }
+  }
 
-  const workoutRes = await axios.post(`${API_BASE_URL}/workouts`, {
-    scheduleId: target.id,
-    name: `Completion test ${target.id.slice(0, 6)}`,
-    date: String(target.date),
-    duration: 1,
-    exercises,
-  }, { headers, timeout: 10000 });
+  if (lastResult.progressPercent !== 100) {
+    throw new Error(`Expected final progressPercent=100, got ${lastResult.progressPercent}`);
+  }
+  if (lastResult.sessionStatus !== 'completed' || lastResult.dayStatus !== 'completed') {
+    throw new Error(`Expected completed statuses, got session=${lastResult.sessionStatus}, day=${lastResult.dayStatus}`);
+  }
 
   const refreshed = await axios.get(`${API_BASE_URL}/workouts/schedules`, {
     headers,
@@ -59,33 +73,30 @@ async function main() {
     timeout: 10000,
   });
   const completed = (Array.isArray(refreshed.data) ? refreshed.data : []).find((schedule: any) => schedule.id === target.id);
-  if (completed?.status !== 'COMPLETED') {
-    throw new Error(`Expected COMPLETED after workout save, got ${completed?.status}`);
-  }
-  if (completed?.progressPercent !== 100) {
-    throw new Error(`Expected progressPercent=100, got ${completed?.progressPercent}`);
-  }
-  if (!completed?.workoutLogId && !completed?.workoutId) {
-    throw new Error('Expected workoutLogId/workoutId on completed schedule.');
+  if (completed?.progressPercent !== 100 || completed?.status !== 'COMPLETED') {
+    throw new Error(`Expected persisted 100/COMPLETED, got ${completed?.progressPercent}/${completed?.status}`);
   }
 
-  let duplicateBlocked = false;
-  try {
-    await axios.post(`${API_BASE_URL}/workouts/schedules/${target.id}/start`, {}, { headers, timeout: 10000 });
-  } catch (err: any) {
-    duplicateBlocked = err?.response?.status === 409;
+  const duplicateRes = await axios.post(
+    `${API_BASE_URL}/workouts/schedules/${target.id}/exercises/${exercises[0].id}/complete`,
+    {},
+    { headers, timeout: 10000 },
+  );
+  const duplicate = unwrap(duplicateRes.data);
+  if (duplicate.progressPercent !== 100 || duplicate.completedExercises !== duplicate.totalExercises) {
+    throw new Error('Repeated quick complete should be idempotent and keep progress at 100.');
   }
-  if (!duplicateBlocked) throw new Error('Starting completed schedule should return 409.');
 
   console.log(JSON.stringify({
     scheduleId: target.id,
-    startStatus: started.status,
-    completedStatus: completed.status,
-    progressPercent: completed.progressPercent,
-    workoutLogId: completed.workoutLogId || workoutRes.data?.id,
-    duplicateStartBlocked: duplicateBlocked,
+    workoutId: lastResult.workoutId,
+    totalExercises: lastResult.totalExercises,
+    completedExercises: lastResult.completedExercises,
+    progressPercent: lastResult.progressPercent,
+    sessionStatus: lastResult.sessionStatus,
+    persistedStatus: completed.status,
   }, null, 2));
-  console.log('PASS: workout completion status is persisted and duplicate start is blocked.');
+  console.log('PASS: workout quick completion progress is persisted and idempotent.');
 }
 
 main().catch((err) => {

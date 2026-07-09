@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+﻿import axios, { AxiosError } from 'axios';
 import { logger } from '@gym-coach/shared';
 import type { LLMResponse } from '../models/ai.models';
 import { LlmError } from '../errors/api-error';
@@ -7,6 +7,7 @@ const LLM_PROVIDER = process.env.LLM_PROVIDER || 'ollama';
 const LLM_BASE_URL = process.env.LLM_BASE_URL || 'http://localhost:11434';
 export const LLM_MODEL = process.env.LLM_MODEL || 'llama3.2:3b';
 const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || 'nomic-embed-text';
+const MOCK_EMBEDDING_DIM = 768;
 
 function readPositiveIntEnv(name: string, fallback: number): number {
   const value = Number.parseInt(process.env[name] || '', 10);
@@ -66,6 +67,40 @@ async function emitTextInChunks(text: string, onToken: (token: string) => void |
   }
 }
 
+function mockEmbedding(text: string): number[] {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return Array.from({ length: MOCK_EMBEDDING_DIM }, (_, index) => {
+    hash ^= index + 0x9e3779b9;
+    hash = Math.imul(hash, 16777619);
+    return ((hash >>> 0) % 2000) / 1000 - 1;
+  });
+}
+
+function mockCompletion(prompt: string, responseFormat?: 'json' | 'text'): string {
+  if (responseFormat === 'json') {
+    return JSON.stringify({
+      goal: 'test plan',
+      durationWeeks: 4,
+      daysPerWeek: 3,
+      weeklySchedule: [],
+      progressionNotes: ['Use conservative progression in test mode.'],
+      recoveryNotes: ['Prioritize sleep and recovery.'],
+      nutritionSummary: 'Use adequate protein and hydration.',
+    });
+  }
+
+  if (/workout|exercise|tap|lich/i.test(prompt)) {
+    return 'Mock AI response: use a conservative training plan with clear sets, reps, rest, and recovery notes.';
+  }
+
+  return 'Mock AI response: use retrieved context when relevant and keep the answer concise.';
+}
+
 export type LlmHealthStatus = {
   llmAvailable: boolean;
   llmProvider: string;
@@ -82,6 +117,17 @@ export const llmService = {
     const checkedAt = new Date().toISOString();
 
     try {
+      if (LLM_PROVIDER === 'mock') {
+        return {
+          llmAvailable: true,
+          llmProvider: LLM_PROVIDER,
+          llmUrl: 'mock://local',
+          model: LLM_MODEL,
+          embeddingModel: EMBEDDING_MODEL,
+          checkedAt,
+        };
+      }
+
       if (LLM_PROVIDER === 'ollama') {
         const response = await axios.get(`${LLM_BASE_URL}/api/tags`, { timeout: timeoutMs });
         const models = Array.isArray(response.data?.models) ? response.data.models : [];
@@ -128,6 +174,10 @@ export const llmService = {
   },
 
   async generateEmbedding(text: string): Promise<number[]> {
+    if (LLM_PROVIDER === 'mock') {
+      return mockEmbedding(text);
+    }
+
     try {
       const model = EMBEDDING_MODEL;
 
@@ -172,6 +222,18 @@ export const llmService = {
     opts?: { responseFormat?: 'json' | 'text'; timeoutMs?: number; temperature?: number; numPredict?: number },
   ): Promise<LLMResponse> {
     try {
+      if (LLM_PROVIDER === 'mock') {
+        const answer = mockCompletion(prompt, opts?.responseFormat);
+        const promptTokens = Math.ceil(prompt.length / 4);
+        const completionTokens = Math.ceil(answer.length / 4);
+        return {
+          answer,
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
+        };
+      }
+
       if (LLM_PROVIDER === 'ollama') {
         // Use /api/chat (chat format) for better instruction following.
         // The prompt is split into a system message (rules) and a user message (question + context).

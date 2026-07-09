@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
 import { logger } from '@gym-coach/shared';
 import { authMiddleware, requireRoles } from '../middleware/auth.middleware';
 import axios from 'axios';
@@ -1269,15 +1269,24 @@ router.use(
   '/admin/ai',
   authMiddleware,
   requireRoles('ADMIN'),
+  (req, _res, next) => {
+    req.headers['x-internal-token'] = INTERNAL_SERVICE_SECRET;
+    next();
+  },
   createProxyMiddleware({
     target: AI_SERVICE_URL,
     changeOrigin: true,
     onProxyReq: (proxyReq, req) => {
       const userId = req.headers['x-user-id'];
+      const userEmail = req.headers['x-user-email'];
       const userRole = req.headers['x-user-role'];
+      const authorization = req.headers.authorization;
       if (typeof userId === 'string') proxyReq.setHeader('x-user-id', userId);
+      if (typeof userEmail === 'string') proxyReq.setHeader('x-user-email', userEmail);
       if (typeof userRole === 'string') proxyReq.setHeader('x-user-role', userRole);
+      if (typeof authorization === 'string') proxyReq.setHeader('Authorization', authorization);
       proxyReq.setHeader('x-internal-token', INTERNAL_SERVICE_SECRET);
+      fixRequestBody(proxyReq, req);
     },
     onError: serviceUnavailable('AI service (admin)'),
   }),

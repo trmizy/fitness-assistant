@@ -9,6 +9,7 @@ import { LlmError } from '../errors/api-error';
 
 const originalRag = ragService.rag;
 const originalCallLlm = llmService.callLLM;
+const originalGetHealthStatus = llmService.getHealthStatus;
 const originalQueuePlanGeneration = conversationService.queuePlanGeneration;
 
 const requiredHeaders = {
@@ -24,6 +25,7 @@ test.beforeEach(() => {
 test.afterEach(() => {
   ragService.rag = originalRag;
   llmService.callLLM = originalCallLlm;
+  llmService.getHealthStatus = originalGetHealthStatus;
   conversationService.queuePlanGeneration = originalQueuePlanGeneration;
 });
 
@@ -117,6 +119,14 @@ test('POST /ai/generate-workout returns 502 for malformed LLM output', { concurr
 });
 
 test('POST /plans/workout/generate returns queued response with real status contract', { concurrency: false }, async () => {
+  llmService.getHealthStatus = async () => ({
+    llmAvailable: true,
+    llmProvider: 'mock',
+    llmUrl: 'mock://local',
+    model: 'mock-chat',
+    embeddingModel: 'mock-embedding',
+    checkedAt: new Date().toISOString(),
+  });
   conversationService.queuePlanGeneration = async () => ({
     planId: 'plan-1',
     jobId: 'job-1',

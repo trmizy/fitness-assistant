@@ -1,0 +1,102 @@
+##############################################################################
+# Low-resource override for Windows laptops.
+#
+# Use with:
+#   docker compose -f infra/compose/docker-compose.dev.yml `
+#     -f infra/compose/docker-compose.low-resource.yml up -d
+#
+# This keeps the core app usable while reducing polling, CPU bursts, and memory
+# pressure. Optional n8n/monitoring services remain behind compose profiles.
+##############################################################################
+
+services:
+  web:
+    cpus: "1.0"
+    mem_limit: 768m
+    environment:
+      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-1200}
+      NODE_OPTIONS: ${WEB_NODE_OPTIONS:---max-old-space-size=512}
+
+  api-gateway:
+    cpus: "0.75"
+    mem_limit: 384m
+    environment:
+      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-1500}
+      NODE_OPTIONS: ${SERVICE_NODE_OPTIONS:---max-old-space-size=256}
+
+  auth-service:
+    cpus: "0.75"
+    mem_limit: 384m
+    environment:
+      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-1500}
+      NODE_OPTIONS: ${SERVICE_NODE_OPTIONS:---max-old-space-size=256}
+
+  user-service:
+    cpus: "1.0"
+    mem_limit: 512m
+    environment:
+      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-1500}
+      NODE_OPTIONS: ${SERVICE_NODE_OPTIONS:---max-old-space-size=320}
+
+  fitness-service:
+    cpus: "1.0"
+    mem_limit: 512m
+    environment:
+      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-1500}
+      NODE_OPTIONS: ${SERVICE_NODE_OPTIONS:---max-old-space-size=320}
+
+  ai-service:
+    cpus: "1.5"
+    mem_limit: 768m
+    environment:
+      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-1500}
+      NODE_OPTIONS: ${AI_SERVICE_NODE_OPTIONS:---max-old-space-size=512}
+      LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-2048}
+      AI_PLAN_NUM_PREDICT: ${AI_PLAN_NUM_PREDICT:-450}
+      AI_PLAN_RETRY_NUM_PREDICT: ${AI_PLAN_RETRY_NUM_PREDICT:-300}
+      AI_PLAN_TIMEOUT_MS: ${AI_PLAN_TIMEOUT_MS:-45000}
+      AI_PLAN_RETRY_TIMEOUT_MS: ${AI_PLAN_RETRY_TIMEOUT_MS:-25000}
+
+  chat-service:
+    cpus: "0.75"
+    mem_limit: 384m
+    environment:
+      CHOKIDAR_INTERVAL: ${CHOKIDAR_INTERVAL:-1500}
+      NODE_OPTIONS: ${SERVICE_NODE_OPTIONS:---max-old-space-size=256}
+
+  postgres:
+    cpus: "1.0"
+    mem_limit: 768m
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=128MB"
+      - "-c"
+      - "work_mem=4MB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "max_connections=60"
+
+  redis:
+    cpus: "0.25"
+    mem_limit: 160m
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+
+  qdrant:
+    cpus: "1.0"
+    mem_limit: 768m
+
+  ollama:
+    cpus: "3.0"
+    mem_limit: 5g
+    environment:
+      OLLAMA_NUM_PARALLEL: ${OLLAMA_NUM_PARALLEL:-1}
+      OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-1}
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-5m}
+
+  knowledge-worker:
+    cpus: "1.0"
+    mem_limit: 768m
+    environment:
+      NODE_OPTIONS: ${AI_SERVICE_NODE_OPTIONS:---max-old-space-size=512}

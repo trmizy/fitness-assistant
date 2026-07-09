@@ -303,16 +303,16 @@ export const conversationRepository = {
 
   /** Store the BullMQ jobId on the plan record right after enqueueing. */
   updatePlanJob(planId: string, jobId: string) {
-    return prisma.workoutPlan.update({
+    return prisma.workoutPlan.updateMany({
       where: { id: planId },
       data: { jobId },
     });
   },
 
   updatePlanStatus(planId: string, status: PlanStatus) {
-    return prisma.workoutPlan.update({
+    return prisma.workoutPlan.updateMany({
       where: { id: planId },
-      data: { status },
+      data: { status, ...(status !== PlanStatus.FAILED ? { failReason: null } : {}) },
     });
   },
 
@@ -327,6 +327,7 @@ export const conversationRepository = {
       where: { id: planId },
       data: {
         status: PlanStatus.COMPLETED,
+        failReason: null,
         // PlanContent is a plain JS object — cast via unknown to satisfy Prisma's JsonValue
         plan: content as unknown as Parameters<
           (typeof prisma.workoutPlan)['update']
@@ -337,7 +338,7 @@ export const conversationRepository = {
   },
 
   updatePlanFailed(planId: string, reason: string) {
-    return prisma.workoutPlan.update({
+    return prisma.workoutPlan.updateMany({
       where: { id: planId },
       data: { status: PlanStatus.FAILED, failReason: reason },
     });
@@ -414,11 +415,11 @@ export const conversationRepository = {
   },
 
   updateNutritionPlanJob(planId: string, jobId: string) {
-    return prisma.nutritionPlan.update({ where: { id: planId }, data: { jobId } });
+    return prisma.nutritionPlan.updateMany({ where: { id: planId }, data: { jobId } });
   },
 
   updateNutritionPlanStatus(planId: string, status: PlanStatus) {
-    return prisma.nutritionPlan.update({ where: { id: planId }, data: { status } });
+    return prisma.nutritionPlan.updateMany({ where: { id: planId }, data: { status } });
   },
 
   updateNutritionPlanCompletion(planId: string, content: unknown) {
@@ -432,7 +433,7 @@ export const conversationRepository = {
   },
 
   updateNutritionPlanFailed(planId: string, reason: string) {
-    return prisma.nutritionPlan.update({
+    return prisma.nutritionPlan.updateMany({
       where: { id: planId },
       data: { status: PlanStatus.FAILED, failReason: reason },
     });

@@ -22,9 +22,7 @@ model User {
   firstName String?
   lastName  String?
   role      Role     @default(CUSTOMER)
-  // BUG-002: the live table currently stores this as isactive.
-  // Map the Prisma field to the existing column so login works without a data migration.
-  isActive  Boolean  @default(true) @map("isactive")
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

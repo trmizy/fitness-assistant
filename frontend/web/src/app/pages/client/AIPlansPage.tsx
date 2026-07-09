@@ -66,7 +66,7 @@ type SaveOutcome = {
 
 type ExplanationResult = PlanExplanationResponse;
 
-type PlanFilter = 'all' | 'completed' | 'failed';
+type PlanFilter = 'all' | 'active' | 'completed' | 'failed';
 
 type UnknownRecord = Record<string, unknown>;
 type PlanEvidenceItem = {
@@ -469,12 +469,17 @@ export function AIPlansPage() {
   }, [plans]);
 
   const completedPlans = useMemo(() => sortedPlans.filter((plan) => plan.status === 'COMPLETED'), [sortedPlans]);
+  const activePlans = useMemo(
+    () => sortedPlans.filter((plan) => plan.status === 'QUEUED' || plan.status === 'PROCESSING'),
+    [sortedPlans],
+  );
   const failedPlans = useMemo(() => sortedPlans.filter((plan) => plan.status === 'FAILED'), [sortedPlans]);
   const visiblePlans = useMemo(() => {
     if (planFilter === 'all') return sortedPlans;
+    if (planFilter === 'active') return activePlans;
     if (planFilter === 'completed') return completedPlans;
     return failedPlans;
-  }, [completedPlans, failedPlans, planFilter, sortedPlans]);
+  }, [activePlans, completedPlans, failedPlans, planFilter, sortedPlans]);
 
   const defaultPlan = useMemo(() => chooseLatestPlan(visiblePlans), [visiblePlans]);
 
@@ -482,7 +487,9 @@ export function AIPlansPage() {
     if (appliedInitialFilter.current) return;
     if (!plans) return;
 
-    if (completedPlans.length > 0) {
+    if (activePlans.length > 0) {
+      setPlanFilter('active');
+    } else if (completedPlans.length > 0) {
       setPlanFilter('completed');
     } else if (failedPlans.length > 0) {
       setPlanFilter('failed');
@@ -490,7 +497,13 @@ export function AIPlansPage() {
       setPlanFilter('all');
     }
     appliedInitialFilter.current = true;
-  }, [completedPlans.length, failedPlans.length, plans]);
+  }, [activePlans.length, completedPlans.length, failedPlans.length, plans]);
+
+  useEffect(() => {
+    if (planFilter === 'active' && activePlans.length === 0 && completedPlans.length > 0) {
+      setPlanFilter('completed');
+    }
+  }, [activePlans.length, completedPlans.length, planFilter]);
 
   useEffect(() => {
     if (!visiblePlans.length) {
@@ -661,12 +674,15 @@ export function AIPlansPage() {
         if (task.planId) {
           setSelectedPlanId(task.planId);
         }
-        setPlanFilter('all');
+        setPlanFilter('completed');
         void queryClient.invalidateQueries({ queryKey: ['ai-plans', 'current', userScopeId] });
         void refetchPlans();
         toast.success(task.kind === 'plan-adjust' ? 'Đã tạo phiên bản kế hoạch mới' : 'Kế hoạch AI đã tạo xong');
         acknowledgeTask(userScopeId, task.id);
       } else {
+        setPlanFilter('failed');
+        void queryClient.invalidateQueries({ queryKey: ['ai-plans', 'current', userScopeId] });
+        void refetchPlans();
         toast.error(task.error || 'Job tạo kế hoạch thất bại');
         acknowledgeTask(userScopeId, task.id);
       }
@@ -1163,6 +1179,7 @@ export function AIPlansPage() {
       {plans && plans.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {([
+            { key: 'active', label: `Đang xử lý (${activePlans.length})` },
             { key: 'completed', label: `Hoàn thành (${completedPlans.length})` },
             { key: 'failed', label: `Thất bại (${failedPlans.length})` },
             { key: 'all', label: `Tất cả (${sortedPlans.length})` },
@@ -1199,7 +1216,9 @@ export function AIPlansPage() {
         <div className="space-y-4">
           {visiblePlans.length === 0 && (
             <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 text-sm text-zinc-400">
-              {planFilter === 'completed' && failedPlans.length > 0
+              {planFilter === 'active' && (completedPlans.length > 0 || failedPlans.length > 0)
+                ? 'Không có kế hoạch nào đang xử lý. Chuyển sang tab Hoàn thành hoặc Thất bại để xem kế hoạch đã có.'
+                : planFilter === 'completed' && failedPlans.length > 0
                 ? 'Hiện chưa có kế hoạch hoàn thành. Chuyển sang tab Thất bại để tạo lại hoặc ẩn các kế hoạch lỗi.'
                 : planFilter === 'failed' && completedPlans.length > 0
                   ? 'Không có kế hoạch thất bại trong bộ lọc hiện tại.'
@@ -1696,7 +1715,11 @@ export function AIPlansPage() {
                 Lịch tập theo tuần
               </div>
 
-              {!weeklySchedule ? (
+              {currentPlan && (currentPlan.status === 'QUEUED' || currentPlan.status === 'PROCESSING') ? (
+                <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-200 text-sm p-3">
+                  AI plan đang được xử lý. UI sẽ tự động cập nhật khi job hoàn tất.
+                </div>
+              ) : !weeklySchedule ? (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-sm p-3">
                   Kế hoạch đã được tạo nhưng dữ liệu lịch tập chưa đúng định dạng.
                 </div>

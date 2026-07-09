@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import { planService, coachService } from '../services/api';
+import { planService, coachService, type CoachEvidenceItem, type CoachStreamDonePayload } from '../services/api';
 
 export type PendingAiTaskKind = 'plan-generate' | 'plan-adjust' | 'chat-ask';
 export type PendingAiTaskStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
@@ -27,6 +27,7 @@ export interface AiChatMessage {
   from: 'user' | 'ai';
   text: string;
   time: string;
+  evidenceUsed?: CoachEvidenceItem[];
 }
 
 export interface AiCoachSessionState {
@@ -380,8 +381,9 @@ export function useAiCoachSession(userId?: string) {
       setCoachSession(userId, updater(latest));
     };
 
-    const updateTaskState = (status: PendingAiTaskStatus, error?: string | null) => {
+    const updateTaskState = (status: PendingAiTaskStatus, error?: string | null, patch: Partial<PendingAiTask> = {}) => {
       updateTask(userId, taskId, {
+        ...patch,
         status,
         error: error ?? null,
       });
@@ -394,9 +396,12 @@ export function useAiCoachSession(userId?: string) {
       void coachService.chat(question.trim())
         .then((result) => {
           const replyText = result?.answer || 'Sorry, I could not get a response. Please try again.';
+          const evidenceUsed = Array.isArray(result?.evidenceUsed)
+            ? result.evidenceUsed as CoachEvidenceItem[]
+            : [];
           applyIfCurrent((sessionState) => {
             const nextMessages = sessionState.messages.map((message) => (
-              message.id === placeholderMessage.id ? { ...message, text: replyText } : message
+              message.id === placeholderMessage.id ? { ...message, text: replyText, evidenceUsed } : message
             ));
             return {
               ...sessionState,
@@ -407,7 +412,9 @@ export function useAiCoachSession(userId?: string) {
               updatedAt: nowIso(),
             };
           });
-          updateTaskState('COMPLETED');
+          updateTaskState('COMPLETED', null, {
+            conversationId: typeof result?.conversationId === 'string' ? result.conversationId : null,
+          });
         })
         .catch(() => {
           const errorText = 'AI trả lời thất bại, thử lại.';
@@ -456,15 +463,21 @@ export function useAiCoachSession(userId?: string) {
           };
         });
       },
-      onDone: () => {
+      onDone: (payload: CoachStreamDonePayload) => {
+        const evidenceUsed = Array.isArray(payload.evidenceUsed) ? payload.evidenceUsed : [];
         applyIfCurrent((sessionState) => ({
           ...sessionState,
+          messages: sessionState.messages.map((message) => (
+            message.id === placeholderMessage.id ? { ...message, evidenceUsed } : message
+          )),
           status: 'completed',
           activeTaskId: null,
           lastError: null,
           updatedAt: nowIso(),
         }));
-        updateTaskState('COMPLETED');
+        updateTaskState('COMPLETED', null, {
+          conversationId: typeof payload.conversationId === 'string' ? payload.conversationId : null,
+        });
         coachRequests.delete(userId);
       },
       onError: (message) => {

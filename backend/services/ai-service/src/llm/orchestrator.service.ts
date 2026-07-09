@@ -27,6 +27,8 @@ import {
   formatNutritionAnswer,
   nutritionContextResolver,
 } from './nutrition_context';
+import { evidenceUsedFromDocs } from './plan_evidence';
+import { buildCoachContext, sanitizeCoachContextForPrompt } from '../coach/coach_context_builder';
 
 /** Callback fired at each real pipeline milestone so callers can forward live status events. */
 export type ProgressCallback = (message: string) => void;
@@ -74,11 +76,11 @@ export const llmOrchestrator = {
   ): Promise<FinalAnswerPayload> {
     const trace = traceLogger.start(question, userId);
 
-    // Language detection is synchronous — resolve before any network I/O so early-exit
+    // Language detection is synchronous - resolve before any network I/O so early-exit
     // responses are returned in the correct locale.
     const language = languageGuard.resolve(question, userId);
 
-    // Fast safety gate — runs before profile fetch and vector search.
+    // Fast safety gate - runs before profile fetch and vector search.
     // Off-topic and medical emergency return immediately without hitting downstream services.
     const safetyCheck = safetyGuard.check(question);
 
@@ -94,10 +96,10 @@ export const llmOrchestrator = {
       return makeEarlyPayload(trace.traceId, answer, language, safetyCheck.type);
     }
 
-    // Emit before any I/O — fires immediately after safety gate passes.
-    onProgress?.('Đang đọc hồ sơ của bạn...');
+    // Emit before any I/O - fires immediately after safety gate passes.
+    onProgress?.('Dang dung ke hoach an toan da kiem chung');
 
-    // Profile fetch (4 downstream HTTP calls) and Qdrant vector search run concurrently —
+    // Profile fetch (4 downstream HTTP calls) and Qdrant vector search run concurrently -
     // neither depends on the other, so parallelising saves ~150-300 ms per request.
     const preliminaryNutritionIntent = detectNutritionLookupIntent(question);
     const preliminaryScheduleIntent = preliminaryNutritionIntent.enabled
@@ -107,7 +109,7 @@ export const llmOrchestrator = {
       profileExtractor.extract(userId, authHeader),
       preliminaryNutritionIntent.enabled || preliminaryScheduleIntent.enabled
         ? Promise.resolve({ documents: [], isEmpty: true, reason: preliminaryNutritionIntent.enabled ? 'nutrition_schedule_lookup_skips_rag' : 'workout_schedule_lookup_skips_rag' })
-        : retriever.retrieve(question),
+        : retriever.retrieveForChat(question),
       userId ? conversationRepository.findMany({ userId }, 5) : Promise.resolve([]),
     ]);
 
@@ -178,15 +180,21 @@ export const llmOrchestrator = {
       };
     }
 
-    // Body composition analysis — synchronous, runs after profile is available
+    // Body composition analysis - synchronous, runs after profile is available
     const bodyCompAnalysis = analyzeBodyComposition(context.profile);
     const bodyCompText = formatBodyCompAnalysis(bodyCompAnalysis);
+    const coachContext = buildCoachContext(context);
+    const coachContextText = JSON.stringify(sanitizeCoachContextForPrompt(coachContext));
+    const bodyCompAndCoachText = [
+      bodyCompText,
+      `CoachContext JSON (sanitized, no user identity):\n${coachContextText}`,
+    ].filter(Boolean).join('\n\n');
 
     // Retrieve evidence from fitness_evidence collection using body-comp-specific queries.
     // Runs after profile so queries can be shaped by the analysis. Best-effort: no throw.
     const evidenceDocs = await retriever.retrieveEvidence(bodyCompAnalysis.evidenceQueries).catch(() => []);
 
-    onProgress?.('Đã tìm dữ liệu phù hợp');
+    onProgress?.('Dang dung ke hoach an toan da kiem chung');
 
     const routedIntent = intentRouter.route(question, context.profile);
     const parsedInput = inputParser.parse(question, context.profile);
@@ -217,7 +225,7 @@ export const llmOrchestrator = {
     // Intents that go through LLM for richer narrative and context-aware responses.
     // Workout plan + frequency change remain deterministic to enforce hard constraints
     // (day count, min exercises). Recomp and meal requests go through LLM because they
-    // often carry strategic/contextual nuance (e.g., "theo hướng nào", "6 tháng điều chỉnh")
+    // Keep general-knowledge follow-ups in LLM path because they often carry contextual nuance.
     // that the static formatter cannot address. Injury mentions also force LLM path so
     // the model can adapt the plan narrative around the user's pain points.
     const llmIntents = new Set([
@@ -236,7 +244,7 @@ export const llmOrchestrator = {
       : retrieval;
 
     if (needsLlm && !unsafe?.blocked) {
-      onProgress?.('Đang tạo câu trả lời cá nhân hóa...');
+      onProgress?.('Dang dung ke hoach an toan da kiem chung');
       prompt = promptBuilder.build(
         question,
         parsedInput,
@@ -245,7 +253,7 @@ export const llmOrchestrator = {
         recommendation,
         language.responseLanguage,
         chatHistory,
-        bodyCompText || undefined,
+        bodyCompAndCoachText || undefined,
       );
       const llmResponse = await llmService.callLLM(prompt);
       llmAnswer = labelLocalizer.localize(llmResponse.answer, language.responseLanguage);
@@ -265,7 +273,7 @@ export const llmOrchestrator = {
     // deterministic targets, discard it and use the deterministic answer instead.
     // This prevents the "185g protein in headline / 133g in targets" drift.
     // Exception: when injury is the sole reason LLM ran (intent was non-LLM), skip
-    // structural validation — injury/advisory answers legitimately lack workout structure.
+    // structural validation - injury/advisory answers legitimately lack workout structure.
     const injuryForcedLlm = parsedInput.mentionsInjury && !llmIntents.has(routedIntent.intent);
     let usedDeterministicFallbackBecauseOfValidation = false;
     if (
@@ -277,7 +285,7 @@ export const llmOrchestrator = {
     ) {
       llmAnswer = deterministicAnswer;
       usedDeterministicFallbackBecauseOfValidation = true;
-      onProgress?.('Đang dùng kế hoạch an toàn đã kiểm chứng');
+      onProgress?.('Dang dung ke hoach an toan da kiem chung');
     }
 
     traceLogger.end(trace, {
@@ -287,17 +295,11 @@ export const llmOrchestrator = {
       completionTokens,
     });
 
-    // Build evidence-used list from retrieved fitness_evidence docs
-    const evidenceUsed: EvidenceUsed[] = evidenceDocs.map(d => {
-      const m = d.metadata as any;
-      return {
-        title:       m.title ?? d.pageContent.slice(0, 80),
-        source_url:  m.source_url ?? '',
-        category:    m.category ?? d.category,
-        source_type: m.source_type ?? 'curated_summary',
-        summary:     d.pageContent.slice(0, 200),
-      };
-    });
+    // Build evidence-used list from all retrieved fitness_evidence docs, including
+    // chat RAG hits and body-composition-specific enrichment.
+    const evidenceUsed: EvidenceUsed[] = evidenceUsedFromDocs(
+      mergedRetrieval.documents.filter((doc) => doc.source === 'qdrant:fitness_evidence'),
+    );
 
     const adjustmentReasons: AdjustmentReason[] = bodyCompAnalysis.adjustments.map(a => ({
       metric:          a.metric,

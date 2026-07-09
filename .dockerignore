@@ -1,52 +1,40 @@
-# Dependencies
-node_modules
-**/node_modules
-
-# Build outputs
-**/dist
-**/.next
-**/.turbo
-
-# Version control
 .git
-.gitignore
-
-# Editor
+node_modules
+node_modules/
+**/node_modules
+**/node_modules/
+**/.ignored*
+**/dist
+frontend/web/dist
+backend/services/*/src/generated/prisma
+backend/services/*/uploads
+test
+.claude
 .vscode
-.idea
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-
-# Env files
+.pnpm-store
 .env
 .env.*
-!.env.example
+**/.env
+**/.env.*
+!docker/test/.env.test.example
 
-# Test / CI
-coverage
-.nyc_output
-**/*.test.*
-**/*.spec.*
+# Large data is excluded by default. Keep only deterministic test fixtures.
+data/**
+!data/eval
+!data/eval/retrieval
+!data/eval/retrieval/ground-truth-retrieval.csv
+!data/research
+!data/research/fixtures
+!data/research/fixtures/*.json
 
-# Docker
-**/Dockerfile*
-**/docker-compose*
-**/.dockerignore
-
-# Data / docs (not needed in image)
-data/
-docs/
-infra/
-scripts/
-
-# Prisma generated (will be regenerated in container)
-**/prisma/generated
+data/research/raw
+data/research/normalized
+data/research_review_queue.jsonl
+training/outputs
+training/checkpoints
+training/adapters
+training/merged_models
+training/reports
+*.log
+changes.patch
+codex-changes.diff

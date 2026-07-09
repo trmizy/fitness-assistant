@@ -108,3 +108,135 @@ model NutritionPlan {
   @@index([userId, archivedAt])
   @@map("nutrition_plans")
 }
+
+enum KnowledgeSourceType {
+  RSS
+  API
+  WEB
+  LOCAL
+}
+
+enum KnowledgeDocumentTopic {
+  TRAINING
+  NUTRITION
+  RECOVERY
+  INJURY
+  BODY_COMPOSITION
+  GENERAL
+}
+
+enum KnowledgeDocumentStatus {
+  CRAWLED
+  CLEANED
+  SCORED
+  EMBEDDED
+  REJECTED
+  REVIEW
+}
+
+enum KnowledgePipelineRunStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum KnowledgeReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model KnowledgeSource {
+  id            String              @id @default(uuid())
+  name          String
+  baseUrl       String              @unique @map("base_url")
+  sourceType    KnowledgeSourceType @map("source_type")
+  trustTier     Int                 @default(3) @map("trust_tier")
+  crawlCron     String              @default("0 2 * * *") @map("crawl_cron")
+  isActive      Boolean             @default(true) @map("is_active")
+  lastCrawledAt DateTime?           @map("last_crawled_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  documents KnowledgeDocument[]
+
+  @@index([isActive])
+  @@map("knowledge_sources")
+}
+
+model KnowledgeDocument {
+  id              String                   @id @default(uuid())
+  sourceId        String                   @map("source_id")
+  url             String
+  title           String?
+  author          String?
+  language        String?
+  contentHash     String                   @unique @map("content_hash")
+  rawObjectKey    String?                  @map("raw_object_key")
+  cleanText       String?                  @map("clean_text")
+  topic           KnowledgeDocumentTopic?
+  trustScore      Decimal?                 @map("trust_score") @db.Decimal(4, 3)
+  qualityScore    Decimal?                 @map("quality_score") @db.Decimal(4, 3)
+  safetyFlag      Boolean                  @default(false) @map("safety_flag")
+  status          KnowledgeDocumentStatus  @default(CRAWLED)
+  rejectionReason String?                  @map("rejection_reason")
+  publishedAt     DateTime?                @map("published_at")
+  crawledAt       DateTime                 @default(now()) @map("crawled_at")
+  processedAt     DateTime?                @map("processed_at")
+
+  source      KnowledgeSource       @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  chunks      KnowledgeChunk[]
+  reviewItems KnowledgeReviewItem[]
+
+  @@index([status])
+  @@index([topic])
+  @@index([sourceId])
+  @@index([contentHash])
+  @@map("knowledge_documents")
+}
+
+model KnowledgeChunk {
+  id          String   @id @default(uuid())
+  documentId  String   @map("document_id")
+  chunkIndex  Int      @map("chunk_index")
+  text        String
+  tokenCount  Int?     @map("token_count")
+  vectorId    String   @map("vector_id")
+  embeddedAt  DateTime @default(now()) @map("embedded_at")
+
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([vectorId])
+  @@map("knowledge_chunks")
+}
+
+model KnowledgePipelineRun {
+  id           String                     @id @default(uuid())
+  runType      String                     @default("manual_local_evidence") @map("run_type")
+  startedAt    DateTime                   @default(now()) @map("started_at")
+  finishedAt   DateTime?                  @map("finished_at")
+  docsCrawled  Int                        @default(0) @map("docs_crawled")
+  docsAccepted Int                        @default(0) @map("docs_accepted")
+  docsRejected Int                        @default(0) @map("docs_rejected")
+  docsReview   Int                        @default(0) @map("docs_review")
+  status       KnowledgePipelineRunStatus @default(RUNNING)
+
+  @@index([startedAt])
+  @@index([status])
+  @@map("knowledge_pipeline_runs")
+}
+
+model KnowledgeReviewItem {
+  id         String                @id @default(uuid())
+  documentId String                @map("document_id")
+  reason     String?
+  status     KnowledgeReviewStatus @default(PENDING)
+  reviewedBy String?               @map("reviewed_by")
+  reviewedAt DateTime?             @map("reviewed_at")
+
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([documentId])
+  @@map("knowledge_review_queue")
+}
