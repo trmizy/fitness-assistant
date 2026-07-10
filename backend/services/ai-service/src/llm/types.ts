@@ -293,6 +293,20 @@ export interface EvidenceUsed {
   summary: string; // 1–2 sentence summary of the relevant finding
 }
 
+export interface AiChatTiming {
+  requestId: string;
+  totalMs: number;
+  profileContextMs?: number;
+  ragTotalMs?: number;
+  chatHistoryMs?: number;
+  scheduleContextMs?: number;
+  nutritionContextMs?: number;
+  evidenceMs?: number;
+  promptBuildMs?: number;
+  llmGenerateMs?: number;
+  validationMs?: number;
+}
+
 export interface FinalAnswerPayload {
   traceId: string;
   answer: string;
@@ -313,6 +327,8 @@ export interface FinalAnswerPayload {
   routeIntent: string;
   warningCount: number;
   explicitLanguageLock: boolean;
+  timing?: AiChatTiming;
+  fallbackReason?: string;
   // ── Evidence enrichment (new — optional for backward compat) ──────────────
   adjustmentReasons?: AdjustmentReason[];
   evidenceUsed?: EvidenceUsed[];

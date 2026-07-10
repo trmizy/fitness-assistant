@@ -35,6 +35,8 @@ export interface CoachStreamDonePayload {
   evidenceUsed?: CoachEvidenceItem[];
   adjustmentReasons?: unknown[];
   safetyNotes?: string[];
+  timing?: unknown;
+  fallbackReason?: string;
 }
 
 const refreshClient = axios.create({
@@ -1074,7 +1076,7 @@ export const coachService = {
         timeout: 120000,
       },
     );
-    // AI service wraps responses in {success, data} — unwrap to get answer at top level.
+    // AI service wraps responses in {success, data}; unwrap to get answer at top level.
     return data?.data ?? data;
   },
 
@@ -1093,6 +1095,14 @@ export const coachService = {
     },
   ): () => void {
     const controller = new AbortController();
+    const slowNoticeTimer = window.setTimeout(() => {
+      callbacks.onStatus(
+        "Model local có thể đang khởi động, vui lòng chờ thêm...",
+      );
+    }, 10000);
+    const timeoutTimer = window.setTimeout(() => {
+      controller.abort();
+    }, 75000);
 
     (async () => {
       try {
@@ -1180,13 +1190,21 @@ export const coachService = {
           }
         }
 
-        // Stream ended without a final event — connection was dropped unexpectedly.
+        // Stream ended without a final event: connection was dropped unexpectedly.
         if (!receivedFinalEvent) {
           callbacks.onError("Connection lost. Please try again.");
         }
       } catch (err: unknown) {
-        if (err instanceof Error && err.name === "AbortError") return;
+        if (err instanceof Error && err.name === "AbortError") {
+          callbacks.onError(
+            "AI phản hồi quá lâu. Vui lòng thử lại sau hoặc kiểm tra Ollama/Qdrant.",
+          );
+          return;
+        }
         callbacks.onError("Không thể kết nối AI Coach. Vui lòng thử lại.");
+      } finally {
+        window.clearTimeout(slowNoticeTimer);
+        window.clearTimeout(timeoutTimer);
       }
     })();
 
@@ -1307,7 +1325,7 @@ export const adminService = {
     return data;
   },
 
-  // ── AI Observability ────────────────────────────────────────────────────────
+  // -- AI Observability --------------------------------------------------------
 
   getAIOverview: async () => {
     const { data } = await api.get("/admin/ai/overview");

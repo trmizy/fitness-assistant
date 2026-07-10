@@ -6,8 +6,14 @@ import { LlmError } from "../errors/api-error";
 const LLM_PROVIDER = process.env.LLM_PROVIDER || "ollama";
 const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://localhost:11434";
 export const LLM_MODEL = process.env.LLM_MODEL || "llama3.2:3b";
-const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "nomic-embed-text";
+export const EMBEDDING_MODEL =
+  process.env.EMBEDDING_MODEL || "nomic-embed-text";
 const MOCK_EMBEDDING_DIM = 768;
+const DEFAULT_EMBEDDING_TIMEOUT_MS = readPositiveIntEnv(
+  "EMBEDDING_TIMEOUT_MS",
+  8000,
+);
+const DEFAULT_LLM_TIMEOUT_MS = readPositiveIntEnv("LLM_TIMEOUT_MS", 60000);
 
 function readPositiveIntEnv(name: string, fallback: number): number {
   const value = Number.parseInt(process.env[name] || "", 10);
@@ -195,7 +201,10 @@ export const llmService = {
     }
   },
 
-  async generateEmbedding(text: string): Promise<number[]> {
+  async generateEmbedding(
+    text: string,
+    opts?: { timeoutMs?: number },
+  ): Promise<number[]> {
     if (LLM_PROVIDER === "mock") {
       return mockEmbedding(text);
     }
@@ -204,20 +213,28 @@ export const llmService = {
       const model = EMBEDDING_MODEL;
 
       try {
-        const response = await axios.post(`${LLM_BASE_URL}/api/embeddings`, {
-          model,
-          prompt: text,
-        });
+        const response = await axios.post(
+          `${LLM_BASE_URL}/api/embeddings`,
+          {
+            model,
+            prompt: text,
+          },
+          { timeout: opts?.timeoutMs ?? DEFAULT_EMBEDDING_TIMEOUT_MS },
+        );
         return response.data.embedding as number[];
       } catch (err) {
         // Newer Ollama builds use /api/embed instead of /api/embeddings.
         const is404 = err instanceof AxiosError && err.response?.status === 404;
         if (!is404) throw err;
 
-        const response = await axios.post(`${LLM_BASE_URL}/api/embed`, {
-          model,
-          input: text,
-        });
+        const response = await axios.post(
+          `${LLM_BASE_URL}/api/embed`,
+          {
+            model,
+            input: text,
+          },
+          { timeout: opts?.timeoutMs ?? DEFAULT_EMBEDDING_TIMEOUT_MS },
+        );
 
         const embeddings = response.data?.embeddings as number[][] | undefined;
         const embedding = response.data?.embedding as number[] | undefined;
@@ -295,7 +312,7 @@ export const llmService = {
         }
 
         const response = await axios.post(`${LLM_BASE_URL}/api/chat`, payload, {
-          timeout: opts?.timeoutMs ?? 120000,
+          timeout: opts?.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
         });
         return {
           answer: (response.data.message?.content as string) || "",

@@ -237,7 +237,7 @@ function startPlanPolling(userId: string, taskId: string): void {
         // Job not found means it's gone from backend (e.g. DB reset or failed to create properly)
         updateTask(userId, taskId, {
           status: "FAILED",
-          error: "Kế hoạch không tồn tại hoặc đã bị xoá.",
+          error: "Kế hoạch không tồn tại hoặc đã bị xóa.",
           updatedAt: nowIso(),
         });
         const timer = taskTimers.get(timerKey);
@@ -482,7 +482,7 @@ export function useAiCoachSession(userId?: string) {
           });
         })
         .catch(() => {
-          const errorText = "AI trả lời thất bại, thử lại.";
+          const errorText = "AI trả lời thất bại, vui lòng thử lại.";
           applyIfCurrent((sessionState) => ({
             ...sessionState,
             messages: sessionState.messages.map((message) =>
@@ -557,7 +557,7 @@ export function useAiCoachSession(userId?: string) {
         coachRequests.delete(userId);
       },
       onError: (message) => {
-        const errorText = message || "AI trả lời thất bại, thử lại.";
+        const errorText = message || "AI trả lời thất bại, vui lòng thử lại.";
         applyIfCurrent((sessionState) => ({
           ...sessionState,
           messages: sessionState.messages.map((item) =>

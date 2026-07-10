@@ -121,6 +121,8 @@ export const aiController = {
         evidenceUsed: result.evidenceUsed ?? [],
         adjustmentReasons: result.adjustmentReasons ?? [],
         safetyNotes: result.safetyNotes ?? [],
+        timing: result.timing,
+        fallbackReason: result.fallbackReason,
       });
     } catch (err) {
       aiCoachQueriesTotal.inc({ status: "failure" });

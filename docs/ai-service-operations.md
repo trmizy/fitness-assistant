@@ -207,6 +207,25 @@ docker compose -f infra/compose/docker-compose.dev.yml exec ai-service pnpm run 
 docker compose -f infra/compose/docker-compose.dev.yml exec ai-service pnpm run test:evaluation
 ```
 
+AI chat readiness and latency debugging:
+
+```powershell
+$env:AI_CHAT_LLM_TIMEOUT_MS = "30000" # recommended for local CPU dev
+docker compose -f infra/compose/docker-compose.dev.yml exec ai-service pnpm run ai:check:ollama
+docker compose -f infra/compose/docker-compose.dev.yml exec ai-service pnpm run ai:warmup
+docker compose -f infra/compose/docker-compose.dev.yml exec ai-service pnpm run ai:check:rag
+docker compose -f infra/compose/docker-compose.dev.yml exec ai-service pnpm run ai:debug:chat -- "Phan tich InBody moi nhat cua toi"
+```
+
+If Ollama is missing models:
+
+```powershell
+docker compose -f infra/compose/docker-compose.dev.yml exec ollama ollama pull llama3.2:3b
+docker compose -f infra/compose/docker-compose.dev.yml exec ollama ollama pull nomic-embed-text
+```
+
+See `docs/ai-chat-performance-audit.md` for the chat timing fields and fallback policy.
+
 ## 6. API Chat AI Coach
 
 Routes:

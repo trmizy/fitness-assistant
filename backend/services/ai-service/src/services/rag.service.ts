@@ -131,6 +131,10 @@ export const ragService = {
       missingFields: orchestrated.missingFields,
       validationNotes: orchestrated.validationNotes,
       recommendation: orchestrated.recommendation,
+      ...(orchestrated.fallbackReason
+        ? { fallbackReason: orchestrated.fallbackReason }
+        : {}),
+      ...(orchestrated.timing ? { timing: orchestrated.timing } : {}),
       ...(orchestrated.adjustmentReasons
         ? { adjustmentReasons: orchestrated.adjustmentReasons }
         : {}),

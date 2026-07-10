@@ -20,6 +20,9 @@ export const RETRIEVER_COLLECTION_SCOPES = {
 const MIN_SCORE = Number(process.env.RAG_MIN_SCORE || "0.35");
 const TOP_K = Number(process.env.RAG_TOP_K || "5");
 const DEBUG_RAG = process.env.DEBUG_RAG === "true";
+const RAG_EMBEDDING_TIMEOUT_MS = Number(
+  process.env.RAG_EMBEDDING_TIMEOUT_MS || "8000",
+);
 // Max chars for instructions field - long how-to text bloats the prompt without adding value for the LLM
 const INSTRUCTION_MAX_CHARS = 120;
 
@@ -324,7 +327,9 @@ export const retriever = {
           queryPreview: safeQueryPreview(query),
           collections: [...PLAN_EVIDENCE_COLLECTIONS],
         });
-        const vector = await llmService.generateEmbedding(query);
+        const vector = await llmService.generateEmbedding(query, {
+          timeoutMs: RAG_EMBEDDING_TIMEOUT_MS,
+        });
         const collectionResults = await Promise.all(
           PLAN_EVIDENCE_COLLECTIONS.map((collection) =>
             searchCollection(collection, vector),
@@ -354,7 +359,9 @@ export const retriever = {
     // only runtime path allowed to use qdrant:exercises.
     const searchPromises = queries.map(async (query) => {
       try {
-        const vector = await llmService.generateEmbedding(query);
+        const vector = await llmService.generateEmbedding(query, {
+          timeoutMs: RAG_EMBEDDING_TIMEOUT_MS,
+        });
         const collectionPromises = CHAT_COLLECTIONS.map((col) =>
           searchCollection(col, vector),
         );

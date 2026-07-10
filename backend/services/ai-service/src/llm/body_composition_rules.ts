@@ -253,7 +253,7 @@ export function formatBodyCompAnalysis(analysis: BodyCompAnalysis): string {
 
   if (analysis.dataQualityNotes.length > 0) {
     parts.push("[Chất lượng dữ liệu đo]");
-    analysis.dataQualityNotes.forEach((n) => parts.push(`  • ${n}`));
+    analysis.dataQualityNotes.forEach((n) => parts.push(`  - ${n}`));
   }
 
   if (analysis.adjustments.length > 0) {
@@ -278,13 +278,13 @@ export function formatBodyCompAnalysis(analysis: BodyCompAnalysis): string {
     if (c.cardioNote) constraints.push(`Cardio: ${c.cardioNote}`);
     if (constraints.length > 0) {
       parts.push("[Ràng buộc kế hoạch]");
-      constraints.forEach((c) => parts.push(`  • ${c}`));
+      constraints.forEach((c) => parts.push(`  - ${c}`));
     }
   }
 
   if (analysis.safetyNotes.length > 0) {
-    parts.push("[Safety Notes — bắt buộc đề cập trong response]");
-    analysis.safetyNotes.forEach((n) => parts.push(`  ⚠ ${n}`));
+    parts.push("[Safety notes - bắt buộc đề cập trong response]");
+    analysis.safetyNotes.forEach((n) => parts.push(`  - ${n}`));
   }
 
   return parts.join("\n");
