@@ -43,7 +43,7 @@ function AppShellInner() {
       className="flex h-screen overflow-hidden bg-cover bg-center bg-no-repeat relative"
       style={{ backgroundImage: `url(${bgGym})` }}
     >
-      <div className="absolute inset-0 bg-black/40 pointer-events-none z-0"></div>
+      <div className="absolute inset-0 app-theme-overlay pointer-events-none z-0"></div>
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 flex-shrink-0 border-r border-zinc-800/60 z-10 bg-zinc-950/40 backdrop-blur-md">

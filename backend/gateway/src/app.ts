@@ -4,6 +4,7 @@ import cors from "cors";
 import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import { rateLimiter } from "./middleware/rateLimit.middleware";
 import proxyRoutes from "./routes/proxy.routes";
+import translateRoutes from "./routes/translate.routes";
 
 const app = express();
 
@@ -87,6 +88,7 @@ app.use("/static", removeN8nHelmetHeaders);
 app.use("/signin", removeN8nHelmetHeaders);
 app.use("/login", removeN8nHelmetHeaders);
 
+app.use("/", translateRoutes);
 app.use("/", proxyRoutes);
 
 // 404 handler

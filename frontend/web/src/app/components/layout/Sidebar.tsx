@@ -22,21 +22,48 @@ import {
   Zap,
   Workflow,
 } from "lucide-react";
+import { AutoText } from "../i18n/AutoText";
+import type { AppLanguage } from "../../context/SettingsContext";
 
 // ─── Navigation definitions ────────────────────────────────────────────────
 
 /** Full client nav — shown to pure Client accounts */
 const clientNavFull = [
-  { label: "Dashboard", icon: LayoutDashboard, to: "/client/dashboard" },
-  { label: "InBody", icon: Activity, to: "/client/inbody" },
-  { label: "AI Plans", icon: Brain, to: "/client/plans" },
+  {
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    to: "/client/dashboard",
+    sourceLang: "en" as const,
+  },
+  {
+    label: "InBody",
+    icon: Activity,
+    to: "/client/inbody",
+    sourceLang: "en" as const,
+  },
+  {
+    label: "AI Plans",
+    icon: Brain,
+    to: "/client/plans",
+    sourceLang: "en" as const,
+  },
   { label: "Nhật ký tập", icon: Dumbbell, to: "/client/workout" },
   { label: "Dinh dưỡng", icon: Utensils, to: "/client/nutrition" },
   { label: "Tìm PT", icon: Search, to: "/client/coaches" },
   { label: "Hợp đồng", icon: FileText, to: "/client/contracts" },
   { label: "Đặt lịch", icon: Calendar, to: "/client/booking" },
-  { label: "Chat", icon: MessageSquare, to: "/client/chat" },
-  { label: "AI Coach", icon: Bot, to: "/client/ai-coach" },
+  {
+    label: "Chat",
+    icon: MessageSquare,
+    to: "/client/chat",
+    sourceLang: "en" as const,
+  },
+  {
+    label: "AI Coach",
+    icon: Bot,
+    to: "/client/ai-coach",
+    sourceLang: "en" as const,
+  },
   { label: "Hồ sơ", icon: User, to: "/client/profile" },
 ];
 
@@ -47,23 +74,48 @@ const ptClientNav = clientNavFull.filter(
 
 /** PT professional workspace nav */
 const ptWorkspaceNav = [
-  { label: "PT Dashboard", icon: LayoutDashboard, to: "/pt/dashboard" },
+  {
+    label: "PT Dashboard",
+    icon: LayoutDashboard,
+    to: "/pt/dashboard",
+    sourceLang: "en" as const,
+  },
   { label: "Học viên", icon: Users, to: "/pt/clients" },
   { label: "Hợp đồng", icon: FileText, to: "/pt/contracts" },
   { label: "Duyệt kế hoạch", icon: ClipboardList, to: "/pt/plans" },
   { label: "Lịch dạy", icon: Calendar, to: "/pt/schedule" },
-  { label: "Chat", icon: MessageSquare, to: "/pt/chat" },
+  {
+    label: "Chat",
+    icon: MessageSquare,
+    to: "/pt/chat",
+    sourceLang: "en" as const,
+  },
   { label: "Hồ sơ PT", icon: User, to: "/pt/profile" },
 ];
 
 /** Admin nav */
 const adminNav = [
-  { label: "Dashboard", icon: LayoutDashboard, to: "/admin/dashboard" },
+  {
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    to: "/admin/dashboard",
+    sourceLang: "en" as const,
+  },
   { label: "Người dùng", icon: Users, to: "/admin/users" },
   { label: "Quản lý PT", icon: UserCheck, to: "/admin/pts" },
   { label: "Giám sát hệ thống", icon: Monitor, to: "/admin/system" },
-  { label: "Workflows", icon: Workflow, to: "/admin/workflows" },
-  { label: "AI Observability", icon: Brain, to: "/admin/ai-observability" },
+  {
+    label: "Workflows",
+    icon: Workflow,
+    to: "/admin/workflows",
+    sourceLang: "en" as const,
+  },
+  {
+    label: "AI Observability",
+    icon: Brain,
+    to: "/admin/ai-observability",
+    sourceLang: "en" as const,
+  },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -72,6 +124,7 @@ interface NavItem {
   label: string;
   icon: React.ElementType;
   to: string;
+  sourceLang?: AppLanguage;
 }
 
 function NavGroup({
@@ -101,7 +154,12 @@ function NavGroup({
               <item.icon
                 className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-green-400" : ""}`}
               />
-              <span className="flex-1">{item.label}</span>
+              <AutoText
+                className="flex-1"
+                sourceLang={item.sourceLang || "vi"}
+              >
+                {item.label}
+              </AutoText>
               {isActive && (
                 <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
               )}
@@ -225,7 +283,7 @@ export function Sidebar() {
               <Zap className="w-2.5 h-2.5 text-green-400" />
             </div>
             <span className="text-xs text-zinc-500 font-semibold tracking-wide uppercase">
-              Tài khoản PT
+              <AutoText>Tài khoản PT</AutoText>
             </span>
           </div>
 
@@ -240,7 +298,7 @@ export function Sidebar() {
               }`}
             >
               <User className="w-3 h-3" />
-              Client
+              <AutoText sourceLang="en">Client</AutoText>
             </button>
             <button
               onClick={switchToPTView}
@@ -251,7 +309,7 @@ export function Sidebar() {
               }`}
             >
               <Zap className="w-3 h-3" />
-              Trainer
+              <AutoText sourceLang="en">Trainer</AutoText>
             </button>
           </div>
         </div>
@@ -263,7 +321,9 @@ export function Sidebar() {
         {isPT && (
           <div className="px-3 mb-2">
             <span className="text-xs font-bold text-zinc-600 uppercase tracking-widest">
-              {activeView === "pt" ? "Huấn luyện" : "Thể dục của tôi"}
+              <AutoText>
+                {activeView === "pt" ? "Huấn luyện" : "Thể dục của tôi"}
+              </AutoText>
             </span>
           </div>
         )}
@@ -284,11 +344,13 @@ export function Sidebar() {
                 : "Client"}
             </div>
             <div className="text-xs text-zinc-500 truncate">
-              {role === "client"
-                ? "Thành viên"
-                : role === "pt"
-                  ? "Huấn luyện viên"
-                  : "Quản trị viên"}
+              <AutoText>
+                {role === "client"
+                  ? "Thành viên"
+                  : role === "pt"
+                    ? "Huấn luyện viên"
+                    : "Quản trị viên"}
+              </AutoText>
             </div>
           </div>
         </div>
@@ -297,7 +359,7 @@ export function Sidebar() {
           className="flex items-center gap-2 w-full px-3 py-2 text-zinc-500 hover:text-red-400 hover:bg-zinc-800/60 rounded-lg text-sm transition-all"
         >
           <LogOut className="w-4 h-4" />
-          Đăng xuất
+          <AutoText>Đăng xuất</AutoText>
         </button>
       </div>
     </div>

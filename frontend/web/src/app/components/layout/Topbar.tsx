@@ -19,6 +19,9 @@ import { notificationService } from "../../services/api";
 import { connectSocket } from "../../services/socket";
 import type { AppNotification } from "../../types";
 import { usePendingAiTasks } from "../../stores/pendingAiTasks";
+import { LanguageSwitcher } from "../settings/LanguageSwitcher";
+import { ThemeToggle } from "../settings/ThemeToggle";
+import { AutoText } from "../i18n/AutoText";
 
 export function Topbar() {
   const {
@@ -166,6 +169,11 @@ export function Topbar() {
 
       {/* Right: workspace switcher + notifications + user */}
       <div className="flex items-center gap-1.5">
+        <div className="hidden md:flex items-center gap-1.5 mr-1">
+          <LanguageSwitcher />
+          <ThemeToggle />
+        </div>
+
         {/* ── PT workspace switcher (topbar) ── */}
         {isPT && (
           <div className="hidden sm:flex items-center bg-zinc-800/70 border border-zinc-700/50 rounded-xl p-1 gap-0.5 mr-1">
@@ -178,7 +186,9 @@ export function Topbar() {
               }`}
             >
               <User className="w-3 h-3" />
-              <span className="hidden md:block">Client</span>
+              <AutoText className="hidden md:block" sourceLang="en">
+                Client
+              </AutoText>
             </button>
             <button
               onClick={() => switchToView("pt")}
@@ -189,7 +199,9 @@ export function Topbar() {
               }`}
             >
               <Zap className="w-3 h-3" />
-              <span className="hidden md:block">Trainer</span>
+              <AutoText className="hidden md:block" sourceLang="en">
+                Trainer
+              </AutoText>
             </button>
           </div>
         )}
@@ -200,7 +212,9 @@ export function Topbar() {
         >
           <div className={`w-1.5 h-1.5 rounded-full ${workspaceBadge.dot}`} />
           <span className={`text-xs font-semibold ${workspaceBadge.text}`}>
-            {workspaceBadge.label}
+            <AutoText sourceLang={workspaceBadge.label === "Admin" ? "en" : "vi"}>
+              {workspaceBadge.label}
+            </AutoText>
           </span>
         </div>
 
@@ -428,6 +442,11 @@ export function Topbar() {
                 )}
 
                 {/* Menu items */}
+                <div className="flex md:hidden items-center gap-2 px-3 py-2 border-b border-zinc-800">
+                  <LanguageSwitcher />
+                  <ThemeToggle />
+                </div>
+
                 <button
                   onClick={() => {
                     setUserOpen(false);
@@ -435,10 +454,10 @@ export function Topbar() {
                   }}
                   className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
                 >
-                  <User className="w-4 h-4" /> Hồ sơ cá nhân
+                  <User className="w-4 h-4" /> <AutoText>Hồ sơ cá nhân</AutoText>
                 </button>
                 <button className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 transition-colors">
-                  <Settings className="w-4 h-4" /> Cài đặt
+                  <Settings className="w-4 h-4" /> <AutoText>Cài đặt</AutoText>
                 </button>
 
                 {/* Admin link */}
@@ -450,7 +469,7 @@ export function Topbar() {
                     }}
                     className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-violet-400 hover:bg-violet-500/10 transition-colors"
                   >
-                    <Shield className="w-4 h-4" /> Trang Admin
+                    <Shield className="w-4 h-4" /> <AutoText>Trang Admin</AutoText>
                   </button>
                 )}
 
@@ -464,8 +483,11 @@ export function Topbar() {
                     className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
                   >
                     <ArrowLeftRight className="w-4 h-4" />
-                    Chuyển sang{" "}
-                    {activeView === "pt" ? "chế độ thành viên" : "chế độ PT"}
+                    <AutoText>
+                      {activeView === "pt"
+                        ? "Chuyển sang chế độ thành viên"
+                        : "Chuyển sang chế độ PT"}
+                    </AutoText>
                   </button>
                 )}
 
@@ -474,7 +496,7 @@ export function Topbar() {
                     onClick={handleLogout}
                     className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                   >
-                    <LogOut className="w-4 h-4" /> Đăng xuất
+                    <LogOut className="w-4 h-4" /> <AutoText>Đăng xuất</AutoText>
                   </button>
                 </div>
               </div>

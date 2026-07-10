@@ -39,6 +39,14 @@ export interface CoachStreamDonePayload {
   fallbackReason?: string;
 }
 
+export type TranslationLanguage = "en" | "vi";
+
+export type TranslateRequest = {
+  text: string;
+  targetLang: TranslationLanguage;
+  sourceLang?: TranslationLanguage;
+};
+
 const refreshClient = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },
@@ -176,6 +184,21 @@ export const authService = {
   logout: () => {
     localStorage.clear();
     window.location.href = "/login";
+  },
+};
+
+export const translationService = {
+  translate: async ({
+    text,
+    targetLang,
+    sourceLang = "en",
+  }: TranslateRequest): Promise<string> => {
+    const { data } = await api.post("/api/translate", {
+      text,
+      targetLang,
+      sourceLang,
+    });
+    return data?.translatedText ?? text;
   },
 };
 
