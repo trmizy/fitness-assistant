@@ -66,7 +66,15 @@ Example (pseudo-code)
 const pointId = `exercises_${exercise.id}`;
 const text = `${exercise.name} ${exercise.instructions}`;
 const vector = await llmService.generateEmbedding(text);
-await qdrantClient.upsert('exercises', { points: [{ id: pointId, vector, payload: { db_id: exercise.id, updatedAt: exercise.updatedAt } }] });
+await qdrantClient.upsert("exercises", {
+  points: [
+    {
+      id: pointId,
+      vector,
+      payload: { db_id: exercise.id, updatedAt: exercise.updatedAt },
+    },
+  ],
+});
 ```
 
 Operational notes
@@ -93,11 +101,9 @@ Pros / Cons
 Design components
 
 - Publisher: repository-level hook sends event after DB write/delete:
-
   - Example event: `{ type: 'exercise.upsert', db_id: 123, updatedAt: '...' }`.
 
 - Worker: consumes events; responsibilities:
-
   1. Fetch the latest DB row via Prisma.
   2. Skip if the DB row's `updatedAt` <= lastSyncedAt (persisted or in Qdrant payload).
   3. Generate embedding and call Qdrant `upsert` with stable `pointId` and metadata.
@@ -115,23 +121,31 @@ Worker example (sketch)
 
 ```ts
 // ai-service/src/workers/sync.worker.ts
-import { Worker } from 'bullmq';
-import { prisma } from '@gym-coach/ai-service/src/repositories/conversation.repository';
-import { llmService } from '../services/llm.service';
-import { getQdrantClient } from '../repositories/qdrant';
+import { Worker } from "bullmq";
+import { prisma } from "@gym-coach/ai-service/src/repositories/conversation.repository";
+import { llmService } from "../services/llm.service";
+import { getQdrantClient } from "../repositories/qdrant";
 
 const q = getQdrantClient();
-const worker = new Worker('sync-queue', async job => {
+const worker = new Worker("sync-queue", async (job) => {
   const { type, db_id, entity } = job.data;
-  if (type === 'exercise.delete') {
-    await q.delete('exercises', { points: [{ id: `exercises_${db_id}` }] });
+  if (type === "exercise.delete") {
+    await q.delete("exercises", { points: [{ id: `exercises_${db_id}` }] });
     return;
   }
   const record = await prisma.exercise.findUnique({ where: { id: db_id } });
   if (!record) return;
   const text = `${record.name} ${record.instructions}`;
   const vector = await llmService.generateEmbedding(text);
-  await q.upsert('exercises', { points: [{ id: `exercises_${db_id}`, vector, payload: { db_id, updatedAt: record.updatedAt } }] });
+  await q.upsert("exercises", {
+    points: [
+      {
+        id: `exercises_${db_id}`,
+        vector,
+        payload: { db_id, updatedAt: record.updatedAt },
+      },
+    ],
+  });
 });
 ```
 

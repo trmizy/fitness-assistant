@@ -44,11 +44,11 @@ services:
       dockerfile: frontend/web/Dockerfile.dev
     container_name: gymcoach-web-dev
     ports:
-      - "5173:5173"        # Vite dev server (not nginx)
+      - "5173:5173" # Vite dev server (not nginx)
     environment:
       VITE_API_URL: http://127.0.0.1:3000
       VITE_CHAT_WS_URL: http://127.0.0.1:3005
-      CHOKIDAR_USEPOLLING: "true"   # Required for Windows bind-mount file-watching
+      CHOKIDAR_USEPOLLING: "true" # Required for Windows bind-mount file-watching
     volumes:
       # Bind-mount React source so Vite HMR picks up every save
       - ../../frontend/web/src:/app/frontend/web/src
@@ -131,7 +131,7 @@ services:
       - ../../.env
     volumes:
       - ../../backend/services/auth-service/src:/app/backend/services/auth-service/src
-      - ../../scripts:/app/scripts   # Seed scripts — shared with db-seeder
+      - ../../scripts:/app/scripts # Seed scripts — shared with db-seeder
     depends_on:
       postgres:
         condition: service_healthy
@@ -423,7 +423,12 @@ services:
     container_name: gymcoach-ollama-puller
     depends_on:
       - ollama
-    entrypoint: [ "sh", "-c", "until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d '{\"name\": \"llama3.2:3b\"}'; curl http://ollama:11434/api/pull -d '{\"name\": \"nomic-embed-text\"}'" ]
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "llama3.2:3b"}''; curl http://ollama:11434/api/pull -d ''{"name": "nomic-embed-text"}''',
+      ]
     networks:
       - default
 
@@ -469,9 +474,9 @@ services:
       - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.retention.time=7d'
-      - '--web.enable-lifecycle'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
     restart: "no"
     networks:
       - default
@@ -575,7 +580,7 @@ volumes:
   n8n_data:
   prometheus_data:
   grafana_data:
-  seeder_modules:     # npm cache for db-seeder (bcryptjs, pg, dotenv)
+  seeder_modules: # npm cache for db-seeder (bcryptjs, pg, dotenv)
 
 networks:
   default:

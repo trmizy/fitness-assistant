@@ -1,8 +1,8 @@
-﻿function removeDiacritics(str: string): string {
+function removeDiacritics(str: string): string {
   return str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[đĐ]/g, (c) => (c === 'đ' ? 'd' : 'D'));
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, (c) => (c === "đ" ? "d" : "D"));
 }
 
 function norm(s: string): string {
@@ -55,13 +55,13 @@ const FOOD_SYNONYMS: Record<string, string> = {
   "cá tra": "catfish",
   "cá trắm": "carp",
   "cá kho": "fish braised",
-  "tôm": "shrimp",
+  tôm: "shrimp",
   "tôm luộc": "shrimp cooked",
   "tôm nướng": "shrimp grilled",
   "tôm chiên": "shrimp fried",
-  "mực": "squid",
+  mực: "squid",
   "mực xào": "squid stir fried",
-  "trứng": "egg",
+  trứng: "egg",
   "trứng gà": "chicken egg",
   "trứng luộc": "boiled egg",
   "trứng chiên": "fried egg",
@@ -72,10 +72,10 @@ const FOOD_SYNONYMS: Record<string, string> = {
   "đậu phụ": "tofu",
   "đậu hũ": "tofu",
   "đậu phụ chiên": "tofu fried",
-  "whey": "whey protein",
+  whey: "whey protein",
   "whey protein": "whey protein",
   // Tinh bột & Món Việt
-  "cơm": "white rice cooked",
+  cơm: "white rice cooked",
   "cơm trắng": "white rice cooked",
   "cơm gạo lứt": "brown rice cooked",
   "gạo lứt": "brown rice cooked",
@@ -84,7 +84,7 @@ const FOOD_SYNONYMS: Record<string, string> = {
   "bún thịt nướng": "rice noodles pork",
   "bún chả": "rice noodles pork",
   "bún riêu": "rice noodle soup",
-  "phở": "rice noodle soup",
+  phở: "rice noodle soup",
   "phở bò": "beef rice noodle soup",
   "phở gà": "chicken rice noodle soup",
   "hủ tiếu": "rice noodles",
@@ -98,19 +98,19 @@ const FOOD_SYNONYMS: Record<string, string> = {
   "khoai tây": "potato",
   "khoai tây luộc": "potato cooked",
   "khoai tây chiên": "french fries",
-  "bún": "rice noodles",
-  "miến": "glass noodles",
+  bún: "rice noodles",
+  miến: "glass noodles",
   "miến gà": "glass noodles chicken",
-  "mì": "noodles",
+  mì: "noodles",
   "mì trứng": "egg noodles",
   "mì ý": "spaghetti cooked",
-  "pasta": "pasta cooked",
-  "nui": "pasta cooked",
-  "ngô": "corn",
+  pasta: "pasta cooked",
+  nui: "pasta cooked",
+  ngô: "corn",
   "bắp ngô": "corn",
   "bắp luộc": "corn cooked",
-  "canh": "soup",
-  "cháo": "rice porridge",
+  canh: "soup",
+  cháo: "rice porridge",
   "cháo gà": "chicken rice porridge",
   "cháo thịt": "pork rice porridge",
   "gỏi cuốn": "spring roll fresh",
@@ -145,40 +145,40 @@ const FOOD_SYNONYMS: Record<string, string> = {
   "ớt chuông": "bell pepper",
   "ớt chuông đỏ": "red bell pepper",
   "ớt chuông xanh": "green bell pepper",
-  "nấm": "mushroom",
+  nấm: "mushroom",
   "nấm hương": "shiitake mushroom",
   "nấm kim châm": "enoki mushroom",
   "nấm rơm": "straw mushroom",
   "giá đỗ": "bean sprouts",
   "hành tây": "onion",
   "hành lá": "green onion",
-  "tỏi": "garlic",
+  tỏi: "garlic",
   "cần tây": "celery",
   "bí đỏ": "pumpkin",
   "bí xanh": "zucchini",
   "cà tím": "eggplant",
   // Trái cây
-  "chuối": "banana",
-  "táo": "apple",
-  "cam": "orange",
-  "quýt": "mandarin orange",
+  chuối: "banana",
+  táo: "apple",
+  cam: "orange",
+  quýt: "mandarin orange",
   "nước cam": "orange juice",
-  "bưởi": "grapefruit",
-  "xoài": "mango",
+  bưởi: "grapefruit",
+  xoài: "mango",
   "đu đủ": "papaya",
-  "dứa": "pineapple",
-  "thơm": "pineapple",
+  dứa: "pineapple",
+  thơm: "pineapple",
   "dâu tây": "strawberry",
-  "nho": "grapes",
-  "kiwi": "kiwi",
-  "lê": "pear",
+  nho: "grapes",
+  kiwi: "kiwi",
+  lê: "pear",
   "dưa hấu": "watermelon",
   "việt quất": "blueberry",
   "quả bơ": "avocado",
   "bơ trái": "avocado",
   "thanh long": "dragon fruit",
-  "vải": "lychee",
-  "nhãn": "longan",
+  vải: "lychee",
+  nhãn: "longan",
   // Sữa & Dairy
   "sữa tươi": "whole milk",
   "sữa không đường": "skim milk",
@@ -195,7 +195,7 @@ const FOOD_SYNONYMS: Record<string, string> = {
   "sinh tố chuối": "banana smoothie",
   "sinh tố bơ": "avocado smoothie",
   // Chất béo & Hạt
-  "bơ": "butter",
+  bơ: "butter",
   "bơ thực vật": "margarine",
   "dầu ô liu": "olive oil",
   "dầu dừa": "coconut oil",
@@ -208,7 +208,7 @@ const FOOD_SYNONYMS: Record<string, string> = {
   "hạt lanh": "flaxseeds",
   // Khác
   "mật ong": "honey",
-  "đường": "sugar",
+  đường: "sugar",
   "socola đen": "dark chocolate",
 };
 
@@ -226,13 +226,15 @@ export interface TranslationResult {
 
 export function translateFoodQuery(query: string): TranslationResult {
   const original = query;
-  if (!query.trim()) return { searchQuery: query, translated: false, originalQuery: original };
+  if (!query.trim())
+    return { searchQuery: query, translated: false, originalQuery: original };
 
   const nq = norm(query);
 
   // 1. Exact match — highest priority
   const exact = NORMALIZED.find((e) => e.n === nq);
-  if (exact) return { searchQuery: exact.en, translated: true, originalQuery: original };
+  if (exact)
+    return { searchQuery: exact.en, translated: true, originalQuery: original };
 
   // 2. Prefix match: normalized query is a prefix of a known synonym key.
   //    e.g. "uc ga l" ("ức gà l") is a prefix of "uc ga luoc" ("ức gà luộc").
@@ -241,8 +243,14 @@ export function translateFoodQuery(query: string): TranslationResult {
   if (nq.length >= 3) {
     const prefixMatches = NORMALIZED.filter((e) => e.n.startsWith(nq));
     if (prefixMatches.length > 0) {
-      const best = prefixMatches.reduce((a, b) => (a.n.length <= b.n.length ? a : b));
-      return { searchQuery: best.en, translated: true, originalQuery: original };
+      const best = prefixMatches.reduce((a, b) =>
+        a.n.length <= b.n.length ? a : b,
+      );
+      return {
+        searchQuery: best.en,
+        translated: true,
+        originalQuery: original,
+      };
     }
   }
 

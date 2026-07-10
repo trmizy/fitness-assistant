@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
 // Minimal in-memory rate limiter for /auth/login (BUG-021 / TC-SEC-01).
 // - Keyed by ip + email (or ip alone if email missing).
@@ -15,12 +15,19 @@ const MAX_ATTEMPTS = 5;
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
 function keyFor(req: Request): string {
-  const ip = (req.ip || req.headers['x-forwarded-for'] || 'unknown').toString().split(',')[0].trim();
-  const email = (req.body?.email || '').toString().toLowerCase();
+  const ip = (req.ip || req.headers["x-forwarded-for"] || "unknown")
+    .toString()
+    .split(",")[0]
+    .trim();
+  const email = (req.body?.email || "").toString().toLowerCase();
   return `${ip}|${email}`;
 }
 
-export function loginRateLimit(req: Request, res: Response, next: NextFunction) {
+export function loginRateLimit(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   // Periodic GC so the map can't grow unbounded.
   if (buckets.size > 5000) {
     const now = Date.now();
@@ -33,10 +40,10 @@ export function loginRateLimit(req: Request, res: Response, next: NextFunction) 
   // Hard block: already over the limit and window still open.
   if (bucket && bucket.resetAt > now && bucket.count >= MAX_ATTEMPTS) {
     const retryAfterSec = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
-    res.setHeader('Retry-After', String(retryAfterSec));
-    return res
-      .status(429)
-      .json({ error: `Quá nhiều lần đăng nhập sai, thử lại sau ${retryAfterSec}s` });
+    res.setHeader("Retry-After", String(retryAfterSec));
+    return res.status(429).json({
+      error: `Quá nhiều lần đăng nhập sai, thử lại sau ${retryAfterSec}s`,
+    });
   }
 
   // Pre-emptively count this attempt; we'll roll it back on `finish` if the auth
@@ -48,7 +55,7 @@ export function loginRateLimit(req: Request, res: Response, next: NextFunction) 
     bucket.count += 1;
   }
 
-  res.on('finish', () => {
+  res.on("finish", () => {
     const after = buckets.get(k);
     if (!after) return;
     if (res.statusCode >= 200 && res.statusCode < 300) {

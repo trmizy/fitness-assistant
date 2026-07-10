@@ -1,10 +1,10 @@
-import type { ExerciseItem, SourceAttribution } from '../../types';
+import type { ExerciseItem, SourceAttribution } from "../../types";
 
 const EXERCISEDB_SOURCE: SourceAttribution = {
-  providerName: 'ExerciseDB',
-  sourceUrl: 'https://rapidapi.com/justin-WFnsXH_t6/api/exercisedb',
+  providerName: "ExerciseDB",
+  sourceUrl: "https://rapidapi.com/justin-WFnsXH_t6/api/exercisedb",
   authoritative: false,
-  level: 'supplementary',
+  level: "supplementary",
 };
 
 // ─── Internal ExerciseDB API shape ────────────────────────────────────────────

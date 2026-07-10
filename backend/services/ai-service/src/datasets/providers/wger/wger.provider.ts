@@ -1,6 +1,10 @@
-import { httpGet } from '../../utils/httpClient';
-import { mapWgerExercise, type WgerExercise, type WgerSearchSuggestion } from './wger.mapper';
-import type { ExerciseItem, ExerciseSearchResult } from '../../types';
+import { httpGet } from "../../utils/httpClient";
+import {
+  mapWgerExercise,
+  type WgerExercise,
+  type WgerSearchSuggestion,
+} from "./wger.mapper";
+import type { ExerciseItem, ExerciseSearchResult } from "../../types";
 
 interface WgerPaginatedResponse<T> {
   count: number;
@@ -34,7 +38,7 @@ export const wgerProvider = {
     // We then fetch base exercise details for each result.
     const searchData = await httpGet<{ suggestions: WgerSearchSuggestion[] }>(
       `${baseUrl}/exercise/search/`,
-      { term, language: 'english', format: 'json' },
+      { term, language: "english", format: "json" },
     );
 
     const suggestions = (searchData.suggestions ?? []).slice(0, limit);
@@ -44,7 +48,9 @@ export const wgerProvider = {
       suggestions.map(async (s): Promise<ExerciseItem | null> => {
         try {
           const id = s.base_id ?? s.id;
-          const data = await httpGet<WgerExercise>(`${baseUrl}/exerciseinfo/${id}/?format=json`);
+          const data = await httpGet<WgerExercise>(
+            `${baseUrl}/exerciseinfo/${id}/?format=json`,
+          );
           return mapWgerExercise(data);
         } catch {
           return null;
@@ -53,7 +59,7 @@ export const wgerProvider = {
     );
 
     const items = details.filter((x): x is ExerciseItem => x !== null);
-    return { items, total: items.length, sources: ['wger'] };
+    return { items, total: items.length, sources: ["wger"] };
   },
 
   /**
@@ -67,10 +73,10 @@ export const wgerProvider = {
   ): Promise<ExerciseSearchResult> {
     const data = await httpGet<WgerPaginatedResponse<WgerExercise>>(
       `${baseUrl}/exerciseinfo/`,
-      { format: 'json', language: 2, limit, offset }, // language 2 = English
+      { format: "json", language: 2, limit, offset }, // language 2 = English
     );
 
     const items = (data.results ?? []).map(mapWgerExercise);
-    return { items, total: data.count, sources: ['wger'] };
+    return { items, total: data.count, sources: ["wger"] };
   },
 };

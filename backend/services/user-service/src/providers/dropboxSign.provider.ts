@@ -1,14 +1,20 @@
-import * as DropboxSign from '@dropbox/sign';
-import fs from 'fs';
-import path from 'path';
-import { ESignProvider, ESignSendRequest, ESignSendResult } from '../types/esign.types';
+import * as DropboxSign from "@dropbox/sign";
+import fs from "fs";
+import path from "path";
+import {
+  ESignProvider,
+  ESignSendRequest,
+  ESignSendResult,
+} from "../types/esign.types";
 
 export class DropboxSignProvider implements ESignProvider {
   private api: DropboxSign.SignatureRequestApi;
 
   constructor() {
     if (!process.env.DROPBOX_SIGN_API_KEY) {
-      throw new Error('DROPBOX_SIGN_API_KEY is required for DropboxSignProvider');
+      throw new Error(
+        "DROPBOX_SIGN_API_KEY is required for DropboxSignProvider",
+      );
     }
     this.api = new DropboxSign.SignatureRequestApi();
     this.api.username = process.env.DROPBOX_SIGN_API_KEY;
@@ -22,7 +28,9 @@ export class DropboxSignProvider implements ESignProvider {
     // In test mode, Dropbox Sign only allows sending to the account owner's email.
     // Set DROPBOX_SIGN_TEST_SIGNER_EMAIL to override all signer addresses (use your
     // Dropbox Sign account email so you can sign both requests from one inbox).
-    const testOverrideEmail = req.testMode ? process.env.DROPBOX_SIGN_TEST_SIGNER_EMAIL : undefined;
+    const testOverrideEmail = req.testMode
+      ? process.env.DROPBOX_SIGN_TEST_SIGNER_EMAIL
+      : undefined;
 
     const response = await this.api.signatureRequestSend({
       testMode: req.testMode,
@@ -37,14 +45,15 @@ export class DropboxSignProvider implements ESignProvider {
       files: [fs.createReadStream(absPath)],
     });
 
-    const signatureRequestId = response.body.signatureRequest?.signatureRequestId;
+    const signatureRequestId =
+      response.body.signatureRequest?.signatureRequestId;
     if (!signatureRequestId) {
-      throw new Error('Dropbox Sign did not return a signatureRequestId');
+      throw new Error("Dropbox Sign did not return a signatureRequestId");
     }
 
     return {
       requestId: signatureRequestId,
-      provider: 'dropbox_sign',
+      provider: "dropbox_sign",
       testMode: req.testMode,
     };
   }

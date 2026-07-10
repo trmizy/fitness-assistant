@@ -1,7 +1,7 @@
-import { DayOfWeek } from '../generated/prisma';
-import { availabilityRepository } from '../repositories/availability.repository';
-import { sessionRepository } from '../repositories/session.repository';
-import { profileRepository, prisma } from '../repositories/profile.repository';
+import { DayOfWeek } from "../generated/prisma";
+import { availabilityRepository } from "../repositories/availability.repository";
+import { sessionRepository } from "../repositories/session.repository";
+import { profileRepository, prisma } from "../repositories/profile.repository";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -18,44 +18,72 @@ const DAY_MAP: Record<number, DayOfWeek> = {
 };
 
 const DAY_ORDER: Record<string, number> = {
-  MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4,
-  FRIDAY: 5, SATURDAY: 6, SUNDAY: 7,
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+  SUNDAY: 7,
 };
 
 // Normalize abbreviated or mixed-case day names from PTApplication to DayOfWeek enum values.
 const DAY_NAME_NORMALIZE: Record<string, DayOfWeek> = {
-  MONDAY: DayOfWeek.MONDAY, Monday: DayOfWeek.MONDAY, Mon: DayOfWeek.MONDAY,
-  TUESDAY: DayOfWeek.TUESDAY, Tuesday: DayOfWeek.TUESDAY, Tue: DayOfWeek.TUESDAY,
-  WEDNESDAY: DayOfWeek.WEDNESDAY, Wednesday: DayOfWeek.WEDNESDAY, Wed: DayOfWeek.WEDNESDAY,
-  THURSDAY: DayOfWeek.THURSDAY, Thursday: DayOfWeek.THURSDAY, Thu: DayOfWeek.THURSDAY,
-  FRIDAY: DayOfWeek.FRIDAY, Friday: DayOfWeek.FRIDAY, Fri: DayOfWeek.FRIDAY,
-  SATURDAY: DayOfWeek.SATURDAY, Saturday: DayOfWeek.SATURDAY, Sat: DayOfWeek.SATURDAY,
-  SUNDAY: DayOfWeek.SUNDAY, Sunday: DayOfWeek.SUNDAY, Sun: DayOfWeek.SUNDAY,
+  MONDAY: DayOfWeek.MONDAY,
+  Monday: DayOfWeek.MONDAY,
+  Mon: DayOfWeek.MONDAY,
+  TUESDAY: DayOfWeek.TUESDAY,
+  Tuesday: DayOfWeek.TUESDAY,
+  Tue: DayOfWeek.TUESDAY,
+  WEDNESDAY: DayOfWeek.WEDNESDAY,
+  Wednesday: DayOfWeek.WEDNESDAY,
+  Wed: DayOfWeek.WEDNESDAY,
+  THURSDAY: DayOfWeek.THURSDAY,
+  Thursday: DayOfWeek.THURSDAY,
+  Thu: DayOfWeek.THURSDAY,
+  FRIDAY: DayOfWeek.FRIDAY,
+  Friday: DayOfWeek.FRIDAY,
+  Fri: DayOfWeek.FRIDAY,
+  SATURDAY: DayOfWeek.SATURDAY,
+  Saturday: DayOfWeek.SATURDAY,
+  Sat: DayOfWeek.SATURDAY,
+  SUNDAY: DayOfWeek.SUNDAY,
+  Sunday: DayOfWeek.SUNDAY,
+  Sun: DayOfWeek.SUNDAY,
 };
 
 function timeToMinutes(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
 }
 
 function minutesToTime(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 export const availabilityService = {
   // Validate blocks: no overlap, startTime < endTime
-  validateAvailabilityBlocks(slots: { dayOfWeek: string; startTime: string; endTime: string }[]) {
+  validateAvailabilityBlocks(
+    slots: { dayOfWeek: string; startTime: string; endTime: string }[],
+  ) {
     // Group by day
     const dayGroups: Record<string, typeof slots> = {};
     for (const slot of slots) {
-      if (!DAY_ORDER[slot.dayOfWeek]) throw err(`Invalid day: ${slot.dayOfWeek}`, 400);
-      if (!/^\d{2}:\d{2}$/.test(slot.startTime) || !/^\d{2}:\d{2}$/.test(slot.endTime)) {
-        throw err('Time must be in HH:MM format', 400);
+      if (!DAY_ORDER[slot.dayOfWeek])
+        throw err(`Invalid day: ${slot.dayOfWeek}`, 400);
+      if (
+        !/^\d{2}:\d{2}$/.test(slot.startTime) ||
+        !/^\d{2}:\d{2}$/.test(slot.endTime)
+      ) {
+        throw err("Time must be in HH:MM format", 400);
       }
       if (slot.startTime >= slot.endTime) {
-        throw err(`Start time must be before end time for ${slot.dayOfWeek}`, 400);
+        throw err(
+          `Start time must be before end time for ${slot.dayOfWeek}`,
+          400,
+        );
       }
       if (!dayGroups[slot.dayOfWeek]) dayGroups[slot.dayOfWeek] = [];
       dayGroups[slot.dayOfWeek].push(slot);
@@ -63,10 +91,15 @@ export const availabilityService = {
 
     // Check for overlaps in each day
     for (const day in dayGroups) {
-      const sorted = [...dayGroups[day]].sort((a, b) => a.startTime.localeCompare(b.startTime));
+      const sorted = [...dayGroups[day]].sort((a, b) =>
+        a.startTime.localeCompare(b.startTime),
+      );
       for (let i = 0; i < sorted.length - 1; i++) {
         if (sorted[i].endTime > sorted[i + 1].startTime) {
-          throw err(`Overlapping blocks detected on ${day}: ${sorted[i].endTime} and ${sorted[i+1].startTime}`, 400);
+          throw err(
+            `Overlapping blocks detected on ${day}: ${sorted[i].endTime} and ${sorted[i + 1].startTime}`,
+            400,
+          );
         }
       }
     }
@@ -78,10 +111,13 @@ export const availabilityService = {
   },
 
   // Set (replace) a PT's weekly availability
-  async setAvailability(ptUserId: string, slots: { dayOfWeek: string; startTime: string; endTime: string }[]) {
+  async setAvailability(
+    ptUserId: string,
+    slots: { dayOfWeek: string; startTime: string; endTime: string }[],
+  ) {
     this.validateAvailabilityBlocks(slots);
 
-    const typed = slots.map(s => ({
+    const typed = slots.map((s) => ({
       dayOfWeek: s.dayOfWeek as DayOfWeek,
       startTime: s.startTime,
       endTime: s.endTime,
@@ -96,13 +132,14 @@ export const availabilityService = {
    * Idempotent check: won't overwrite PTAvailability if records already exist unless force=true.
    */
   async seedInitialAvailability(ptUserId: string, force = false) {
-    const application = await profileRepository.findPTApplicationByUserId(ptUserId);
+    const application =
+      await profileRepository.findPTApplicationByUserId(ptUserId);
     if (!application) return;
 
     // 1. Sync sessionDurationMinutes to UserProfile
     await prisma.userProfile.update({
       where: { userId: ptUserId },
-      data: { sessionDurationMinutes: application.sessionDurationMinutes }
+      data: { sessionDurationMinutes: application.sessionDurationMinutes },
     });
 
     // 2. Check if PT already has availability records
@@ -118,23 +155,35 @@ export const availabilityService = {
     } else {
       // Fallback for old/simple apps
       const days = application.availableDays || [];
-      const start = application.availableFrom || '08:00';
-      const end = application.availableUntil || '21:00';
-      blocks = days.map(day => ({
+      const start = application.availableFrom || "08:00";
+      const end = application.availableUntil || "21:00";
+      blocks = days.map((day) => ({
         dayOfWeek: day,
         startTime: start,
-        endTime: end
+        endTime: end,
       }));
     }
 
     if (blocks.length > 0) {
       const typed = blocks
-        .map(b => {
+        .map((b) => {
           const day = DAY_NAME_NORMALIZE[b.dayOfWeek as string];
           if (!day) return null;
-          return { dayOfWeek: day, startTime: b.startTime as string, endTime: b.endTime as string };
+          return {
+            dayOfWeek: day,
+            startTime: b.startTime as string,
+            endTime: b.endTime as string,
+          };
         })
-        .filter((b): b is { dayOfWeek: DayOfWeek; startTime: string; endTime: string } => b !== null);
+        .filter(
+          (
+            b,
+          ): b is {
+            dayOfWeek: DayOfWeek;
+            startTime: string;
+            endTime: string;
+          } => b !== null,
+        );
       if (typed.length > 0) {
         await availabilityRepository.replaceAll(ptUserId, typed);
       }
@@ -149,7 +198,7 @@ export const availabilityService = {
   // Add a blocked date
   async addException(ptUserId: string, dateStr: string, reason?: string) {
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) throw err('Invalid date', 400);
+    if (isNaN(date.getTime())) throw err("Invalid date", 400);
     return availabilityRepository.addException(ptUserId, date, reason);
   },
 
@@ -162,7 +211,7 @@ export const availabilityService = {
   // Generates slots based on sessionDurationMinutes
   async getAvailableSlots(ptUserId: string, dateStr: string) {
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) throw err('Invalid date', 400);
+    if (isNaN(date.getTime())) throw err("Invalid date", 400);
 
     const dayOfWeek = DAY_MAP[date.getDay()];
 
@@ -176,7 +225,11 @@ export const availabilityService = {
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
 
-    const exceptions = await availabilityRepository.findExceptions(ptUserId, dayStart, dayEnd);
+    const exceptions = await availabilityRepository.findExceptions(
+      ptUserId,
+      dayStart,
+      dayEnd,
+    );
     if (exceptions.length > 0) return [];
 
     // 3. Get PT's availability for this day of week.
@@ -187,7 +240,9 @@ export const availabilityService = {
       await this.seedInitialAvailability(ptUserId);
       availability = await availabilityRepository.findByPT(ptUserId);
     }
-    const dayBlocks = availability.filter(a => a.dayOfWeek === dayOfWeek && a.isActive);
+    const dayBlocks = availability.filter(
+      (a) => a.dayOfWeek === dayOfWeek && a.isActive,
+    );
 
     if (dayBlocks.length === 0) return [];
 
@@ -204,16 +259,20 @@ export const availabilityService = {
     }
 
     // 5. Get existing sessions for this PT on this date to filter out booked slots
-    const existingSessions = await sessionRepository.findConflictsByDate(ptUserId, dayStart, dayEnd);
+    const existingSessions = await sessionRepository.findConflictsByDate(
+      ptUserId,
+      dayStart,
+      dayEnd,
+    );
     const bookedStarts = new Set<string>();
-    
+
     for (const session of existingSessions) {
       // For simplicity in this phase, we map booked sessions back to 'HH:MM' start strings
-      const h = String(session.scheduledStartAt.getHours()).padStart(2, '0');
-      const m = String(session.scheduledStartAt.getMinutes()).padStart(2, '0');
+      const h = String(session.scheduledStartAt.getHours()).padStart(2, "0");
+      const m = String(session.scheduledStartAt.getMinutes()).padStart(2, "0");
       bookedStarts.add(`${h}:${m}`);
     }
 
-    return allSlots.filter(s => !bookedStarts.has(s));
+    return allSlots.filter((s) => !bookedStarts.has(s));
   },
 };

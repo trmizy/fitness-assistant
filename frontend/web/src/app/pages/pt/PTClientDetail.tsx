@@ -1,5 +1,14 @@
 import { useNavigate, useParams } from "react-router";
-import { ChevronLeft, MessageSquare, Calendar, FileText, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import {
+  ChevronLeft,
+  MessageSquare,
+  Calendar,
+  FileText,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { contractService, sessionService } from "../../services/api";
 import { formatVND } from "../../utils/currency";
@@ -14,26 +23,66 @@ function getInitials(name: string | null | undefined) {
 
 function formatDate(d: string | null | undefined) {
   if (!d) return "–";
-  return new Date(d).toLocaleDateString("vi-VN", { month: "short", day: "numeric", year: "numeric" });
+  return new Date(d).toLocaleDateString("vi-VN", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 function formatDateTime(d: string | null | undefined) {
   if (!d) return "–";
-  return new Date(d).toLocaleString("vi-VN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+  return new Date(d).toLocaleString("vi-VN", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 function SessionStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-    CONFIRMED:  { label: "Đã xác nhận",  cls: "bg-green-500/10 text-green-400 border-green-500/20",   icon: <CheckCircle className="w-3 h-3" /> },
-    REQUESTED:  { label: "Đã yêu cầu",   cls: "bg-blue-500/10 text-blue-400 border-blue-500/20",     icon: <Clock className="w-3 h-3" /> },
-    COMPLETED:  { label: "Hoàn thành",   cls: "bg-zinc-700/60 text-zinc-400 border-zinc-600/40",     icon: <CheckCircle className="w-3 h-3" /> },
-    CANCELLED:  { label: "Đã hủy",       cls: "bg-red-500/10 text-red-400 border-red-500/20",        icon: <XCircle className="w-3 h-3" /> },
-    NO_SHOW:    { label: "Vắng mặt",     cls: "bg-amber-500/10 text-amber-400 border-amber-500/20",  icon: <AlertCircle className="w-3 h-3" /> },
+  const map: Record<
+    string,
+    { label: string; cls: string; icon: React.ReactNode }
+  > = {
+    CONFIRMED: {
+      label: "Đã xác nhận",
+      cls: "bg-green-500/10 text-green-400 border-green-500/20",
+      icon: <CheckCircle className="w-3 h-3" />,
+    },
+    REQUESTED: {
+      label: "Đã yêu cầu",
+      cls: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+      icon: <Clock className="w-3 h-3" />,
+    },
+    COMPLETED: {
+      label: "Hoàn thành",
+      cls: "bg-zinc-700/60 text-zinc-400 border-zinc-600/40",
+      icon: <CheckCircle className="w-3 h-3" />,
+    },
+    CANCELLED: {
+      label: "Đã hủy",
+      cls: "bg-red-500/10 text-red-400 border-red-500/20",
+      icon: <XCircle className="w-3 h-3" />,
+    },
+    NO_SHOW: {
+      label: "Vắng mặt",
+      cls: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+      icon: <AlertCircle className="w-3 h-3" />,
+    },
   };
-  const s = map[status] ?? { label: status, cls: "bg-zinc-800 text-zinc-500 border-zinc-700/60", icon: null };
+  const s = map[status] ?? {
+    label: status,
+    cls: "bg-zinc-800 text-zinc-500 border-zinc-700/60",
+    icon: null,
+  };
   return (
-    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold border ${s.cls}`}>
-      {s.icon}{s.label}
+    <span
+      className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold border ${s.cls}`}
+    >
+      {s.icon}
+      {s.label}
     </span>
   );
 }
@@ -57,9 +106,14 @@ export function PTClientDetail() {
   // Find the most recent active contract for this client
   const clientContracts = contracts
     .filter((c: any) => c.clientUserId === clientUserId)
-    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort(
+      (a: any, b: any) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
 
-  const contract = clientContracts.find((c: any) => c.status === "ACTIVE") ?? clientContracts[0];
+  const contract =
+    clientContracts.find((c: any) => c.status === "ACTIVE") ??
+    clientContracts[0];
   const clientName = contract?.clientName ?? "Học viên";
 
   const { data: sessions = [], isLoading: sessionsLoading } = useQuery({
@@ -70,14 +124,20 @@ export function PTClientDetail() {
 
   const sessionsUsed = contract?.usedSessions ?? 0;
   const sessionsTotal = contract?.totalSessions ?? 0;
-  const progressPct = sessionsTotal > 0 ? Math.min(100, Math.round((sessionsUsed / sessionsTotal) * 100)) : 0;
+  const progressPct =
+    sessionsTotal > 0
+      ? Math.min(100, Math.round((sessionsUsed / sessionsTotal) * 100))
+      : 0;
 
   const isLoading = contractsLoading;
 
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
-        <button onClick={() => navigate("/pt/clients")} className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors mb-6">
+        <button
+          onClick={() => navigate("/pt/clients")}
+          className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors mb-6"
+        >
           <ChevronLeft className="w-4 h-4" /> Tất cả học viên
         </button>
         <div className="flex items-center justify-center py-20">
@@ -90,7 +150,10 @@ export function PTClientDetail() {
   if (!contract) {
     return (
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
-        <button onClick={() => navigate("/pt/clients")} className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors mb-6">
+        <button
+          onClick={() => navigate("/pt/clients")}
+          className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-200 transition-colors mb-6"
+        >
           <ChevronLeft className="w-4 h-4" /> Tất cả học viên
         </button>
         <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-12 text-center text-zinc-500 text-sm">
@@ -119,11 +182,18 @@ export function PTClientDetail() {
             <div>
               <h1 className="text-zinc-100">{clientName}</h1>
               <div className="flex flex-wrap gap-2 mt-1.5">
-                <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
-                  contract.status === "ACTIVE" ? "bg-green-500/10 text-green-400 border-green-500/20" :
-                  contract.status === "PENDING_REVIEW" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
-                  "bg-zinc-700/60 text-zinc-400 border-zinc-600/40"
-                }`}>Hợp đồng {contractStatusLabel[contract.status] ?? contract.status}</span>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                    contract.status === "ACTIVE"
+                      ? "bg-green-500/10 text-green-400 border-green-500/20"
+                      : contract.status === "PENDING_REVIEW"
+                        ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                        : "bg-zinc-700/60 text-zinc-400 border-zinc-600/40"
+                  }`}
+                >
+                  Hợp đồng{" "}
+                  {contractStatusLabel[contract.status] ?? contract.status}
+                </span>
                 <span className="text-xs bg-violet-500/10 text-violet-400 border border-violet-500/20 px-2 py-0.5 rounded-full">
                   Buổi {sessionsUsed} / {sessionsTotal}
                 </span>
@@ -152,31 +222,46 @@ export function PTClientDetail() {
         <div className="lg:col-span-2 bg-zinc-900 rounded-xl border border-zinc-800/60">
           <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/60">
             <h4 className="text-sm font-bold text-zinc-200">Buổi tập</h4>
-            <span className="text-xs text-zinc-500">{sessions.length} buổi</span>
+            <span className="text-xs text-zinc-500">
+              {sessions.length} buổi
+            </span>
           </div>
           {sessionsLoading ? (
             <div className="flex items-center justify-center py-10">
               <div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : sessions.length === 0 ? (
-            <div className="px-4 py-10 text-center text-zinc-500 text-sm">Chưa có buổi tập nào.</div>
+            <div className="px-4 py-10 text-center text-zinc-500 text-sm">
+              Chưa có buổi tập nào.
+            </div>
           ) : (
             <div className="divide-y divide-zinc-800/40">
               {[...sessions]
-                .sort((a: any, b: any) => new Date(b.scheduledStartAt).getTime() - new Date(a.scheduledStartAt).getTime())
+                .sort(
+                  (a: any, b: any) =>
+                    new Date(b.scheduledStartAt).getTime() -
+                    new Date(a.scheduledStartAt).getTime(),
+                )
                 .map((s: any) => (
-                  <div key={s.id} className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/20 transition-colors">
+                  <div
+                    key={s.id}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-zinc-800/20 transition-colors"
+                  >
                     <div>
                       <div className="flex items-center gap-2 text-sm text-zinc-300">
                         <Clock className="w-3.5 h-3.5 text-zinc-500" />
                         {formatDateTime(s.scheduledStartAt)}
                       </div>
                       {s.ptNotes && (
-                        <p className="text-xs text-zinc-500 mt-1 line-clamp-1">{s.ptNotes}</p>
+                        <p className="text-xs text-zinc-500 mt-1 line-clamp-1">
+                          {s.ptNotes}
+                        </p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-600 capitalize">{s.sessionMode?.toLowerCase() ?? "–"}</span>
+                      <span className="text-xs text-zinc-600 capitalize">
+                        {s.sessionMode?.toLowerCase() ?? "–"}
+                      </span>
                       <SessionStatusBadge status={s.status} />
                     </div>
                   </div>
@@ -194,12 +279,40 @@ export function PTClientDetail() {
             </div>
             <div className="space-y-2 text-sm">
               {[
-                { label: "Trạng thái",   value: contractStatusLabel[contract.status] ?? contract.status, valueClass: contract.status === "ACTIVE" ? "text-green-400 font-semibold" : "text-zinc-400" },
-                { label: "Gói dịch vụ",  value: contract.packageName ?? "–",      valueClass: "text-zinc-300" },
-                { label: "Buổi tập", value: `${sessionsUsed} / ${sessionsTotal}`, valueClass: "text-zinc-300" },
-                { label: "Hết hạn",  value: formatDate(contract.endDate),     valueClass: "text-zinc-300" },
-                ...(contract.price != null ? [{ label: "Giá", value: formatVND(Number(contract.price)), valueClass: "text-zinc-300" }] : []),
-              ].map(r => (
+                {
+                  label: "Trạng thái",
+                  value:
+                    contractStatusLabel[contract.status] ?? contract.status,
+                  valueClass:
+                    contract.status === "ACTIVE"
+                      ? "text-green-400 font-semibold"
+                      : "text-zinc-400",
+                },
+                {
+                  label: "Gói dịch vụ",
+                  value: contract.packageName ?? "–",
+                  valueClass: "text-zinc-300",
+                },
+                {
+                  label: "Buổi tập",
+                  value: `${sessionsUsed} / ${sessionsTotal}`,
+                  valueClass: "text-zinc-300",
+                },
+                {
+                  label: "Hết hạn",
+                  value: formatDate(contract.endDate),
+                  valueClass: "text-zinc-300",
+                },
+                ...(contract.price != null
+                  ? [
+                      {
+                        label: "Giá",
+                        value: formatVND(Number(contract.price)),
+                        valueClass: "text-zinc-300",
+                      },
+                    ]
+                  : []),
+              ].map((r) => (
                 <div key={r.label} className="flex justify-between">
                   <span className="text-zinc-500">{r.label}</span>
                   <span className={r.valueClass}>{r.value}</span>
@@ -214,7 +327,9 @@ export function PTClientDetail() {
                     style={{ width: `${progressPct}%` }}
                   />
                 </div>
-                <div className="text-xs text-zinc-600 mt-1">{sessionsTotal - sessionsUsed} buổi còn lại</div>
+                <div className="text-xs text-zinc-600 mt-1">
+                  {sessionsTotal - sessionsUsed} buổi còn lại
+                </div>
               </>
             )}
           </div>
@@ -222,12 +337,18 @@ export function PTClientDetail() {
           {/* Previous contracts */}
           {clientContracts.length > 1 && (
             <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-              <h4 className="text-sm font-semibold text-zinc-200 mb-3">Lịch sử hợp đồng</h4>
+              <h4 className="text-sm font-semibold text-zinc-200 mb-3">
+                Lịch sử hợp đồng
+              </h4>
               <div className="space-y-2">
                 {clientContracts.slice(1).map((c: any) => (
                   <div key={c.id} className="flex justify-between text-xs">
-                    <span className="text-zinc-500">{c.packageName ?? "Package"}</span>
-                    <span className="text-zinc-600">{contractStatusLabel[c.status] ?? c.status}</span>
+                    <span className="text-zinc-500">
+                      {c.packageName ?? "Package"}
+                    </span>
+                    <span className="text-zinc-600">
+                      {contractStatusLabel[c.status] ?? c.status}
+                    </span>
                   </div>
                 ))}
               </div>

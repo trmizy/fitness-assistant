@@ -1,7 +1,15 @@
-import type { RecommendationResult, ResponseLanguage, UserProfile, ValidationResult } from './types';
+import type {
+  RecommendationResult,
+  ResponseLanguage,
+  UserProfile,
+  ValidationResult,
+} from "./types";
 
-function extractNumberNearKeyword(text: string, keyword: string): number | null {
-  const regex = new RegExp(`${keyword}[^\\d]{0,20}(\\d{2,5})`, 'i');
+function extractNumberNearKeyword(
+  text: string,
+  keyword: string,
+): number | null {
+  const regex = new RegExp(`${keyword}[^\\d]{0,20}(\\d{2,5})`, "i");
   const match = text.match(regex);
   if (!match) return null;
   const value = Number(match[1]);
@@ -11,7 +19,7 @@ function extractNumberNearKeyword(text: string, keyword: string): number | null 
 function validateCalories(text: string, expected: number): string[] {
   const warnings: string[] = [];
   if (!expected) return warnings;
-  const found = extractNumberNearKeyword(text, 'calories|kcal');
+  const found = extractNumberNearKeyword(text, "calories|kcal");
   if (found === null) return warnings;
 
   const diffRatio = Math.abs(found - expected) / Math.max(1, expected);
@@ -24,7 +32,11 @@ function validateCalories(text: string, expected: number): string[] {
   return warnings;
 }
 
-function validateMacro(text: string, label: string, expected: number): string[] {
+function validateMacro(
+  text: string,
+  label: string,
+  expected: number,
+): string[] {
   const warnings: string[] = [];
   if (!expected) return warnings;
   const found = extractNumberNearKeyword(text, label);
@@ -32,7 +44,9 @@ function validateMacro(text: string, label: string, expected: number): string[] 
 
   const diffRatio = Math.abs(found - expected) / Math.max(1, expected);
   if (diffRatio > 0.2) {
-    warnings.push(`${label} grams in answer (${found}) differ from deterministic target (${expected}).`);
+    warnings.push(
+      `${label} grams in answer (${found}) differ from deterministic target (${expected}).`,
+    );
   }
 
   return warnings;
@@ -51,7 +65,9 @@ function validateSafetyLanguage(text: string): string[] {
 
   riskyPatterns.forEach((pattern) => {
     if (pattern.test(text)) {
-      warnings.push(`Potentially unsafe phrase detected: ${pattern.toString()}`);
+      warnings.push(
+        `Potentially unsafe phrase detected: ${pattern.toString()}`,
+      );
     }
   });
 
@@ -62,7 +78,9 @@ function validateGeneralFitnessAdvice(answer: string): string[] {
   const warnings: string[] = [];
 
   // Flag extreme protein-per-kg claims (> 4 g/kg is beyond evidence-based upper limit)
-  const proteinPerKgMatch = answer.match(/(\d+(?:\.\d+)?)\s*g?\s*(?:per\s*kg|\/\s*kg|g\/kg|mỗi\s*kg)/i);
+  const proteinPerKgMatch = answer.match(
+    /(\d+(?:\.\d+)?)\s*g?\s*(?:per\s*kg|\/\s*kg|g\/kg|mỗi\s*kg)/i,
+  );
   if (proteinPerKgMatch) {
     const val = Number(proteinPerKgMatch[1]);
     if (val > 4) {
@@ -87,107 +105,211 @@ function validateGeneralFitnessAdvice(answer: string): string[] {
   return warnings;
 }
 
-function requireSection(answer: string, sectionPatterns: RegExp[], sectionLabel: string): string[] {
+function requireSection(
+  answer: string,
+  sectionPatterns: RegExp[],
+  sectionLabel: string,
+): string[] {
   const exists = sectionPatterns.some((pattern) => pattern.test(answer));
   return exists ? [] : [`Missing required section: ${sectionLabel}.`];
 }
 
-function validateRequiredSections(answer: string, recommendation: RecommendationResult): string[] {
+function validateRequiredSections(
+  answer: string,
+  recommendation: RecommendationResult,
+): string[] {
   const warnings: string[] = [];
   const intent = recommendation.responseIntent;
 
-  if (intent === 'meal_plan_request') {
-    warnings.push(...requireSection(answer, [/dinh dưỡng|nutrition|meal|thực đơn/i], 'nutrition'));
-    warnings.push(...requireSection(answer, [/meal|bữa|thực đơn/i], 'meal_examples'));
-    warnings.push(...requireSection(answer, [/điều chỉnh|adjust/i], 'adjustment'));
+  if (intent === "meal_plan_request") {
+    warnings.push(
+      ...requireSection(
+        answer,
+        [/dinh dưỡng|nutrition|meal|thực đơn/i],
+        "nutrition",
+      ),
+    );
+    warnings.push(
+      ...requireSection(answer, [/meal|bữa|thực đơn/i], "meal_examples"),
+    );
+    warnings.push(
+      ...requireSection(answer, [/điều chỉnh|adjust/i], "adjustment"),
+    );
     if (/(bài tập|exercise|workout)/i.test(answer)) {
-      warnings.push('Answer includes workout content for meal-only intent.');
+      warnings.push("Answer includes workout content for meal-only intent.");
     }
   }
 
   if (
-    intent === 'workout_plan_request' ||
-    intent === 'body_recomposition_request' ||
-    intent === 'frequency_change_request' ||
-    intent === 'combined_plan_request'
+    intent === "workout_plan_request" ||
+    intent === "body_recomposition_request" ||
+    intent === "frequency_change_request" ||
+    intent === "combined_plan_request"
   ) {
-    warnings.push(...requireSection(answer, [/day|ngày|tuần|week/i], 'workout_table'));
-    warnings.push(...requireSection(answer, [/calo|kcal/i, /dinh|nutri/i], 'nutrition_summary'));
-    warnings.push(...requireSection(answer, [/sets?|hiệp/i], 'sets'));
-    warnings.push(...requireSection(answer, [/reps?|lặp/i], 'reps'));
-    warnings.push(...requireSection(answer, [/rest|nghỉ/i], 'rest'));
+    warnings.push(
+      ...requireSection(answer, [/day|ngày|tuần|week/i], "workout_table"),
+    );
+    warnings.push(
+      ...requireSection(
+        answer,
+        [/calo|kcal/i, /dinh|nutri/i],
+        "nutrition_summary",
+      ),
+    );
+    warnings.push(...requireSection(answer, [/sets?|hiệp/i], "sets"));
+    warnings.push(...requireSection(answer, [/reps?|lặp/i], "reps"));
+    warnings.push(...requireSection(answer, [/rest|nghỉ/i], "rest"));
   }
 
-  if (intent === 'specific_exercise_request' || intent === 'muscle_group_routine_request') {
-    warnings.push(...requireSection(answer, [/exercise|bài tập/i], 'exercise_list'));
-    warnings.push(...requireSection(answer, [/technique|kỹ thuật/i], 'technique_notes'));
-    warnings.push(...requireSection(answer, [/safety|an toàn/i], 'safety_notes'));
+  if (
+    intent === "specific_exercise_request" ||
+    intent === "muscle_group_routine_request"
+  ) {
+    warnings.push(
+      ...requireSection(answer, [/exercise|bài tập/i], "exercise_list"),
+    );
+    warnings.push(
+      ...requireSection(answer, [/technique|kỹ thuật/i], "technique_notes"),
+    );
+    warnings.push(
+      ...requireSection(answer, [/safety|an toàn/i], "safety_notes"),
+    );
 
-    const sessionGoal = (recommendation.specificRoutine?.sessionGoal ?? '').toLowerCase();
+    const sessionGoal = (
+      recommendation.specificRoutine?.sessionGoal ?? ""
+    ).toLowerCase();
     if (/ch[aâ]n|leg/.test(sessionGoal)) {
-      warnings.push(...requireSection(answer, [/squat|deadlift|lunge|leg press/i], 'legs_compound'));
-      warnings.push(...requireSection(answer, [/romanian|rdl|gân khoeo|hamstring/i], 'legs_posterior'));
-      warnings.push(...requireSection(answer, [/calf|bắp chân|split squat|đơn chân/i], 'legs_accessory'));
+      warnings.push(
+        ...requireSection(
+          answer,
+          [/squat|deadlift|lunge|leg press/i],
+          "legs_compound",
+        ),
+      );
+      warnings.push(
+        ...requireSection(
+          answer,
+          [/romanian|rdl|gân khoeo|hamstring/i],
+          "legs_posterior",
+        ),
+      );
+      warnings.push(
+        ...requireSection(
+          answer,
+          [/calf|bắp chân|split squat|đơn chân/i],
+          "legs_accessory",
+        ),
+      );
     }
     if (/vai|shoulder/.test(sessionGoal)) {
-      warnings.push(...requireSection(answer, [/press|raise/i], 'shoulders_press_raise'));
-      warnings.push(...requireSection(answer, [/rear delt|face pull|vai sau/i], 'shoulders_rear_delt'));
+      warnings.push(
+        ...requireSection(answer, [/press|raise/i], "shoulders_press_raise"),
+      );
+      warnings.push(
+        ...requireSection(
+          answer,
+          [/rear delt|face pull|vai sau/i],
+          "shoulders_rear_delt",
+        ),
+      );
     }
     if (/core|bụng/.test(sessionGoal)) {
-      warnings.push(...requireSection(answer, [/plank|dead bug|hollow|ab wheel/i], 'core_stability'));
-      warnings.push(...requireSection(answer, [/không.*mỡ|không.*giảm|không giảm|spot/i], 'core_spot_reduction_note'));
+      warnings.push(
+        ...requireSection(
+          answer,
+          [/plank|dead bug|hollow|ab wheel/i],
+          "core_stability",
+        ),
+      );
+      warnings.push(
+        ...requireSection(
+          answer,
+          [/không.*mỡ|không.*giảm|không giảm|spot/i],
+          "core_spot_reduction_note",
+        ),
+      );
     }
   }
 
   if (recommendation.detailMode) {
-    warnings.push(...requireSection(answer, [/set|hiệp/i], 'detail_sets'));
-    warnings.push(...requireSection(answer, [/rep|lặp/i], 'detail_reps'));
-    warnings.push(...requireSection(answer, [/rest|nghỉ/i], 'detail_rest'));
-    warnings.push(...requireSection(answer, [/technique|kỹ thuật/i], 'detail_technique'));
+    warnings.push(...requireSection(answer, [/set|hiệp/i], "detail_sets"));
+    warnings.push(...requireSection(answer, [/rep|lặp/i], "detail_reps"));
+    warnings.push(...requireSection(answer, [/rest|nghỉ/i], "detail_rest"));
+    warnings.push(
+      ...requireSection(answer, [/technique|kỹ thuật/i], "detail_technique"),
+    );
   }
 
   return warnings;
 }
 
-function validateNutritionConsistency(recommendation: RecommendationResult): string[] {
+function validateNutritionConsistency(
+  recommendation: RecommendationResult,
+): string[] {
   const n = recommendation.nutrition;
-  if (!n.targetCalories || !n.proteinGrams || !n.carbsGrams || !n.fatGrams) return [];
+  if (!n.targetCalories || !n.proteinGrams || !n.carbsGrams || !n.fatGrams)
+    return [];
   const kcalFromMacro = n.proteinGrams * 4 + n.carbsGrams * 4 + n.fatGrams * 9;
   const diff = Math.abs(kcalFromMacro - n.targetCalories);
   if (diff > 120) {
-    return [`Nutrition inconsistency: macro-derived kcal (${kcalFromMacro}) differs from target (${n.targetCalories}).`];
+    return [
+      `Nutrition inconsistency: macro-derived kcal (${kcalFromMacro}) differs from target (${n.targetCalories}).`,
+    ];
   }
   return [];
 }
 
-function validatePersonalization(answer: string, profile: UserProfile | undefined): string[] {
+function validatePersonalization(
+  answer: string,
+  profile: UserProfile | undefined,
+): string[] {
   if (!profile) return [];
 
   const requiredSignals: string[] = [];
-  if (profile.currentWeightKg || profile.inBody?.weightKg) requiredSignals.push(String(profile.currentWeightKg || profile.inBody?.weightKg));
+  if (profile.currentWeightKg || profile.inBody?.weightKg)
+    requiredSignals.push(
+      String(profile.currentWeightKg || profile.inBody?.weightKg),
+    );
   if (profile.heightCm) requiredSignals.push(String(profile.heightCm));
-  if (profile.gender === 'FEMALE') requiredSignals.push('nữ');
-  if (profile.gender === 'MALE') requiredSignals.push('nam');
-  if (profile.training.injuries.length > 0) requiredSignals.push('chấn thương');
-  if (profile.training.availableEquipment.length > 0) requiredSignals.push('thiết bị');
+  if (profile.gender === "FEMALE") requiredSignals.push("nữ");
+  if (profile.gender === "MALE") requiredSignals.push("nam");
+  if (profile.training.injuries.length > 0) requiredSignals.push("chấn thương");
+  if (profile.training.availableEquipment.length > 0)
+    requiredSignals.push("thiết bị");
 
   if (requiredSignals.length < 2) return [];
   const answerNorm = answer.toLowerCase();
-  const hitCount = requiredSignals.filter((s) => answerNorm.includes(s.toLowerCase())).length;
+  const hitCount = requiredSignals.filter((s) =>
+    answerNorm.includes(s.toLowerCase()),
+  ).length;
   if (hitCount === 0) {
-    return ['Personalization missing: user profile fields were provided but not reflected in answer.'];
+    return [
+      "Personalization missing: user profile fields were provided but not reflected in answer.",
+    ];
   }
   return [];
 }
 
-function validateLanguageLock(answer: string, language: ResponseLanguage): string[] {
-  if (language !== 'vi') return [];
+function validateLanguageLock(
+  answer: string,
+  language: ResponseLanguage,
+): string[] {
+  if (language !== "vi") return [];
   const warnings: string[] = [];
-  const hasVietnameseSignal = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệóòỏõọốồổỗộớờởỡợúùủũụứừửữựíìỉĩị]/i.test(answer)
-    || /(bạn|mục tiêu|lịch tập|dinh dưỡng|hành động|tuần|bài tập|nghỉ)/i.test(answer);
-  const englishSignalCount = (answer.match(/\b(the|and|your|with|training|nutrition|goal|week|plan|target)\b/gi) || []).length;
+  const hasVietnameseSignal =
+    /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệóòỏõọốồổỗộớờởỡợúùủũụứừửữựíìỉĩị]/i.test(
+      answer,
+    ) ||
+    /(bạn|mục tiêu|lịch tập|dinh dưỡng|hành động|tuần|bài tập|nghỉ)/i.test(
+      answer,
+    );
+  const englishSignalCount = (
+    answer.match(
+      /\b(the|and|your|with|training|nutrition|goal|week|plan|target)\b/gi,
+    ) || []
+  ).length;
   if (!hasVietnameseSignal && englishSignalCount >= 4) {
-    warnings.push('Language lock violation: expected Vietnamese answer.');
+    warnings.push("Language lock violation: expected Vietnamese answer.");
   }
   return warnings;
 }
@@ -202,25 +324,36 @@ export function hasCriticalNutritionMismatch(warnings: string[]): boolean {
 }
 
 export function hasCriticalStructureMismatch(warnings: string[]): boolean {
-  return warnings.some((w) => /Missing required section|Language lock violation|meal-only intent|Nutrition inconsistency|Personalization missing/i.test(w));
+  return warnings.some((w) =>
+    /Missing required section|Language lock violation|meal-only intent|Nutrition inconsistency|Personalization missing/i.test(
+      w,
+    ),
+  );
 }
 
 export const answerValidator = {
   validate(
     answer: string,
     recommendation: RecommendationResult,
-    language: ResponseLanguage = 'en',
+    language: ResponseLanguage = "en",
     profile?: UserProfile,
   ): ValidationResult {
     const warnings: string[] = [];
     const nutrition = recommendation.nutrition;
-    const isGeneralKnowledge = recommendation.responseIntent === 'general_fitness_knowledge';
+    const isGeneralKnowledge =
+      recommendation.responseIntent === "general_fitness_knowledge";
 
     if (!isGeneralKnowledge) {
       warnings.push(...validateCalories(answer, nutrition.targetCalories || 0));
-      warnings.push(...validateMacro(answer, 'protein', nutrition.proteinGrams || 0));
-      warnings.push(...validateMacro(answer, 'carb|carbs', nutrition.carbsGrams || 0));
-      warnings.push(...validateMacro(answer, 'fat|fats', nutrition.fatGrams || 0));
+      warnings.push(
+        ...validateMacro(answer, "protein", nutrition.proteinGrams || 0),
+      );
+      warnings.push(
+        ...validateMacro(answer, "carb|carbs", nutrition.carbsGrams || 0),
+      );
+      warnings.push(
+        ...validateMacro(answer, "fat|fats", nutrition.fatGrams || 0),
+      );
       warnings.push(...validateRequiredSections(answer, recommendation));
       warnings.push(...validateNutritionConsistency(recommendation));
       warnings.push(...validatePersonalization(answer, profile));
@@ -237,7 +370,9 @@ export const answerValidator = {
           answer,
         );
       if (!asksFollowup) {
-        warnings.push('Answer does not ask follow-up questions despite missing user fields.');
+        warnings.push(
+          "Answer does not ask follow-up questions despite missing user fields.",
+        );
       }
     }
 

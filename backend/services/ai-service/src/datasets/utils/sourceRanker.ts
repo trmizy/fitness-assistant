@@ -1,4 +1,4 @@
-import type { ExerciseItem, FoodDetail, NutritionFacts } from '../types';
+import type { ExerciseItem, FoodDetail, NutritionFacts } from "../types";
 
 /**
  * Merges two FoodDetail records using USDA-wins precedence:
@@ -9,7 +9,10 @@ import type { ExerciseItem, FoodDetail, NutritionFacts } from '../types';
  * This is the central enforcement point of business rule #3:
  *   "Non-USDA datasets must never override USDA macro totals when USDA data exists."
  */
-export function mergeFoodDetails(primary: FoodDetail, secondary: FoodDetail): FoodDetail {
+export function mergeFoodDetails(
+  primary: FoodDetail,
+  secondary: FoodDetail,
+): FoodDetail {
   return {
     // Start with all secondary fields …
     ...secondary,
@@ -29,7 +32,10 @@ export function mergeFoodDetails(primary: FoodDetail, secondary: FoodDetail): Fo
  * Enforces USDA macro values, but allows secondary source to fill in
  * optional nutritional details (fiber, serving info) that USDA may omit.
  */
-function enforceUsdaMacros(usda: NutritionFacts, other: NutritionFacts): NutritionFacts {
+function enforceUsdaMacros(
+  usda: NutritionFacts,
+  other: NutritionFacts,
+): NutritionFacts {
   return {
     // Core macros — always USDA.
     calories: usda.calories,

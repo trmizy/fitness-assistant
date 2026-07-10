@@ -12,13 +12,35 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import {
-  BarChart, Bar, PieChart, Pie, Cell,
-  ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
 } from "recharts";
 import {
-  Brain, AlertTriangle, Activity, RefreshCw, Clock, Loader2,
-  ChevronRight, X, Layers, CheckCircle2, XCircle, Zap, Languages,
-  Filter, Search, ArrowLeft, ArrowRight,
+  Brain,
+  AlertTriangle,
+  Activity,
+  RefreshCw,
+  Clock,
+  Loader2,
+  ChevronRight,
+  X,
+  Layers,
+  CheckCircle2,
+  XCircle,
+  Zap,
+  Languages,
+  Filter,
+  Search,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import { adminService } from "../../services/api";
 
@@ -211,7 +233,10 @@ function formatLatency(seconds: number | null): string {
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleString("en-US", {
-    month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -226,8 +251,12 @@ function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? value : [];
 }
 
-function asObject<T extends Record<string, unknown>>(value: unknown, fallback: T): T {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return fallback;
+function asObject<T extends Record<string, unknown>>(
+  value: unknown,
+  fallback: T,
+): T {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return fallback;
   return value as T;
 }
 
@@ -237,22 +266,29 @@ function truncate(text: string | null | undefined, max = 60): string {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  QUEUED:     "text-zinc-400 bg-zinc-800",
+  QUEUED: "text-zinc-400 bg-zinc-800",
   PROCESSING: "text-blue-400 bg-blue-500/10",
-  COMPLETED:  "text-green-400 bg-green-500/10",
-  FAILED:     "text-red-400 bg-red-500/10",
-  RUNNING:    "text-blue-400 bg-blue-500/10",
-  SUCCESS:    "text-green-400 bg-green-500/10",
-  PENDING:    "text-amber-400 bg-amber-500/10",
-  APPROVED:   "text-green-400 bg-green-500/10",
-  REJECTED:   "text-red-400 bg-red-500/10",
-  REVIEW:     "text-amber-400 bg-amber-500/10",
-  SCORED:     "text-blue-400 bg-blue-500/10",
-  EMBEDDED:   "text-green-400 bg-green-500/10",
+  COMPLETED: "text-green-400 bg-green-500/10",
+  FAILED: "text-red-400 bg-red-500/10",
+  RUNNING: "text-blue-400 bg-blue-500/10",
+  SUCCESS: "text-green-400 bg-green-500/10",
+  PENDING: "text-amber-400 bg-amber-500/10",
+  APPROVED: "text-green-400 bg-green-500/10",
+  REJECTED: "text-red-400 bg-red-500/10",
+  REVIEW: "text-amber-400 bg-amber-500/10",
+  SCORED: "text-blue-400 bg-blue-500/10",
+  EMBEDDED: "text-green-400 bg-green-500/10",
 };
 
 const INTENT_COLORS = [
-  "#6366f1","#8b5cf6","#ec4899","#f97316","#22c55e","#14b8a6","#0ea5e9","#f59e0b",
+  "#6366f1",
+  "#8b5cf6",
+  "#ec4899",
+  "#f97316",
+  "#22c55e",
+  "#14b8a6",
+  "#0ea5e9",
+  "#f59e0b",
 ];
 
 const DEFAULT_OVERVIEW: OverviewData = {
@@ -324,22 +360,52 @@ const DEFAULT_KNOWLEDGE: KnowledgeData = {
   },
 };
 
-const KNOWLEDGE_JOBS: Array<{ kind: KnowledgeJobKind; label: string; accent: string }> = [
-  { kind: "local", label: "Local", accent: "text-green-400 border-green-500/30 hover:bg-green-500/10" },
-  { kind: "pubmed", label: "PubMed", accent: "text-blue-400 border-blue-500/30 hover:bg-blue-500/10" },
-  { kind: "rss", label: "RSS", accent: "text-amber-400 border-amber-500/30 hover:bg-amber-500/10" },
-  { kind: "web", label: "Web", accent: "text-violet-400 border-violet-500/30 hover:bg-violet-500/10" },
+const KNOWLEDGE_JOBS: Array<{
+  kind: KnowledgeJobKind;
+  label: string;
+  accent: string;
+}> = [
+  {
+    kind: "local",
+    label: "Local",
+    accent: "text-green-400 border-green-500/30 hover:bg-green-500/10",
+  },
+  {
+    kind: "pubmed",
+    label: "PubMed",
+    accent: "text-blue-400 border-blue-500/30 hover:bg-blue-500/10",
+  },
+  {
+    kind: "rss",
+    label: "RSS",
+    accent: "text-amber-400 border-amber-500/30 hover:bg-amber-500/10",
+  },
+  {
+    kind: "web",
+    label: "Web",
+    accent: "text-violet-400 border-violet-500/30 hover:bg-violet-500/10",
+  },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function KpiCard({ label, value, sub, accent }: {
-  label: string; value: string | number; sub?: string; accent?: string;
+function KpiCard({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  accent?: string;
 }) {
   return (
     <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4">
       <div className="text-xs text-zinc-500 mb-1">{label}</div>
-      <div className={`text-2xl font-bold ${accent ?? "text-zinc-100"}`}>{value}</div>
+      <div className={`text-2xl font-bold ${accent ?? "text-zinc-100"}`}>
+        {value}
+      </div>
       {sub && <div className="text-[10px] text-zinc-600 mt-0.5">{sub}</div>}
     </div>
   );
@@ -348,7 +414,9 @@ function KpiCard({ label, value, sub, accent }: {
 function StatusBadge({ status }: { status: string }) {
   const cls = STATUS_COLORS[status] ?? "text-zinc-400 bg-zinc-800";
   return (
-    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${cls}`}>
+    <span
+      className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${cls}`}
+    >
       {status}
     </span>
   );
@@ -372,7 +440,8 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 
   useEffect(() => {
     setLoading(true);
-    adminService.getAIRequestDetail(id)
+    adminService
+      .getAIRequestDetail(id)
       .then((res) => {
         if (res.success) setDetail(res.data.conversation);
         else setError("Failed to load detail");
@@ -392,9 +461,14 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 sticky top-0 bg-zinc-950 z-10">
           <div className="flex items-center gap-2">
             <Brain className="w-4 h-4 text-violet-400" />
-            <span className="text-sm font-semibold text-zinc-200">Request Trace</span>
+            <span className="text-sm font-semibold text-zinc-200">
+              Request Trace
+            </span>
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+          <button
+            onClick={onClose}
+            className="text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -413,7 +487,9 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div className="bg-zinc-900 rounded-lg p-3 border border-zinc-800/60">
                   <div className="text-[10px] text-zinc-600 mb-1">Latency</div>
-                  <div className={`text-sm font-bold ${detail.responseTime > 10 ? "text-amber-400" : "text-green-400"}`}>
+                  <div
+                    className={`text-sm font-bold ${detail.responseTime > 10 ? "text-amber-400" : "text-green-400"}`}
+                  >
                     {formatLatency(detail.responseTime)}
                   </div>
                 </div>
@@ -440,14 +516,20 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 </div>
                 <div className="bg-zinc-900 rounded-lg p-3 border border-zinc-800/60">
                   <div className="text-[10px] text-zinc-600 mb-1">Warnings</div>
-                  <div className={`text-sm font-bold ${detail.warningCount > 0 ? "text-amber-400" : "text-green-400"}`}>
+                  <div
+                    className={`text-sm font-bold ${detail.warningCount > 0 ? "text-amber-400" : "text-green-400"}`}
+                  >
                     {detail.warningCount}
                   </div>
                 </div>
                 <div className="bg-zinc-900 rounded-lg p-3 border border-zinc-800/60">
                   <div className="text-[10px] text-zinc-600 mb-1">Feedback</div>
                   <div className="text-sm font-bold text-zinc-200">
-                    {detail.feedback === 1 ? "👍" : detail.feedback === -1 ? "👎" : "—"}
+                    {detail.feedback === 1
+                      ? "👍"
+                      : detail.feedback === -1
+                        ? "👎"
+                        : "—"}
                   </div>
                 </div>
               </div>
@@ -456,22 +538,26 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               <div className="flex flex-wrap gap-2">
                 {detail.usedFallback && (
                   <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    <AlertTriangle className="w-3 h-3" /> Qdrant retrieval empty (fallback)
+                    <AlertTriangle className="w-3 h-3" /> Qdrant retrieval empty
+                    (fallback)
                   </span>
                 )}
                 {detail.usedDeterministicFallback && (
                   <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                    <AlertTriangle className="w-3 h-3" /> Validation rejected LLM answer (deterministic used)
+                    <AlertTriangle className="w-3 h-3" /> Validation rejected
+                    LLM answer (deterministic used)
                   </span>
                 )}
                 {detail.relevance && (
-                  <span className={`text-xs px-2 py-1 rounded-full border font-medium ${
-                    detail.relevance === "RELEVANT"
-                      ? "bg-green-500/10 text-green-400 border-green-500/20"
-                      : detail.relevance === "PARTLY_RELEVANT"
-                      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                      : "bg-red-500/10 text-red-400 border-red-500/20"
-                  }`}>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full border font-medium ${
+                      detail.relevance === "RELEVANT"
+                        ? "bg-green-500/10 text-green-400 border-green-500/20"
+                        : detail.relevance === "PARTLY_RELEVANT"
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          : "bg-red-500/10 text-red-400 border-red-500/20"
+                    }`}
+                  >
                     Relevance: {detail.relevance}
                   </span>
                 )}
@@ -486,7 +572,9 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 
               {/* Question */}
               <div>
-                <div className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Question</div>
+                <div className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                  Question
+                </div>
                 <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-3 text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
                   {detail.question}
                 </div>
@@ -494,7 +582,9 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 
               {/* Answer */}
               <div>
-                <div className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Answer</div>
+                <div className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                  Answer
+                </div>
                 <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-3 text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap max-h-80 overflow-y-auto">
                   {detail.answer}
                 </div>
@@ -503,7 +593,9 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               {/* Relevance explanation */}
               {detail.relevanceExplanation && (
                 <div>
-                  <div className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">Relevance Explanation</div>
+                  <div className="text-xs font-semibold text-zinc-400 mb-2 uppercase tracking-wider">
+                    Relevance Explanation
+                  </div>
                   <div className="bg-zinc-900 border border-zinc-800/60 rounded-lg p-3 text-xs text-zinc-400">
                     {detail.relevanceExplanation}
                   </div>
@@ -520,152 +612,176 @@ function TraceDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 // ─── Main page component ──────────────────────────────────────────────────────
 
 export function AdminAIObservability() {
-  const [overview, setOverview]       = useState<OverviewData | null>(null);
-  const [requests, setRequests]       = useState<RequestsData | null>(null);
-  const [queue, setQueue]             = useState<QueueData | null>(null);
-  const [errors, setErrors]           = useState<ErrorsData | null>(null);
-  const [knowledge, setKnowledge]     = useState<KnowledgeData | null>(null);
-  const [loading, setLoading]         = useState(true);
-  const [refreshing, setRefreshing]   = useState(false);
-  const [apiError, setApiError]       = useState<string | null>(null);
+  const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [requests, setRequests] = useState<RequestsData | null>(null);
+  const [queue, setQueue] = useState<QueueData | null>(null);
+  const [errors, setErrors] = useState<ErrorsData | null>(null);
+  const [knowledge, setKnowledge] = useState<KnowledgeData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [knowledgeError, setKnowledgeError] = useState<string | null>(null);
   const [knowledgeBusy, setKnowledgeBusy] = useState<string | null>(null);
   const [knowledgeEmbed, setKnowledgeEmbed] = useState(true);
   const [knowledgeForce, setKnowledgeForce] = useState(false);
   const [knowledgeLimit, setKnowledgeLimit] = useState(10);
-  const [activeTab, setActiveTab]     = useState<AdminTab>("requests");
-  const [filter, setFilter]           = useState<FilterType>("all");
-  const [page, setPage]               = useState(1);
-  const [selectedId, setSelectedId]   = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<AdminTab>("requests");
+  const [filter, setFilter] = useState<FilterType>("all");
+  const [page, setPage] = useState(1);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
-  const fetchAll = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+  const fetchAll = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
 
-    try {
-      const [ovRes, rqRes, qRes, erRes, kRes] = await Promise.all([
-        adminService.getAIOverview(),
-        adminService.getAIRequests({ filter: filter === "all" ? undefined : filter, page, limit: 20 }),
-        adminService.getAIQueue(),
-        adminService.getAIErrors(),
-        adminService.getAIKnowledgePipeline(),
-      ]);
+      try {
+        const [ovRes, rqRes, qRes, erRes, kRes] = await Promise.all([
+          adminService.getAIOverview(),
+          adminService.getAIRequests({
+            filter: filter === "all" ? undefined : filter,
+            page,
+            limit: 20,
+          }),
+          adminService.getAIQueue(),
+          adminService.getAIErrors(),
+          adminService.getAIKnowledgePipeline(),
+        ]);
 
-      const ovPayload = unwrapApiData<any>(ovRes);
-      const rqPayload = unwrapApiData<any>(rqRes);
-      const qPayload = unwrapApiData<any>(qRes);
-      const erPayload = unwrapApiData<any>(erRes);
-      const kPayload = unwrapApiData<any>(kRes);
+        const ovPayload = unwrapApiData<any>(ovRes);
+        const rqPayload = unwrapApiData<any>(rqRes);
+        const qPayload = unwrapApiData<any>(qRes);
+        const erPayload = unwrapApiData<any>(erRes);
+        const kPayload = unwrapApiData<any>(kRes);
 
-      if (ovRes?.success && ovPayload) {
-        setOverview({
-          ...DEFAULT_OVERVIEW,
-          ...ovPayload,
-          conversations: {
-            ...DEFAULT_OVERVIEW.conversations,
-            ...(ovPayload.conversations || {}),
-          },
-          intents: asArray(ovPayload.intents),
-          languages: asArray(ovPayload.languages),
-          plans: {
-            ...DEFAULT_OVERVIEW.plans,
-            ...(ovPayload.plans || {}),
-            queue: {
-              ...DEFAULT_OVERVIEW.plans.queue,
-              ...(ovPayload.plans?.queue || {}),
+        if (ovRes?.success && ovPayload) {
+          setOverview({
+            ...DEFAULT_OVERVIEW,
+            ...ovPayload,
+            conversations: {
+              ...DEFAULT_OVERVIEW.conversations,
+              ...(ovPayload.conversations || {}),
             },
-          },
-        });
-      } else {
-        setOverview(DEFAULT_OVERVIEW);
+            intents: asArray(ovPayload.intents),
+            languages: asArray(ovPayload.languages),
+            plans: {
+              ...DEFAULT_OVERVIEW.plans,
+              ...(ovPayload.plans || {}),
+              queue: {
+                ...DEFAULT_OVERVIEW.plans.queue,
+                ...(ovPayload.plans?.queue || {}),
+              },
+            },
+          });
+        } else {
+          setOverview(DEFAULT_OVERVIEW);
+        }
+
+        if (rqRes?.success && rqPayload) {
+          const items = asArray<any>(rqPayload.items).map((item) => ({
+            id: String(item?.id || ""),
+            userId: item?.userId ?? null,
+            question: typeof item?.question === "string" ? item.question : "",
+            modelUsed:
+              typeof item?.modelUsed === "string" ? item.modelUsed : "unknown",
+            responseTime:
+              typeof item?.responseTime === "number" ? item.responseTime : 0,
+            responseLanguage: item?.responseLanguage ?? null,
+            routeIntent: item?.routeIntent ?? null,
+            usedFallback: !!item?.usedFallback,
+            usedDeterministicFallback: !!item?.usedDeterministicFallback,
+            warningCount:
+              typeof item?.warningCount === "number" ? item.warningCount : 0,
+            traceId: item?.traceId ?? null,
+            totalTokens:
+              typeof item?.totalTokens === "number" ? item.totalTokens : 0,
+            feedback: item?.feedback ?? null,
+            relevance: item?.relevance ?? null,
+            createdAt:
+              typeof item?.createdAt === "string"
+                ? item.createdAt
+                : new Date().toISOString(),
+          })) as RequestItem[];
+
+          setRequests({
+            ...DEFAULT_REQUESTS,
+            ...rqPayload,
+            items,
+            total:
+              typeof rqPayload.total === "number"
+                ? rqPayload.total
+                : items.length,
+            page: typeof rqPayload.page === "number" ? rqPayload.page : page,
+            limit: typeof rqPayload.limit === "number" ? rqPayload.limit : 20,
+            pages: typeof rqPayload.pages === "number" ? rqPayload.pages : 1,
+          });
+        } else {
+          setRequests(DEFAULT_REQUESTS);
+        }
+
+        if (qRes?.success && qPayload) {
+          setQueue({
+            ...DEFAULT_QUEUE,
+            ...qPayload,
+            queue: {
+              ...DEFAULT_QUEUE.queue,
+              ...asObject(qPayload.queue, DEFAULT_QUEUE.queue),
+            },
+            plans: asArray(qPayload.plans),
+          });
+        } else {
+          setQueue(DEFAULT_QUEUE);
+        }
+
+        if (erRes?.success && erPayload) {
+          setErrors({
+            ...DEFAULT_ERRORS,
+            ...erPayload,
+            failedPlans: asArray(erPayload.failedPlans),
+            highWarnConversations: asArray(erPayload.highWarnConversations),
+          });
+        } else {
+          setErrors(DEFAULT_ERRORS);
+        }
+
+        if (kRes?.success && kPayload) {
+          const knowledgeQueue = asObject(
+            kPayload.queue,
+            DEFAULT_KNOWLEDGE.queue,
+          );
+          setKnowledge({
+            ...DEFAULT_KNOWLEDGE,
+            ...kPayload,
+            runs: asArray(kPayload.runs),
+            reviewItems: asArray(kPayload.reviewItems),
+            queue: {
+              ...DEFAULT_KNOWLEDGE.queue,
+              ...knowledgeQueue,
+              repeatable: asArray(knowledgeQueue.repeatable),
+            },
+          });
+        } else {
+          setKnowledge(DEFAULT_KNOWLEDGE);
+        }
+
+        setApiError(null);
+      } catch (err: unknown) {
+        setApiError(
+          (err as Error).message || "Failed to load observability data",
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+        setLastRefresh(new Date());
       }
+    },
+    [filter, page],
+  );
 
-      if (rqRes?.success && rqPayload) {
-        const items = asArray<any>(rqPayload.items).map((item) => ({
-          id: String(item?.id || ""),
-          userId: item?.userId ?? null,
-          question: typeof item?.question === "string" ? item.question : "",
-          modelUsed: typeof item?.modelUsed === "string" ? item.modelUsed : "unknown",
-          responseTime: typeof item?.responseTime === "number" ? item.responseTime : 0,
-          responseLanguage: item?.responseLanguage ?? null,
-          routeIntent: item?.routeIntent ?? null,
-          usedFallback: !!item?.usedFallback,
-          usedDeterministicFallback: !!item?.usedDeterministicFallback,
-          warningCount: typeof item?.warningCount === "number" ? item.warningCount : 0,
-          traceId: item?.traceId ?? null,
-          totalTokens: typeof item?.totalTokens === "number" ? item.totalTokens : 0,
-          feedback: item?.feedback ?? null,
-          relevance: item?.relevance ?? null,
-          createdAt: typeof item?.createdAt === "string" ? item.createdAt : new Date().toISOString(),
-        })) as RequestItem[];
-
-        setRequests({
-          ...DEFAULT_REQUESTS,
-          ...rqPayload,
-          items,
-          total: typeof rqPayload.total === "number" ? rqPayload.total : items.length,
-          page: typeof rqPayload.page === "number" ? rqPayload.page : page,
-          limit: typeof rqPayload.limit === "number" ? rqPayload.limit : 20,
-          pages: typeof rqPayload.pages === "number" ? rqPayload.pages : 1,
-        });
-      } else {
-        setRequests(DEFAULT_REQUESTS);
-      }
-
-      if (qRes?.success && qPayload) {
-        setQueue({
-          ...DEFAULT_QUEUE,
-          ...qPayload,
-          queue: {
-            ...DEFAULT_QUEUE.queue,
-            ...asObject(qPayload.queue, DEFAULT_QUEUE.queue),
-          },
-          plans: asArray(qPayload.plans),
-        });
-      } else {
-        setQueue(DEFAULT_QUEUE);
-      }
-
-      if (erRes?.success && erPayload) {
-        setErrors({
-          ...DEFAULT_ERRORS,
-          ...erPayload,
-          failedPlans: asArray(erPayload.failedPlans),
-          highWarnConversations: asArray(erPayload.highWarnConversations),
-        });
-      } else {
-        setErrors(DEFAULT_ERRORS);
-      }
-
-      if (kRes?.success && kPayload) {
-        const knowledgeQueue = asObject(kPayload.queue, DEFAULT_KNOWLEDGE.queue);
-        setKnowledge({
-          ...DEFAULT_KNOWLEDGE,
-          ...kPayload,
-          runs: asArray(kPayload.runs),
-          reviewItems: asArray(kPayload.reviewItems),
-          queue: {
-            ...DEFAULT_KNOWLEDGE.queue,
-            ...knowledgeQueue,
-            repeatable: asArray(knowledgeQueue.repeatable),
-          },
-        });
-      } else {
-        setKnowledge(DEFAULT_KNOWLEDGE);
-      }
-
-      setApiError(null);
-    } catch (err: unknown) {
-      setApiError((err as Error).message || "Failed to load observability data");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setLastRefresh(new Date());
-    }
-  }, [filter, page]);
-
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   // Auto-refresh every 30s
   useEffect(() => {
@@ -673,24 +789,31 @@ export function AdminAIObservability() {
     return () => clearInterval(t);
   }, [fetchAll]);
 
-  const runKnowledgeAction = useCallback(async (busyKey: string, action: () => Promise<unknown>) => {
-    setKnowledgeBusy(busyKey);
-    setKnowledgeError(null);
-    try {
-      await action();
-      await fetchAll(true);
-    } catch (err: unknown) {
-      setKnowledgeError((err as Error).message || "Knowledge pipeline action failed");
-    } finally {
-      setKnowledgeBusy(null);
-    }
-  }, [fetchAll]);
+  const runKnowledgeAction = useCallback(
+    async (busyKey: string, action: () => Promise<unknown>) => {
+      setKnowledgeBusy(busyKey);
+      setKnowledgeError(null);
+      try {
+        await action();
+        await fetchAll(true);
+      } catch (err: unknown) {
+        setKnowledgeError(
+          (err as Error).message || "Knowledge pipeline action failed",
+        );
+      } finally {
+        setKnowledgeBusy(null);
+      }
+    },
+    [fetchAll],
+  );
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-6 h-6 text-violet-500 animate-spin" />
-        <span className="ml-2 text-zinc-400 text-sm">Loading AI observability data…</span>
+        <span className="ml-2 text-zinc-400 text-sm">
+          Loading AI observability data…
+        </span>
       </div>
     );
   }
@@ -701,7 +824,10 @@ export function AdminAIObservability() {
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-5 text-center">
           <AlertTriangle className="w-6 h-6 text-red-400 mx-auto mb-2" />
           <p className="text-red-400 text-sm font-semibold">{apiError}</p>
-          <button onClick={() => fetchAll()} className="mt-3 text-xs text-red-300 hover:text-red-200 underline">
+          <button
+            onClick={() => fetchAll()}
+            className="mt-3 text-xs text-red-300 hover:text-red-200 underline"
+          >
             Retry
           </button>
         </div>
@@ -731,10 +857,14 @@ export function AdminAIObservability() {
             disabled={refreshing}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-lg border border-zinc-700 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+            />
             Refresh
           </button>
-          <span className="text-xs text-zinc-600">{lastRefresh.toLocaleTimeString()}</span>
+          <span className="text-xs text-zinc-600">
+            {lastRefresh.toLocaleTimeString()}
+          </span>
         </div>
       </div>
 
@@ -751,7 +881,8 @@ export function AdminAIObservability() {
             value={formatLatency(convStats.avgLatencySeconds)}
             sub={`p95: ${formatLatency(convStats.p95LatencySeconds)}`}
             accent={
-              convStats.avgLatencySeconds !== null && convStats.avgLatencySeconds > 10
+              convStats.avgLatencySeconds !== null &&
+              convStats.avgLatencySeconds > 10
                 ? "text-amber-400"
                 : "text-zinc-100"
             }
@@ -760,25 +891,35 @@ export function AdminAIObservability() {
             label="Fallback Rate"
             value={`${convStats.fallbackRate}%`}
             sub="Qdrant retrieval empty"
-            accent={convStats.fallbackRate > 20 ? "text-amber-400" : "text-zinc-100"}
+            accent={
+              convStats.fallbackRate > 20 ? "text-amber-400" : "text-zinc-100"
+            }
           />
           <KpiCard
             label="Det. Fallback Rate"
             value={`${convStats.deterministicFallbackRate}%`}
             sub="Validation rejected LLM"
-            accent={convStats.deterministicFallbackRate > 10 ? "text-red-400" : "text-zinc-100"}
+            accent={
+              convStats.deterministicFallbackRate > 10
+                ? "text-red-400"
+                : "text-zinc-100"
+            }
           />
           <KpiCard
             label="Warning Rate"
             value={`${convStats.warningRate}%`}
             sub="Responses with issues"
-            accent={convStats.warningRate > 15 ? "text-amber-400" : "text-zinc-100"}
+            accent={
+              convStats.warningRate > 15 ? "text-amber-400" : "text-zinc-100"
+            }
           />
           <KpiCard
             label="Slow Requests"
             value={convStats.slowCount}
             sub="> 10s (last 7d)"
-            accent={convStats.slowCount > 5 ? "text-amber-400" : "text-zinc-100"}
+            accent={
+              convStats.slowCount > 5 ? "text-amber-400" : "text-zinc-100"
+            }
           />
         </div>
       )}
@@ -790,15 +931,32 @@ export function AdminAIObservability() {
           <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4 md:col-span-2">
             <div className="flex items-center gap-2 mb-3">
               <Zap className="w-4 h-4 text-violet-400" />
-              <h3 className="text-sm font-semibold text-zinc-200">Intent Distribution (7d)</h3>
+              <h3 className="text-sm font-semibold text-zinc-200">
+                Intent Distribution (7d)
+              </h3>
             </div>
             {ov.intents.length === 0 ? (
-              <div className="text-xs text-zinc-600 text-center py-8">No intent data yet</div>
+              <div className="text-xs text-zinc-600 text-center py-8">
+                No intent data yet
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={ov.intents} layout="vertical" margin={{ left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
+                <BarChart
+                  data={ov.intents}
+                  layout="vertical"
+                  margin={{ left: 8 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#27272a"
+                    horizontal={false}
+                  />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 10, fill: "#71717a" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <YAxis
                     dataKey="intent"
                     type="category"
@@ -809,13 +967,22 @@ export function AdminAIObservability() {
                     tickFormatter={(v: string) => v.replace(/_/g, " ")}
                   />
                   <Tooltip
-                    contentStyle={{ fontSize: 11, borderRadius: 8, border: "1px solid #27272a", backgroundColor: "#111", color: "#f4f4f5" }}
+                    contentStyle={{
+                      fontSize: 11,
+                      borderRadius: 8,
+                      border: "1px solid #27272a",
+                      backgroundColor: "#111",
+                      color: "#f4f4f5",
+                    }}
                     formatter={(v: number) => [v, "requests"]}
                     labelFormatter={(v: string) => v.replace(/_/g, " ")}
                   />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                     {ov.intents.map((_, i) => (
-                      <Cell key={i} fill={INTENT_COLORS[i % INTENT_COLORS.length]} />
+                      <Cell
+                        key={i}
+                        fill={INTENT_COLORS[i % INTENT_COLORS.length]}
+                      />
                     ))}
                   </Bar>
                 </BarChart>
@@ -829,14 +996,25 @@ export function AdminAIObservability() {
             <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Languages className="w-4 h-4 text-blue-400" />
-                <h3 className="text-xs font-semibold text-zinc-200">Response Language (7d)</h3>
+                <h3 className="text-xs font-semibold text-zinc-200">
+                  Response Language (7d)
+                </h3>
               </div>
               {ov.languages.length === 0 ? (
-                <div className="text-xs text-zinc-600 text-center py-4">No data yet</div>
+                <div className="text-xs text-zinc-600 text-center py-4">
+                  No data yet
+                </div>
               ) : (
                 <div className="flex items-center gap-3">
                   <PieChart width={80} height={80}>
-                    <Pie data={ov.languages} dataKey="count" cx="50%" cy="50%" innerRadius={20} outerRadius={38}>
+                    <Pie
+                      data={ov.languages}
+                      dataKey="count"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={20}
+                      outerRadius={38}
+                    >
                       {ov.languages.map((_, i) => (
                         <Cell key={i} fill={i === 0 ? "#6366f1" : "#22c55e"} />
                       ))}
@@ -844,12 +1022,19 @@ export function AdminAIObservability() {
                   </PieChart>
                   <div className="space-y-1">
                     {ov.languages.map((l, i) => (
-                      <div key={l.language} className="flex items-center gap-2 text-xs">
+                      <div
+                        key={l.language}
+                        className="flex items-center gap-2 text-xs"
+                      >
                         <div
                           className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: i === 0 ? "#6366f1" : "#22c55e" }}
+                          style={{
+                            backgroundColor: i === 0 ? "#6366f1" : "#22c55e",
+                          }}
                         />
-                        <span className="text-zinc-400 uppercase font-mono">{l.language}</span>
+                        <span className="text-zinc-400 uppercase font-mono">
+                          {l.language}
+                        </span>
                         <span className="text-zinc-600 ml-auto">{l.count}</span>
                       </div>
                     ))}
@@ -862,17 +1047,37 @@ export function AdminAIObservability() {
             <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Layers className="w-4 h-4 text-green-400" />
-                <h3 className="text-xs font-semibold text-zinc-200">Plan Job Status</h3>
+                <h3 className="text-xs font-semibold text-zinc-200">
+                  Plan Job Status
+                </h3>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: "Completed", value: ov.plans.completed, color: "text-green-400" },
-                  { label: "Failed", value: ov.plans.failed, color: "text-red-400" },
-                  { label: "Processing", value: ov.plans.processing, color: "text-blue-400" },
-                  { label: "Queued", value: ov.plans.queued, color: "text-zinc-400" },
+                  {
+                    label: "Completed",
+                    value: ov.plans.completed,
+                    color: "text-green-400",
+                  },
+                  {
+                    label: "Failed",
+                    value: ov.plans.failed,
+                    color: "text-red-400",
+                  },
+                  {
+                    label: "Processing",
+                    value: ov.plans.processing,
+                    color: "text-blue-400",
+                  },
+                  {
+                    label: "Queued",
+                    value: ov.plans.queued,
+                    color: "text-zinc-400",
+                  },
                 ].map((s) => (
                   <div key={s.label} className="text-center">
-                    <div className={`text-lg font-bold ${s.color}`}>{s.value}</div>
+                    <div className={`text-lg font-bold ${s.color}`}>
+                      {s.value}
+                    </div>
                     <div className="text-[10px] text-zinc-600">{s.label}</div>
                   </div>
                 ))}
@@ -897,10 +1102,10 @@ export function AdminAIObservability() {
             {tab === "errors"
               ? `Errors${errors ? ` (${errors.failedPlans.length + errors.highWarnConversations.length})` : ""}`
               : tab === "knowledge"
-              ? `Knowledge${knowledge ? ` (${knowledge.reviewItems.length})` : ""}`
-              : tab === "queue"
-              ? `Plan Queue${queue ? ` (${queue.plans.length})` : ""}`
-              : "Requests"}
+                ? `Knowledge${knowledge ? ` (${knowledge.reviewItems.length})` : ""}`
+                : tab === "queue"
+                  ? `Plan Queue${queue ? ` (${queue.plans.length})` : ""}`
+                  : "Requests"}
           </button>
         ))}
       </div>
@@ -911,19 +1116,30 @@ export function AdminAIObservability() {
           {/* Filter bar */}
           <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-zinc-800/60">
             <Filter className="w-4 h-4 text-zinc-500" />
-            {(["all", "fallback", "slow", "warnings"] as FilterType[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => { setFilter(f); setPage(1); }}
-                className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
-                  filter === f
-                    ? "bg-violet-500/20 text-violet-300 border-violet-500/30"
-                    : "text-zinc-500 border-zinc-700 hover:border-zinc-600 hover:text-zinc-300"
-                }`}
-              >
-                {f === "all" ? "All" : f === "slow" ? "Slow (>10s)" : f === "fallback" ? "Fallback" : "Warnings"}
-              </button>
-            ))}
+            {(["all", "fallback", "slow", "warnings"] as FilterType[]).map(
+              (f) => (
+                <button
+                  key={f}
+                  onClick={() => {
+                    setFilter(f);
+                    setPage(1);
+                  }}
+                  className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
+                    filter === f
+                      ? "bg-violet-500/20 text-violet-300 border-violet-500/30"
+                      : "text-zinc-500 border-zinc-700 hover:border-zinc-600 hover:text-zinc-300"
+                  }`}
+                >
+                  {f === "all"
+                    ? "All"
+                    : f === "slow"
+                      ? "Slow (>10s)"
+                      : f === "fallback"
+                        ? "Fallback"
+                        : "Warnings"}
+                </button>
+              ),
+            )}
             {requests && (
               <span className="ml-auto text-xs text-zinc-600">
                 {requests.total.toLocaleString()} total
@@ -942,8 +1158,20 @@ export function AdminAIObservability() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-zinc-800/60">
-                    {["Time", "Question", "Intent", "Lang", "Latency", "Tokens", "Flags", ""].map((h) => (
-                      <th key={h} className="px-4 py-2.5 text-left text-zinc-600 font-medium">
+                    {[
+                      "Time",
+                      "Question",
+                      "Intent",
+                      "Lang",
+                      "Latency",
+                      "Tokens",
+                      "Flags",
+                      "",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-2.5 text-left text-zinc-600 font-medium"
+                      >
                         {h}
                       </th>
                     ))}
@@ -968,9 +1196,13 @@ export function AdminAIObservability() {
                       <td className="px-4 py-2.5 text-zinc-400 uppercase font-mono">
                         {r.responseLanguage ?? "—"}
                       </td>
-                      <td className={`px-4 py-2.5 whitespace-nowrap font-mono ${
-                        r.responseTime > 10 ? "text-amber-400" : "text-green-400"
-                      }`}>
+                      <td
+                        className={`px-4 py-2.5 whitespace-nowrap font-mono ${
+                          r.responseTime > 10
+                            ? "text-amber-400"
+                            : "text-green-400"
+                        }`}
+                      >
                         {formatLatency(r.responseTime)}
                       </td>
                       <td className="px-4 py-2.5 text-zinc-500 font-mono">
@@ -993,8 +1225,12 @@ export function AdminAIObservability() {
                               W:{r.warningCount}
                             </span>
                           )}
-                          {r.feedback === 1 && <span className="text-green-400">👍</span>}
-                          {r.feedback === -1 && <span className="text-red-400">👎</span>}
+                          {r.feedback === 1 && (
+                            <span className="text-green-400">👍</span>
+                          )}
+                          {r.feedback === -1 && (
+                            <span className="text-red-400">👎</span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-2.5">
@@ -1038,13 +1274,36 @@ export function AdminAIObservability() {
           {/* BullMQ live counts */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
-              { label: "Waiting",   value: queue.queue.waiting,   color: "text-zinc-400" },
-              { label: "Active",    value: queue.queue.active,    color: "text-blue-400" },
-              { label: "Delayed",   value: queue.queue.delayed,   color: "text-amber-400" },
-              { label: "Completed", value: queue.queue.completed, color: "text-green-400" },
-              { label: "Failed",    value: queue.queue.failed,    color: "text-red-400" },
+              {
+                label: "Waiting",
+                value: queue.queue.waiting,
+                color: "text-zinc-400",
+              },
+              {
+                label: "Active",
+                value: queue.queue.active,
+                color: "text-blue-400",
+              },
+              {
+                label: "Delayed",
+                value: queue.queue.delayed,
+                color: "text-amber-400",
+              },
+              {
+                label: "Completed",
+                value: queue.queue.completed,
+                color: "text-green-400",
+              },
+              {
+                label: "Failed",
+                value: queue.queue.failed,
+                color: "text-red-400",
+              },
             ].map((s) => (
-              <div key={s.label} className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4 text-center">
+              <div
+                key={s.label}
+                className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4 text-center"
+              >
                 <div className={`text-2xl font-bold ${s.color}`}>
                   {s.value !== null ? s.value.toLocaleString() : "—"}
                 </div>
@@ -1057,18 +1316,38 @@ export function AdminAIObservability() {
           <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
               <Layers className="w-4 h-4 text-green-400" />
-              <span className="text-sm font-semibold text-zinc-200">Recent Plan Jobs</span>
-              <span className="ml-auto text-xs text-zinc-600">{queue.plans.length} shown</span>
+              <span className="text-sm font-semibold text-zinc-200">
+                Recent Plan Jobs
+              </span>
+              <span className="ml-auto text-xs text-zinc-600">
+                {queue.plans.length} shown
+              </span>
             </div>
             {queue.plans.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-zinc-600">No plan jobs yet.</div>
+              <div className="px-4 py-8 text-center text-sm text-zinc-600">
+                No plan jobs yet.
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-zinc-800/60">
-                      {["Status", "Name / Goal", "Duration", "Days/Wk", "Version", "Job ID", "Created", "Updated"].map((h) => (
-                        <th key={h} className="px-4 py-2.5 text-left text-zinc-600 font-medium whitespace-nowrap">{h}</th>
+                      {[
+                        "Status",
+                        "Name / Goal",
+                        "Duration",
+                        "Days/Wk",
+                        "Version",
+                        "Job ID",
+                        "Created",
+                        "Updated",
+                      ].map((h) => (
+                        <th
+                          key={h}
+                          className="px-4 py-2.5 text-left text-zinc-600 font-medium whitespace-nowrap"
+                        >
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -1079,20 +1358,36 @@ export function AdminAIObservability() {
                           <StatusBadge status={p.status} />
                         </td>
                         <td className="px-4 py-2.5">
-                          <div className="text-zinc-300 font-medium">{truncate(p.name, 40)}</div>
-                          <div className="text-zinc-600">{truncate(p.goal, 40)}</div>
+                          <div className="text-zinc-300 font-medium">
+                            {truncate(p.name, 40)}
+                          </div>
+                          <div className="text-zinc-600">
+                            {truncate(p.goal, 40)}
+                          </div>
                           {p.failReason && (
-                            <div className="text-red-400 text-[10px] mt-0.5">{truncate(p.failReason, 60)}</div>
+                            <div className="text-red-400 text-[10px] mt-0.5">
+                              {truncate(p.failReason, 60)}
+                            </div>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-zinc-500">{p.duration}w</td>
-                        <td className="px-4 py-2.5 text-zinc-500">{p.daysPerWeek}d</td>
-                        <td className="px-4 py-2.5 text-zinc-500">v{p.version}</td>
+                        <td className="px-4 py-2.5 text-zinc-500">
+                          {p.duration}w
+                        </td>
+                        <td className="px-4 py-2.5 text-zinc-500">
+                          {p.daysPerWeek}d
+                        </td>
+                        <td className="px-4 py-2.5 text-zinc-500">
+                          v{p.version}
+                        </td>
                         <td className="px-4 py-2.5 text-zinc-600 font-mono">
                           {p.jobId ? truncate(p.jobId, 14) : "—"}
                         </td>
-                        <td className="px-4 py-2.5 text-zinc-600 whitespace-nowrap">{formatTime(p.createdAt)}</td>
-                        <td className="px-4 py-2.5 text-zinc-600 whitespace-nowrap">{formatTime(p.updatedAt)}</td>
+                        <td className="px-4 py-2.5 text-zinc-600 whitespace-nowrap">
+                          {formatTime(p.createdAt)}
+                        </td>
+                        <td className="px-4 py-2.5 text-zinc-600 whitespace-nowrap">
+                          {formatTime(p.updatedAt)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1110,21 +1405,31 @@ export function AdminAIObservability() {
           <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
               <XCircle className="w-4 h-4 text-red-400" />
-              <span className="text-sm font-semibold text-zinc-200">Failed Plan Jobs</span>
-              <span className="ml-auto text-xs text-zinc-600">{errors.failedPlans.length}</span>
+              <span className="text-sm font-semibold text-zinc-200">
+                Failed Plan Jobs
+              </span>
+              <span className="ml-auto text-xs text-zinc-600">
+                {errors.failedPlans.length}
+              </span>
             </div>
             {errors.failedPlans.length === 0 ? (
               <div className="px-4 py-8 text-center">
                 <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto mb-1" />
-                <div className="text-xs text-zinc-600">No failed plan jobs.</div>
+                <div className="text-xs text-zinc-600">
+                  No failed plan jobs.
+                </div>
               </div>
             ) : (
               <div className="divide-y divide-zinc-800/40">
                 {errors.failedPlans.map((p) => (
                   <div key={p.id} className="px-4 py-3">
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <span className="text-xs font-semibold text-zinc-300">{p.name}</span>
-                      <span className="text-[10px] text-zinc-600 whitespace-nowrap">{formatTime(p.updatedAt)}</span>
+                      <span className="text-xs font-semibold text-zinc-300">
+                        {p.name}
+                      </span>
+                      <span className="text-[10px] text-zinc-600 whitespace-nowrap">
+                        {formatTime(p.updatedAt)}
+                      </span>
                     </div>
                     <div className="text-[10px] text-zinc-500">{p.goal}</div>
                     {p.failReason && (
@@ -1133,7 +1438,9 @@ export function AdminAIObservability() {
                       </div>
                     )}
                     {p.jobId && (
-                      <div className="text-[10px] text-zinc-700 font-mono mt-1">Job: {p.jobId}</div>
+                      <div className="text-[10px] text-zinc-700 font-mono mt-1">
+                        Job: {p.jobId}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -1145,14 +1452,20 @@ export function AdminAIObservability() {
           <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-semibold text-zinc-200">High-Warning Requests</span>
+              <span className="text-sm font-semibold text-zinc-200">
+                High-Warning Requests
+              </span>
               <span className="text-xs text-zinc-600 ml-1">(last 7d)</span>
-              <span className="ml-auto text-xs text-zinc-600">{errors.highWarnConversations.length}</span>
+              <span className="ml-auto text-xs text-zinc-600">
+                {errors.highWarnConversations.length}
+              </span>
             </div>
             {errors.highWarnConversations.length === 0 ? (
               <div className="px-4 py-8 text-center">
                 <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto mb-1" />
-                <div className="text-xs text-zinc-600">No validation issues in the last 7 days.</div>
+                <div className="text-xs text-zinc-600">
+                  No validation issues in the last 7 days.
+                </div>
               </div>
             ) : (
               <div className="divide-y divide-zinc-800/40">
@@ -1164,19 +1477,26 @@ export function AdminAIObservability() {
                   >
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded">
-                        {c.warningCount} warning{c.warningCount !== 1 ? "s" : ""}
+                        {c.warningCount} warning
+                        {c.warningCount !== 1 ? "s" : ""}
                       </span>
                       <span className="text-[10px] text-zinc-600 whitespace-nowrap">
                         {formatTime(c.createdAt)}
                       </span>
                     </div>
-                    <div className="text-xs text-zinc-300 mb-0.5">{truncate(c.question, 80)}</div>
+                    <div className="text-xs text-zinc-300 mb-0.5">
+                      {truncate(c.question, 80)}
+                    </div>
                     <div className="flex items-center gap-3 text-[10px] text-zinc-600">
                       <span>{c.routeIntent?.replace(/_/g, " ") ?? "—"}</span>
-                      <span className={c.responseTime > 10 ? "text-amber-400" : ""}>
+                      <span
+                        className={c.responseTime > 10 ? "text-amber-400" : ""}
+                      >
                         {formatLatency(c.responseTime)}
                       </span>
-                      <span className="ml-auto text-zinc-700">→ click for trace</span>
+                      <span className="ml-auto text-zinc-700">
+                        → click for trace
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -1196,13 +1516,36 @@ export function AdminAIObservability() {
 
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
-              { label: "Waiting", value: knowledge.queue.waiting, color: "text-zinc-400" },
-              { label: "Active", value: knowledge.queue.active, color: "text-blue-400" },
-              { label: "Delayed", value: knowledge.queue.delayed, color: "text-amber-400" },
-              { label: "Completed", value: knowledge.queue.completed, color: "text-green-400" },
-              { label: "Failed", value: knowledge.queue.failed, color: "text-red-400" },
+              {
+                label: "Waiting",
+                value: knowledge.queue.waiting,
+                color: "text-zinc-400",
+              },
+              {
+                label: "Active",
+                value: knowledge.queue.active,
+                color: "text-blue-400",
+              },
+              {
+                label: "Delayed",
+                value: knowledge.queue.delayed,
+                color: "text-amber-400",
+              },
+              {
+                label: "Completed",
+                value: knowledge.queue.completed,
+                color: "text-green-400",
+              },
+              {
+                label: "Failed",
+                value: knowledge.queue.failed,
+                color: "text-red-400",
+              },
             ].map((s) => (
-              <div key={s.label} className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4 text-center">
+              <div
+                key={s.label}
+                className="bg-zinc-900 border border-zinc-800/60 rounded-xl p-4 text-center"
+              >
                 <div className={`text-2xl font-bold ${s.color}`}>
                   {s.value !== null ? s.value.toLocaleString() : "-"}
                 </div>
@@ -1216,10 +1559,13 @@ export function AdminAIObservability() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-green-400" />
-                  <h3 className="text-sm font-semibold text-zinc-200">Knowledge Pipeline</h3>
+                  <h3 className="text-sm font-semibold text-zinc-200">
+                    Knowledge Pipeline
+                  </h3>
                 </div>
                 <div className="text-[10px] text-zinc-600 mt-1 font-mono truncate">
-                  {knowledge.queue.name} - {knowledge.queue.repeatable.length} scheduled
+                  {knowledge.queue.name} - {knowledge.queue.repeatable.length}{" "}
+                  scheduled
                 </div>
               </div>
 
@@ -1251,7 +1597,11 @@ export function AdminAIObservability() {
                     value={knowledgeLimit}
                     onChange={(e) => {
                       const next = Number(e.target.value);
-                      setKnowledgeLimit(Number.isFinite(next) ? Math.max(1, Math.min(50, next)) : 10);
+                      setKnowledgeLimit(
+                        Number.isFinite(next)
+                          ? Math.max(1, Math.min(50, next))
+                          : 10,
+                      );
                     }}
                     className="w-16 bg-zinc-950 border border-zinc-700 rounded-md px-2 py-1 text-xs text-zinc-200 outline-none focus:border-green-500"
                   />
@@ -1267,17 +1617,22 @@ export function AdminAIObservability() {
                   <button
                     key={job.kind}
                     disabled={knowledgeBusy !== null}
-                    onClick={() => runKnowledgeAction(
-                      busyKey,
-                      () => adminService.enqueueAIKnowledgeJob(job.kind, {
-                        embed: knowledgeEmbed,
-                        force: knowledgeForce,
-                        limit: knowledgeLimit,
-                      }),
-                    )}
+                    onClick={() =>
+                      runKnowledgeAction(busyKey, () =>
+                        adminService.enqueueAIKnowledgeJob(job.kind, {
+                          embed: knowledgeEmbed,
+                          force: knowledgeForce,
+                          limit: knowledgeLimit,
+                        }),
+                      )
+                    }
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-zinc-950 text-xs font-medium transition-colors disabled:opacity-50 ${job.accent}`}
                   >
-                    {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+                    {isBusy ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Zap className="w-3.5 h-3.5" />
+                    )}
                     {job.label}
                   </button>
                 );
@@ -1285,18 +1640,34 @@ export function AdminAIObservability() {
 
               <button
                 disabled={knowledgeBusy !== null}
-                onClick={() => runKnowledgeAction("schedule", () => adminService.scheduleAIKnowledgePipeline())}
+                onClick={() =>
+                  runKnowledgeAction("schedule", () =>
+                    adminService.scheduleAIKnowledgePipeline(),
+                  )
+                }
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-700 bg-zinc-950 text-xs font-medium text-zinc-300 hover:bg-zinc-800 transition-colors disabled:opacity-50"
               >
-                {knowledgeBusy === "schedule" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Clock className="w-3.5 h-3.5" />}
+                {knowledgeBusy === "schedule" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Clock className="w-3.5 h-3.5" />
+                )}
                 Schedule
               </button>
               <button
                 disabled={knowledgeBusy !== null}
-                onClick={() => runKnowledgeAction("clear-schedule", () => adminService.clearAIKnowledgeSchedule())}
+                onClick={() =>
+                  runKnowledgeAction("clear-schedule", () =>
+                    adminService.clearAIKnowledgeSchedule(),
+                  )
+                }
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/30 bg-zinc-950 text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
               >
-                {knowledgeBusy === "clear-schedule" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                {knowledgeBusy === "clear-schedule" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <XCircle className="w-3.5 h-3.5" />
+                )}
                 Clear
               </button>
             </div>
@@ -1304,8 +1675,12 @@ export function AdminAIObservability() {
             {knowledge.queue.repeatable.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {knowledge.queue.repeatable.slice(0, 4).map((job, index) => (
-                  <span key={job.key ?? `${job.name}-${index}`} className="text-[10px] text-zinc-500 bg-zinc-950 border border-zinc-800 rounded-full px-2 py-1">
-                    {job.name ?? job.id ?? "repeatable"} - {job.pattern ?? job.cron ?? "repeat"}
+                  <span
+                    key={job.key ?? `${job.name}-${index}`}
+                    className="text-[10px] text-zinc-500 bg-zinc-950 border border-zinc-800 rounded-full px-2 py-1"
+                  >
+                    {job.name ?? job.id ?? "repeatable"} -{" "}
+                    {job.pattern ?? job.cron ?? "repeat"}
                   </span>
                 ))}
               </div>
@@ -1316,31 +1691,64 @@ export function AdminAIObservability() {
             <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-blue-400" />
-                <span className="text-sm font-semibold text-zinc-200">Recent Pipeline Runs</span>
-                <span className="ml-auto text-xs text-zinc-600">{knowledge.runs.length}</span>
+                <span className="text-sm font-semibold text-zinc-200">
+                  Recent Pipeline Runs
+                </span>
+                <span className="ml-auto text-xs text-zinc-600">
+                  {knowledge.runs.length}
+                </span>
               </div>
               {knowledge.runs.length === 0 ? (
-                <div className="px-4 py-8 text-center text-sm text-zinc-600">No pipeline runs yet.</div>
+                <div className="px-4 py-8 text-center text-sm text-zinc-600">
+                  No pipeline runs yet.
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-zinc-800/60">
-                        {["Status", "Type", "Crawled", "Accepted", "Review", "Rejected", "Started"].map((h) => (
-                          <th key={h} className="px-4 py-2.5 text-left text-zinc-600 font-medium whitespace-nowrap">{h}</th>
+                        {[
+                          "Status",
+                          "Type",
+                          "Crawled",
+                          "Accepted",
+                          "Review",
+                          "Rejected",
+                          "Started",
+                        ].map((h) => (
+                          <th
+                            key={h}
+                            className="px-4 py-2.5 text-left text-zinc-600 font-medium whitespace-nowrap"
+                          >
+                            {h}
+                          </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-800/40">
                       {knowledge.runs.map((run) => (
                         <tr key={run.id} className="hover:bg-zinc-800/20">
-                          <td className="px-4 py-2.5"><StatusBadge status={run.status} /></td>
-                          <td className="px-4 py-2.5 text-zinc-300 whitespace-nowrap">{run.runType.replace(/_/g, " ")}</td>
-                          <td className="px-4 py-2.5 text-zinc-500">{run.docsCrawled}</td>
-                          <td className="px-4 py-2.5 text-green-400">{run.docsAccepted}</td>
-                          <td className="px-4 py-2.5 text-amber-400">{run.docsReview}</td>
-                          <td className="px-4 py-2.5 text-red-400">{run.docsRejected}</td>
-                          <td className="px-4 py-2.5 text-zinc-600 whitespace-nowrap">{formatTime(run.startedAt)}</td>
+                          <td className="px-4 py-2.5">
+                            <StatusBadge status={run.status} />
+                          </td>
+                          <td className="px-4 py-2.5 text-zinc-300 whitespace-nowrap">
+                            {run.runType.replace(/_/g, " ")}
+                          </td>
+                          <td className="px-4 py-2.5 text-zinc-500">
+                            {run.docsCrawled}
+                          </td>
+                          <td className="px-4 py-2.5 text-green-400">
+                            {run.docsAccepted}
+                          </td>
+                          <td className="px-4 py-2.5 text-amber-400">
+                            {run.docsReview}
+                          </td>
+                          <td className="px-4 py-2.5 text-red-400">
+                            {run.docsRejected}
+                          </td>
+                          <td className="px-4 py-2.5 text-zinc-600 whitespace-nowrap">
+                            {formatTime(run.startedAt)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -1352,13 +1760,19 @@ export function AdminAIObservability() {
             <div className="bg-zinc-900 border border-zinc-800/60 rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b border-zinc-800/60 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
-                <span className="text-sm font-semibold text-zinc-200">Review Queue</span>
-                <span className="ml-auto text-xs text-zinc-600">{knowledge.reviewItems.length}</span>
+                <span className="text-sm font-semibold text-zinc-200">
+                  Review Queue
+                </span>
+                <span className="ml-auto text-xs text-zinc-600">
+                  {knowledge.reviewItems.length}
+                </span>
               </div>
               {knowledge.reviewItems.length === 0 ? (
                 <div className="px-4 py-8 text-center">
                   <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto mb-1" />
-                  <div className="text-xs text-zinc-600">No knowledge items waiting for review.</div>
+                  <div className="text-xs text-zinc-600">
+                    No knowledge items waiting for review.
+                  </div>
                 </div>
               ) : (
                 <div className="divide-y divide-zinc-800/40">
@@ -1368,8 +1782,14 @@ export function AdminAIObservability() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <StatusBadge status={item.status} />
-                            <span className="text-[10px] text-zinc-600">{item.sourceName}</span>
-                            {item.topic && <span className="text-[10px] text-violet-400">{item.topic}</span>}
+                            <span className="text-[10px] text-zinc-600">
+                              {item.sourceName}
+                            </span>
+                            {item.topic && (
+                              <span className="text-[10px] text-violet-400">
+                                {item.topic}
+                              </span>
+                            )}
                           </div>
                           <a
                             href={item.url}
@@ -1380,31 +1800,52 @@ export function AdminAIObservability() {
                             {item.title ?? item.url}
                           </a>
                           <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-zinc-600">
-                            <span>Trust: {item.trustScore !== null ? item.trustScore.toFixed(2) : "-"}</span>
-                            {item.reason && <span>{truncate(item.reason, 60)}</span>}
+                            <span>
+                              Trust:{" "}
+                              {item.trustScore !== null
+                                ? item.trustScore.toFixed(2)
+                                : "-"}
+                            </span>
+                            {item.reason && (
+                              <span>{truncate(item.reason, 60)}</span>
+                            )}
                           </div>
                         </div>
                         <div className="flex shrink-0 gap-1.5">
                           <button
                             disabled={knowledgeBusy !== null}
-                            onClick={() => runKnowledgeAction(
-                              `approve:${item.id}`,
-                              () => adminService.approveAIKnowledgeReview(item.id, { embed: knowledgeEmbed }),
-                            )}
+                            onClick={() =>
+                              runKnowledgeAction(`approve:${item.id}`, () =>
+                                adminService.approveAIKnowledgeReview(item.id, {
+                                  embed: knowledgeEmbed,
+                                }),
+                              )
+                            }
                             className="flex items-center gap-1 px-2 py-1 rounded-md border border-green-500/30 text-[10px] font-medium text-green-400 hover:bg-green-500/10 disabled:opacity-50"
                           >
-                            {knowledgeBusy === `approve:${item.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                            {knowledgeBusy === `approve:${item.id}` ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-3 h-3" />
+                            )}
                             Approve
                           </button>
                           <button
                             disabled={knowledgeBusy !== null}
-                            onClick={() => runKnowledgeAction(
-                              `reject:${item.id}`,
-                              () => adminService.rejectAIKnowledgeReview(item.id, { reason: "rejected_in_admin_ui" }),
-                            )}
+                            onClick={() =>
+                              runKnowledgeAction(`reject:${item.id}`, () =>
+                                adminService.rejectAIKnowledgeReview(item.id, {
+                                  reason: "rejected_in_admin_ui",
+                                }),
+                              )
+                            }
                             className="flex items-center gap-1 px-2 py-1 rounded-md border border-red-500/30 text-[10px] font-medium text-red-400 hover:bg-red-500/10 disabled:opacity-50"
                           >
-                            {knowledgeBusy === `reject:${item.id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
+                            {knowledgeBusy === `reject:${item.id}` ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <XCircle className="w-3 h-3" />
+                            )}
                             Reject
                           </button>
                         </div>
@@ -1421,8 +1862,11 @@ export function AdminAIObservability() {
       {/* Performance note */}
       <div className="text-center text-[10px] text-zinc-700 py-2">
         Data from{" "}
-        <code className="text-zinc-600">GET /admin/ai/{"{overview,requests,queue,errors}"}</code>{" "}
-        · Auto-refresh every 30s · Fallback = Qdrant retrieval empty · DFB = deterministic fallback used
+        <code className="text-zinc-600">
+          GET /admin/ai/{"{overview,requests,queue,errors}"}
+        </code>{" "}
+        · Auto-refresh every 30s · Fallback = Qdrant retrieval empty · DFB =
+        deterministic fallback used
       </div>
 
       {/* Trace detail drawer */}

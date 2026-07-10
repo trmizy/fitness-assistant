@@ -12,15 +12,31 @@ interface KpiCardProps {
   loading?: boolean;
 }
 
-export function KpiCard({ label, value, change, icon: Icon, color, bg, iconBg, border, loading }: KpiCardProps) {
+export function KpiCard({
+  label,
+  value,
+  change,
+  icon: Icon,
+  color,
+  bg,
+  iconBg,
+  border,
+  loading,
+}: KpiCardProps) {
   return (
     <div className={`${bg} rounded-xl p-4 border ${border}`}>
       <div className="flex items-start justify-between mb-3">
-        <div className={`w-9 h-9 ${iconBg} rounded-lg flex items-center justify-center`}>
+        <div
+          className={`w-9 h-9 ${iconBg} rounded-lg flex items-center justify-center`}
+        >
           <Icon className={`w-4 h-4 ${color}`} />
         </div>
         {change && (
-          <span className={`text-xs font-bold ${color} bg-black/20 px-2 py-0.5 rounded-full`}>{change}</span>
+          <span
+            className={`text-xs font-bold ${color} bg-black/20 px-2 py-0.5 rounded-full`}
+          >
+            {change}
+          </span>
         )}
       </div>
       {loading ? (

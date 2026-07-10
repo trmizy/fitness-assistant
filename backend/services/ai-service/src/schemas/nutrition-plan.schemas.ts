@@ -1,14 +1,19 @@
-import { z } from 'zod';
-import { safeParseJsonCandidate } from '../utils/json';
+import { z } from "zod";
+import { safeParseJsonCandidate } from "../utils/json";
 
 // ── Request schemas ──────────────────────────────────────────────────────────
 
 export const GenerateNutritionPlanRequestSchema = z.object({
   // ── Core ──────────────────────────────────────────────────────────────────
   goal: z.string().min(1).max(200),
-  durationWeeks: z.number().int().min(1).max(1, {
-    message: 'Kế hoạch dinh dưỡng AI hiện chỉ hỗ trợ tối đa 1 tuần.',
-  }).default(1),
+  durationWeeks: z
+    .number()
+    .int()
+    .min(1)
+    .max(1, {
+      message: "Kế hoạch dinh dưỡng AI hiện chỉ hỗ trợ tối đa 1 tuần.",
+    })
+    .default(1),
   mealsPerDay: z.number().int().min(2).max(6).default(3),
   dailyCaloriesTarget: z.number().int().min(500).max(10000).optional(),
   dietPreference: z.string().max(100).optional(),
@@ -20,18 +25,22 @@ export const GenerateNutritionPlanRequestSchema = z.object({
   weightKg: z.number().min(30).max(300).optional(),
   heightCm: z.number().min(100).max(250).optional(),
   age: z.number().int().min(10).max(100).optional(),
-  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   bodyFatPct: z.number().min(1).max(60).optional(),
 
   // ── Activity & training ───────────────────────────────────────────────────
-  activityLevel: z.enum(['SEDENTARY', 'LIGHT', 'MODERATE', 'HIGH', 'VERY_HIGH']).optional(),
+  activityLevel: z
+    .enum(["SEDENTARY", "LIGHT", "MODERATE", "HIGH", "VERY_HIGH"])
+    .optional(),
   trainingDaysPerWeek: z.number().int().min(0).max(7).optional(),
   trainingDurationMin: z.number().int().min(10).max(300).optional(),
   trainingType: z.string().max(100).optional(),
 
   // ── Advanced phase ────────────────────────────────────────────────────────
   trainingPhase: z.string().max(100).optional(),
-  experienceLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ATHLETE']).optional(),
+  experienceLevel: z
+    .enum(["BEGINNER", "INTERMEDIATE", "ADVANCED", "ATHLETE"])
+    .optional(),
   primaryPriority: z.string().max(200).optional(),
   weightChangeRateKgPerWeek: z.number().min(-2).max(2).optional(),
 
@@ -44,25 +53,35 @@ export const GenerateNutritionPlanRequestSchema = z.object({
   postworkoutMeal: z.boolean().optional(),
 });
 
-export type GenerateNutritionPlanRequest = z.infer<typeof GenerateNutritionPlanRequestSchema>;
+export type GenerateNutritionPlanRequest = z.infer<
+  typeof GenerateNutritionPlanRequestSchema
+>;
 
 export const SaveNutritionPlanToNutritionRequestSchema = z.object({
   startDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'startDate must be YYYY-MM-DD')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD")
     .optional(),
   endDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'endDate must be YYYY-MM-DD')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "endDate must be YYYY-MM-DD")
     .optional(),
   repeatEnabled: z.boolean().optional().default(false),
   forceArchive: z.boolean().optional().default(false),
-  repeatWeeks: z.number().int().min(1).max(1, {
-    message: 'Kế hoạch dinh dưỡng AI hiện chỉ hỗ trợ lưu 1 tuần.',
-  }).optional().default(1),
+  repeatWeeks: z
+    .number()
+    .int()
+    .min(1)
+    .max(1, {
+      message: "Kế hoạch dinh dưỡng AI hiện chỉ hỗ trợ lưu 1 tuần.",
+    })
+    .optional()
+    .default(1),
 });
 
-export type SaveNutritionPlanToNutritionRequest = z.infer<typeof SaveNutritionPlanToNutritionRequestSchema>;
+export type SaveNutritionPlanToNutritionRequest = z.infer<
+  typeof SaveNutritionPlanToNutritionRequestSchema
+>;
 
 // ── LLM output schema ────────────────────────────────────────────────────────
 
@@ -71,7 +90,7 @@ export const NutritionMealItemSchema = z.object({
   customFoodName: z.string().max(200).optional(),
   name: z.string().min(1).max(200),
   quantity: z.number().min(0).max(5000).default(100),
-  unit: z.string().max(20).default('g'),
+  unit: z.string().max(20).default("g"),
   calories: z.number().int().min(0).max(5000),
   protein: z.number().min(0).max(1000),
   carbs: z.number().min(0).max(1000),
@@ -80,7 +99,7 @@ export const NutritionMealItemSchema = z.object({
 });
 
 export const NutritionMealSchema = z.object({
-  mealType: z.enum(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK']),
+  mealType: z.enum(["BREAKFAST", "LUNCH", "DINNER", "SNACK"]),
   title: z.string().min(1).max(200),
   calories: z.number().int().min(0).max(10000),
   protein: z.number().min(0).max(1000),
@@ -119,16 +138,16 @@ export type NutritionMeal = z.infer<typeof NutritionMealSchema>;
 export type NutritionMealItem = z.infer<typeof NutritionMealItemSchema>;
 
 function asNumber(value: unknown, fallback = 0): number {
-  const n = typeof value === 'number' ? value : Number(value);
+  const n = typeof value === "number" ? value : Number(value);
   return Number.isFinite(n) ? n : fallback;
 }
 
 function asString(value: unknown, fallback: string): string {
-  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
 
 function normalizeNutritionCandidate(parsed: unknown): unknown {
-  if (!parsed || typeof parsed !== 'object') return parsed;
+  if (!parsed || typeof parsed !== "object") return parsed;
   const source = parsed as Record<string, any>;
   const weekly = Array.isArray(source.weeklyMealPlan)
     ? source.weeklyMealPlan
@@ -136,53 +155,95 @@ function normalizeNutritionCandidate(parsed: unknown): unknown {
       ? source.weeklySchedule
       : [];
 
-  const mealsPerDay = Math.min(6, Math.max(1, Math.trunc(asNumber(source.mealsPerDay, 3))));
-  const dailyCaloriesTarget = Math.trunc(asNumber(source.dailyCaloriesTarget, 2000));
+  const mealsPerDay = Math.min(
+    6,
+    Math.max(1, Math.trunc(asNumber(source.mealsPerDay, 3))),
+  );
+  const dailyCaloriesTarget = Math.trunc(
+    asNumber(source.dailyCaloriesTarget, 2000),
+  );
 
   return {
-    goal: asString(source.goal, 'Dinh dưỡng'),
+    goal: asString(source.goal, "Dinh dưỡng"),
     durationWeeks: 1,
     mealsPerDay,
     dailyCaloriesTarget,
-    proteinTargetGrams: asNumber(source.proteinTargetGrams ?? source.macroTargets?.proteinGrams, 150),
-    carbTargetGrams: asNumber(source.carbTargetGrams ?? source.macroTargets?.carbGrams, 200),
-    fatTargetGrams: asNumber(source.fatTargetGrams ?? source.macroTargets?.fatGrams, 65),
+    proteinTargetGrams: asNumber(
+      source.proteinTargetGrams ?? source.macroTargets?.proteinGrams,
+      150,
+    ),
+    carbTargetGrams: asNumber(
+      source.carbTargetGrams ?? source.macroTargets?.carbGrams,
+      200,
+    ),
+    fatTargetGrams: asNumber(
+      source.fatTargetGrams ?? source.macroTargets?.fatGrams,
+      65,
+    ),
     weeklySchedule: weekly.slice(0, 7).map((day: any, dayIndex: number) => {
       const meals = Array.isArray(day?.meals) ? day.meals : [];
       return {
-        dayNumber: Math.trunc(asNumber(day?.dayNumber ?? day?.day, dayIndex + 1)),
+        dayNumber: Math.trunc(
+          asNumber(day?.dayNumber ?? day?.day, dayIndex + 1),
+        ),
         title: asString(day?.title, `Ngày ${dayIndex + 1}`),
-        totalCalories: Math.trunc(asNumber(day?.totalCalories ?? day?.dailyCaloriesTarget, dailyCaloriesTarget)),
+        totalCalories: Math.trunc(
+          asNumber(
+            day?.totalCalories ?? day?.dailyCaloriesTarget,
+            dailyCaloriesTarget,
+          ),
+        ),
         protein: asNumber(day?.protein ?? day?.proteinGrams, 0),
         carbs: asNumber(day?.carbs ?? day?.carbGrams, 0),
         fat: asNumber(day?.fat ?? day?.fatGrams, 0),
         meals: meals.slice(0, 6).map((meal: any) => {
           const items = Array.isArray(meal?.items) ? meal.items : [];
           return {
-            mealType: asString(meal?.mealType, 'SNACK').toUpperCase(),
-            title: asString(meal?.title, asString(meal?.mealType, 'Bữa ăn')),
-            calories: Math.trunc(asNumber(meal?.calories ?? meal?.totalCalories, 0)),
+            mealType: asString(meal?.mealType, "SNACK").toUpperCase(),
+            title: asString(meal?.title, asString(meal?.mealType, "Bữa ăn")),
+            calories: Math.trunc(
+              asNumber(meal?.calories ?? meal?.totalCalories, 0),
+            ),
             protein: asNumber(meal?.protein ?? meal?.proteinGrams, 0),
             carbs: asNumber(meal?.carbs ?? meal?.carbGrams, 0),
             fat: asNumber(meal?.fat ?? meal?.fatGrams ?? meal?.fats, 0),
-            notes: typeof meal?.notes === 'string' ? meal.notes : typeof meal?.note === 'string' ? meal.note : undefined,
+            notes:
+              typeof meal?.notes === "string"
+                ? meal.notes
+                : typeof meal?.note === "string"
+                  ? meal.note
+                  : undefined,
             items: items.map((item: any) => ({
-              foodId: typeof item?.foodId === 'string' && item.foodId.trim() ? item.foodId.trim() : undefined,
-              customFoodName: typeof item?.customFoodName === 'string' && item.customFoodName.trim() ? item.customFoodName.trim() : undefined,
-              name: asString(item?.name ?? item?.customFoodName, 'Thực phẩm'),
+              foodId:
+                typeof item?.foodId === "string" && item.foodId.trim()
+                  ? item.foodId.trim()
+                  : undefined,
+              customFoodName:
+                typeof item?.customFoodName === "string" &&
+                item.customFoodName.trim()
+                  ? item.customFoodName.trim()
+                  : undefined,
+              name: asString(item?.name ?? item?.customFoodName, "Thực phẩm"),
               quantity: asNumber(item?.quantity ?? item?.amount, 100),
-              unit: asString(item?.unit, 'g'),
+              unit: asString(item?.unit, "g"),
               calories: Math.trunc(asNumber(item?.calories, 0)),
               protein: asNumber(item?.protein ?? item?.proteinGrams, 0),
               carbs: asNumber(item?.carbs ?? item?.carbGrams, 0),
               fat: asNumber(item?.fat ?? item?.fatGrams ?? item?.fats, 0),
-              notes: typeof item?.notes === 'string' ? item.notes : typeof item?.note === 'string' ? item.note : undefined,
+              notes:
+                typeof item?.notes === "string"
+                  ? item.notes
+                  : typeof item?.note === "string"
+                    ? item.note
+                    : undefined,
             })),
           };
         }),
       };
     }),
-    generalNotes: Array.isArray(source.nutritionNotes) ? source.nutritionNotes : source.generalNotes,
+    generalNotes: Array.isArray(source.nutritionNotes)
+      ? source.nutritionNotes
+      : source.generalNotes,
     shoppingTips: source.shoppingTips,
   };
 }
@@ -190,16 +251,16 @@ function normalizeNutritionCandidate(parsed: unknown): unknown {
 // ── Prompt builder ────────────────────────────────────────────────────────────
 
 const GOAL_LABELS: Record<string, string> = {
-  FAT_LOSS: 'Giảm mỡ',
-  WEIGHT_LOSS: 'Giảm mỡ',
-  MUSCLE_GAIN: 'Tăng cơ',
-  MAINTENANCE: 'Duy trì sức khỏe',
-  WEIGHT_GAIN: 'Tăng cân',
-  CUTTING: 'Cutting (siết mỡ, giữ cơ)',
-  BULKING: 'Bulking (tăng cơ, calo cao)',
-  LEAN_BULK: 'Lean Bulk (tăng cơ sạch)',
-  RECOMPOSITION: 'Recomposition',
-  PERFORMANCE: 'Tăng hiệu suất',
+  FAT_LOSS: "Giảm mỡ",
+  WEIGHT_LOSS: "Giảm mỡ",
+  MUSCLE_GAIN: "Tăng cơ",
+  MAINTENANCE: "Duy trì sức khỏe",
+  WEIGHT_GAIN: "Tăng cân",
+  CUTTING: "Cutting (siết mỡ, giữ cơ)",
+  BULKING: "Bulking (tăng cơ, calo cao)",
+  LEAN_BULK: "Lean Bulk (tăng cơ sạch)",
+  RECOMPOSITION: "Recomposition",
+  PERFORMANCE: "Tăng hiệu suất",
 };
 
 export function buildNutritionPlanPrompt(params: {
@@ -230,28 +291,63 @@ export function buildNutritionPlanPrompt(params: {
   carbsAroundWorkout?: boolean;
   preworkoutMeal?: boolean;
   postworkoutMeal?: boolean;
-  allowedFoods: Array<{ id: string; name: string; calories: number; protein: number; carbs: number; fat?: number; fats?: number }>;
-  userProfile?: { height?: number; weight?: number; age?: number; gender?: string };
+  allowedFoods: Array<{
+    id: string;
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat?: number;
+    fats?: number;
+  }>;
+  userProfile?: {
+    height?: number;
+    weight?: number;
+    age?: number;
+    gender?: string;
+  };
 }): string {
-  const { goal, mealsPerDay, dailyCaloriesTarget, dietPreference, budgetLevel, restrictions, allowedFoods } = params;
+  const {
+    goal,
+    mealsPerDay,
+    dailyCaloriesTarget,
+    dietPreference,
+    budgetLevel,
+    restrictions,
+    allowedFoods,
+  } = params;
 
   const goalLabel = GOAL_LABELS[goal.toUpperCase()] || goal;
-  const calTarget = dailyCaloriesTarget || (
-    ['FAT_LOSS', 'WEIGHT_LOSS', 'CUTTING'].includes(goal.toUpperCase()) ? 1700 :
-    ['MUSCLE_GAIN', 'BULKING'].includes(goal.toUpperCase()) ? 2800 :
-    ['LEAN_BULK'].includes(goal.toUpperCase()) ? 2400 : 2000
-  );
+  const calTarget =
+    dailyCaloriesTarget ||
+    (["FAT_LOSS", "WEIGHT_LOSS", "CUTTING"].includes(goal.toUpperCase())
+      ? 1700
+      : ["MUSCLE_GAIN", "BULKING"].includes(goal.toUpperCase())
+        ? 2800
+        : ["LEAN_BULK"].includes(goal.toUpperCase())
+          ? 2400
+          : 2000);
 
   // Diet & budget
-  const budgetNote = budgetLevel === 'student' ? 'Ưu tiên thực phẩm rẻ, phổ biến (ức gà, trứng, đậu hũ, cơm, chuối).' : '';
-  const dietNote = dietPreference === 'low_carb' ? 'Chế độ ít tinh bột (<100g carb/ngày).' :
-    dietPreference === 'high_protein' ? 'Chế độ nhiều protein (>35% tổng calo từ protein).' :
-    dietPreference === 'low_fat' ? 'Chế độ ít chất béo (<20% calo từ fat).' :
-    dietPreference === 'vegetarian' ? 'Chế độ ăn chay. KHÔNG dùng thịt, cá, hải sản.' : '';
+  const budgetNote =
+    budgetLevel === "student"
+      ? "Ưu tiên thực phẩm rẻ, phổ biến (ức gà, trứng, đậu hũ, cơm, chuối)."
+      : "";
+  const dietNote =
+    dietPreference === "low_carb"
+      ? "Chế độ ít tinh bột (<100g carb/ngày)."
+      : dietPreference === "high_protein"
+        ? "Chế độ nhiều protein (>35% tổng calo từ protein)."
+        : dietPreference === "low_fat"
+          ? "Chế độ ít chất béo (<20% calo từ fat)."
+          : dietPreference === "vegetarian"
+            ? "Chế độ ăn chay. KHÔNG dùng thịt, cá, hải sản."
+            : "";
 
-  const restrictionNote = restrictions && restrictions.length > 0
-    ? `Hạn chế bắt buộc: ${restrictions.join('; ')}. KHÔNG được đưa bất kỳ món nào vi phạm các hạn chế này.`
-    : '';
+  const restrictionNote =
+    restrictions && restrictions.length > 0
+      ? `Hạn chế bắt buộc: ${restrictions.join("; ")}. KHÔNG được đưa bất kỳ món nào vi phạm các hạn chế này.`
+      : "";
 
   // Body profile
   const profileParts: string[] = [];
@@ -262,54 +358,105 @@ export function buildNutritionPlanPrompt(params: {
   if (w) profileParts.push(`Cân nặng: ${w}kg`);
   if (h) profileParts.push(`Chiều cao: ${h}cm`);
   if (a) profileParts.push(`Tuổi: ${a}`);
-  if (g) profileParts.push(`Giới tính: ${g === 'MALE' ? 'Nam' : g === 'FEMALE' ? 'Nữ' : 'Khác'}`);
+  if (g)
+    profileParts.push(
+      `Giới tính: ${g === "MALE" ? "Nam" : g === "FEMALE" ? "Nữ" : "Khác"}`,
+    );
   if (params.bodyFatPct) profileParts.push(`Body fat ~${params.bodyFatPct}%`);
-  const profileNote = profileParts.length > 0 ? `Thông tin cơ thể: ${profileParts.join(', ')}.` : '';
+  const profileNote =
+    profileParts.length > 0
+      ? `Thông tin cơ thể: ${profileParts.join(", ")}.`
+      : "";
 
   // Activity & training
-  const actMap: Record<string, string> = { SEDENTARY: 'ít vận động', LIGHT: 'nhẹ', MODERATE: 'trung bình', HIGH: 'cao', VERY_HIGH: 'rất cao' };
+  const actMap: Record<string, string> = {
+    SEDENTARY: "ít vận động",
+    LIGHT: "nhẹ",
+    MODERATE: "trung bình",
+    HIGH: "cao",
+    VERY_HIGH: "rất cao",
+  };
   const trainingParts: string[] = [];
-  if (params.activityLevel) trainingParts.push(`Mức vận động: ${actMap[params.activityLevel] ?? params.activityLevel}`);
-  if (params.trainingDaysPerWeek !== undefined) trainingParts.push(`${params.trainingDaysPerWeek} buổi/tuần`);
-  if (params.trainingDurationMin) trainingParts.push(`${params.trainingDurationMin} phút/buổi`);
-  if (params.trainingType) trainingParts.push(`Loại tập: ${params.trainingType}`);
-  const trainingNote = trainingParts.length > 0 ? `Lịch tập: ${trainingParts.join(', ')}.` : '';
+  if (params.activityLevel)
+    trainingParts.push(
+      `Mức vận động: ${actMap[params.activityLevel] ?? params.activityLevel}`,
+    );
+  if (params.trainingDaysPerWeek !== undefined)
+    trainingParts.push(`${params.trainingDaysPerWeek} buổi/tuần`);
+  if (params.trainingDurationMin)
+    trainingParts.push(`${params.trainingDurationMin} phút/buổi`);
+  if (params.trainingType)
+    trainingParts.push(`Loại tập: ${params.trainingType}`);
+  const trainingNote =
+    trainingParts.length > 0 ? `Lịch tập: ${trainingParts.join(", ")}.` : "";
 
   // Advanced phase
   const phaseMap: Record<string, string> = {
-    cutting: 'Cutting (giảm mỡ, giữ cơ)', bulking: 'Bulking (thặng dư calo cao)',
-    lean_bulk: 'Lean Bulk (thặng dư nhỏ ~200-300 kcal)', maintenance: 'Duy trì',
-    contest_prep: 'Chuẩn bị thi đấu — dinh dưỡng rất chặt chẽ', deload: 'Deload (hồi phục)',
+    cutting: "Cutting (giảm mỡ, giữ cơ)",
+    bulking: "Bulking (thặng dư calo cao)",
+    lean_bulk: "Lean Bulk (thặng dư nhỏ ~200-300 kcal)",
+    maintenance: "Duy trì",
+    contest_prep: "Chuẩn bị thi đấu — dinh dưỡng rất chặt chẽ",
+    deload: "Deload (hồi phục)",
   };
   const advancedParts: string[] = [];
-  if (params.trainingPhase) advancedParts.push(`Giai đoạn: ${phaseMap[params.trainingPhase] ?? params.trainingPhase}`);
-  const expMap: Record<string, string> = { BEGINNER: 'Người mới', INTERMEDIATE: 'Trung cấp', ADVANCED: 'Nâng cao', ATHLETE: 'Vận động viên' };
-  if (params.experienceLevel) advancedParts.push(`Kinh nghiệm: ${expMap[params.experienceLevel] ?? params.experienceLevel}`);
-  if (params.primaryPriority) advancedParts.push(`Ưu tiên: ${params.primaryPriority}`);
+  if (params.trainingPhase)
+    advancedParts.push(
+      `Giai đoạn: ${phaseMap[params.trainingPhase] ?? params.trainingPhase}`,
+    );
+  const expMap: Record<string, string> = {
+    BEGINNER: "Người mới",
+    INTERMEDIATE: "Trung cấp",
+    ADVANCED: "Nâng cao",
+    ATHLETE: "Vận động viên",
+  };
+  if (params.experienceLevel)
+    advancedParts.push(
+      `Kinh nghiệm: ${expMap[params.experienceLevel] ?? params.experienceLevel}`,
+    );
+  if (params.primaryPriority)
+    advancedParts.push(`Ưu tiên: ${params.primaryPriority}`);
   if (params.weightChangeRateKgPerWeek !== undefined) {
-    const dir = params.weightChangeRateKgPerWeek > 0 ? '+' : '';
-    advancedParts.push(`Tốc độ thay đổi cân: ${dir}${params.weightChangeRateKgPerWeek} kg/tuần`);
+    const dir = params.weightChangeRateKgPerWeek > 0 ? "+" : "";
+    advancedParts.push(
+      `Tốc độ thay đổi cân: ${dir}${params.weightChangeRateKgPerWeek} kg/tuần`,
+    );
   }
-  const advancedNote = advancedParts.length > 0 ? advancedParts.join('. ') + '.' : '';
+  const advancedNote =
+    advancedParts.length > 0 ? advancedParts.join(". ") + "." : "";
 
   // Macro preferences
   const macroParts: string[] = [];
-  if (params.proteinTargetG) macroParts.push(`Protein ${params.proteinTargetG}g`);
-  if (params.carbTargetG !== undefined) macroParts.push(`Carbs ${params.carbTargetG}g`);
+  if (params.proteinTargetG)
+    macroParts.push(`Protein ${params.proteinTargetG}g`);
+  if (params.carbTargetG !== undefined)
+    macroParts.push(`Carbs ${params.carbTargetG}g`);
   if (params.fatTargetG) macroParts.push(`Fat ${params.fatTargetG}g`);
-  const macroNote = macroParts.length > 0 ? `Macro mục tiêu: ${macroParts.join(', ')}/ngày.` : '';
+  const macroNote =
+    macroParts.length > 0
+      ? `Macro mục tiêu: ${macroParts.join(", ")}/ngày.`
+      : "";
   const workoutMealNote = [
-    params.carbsAroundWorkout ? 'Phân bổ carbs tập trung trước/sau buổi tập.' : '',
-    params.preworkoutMeal ? 'Cần có bữa trước tập (nhẹ, dễ tiêu).' : '',
-    params.postworkoutMeal ? 'Cần có bữa sau tập (protein + carbs để phục hồi).' : '',
-  ].filter(Boolean).join(' ');
+    params.carbsAroundWorkout
+      ? "Phân bổ carbs tập trung trước/sau buổi tập."
+      : "",
+    params.preworkoutMeal ? "Cần có bữa trước tập (nhẹ, dễ tiêu)." : "",
+    params.postworkoutMeal
+      ? "Cần có bữa sau tập (protein + carbs để phục hồi)."
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const promptFoods = allowedFoods.slice(0, 45);
   const sampleFood1 = promptFoods[0];
   const sampleFood2 = promptFoods[1] ?? promptFoods[0];
-  const foodsForPrompt = promptFoods.map(f =>
-    `${f.id} | ${f.name} | ${f.calories}kcal | P${f.protein}g | C${f.carbs}g | F${f.fat ?? f.fats ?? 0}g`
-  ).join('\n');
+  const foodsForPrompt = promptFoods
+    .map(
+      (f) =>
+        `${f.id} | ${f.name} | ${f.calories}kcal | P${f.protein}g | C${f.carbs}g | F${f.fat ?? f.fats ?? 0}g`,
+    )
+    .join("\n");
 
   return `Bạn là chuyên gia dinh dưỡng thể thao. Tạo kế hoạch dinh dưỡng 1 tuần (7 ngày) cho mục tiêu: ${goalLabel}.
 
@@ -335,7 +482,7 @@ YÊU CẦU NGHIÊM NGẶT:
 5. Mỗi item thực phẩm phải dùng đúng foodId từ danh sách DB bên trên. Không tự bịa foodId.
 6. Không dùng customFoodName, không để foodId trống.
 7. Tổng calo mỗi ngày nên nằm trong ±200 kcal so với mục tiêu.
-8. ${restrictionNote || 'Không có hạn chế đặc biệt.'}
+8. ${restrictionNote || "Không có hạn chế đặc biệt."}
 9. Nếu mục tiêu là cutting/giảm mỡ: protein >= 1.8g/kg cân nặng, tránh dư calo.
 10. Nếu mục tiêu là bulking/tăng cơ: calo vượt maintenance, carbs đủ năng lượng.
 11. Tất cả title, note, nutritionNotes phải bằng tiếng Việt.
@@ -362,8 +509,8 @@ JSON FORMAT (dùng foodId thật từ DB):
           "title": "Bữa sáng",
           "items": [
             {
-              "foodId": "${sampleFood1?.id ?? ''}",
-              "name": "${sampleFood1?.name ?? 'Food from DB'}",
+              "foodId": "${sampleFood1?.id ?? ""}",
+              "name": "${sampleFood1?.name ?? "Food from DB"}",
               "quantity": 150,
               "unit": "g",
               "calories": ${Math.trunc(sampleFood1?.calories ?? 200)},
@@ -373,8 +520,8 @@ JSON FORMAT (dùng foodId thật từ DB):
               "note": "Chuẩn bị đơn giản"
             },
             {
-              "foodId": "${sampleFood2?.id ?? ''}",
-              "name": "${sampleFood2?.name ?? 'Food from DB'}",
+              "foodId": "${sampleFood2?.id ?? ""}",
+              "name": "${sampleFood2?.name ?? "Food from DB"}",
               "quantity": 100,
               "unit": "g",
               "calories": ${Math.trunc(sampleFood2?.calories ?? 150)},
@@ -402,15 +549,25 @@ JSON FORMAT (dùng foodId thật từ DB):
 
 // ── JSON parsing helpers ──────────────────────────────────────────────────────
 
-export function parseNutritionPlanContent(raw: string): { ok: true; content: NutritionPlanContent } | { ok: false; reason: string } {
+export function parseNutritionPlanContent(
+  raw: string,
+): { ok: true; content: NutritionPlanContent } | { ok: false; reason: string } {
   const parsed = safeParseJsonCandidate(raw);
   if (!parsed) {
-    return { ok: false, reason: 'Unbalanced JSON braces or invalid format in LLM response' };
+    return {
+      ok: false,
+      reason: "Unbalanced JSON braces or invalid format in LLM response",
+    };
   }
 
-  const result = NutritionPlanContentSchema.safeParse(normalizeNutritionCandidate(parsed));
+  const result = NutritionPlanContentSchema.safeParse(
+    normalizeNutritionCandidate(parsed),
+  );
   if (!result.success) {
-    return { ok: false, reason: `Schema validation: ${result.error.issues.map(i => i.message).join(', ')}` };
+    return {
+      ok: false,
+      reason: `Schema validation: ${result.error.issues.map((i) => i.message).join(", ")}`,
+    };
   }
   return { ok: true, content: result.data };
 }

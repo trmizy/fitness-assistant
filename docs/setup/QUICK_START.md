@@ -12,12 +12,14 @@
 ## 📦 Installation (5 Minutes)
 
 ### 1. Clone & Install Dependencies
+
 ```bash
 cd fitness-assistant
 pnpm install
 ```
 
 ### 2. Start Infrastructure (Postgres, Redis, Qdrant)
+
 ```bash
 docker-compose -p gym-coach up -d postgres redis qdrant
 
@@ -27,6 +29,7 @@ docker-compose -p gym-coach ps
 ```
 
 ### 3. Setup Databases & Seed Data
+
 ```bash
 # Build shared package first
 cd packages/shared
@@ -60,6 +63,7 @@ cd ../..
 ```
 
 ### 4. Start All Services
+
 ```bash
 # Start in separate terminals or use the start script:
 
@@ -81,6 +85,7 @@ pnpm dev
 ```
 
 **OR use PowerShell script to start all at once:**
+
 ```powershell
 .\start.ps1
 ```
@@ -88,6 +93,7 @@ pnpm dev
 ### 5. Start All Services (5 Terminals)
 
 **Terminal 1 - Auth Service:**
+
 ```bash
 cd services/auth-service
 pnpm dev
@@ -95,6 +101,7 @@ pnpm dev
 ```
 
 **Terminal 2 - Fitness Service:**
+
 ```bash
 cd services/fitness-service
 pnpm dev
@@ -102,6 +109,7 @@ pnpm dev
 ```
 
 **Terminal 3 - AI Service:**
+
 ```bash
 cd services/ai-service
 pnpm dev
@@ -109,6 +117,7 @@ pnpm dev
 ```
 
 **Terminal 4 - API Gateway:**
+
 ```bash
 cd apps/api-gateway
 pnpm dev
@@ -116,6 +125,7 @@ pnpm dev
 ```
 
 **Terminal 5 - Frontend:**
+
 ```bash
 cd apps/web
 pnpm dev
@@ -127,6 +137,7 @@ pnpm dev
 **🌐 Web Interface:** http://localhost:5173
 
 **Demo Credentials:**
+
 - Email: `john.doe@example.com`
 - Password: `password123`
 
@@ -136,13 +147,13 @@ pnpm dev
 
 ```powershell
 # Check all services are running
-@(3000,3001,3002,3003,3004) | ForEach-Object { 
-  try { 
+@(3000,3001,3002,3003,3004) | ForEach-Object {
+  try {
     $h = Invoke-RestMethod "http://localhost:$_/health"
-    Write-Host "✓ Port $_: $($h.service)" 
-  } catch { 
-    Write-Host "✗ Port $_: Failed" 
-  } 
+    Write-Host "✓ Port $_: $($h.service)"
+  } catch {
+    Write-Host "✗ Port $_: Failed"
+  }
 }
 
 # Test exercises API (414 exercises available)
@@ -156,6 +167,7 @@ Start-Process "http://localhost:5173"
 ## 🧪 Test the System
 
 ### 1. Browse Exercises (No Auth Required)
+
 ```powershell
 # Get all exercises
 Invoke-RestMethod "http://localhost:3000/exercises" | Measure-Object
@@ -168,6 +180,7 @@ Invoke-RestMethod "http://localhost:3000/exercises?bodyPart=UPPER_BODY&limit=10"
 ```
 
 ### 2. Test Authentication
+
 ```powershell
 # Register new user
 $newUser = @{
@@ -197,6 +210,7 @@ Write-Host "Token: $token"
 ```
 
 ### 3. Test Protected Endpoints
+
 ```powershell
 # Get user profile
 $headers = @{ Authorization = "Bearer $token" }
@@ -231,6 +245,7 @@ Invoke-RestMethod "http://localhost:3000/stats/workouts" -Headers $headers
 ```
 
 ### 4. Test AI Coach (RAG System)
+
 ```powershell
 # Ask fitness question
 $question = @{
@@ -244,21 +259,24 @@ Invoke-RestMethod "http://localhost:3000/ai/ask" `
   -ContentType "application/json" `
   -Headers $headers
 ```
-  -H "Authorization: Bearer $TOKEN"
+
+-H "Authorization: Bearer $TOKEN"
 
 # Create InBody entry
+
 curl -X POST http://localhost:3000/inbody \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "date":"2024-01-20",
-    "weight":75,
-    "skeletalMuscleMass":35,
-    "bodyFatMass":12,
-    "percentBodyFat":16,
-    "bmi":24.7
-  }'
-```
+ -H "Authorization: Bearer $TOKEN" \
+ -H "Content-Type: application/json" \
+ -d '{
+"date":"2024-01-20",
+"weight":75,
+"skeletalMuscleMass":35,
+"bodyFatMass":12,
+"percentBodyFat":16,
+"bmi":24.7
+}'
+
+````
 
 ### 3. Test AI Coach (Browser)
 1. Go to **http://localhost:5173**
@@ -280,9 +298,10 @@ ollama pull nomic-embed-text
 
 # Verify
 ollama list
-```
+````
 
 ### Configure AI Service
+
 ```bash
 # Edit ai-gym-coach/.env
 LLM_PROVIDER=ollama  # or openai, gemini, claude
@@ -296,26 +315,31 @@ OLLAMA_MODEL=llama3.2:3b
 ## 📱 Using the Web Application
 
 ### 1. Complete Your Profile
+
 - Click **👤 Profile** in sidebar
 - Fill in: age, gender, height, goals, activity level
 - Save profile
 
 ### 2. Log InBody Data
+
 - Click **⚖️ InBody**
 - Enter: weight, muscle mass, body fat, etc.
 - System automatically calculates TDEE and macros!
 
 ### 3. Log Workouts
+
 - Click **🏋️ Workouts**
 - Select exercise, enter sets/reps/weight/RPE
 - Track progressive overload over time
 
 ### 4. Generate Plans
+
 - Click **📋 Plans**
 - Click "Generate New Plan"
 - View your personalized workout schedule
 
 ### 5. Chat with AI Coach
+
 - Click **🤖 AI Coach**
 - Ask questions about:
   - Form and technique
@@ -349,15 +373,16 @@ docker-compose up -d postgres redis qdrant
 
 The seed script creates 3 test users:
 
-| Email | Password | Role |
-|-------|----------|------|
-| john.doe@example.com | password123 | user |
-| jane.smith@example.com | password123 | user |
-| admin@example.com | admin123 | admin |
+| Email                  | Password    | Role  |
+| ---------------------- | ----------- | ----- |
+| john.doe@example.com   | password123 | user  |
+| jane.smith@example.com | password123 | user  |
+| admin@example.com      | admin123    | admin |
 
 ## 🐛 Troubleshooting
 
 ### Port Already in Use
+
 ```bash
 # Find process using port (e.g., 3000)
 lsof -i :3000  # macOS/Linux
@@ -367,6 +392,7 @@ netstat -ano | findstr :3000  # Windows
 ```
 
 ### Database Connection Error
+
 ```bash
 # Reset databases
 docker-compose down -v
@@ -376,6 +402,7 @@ docker-compose up -d postgres redis qdrant
 ```
 
 ### Prisma Client Not Generated
+
 ```bash
 cd services/auth-service
 pnpm db:generate
@@ -385,6 +412,7 @@ pnpm db:generate
 ```
 
 ### Frontend Not Loading
+
 ```bash
 # Clear cache and reinstall
 cd apps/web

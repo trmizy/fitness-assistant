@@ -9,7 +9,7 @@ export interface User {
   weight?: number;
   age?: number;
   goal?: string;
-  fitnessLevel?: 'beginner' | 'intermediate' | 'advanced';
+  fitnessLevel?: "beginner" | "intermediate" | "advanced";
   isPT?: boolean;
 }
 
@@ -63,7 +63,7 @@ export interface WorkoutPlanDay {
 }
 
 export interface MealItem {
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  mealType: "breakfast" | "lunch" | "dinner" | "snack";
   name: string;
   calories: number;
   protein: number;
@@ -81,7 +81,7 @@ export interface MealPlanDay {
 
 export interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: Date;
 }
@@ -105,7 +105,7 @@ export interface ChatMessage {
 
 export interface Conversation {
   id: string;
-  type: 'DIRECT';
+  type: "DIRECT";
   lastMessageAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -114,8 +114,15 @@ export interface Conversation {
 }
 
 // ── Contract types ───────────────────────────────────────────────
-export type ContractStatus = 'PENDING_REVIEW' | 'PENDING_SIGNATURE' | 'ACTIVE' | 'COMPLETED' | 'EXPIRED' | 'CANCELLED' | 'REJECTED';
-export type PackageType = 'PER_SESSION' | 'PACKAGE';
+export type ContractStatus =
+  | "PENDING_REVIEW"
+  | "PENDING_SIGNATURE"
+  | "ACTIVE"
+  | "COMPLETED"
+  | "EXPIRED"
+  | "CANCELLED"
+  | "REJECTED";
+export type PackageType = "PER_SESSION" | "PACKAGE";
 
 export interface Contract {
   id: string;
@@ -123,7 +130,7 @@ export interface Contract {
   clientUserId: string;
   status: ContractStatus;
   packageType: PackageType;
-  sessionMode?: 'ONLINE' | 'OFFLINE' | 'HYBRID';
+  sessionMode?: "ONLINE" | "OFFLINE" | "HYBRID";
   packageName: string;
   description?: string;
   totalSessions: number;
@@ -145,8 +152,13 @@ export interface Contract {
 }
 
 // ── Session types ────────────────────────────────────────────────
-export type SessionStatus = 'REQUESTED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
-export type SessionMode = 'ONLINE' | 'OFFLINE' | 'HYBRID';
+export type SessionStatus =
+  | "REQUESTED"
+  | "CONFIRMED"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "NO_SHOW";
+export type SessionMode = "ONLINE" | "OFFLINE" | "HYBRID";
 
 export interface Session {
   id: string;
@@ -181,11 +193,18 @@ export interface SessionReview {
 
 // ── Notification types ───────────────────────────────────────────
 export type NotificationEventType =
-  | 'CONTRACT_REQUESTED' | 'CONTRACT_ACCEPTED' | 'CONTRACT_REJECTED' | 'CONTRACT_CANCELLED'
-  | 'SESSION_BOOKED' | 'SESSION_CONFIRMED' | 'SESSION_COMPLETED' | 'SESSION_CANCELLED'
-  | 'SESSION_NO_SHOW_CLIENT' | 'SESSION_NO_SHOW_PT';
+  | "CONTRACT_REQUESTED"
+  | "CONTRACT_ACCEPTED"
+  | "CONTRACT_REJECTED"
+  | "CONTRACT_CANCELLED"
+  | "SESSION_BOOKED"
+  | "SESSION_CONFIRMED"
+  | "SESSION_COMPLETED"
+  | "SESSION_CANCELLED"
+  | "SESSION_NO_SHOW_CLIENT"
+  | "SESSION_NO_SHOW_PT";
 
-export type NotificationEntityType = 'CONTRACT' | 'SESSION';
+export type NotificationEntityType = "CONTRACT" | "SESSION";
 
 export interface AppNotification {
   id: string;
@@ -200,7 +219,14 @@ export interface AppNotification {
 }
 
 // ── Availability types ───────────────────────────────────────────
-export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+export type DayOfWeek =
+  | "MONDAY"
+  | "TUESDAY"
+  | "WEDNESDAY"
+  | "THURSDAY"
+  | "FRIDAY"
+  | "SATURDAY"
+  | "SUNDAY";
 
 export interface PTAvailabilitySlot {
   id: string;
@@ -219,11 +245,26 @@ export interface PTScheduleException {
 }
 
 // ── Call types ──────────────────────────────────────────────────
-export type CallType = 'VOICE' | 'VIDEO';
-export type CallStatus = 'INITIATING' | 'RINGING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'CONNECTING' | 'ACTIVE' | 'ENDED' | 'MISSED' | 'FAILED';
-export type CallOrigin = 'CHAT' | 'SESSION';
+export type CallType = "VOICE" | "VIDEO";
+export type CallStatus =
+  | "INITIATING"
+  | "RINGING"
+  | "ACCEPTED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "CONNECTING"
+  | "ACTIVE"
+  | "ENDED"
+  | "MISSED"
+  | "FAILED";
+export type CallOrigin = "CHAT" | "SESSION";
 
-export type CallUIState = 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'active';
+export type CallUIState =
+  | "idle"
+  | "outgoing"
+  | "incoming"
+  | "connecting"
+  | "active";
 
 export interface CallSessionInfo {
   callSessionId: string;

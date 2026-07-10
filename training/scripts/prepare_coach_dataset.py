@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Prepare optional coach fine-tuning data.
 
 This script never reads production databases. It only consumes repository data files

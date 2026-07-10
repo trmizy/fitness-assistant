@@ -44,42 +44,15 @@
       }
     },
     "topErrors": [
-      [
-        "Thieu bo thong so set/rep/nghi.",
-        26
-      ],
-      [
-        "Thieu huong dan dieu chinh.",
-        20
-      ],
-      [
-        "Thieu luu y ky thuat/an toan.",
-        17
-      ],
-      [
-        "Thieu ca nhan hoa theo thong tin ca nhan cua user.",
-        11
-      ],
-      [
-        "Thieu mon an mau/cau truc bua.",
-        2
-      ],
-      [
-        "Lac trong tam cau hoi.",
-        2
-      ],
-      [
-        "Lich tap thieu buoi/ngay so voi yeu cau.",
-        1
-      ],
-      [
-        "Tong kcal tu macro (1012) lech lon so voi kcal muc tieu (500).",
-        1
-      ],
-      [
-        "Khong dam bao tra loi hoan toan bang tieng Viet.",
-        1
-      ]
+      ["Thieu bo thong so set/rep/nghi.", 26],
+      ["Thieu huong dan dieu chinh.", 20],
+      ["Thieu luu y ky thuat/an toan.", 17],
+      ["Thieu ca nhan hoa theo thong tin ca nhan cua user.", 11],
+      ["Thieu mon an mau/cau truc bua.", 2],
+      ["Lac trong tam cau hoi.", 2],
+      ["Lich tap thieu buoi/ngay so voi yeu cau.", 1],
+      ["Tong kcal tu macro (1012) lech lon so voi kcal muc tieu (500).", 1],
+      ["Khong dam bao tra loi hoan toan bang tieng Viet.", 1]
     ],
     "bestGroup": [
       "lich_tap",
@@ -139,9 +112,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu bo thong so set/rep/nghi."
-        ],
+        "main_errors": ["Thieu bo thong so set/rep/nghi."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -163,9 +134,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu bo thong so set/rep/nghi."
-        ],
+        "main_errors": ["Thieu bo thong so set/rep/nghi."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -187,9 +156,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu bo thong so set/rep/nghi."
-        ],
+        "main_errors": ["Thieu bo thong so set/rep/nghi."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -336,9 +303,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu bo thong so set/rep/nghi."
-        ],
+        "main_errors": ["Thieu bo thong so set/rep/nghi."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -435,9 +400,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu bo thong so set/rep/nghi."
-        ],
+        "main_errors": ["Thieu bo thong so set/rep/nghi."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -484,9 +447,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu bo thong so set/rep/nghi."
-        ],
+        "main_errors": ["Thieu bo thong so set/rep/nghi."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -508,9 +469,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu bo thong so set/rep/nghi."
-        ],
+        "main_errors": ["Thieu bo thong so set/rep/nghi."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -532,9 +491,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu bo thong so set/rep/nghi."
-        ],
+        "main_errors": ["Thieu bo thong so set/rep/nghi."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -651,9 +608,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu ca nhan hoa theo thong tin ca nhan cua user."
-        ],
+        "main_errors": ["Thieu ca nhan hoa theo thong tin ca nhan cua user."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -675,9 +630,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Lich tap thieu buoi/ngay so voi yeu cau."
-        ],
+        "main_errors": ["Lich tap thieu buoi/ngay so voi yeu cau."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -787,9 +740,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu ca nhan hoa theo thong tin ca nhan cua user."
-        ],
+        "main_errors": ["Thieu ca nhan hoa theo thong tin ca nhan cua user."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -811,9 +762,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu ca nhan hoa theo thong tin ca nhan cua user."
-        ],
+        "main_errors": ["Thieu ca nhan hoa theo thong tin ca nhan cua user."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1055,9 +1004,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1079,9 +1026,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1103,9 +1048,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1127,9 +1070,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1151,9 +1092,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1201,9 +1140,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1225,9 +1162,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1249,9 +1184,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1273,9 +1206,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1297,9 +1228,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1321,9 +1250,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1345,9 +1272,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1369,9 +1294,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1443,9 +1366,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1467,9 +1388,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1491,9 +1410,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu huong dan dieu chinh."
-        ],
+        "main_errors": ["Thieu huong dan dieu chinh."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1540,9 +1457,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu ca nhan hoa theo thong tin ca nhan cua user."
-        ],
+        "main_errors": ["Thieu ca nhan hoa theo thong tin ca nhan cua user."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -1590,9 +1505,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu ca nhan hoa theo thong tin ca nhan cua user."
-        ],
+        "main_errors": ["Thieu ca nhan hoa theo thong tin ca nhan cua user."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -2204,9 +2117,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Lac trong tam cau hoi."
-        ],
+        "main_errors": ["Lac trong tam cau hoi."],
         "suggestions": [
           "Sua noi dung lech trong tam/khong an toan va dam bao dung ngon ngu user yeu cau."
         ],
@@ -2228,9 +2139,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu ca nhan hoa theo thong tin ca nhan cua user."
-        ],
+        "main_errors": ["Thieu ca nhan hoa theo thong tin ca nhan cua user."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],
@@ -2274,9 +2183,7 @@
         "contradiction": "Khong",
         "vietnamese_ok": "Khong yeu cau ro",
         "actionable": "Co",
-        "main_errors": [
-          "Thieu ca nhan hoa theo thong tin ca nhan cua user."
-        ],
+        "main_errors": ["Thieu ca nhan hoa theo thong tin ca nhan cua user."],
         "suggestions": [
           "Bo sung cac phan bat buoc theo loai cau hoi, tang do chi tiet de ap dung ngay."
         ],

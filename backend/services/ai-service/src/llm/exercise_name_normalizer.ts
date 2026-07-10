@@ -1,11 +1,11 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
-const CATALOG_PATH = 'data/catalog/plans/gym_exercises.csv';
+const CATALOG_PATH = "data/catalog/plans/gym_exercises.csv";
 
 function parseCSVLine(line: string): string[] {
   const fields: string[] = [];
-  let current = '';
+  let current = "";
   let inQuotes = false;
 
   for (let i = 0; i < line.length; i++) {
@@ -19,9 +19,9 @@ function parseCSVLine(line: string): string[] {
       } else {
         inQuotes = !inQuotes;
       }
-    } else if (char === ',' && !inQuotes) {
+    } else if (char === "," && !inQuotes) {
       fields.push(current.trim());
-      current = '';
+      current = "";
     } else {
       current += char;
     }
@@ -36,21 +36,25 @@ function resolveCatalogFile(): string | null {
   const candidates = [
     envPath ? path.resolve(process.cwd(), envPath) : null,
     path.resolve(process.cwd(), CATALOG_PATH),
-    path.resolve(process.cwd(), '../../..', CATALOG_PATH),
-    path.resolve(process.cwd(), '../../../..', CATALOG_PATH),
-    path.resolve(__dirname, '../../../../../', CATALOG_PATH),
+    path.resolve(process.cwd(), "../../..", CATALOG_PATH),
+    path.resolve(process.cwd(), "../../../..", CATALOG_PATH),
+    path.resolve(__dirname, "../../../../../", CATALOG_PATH),
   ].filter((candidate): candidate is string => Boolean(candidate));
 
   return candidates.find((candidate) => fs.existsSync(candidate)) || null;
 }
 
 function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function hasVietnameseSignals(text: string): boolean {
-  return /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộúùủũụýỳỷỹỵ]/i.test(text)
-    || /\b(tay|nguc|lung|vai|chan|mong|bung|cuon|day|duoi|keo|day cap|cap|ta don|ta don 1 tay)\b/i.test(text);
+  return (
+    /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộúùủũụýỳỷỹỵ]/i.test(text) ||
+    /\b(tay|nguc|lung|vai|chan|mong|bung|cuon|day|duoi|keo|day cap|cap|ta don|ta don 1 tay)\b/i.test(
+      text,
+    )
+  );
 }
 
 function loadExerciseNameMap(): Map<string, string> {
@@ -59,8 +63,11 @@ function loadExerciseNameMap(): Map<string, string> {
   if (!catalogFile) return mapping;
 
   try {
-    const rawLines = fs.readFileSync(catalogFile, 'utf-8').split('\n');
-    const rows = rawLines.slice(1).map((line) => line.replace(/\r$/, '')).filter((line) => line.trim().length > 0);
+    const rawLines = fs.readFileSync(catalogFile, "utf-8").split("\n");
+    const rows = rawLines
+      .slice(1)
+      .map((line) => line.replace(/\r$/, ""))
+      .filter((line) => line.trim().length > 0);
 
     for (const row of rows) {
       const columns = parseCSVLine(row);
@@ -73,7 +80,10 @@ function loadExerciseNameMap(): Map<string, string> {
       mapping.set(exerciseNameVi.toLowerCase(), exerciseNameEn);
 
       if (aliasesVi) {
-        for (const alias of aliasesVi.split(';').map((item) => item.trim()).filter(Boolean)) {
+        for (const alias of aliasesVi
+          .split(";")
+          .map((item) => item.trim())
+          .filter(Boolean)) {
           mapping.set(alias.toLowerCase(), exerciseNameEn);
         }
       }
@@ -88,7 +98,11 @@ function loadExerciseNameMap(): Map<string, string> {
 const exerciseNameMap = loadExerciseNameMap();
 const exerciseNamePatterns = Array.from(exerciseNameMap.entries())
   .sort((a, b) => b[0].length - a[0].length)
-  .map(([rawName, canonicalName]) => ({ rawName, canonicalName, regex: new RegExp(escapeRegExp(rawName), 'gi') }));
+  .map(([rawName, canonicalName]) => ({
+    rawName,
+    canonicalName,
+    regex: new RegExp(escapeRegExp(rawName), "gi"),
+  }));
 
 export function normalizeExerciseNames(text: string): string {
   if (!hasVietnameseSignals(text)) {

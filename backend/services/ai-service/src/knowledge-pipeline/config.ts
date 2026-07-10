@@ -1,18 +1,32 @@
 export const KNOWLEDGE_PIPELINE = {
-  collection: process.env.KNOWLEDGE_QDRANT_COLLECTION || 'fitness_evidence',
-  vectorSize: Number.parseInt(process.env.KNOWLEDGE_VECTOR_SIZE || '768', 10),
-  acceptThreshold: Number.parseFloat(process.env.TRUST_THRESHOLD_ACCEPT || '0.6'),
-  reviewThreshold: Number.parseFloat(process.env.TRUST_THRESHOLD_REVIEW || '0.4'),
-  semanticDuplicateThreshold: Number.parseFloat(process.env.KNOWLEDGE_SEMANTIC_DUPLICATE_THRESHOLD || '0.95'),
-  enableLlmSafetyJudge: process.env.KNOWLEDGE_ENABLE_LLM_SAFETY_JUDGE === 'true',
-  localEvidenceSourceId: 'source-local-evidence',
-  localEvidenceBaseUrl: 'local://data/processed/evidence',
-  pubMedSourceId: 'source-pubmed-eutils',
-  pubMedBaseUrl: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils',
-  pubMedDefaultQuery: process.env.KNOWLEDGE_PUBMED_QUERY || 'resistance training muscle hypertrophy nutrition exercise',
-  defaultRssSourceId: process.env.KNOWLEDGE_RSS_SOURCE_ID || 'source-sciencedaily-fitness',
-  defaultWebSourceId: process.env.KNOWLEDGE_WEB_SOURCE_ID || 'source-acsm-topics',
-  webRateLimitMs: Number.parseInt(process.env.KNOWLEDGE_WEB_RATE_LIMIT_MS || '1500', 10),
-  userAgent: 'fitness-assistant-knowledge-pipeline/1.0',
-  queueName: 'knowledge-pipeline',
+  collection: process.env.KNOWLEDGE_QDRANT_COLLECTION || "fitness_evidence",
+  vectorSize: Number.parseInt(process.env.KNOWLEDGE_VECTOR_SIZE || "768", 10),
+  acceptThreshold: Number.parseFloat(
+    process.env.TRUST_THRESHOLD_ACCEPT || "0.6",
+  ),
+  reviewThreshold: Number.parseFloat(
+    process.env.TRUST_THRESHOLD_REVIEW || "0.4",
+  ),
+  semanticDuplicateThreshold: Number.parseFloat(
+    process.env.KNOWLEDGE_SEMANTIC_DUPLICATE_THRESHOLD || "0.95",
+  ),
+  enableLlmSafetyJudge:
+    process.env.KNOWLEDGE_ENABLE_LLM_SAFETY_JUDGE === "true",
+  localEvidenceSourceId: "source-local-evidence",
+  localEvidenceBaseUrl: "local://data/processed/evidence",
+  pubMedSourceId: "source-pubmed-eutils",
+  pubMedBaseUrl: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils",
+  pubMedDefaultQuery:
+    process.env.KNOWLEDGE_PUBMED_QUERY ||
+    "resistance training muscle hypertrophy nutrition exercise",
+  defaultRssSourceId:
+    process.env.KNOWLEDGE_RSS_SOURCE_ID || "source-sciencedaily-fitness",
+  defaultWebSourceId:
+    process.env.KNOWLEDGE_WEB_SOURCE_ID || "source-acsm-topics",
+  webRateLimitMs: Number.parseInt(
+    process.env.KNOWLEDGE_WEB_RATE_LIMIT_MS || "1500",
+    10,
+  ),
+  userAgent: "fitness-assistant-knowledge-pipeline/1.0",
+  queueName: "knowledge-pipeline",
 } as const;

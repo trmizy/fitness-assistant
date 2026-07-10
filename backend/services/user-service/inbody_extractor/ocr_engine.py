@@ -12,8 +12,8 @@ import pytesseract
 from PIL import Image
 from typing import List, Tuple, Dict
 
-# Auto-detect Tesseract on Windows
-TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# Auto-detect Tesseract from an optional environment override.
+TESSERACT_PATH = os.getenv("TESSERACT_CMD", "tesseract")
 if os.path.exists(TESSERACT_PATH):
     pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
 
@@ -96,7 +96,7 @@ def ocr_region(img: np.ndarray, x1: int, y1: int, x2: int, y2: int,
 
 
 # -----------------------------------------------------------------------
-# Line merging — groups word-level hits into logical lines
+# Line merging - groups word-level hits into logical lines
 # -----------------------------------------------------------------------
 
 def merge_hits_to_lines(hits: List[OCRHit],

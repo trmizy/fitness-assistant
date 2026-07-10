@@ -1,10 +1,10 @@
-import type { ExerciseItem, SourceAttribution } from '../../types';
+import type { ExerciseItem, SourceAttribution } from "../../types";
 
 const FREE_EXERCISE_SOURCE: SourceAttribution = {
-  providerName: 'free-exercise-db',
-  sourceUrl: 'https://github.com/yuhonas/free-exercise-db',
+  providerName: "free-exercise-db",
+  sourceUrl: "https://github.com/yuhonas/free-exercise-db",
   authoritative: false,
-  level: 'supplementary',
+  level: "supplementary",
 };
 
 // ─── Internal free-exercise-db JSON shape ─────────────────────────────────────
@@ -29,17 +29,17 @@ export function mapFreeExercise(entry: FreeExerciseEntry): ExerciseItem {
   return {
     id: entry.id,
     name: entry.name,
-    bodyPart: entry.category ?? 'Unknown',
-    targetMuscle: entry.primaryMuscles?.[0] ?? 'Unknown',
+    bodyPart: entry.category ?? "Unknown",
+    targetMuscle: entry.primaryMuscles?.[0] ?? "Unknown",
     secondaryMuscles: entry.secondaryMuscles ?? [],
-    equipment: entry.equipment ?? 'Body weight',
+    equipment: entry.equipment ?? "Body weight",
     level: entry.level,
     force: entry.force ?? undefined,
     mechanic: entry.mechanic ?? undefined,
     category: entry.category,
     instructions: entry.instructions ?? [],
     images: (entry.images ?? []).map((img) =>
-      img.startsWith('http')
+      img.startsWith("http")
         ? img
         : `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${img}`,
     ),

@@ -1,8 +1,12 @@
-import { inbodyRepository } from '../repositories/inbody.repository';
-import { profileRepository } from '../repositories/profile.repository';
-import { contractRepository } from '../repositories/contract.repository';
-import { extractInBodyVision } from './inbody-vision.service';
-import { ocrExtractionsTotal, ocrExtractionDuration, inbodyUploadsTotal } from '@gym-coach/shared';
+import { inbodyRepository } from "../repositories/inbody.repository";
+import { profileRepository } from "../repositories/profile.repository";
+import { contractRepository } from "../repositories/contract.repository";
+import { extractInBodyVision } from "./inbody-vision.service";
+import {
+  ocrExtractionsTotal,
+  ocrExtractionDuration,
+  inbodyUploadsTotal,
+} from "@gym-coach/shared";
 
 function startOfUtcDay(d: Date): Date {
   const x = new Date(d);
@@ -19,7 +23,9 @@ function err(message: string, status: number) {
 // P2002 violation and re-throw as a clean 409 rather than letting the controller
 // see a raw Prisma error and return 500.
 function isUniqueViolation(e: any): boolean {
-  return e?.code === 'P2002' || /unique constraint/i.test(String(e?.message || ''));
+  return (
+    e?.code === "P2002" || /unique constraint/i.test(String(e?.message || ""))
+  );
 }
 
 /** After any InBody upsert/update, propagate the newest physical metrics to UserProfile
@@ -29,7 +35,7 @@ async function syncLatestInBodyToProfile(userId: string): Promise<void> {
   const latest = await inbodyRepository.findLatestByUserId(userId);
   if (!latest) return;
   const patch: Record<string, unknown> = {};
-  if (typeof latest.weight === 'number') patch.currentWeight = latest.weight;
+  if (typeof latest.weight === "number") patch.currentWeight = latest.weight;
   if (Object.keys(patch).length > 0) {
     await profileRepository.upsert(userId, patch);
   }
@@ -42,9 +48,12 @@ export const inbodyService = {
 
   // BR-32: PT views a client's InBody — requires ACTIVE or COMPLETED contract
   async getClientHistory(ptUserId: string, clientUserId: string) {
-    const contract = await contractRepository.findActiveOrCompletedByPair(ptUserId, clientUserId);
+    const contract = await contractRepository.findActiveOrCompletedByPair(
+      ptUserId,
+      clientUserId,
+    );
     if (!contract) {
-      throw err('No contract relationship with this client', 403);
+      throw err("No contract relationship with this client", 403);
     }
     return inbodyRepository.findByUserId(clientUserId);
   },
@@ -54,12 +63,17 @@ export const inbodyService = {
   },
 
   async createEntry(userId: string, data: any) {
-    inbodyUploadsTotal.inc({ method: 'manual' });
+    inbodyUploadsTotal.inc({ method: "manual" });
     const measuredDate = data.date ? new Date(data.date) : new Date();
     const dateOnly = startOfUtcDay(measuredDate);
     const payload = { ...data, date: measuredDate, dateOnly };
     const { dateOnly: _d, userId: _u, ...updatePayload } = payload;
-    const entry = await inbodyRepository.upsertByUserAndDate(userId, dateOnly, payload, updatePayload);
+    const entry = await inbodyRepository.upsertByUserAndDate(
+      userId,
+      dateOnly,
+      payload,
+      updatePayload,
+    );
     // Sync latest InBody metrics to the profile so AI always reads fresh data
     await syncLatestInBodyToProfile(userId).catch(() => {});
     return entry;
@@ -71,7 +85,7 @@ export const inbodyService = {
   async updateEntry(userId: string, id: string, data: any) {
     const existing = await inbodyRepository.findById(id);
     if (!existing || existing.userId !== userId) {
-      throw err('InBody entry not found', 404);
+      throw err("InBody entry not found", 404);
     }
     const patch: Record<string, any> = { ...data };
     if (data.date !== undefined) {
@@ -86,12 +100,11 @@ export const inbodyService = {
       return updated;
     } catch (e: any) {
       if (isUniqueViolation(e)) {
-        throw err('Bản ghi InBody trong ngày đã tồn tại', 409);
+        throw err("Bản ghi InBody trong ngày đã tồn tại", 409);
       }
       throw e;
     }
   },
-
 
   async extractFromImage(_userId: string, imagePath: string) {
     const startTime = Date.now();
@@ -99,24 +112,29 @@ export const inbodyService = {
       const result = await extractInBodyVision(imagePath);
 
       const durationSec = (Date.now() - startTime) / 1000;
-      ocrExtractionsTotal.inc({ status: 'success' });
+      ocrExtractionsTotal.inc({ status: "success" });
       ocrExtractionDuration.observe(durationSec);
-      inbodyUploadsTotal.inc({ method: 'image' });
+      inbodyUploadsTotal.inc({ method: "image" });
 
       const weight = result.weight || 0;
       const heightCm = result.height;
       const bodyFat = result.body_fat_mass || 0;
-      const bmi = (heightCm && heightCm > 0)
-        ? Math.round((weight / ((heightCm / 100) ** 2)) * 10) / 10
-        : undefined;
-      const bodyFatPct = (weight > 0 && bodyFat > 0)
-        ? Math.round((bodyFat / weight) * 1000) / 10
-        : undefined;
+      const bmi =
+        heightCm && heightCm > 0
+          ? Math.round((weight / (heightCm / 100) ** 2) * 10) / 10
+          : undefined;
+      const bodyFatPct =
+        weight > 0 && bodyFat > 0
+          ? Math.round((bodyFat / weight) * 1000) / 10
+          : undefined;
 
       // Parse measurement_date from OCR. If Claude returned a valid date string,
       // use it as the measurement date. Otherwise fall back to today.
       let measurementDate: string | null = null;
-      if (result.measurement_date && typeof result.measurement_date === 'string') {
+      if (
+        result.measurement_date &&
+        typeof result.measurement_date === "string"
+      ) {
         const cleaned = result.measurement_date.trim();
         // Validate it parses as a real date
         const parsed = new Date(cleaned);
@@ -148,19 +166,18 @@ export const inbodyService = {
         rightLegFat: result.segmental_fat_analysis?.right_leg,
         leftLegFat: result.segmental_fat_analysis?.left_leg,
 
-        status: 'extracted',
-        notes: 'AI Extracted from image',
+        status: "extracted",
+        notes: "AI Extracted from image",
       };
 
       return { result, entryData };
     } catch (error: any) {
       const durationSec = (Date.now() - startTime) / 1000;
-      ocrExtractionsTotal.inc({ status: 'failure' });
+      ocrExtractionsTotal.inc({ status: "failure" });
       ocrExtractionDuration.observe(durationSec);
 
-      console.error('Extraction failed:', error);
+      console.error("Extraction failed:", error);
       throw new Error(`Failed to extract data: ${error.message}`);
     }
-  }
+  },
 };
-

@@ -1,7 +1,7 @@
-import path from 'path';
-import fs from 'fs/promises';
-import { PrismaClient } from '../src/generated/prisma';
-import { normalizeVietnamese } from '../src/utils/normalizeVietnamese';
+import path from "path";
+import fs from "fs/promises";
+import { PrismaClient } from "../src/generated/prisma";
+import { normalizeVietnamese } from "../src/utils/normalizeVietnamese";
 
 const prisma = new PrismaClient();
 
@@ -12,8 +12,8 @@ interface AliasSeedItem {
 
 async function main() {
   const raw = await fs.readFile(
-    path.join(__dirname, 'data', 'food_aliases.vi.json'),
-    'utf-8',
+    path.join(__dirname, "data", "food_aliases.vi.json"),
+    "utf-8",
   );
   const items = JSON.parse(raw) as AliasSeedItem[];
 
@@ -26,14 +26,18 @@ async function main() {
     if (!alias || !englishQuery) continue;
 
     const foods = await prisma.food.findMany({
-      where: { name: { contains: englishQuery, mode: 'insensitive' } },
+      where: { name: { contains: englishQuery, mode: "insensitive" } },
       select: { id: true },
       take: 50,
     });
 
-    console.log(`[seed] "${alias}" -> "${englishQuery}": ${foods.length} foods`);
+    console.log(
+      `[seed] "${alias}" -> "${englishQuery}": ${foods.length} foods`,
+    );
     if (foods.length > 30) {
-      console.warn(`[seed] WARNING: "${alias}" matched ${foods.length} foods — consider a more specific englishQuery`);
+      console.warn(
+        `[seed] WARNING: "${alias}" matched ${foods.length} foods — consider a more specific englishQuery`,
+      );
     }
 
     for (const food of foods) {
@@ -43,13 +47,13 @@ async function main() {
             foodId: food.id,
             alias,
             aliasNormalized: normalizeVietnamese(alias),
-            language: 'vi',
-            source: 'manual_seed',
+            language: "vi",
+            source: "manual_seed",
           },
         });
         created++;
       } catch (err: any) {
-        if (err.code === 'P2002') {
+        if (err.code === "P2002") {
           skipped++;
           continue;
         }
@@ -58,7 +62,9 @@ async function main() {
     }
   }
 
-  console.log(`\n[seed] Done. Created: ${created}, skipped duplicate: ${skipped}`);
+  console.log(
+    `\n[seed] Done. Created: ${created}, skipped duplicate: ${skipped}`,
+  );
 }
 
 main()

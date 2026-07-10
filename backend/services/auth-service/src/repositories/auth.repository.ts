@@ -1,12 +1,12 @@
-import { PrismaClient, Role } from '../generated/prisma';
+import { PrismaClient, Role } from "../generated/prisma";
 
 export const prisma = new PrismaClient();
 
 export const authRepository = {
   listUsers: () =>
     prisma.user.findMany({
-      where: { role: { not: 'ADMIN' } },
-      orderBy: { createdAt: 'desc' },
+      where: { role: { not: "ADMIN" } },
+      orderBy: { createdAt: "desc" },
       select: {
         id: true,
         email: true,
@@ -52,20 +52,36 @@ export const authRepository = {
         ...(data.firstName !== undefined ? { firstName: data.firstName } : {}),
         ...(data.lastName !== undefined ? { lastName: data.lastName } : {}),
       },
-      select: { id: true, email: true, firstName: true, lastName: true, role: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+      },
     }),
 
   updateUserRoleById: (id: string, role: Role) =>
     prisma.user.update({
       where: { id },
       data: { role },
-      select: { id: true, email: true, firstName: true, lastName: true, role: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+      },
     }),
 
   updateUser: (id: string, data: { isActive?: boolean }) =>
     prisma.user.update({
       where: { id },
-      data: { ...(data.isActive !== undefined ? ({ isActive: data.isActive } as any) : {}) },
+      data: {
+        ...(data.isActive !== undefined
+          ? ({ isActive: data.isActive } as any)
+          : {}),
+      },
       select: { id: true, email: true, role: true, isActive: true },
     }) as any,
 
@@ -77,8 +93,11 @@ export const authRepository = {
     role: Role;
   }) => prisma.user.create({ data }),
 
-  createRefreshToken: (data: { token: string; userId: string; expiresAt: Date }) =>
-    prisma.refreshToken.create({ data }),
+  createRefreshToken: (data: {
+    token: string;
+    userId: string;
+    expiresAt: Date;
+  }) => prisma.refreshToken.create({ data }),
 
   findRefreshToken: (token: string) =>
     prisma.refreshToken.findUnique({

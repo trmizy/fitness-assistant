@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from "../generated/prisma";
 
 export const prisma = new PrismaClient();
 
@@ -31,27 +31,29 @@ export const profileRepository = {
     }),
 
   /** List approved PTs with optional filters */
-  findPTs: async (filters: {
-    q?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    sessionMode?: string;
-    provinceCode?: number;
-    wardCode?: number;
-    sortBy?: string;
-    page?: number;
-    limit?: number;
-  } = {}) => {
+  findPTs: async (
+    filters: {
+      q?: string;
+      minPrice?: number;
+      maxPrice?: number;
+      sessionMode?: string;
+      provinceCode?: number;
+      wardCode?: number;
+      sortBy?: string;
+      page?: number;
+      limit?: number;
+    } = {},
+  ) => {
     // Compose ptApplication filter — always require APPROVED status
-    const ptApplicationWhere: any = { status: 'APPROVED' };
+    const ptApplicationWhere: any = { status: "APPROVED" };
 
     // sessionMode filter
-    if (filters.sessionMode === 'OFFLINE') {
-      ptApplicationWhere.serviceMode = { in: ['OFFLINE', 'HYBRID'] };
-    } else if (filters.sessionMode === 'ONLINE') {
-      ptApplicationWhere.serviceMode = { in: ['ONLINE', 'HYBRID'] };
-    } else if (filters.sessionMode === 'HYBRID') {
-      ptApplicationWhere.serviceMode = 'HYBRID';
+    if (filters.sessionMode === "OFFLINE") {
+      ptApplicationWhere.serviceMode = { in: ["OFFLINE", "HYBRID"] };
+    } else if (filters.sessionMode === "ONLINE") {
+      ptApplicationWhere.serviceMode = { in: ["ONLINE", "HYBRID"] };
+    } else if (filters.sessionMode === "HYBRID") {
+      ptApplicationWhere.serviceMode = "HYBRID";
     }
 
     // Price filter — depends on sessionMode to avoid matching wrong price type
@@ -60,9 +62,9 @@ export const profileRepository = {
       if (filters.minPrice !== undefined) priceRange.gte = filters.minPrice;
       if (filters.maxPrice !== undefined) priceRange.lte = filters.maxPrice;
 
-      if (filters.sessionMode === 'ONLINE') {
+      if (filters.sessionMode === "ONLINE") {
         ptApplicationWhere.onlinePricePerSession = priceRange;
-      } else if (filters.sessionMode === 'OFFLINE') {
+      } else if (filters.sessionMode === "OFFLINE") {
         ptApplicationWhere.offlinePricePerSession = priceRange;
       } else {
         // No sessionMode (or HYBRID): match if any price fits
@@ -82,13 +84,18 @@ export const profileRepository = {
     // q: search by firstName OR lastName
     if (filters.q) {
       profileWhere.OR = [
-        { firstName: { contains: filters.q, mode: 'insensitive' } },
-        { lastName: { contains: filters.q, mode: 'insensitive' } },
+        { firstName: { contains: filters.q, mode: "insensitive" } },
+        { lastName: { contains: filters.q, mode: "insensitive" } },
       ];
     }
 
     // Location filter via trainingLocations relation
-    if (filters.provinceCode || filters.wardCode || filters.sessionMode === 'OFFLINE' || filters.sessionMode === 'HYBRID') {
+    if (
+      filters.provinceCode ||
+      filters.wardCode ||
+      filters.sessionMode === "OFFLINE" ||
+      filters.sessionMode === "HYBRID"
+    ) {
       const locWhere: any = { isActive: true };
       if (filters.provinceCode) locWhere.provinceCode = filters.provinceCode;
       if (filters.wardCode) locWhere.wardCode = filters.wardCode;
@@ -96,17 +103,19 @@ export const profileRepository = {
     }
 
     // Sorting — sort price by relevant price type
-    let orderBy: any = { createdAt: 'desc' };
-    if (filters.sortBy === 'priceAsc') {
-      orderBy = filters.sessionMode === 'OFFLINE'
-        ? { ptApplication: { offlinePricePerSession: 'asc' } }
-        : { ptApplication: { onlinePricePerSession: 'asc' } }; // MVP: sort by onlinePrice when mode not specified
-    } else if (filters.sortBy === 'priceDesc') {
-      orderBy = filters.sessionMode === 'OFFLINE'
-        ? { ptApplication: { offlinePricePerSession: 'desc' } }
-        : { ptApplication: { onlinePricePerSession: 'desc' } };
-    } else if (filters.sortBy === 'nameAsc') {
-      orderBy = { firstName: 'asc' };
+    let orderBy: any = { createdAt: "desc" };
+    if (filters.sortBy === "priceAsc") {
+      orderBy =
+        filters.sessionMode === "OFFLINE"
+          ? { ptApplication: { offlinePricePerSession: "asc" } }
+          : { ptApplication: { onlinePricePerSession: "asc" } }; // MVP: sort by onlinePrice when mode not specified
+    } else if (filters.sortBy === "priceDesc") {
+      orderBy =
+        filters.sessionMode === "OFFLINE"
+          ? { ptApplication: { offlinePricePerSession: "desc" } }
+          : { ptApplication: { onlinePricePerSession: "desc" } };
+    } else if (filters.sortBy === "nameAsc") {
+      orderBy = { firstName: "asc" };
     }
 
     const take = filters.limit ?? 50;
@@ -171,19 +180,19 @@ export const profileRepository = {
               province: { select: { name: true } },
               ward: { select: { name: true } },
             },
-            orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+            orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
           },
           ptApplication: { select: ptApplicationSelect },
         },
       });
     } catch (error: any) {
-      const message = String(error?.message || '');
+      const message = String(error?.message || "");
       const trainingLocationMismatch =
-        message.includes('trainingLocations')
-        || message.includes('pt_training_locations')
-        || message.includes('Unknown field')
-        || message.includes('Unknown argument')
-        || message.includes('does not exist');
+        message.includes("trainingLocations") ||
+        message.includes("pt_training_locations") ||
+        message.includes("Unknown field") ||
+        message.includes("Unknown argument") ||
+        message.includes("does not exist");
 
       if (!trainingLocationMismatch) {
         throw error;
@@ -205,8 +214,8 @@ export const profileRepository = {
   findPTApplicationByUserId: (userId: string) =>
     prisma.pTApplication.findFirst({
       where: {
-        userProfile: { userId }
-      }
+        userProfile: { userId },
+      },
     }),
 
   deleteByUserId: (userId: string) =>

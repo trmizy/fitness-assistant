@@ -5,11 +5,13 @@ AI Service sử dụng **Ollama** để chạy LLM local (không cần API key, 
 ## 📥 Cài đặt Ollama
 
 ### Windows
+
 1. Download: https://ollama.com/download/windows
 2. Chạy installer `OllamaSetup.exe`
 3. Ollama sẽ tự động start như Windows service
 
 ### Verify Installation
+
 ```powershell
 ollama --version
 # Output: ollama version is 0.x.x
@@ -18,6 +20,7 @@ ollama --version
 ## 🚀 Pull Models
 
 ### 1. LLM Model (cho AI Coach)
+
 ```powershell
 # Llama 3.2 3B (nhẹ, nhanh - RECOMMENDED)
 ollama pull llama3.2:3b
@@ -29,16 +32,19 @@ ollama pull mistral:7b       # Alternative (4.1GB)
 ```
 
 ### 2. Embedding Model (cho RAG/Vector Search)
+
 ```powershell
 ollama pull nomic-embed-text
 ```
 
 ## ✅ Verify Models Installed
+
 ```powershell
 ollama list
 ```
 
 Output:
+
 ```
 NAME                    ID              SIZE    MODIFIED
 llama3.2:3b            a80c4f17acd5    2.0 GB  2 hours ago
@@ -48,6 +54,7 @@ nomic-embed-text       0a109f422b47    274 MB  2 hours ago
 ## 🔧 Configuration
 
 AI Service đã config sẵn trong `.env`:
+
 ```env
 LLM_PROVIDER=ollama
 LLM_BASE_URL=http://localhost:11434
@@ -56,7 +63,9 @@ EMBEDDING_MODEL=nomic-embed-text
 ```
 
 ### Đổi Model
+
 Chỉnh file `services/ai-service/.env`:
+
 ```env
 # Dùng model nhẹ hơn
 LLM_MODEL=llama3.2:1b
@@ -68,9 +77,11 @@ LLM_MODEL=llama3.1:8b
 ## 🧪 Test Ollama
 
 ### 1. Test LLM
+
 ```powershell
 ollama run llama3.2:3b
 ```
+
 ```
 >>> How do I build muscle?
 Focus on progressive overload, compound exercises...
@@ -78,6 +89,7 @@ Focus on progressive overload, compound exercises...
 ```
 
 ### 2. Test API
+
 ```powershell
 $body = @{
   model = "llama3.2:3b"
@@ -92,6 +104,7 @@ Invoke-RestMethod "http://localhost:11434/api/generate" `
 ```
 
 ### 3. Test Embeddings
+
 ```powershell
 $body = @{
   model = "nomic-embed-text"
@@ -114,6 +127,7 @@ pnpm run ingest
 ```
 
 Output:
+
 ```
 ✓ Connected to Qdrant
 ✓ Loaded 207 exercises
@@ -124,6 +138,7 @@ Output:
 ## 🎯 Test AI Coach
 
 ### Via API
+
 ```powershell
 $headers = @{
   "Authorization" = "Bearer YOUR_ACCESS_TOKEN"
@@ -142,6 +157,7 @@ Invoke-RestMethod "http://localhost:3000/ai/ask" `
 ```
 
 ### Via Web UI
+
 1. Login: http://localhost:5173
 2. Click "🤖 AI Coach" menu
 3. Ask questions:
@@ -152,6 +168,7 @@ Invoke-RestMethod "http://localhost:3000/ai/ask" `
 ## 🐛 Troubleshooting
 
 ### Ollama not running
+
 ```powershell
 # Check service
 Get-Service Ollama*
@@ -161,6 +178,7 @@ ollama serve
 ```
 
 ### Model not found
+
 ```powershell
 # List installed models
 ollama list
@@ -171,6 +189,7 @@ ollama pull nomic-embed-text
 ```
 
 ### AI Service can't connect
+
 ```powershell
 # Test Ollama API
 curl http://localhost:11434
@@ -182,6 +201,7 @@ curl http://localhost:11434
 ```
 
 ### Embeddings not working
+
 ```powershell
 # Re-ingest data
 cd services\ai-service
@@ -189,7 +209,9 @@ pnpm run ingest
 ```
 
 ### Out of memory
+
 Use lighter model:
+
 ```env
 # In services/ai-service/.env
 LLM_MODEL=llama3.2:1b  # Only 1.3GB RAM
@@ -197,12 +219,12 @@ LLM_MODEL=llama3.2:1b  # Only 1.3GB RAM
 
 ## 📊 Model Comparison
 
-| Model | Size | RAM Needed | Speed | Quality |
-|-------|------|------------|-------|---------|
-| llama3.2:1b | 1.3GB | 2GB | ⚡⚡⚡ | ⭐⭐ |
-| llama3.2:3b | 2.0GB | 4GB | ⚡⚡ | ⭐⭐⭐ |
-| llama3.1:8b | 4.7GB | 8GB | ⚡ | ⭐⭐⭐⭐ |
-| mistral:7b | 4.1GB | 8GB | ⚡ | ⭐⭐⭐⭐ |
+| Model       | Size  | RAM Needed | Speed  | Quality  |
+| ----------- | ----- | ---------- | ------ | -------- |
+| llama3.2:1b | 1.3GB | 2GB        | ⚡⚡⚡ | ⭐⭐     |
+| llama3.2:3b | 2.0GB | 4GB        | ⚡⚡   | ⭐⭐⭐   |
+| llama3.1:8b | 4.7GB | 8GB        | ⚡     | ⭐⭐⭐⭐ |
+| mistral:7b  | 4.1GB | 8GB        | ⚡     | ⭐⭐⭐⭐ |
 
 **Recommended**: `llama3.2:3b` - Cân bằng tốt giữa speed và quality
 
@@ -216,21 +238,25 @@ LLM_MODEL=llama3.2:1b  # Only 1.3GB RAM
 ## 🚀 Advanced
 
 ### Custom System Prompt
+
 Edit `services/ai-service/src/main.ts` line ~130:
+
 ```typescript
 const systemPrompt = `You are an expert gym coach...`;
 ```
 
 ### Change Temperature
+
 ```typescript
 // In callLLM() function
 temperature: 0.7,  // Lower = more focused, Higher = more creative
 ```
 
 ### Enable Streaming
+
 ```typescript
 // For real-time responses
-stream: true
+stream: true;
 ```
 
 ## 📚 More Info
@@ -242,6 +268,7 @@ stream: true
 ---
 
 **Quick Start**:
+
 ```powershell
 # 1. Install Ollama from ollama.com
 # 2. Pull models

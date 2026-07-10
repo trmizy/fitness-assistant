@@ -1,7 +1,8 @@
-import axios from 'axios';
-import { chatRepository } from '../repositories/chat.repository';
+import axios from "axios";
+import { chatRepository } from "../repositories/chat.repository";
 
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
+const USER_SERVICE_URL =
+  process.env.USER_SERVICE_URL || "http://localhost:3004";
 
 /**
  * Chat-linked call: both users must be conversation participants,
@@ -20,7 +21,10 @@ export async function canInitiateCallFromChat(
     chatRepository.isUserParticipant(conversationId, calleeId),
   ]);
   if (!callerOk || !calleeOk) {
-    return { allowed: false, reason: 'Both users must be participants of this conversation' };
+    return {
+      allowed: false,
+      reason: "Both users must be participants of this conversation",
+    };
   }
 
   // 2. Check relationship: at least one is PT OR active contract exists
@@ -34,7 +38,10 @@ export async function canInitiateCallFromChat(
       },
     );
     if (!data.allowed) {
-      return { allowed: false, reason: 'No PT relationship or active contract between users' };
+      return {
+        allowed: false,
+        reason: "No PT relationship or active contract between users",
+      };
     }
   } catch {
     // If user-service is down, be permissive (same pattern as chat.policy.ts)
@@ -53,7 +60,12 @@ export async function canInitiateCallFromSession(
   callerId: string,
   coachingSessionId: string,
   authToken: string,
-): Promise<{ allowed: boolean; reason?: string; calleeId?: string; conversationId?: string }> {
+): Promise<{
+  allowed: boolean;
+  reason?: string;
+  calleeId?: string;
+  conversationId?: string;
+}> {
   try {
     const { data: session } = await axios.get(
       `${USER_SERVICE_URL}/sessions/${coachingSessionId}`,
@@ -63,28 +75,41 @@ export async function canInitiateCallFromSession(
       },
     );
 
-    if (!session) return { allowed: false, reason: 'Session not found' };
-    if (session.status !== 'CONFIRMED') return { allowed: false, reason: 'Session is not confirmed' };
-    if (session.sessionMode !== 'ONLINE' && session.sessionMode !== 'HYBRID') {
-      return { allowed: false, reason: 'Session mode must be ONLINE or HYBRID' };
+    if (!session) return { allowed: false, reason: "Session not found" };
+    if (session.status !== "CONFIRMED")
+      return { allowed: false, reason: "Session is not confirmed" };
+    if (session.sessionMode !== "ONLINE" && session.sessionMode !== "HYBRID") {
+      return {
+        allowed: false,
+        reason: "Session mode must be ONLINE or HYBRID",
+      };
     }
 
     // Caller must be PT or client of this session
     if (session.ptUserId !== callerId && session.clientUserId !== callerId) {
-      return { allowed: false, reason: 'You are not a participant of this session' };
+      return {
+        allowed: false,
+        reason: "You are not a participant of this session",
+      };
     }
 
     const now = Date.now();
-    const windowStart = new Date(session.scheduledStartAt).getTime() - 10 * 60 * 1000;
-    const windowEnd   = new Date(session.scheduledEndAt).getTime()   + 15 * 60 * 1000;
+    const windowStart =
+      new Date(session.scheduledStartAt).getTime() - 10 * 60 * 1000;
+    const windowEnd =
+      new Date(session.scheduledEndAt).getTime() + 15 * 60 * 1000;
     if (now < windowStart || now > windowEnd) {
-      return { allowed: false, reason: 'Outside the call time window for this session' };
+      return {
+        allowed: false,
+        reason: "Outside the call time window for this session",
+      };
     }
 
-    const calleeId = callerId === session.ptUserId ? session.clientUserId : session.ptUserId;
+    const calleeId =
+      callerId === session.ptUserId ? session.clientUserId : session.ptUserId;
 
     return { allowed: true, calleeId };
   } catch {
-    return { allowed: false, reason: 'Failed to verify session' };
+    return { allowed: false, reason: "Failed to verify session" };
   }
 }

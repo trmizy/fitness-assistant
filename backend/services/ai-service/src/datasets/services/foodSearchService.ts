@@ -1,8 +1,8 @@
-import { usdaProvider } from '../providers/usda/usda.provider';
-import { openFoodFactsProvider } from '../providers/openfoodfacts/off.provider';
-import { mergeFoodDetails } from '../utils/sourceRanker';
-import { getDatasetConfig } from '../utils/datasetConfig';
-import type { FoodDetail, FoodSearchItem } from '../types';
+import { usdaProvider } from "../providers/usda/usda.provider";
+import { openFoodFactsProvider } from "../providers/openfoodfacts/off.provider";
+import { mergeFoodDetails } from "../utils/sourceRanker";
+import { getDatasetConfig } from "../utils/datasetConfig";
+import type { FoodDetail, FoodSearchItem } from "../types";
 
 /**
  * Food Search Service — unified entry point for food queries.
@@ -28,7 +28,10 @@ export const foodSearchService = {
       try {
         return await usdaProvider.searchFoods(query, cfg.usda.apiKey, limit);
       } catch (err) {
-        console.warn('[foodSearchService] USDA search failed, falling back to OFF:', err);
+        console.warn(
+          "[foodSearchService] USDA search failed, falling back to OFF:",
+          err,
+        );
       }
     }
 
@@ -36,7 +39,7 @@ export const foodSearchService = {
       try {
         return await openFoodFactsProvider.searchFoods(query, limit);
       } catch (err) {
-        console.warn('[foodSearchService] Open Food Facts search failed:', err);
+        console.warn("[foodSearchService] Open Food Facts search failed:", err);
       }
     }
 
@@ -50,23 +53,26 @@ export const foodSearchService = {
    * @param id      USDA fdcId (preferred) or product identifier
    * @param source  'usda' | 'openfoodfacts' (default: 'usda')
    */
-  async getDetails(id: string, source: 'usda' | 'openfoodfacts' = 'usda'): Promise<FoodDetail | null> {
+  async getDetails(
+    id: string,
+    source: "usda" | "openfoodfacts" = "usda",
+  ): Promise<FoodDetail | null> {
     const cfg = getDatasetConfig();
 
-    if (source === 'usda' && cfg.usda.enabled) {
+    if (source === "usda" && cfg.usda.enabled) {
       try {
         return await usdaProvider.getFoodDetails(id, cfg.usda.apiKey);
       } catch (err) {
-        console.warn('[foodSearchService] USDA detail fetch failed:', err);
+        console.warn("[foodSearchService] USDA detail fetch failed:", err);
         return null;
       }
     }
 
-    if (source === 'openfoodfacts' && cfg.openFoodFacts.enabled) {
+    if (source === "openfoodfacts" && cfg.openFoodFacts.enabled) {
       try {
         return await openFoodFactsProvider.getProductByBarcode(id);
       } catch (err) {
-        console.warn('[foodSearchService] OFF detail fetch failed:', err);
+        console.warn("[foodSearchService] OFF detail fetch failed:", err);
         return null;
       }
     }
@@ -87,14 +93,24 @@ export const foodSearchService = {
     if (!cfg.usda.enabled) return offDetail;
 
     try {
-      const usdaResults = await usdaProvider.searchFoods(offDetail.name, cfg.usda.apiKey, 1);
+      const usdaResults = await usdaProvider.searchFoods(
+        offDetail.name,
+        cfg.usda.apiKey,
+        1,
+      );
       if (usdaResults.length === 0) return offDetail;
 
-      const usdaDetail = await usdaProvider.getFoodDetails(usdaResults[0].id, cfg.usda.apiKey);
+      const usdaDetail = await usdaProvider.getFoodDetails(
+        usdaResults[0].id,
+        cfg.usda.apiKey,
+      );
       // USDA is primary — it wins on all macro totals.
       return mergeFoodDetails(usdaDetail, offDetail);
     } catch (err) {
-      console.warn('[foodSearchService] USDA enrichment failed, returning OFF data:', err);
+      console.warn(
+        "[foodSearchService] USDA enrichment failed, returning OFF data:",
+        err,
+      );
       return offDetail;
     }
   },

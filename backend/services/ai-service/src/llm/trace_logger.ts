@@ -1,4 +1,4 @@
-import { logger } from '@gym-coach/shared';
+import { logger } from "@gym-coach/shared";
 
 function makeTraceId(): string {
   return `ai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -22,7 +22,7 @@ export const traceLogger = {
         userId,
         questionLength: question.length,
       },
-      'LLM orchestration started',
+      "LLM orchestration started",
     );
 
     return context;
@@ -35,7 +35,7 @@ export const traceLogger = {
         durationMs: Date.now() - context.startedAt,
         ...extra,
       },
-      'LLM orchestration finished',
+      "LLM orchestration finished",
     );
   },
 };

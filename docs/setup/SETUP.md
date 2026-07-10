@@ -3,6 +3,7 @@
 ## ✅ Current Status
 
 ### Completed Components:
+
 - ✅ Monorepo structure (pnpm workspaces)
 - ✅ Shared package (types, schemas, auth, logger, HTTP client)
 - ✅ Auth Service (complete with JWT, registration, login)
@@ -11,6 +12,7 @@
 - ✅ Database schemas (Prisma)
 
 ### To Complete:
+
 - 🔄 AI Service (LLM + RAG)
 - 🔄 API Gateway
 - 🔄 React Frontend
@@ -21,28 +23,33 @@
 ## 🚀 QUICK START (5 Minutes)
 
 ### Step 1: Install Dependencies
+
 ```bash
 cd ai-gym-coach
 pnpm install
 ```
 
 ### Step 2: Setup Environment
+
 ```bash
 cp .env.example .env
 # Edit .env with your database credentials
 ```
 
 ### Step 3: Generate Remaining Files
+
 ```bash
 node scripts/generate-files.js
 ```
 
 ### Step 4: Start Infrastructure
+
 ```bash
 docker-compose up -d postgres redis qdrant
 ```
 
 ### Step 5: Database Setup
+
 ```bash
 # Generate Prisma clients
 cd services/auth-service && pnpm db:generate && cd ../..
@@ -57,6 +64,7 @@ cd services/auth-service && pnpm db:seed && cd ../..
 ```
 
 ### Step 6: Start Services (Development)
+
 ```bash
 # Terminal 1 - Auth Service
 cd services/auth-service
@@ -91,6 +99,7 @@ mkdir -p services/ai-service/prisma
 ```
 
 **services/ai-service/package.json:**
+
 ```json
 {
   "name": "@gym-coach/ai-service",
@@ -120,41 +129,46 @@ mkdir -p services/ai-service/prisma
 ```
 
 **services/ai-service/src/main.ts:**
+
 ```typescript
-import express from 'express';
-import helmet from 'helmet';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { createServiceLogger } from '@gym-coach/shared';
+import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import dotenv from "dotenv";
+import { createServiceLogger } from "@gym-coach/shared";
 
 dotenv.config();
 
 const app = express();
-const logger = createServiceLogger('ai-service');
+const logger = createServiceLogger("ai-service");
 const PORT = process.env.PORT || 3003;
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173' }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173" }));
 app.use(express.json());
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', service: 'ai-service' });
+app.get("/health", (req, res) => {
+  res.json({ status: "healthy", service: "ai-service" });
 });
 
-app.post('/coach/chat', async (req, res) => {
+app.post("/coach/chat", async (req, res) => {
   try {
     const { message } = req.body;
-    
+
     // Simple response for MVP
     const response = {
       message: `Based on your question "${message}", I recommend focusing on progressive overload and proper form.`,
-      conversationId: 'mock-conversation-id',
-      suggestions: ['Track your workouts', 'Increase weight gradually', 'Rest adequately'],
+      conversationId: "mock-conversation-id",
+      suggestions: [
+        "Track your workouts",
+        "Increase weight gradually",
+        "Rest adequately",
+      ],
     };
-    
+
     res.json({ success: true, data: response });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Chat failed' });
+    res.status(500).json({ success: false, error: "Chat failed" });
   }
 });
 
@@ -170,6 +184,7 @@ mkdir -p apps/api-gateway/src/{middleware,routes}
 ```
 
 **apps/api-gateway/package.json:**
+
 ```json
 {
   "name": "@gym-coach/api-gateway",
@@ -199,74 +214,101 @@ mkdir -p apps/api-gateway/src/{middleware,routes}
 ```
 
 **apps/api-gateway/src/main.ts:**
+
 ```typescript
-import express from 'express';
-import helmet from 'helmet';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { createProxyMiddleware } from 'http-proxy-middleware';
-import { createServiceLogger } from '@gym-coach/shared';
-import rateLimit from 'express-rate-limit';
+import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import dotenv from "dotenv";
+import { createProxyMiddleware } from "http-proxy-middleware";
+import { createServiceLogger } from "@gym-coach/shared";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
 const app = express();
-const logger = createServiceLogger('api-gateway');
+const logger = createServiceLogger("api-gateway");
 const PORT = process.env.PORT || 3000;
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 60 * 1000,
   max: 100,
-  message: 'Too many requests',
+  message: "Too many requests",
 });
 
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(limiter);
 
 // Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', service: 'api-gateway' });
+app.get("/health", (req, res) => {
+  res.json({ status: "healthy", service: "api-gateway" });
 });
 
 // Proxy routes
-app.use('/auth', createProxyMiddleware({
-  target: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',
-  changeOrigin: true,
-  pathRewrite: { '^/auth': '/auth' },
-}));
+app.use(
+  "/auth",
+  createProxyMiddleware({
+    target: process.env.AUTH_SERVICE_URL || "http://localhost:3001",
+    changeOrigin: true,
+    pathRewrite: { "^/auth": "/auth" },
+  }),
+);
 
-app.use('/profile', createProxyMiddleware({
-  target: process.env.FITNESS_SERVICE_URL || 'http://localhost:3002',
-  changeOrigin: true,
-}));
+app.use(
+  "/profile",
+  createProxyMiddleware({
+    target: process.env.FITNESS_SERVICE_URL || "http://localhost:3002",
+    changeOrigin: true,
+  }),
+);
 
-app.use('/inbody', createProxyMiddleware({
-  target: process.env.FITNESS_SERVICE_URL || 'http://localhost:3002',
-  changeOrigin: true,
-}));
+app.use(
+  "/inbody",
+  createProxyMiddleware({
+    target: process.env.FITNESS_SERVICE_URL || "http://localhost:3002",
+    changeOrigin: true,
+  }),
+);
 
-app.use('/workouts', createProxyMiddleware({
-  target: process.env.FITNESS_SERVICE_URL || 'http://localhost:3002',
-  changeOrigin: true,
-}));
+app.use(
+  "/workouts",
+  createProxyMiddleware({
+    target: process.env.FITNESS_SERVICE_URL || "http://localhost:3002",
+    changeOrigin: true,
+  }),
+);
 
-app.use('/exercises', createProxyMiddleware({
-  target: process.env.FITNESS_SERVICE_URL || 'http://localhost:3002',
-  changeOrigin: true,
-}));
+app.use(
+  "/exercises",
+  createProxyMiddleware({
+    target: process.env.FITNESS_SERVICE_URL || "http://localhost:3002",
+    changeOrigin: true,
+  }),
+);
 
-app.use('/plans', createProxyMiddleware({
-  target: process.env.FITNESS_SERVICE_URL || 'http://localhost:3002',
-  changeOrigin: true,
-}));
+app.use(
+  "/plans",
+  createProxyMiddleware({
+    target: process.env.FITNESS_SERVICE_URL || "http://localhost:3002",
+    changeOrigin: true,
+  }),
+);
 
-app.use('/coach', createProxyMiddleware({
-  target: process.env.AI_SERVICE_URL || 'http://localhost:3003',
-  changeOrigin: true,
-}));
+app.use(
+  "/coach",
+  createProxyMiddleware({
+    target: process.env.AI_SERVICE_URL || "http://localhost:3003",
+    changeOrigin: true,
+  }),
+);
 
 app.listen(PORT, () => {
   logger.info(`API Gateway listening on port ${PORT}`);
@@ -280,6 +322,7 @@ mkdir -p apps/web/src/{pages,components,services}
 ```
 
 **apps/web/package.json:**
+
 ```json
 {
   "name": "@gym-coach/web",
@@ -312,6 +355,7 @@ mkdir -p apps/web/src/{pages,components,services}
 ```
 
 **apps/web/src/App.tsx:**
+
 ```typescript
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -354,21 +398,22 @@ export default App;
 ```
 
 **apps/web/src/services/api.ts:**
-```typescript
-import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+```typescript
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
+  const token = localStorage.getItem("accessToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -377,86 +422,96 @@ api.interceptors.request.use((config) => {
 
 export const authService = {
   login: async (email: string, password: string) => {
-    const { data } = await api.post('/auth/login', { email, password });
+    const { data } = await api.post("/auth/login", { email, password });
     if (data.success) {
-      localStorage.setItem('accessToken', data.data.tokens.accessToken);
-      localStorage.setItem('refreshToken', data.data.tokens.refreshToken);
+      localStorage.setItem("accessToken", data.data.tokens.accessToken);
+      localStorage.setItem("refreshToken", data.data.tokens.refreshToken);
     }
     return data;
   },
-  
-  register: async (email: string, password: string, firstName: string, lastName: string) => {
-    const { data } = await api.post('/auth/register', { email, password, firstName, lastName });
+
+  register: async (
+    email: string,
+    password: string,
+    firstName: string,
+    lastName: string,
+  ) => {
+    const { data } = await api.post("/auth/register", {
+      email,
+      password,
+      firstName,
+      lastName,
+    });
     return data;
   },
-  
+
   logout: () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
   },
 };
 
 export const profileService = {
   getProfile: async () => {
-    const { data } = await api.get('/profile/me');
+    const { data } = await api.get("/profile/me");
     return data;
   },
-  
+
   updateProfile: async (profile: any) => {
-    const { data } = await api.put('/profile/me', profile);
+    const { data } = await api.put("/profile/me", profile);
     return data;
   },
 };
 
 export const inbodyService = {
   create: async (entry: any) => {
-    const { data } = await api.post('/inbody', entry);
+    const { data } = await api.post("/inbody", entry);
     return data;
   },
-  
+
   getLatest: async () => {
-    const { data } = await api.get('/inbody/latest');
+    const { data } = await api.get("/inbody/latest");
     return data;
   },
-  
+
   getHistory: async () => {
-    const { data } = await api.get('/inbody/history');
+    const { data } = await api.get("/inbody/history");
     return data;
   },
 };
 
 export const workoutService = {
   logWorkout: async (workout: any) => {
-    const { data } = await api.post('/workouts/log', workout);
+    const { data } = await api.post("/workouts/log", workout);
     return data;
   },
-  
+
   getHistory: async (page: number = 1) => {
     const { data } = await api.get(`/workouts/history?page=${page}`);
     return data;
   },
-  
+
   getExercises: async () => {
-    const { data } = await api.get('/exercises/exercises');
+    const { data } = await api.get("/exercises/exercises");
     return data;
   },
 };
 
 export const planService = {
   generateWorkoutPlan: async (params: any) => {
-    const { data } = await api.post('/plans/workout/generate', params);
+    const { data } = await api.post("/plans/workout/generate", params);
     return data;
   },
-  
+
   getCurrentPlans: async () => {
-    const { data } = await api.get('/plans/current');
+    const { data } = await api.get("/plans/current");
     return data;
   },
 };
 
 export const coachService = {
   chat: async (message: string) => {
-    const { data } = await api.post('/coach/chat', { message });
+    const { data } = await api.post("/coach/chat", { message });
     return data;
   },
 };
@@ -469,6 +524,7 @@ export default api;
 ## 🧪 Testing the System
 
 ### Test Auth Flow
+
 ```bash
 # Register
 curl -X POST http://localhost:3000/auth/register \
@@ -482,6 +538,7 @@ curl -X POST http://localhost:3000/auth/login \
 ```
 
 ### Test With Seeded User
+
 ```bash
 # Login as john.doe
 curl -X POST http://localhost:3000/auth/login \
@@ -509,6 +566,7 @@ docker-compose up -d
 ## 🐛 Troubleshooting
 
 ### Port Already in Use
+
 ```bash
 # Windows
 netstat -ano | findstr :3000
@@ -519,6 +577,7 @@ lsof -ti:3000 | xargs kill -9
 ```
 
 ### Database Connection Issues
+
 ```bash
 # Check Postgres is running
 docker-compose ps postgres
@@ -531,6 +590,7 @@ docker-compose restart postgres
 ```
 
 ### Prisma Issues
+
 ```bash
 # Reset database
 cd services/auth-service
@@ -556,6 +616,7 @@ pnpm db:seed
 ## 🎉 You're Ready!
 
 Visit **http://localhost:5173** and login with:
+
 - Email: `john.doe@example.com`
 - Password: `password123`
 

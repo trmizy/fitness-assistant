@@ -106,7 +106,10 @@
   "_meta": {
     "description": "Sub-workflow: checks user-service /health and PT listing endpoint reachability (may require auth). Called by orchestrator via POST /webhook/gym-test-pt-review.",
     "webhook_path": "gym-test-pt-review",
-    "checks": ["http://user-service:3004/health", "http://api-gateway:3000/profile/pts"],
+    "checks": [
+      "http://user-service:3004/health",
+      "http://api-gateway:3000/profile/pts"
+    ],
     "response_schema": {
       "passed": "boolean",
       "step": "PT Review",

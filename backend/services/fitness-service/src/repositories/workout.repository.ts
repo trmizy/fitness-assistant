@@ -1,12 +1,12 @@
-import { prisma } from './prisma';
+import { prisma } from "./prisma";
 
 const workoutInclude = {
   exercises: {
     include: {
       exercise: true,
-      workoutSets: { orderBy: { setNumber: 'asc' as const } },
+      workoutSets: { orderBy: { setNumber: "asc" as const } },
     },
-    orderBy: { order: 'asc' as const },
+    orderBy: { order: "asc" as const },
   },
 };
 
@@ -15,7 +15,7 @@ export const workoutRepository = {
     prisma.workout.findMany({
       where,
       include: workoutInclude,
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
       take: limit,
     }),
 
@@ -61,19 +61,25 @@ export const workoutRepository = {
 
       if (data.scheduleId) {
         const totalExercises = data.exercises.length;
-        const totalSets = data.exercises.reduce((sum: number, ex: any) => sum + Number(ex.sets || 0), 0);
+        const totalSets = data.exercises.reduce(
+          (sum: number, ex: any) => sum + Number(ex.sets || 0),
+          0,
+        );
         await tx.workoutSchedule.update({
           where: { id: data.scheduleId },
           data: {
             workoutId: workout.id,
-            status: 'COMPLETED',
+            status: "COMPLETED",
             progressPercent: 100,
             completedAt: new Date(),
             totalExercises,
             completedExercises: totalExercises,
             totalSets,
             completedSets: totalSets,
-            durationSeconds: typeof data.duration === 'number' ? data.duration * 60 : undefined,
+            durationSeconds:
+              typeof data.duration === "number"
+                ? data.duration * 60
+                : undefined,
           },
         });
       }
@@ -118,19 +124,25 @@ export const workoutRepository = {
 
       if (data.scheduleId) {
         const totalExercises = data.exercises.length;
-        const totalSets = data.exercises.reduce((sum: number, ex: any) => sum + Number(ex.sets || 0), 0);
+        const totalSets = data.exercises.reduce(
+          (sum: number, ex: any) => sum + Number(ex.sets || 0),
+          0,
+        );
         await tx.workoutSchedule.update({
           where: { id: data.scheduleId },
           data: {
             workoutId: id,
-            status: 'COMPLETED',
+            status: "COMPLETED",
             progressPercent: 100,
             completedAt: new Date(),
             totalExercises,
             completedExercises: totalExercises,
             totalSets,
             completedSets: totalSets,
-            durationSeconds: typeof data.duration === 'number' ? data.duration * 60 : undefined,
+            durationSeconds:
+              typeof data.duration === "number"
+                ? data.duration * 60
+                : undefined,
           },
         });
       }
@@ -141,7 +153,10 @@ export const workoutRepository = {
 
   delete: (id: string) => prisma.workout.delete({ where: { id } }),
 
-  updateSet: (setId: string, data: { reps?: number; weight?: number; rpe?: number; completed?: boolean }) =>
+  updateSet: (
+    setId: string,
+    data: { reps?: number; weight?: number; rpe?: number; completed?: boolean },
+  ) =>
     prisma.workoutSet.update({
       where: { id: setId },
       data,
@@ -162,7 +177,7 @@ export const workoutRepository = {
     const records = await prisma.workoutExercise.findMany({
       where,
       include: { exercise: true, workout: { select: { date: true } } },
-      orderBy: { weight: 'desc' },
+      orderBy: { weight: "desc" },
     });
 
     // Group by exercise, keep max weight per exercise
@@ -196,16 +211,23 @@ export const workoutRepository = {
   async appendSet(
     workoutId: string,
     exerciseId: string,
-    setData: { setNumber?: number; weight?: number; reps?: number; rpe?: number },
+    setData: {
+      setNumber?: number;
+      weight?: number;
+      reps?: number;
+      rpe?: number;
+    },
   ) {
     let workoutExercise = await prisma.workoutExercise.findFirst({
       where: { workoutId, exerciseId },
-      include: { workoutSets: { orderBy: { setNumber: 'desc' as const }, take: 1 } },
+      include: {
+        workoutSets: { orderBy: { setNumber: "desc" as const }, take: 1 },
+      },
     });
     if (!workoutExercise) {
       const maxOrder = await prisma.workoutExercise.findFirst({
         where: { workoutId },
-        orderBy: { order: 'desc' },
+        orderBy: { order: "desc" },
         select: { order: true },
       });
       workoutExercise = await prisma.workoutExercise.create({
@@ -219,10 +241,10 @@ export const workoutRepository = {
       });
     }
     if (!workoutExercise) {
-      throw new Error('Workout exercise could not be created');
+      throw new Error("Workout exercise could not be created");
     }
     const nextSetNumber =
-      setData.setNumber ?? ((workoutExercise.workoutSets[0]?.setNumber ?? 0) + 1);
+      setData.setNumber ?? (workoutExercise.workoutSets[0]?.setNumber ?? 0) + 1;
     return prisma.workoutSet.create({
       data: {
         workoutExerciseId: workoutExercise.id,

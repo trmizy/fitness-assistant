@@ -1,58 +1,86 @@
 import { NavLink, useNavigate } from "react-router";
 import { useApp } from "../../context/AppContext";
 import {
-  LayoutDashboard, Activity, Brain, FileText, MessageSquare,
-  Calendar, Dumbbell, Utensils, Users, Search, Bot, User,
-  Shield, UserCheck, Monitor, X, LogOut, ClipboardList,
-  Zap, Workflow
+  LayoutDashboard,
+  Activity,
+  Brain,
+  FileText,
+  MessageSquare,
+  Calendar,
+  Dumbbell,
+  Utensils,
+  Users,
+  Search,
+  Bot,
+  User,
+  Shield,
+  UserCheck,
+  Monitor,
+  X,
+  LogOut,
+  ClipboardList,
+  Zap,
+  Workflow,
 } from "lucide-react";
 
 // ─── Navigation definitions ────────────────────────────────────────────────
 
 /** Full client nav — shown to pure Client accounts */
 const clientNavFull = [
-  { label: "Dashboard",        icon: LayoutDashboard, to: "/client/dashboard" },
-  { label: "InBody",           icon: Activity,        to: "/client/inbody"    },
-  { label: "AI Plans",         icon: Brain,           to: "/client/plans"     },
-  { label: "Nhật ký tập",      icon: Dumbbell,        to: "/client/workout"   },
-  { label: "Dinh dưỡng",       icon: Utensils,        to: "/client/nutrition" },
-  { label: "Tìm PT",           icon: Search,          to: "/client/coaches"   },
-  { label: "Hợp đồng",         icon: FileText,        to: "/client/contracts" },
-  { label: "Đặt lịch",         icon: Calendar,        to: "/client/booking"   },
-  { label: "Chat",              icon: MessageSquare,   to: "/client/chat"      },
-  { label: "AI Coach",          icon: Bot,             to: "/client/ai-coach"  },
-  { label: "Hồ sơ",            icon: User,            to: "/client/profile"   },
+  { label: "Dashboard", icon: LayoutDashboard, to: "/client/dashboard" },
+  { label: "InBody", icon: Activity, to: "/client/inbody" },
+  { label: "AI Plans", icon: Brain, to: "/client/plans" },
+  { label: "Nhật ký tập", icon: Dumbbell, to: "/client/workout" },
+  { label: "Dinh dưỡng", icon: Utensils, to: "/client/nutrition" },
+  { label: "Tìm PT", icon: Search, to: "/client/coaches" },
+  { label: "Hợp đồng", icon: FileText, to: "/client/contracts" },
+  { label: "Đặt lịch", icon: Calendar, to: "/client/booking" },
+  { label: "Chat", icon: MessageSquare, to: "/client/chat" },
+  { label: "AI Coach", icon: Bot, to: "/client/ai-coach" },
+  { label: "Hồ sơ", icon: User, to: "/client/profile" },
 ];
 
 /** Client nav for PT users — no Find a Coach, no Chat (PT chats from Trainer workspace) */
-const ptClientNav = clientNavFull.filter((n) => n.to !== "/client/coaches" && n.to !== "/client/chat");
+const ptClientNav = clientNavFull.filter(
+  (n) => n.to !== "/client/coaches" && n.to !== "/client/chat",
+);
 
 /** PT professional workspace nav */
 const ptWorkspaceNav = [
-  { label: "PT Dashboard",    icon: LayoutDashboard, to: "/pt/dashboard"  },
-  { label: "Học viên",        icon: Users,           to: "/pt/clients"    },
-  { label: "Hợp đồng",        icon: FileText,        to: "/pt/contracts"  },
-  { label: "Duyệt kế hoạch",  icon: ClipboardList,   to: "/pt/plans"      },
-  { label: "Lịch dạy",        icon: Calendar,        to: "/pt/schedule"   },
-  { label: "Chat",             icon: MessageSquare,   to: "/pt/chat"       },
-  { label: "Hồ sơ PT",        icon: User,            to: "/pt/profile"    },
+  { label: "PT Dashboard", icon: LayoutDashboard, to: "/pt/dashboard" },
+  { label: "Học viên", icon: Users, to: "/pt/clients" },
+  { label: "Hợp đồng", icon: FileText, to: "/pt/contracts" },
+  { label: "Duyệt kế hoạch", icon: ClipboardList, to: "/pt/plans" },
+  { label: "Lịch dạy", icon: Calendar, to: "/pt/schedule" },
+  { label: "Chat", icon: MessageSquare, to: "/pt/chat" },
+  { label: "Hồ sơ PT", icon: User, to: "/pt/profile" },
 ];
 
 /** Admin nav */
 const adminNav = [
-  { label: "Dashboard",        icon: LayoutDashboard, to: "/admin/dashboard"        },
-  { label: "Người dùng",       icon: Users,           to: "/admin/users"            },
-  { label: "Quản lý PT",       icon: UserCheck,       to: "/admin/pts"              },
-  { label: "Giám sát hệ thống", icon: Monitor,        to: "/admin/system"           },
-  { label: "Workflows",        icon: Workflow,        to: "/admin/workflows"        },
-  { label: "AI Observability", icon: Brain,           to: "/admin/ai-observability" },
+  { label: "Dashboard", icon: LayoutDashboard, to: "/admin/dashboard" },
+  { label: "Người dùng", icon: Users, to: "/admin/users" },
+  { label: "Quản lý PT", icon: UserCheck, to: "/admin/pts" },
+  { label: "Giám sát hệ thống", icon: Monitor, to: "/admin/system" },
+  { label: "Workflows", icon: Workflow, to: "/admin/workflows" },
+  { label: "AI Observability", icon: Brain, to: "/admin/ai-observability" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-interface NavItem { label: string; icon: React.ElementType; to: string }
+interface NavItem {
+  label: string;
+  icon: React.ElementType;
+  to: string;
+}
 
-function NavGroup({ items, onClose }: { items: NavItem[]; onClose: () => void }) {
+function NavGroup({
+  items,
+  onClose,
+}: {
+  items: NavItem[];
+  onClose: () => void;
+}) {
   return (
     <>
       {items.map((item) => (
@@ -70,9 +98,13 @@ function NavGroup({ items, onClose }: { items: NavItem[]; onClose: () => void })
         >
           {({ isActive }) => (
             <>
-              <item.icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-green-400" : ""}`} />
+              <item.icon
+                className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-green-400" : ""}`}
+              />
               <span className="flex-1">{item.label}</span>
-              {isActive && <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />}
+              {isActive && (
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+              )}
             </>
           )}
         </NavLink>
@@ -84,7 +116,16 @@ function NavGroup({ items, onClose }: { items: NavItem[]; onClose: () => void })
 // ─── Main Sidebar ───────────────────────────────────────────────────────────
 
 export function Sidebar() {
-  const { role, isPT, isAdmin, activeView, setActiveView, user, setSidebarOpen, logout } = useApp();
+  const {
+    role,
+    isPT,
+    isAdmin,
+    activeView,
+    setActiveView,
+    user,
+    setSidebarOpen,
+    logout,
+  } = useApp();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -117,16 +158,43 @@ export function Sidebar() {
 
   // ── Workspace label + color for the header pill ──
   const workspaceConfig = isAdmin
-    ? { label: "Admin Portal",   color: "bg-violet-600",  textColor: "text-violet-400",  pillBg: "bg-violet-500/10",  pillBorder: "border-violet-500/20",  icon: Shield }
+    ? {
+        label: "Admin Portal",
+        color: "bg-violet-600",
+        textColor: "text-violet-400",
+        pillBg: "bg-violet-500/10",
+        pillBorder: "border-violet-500/20",
+        icon: Shield,
+      }
     : isPT
       ? activeView === "pt"
-        ? { label: "Trainer Workspace", color: "bg-green-500",   textColor: "text-green-400",   pillBg: "bg-green-500/10",   pillBorder: "border-green-500/20",   icon: Zap   }
-        : { label: "Client Workspace",  color: "bg-zinc-700",    textColor: "text-zinc-300",    pillBg: "bg-zinc-800",       pillBorder: "border-zinc-700/50",    icon: User  }
-      : { label: "Trang thành viên", color: "bg-green-500",   textColor: "text-green-400",   pillBg: "bg-green-500/10",   pillBorder: "border-green-500/20",   icon: User  };
+        ? {
+            label: "Trainer Workspace",
+            color: "bg-green-500",
+            textColor: "text-green-400",
+            pillBg: "bg-green-500/10",
+            pillBorder: "border-green-500/20",
+            icon: Zap,
+          }
+        : {
+            label: "Client Workspace",
+            color: "bg-zinc-700",
+            textColor: "text-zinc-300",
+            pillBg: "bg-zinc-800",
+            pillBorder: "border-zinc-700/50",
+            icon: User,
+          }
+      : {
+          label: "Trang thành viên",
+          color: "bg-green-500",
+          textColor: "text-green-400",
+          pillBg: "bg-green-500/10",
+          pillBorder: "border-green-500/20",
+          icon: User,
+        };
 
   return (
     <div className="flex flex-col h-full bg-transparent text-white border-r border-zinc-800/60">
-
       {/* ── Brand header ── */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-zinc-800/60">
         <div className="flex items-center gap-2.5">
@@ -134,7 +202,9 @@ export function Sidebar() {
             <Dumbbell className="w-4 h-4 text-black" />
           </div>
           <div>
-            <div className="text-white font-bold text-sm leading-tight tracking-tight">FITNESS AI</div>
+            <div className="text-white font-bold text-sm leading-tight tracking-tight">
+              FITNESS AI
+            </div>
             <div className="text-zinc-500 text-xs">AI Gym Coach</div>
           </div>
         </div>
@@ -154,7 +224,9 @@ export function Sidebar() {
             <div className="w-4 h-4 bg-green-500/20 rounded flex items-center justify-center">
               <Zap className="w-2.5 h-2.5 text-green-400" />
             </div>
-            <span className="text-xs text-zinc-500 font-semibold tracking-wide uppercase">Tài khoản PT</span>
+            <span className="text-xs text-zinc-500 font-semibold tracking-wide uppercase">
+              Tài khoản PT
+            </span>
           </div>
 
           {/* Segmented toggle */}
@@ -206,10 +278,17 @@ export function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs text-zinc-100 font-semibold truncate">
-              {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email.split('@')[0] : "Client"}
+              {user
+                ? `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                  user.email.split("@")[0]
+                : "Client"}
             </div>
             <div className="text-xs text-zinc-500 truncate">
-              {role === "client" ? "Thành viên" : role === "pt" ? "Huấn luyện viên" : "Quản trị viên"}
+              {role === "client"
+                ? "Thành viên"
+                : role === "pt"
+                  ? "Huấn luyện viên"
+                  : "Quản trị viên"}
             </div>
           </div>
         </div>

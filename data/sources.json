@@ -113,13 +113,7 @@
     "source_type": "guideline",
     "category": "bia_validation",
     "evidence_level": "clinical_guideline",
-    "tags": [
-      "BIA",
-      "body composition",
-      "impedance",
-      "ESPEN",
-      "clinical"
-    ],
+    "tags": ["BIA", "body composition", "impedance", "ESPEN", "clinical"],
     "localPath": "..\\..\\..\\data\\raw\\papers\\ESPEN_BIA_Part1_2019.pdf",
     "processedPath": "data\\processed\\evidence\\espen-bia-1.jsonl",
     "downloadedAt": null,
@@ -134,13 +128,7 @@
     "source_type": "guideline",
     "category": "bia_validation",
     "evidence_level": "clinical_guideline",
-    "tags": [
-      "BIA",
-      "body composition",
-      "disease",
-      "sports",
-      "ESPEN"
-    ],
+    "tags": ["BIA", "body composition", "disease", "sports", "ESPEN"],
     "localPath": "..\\..\\..\\data\\raw\\papers\\ESPEN_BIA_Part2_2019.pdf",
     "processedPath": "data\\processed\\evidence\\espen-bia-2.jsonl",
     "downloadedAt": null,
@@ -176,12 +164,7 @@
     "source_type": "guideline",
     "category": "physical_activity",
     "evidence_level": "government_guideline",
-    "tags": [
-      "physical activity",
-      "WHO",
-      "global",
-      "sedentary"
-    ],
+    "tags": ["physical activity", "WHO", "global", "sedentary"],
     "localPath": "..\\..\\..\\data\\raw\\papers\\WHO_Physical_Activity_Guidelines_2020.pdf",
     "processedPath": "data\\processed\\evidence\\who-pa-2020.jsonl",
     "downloadedAt": null,
@@ -196,13 +179,7 @@
     "source_type": "paper",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": [
-      "protein",
-      "muscle",
-      "g/kg",
-      "ISSN",
-      "sports nutrition"
-    ],
+    "tags": ["protein", "muscle", "g/kg", "ISSN", "sports nutrition"],
     "localPath": "..\\..\\..\\data\\raw\\papers\\ISSN_Protein_Exercise_2017.pdf",
     "processedPath": "data\\processed\\evidence\\issn-protein-2017.jsonl",
     "downloadedAt": null,
@@ -217,13 +194,7 @@
     "source_type": "paper",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": [
-      "diet",
-      "fat loss",
-      "macros",
-      "ISSN",
-      "body composition"
-    ],
+    "tags": ["diet", "fat loss", "macros", "ISSN", "body composition"],
     "localPath": "..\\..\\..\\data\\raw\\papers\\ISSN_Diets_Body_Composition_2017.pdf",
     "processedPath": "data\\processed\\evidence\\issn-diets-2017.jsonl",
     "downloadedAt": null,
@@ -238,13 +209,7 @@
     "source_type": "paper",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": [
-      "performance",
-      "creatine",
-      "caffeine",
-      "carbohydrate",
-      "ISSN"
-    ],
+    "tags": ["performance", "creatine", "caffeine", "carbohydrate", "ISSN"],
     "localPath": "..\\..\\..\\data\\raw\\papers\\ISSN_Nutritional_Performance_2017.pdf",
     "processedPath": "data\\processed\\evidence\\issn-performance-2017.jsonl",
     "downloadedAt": null,

@@ -18,9 +18,9 @@
  * See DATASETS.md for examples and download instructions.
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-import readline from 'node:readline';
+import fs from "node:fs";
+import path from "node:path";
+import readline from "node:readline";
 
 export interface KaggleRow {
   [key: string]: string;
@@ -38,41 +38,46 @@ export interface KaggleDatasetInfo {
  * @param filePath  Absolute path to the CSV file
  * @param maxRows   Maximum rows to load (default: 5000)
  */
-export async function loadKaggleCsv(filePath: string, maxRows = 5000): Promise<KaggleRow[]> {
+export async function loadKaggleCsv(
+  filePath: string,
+  maxRows = 5000,
+): Promise<KaggleRow[]> {
   if (!fs.existsSync(filePath)) {
     throw new Error(
       `[Kaggle] File not found: ${filePath}. ` +
-        'Download via Kaggle CLI: kaggle datasets download <owner/name> ' +
-        'and extract to data/datasets/kaggle/',
+        "Download via Kaggle CLI: kaggle datasets download <owner/name> " +
+        "and extract to data/datasets/kaggle/",
     );
   }
 
   return new Promise((resolve, reject) => {
     const rows: KaggleRow[] = [];
-    const rl = readline.createInterface({ input: fs.createReadStream(filePath) });
+    const rl = readline.createInterface({
+      input: fs.createReadStream(filePath),
+    });
     let headers: string[] = [];
     let rowCount = 0;
 
-    rl.on('line', (line) => {
+    rl.on("line", (line) => {
       if (rowCount >= maxRows) {
         rl.close();
         return;
       }
-      const cols = line.split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
+      const cols = line.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
       if (headers.length === 0) {
         headers = cols;
         return;
       }
       const row: KaggleRow = {};
       headers.forEach((h, i) => {
-        row[h] = cols[i] ?? '';
+        row[h] = cols[i] ?? "";
       });
       rows.push(row);
       rowCount++;
     });
 
-    rl.on('close', () => resolve(rows));
-    rl.on('error', reject);
+    rl.on("close", () => resolve(rows));
+    rl.on("error", reject);
   });
 }
 
@@ -86,7 +91,7 @@ export async function previewKaggleCsv(
   const rows = await loadKaggleCsv(filePath, previewRows);
   const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
   return {
-    name: path.basename(filePath, '.csv'),
+    name: path.basename(filePath, ".csv"),
     filePath,
     rowCount: rows.length,
     columns,

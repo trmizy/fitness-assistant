@@ -1,5 +1,5 @@
-import { prisma } from './prisma';
-import { normalizeVietnamese } from '../utils/normalizeVietnamese';
+import { prisma } from "./prisma";
+import { normalizeVietnamese } from "../utils/normalizeVietnamese";
 
 export const foodRepository = {
   searchByName: async (query: string, limit = 20) => {
@@ -10,13 +10,18 @@ export const foodRepository = {
     return prisma.food.findMany({
       where: {
         OR: [
-          { name: { contains: q, mode: 'insensitive' } },
+          { name: { contains: q, mode: "insensitive" } },
           {
             aliases: {
               some: {
                 OR: [
-                  { alias: { contains: q, mode: 'insensitive' } },
-                  { aliasNormalized: { contains: normalized, mode: 'insensitive' } },
+                  { alias: { contains: q, mode: "insensitive" } },
+                  {
+                    aliasNormalized: {
+                      contains: normalized,
+                      mode: "insensitive",
+                    },
+                  },
                 ],
               },
             },
@@ -24,7 +29,7 @@ export const foodRepository = {
         ],
       },
       take: limit,
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   },
 

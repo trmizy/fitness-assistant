@@ -25,18 +25,18 @@ commands.
 
 ## Services
 
-| Service | Port | Role |
-| --- | --- | --- |
-| Web | 5173 | React frontend |
-| API Gateway | 3000 | Routing, auth, rate limiting |
-| Auth Service | 3001 | JWT authentication |
-| Fitness Service | 3002 | Exercises, workouts, nutrition |
-| AI Service | 3003 | Ollama, RAG, AI plan generation |
-| User Service | 3004 | Profiles and InBody records |
-| Chat Service | 3005 | Chat data and realtime messaging |
-| PostgreSQL | 5433 | Service databases |
-| Redis | 6379 | Cache and queues |
-| Qdrant | 6333 | Vector database |
+| Service         | Port | Role                             |
+| --------------- | ---- | -------------------------------- |
+| Web             | 5173 | React frontend                   |
+| API Gateway     | 3000 | Routing, auth, rate limiting     |
+| Auth Service    | 3001 | JWT authentication               |
+| Fitness Service | 3002 | Exercises, workouts, nutrition   |
+| AI Service      | 3003 | Ollama, RAG, AI plan generation  |
+| User Service    | 3004 | Profiles and InBody records      |
+| Chat Service    | 3005 | Chat data and realtime messaging |
+| PostgreSQL      | 5433 | Service databases                |
+| Redis           | 6379 | Cache and queues                 |
+| Qdrant          | 6333 | Vector database                  |
 
 ## Quick Start
 

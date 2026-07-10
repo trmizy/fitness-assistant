@@ -1,5 +1,5 @@
-import { PrismaClient } from '../generated/prisma';
-import { normalizeVietnamese } from '../utils/normalize';
+import { PrismaClient } from "../generated/prisma";
+import { normalizeVietnamese } from "../utils/normalize";
 
 const prisma = new PrismaClient();
 
@@ -7,7 +7,7 @@ export const locationRepository = {
   findAllProvinces: () =>
     prisma.vietnamProvince.findMany({
       select: { code: true, name: true, codename: true, divisionType: true },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     }),
 
   findProvinceByCode: (code: number) =>
@@ -16,8 +16,14 @@ export const locationRepository = {
   findWardsByProvince: (provinceCode: number) =>
     prisma.vietnamWard.findMany({
       where: { provinceCode },
-      select: { code: true, name: true, codename: true, divisionType: true, shortCodename: true },
-      orderBy: { name: 'asc' },
+      select: {
+        code: true,
+        name: true,
+        codename: true,
+        divisionType: true,
+        shortCodename: true,
+      },
+      orderBy: { name: "asc" },
     }),
 
   findWardByCode: (code: number) =>
@@ -25,7 +31,7 @@ export const locationRepository = {
 
   searchLocations: (q: string) => {
     const normalized = normalizeVietnamese(q);
-    const normalizedUnderscore = normalized.replace(/\s+/g, '_');
+    const normalizedUnderscore = normalized.replace(/\s+/g, "_");
     return prisma.vietnamWard.findMany({
       where: {
         OR: [
@@ -36,7 +42,7 @@ export const locationRepository = {
       },
       include: { province: { select: { name: true } } },
       take: 20,
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   },
 };

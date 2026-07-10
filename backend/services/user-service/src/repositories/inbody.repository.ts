@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from "../generated/prisma";
 
 const prisma = new PrismaClient();
 
@@ -16,14 +16,14 @@ export const inbodyRepository = {
     return prisma.inBodyEntry.findMany({
       where: { userId },
       // Sort by measurement date (dateOnly) — one record per day, ascending for charts
-      orderBy: { dateOnly: 'desc' },
+      orderBy: { dateOnly: "desc" },
     });
   },
 
   async findLatestByUserId(userId: string) {
     return prisma.inBodyEntry.findFirst({
       where: { userId },
-      orderBy: { dateOnly: 'desc' },
+      orderBy: { dateOnly: "desc" },
     });
   },
 
@@ -40,7 +40,12 @@ export const inbodyRepository = {
     });
   },
 
-  async upsertByUserAndDate(userId: string, dateOnly: Date, createData: any, updateData: any) {
+  async upsertByUserAndDate(
+    userId: string,
+    dateOnly: Date,
+    createData: any,
+    updateData: any,
+  ) {
     return prisma.inBodyEntry.upsert({
       where: { inbody_entries_user_id_date_only_key: { userId, dateOnly } },
       create: { ...createData, userId },

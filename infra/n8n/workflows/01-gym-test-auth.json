@@ -102,11 +102,18 @@
     "executionOrder": "v1",
     "timezone": "Asia/Ho_Chi_Minh"
   },
-  "tags": [{ "name": "e2e-test" }, { "name": "auth" }, { "name": "sub-workflow" }],
+  "tags": [
+    { "name": "e2e-test" },
+    { "name": "auth" },
+    { "name": "sub-workflow" }
+  ],
   "_meta": {
     "description": "Sub-workflow: checks API Gateway /health and auth-service /health. Called by orchestrator via POST /webhook/gym-test-auth.",
     "webhook_path": "gym-test-auth",
-    "checks": ["http://api-gateway:3000/health", "http://auth-service:3001/health"],
+    "checks": [
+      "http://api-gateway:3000/health",
+      "http://auth-service:3001/health"
+    ],
     "response_schema": {
       "passed": "boolean",
       "step": "Auth",

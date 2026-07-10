@@ -1,31 +1,37 @@
-# Windows Defender - Cách khắc phục Block App
+# Windows Defender - Cach khac phuc block app
 
-## Vấn đề
-Windows Defender block app khi chạy nhiều Node processes và Docker containers.
+## Van de
 
-## Giải pháp (CHỌN 1 TRONG 3)
+Windows Defender co the block app khi chay nhieu Node processes va Docker containers.
 
-### Option 1: Thêm Exclusion cho Folder (KHUYẾN NGHỊ)
-1. Mở **Windows Security** → **Virus & threat protection**
-2. Click **Manage settings** (dưới Virus & threat protection settings)
-3. Scroll xuống **Exclusions** → Click **Add or remove exclusions**
-4. Click **Add an exclusion** → **Folder**
-5. Chọn folder: `D:\dự án tương lai cần đạt được\fitness-assistant`
+## Giai phap (chon 1 trong 3)
 
-### Option 2: Thêm Exclusion cho Node.exe
-1. Tìm đường dẫn Node: `where.exe node` (trong PowerShell)
-2. Thêm exclusion cho file: `C:\Program Files\nodejs\node.exe`
+### Option 1: Them exclusion cho folder
 
-### Option 3: Thêm Exclusion cho Docker
-1. Thêm exclusion cho Docker Desktop
-2. Path thường là: `C:\Program Files\Docker`
+1. Mo **Windows Security** -> **Virus & threat protection**.
+2. Click **Manage settings** trong **Virus & threat protection settings**.
+3. Keo xuong **Exclusions** -> click **Add or remove exclusions**.
+4. Click **Add an exclusion** -> **Folder**.
+5. Chon folder project local cua ban, vi du `<repo-root>`.
 
-## Lưu ý bảo mật
-- Chỉ thêm exclusion cho folder dự án của bạn
-- KHÔNG tắt Windows Defender hoàn toàn
-- Scan folder định kỳ để đảm bảo không có malware
+### Option 2: Them exclusion cho Node.exe
 
-## Sau khi thêm exclusion
+1. Tim duong dan Node: `where.exe node` trong PowerShell.
+2. Them exclusion cho file Node ma lenh tren tra ve.
+
+### Option 3: Them exclusion cho Docker
+
+1. Them exclusion cho Docker Desktop.
+2. Dung duong dan Docker Desktop tren may local cua ban.
+
+## Luu y bao mat
+
+- Chi them exclusion cho folder project cua ban.
+- Khong tat Windows Defender hoan toan.
+- Scan folder dinh ky de dam bao khong co malware.
+
+## Sau khi them exclusion
+
 ```powershell
 # Restart Docker
 docker-compose down
@@ -35,8 +41,10 @@ docker-compose up -d
 .\START_ALL.ps1
 ```
 
-## Nếu vẫn bị block
-Check Event Viewer để xem file cụ thể nào bị block:
-- Mở **Event Viewer**
-- **Windows Logs** → **System**
-- Tìm warning từ "Windows Defender"
+## Neu van bi block
+
+Check Event Viewer de xem file cu the nao bi block:
+
+- Mo **Event Viewer**.
+- Vao **Windows Logs** -> **System**.
+- Tim warning tu "Windows Defender".

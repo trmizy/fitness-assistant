@@ -1,5 +1,8 @@
-import { NotificationEventType, NotificationEntityType } from '../generated/prisma';
-import { prisma } from './profile.repository';
+import {
+  NotificationEventType,
+  NotificationEntityType,
+} from "../generated/prisma";
+import { prisma } from "./profile.repository";
 
 export const notificationRepository = {
   create: (data: {
@@ -9,13 +12,12 @@ export const notificationRepository = {
     entityType: NotificationEntityType;
     entityId: string;
     link?: string;
-  }) =>
-    prisma.notification.create({ data }),
+  }) => prisma.notification.create({ data }),
 
   findByUser: (userId: string, skip = 0, take = 20) =>
     prisma.notification.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take,
     }),

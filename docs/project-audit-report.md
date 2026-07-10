@@ -1,4 +1,4 @@
-﻿# Project Audit Report
+# Project Audit Report
 
 Date: 2026-07-08
 Scope: pre-GPU/fine-tuning stabilization for AI/RAG/data flows.

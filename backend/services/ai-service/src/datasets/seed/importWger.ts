@@ -15,20 +15,26 @@
  * personal/development use. Self-host wger if you need production reliability.
  */
 
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { wgerProvider } from '../providers/wger/wger.provider';
-import type { ExerciseItem } from '../types';
+import fs from "node:fs";
+import path from "node:path";
+import { wgerProvider } from "../providers/wger/wger.provider";
+import type { ExerciseItem } from "../types";
 
-const BASE_URL = process.env.WGER_BASE_URL ?? 'https://wger.de/api/v2';
+const BASE_URL = process.env.WGER_BASE_URL ?? "https://wger.de/api/v2";
 const PAGE_SIZE = Number(process.env.WGER_LIMIT ?? 100);
-const OUTPUT_PATH = path.join(process.cwd(), 'data', 'datasets', 'wger', 'exercises.json');
+const OUTPUT_PATH = path.join(
+  process.cwd(),
+  "data",
+  "datasets",
+  "wger",
+  "exercises.json",
+);
 
 async function main() {
-  console.log('📥  Importing wger exercise catalog...');
+  console.log("📥  Importing wger exercise catalog...");
   console.log(`    Source: ${BASE_URL}`);
 
   const allExercises: ExerciseItem[] = [];
@@ -36,7 +42,11 @@ async function main() {
   let total = Infinity;
 
   while (allExercises.length < total) {
-    const result = await wgerProvider.listExercises(BASE_URL, PAGE_SIZE, offset);
+    const result = await wgerProvider.listExercises(
+      BASE_URL,
+      PAGE_SIZE,
+      offset,
+    );
     if (result.items.length === 0) break;
 
     allExercises.push(...result.items);
@@ -53,12 +63,12 @@ async function main() {
 
   const dir = path.dirname(OUTPUT_PATH);
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(OUTPUT_PATH, JSON.stringify(allExercises, null, 2), 'utf-8');
+  fs.writeFileSync(OUTPUT_PATH, JSON.stringify(allExercises, null, 2), "utf-8");
 
   console.log(`✅  Saved wger exercises to ${OUTPUT_PATH}`);
 }
 
 main().catch((err) => {
-  console.error('❌  wger import failed:', err);
+  console.error("❌  wger import failed:", err);
   process.exit(1);
 });

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 export const prisma = new PrismaClient();
 
@@ -8,18 +8,21 @@ export const chatRepository = {
     // Find a DIRECT conversation where BOTH users are participants
     return prisma.conversation.findFirst({
       where: {
-        type: 'DIRECT',
+        type: "DIRECT",
         participants: { some: { userId: userAId } },
         AND: [{ participants: { some: { userId: userBId } } }],
       },
-      include: { participants: true, messages: { take: 1, orderBy: { createdAt: 'desc' } } },
+      include: {
+        participants: true,
+        messages: { take: 1, orderBy: { createdAt: "desc" } },
+      },
     });
   },
 
   createDirectConversation: async (userAId: string, userBId: string) => {
     return prisma.conversation.create({
       data: {
-        type: 'DIRECT',
+        type: "DIRECT",
         participants: {
           create: [{ userId: userAId }, { userId: userBId }],
         },
@@ -35,9 +38,9 @@ export const chatRepository = {
       },
       include: {
         participants: true,
-        messages: { take: 1, orderBy: { createdAt: 'desc' } },
+        messages: { take: 1, orderBy: { createdAt: "desc" } },
       },
-      orderBy: { lastMessageAt: 'desc' },
+      orderBy: { lastMessageAt: "desc" },
     });
   },
 
@@ -55,13 +58,17 @@ export const chatRepository = {
   ) => {
     return prisma.message.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
       skip,
       take,
     });
   },
 
-  createMessage: async (conversationId: string, senderId: string, content: string) => {
+  createMessage: async (
+    conversationId: string,
+    senderId: string,
+    content: string,
+  ) => {
     const [message] = await prisma.$transaction([
       prisma.message.create({
         data: { conversationId, senderId, content },

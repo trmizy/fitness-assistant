@@ -1,5 +1,5 @@
-import { SessionStatus } from '../generated/prisma';
-import { prisma } from './profile.repository';
+import { SessionStatus } from "../generated/prisma";
+import { prisma } from "./profile.repository";
 
 export const sessionRepository = {
   create: (data: {
@@ -11,8 +11,7 @@ export const sessionRepository = {
     scheduledEndAt: Date;
     location?: string;
     notes?: string;
-  }) =>
-    prisma.session.create({ data: data as any }),
+  }) => prisma.session.create({ data: data as any }),
 
   findById: (id: string) =>
     prisma.session.findUnique({ where: { id }, include: { review: true } }),
@@ -20,7 +19,7 @@ export const sessionRepository = {
   findByContract: (contractId: string) =>
     prisma.session.findMany({
       where: { contractId },
-      orderBy: { scheduledStartAt: 'asc' },
+      orderBy: { scheduledStartAt: "asc" },
       include: { review: true },
     }),
 
@@ -32,11 +31,15 @@ export const sessionRepository = {
         scheduledStartAt: { gte: new Date() },
         status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
       },
-      orderBy: { scheduledStartAt: 'asc' },
+      orderBy: { scheduledStartAt: "asc" },
       include: { contract: true },
     }),
 
-  updateStatus: (id: string, status: SessionStatus, extra?: Record<string, any>) =>
+  updateStatus: (
+    id: string,
+    status: SessionStatus,
+    extra?: Record<string, any>,
+  ) =>
     prisma.session.update({
       where: { id },
       data: { status, ...extra },
@@ -54,11 +57,19 @@ export const sessionRepository = {
   /** Check for overlapping sessions for a PT at a given time range.
    *  statuses defaults to [REQUESTED, CONFIRMED] for booking.
    *  Pass [CONFIRMED] only when confirming a session (BR-31). */
-  findConflict: (ptUserId: string, startAt: Date, endAt: Date, excludeId?: string, statuses?: SessionStatus[]) =>
+  findConflict: (
+    ptUserId: string,
+    startAt: Date,
+    endAt: Date,
+    excludeId?: string,
+    statuses?: SessionStatus[],
+  ) =>
     prisma.session.findFirst({
       where: {
         ptUserId,
-        status: { in: statuses ?? [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+        status: {
+          in: statuses ?? [SessionStatus.REQUESTED, SessionStatus.CONFIRMED],
+        },
         ...(excludeId && { id: { not: excludeId } }),
         scheduledStartAt: { lt: endAt },
         scheduledEndAt: { gt: startAt },
@@ -82,6 +93,5 @@ export const sessionRepository = {
     clientUserId: string;
     rating: number;
     comment?: string;
-  }) =>
-    prisma.sessionReview.create({ data }),
+  }) => prisma.sessionReview.create({ data }),
 };

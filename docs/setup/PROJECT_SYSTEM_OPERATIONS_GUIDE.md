@@ -1,6 +1,7 @@
 # FITNESS ASSISTANT - PROJECT SYSTEM OPERATIONS GUIDE
 
 Tai lieu nay la ban huong dan day du de hieu va van hanh toan bo he thong fitness-assistant, bao gom:
+
 - Cau truc monorepo va vai tro tung thanh phan
 - Cach chay theo Docker va theo local dev
 - Quy trinh startup, healthcheck, phu thuoc giua cac service
@@ -24,6 +25,7 @@ He thong duoc to chuc theo mo hinh microservices trong monorepo PNPM:
 - Infrastructure: Postgres, Redis, Qdrant
 
 Kien truc nay giai quyet 3 muc tieu:
+
 1. Tach nghiep vu de scale va deploy doc lap tung phan.
 2. Giu contract API ro rang qua Gateway.
 3. Tien cho worker/background processing, cache va RAG.
@@ -50,7 +52,7 @@ Kien truc nay giai quyet 3 muc tieu:
 - frontend/web
   - src/main.tsx: entrypoint React.
   - src/App.tsx: router va app shell.
-  - src/pages/*: cac man hinh chuc nang.
+  - src/pages/\*: cac man hinh chuc nang.
   - src/services/api.ts: axios client + token attach + interceptor.
   - vite.config.ts: dev server + proxy /api.
   - nginx.conf: runtime config khi build web trong Docker.
@@ -80,7 +82,7 @@ Kien truc nay giai quyet 3 muc tieu:
 
 - backend/services/fitness-service
   - src/server.ts: ket noi Redis + start worker.
-  - src/routes/*: workouts, nutrition, stats, exercises.
+  - src/routes/\*: workouts, nutrition, stats, exercises.
   - src/workers/workout.worker.ts: queue background.
   - prisma/schema.prisma + migrations
 
@@ -104,6 +106,7 @@ Kien truc nay giai quyet 3 muc tieu:
 ## 3) Port map va ket noi
 
 Host ports:
+
 - Web: 5173
 - Gateway: 3000
 - Auth: 3001
@@ -116,6 +119,7 @@ Host ports:
 - Qdrant: 6333/6334
 
 Trong Docker network:
+
 - Gateway goi service bang DNS ten service:
   - auth-service:3001
   - user-service:3004
@@ -157,15 +161,18 @@ docker compose -f infra/compose/docker-compose.dev.yml down -v
 ## 4.2 Chay local dev watch mode (hot reload)
 
 Co script:
+
 - scripts/dev/START_ALL_SIMPLE.ps1
 
 Script nay:
+
 1. Kiem tra Docker daemon.
 2. Kill process cu theo port.
 3. Start tung service bang pnpm dev (tsx watch / vite).
 4. Kiem tra health va mo browser.
 
 Ly do co 2 mode:
+
 - Docker mode: giong production runtime, de test integration day du.
 - Local watch mode: developer feedback nhanh khi sua code.
 
@@ -174,12 +181,14 @@ Ly do co 2 mode:
 ## 5) Quy trinh startup trong Docker Compose
 
 Trinh tu startup logic:
+
 1. postgres, redis, qdrant khoi dong truoc.
 2. auth-service, user-service, fitness-service, ai-service, chat-service start sau khi dependency san sang.
 3. api-gateway start sau khi backend service healthy.
 4. web start sau gateway.
 
 Tai sao chay theo trinh tu nay:
+
 - Giam race condition (service goi den dependency chua san sang).
 - Dam bao client vao Gateway la co route backend co the phan hoi.
 - Healthcheck cho phep compose dieu phoi startup on dinh hon.
@@ -204,6 +213,7 @@ Tai sao chay theo trinh tu nay:
 4. User service doc/ghi user_profiles trong Postgres qua Prisma.
 
 Mo rong da co:
+
 - Frontend Save Profile goi them PATCH /auth/me de luu firstName/lastName vao bang users (auth DB), va PUT /profile/me de luu metrics.
 
 ## 6.3 Workout + AI flow
@@ -227,12 +237,14 @@ Mo rong da co:
 Vi du service backend (auth/user/fitness/ai):
 
 1. server.ts
+
 - load env
 - init app
 - khoi dong listener
 - dang ky graceful shutdown SIGTERM
 
 2. app.ts
+
 - middleware security (helmet, cors)
 - parse request (json)
 - logging + metrics
@@ -241,22 +253,27 @@ Vi du service backend (auth/user/fitness/ai):
 - 404 + error handler
 
 3. routes
+
 - khai bao HTTP endpoint, map controller
 
 4. controllers
+
 - validate input (zod)
 - goi service layer
 - mapping response status
 
 5. services
+
 - business logic
 - xu ly transaction sequence
 - call repository + external integration
 
 6. repositories
+
 - truy cap database qua Prisma
 
 Tai sao chia layer nhu vay:
+
 - Testability tot hon.
 - Tach nghiep vu khoi web layer va data layer.
 - De thay doi storage/integration ma it anh huong controller.
@@ -271,6 +288,7 @@ Tai sao chia layer nhu vay:
 - app.ts mount middleware + proxy routes
 
 Ly do:
+
 - Gateway la API facade duy nhat cho frontend.
 - Co auth middleware, rate-limit, centralized logging/error.
 - Giam coupling frontend voi tung service port rieng.
@@ -283,6 +301,7 @@ Ly do:
 - Data tai auth.repository.ts
 
 Ly do:
+
 - Xac thuc la concern rieng, can token lifecycle ro rang.
 - Duoc tai su dung boi Gateway va cac service khac thong qua /auth/verify.
 
@@ -292,6 +311,7 @@ Ly do:
 - Focus profile nghiep vu
 
 Ly do:
+
 - Tach profile metrics khoi auth identity.
 - Don gian hoa data model va scale profile API doc lap.
 
@@ -301,6 +321,7 @@ Ly do:
 - Co Redis + worker
 
 Ly do:
+
 - Tac vu workout generation/coaching co the cham, can queue de tranh block request.
 
 ## 8.5 AI service
@@ -309,6 +330,7 @@ Ly do:
 - Check Qdrant availability, start AI worker
 
 Ly do:
+
 - LLM va vector search la tai nguyen rieng, can service boundary tach biet.
 
 ## 8.6 Chat service
@@ -317,6 +339,7 @@ Ly do:
 - HTTP server + Socket.IO
 
 Ly do:
+
 - Chat real-time can websocket lifecycle rieng, de tach khoi REST service.
 
 ## 8.7 Frontend
@@ -325,6 +348,7 @@ Ly do:
 - Docker runtime: nginx.conf proxy /api -> api-gateway trong network
 
 Ly do:
+
 - Tranh CORS phuc tap.
 - Frontend luon goi cung mot base path /api.
 - Moi truong dev va docker van nhat quan contract.
@@ -334,13 +358,15 @@ Ly do:
 ## 9) Bien moi truong quan trong
 
 Nhom bien chinh:
-- DB: POSTGRES_*, DATABASE_URL
+
+- DB: POSTGRES\_\*, DATABASE_URL
 - JWT: JWT_SECRET, JWT_ACCESS_EXPIRY, JWT_REFRESH_EXPIRY
 - Service URL: AUTH_SERVICE_URL, USER_SERVICE_URL, FITNESS_SERVICE_URL, AI_SERVICE_URL, CHAT_SERVICE_URL
 - AI: LLM_PROVIDER, LLM_BASE_URL, LLM_MODEL, EMBEDDING_MODEL
 - CORS: CORS_ORIGIN
 
 Nguyen tac van hanh:
+
 - Dat .env tai root repo.
 - Compose doc bien bang --env-file .env.
 - Trong container, service-to-service URL dung DNS ten service.
@@ -398,6 +424,7 @@ docker compose -f infra/compose/docker-compose.dev.yml --env-file .env up -d --b
 ```
 
 Vi du:
+
 - Sua frontend: build web
 - Sua auth API: build auth-service va api-gateway neu route/proxy thay doi
 
@@ -411,14 +438,17 @@ Vi du:
 ## 12) Tai sao he thong duoc thiet ke theo cach nay
 
 1. Monorepo + shared package
+
 - Chia se types/schemas/logger, giam duplicate.
 - Dong bo contract nhanh giua frontend va backend.
 
 2. API Gateway
+
 - Centralized auth, rate limit, observability.
 - Giu frontend contract on dinh, khong can biet tung service ben duoi.
 
 3. Microservice boundaries
+
 - Auth = identity
 - User = profile
 - Fitness = workout/nutrition
@@ -428,9 +458,11 @@ Vi du:
 Dieu nay giup team phat trien song song va scale theo domain.
 
 4. Infra tich hop san (Postgres + Redis + Qdrant)
+
 - Ho tro query data nghiep vu, queue/cache, vector retrieval.
 
 5. Docker Compose + healthcheck
+
 - Tao runtime reproducible tren may moi.
 - Giam bug startup race.
 
@@ -461,6 +493,7 @@ Dieu nay giup team phat trien song song va scale theo domain.
 6. Mo web http://localhost:5173
 
 Neu co loi token:
+
 - Dang xuat va dang nhap lai
 - Kiem tra /auth/login va /auth/verify
 - Kiem tra gateway/auth logs
@@ -475,6 +508,7 @@ Neu co loi token:
   - PUT /profile/me cho profile metrics
 
 Tai lieu nay nen duoc cap nhat moi khi:
+
 - Them service moi
 - Doi route/proxy contract
 - Doi quy trinh startup/deploy

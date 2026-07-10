@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Optional QLoRA trainer for coach behavior/style.
 
 This is intentionally outside CI. It should run on a cloud GPU host, for example

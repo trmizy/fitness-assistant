@@ -1,17 +1,17 @@
-import { io, Socket } from 'socket.io-client';
+import { io, Socket } from "socket.io-client";
 
-const CHAT_WS_URL = import.meta.env.VITE_CHAT_WS_URL || 'http://localhost:3005';
+const CHAT_WS_URL = import.meta.env.VITE_CHAT_WS_URL || "http://localhost:3005";
 
 let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
     socket = io(CHAT_WS_URL, {
-      auth: (cb) => cb({ token: localStorage.getItem('accessToken') }),
+      auth: (cb) => cb({ token: localStorage.getItem("accessToken") }),
       autoConnect: false,
       // WebSocket-only: skip HTTP long-polling which triggers the browser tab loading
       // indicator and hangs indefinitely when the chat service is unavailable.
-      transports: ['websocket'],
+      transports: ["websocket"],
       // Give up after 5 failed reconnects instead of retrying forever (default: Infinity).
       reconnectionAttempts: 5,
       // 5 s connection timeout — fail fast rather than leaving a pending request open.

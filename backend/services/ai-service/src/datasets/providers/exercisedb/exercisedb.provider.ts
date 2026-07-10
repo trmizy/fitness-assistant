@@ -22,11 +22,11 @@
  * See DATASETS.md for the full decision checklist.
  */
 
-import { httpGet } from '../../utils/httpClient';
-import { mapExerciseDbEntry, type ExerciseDbEntry } from './exercisedb.mapper';
-import type { ExerciseItem, ExerciseSearchResult } from '../../types';
+import { httpGet } from "../../utils/httpClient";
+import { mapExerciseDbEntry, type ExerciseDbEntry } from "./exercisedb.mapper";
+import type { ExerciseItem, ExerciseSearchResult } from "../../types";
 
-const BASE_URL = 'https://exercisedb.p.rapidapi.com';
+const BASE_URL = "https://exercisedb.p.rapidapi.com";
 
 export const exerciseDbProvider = {
   /**
@@ -43,13 +43,13 @@ export const exerciseDbProvider = {
       `${BASE_URL}/exercises/bodyPart/${encodeURIComponent(bodyPart)}`,
       { limit, offset },
       {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com',
+        "X-RapidAPI-Key": apiKey,
+        "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
       },
     );
 
     const mapped = (items ?? []).map(mapExerciseDbEntry);
-    return { items: mapped, total: mapped.length, sources: ['ExerciseDB'] };
+    return { items: mapped, total: mapped.length, sources: ["ExerciseDB"] };
   },
 
   /**
@@ -65,13 +65,13 @@ export const exerciseDbProvider = {
       `${BASE_URL}/exercises/target/${encodeURIComponent(target)}`,
       { limit, offset },
       {
-        'X-RapidAPI-Key': apiKey,
-        'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com',
+        "X-RapidAPI-Key": apiKey,
+        "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
       },
     );
 
     const mapped = (items ?? []).map(mapExerciseDbEntry);
-    return { items: mapped, total: mapped.length, sources: ['ExerciseDB'] };
+    return { items: mapped, total: mapped.length, sources: ["ExerciseDB"] };
   },
 
   /**
@@ -83,8 +83,8 @@ export const exerciseDbProvider = {
         `${BASE_URL}/exercises/exercise/${encodeURIComponent(id)}`,
         {},
         {
-          'X-RapidAPI-Key': apiKey,
-          'X-RapidAPI-Host': 'exercisedb.p.rapidapi.com',
+          "X-RapidAPI-Key": apiKey,
+          "X-RapidAPI-Host": "exercisedb.p.rapidapi.com",
         },
       );
       return mapExerciseDbEntry(item);

@@ -1,6 +1,10 @@
-﻿export type ResearchSourceType = 'api' | 'webpage' | 'manual_dataset';
-export type AllowedContent = 'metadata_only' | 'abstract' | 'open_full_text' | 'manual_summary';
-export type TrustLevel = 'high' | 'medium' | 'low';
+export type ResearchSourceType = "api" | "webpage" | "manual_dataset";
+export type AllowedContent =
+  | "metadata_only"
+  | "abstract"
+  | "open_full_text"
+  | "manual_summary";
+export type TrustLevel = "high" | "medium" | "low";
 
 export interface ResearchSource {
   id: string;
@@ -63,11 +67,13 @@ export interface ResearchConnectorFetchOptions {
 
 export interface ResearchConnector {
   id: string;
-  fetch(options: ResearchConnectorFetchOptions): Promise<NormalizedResearchRecord[]>;
+  fetch(
+    options: ResearchConnectorFetchOptions,
+  ): Promise<NormalizedResearchRecord[]>;
 }
 
 export interface ReviewQueueRecord {
-  status: 'pending' | 'approved' | 'rejected' | 'indexed';
+  status: "pending" | "approved" | "rejected" | "indexed";
   reason: string;
   source_metadata: NormalizedResearchRecord;
   preview_text: string;

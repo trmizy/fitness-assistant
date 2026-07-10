@@ -1,4 +1,4 @@
-import api from './api';
+import api from "./api";
 
 export interface PTApplicationCertificate {
   id?: string;
@@ -13,7 +13,13 @@ export interface PTApplicationCertificate {
 
 export interface PTApplication {
   id: string;
-  status: 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'NEEDS_MORE_INFO' | 'APPROVED' | 'REJECTED';
+  status:
+    | "DRAFT"
+    | "SUBMITTED"
+    | "UNDER_REVIEW"
+    | "NEEDS_MORE_INFO"
+    | "APPROVED"
+    | "REJECTED";
   phoneNumber?: string;
   nationalIdNumber?: string;
   currentAddress?: string;
@@ -34,7 +40,7 @@ export interface PTApplication {
   socialLinks?: any;
   availabilityNotes?: string;
   availableTimeSlots?: any;
-  serviceMode?: 'ONLINE' | 'OFFLINE' | 'HYBRID';
+  serviceMode?: "ONLINE" | "OFFLINE" | "HYBRID";
   operatingAreas?: string[];
   desiredSessionPrice?: number;
   availableDays: string[];
@@ -84,37 +90,45 @@ export interface PTApplication {
 export const ptApplicationService = {
   getMe: async (): Promise<PTApplication | null> => {
     try {
-      const { data } = await api.get('/pt-applications/me');
+      const { data } = await api.get("/pt-applications/me");
       return data;
     } catch (error) {
-      console.error('Error fetching PT application:', error);
+      console.error("Error fetching PT application:", error);
       return null;
     }
   },
 
   saveDraft: async (data: Partial<PTApplication>): Promise<PTApplication> => {
-    const { data: response } = await api.post('/pt-applications/me/draft', data);
+    const { data: response } = await api.post(
+      "/pt-applications/me/draft",
+      data,
+    );
     return response;
   },
 
   submit: async (): Promise<PTApplication> => {
-    const { data: response } = await api.post('/pt-applications/me/submit');
+    const { data: response } = await api.post("/pt-applications/me/submit");
     return response;
   },
 
-  uploadDocument: async (file: File): Promise<{ url: string; filename: string }> => {
+  uploadDocument: async (
+    file: File,
+  ): Promise<{ url: string; filename: string }> => {
     const formData = new FormData();
-    formData.append('document', file);
-    const { data } = await api.post('/pt-applications/me/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    formData.append("document", file);
+    const { data } = await api.post("/pt-applications/me/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return data;
   },
 
   // Admin methods
   listApplications: async (params: any = {}): Promise<PTApplication[]> => {
-    const { data } = await api.get('/pt-applications/admin', { params });
-    return data.map((app: any) => ({ ...app, user: app.user ?? app.userProfile }));
+    const { data } = await api.get("/pt-applications/admin", { params });
+    return data.map((app: any) => ({
+      ...app,
+      user: app.user ?? app.userProfile,
+    }));
   },
 
   getById: async (id: string): Promise<PTApplication> => {
@@ -122,8 +136,15 @@ export const ptApplicationService = {
     return { ...data, user: data.user ?? data.userProfile };
   },
 
-  reviewAction: async (id: string, action: string, payload: any = {}): Promise<PTApplication> => {
-    const { data } = await api.post(`/pt-applications/admin/${id}/review/${action}`, payload);
+  reviewAction: async (
+    id: string,
+    action: string,
+    payload: any = {},
+  ): Promise<PTApplication> => {
+    const { data } = await api.post(
+      `/pt-applications/admin/${id}/review/${action}`,
+      payload,
+    );
     return { ...data, user: data.user ?? data.userProfile };
-  }
+  },
 };

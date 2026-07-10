@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from "../generated/prisma";
 
 const prisma = new PrismaClient();
 
@@ -12,15 +12,22 @@ function readArg(name: string): string | undefined {
 }
 
 function startOfUtcDay(date = new Date()) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
 }
 
 async function main() {
-  const userId = readArg('user-id') || process.env.DEV_EVIDENCE_USER_ID;
-  const email = readArg('email') || process.env.DEV_EVIDENCE_USER_EMAIL || 'user@example.com';
+  const userId = readArg("user-id") || process.env.DEV_EVIDENCE_USER_ID;
+  const email =
+    readArg("email") ||
+    process.env.DEV_EVIDENCE_USER_EMAIL ||
+    "user@example.com";
 
   if (!userId) {
-    throw new Error('Missing --user-id. Example: pnpm exec tsx src/scripts/seed-dev-inbody.ts --user-id <auth-user-id>');
+    throw new Error(
+      "Missing --user-id. Example: pnpm exec tsx src/scripts/seed-dev-inbody.ts --user-id <auth-user-id>",
+    );
   }
 
   const date = startOfUtcDay();
@@ -32,13 +39,13 @@ async function main() {
     update: {
       email,
       age: 21,
-      gender: 'MALE',
+      gender: "MALE",
       heightCm: 173,
-      goal: 'WEIGHT_LOSS',
-      activityLevel: 'LIGHTLY_ACTIVE',
-      experienceLevel: 'BEGINNER',
+      goal: "WEIGHT_LOSS",
+      activityLevel: "LIGHTLY_ACTIVE",
+      experienceLevel: "BEGINNER",
       currentWeight: 85,
-      availableEquipment: ['barbell', 'dumbbells', 'machines', 'cable'],
+      availableEquipment: ["barbell", "dumbbells", "machines", "cable"],
       injuries: [],
       updatedAt: new Date(),
     },
@@ -46,13 +53,13 @@ async function main() {
       userId,
       email,
       age: 21,
-      gender: 'MALE',
+      gender: "MALE",
       heightCm: 173,
-      goal: 'WEIGHT_LOSS',
-      activityLevel: 'LIGHTLY_ACTIVE',
-      experienceLevel: 'BEGINNER',
+      goal: "WEIGHT_LOSS",
+      activityLevel: "LIGHTLY_ACTIVE",
+      experienceLevel: "BEGINNER",
       preferredTrainingDays: [1, 3, 5, 0],
-      availableEquipment: ['barbell', 'dumbbells', 'machines', 'cable'],
+      availableEquipment: ["barbell", "dumbbells", "machines", "cable"],
       injuries: [],
       currentWeight: 85,
     },
@@ -75,8 +82,8 @@ async function main() {
       bodyFat: bodyFatKg,
       bodyFatPct: 27.3,
       muscleMass: 35,
-      status: 'manual',
-      notes: 'Dev-only seed for AI Plan evidence demo. Waist: 90 cm.',
+      status: "manual",
+      notes: "Dev-only seed for AI Plan evidence demo. Waist: 90 cm.",
     },
     update: {
       date: measuredAt,
@@ -86,31 +93,37 @@ async function main() {
       bodyFat: bodyFatKg,
       bodyFatPct: 27.3,
       muscleMass: 35,
-      status: 'manual',
-      notes: 'Dev-only seed for AI Plan evidence demo. Waist: 90 cm.',
+      status: "manual",
+      notes: "Dev-only seed for AI Plan evidence demo. Waist: 90 cm.",
     },
   });
 
-  console.log(JSON.stringify({
-    ok: true,
-    userId,
-    profile: {
-      id: profile.id,
-      goal: profile.goal,
-      experienceLevel: profile.experienceLevel,
-      heightCm: profile.heightCm,
-      currentWeight: profile.currentWeight,
-    },
-    inBody: {
-      id: inBody.id,
-      dateOnly: inBody.dateOnly.toISOString().slice(0, 10),
-      weight: inBody.weight,
-      height: inBody.height,
-      bmi: inBody.bmi,
-      bodyFatPct: inBody.bodyFatPct,
-      muscleMass: inBody.muscleMass,
-    },
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        userId,
+        profile: {
+          id: profile.id,
+          goal: profile.goal,
+          experienceLevel: profile.experienceLevel,
+          heightCm: profile.heightCm,
+          currentWeight: profile.currentWeight,
+        },
+        inBody: {
+          id: inBody.id,
+          dateOnly: inBody.dateOnly.toISOString().slice(0, 10),
+          weight: inBody.weight,
+          height: inBody.height,
+          bmi: inBody.bmi,
+          bodyFatPct: inBody.bodyFatPct,
+          muscleMass: inBody.muscleMass,
+        },
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 main()

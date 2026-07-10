@@ -1,12 +1,18 @@
-﻿{
+{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Coach instruction tuning example",
   "type": "object",
   "required": ["instruction", "input", "output", "tags"],
   "properties": {
     "instruction": { "type": "string", "minLength": 10 },
-    "input": { "type": "string", "description": "Stringified CoachContext JSON" },
-    "output": { "type": "string", "description": "Stringified StructuredCoachPlan JSON" },
+    "input": {
+      "type": "string",
+      "description": "Stringified CoachContext JSON"
+    },
+    "output": {
+      "type": "string",
+      "description": "Stringified StructuredCoachPlan JSON"
+    },
     "tags": { "type": "array", "items": { "type": "string" } }
   },
   "additionalProperties": false

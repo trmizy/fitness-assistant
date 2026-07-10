@@ -1,34 +1,50 @@
-import { llmService } from '../services/llm.service';
-import { conversationRepository } from '../repositories/conversation.repository';
-import { logger } from '@gym-coach/shared';
-import { inputParser } from './input_parser';
-import { intentRouter } from './intent_router';
-import { languageGuard } from './language_guard';
-import { safetyGuard } from './safety_guard';
-import { profileExtractor } from './profile_extractor';
-import { retriever } from './retriever';
-import { recommendationEngine } from './recommendation_engine';
-import { promptBuilder } from './prompt_builder';
-import { answerValidator, hasCriticalNutritionMismatch, hasCriticalStructureMismatch } from './answer_validator';
-import { responseFormatter } from './response_formatter';
-import { labelLocalizer } from './label_localizer';
-import { traceLogger } from './trace_logger';
-import { analyzeBodyComposition, formatBodyCompAnalysis } from './body_composition_rules';
-import type { AdjustmentReason, EvidenceUsed, FinalAnswerPayload, LanguageDecision, RecommendationResult } from './types';
+import { llmService } from "../services/llm.service";
+import { conversationRepository } from "../repositories/conversation.repository";
+import { logger } from "@gym-coach/shared";
+import { inputParser } from "./input_parser";
+import { intentRouter } from "./intent_router";
+import { languageGuard } from "./language_guard";
+import { safetyGuard } from "./safety_guard";
+import { profileExtractor } from "./profile_extractor";
+import { retriever } from "./retriever";
+import { recommendationEngine } from "./recommendation_engine";
+import { promptBuilder } from "./prompt_builder";
+import {
+  answerValidator,
+  hasCriticalNutritionMismatch,
+  hasCriticalStructureMismatch,
+} from "./answer_validator";
+import { responseFormatter } from "./response_formatter";
+import { labelLocalizer } from "./label_localizer";
+import { traceLogger } from "./trace_logger";
+import {
+  analyzeBodyComposition,
+  formatBodyCompAnalysis,
+} from "./body_composition_rules";
+import type {
+  AdjustmentReason,
+  EvidenceUsed,
+  FinalAnswerPayload,
+  LanguageDecision,
+  RecommendationResult,
+} from "./types";
 import {
   buildWorkoutScheduleContextBlock,
   detectWorkoutScheduleIntent,
   formatWorkoutScheduleAnswer,
   workoutScheduleContextResolver,
-} from './workout_schedule_context';
+} from "./workout_schedule_context";
 import {
   buildNutritionContextBlock,
   detectNutritionLookupIntent,
   formatNutritionAnswer,
   nutritionContextResolver,
-} from './nutrition_context';
-import { evidenceUsedFromDocs } from './plan_evidence';
-import { buildCoachContext, sanitizeCoachContextForPrompt } from '../coach/coach_context_builder';
+} from "./nutrition_context";
+import { evidenceUsedFromDocs } from "./plan_evidence";
+import {
+  buildCoachContext,
+  sanitizeCoachContextForPrompt,
+} from "../coach/coach_context_builder";
 
 /** Callback fired at each real pipeline milestone so callers can forward live status events. */
 export type ProgressCallback = (message: string) => void;
@@ -40,10 +56,16 @@ function makeEarlyPayload(
   routeIntent: string,
 ): FinalAnswerPayload {
   const emptyRec: RecommendationResult = {
-    objective: '',
-    nutrition: { formula: 'none', confidence: 'low' },
-    workout: { split: 'none', sessionsPerWeek: 0, focus: [], avoidedPatterns: [], assumptions: [] },
-    meal: { template: 'none', dailyMeals: 0, assumptions: [] },
+    objective: "",
+    nutrition: { formula: "none", confidence: "low" },
+    workout: {
+      split: "none",
+      sessionsPerWeek: 0,
+      focus: [],
+      avoidedPatterns: [],
+      assumptions: [],
+    },
+    meal: { template: "none", dailyMeals: 0, assumptions: [] },
     assumptions: [],
     missingFields: [],
   };
@@ -56,7 +78,7 @@ function makeEarlyPayload(
     missingFields: [],
     retrieval: { documents: [], isEmpty: true },
     recommendation: emptyRec,
-    finalPrompt: '',
+    finalPrompt: "",
     validationNotes: [],
     promptTokens: 0,
     completionTokens: 0,
@@ -84,20 +106,30 @@ export const llmOrchestrator = {
     // Off-topic and medical emergency return immediately without hitting downstream services.
     const safetyCheck = safetyGuard.check(question);
 
-    if (safetyCheck.type === 'off_topic' || safetyCheck.type === 'medical_emergency') {
+    if (
+      safetyCheck.type === "off_topic" ||
+      safetyCheck.type === "medical_emergency"
+    ) {
       const answer =
-        language.responseLanguage === 'vi' ? safetyCheck.messageVi : safetyCheck.messageEn;
+        language.responseLanguage === "vi"
+          ? safetyCheck.messageVi
+          : safetyCheck.messageEn;
       traceLogger.end(trace, {
         retrievalEmpty: true,
         warningCount: 0,
         promptTokens: 0,
         completionTokens: 0,
       });
-      return makeEarlyPayload(trace.traceId, answer, language, safetyCheck.type);
+      return makeEarlyPayload(
+        trace.traceId,
+        answer,
+        language,
+        safetyCheck.type,
+      );
     }
 
     // Emit before any I/O - fires immediately after safety gate passes.
-    onProgress?.('Dang dung ke hoach an toan da kiem chung');
+    onProgress?.("Dang dung ke hoach an toan da kiem chung");
 
     // Profile fetch (4 downstream HTTP calls) and Qdrant vector search run concurrently -
     // neither depends on the other, so parallelising saves ~150-300 ms per request.
@@ -108,16 +140,31 @@ export const llmOrchestrator = {
     const [context, retrieval, chatHistory] = await Promise.all([
       profileExtractor.extract(userId, authHeader),
       preliminaryNutritionIntent.enabled || preliminaryScheduleIntent.enabled
-        ? Promise.resolve({ documents: [], isEmpty: true, reason: preliminaryNutritionIntent.enabled ? 'nutrition_schedule_lookup_skips_rag' : 'workout_schedule_lookup_skips_rag' })
+        ? Promise.resolve({
+            documents: [],
+            isEmpty: true,
+            reason: preliminaryNutritionIntent.enabled
+              ? "nutrition_schedule_lookup_skips_rag"
+              : "workout_schedule_lookup_skips_rag",
+          })
         : retriever.retrieveForChat(question),
-      userId ? conversationRepository.findMany({ userId }, 5) : Promise.resolve([]),
+      userId
+        ? conversationRepository.findMany({ userId }, 5)
+        : Promise.resolve([]),
     ]);
 
     const nutritionIntent = detectNutritionLookupIntent(question, chatHistory);
     if (nutritionIntent.enabled) {
-      const nutritionContext = await nutritionContextResolver.resolve(nutritionIntent, userId, authHeader);
+      const nutritionContext = await nutritionContextResolver.resolve(
+        nutritionIntent,
+        userId,
+        authHeader,
+      );
       nutritionContextResolver.debug(nutritionIntent, nutritionContext, userId);
-      const answer = formatNutritionAnswer(nutritionContext, language.responseLanguage);
+      const answer = formatNutritionAnswer(
+        nutritionContext,
+        language.responseLanguage,
+      );
       traceLogger.end(trace, {
         retrievalEmpty: true,
         warningCount: 0,
@@ -126,7 +173,12 @@ export const llmOrchestrator = {
       });
 
       return {
-        ...makeEarlyPayload(trace.traceId, answer, language, 'meal_plan_request'),
+        ...makeEarlyPayload(
+          trace.traceId,
+          answer,
+          language,
+          "meal_plan_request",
+        ),
         finalPrompt: buildNutritionContextBlock(nutritionContext),
         nutritionSchedule: {
           targetDate: nutritionContext.targetDate,
@@ -140,25 +192,39 @@ export const llmOrchestrator = {
 
     const scheduleIntent = detectWorkoutScheduleIntent(question, chatHistory);
     const workoutScheduleContext = scheduleIntent.enabled
-      ? await workoutScheduleContextResolver.resolve(scheduleIntent, userId, authHeader)
+      ? await workoutScheduleContextResolver.resolve(
+          scheduleIntent,
+          userId,
+          authHeader,
+        )
       : undefined;
 
     if (scheduleIntent.enabled && workoutScheduleContext) {
-      if (process.env.DEBUG_INTENT_ROUTING === 'true') {
-        logger.info({
-          rawMessage: scheduleIntent.rawMessage,
-          normalizedMessage: scheduleIntent.normalizedMessage,
-          detectedIntent: 'workout_schedule_lookup',
-          intentReason: 'workout_keyword_or_date_context',
-          inheritedIntent: scheduleIntent.inheritedIntent ?? false,
-          targetDate: scheduleIntent.targetDate,
-          mealType: undefined,
-          workoutLookupCalled: true,
-          nutritionLookupCalled: false,
-        }, 'AI coach intent routing resolved');
+      if (process.env.DEBUG_INTENT_ROUTING === "true") {
+        logger.info(
+          {
+            rawMessage: scheduleIntent.rawMessage,
+            normalizedMessage: scheduleIntent.normalizedMessage,
+            detectedIntent: "workout_schedule_lookup",
+            intentReason: "workout_keyword_or_date_context",
+            inheritedIntent: scheduleIntent.inheritedIntent ?? false,
+            targetDate: scheduleIntent.targetDate,
+            mealType: undefined,
+            workoutLookupCalled: true,
+            nutritionLookupCalled: false,
+          },
+          "AI coach intent routing resolved",
+        );
       }
-      workoutScheduleContextResolver.debug(scheduleIntent, workoutScheduleContext, userId);
-      const answer = formatWorkoutScheduleAnswer(workoutScheduleContext, language.responseLanguage);
+      workoutScheduleContextResolver.debug(
+        scheduleIntent,
+        workoutScheduleContext,
+        userId,
+      );
+      const answer = formatWorkoutScheduleAnswer(
+        workoutScheduleContext,
+        language.responseLanguage,
+      );
       traceLogger.end(trace, {
         retrievalEmpty: true,
         warningCount: 0,
@@ -167,7 +233,12 @@ export const llmOrchestrator = {
       });
 
       return {
-        ...makeEarlyPayload(trace.traceId, answer, language, 'schedule_specific_day_request'),
+        ...makeEarlyPayload(
+          trace.traceId,
+          answer,
+          language,
+          "schedule_specific_day_request",
+        ),
         finalPrompt: buildWorkoutScheduleContextBlock(workoutScheduleContext),
         workoutSchedule: {
           activePlanName: workoutScheduleContext.activePlanName,
@@ -184,17 +255,23 @@ export const llmOrchestrator = {
     const bodyCompAnalysis = analyzeBodyComposition(context.profile);
     const bodyCompText = formatBodyCompAnalysis(bodyCompAnalysis);
     const coachContext = buildCoachContext(context);
-    const coachContextText = JSON.stringify(sanitizeCoachContextForPrompt(coachContext));
+    const coachContextText = JSON.stringify(
+      sanitizeCoachContextForPrompt(coachContext),
+    );
     const bodyCompAndCoachText = [
       bodyCompText,
       `CoachContext JSON (sanitized, no user identity):\n${coachContextText}`,
-    ].filter(Boolean).join('\n\n');
+    ]
+      .filter(Boolean)
+      .join("\n\n");
 
     // Retrieve evidence from fitness_evidence collection using body-comp-specific queries.
     // Runs after profile so queries can be shaped by the analysis. Best-effort: no throw.
-    const evidenceDocs = await retriever.retrieveEvidence(bodyCompAnalysis.evidenceQueries).catch(() => []);
+    const evidenceDocs = await retriever
+      .retrieveEvidence(bodyCompAnalysis.evidenceQueries)
+      .catch(() => []);
 
-    onProgress?.('Dang dung ke hoach an toan da kiem chung');
+    onProgress?.("Dang dung ke hoach an toan da kiem chung");
 
     const routedIntent = intentRouter.route(question, context.profile);
     const parsedInput = inputParser.parse(question, context.profile);
@@ -202,7 +279,9 @@ export const llmOrchestrator = {
     parsedInput.goalHint = routedIntent.goalHint || parsedInput.goalHint;
 
     const unsafe =
-      safetyCheck.type === 'unsafe_weight_loss' ? safetyCheck.guidance : undefined;
+      safetyCheck.type === "unsafe_weight_loss"
+        ? safetyCheck.guidance
+        : undefined;
     const recommendation = recommendationEngine.recommend(
       context.profile,
       parsedInput,
@@ -211,13 +290,16 @@ export const llmOrchestrator = {
 
     if (unsafe?.blocked) {
       recommendation.unsafeGuidance = unsafe;
-      recommendation.responseIntent = 'unsafe_weight_loss_request';
+      recommendation.responseIntent = "unsafe_weight_loss_request";
     }
 
-    const deterministicAnswer = responseFormatter.format(recommendation, language.responseLanguage);
+    const deterministicAnswer = responseFormatter.format(
+      recommendation,
+      language.responseLanguage,
+    );
 
     let llmAnswer = deterministicAnswer;
-    let prompt = '';
+    let prompt = "";
     let promptTokens = 0;
     let completionTokens = 0;
     let totalTokens = 0;
@@ -229,22 +311,28 @@ export const llmOrchestrator = {
     // that the static formatter cannot address. Injury mentions also force LLM path so
     // the model can adapt the plan narrative around the user's pain points.
     const llmIntents = new Set([
-      'general_fitness_knowledge',
-      'schedule_specific_day_request',
-      'body_recomposition_request',
-      'meal_plan_request',
-      'combined_plan_request',
+      "general_fitness_knowledge",
+      "schedule_specific_day_request",
+      "body_recomposition_request",
+      "meal_plan_request",
+      "combined_plan_request",
     ]);
 
-    const needsLlm = llmIntents.has(routedIntent.intent) || parsedInput.mentionsInjury;
+    const needsLlm =
+      llmIntents.has(routedIntent.intent) || parsedInput.mentionsInjury;
 
     // Merge evidence docs into retrieval so compactRetrieval() can format citations
-    const mergedRetrieval = evidenceDocs.length > 0
-      ? { ...retrieval, documents: [...retrieval.documents, ...evidenceDocs], isEmpty: false }
-      : retrieval;
+    const mergedRetrieval =
+      evidenceDocs.length > 0
+        ? {
+            ...retrieval,
+            documents: [...retrieval.documents, ...evidenceDocs],
+            isEmpty: false,
+          }
+        : retrieval;
 
     if (needsLlm && !unsafe?.blocked) {
-      onProgress?.('Dang dung ke hoach an toan da kiem chung');
+      onProgress?.("Dang dung ke hoach an toan da kiem chung");
       prompt = promptBuilder.build(
         question,
         parsedInput,
@@ -256,7 +344,10 @@ export const llmOrchestrator = {
         bodyCompAndCoachText || undefined,
       );
       const llmResponse = await llmService.callLLM(prompt);
-      llmAnswer = labelLocalizer.localize(llmResponse.answer, language.responseLanguage);
+      llmAnswer = labelLocalizer.localize(
+        llmResponse.answer,
+        language.responseLanguage,
+      );
       promptTokens = llmResponse.promptTokens;
       completionTokens = llmResponse.completionTokens;
       totalTokens = llmResponse.totalTokens;
@@ -274,7 +365,8 @@ export const llmOrchestrator = {
     // This prevents the "185g protein in headline / 133g in targets" drift.
     // Exception: when injury is the sole reason LLM ran (intent was non-LLM), skip
     // structural validation - injury/advisory answers legitimately lack workout structure.
-    const injuryForcedLlm = parsedInput.mentionsInjury && !llmIntents.has(routedIntent.intent);
+    const injuryForcedLlm =
+      parsedInput.mentionsInjury && !llmIntents.has(routedIntent.intent);
     let usedDeterministicFallbackBecauseOfValidation = false;
     if (
       needsLlm &&
@@ -285,7 +377,7 @@ export const llmOrchestrator = {
     ) {
       llmAnswer = deterministicAnswer;
       usedDeterministicFallbackBecauseOfValidation = true;
-      onProgress?.('Dang dung ke hoach an toan da kiem chung');
+      onProgress?.("Dang dung ke hoach an toan da kiem chung");
     }
 
     traceLogger.end(trace, {
@@ -298,15 +390,18 @@ export const llmOrchestrator = {
     // Build evidence-used list from all retrieved fitness_evidence docs, including
     // chat RAG hits and body-composition-specific enrichment.
     const evidenceUsed: EvidenceUsed[] = evidenceUsedFromDocs(
-      mergedRetrieval.documents.filter((doc) => doc.source === 'qdrant:fitness_evidence'),
+      mergedRetrieval.documents.filter(
+        (doc) => doc.source === "qdrant:fitness_evidence",
+      ),
     );
 
-    const adjustmentReasons: AdjustmentReason[] = bodyCompAnalysis.adjustments.map(a => ({
-      metric:          a.metric,
-      observed_value:  a.observed_value,
-      interpretation:  a.interpretation,
-      plan_adjustment: a.plan_adjustment,
-    }));
+    const adjustmentReasons: AdjustmentReason[] =
+      bodyCompAnalysis.adjustments.map((a) => ({
+        metric: a.metric,
+        observed_value: a.observed_value,
+        interpretation: a.interpretation,
+        plan_adjustment: a.plan_adjustment,
+      }));
 
     return {
       traceId: trace.traceId,
@@ -326,9 +421,13 @@ export const llmOrchestrator = {
       warningCount: validation.warnings.length,
       explicitLanguageLock: language.locked,
       // Evidence enrichment (optional backward-compat fields)
-      adjustmentReasons: adjustmentReasons.length > 0 ? adjustmentReasons : undefined,
-      evidenceUsed:      evidenceUsed.length > 0 ? evidenceUsed : undefined,
-      safetyNotes:       bodyCompAnalysis.safetyNotes.length > 0 ? bodyCompAnalysis.safetyNotes : undefined,
+      adjustmentReasons:
+        adjustmentReasons.length > 0 ? adjustmentReasons : undefined,
+      evidenceUsed: evidenceUsed.length > 0 ? evidenceUsed : undefined,
+      safetyNotes:
+        bodyCompAnalysis.safetyNotes.length > 0
+          ? bodyCompAnalysis.safetyNotes
+          : undefined,
     };
   },
 };

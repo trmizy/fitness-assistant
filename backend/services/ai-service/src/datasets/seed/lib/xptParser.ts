@@ -33,13 +33,16 @@ function ibmFloatToDouble(buf: Buffer, offset: number): number | null {
 }
 
 function readFixedStr(buf: Buffer, start: number, len: number): string {
-  return buf.subarray(start, start + len).toString('ascii').trimEnd();
+  return buf
+    .subarray(start, start + len)
+    .toString("ascii")
+    .trimEnd();
 }
 
 export interface XptColumn {
   name: string;
   label: string;
-  type: 'numeric' | 'character';
+  type: "numeric" | "character";
   length: number;
   format: string;
 }
@@ -55,8 +58,11 @@ export interface XptParseResult {
  * Parse a SAS XPT file buffer and return columns + rows.
  * Only columns listed in `keepCols` are returned (pass empty array to keep all).
  */
-export function parseXpt(data: Buffer, keepCols: string[] = []): XptParseResult {
-  const keepSet = new Set(keepCols.map(c => c.toUpperCase()));
+export function parseXpt(
+  data: Buffer,
+  keepCols: string[] = [],
+): XptParseResult {
+  const keepSet = new Set(keepCols.map((c) => c.toUpperCase()));
   const RECORD = 80;
   let pos = 0;
 
@@ -70,26 +76,26 @@ export function parseXpt(data: Buffer, keepCols: string[] = []): XptParseResult 
   // XPT V5 and V8 have slightly different record layouts; scanning is safer.
 
   function findMagic(magic: string, from = 0): number {
-    const mb = Buffer.from(magic, 'ascii');
+    const mb = Buffer.from(magic, "ascii");
     for (let p = from; p + 80 <= data.length; p += 80) {
       if (data.subarray(p, p + mb.length).equals(mb)) return p;
     }
     return -1;
   }
 
-  const libPos = findMagic('HEADER RECORD*******LIBR', 0);
-  if (libPos < 0) throw new Error('Not an XPT file (LIBRARY header not found)');
+  const libPos = findMagic("HEADER RECORD*******LIBR", 0);
+  if (libPos < 0) throw new Error("Not an XPT file (LIBRARY header not found)");
 
-  const memberPos = findMagic('HEADER RECORD*******MEMBER', libPos + 80);
-  if (memberPos < 0) throw new Error('MEMBER header not found');
+  const memberPos = findMagic("HEADER RECORD*******MEMBER", libPos + 80);
+  if (memberPos < 0) throw new Error("MEMBER header not found");
 
   // Record immediately after member header contains the dataset name
   const memberInfoRec = data.subarray(memberPos + 80, memberPos + 160);
   const datasetName = readFixedStr(memberInfoRec, 8, 8);
   const labelRecord = readFixedStr(memberInfoRec, 40, 40);
 
-  const nsHdrPos = findMagic('HEADER RECORD*******NAMESTR', memberPos + 80);
-  if (nsHdrPos < 0) throw new Error('NAMESTR header not found');
+  const nsHdrPos = findMagic("HEADER RECORD*******NAMESTR", memberPos + 80);
+  if (nsHdrPos < 0) throw new Error("NAMESTR header not found");
   pos = nsHdrPos;
 
   // ── Read NAMESTR header; compute nvar from NAMESTR data size ─────────────
@@ -99,8 +105,8 @@ export function parseXpt(data: Buffer, keepCols: string[] = []): XptParseResult 
   // We find the OBS header FIRST and use the distance to back-calculate nvar.
   // This is more reliable than parsing the variable-count field, which has
   // inconsistent formatting across XPT versions (ASCII vs. binary, different offsets).
-  const obsPos = findMagic('HEADER RECORD*******OBS', nsHdrPos + 80);
-  if (obsPos < 0) throw new Error('Missing OBS header record');
+  const obsPos = findMagic("HEADER RECORD*******OBS", nsHdrPos + 80);
+  if (obsPos < 0) throw new Error("Missing OBS header record");
 
   // NAMESTR data occupies the bytes between the NAMESTR header and the OBS header.
   // Each NAMESTR record is 140 bytes, padded to 80-byte boundaries.
@@ -108,15 +114,22 @@ export function parseXpt(data: Buffer, keepCols: string[] = []): XptParseResult 
   // Back-calculate nvar: find smallest integer such that ceil(nvar*140/80)*80 = namestrDataBytes
   let nvar = 0;
   for (let n = 1; n <= 5000; n++) {
-    if (Math.ceil(n * 140 / 80) * 80 === namestrDataBytes) { nvar = n; break; }
+    if (Math.ceil((n * 140) / 80) * 80 === namestrDataBytes) {
+      nvar = n;
+      break;
+    }
   }
-  if (nvar <= 0) throw new Error(`Cannot determine variable count from NAMESTR data size (${namestrDataBytes} bytes)`);
+  if (nvar <= 0)
+    throw new Error(
+      `Cannot determine variable count from NAMESTR data size (${namestrDataBytes} bytes)`,
+    );
 
   // ── Dataset label from DSCRPTR record (optional) ──────────────────────────
-  const dscrPtr = findMagic('HEADER RECORD*******DSCRPTR', memberPos + 80);
-  const dataLabel = (dscrPtr >= 0 && dscrPtr < nsHdrPos)
-    ? readFixedStr(data.subarray(dscrPtr + 80, dscrPtr + 160), 8, 40)
-    : labelRecord;
+  const dscrPtr = findMagic("HEADER RECORD*******DSCRPTR", memberPos + 80);
+  const dataLabel =
+    dscrPtr >= 0 && dscrPtr < nsHdrPos
+      ? readFixedStr(data.subarray(dscrPtr + 80, dscrPtr + 160), 8, 40)
+      : labelRecord;
 
   // ── Variable descriptor records (NAMESTR) ─────────────────────────────────
   // NAMESTR layout (140 bytes per variable):
@@ -135,14 +148,14 @@ export function parseXpt(data: Buffer, keepCols: string[] = []): XptParseResult 
   for (let v = 0; v < nvar; v++) {
     const off = v * NAMESTR_LEN;
     const ntype = namestrBuf.readUInt16BE(off + 0);
-    const nlng  = namestrBuf.readUInt16BE(off + 4);
+    const nlng = namestrBuf.readUInt16BE(off + 4);
     const nname = readFixedStr(namestrBuf, off + 8, 8);
     const nlabel = readFixedStr(namestrBuf, off + 16, 40);
-    const nform  = readFixedStr(namestrBuf, off + 56, 8);
+    const nform = readFixedStr(namestrBuf, off + 56, 8);
     columns.push({
       name: nname,
       label: nlabel,
-      type: ntype === 2 ? 'character' : 'numeric',
+      type: ntype === 2 ? "character" : "numeric",
       length: nlng,
       format: nform,
     });
@@ -164,18 +177,22 @@ export function parseXpt(data: Buffer, keepCols: string[] = []): XptParseResult 
     pos += obsPaddedWidth;
 
     // Check for EOF marker (all zeros or padding)
-    if (obs.every(b => b === 0)) break;
+    if (obs.every((b) => b === 0)) break;
 
     const row: Record<string, number | string | null> = {};
     let colOff = 0;
 
     for (const col of columns) {
       const include = keepAll || keepSet.has(col.name.toUpperCase());
-      if (col.type === 'numeric') {
+      if (col.type === "numeric") {
         const val = ibmFloatToDouble(obs, colOff);
-        if (include) row[col.name] = val !== null ? Math.round(val * 10000) / 10000 : null;
+        if (include)
+          row[col.name] = val !== null ? Math.round(val * 10000) / 10000 : null;
       } else {
-        const str = obs.subarray(colOff, colOff + col.length).toString('ascii').trimEnd();
+        const str = obs
+          .subarray(colOff, colOff + col.length)
+          .toString("ascii")
+          .trimEnd();
         if (include) row[col.name] = str || null;
       }
       colOff += col.length;

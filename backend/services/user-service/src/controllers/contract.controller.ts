@@ -1,98 +1,128 @@
-import path from 'path';
-import fs from 'fs';
-import { Response } from 'express';
-import { logger } from '@gym-coach/shared';
-import { contractService } from '../services/contract.service';
-import { contractRepository } from '../repositories/contract.repository';
-import { ContractStatus } from '../generated/prisma';
-import { prisma } from '../repositories/profile.repository';
+import path from "path";
+import fs from "fs";
+import { Response } from "express";
+import { logger } from "@gym-coach/shared";
+import { contractService } from "../services/contract.service";
+import { contractRepository } from "../repositories/contract.repository";
+import { ContractStatus } from "../generated/prisma";
+import { prisma } from "../repositories/profile.repository";
 
 export const contractController = {
   // Client requests a contract with a PT
   async requestContract(req: any, res: Response) {
     try {
-      const clientUserId = req.headers['x-user-id'] as string;
-      const contract = await contractService.requestContract(clientUserId, req.body);
+      const clientUserId = req.headers["x-user-id"] as string;
+      const contract = await contractService.requestContract(
+        clientUserId,
+        req.body,
+      );
       res.status(201).json(contract);
     } catch (error: any) {
-      logger.error(error, 'Request contract error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to request contract' });
+      logger.error(error, "Request contract error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to request contract" });
     }
   },
 
   // PT accepts a pending contract
   async acceptContract(req: any, res: Response) {
     try {
-      const ptUserId = req.headers['x-user-id'] as string;
-      const contract = await contractService.acceptContract(req.params.id, ptUserId);
+      const ptUserId = req.headers["x-user-id"] as string;
+      const contract = await contractService.acceptContract(
+        req.params.id,
+        ptUserId,
+      );
       res.json(contract);
     } catch (error: any) {
-      logger.error(error, 'Accept contract error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to accept contract' });
+      logger.error(error, "Accept contract error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to accept contract" });
     }
   },
 
   // PT rejects a pending contract
   async rejectContract(req: any, res: Response) {
     try {
-      const ptUserId = req.headers['x-user-id'] as string;
+      const ptUserId = req.headers["x-user-id"] as string;
       const { reason } = req.body;
-      const contract = await contractService.rejectContract(req.params.id, ptUserId, reason);
+      const contract = await contractService.rejectContract(
+        req.params.id,
+        ptUserId,
+        reason,
+      );
       res.json(contract);
     } catch (error: any) {
-      logger.error(error, 'Reject contract error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to reject contract' });
+      logger.error(error, "Reject contract error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to reject contract" });
     }
   },
 
   // Either party cancels
   async cancelContract(req: any, res: Response) {
     try {
-      const userId = req.headers['x-user-id'] as string;
+      const userId = req.headers["x-user-id"] as string;
       const { reason } = req.body;
-      const contract = await contractService.cancelContract(req.params.id, userId, reason);
+      const contract = await contractService.cancelContract(
+        req.params.id,
+        userId,
+        reason,
+      );
       res.json(contract);
     } catch (error: any) {
-      logger.error(error, 'Cancel contract error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to cancel contract' });
+      logger.error(error, "Cancel contract error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to cancel contract" });
     }
   },
 
   // PT creates a contract for a client (legacy)
   async create(req: any, res: Response) {
     try {
-      const ptUserId = req.headers['x-user-id'] as string;
+      const ptUserId = req.headers["x-user-id"] as string;
       const contract = await contractService.create(ptUserId, req.body);
       res.status(201).json(contract);
     } catch (error: any) {
-      logger.error(error, 'Create contract error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to create contract' });
+      logger.error(error, "Create contract error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to create contract" });
     }
   },
 
   // Get contracts for PT (trainer view)
   async getByPT(req: any, res: Response) {
     try {
-      const ptUserId = req.headers['x-user-id'] as string;
+      const ptUserId = req.headers["x-user-id"] as string;
       const { status } = req.query;
-      const contracts = await contractService.getByPT(ptUserId, status as string);
+      const contracts = await contractService.getByPT(
+        ptUserId,
+        status as string,
+      );
       res.json(contracts);
     } catch (error: any) {
-      logger.error(error, 'Get PT contracts error');
-      res.status(500).json({ error: 'Failed to fetch contracts' });
+      logger.error(error, "Get PT contracts error");
+      res.status(500).json({ error: "Failed to fetch contracts" });
     }
   },
 
   // Get contracts for client
   async getByClient(req: any, res: Response) {
     try {
-      const clientUserId = req.headers['x-user-id'] as string;
+      const clientUserId = req.headers["x-user-id"] as string;
       const { status } = req.query;
-      const contracts = await contractService.getByClient(clientUserId, status as string);
+      const contracts = await contractService.getByClient(
+        clientUserId,
+        status as string,
+      );
       res.json(contracts);
     } catch (error: any) {
-      logger.error(error, 'Get client contracts error');
-      res.status(500).json({ error: 'Failed to fetch contracts' });
+      logger.error(error, "Get client contracts error");
+      res.status(500).json({ error: "Failed to fetch contracts" });
     }
   },
 
@@ -101,51 +131,69 @@ export const contractController = {
     try {
       const contract = await contractService.getById(req.params.id);
       if (!contract) {
-        res.status(404).json({ error: 'Contract not found' });
+        res.status(404).json({ error: "Contract not found" });
         return;
       }
       res.json(contract);
     } catch (error: any) {
-      logger.error(error, 'Get contract error');
-      res.status(500).json({ error: 'Failed to fetch contract' });
+      logger.error(error, "Get contract error");
+      res.status(500).json({ error: "Failed to fetch contract" });
     }
   },
 
   // Update contract status (legacy generic endpoint)
   async updateStatus(req: any, res: Response) {
     try {
-      const userId = req.headers['x-user-id'] as string;
-      const userRole = req.headers['x-user-role'] as string;
+      const userId = req.headers["x-user-id"] as string;
+      const userRole = req.headers["x-user-role"] as string;
       const { status } = req.body;
-      const contract = await contractService.updateStatus(req.params.id, userId, status, userRole);
+      const contract = await contractService.updateStatus(
+        req.params.id,
+        userId,
+        status,
+        userRole,
+      );
       res.json(contract);
     } catch (error: any) {
-      logger.error(error, 'Update contract status error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to update status' });
+      logger.error(error, "Update contract status error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to update status" });
     }
   },
 
   // PT updates contract details
   async update(req: any, res: Response) {
     try {
-      const ptUserId = req.headers['x-user-id'] as string;
-      const contract = await contractService.update(req.params.id, ptUserId, req.body);
+      const ptUserId = req.headers["x-user-id"] as string;
+      const contract = await contractService.update(
+        req.params.id,
+        ptUserId,
+        req.body,
+      );
       res.json(contract);
     } catch (error: any) {
-      logger.error(error, 'Update contract error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to update contract' });
+      logger.error(error, "Update contract error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to update contract" });
     }
   },
 
   // PT logs a completed session (legacy)
   async logSession(req: any, res: Response) {
     try {
-      const ptUserId = req.headers['x-user-id'] as string;
-      const contract = await contractService.incrementSession(req.params.id, ptUserId);
+      const ptUserId = req.headers["x-user-id"] as string;
+      const contract = await contractService.incrementSession(
+        req.params.id,
+        ptUserId,
+      );
       res.json(contract);
     } catch (error: any) {
-      logger.error(error, 'Log session error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to log session' });
+      logger.error(error, "Log session error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to log session" });
     }
   },
 
@@ -154,14 +202,17 @@ export const contractController = {
     try {
       const { userAId, userBId } = req.query;
       if (!userAId || !userBId) {
-        res.status(400).json({ error: 'userAId and userBId are required' });
+        res.status(400).json({ error: "userAId and userBId are required" });
         return;
       }
-      const result = await contractService.checkRelationship(userAId as string, userBId as string);
+      const result = await contractService.checkRelationship(
+        userAId as string,
+        userBId as string,
+      );
       res.json(result);
     } catch (error: any) {
-      logger.error(error, 'Check relationship error');
-      res.status(500).json({ error: 'Failed to check relationship' });
+      logger.error(error, "Check relationship error");
+      res.status(500).json({ error: "Failed to check relationship" });
     }
   },
 
@@ -171,12 +222,17 @@ export const contractController = {
   async getActivePTForClient(req: any, res: Response) {
     try {
       const { clientId, contractId } = req.query;
-      if (!clientId || typeof clientId !== 'string' || clientId.trim() === '') {
-        res.status(400).json({ error: 'clientId is required' });
+      if (!clientId || typeof clientId !== "string" || clientId.trim() === "") {
+        res.status(400).json({ error: "clientId is required" });
         return;
       }
-      if (contractId !== undefined && (typeof contractId !== 'string' || contractId.trim() === '')) {
-        res.status(400).json({ error: 'contractId must be a non-empty string' });
+      if (
+        contractId !== undefined &&
+        (typeof contractId !== "string" || contractId.trim() === "")
+      ) {
+        res
+          .status(400)
+          .json({ error: "contractId must be a non-empty string" });
         return;
       }
 
@@ -189,7 +245,7 @@ export const contractController = {
       const contract = await prisma.contract.findFirst({
         where,
         select: { id: true, ptUserId: true },
-        orderBy: { startDate: 'desc' },
+        orderBy: { startDate: "desc" },
       });
 
       if (!contract) {
@@ -198,8 +254,8 @@ export const contractController = {
       }
       res.json({ ptUserId: contract.ptUserId, contractId: contract.id });
     } catch (error: any) {
-      logger.error(error, 'getActivePTForClient error');
-      res.status(500).json({ error: 'Failed to verify contract' });
+      logger.error(error, "getActivePTForClient error");
+      res.status(500).json({ error: "Failed to verify contract" });
     }
   },
 
@@ -210,7 +266,7 @@ export const contractController = {
     try {
       const { fromUserId, toUserId } = req.query;
       if (!fromUserId || !toUserId) {
-        res.status(400).json({ error: 'fromUserId and toUserId are required' });
+        res.status(400).json({ error: "fromUserId and toUserId are required" });
         return;
       }
       const result = await contractService.computeChatEligibility(
@@ -219,67 +275,84 @@ export const contractController = {
       );
       res.json(result);
     } catch (error: any) {
-      logger.error(error, 'Chat-eligibility error');
-      res.status(500).json({ error: 'Failed to compute chat eligibility' });
+      logger.error(error, "Chat-eligibility error");
+      res.status(500).json({ error: "Failed to compute chat eligibility" });
     }
   },
 
   // Resend e-sign request (only for ERROR/EXPIRED status)
   async sendESign(req: any, res: Response) {
     try {
-      const userId = req.headers['x-user-id'] as string;
-      const userRole = req.headers['x-user-role'] as string;
+      const userId = req.headers["x-user-id"] as string;
+      const userRole = req.headers["x-user-role"] as string;
       const contract = await contractRepository.findById(req.params.id);
 
       if (!contract) {
-        res.status(404).json({ error: 'Contract not found' });
+        res.status(404).json({ error: "Contract not found" });
         return;
       }
 
       // Auth: only client/PT of this contract or admin
-      if (userId !== contract.clientUserId && userId !== contract.ptUserId && userRole !== 'ADMIN') {
-        res.status(403).json({ error: 'Forbidden' });
+      if (
+        userId !== contract.clientUserId &&
+        userId !== contract.ptUserId &&
+        userRole !== "ADMIN"
+      ) {
+        res.status(403).json({ error: "Forbidden" });
         return;
       }
 
       if (contract.status !== ContractStatus.PENDING_SIGNATURE) {
-        res.status(400).json({ error: 'Contract is not in PENDING_SIGNATURE state' });
+        res
+          .status(400)
+          .json({ error: "Contract is not in PENDING_SIGNATURE state" });
         return;
       }
 
-      if (contract.eSignStatus === 'SIGNED') {
-        res.status(400).json({ error: 'Contract is already signed' });
+      if (contract.eSignStatus === "SIGNED") {
+        res.status(400).json({ error: "Contract is already signed" });
         return;
       }
 
-      const canResend = ['ERROR', 'EXPIRED'].includes(contract.eSignStatus || '');
-      if (!canResend && userRole !== 'ADMIN') {
-        res.status(400).json({ error: 'Cannot resend while e-sign is in progress. Contact admin if needed.' });
+      const canResend = ["ERROR", "EXPIRED"].includes(
+        contract.eSignStatus || "",
+      );
+      if (!canResend && userRole !== "ADMIN") {
+        res.status(400).json({
+          error:
+            "Cannot resend while e-sign is in progress. Contact admin if needed.",
+        });
         return;
       }
 
       await contractService.resendESign(contract.id);
-      res.json({ message: 'E-sign request sent' });
+      res.json({ message: "E-sign request sent" });
     } catch (error: any) {
-      logger.error(error, 'Send e-sign error');
-      res.status(error.status || 500).json({ error: error.message || 'Failed to send e-sign request' });
+      logger.error(error, "Send e-sign error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to send e-sign request" });
     }
   },
 
   // Get e-sign status for a contract
   async getESignStatus(req: any, res: Response) {
     try {
-      const userId = req.headers['x-user-id'] as string;
-      const userRole = req.headers['x-user-role'] as string;
+      const userId = req.headers["x-user-id"] as string;
+      const userRole = req.headers["x-user-role"] as string;
       const contract = await contractRepository.findById(req.params.id);
 
       if (!contract) {
-        res.status(404).json({ error: 'Contract not found' });
+        res.status(404).json({ error: "Contract not found" });
         return;
       }
 
-      if (userId !== contract.clientUserId && userId !== contract.ptUserId && userRole !== 'ADMIN') {
-        res.status(403).json({ error: 'Forbidden' });
+      if (
+        userId !== contract.clientUserId &&
+        userId !== contract.ptUserId &&
+        userRole !== "ADMIN"
+      ) {
+        res.status(403).json({ error: "Forbidden" });
         return;
       }
 
@@ -293,30 +366,34 @@ export const contractController = {
         eSignError: contract.eSignError,
       });
     } catch (error: any) {
-      logger.error(error, 'Get e-sign status error');
-      res.status(500).json({ error: 'Failed to get e-sign status' });
+      logger.error(error, "Get e-sign status error");
+      res.status(500).json({ error: "Failed to get e-sign status" });
     }
   },
 
   // Download the generated contract PDF
   async getContractPdf(req: any, res: Response) {
     try {
-      const userId = req.headers['x-user-id'] as string;
-      const userRole = req.headers['x-user-role'] as string;
+      const userId = req.headers["x-user-id"] as string;
+      const userRole = req.headers["x-user-role"] as string;
       const contract = await contractRepository.findById(req.params.id);
 
       if (!contract) {
-        res.status(404).json({ error: 'Contract not found' });
+        res.status(404).json({ error: "Contract not found" });
         return;
       }
 
-      if (userId !== contract.clientUserId && userId !== contract.ptUserId && userRole !== 'ADMIN') {
-        res.status(403).json({ error: 'Forbidden' });
+      if (
+        userId !== contract.clientUserId &&
+        userId !== contract.ptUserId &&
+        userRole !== "ADMIN"
+      ) {
+        res.status(403).json({ error: "Forbidden" });
         return;
       }
 
       if (!contract.contractPdfPath) {
-        res.status(404).json({ error: 'PDF not available' });
+        res.status(404).json({ error: "PDF not available" });
         return;
       }
 
@@ -326,26 +403,26 @@ export const contractController = {
         : path.join(process.cwd(), contract.contractPdfPath);
 
       if (!fs.existsSync(absPath)) {
-        res.status(404).json({ error: 'PDF file not found' });
+        res.status(404).json({ error: "PDF file not found" });
         return;
       }
 
       res.sendFile(absPath);
     } catch (error: any) {
-      logger.error(error, 'Get contract PDF error');
-      res.status(500).json({ error: 'Failed to retrieve PDF' });
+      logger.error(error, "Get contract PDF error");
+      res.status(500).json({ error: "Failed to retrieve PDF" });
     }
   },
 
   // PT earnings summary
   async getEarnings(req: any, res: Response) {
     try {
-      const ptUserId = req.headers['x-user-id'] as string;
+      const ptUserId = req.headers["x-user-id"] as string;
       const earnings = await contractService.getEarnings(ptUserId);
       res.json(earnings);
     } catch (error: any) {
-      logger.error(error, 'Get earnings error');
-      res.status(500).json({ error: 'Failed to fetch earnings' });
+      logger.error(error, "Get earnings error");
+      res.status(500).json({ error: "Failed to fetch earnings" });
     }
   },
 };

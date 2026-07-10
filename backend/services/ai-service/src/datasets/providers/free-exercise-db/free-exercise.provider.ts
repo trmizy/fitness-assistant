@@ -1,6 +1,9 @@
-import fs from 'node:fs';
-import { mapFreeExercise, type FreeExerciseEntry } from './free-exercise.mapper';
-import type { ExerciseItem, ExerciseSearchResult } from '../../types';
+import fs from "node:fs";
+import {
+  mapFreeExercise,
+  type FreeExerciseEntry,
+} from "./free-exercise.mapper";
+import type { ExerciseItem, ExerciseSearchResult } from "../../types";
 
 let _cache: ExerciseItem[] | null = null;
 
@@ -24,18 +27,18 @@ export const freeExerciseDbProvider = {
     if (!fs.existsSync(localPath)) {
       console.warn(
         `[free-exercise-db] Data file not found at ${localPath}. ` +
-          'Run `npm run seed:exercises` to populate it.',
+          "Run `npm run seed:exercises` to populate it.",
       );
       return [];
     }
 
     try {
-      const raw = fs.readFileSync(localPath, 'utf-8');
+      const raw = fs.readFileSync(localPath, "utf-8");
       const entries: FreeExerciseEntry[] = JSON.parse(raw);
       _cache = entries.map(mapFreeExercise);
       return _cache;
     } catch (err) {
-      console.error('[free-exercise-db] Failed to load exercises:', err);
+      console.error("[free-exercise-db] Failed to load exercises:", err);
       return [];
     }
   },
@@ -58,7 +61,7 @@ export const freeExerciseDbProvider = {
     return {
       items: matched.slice(0, limit),
       total: matched.length,
-      sources: ['free-exercise-db'],
+      sources: ["free-exercise-db"],
     };
   },
 

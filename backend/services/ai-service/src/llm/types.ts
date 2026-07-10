@@ -1,32 +1,32 @@
 export type IntentType =
-  | 'knowledge'
-  | 'workout_plan'
-  | 'meal_plan'
-  | 'personalized_plan'
-  | 'ambiguous';
+  | "knowledge"
+  | "workout_plan"
+  | "meal_plan"
+  | "personalized_plan"
+  | "ambiguous";
 
 export type RoutedIntentType =
-  | 'general_fitness_knowledge'
-  | 'workout_plan_request'
-  | 'specific_exercise_request'
-  | 'muscle_group_routine_request'
-  | 'meal_plan_request'
-  | 'combined_plan_request'
-  | 'body_recomposition_request'
-  | 'unsafe_weight_loss_request'
-  | 'profile_completion_request'
-  | 'frequency_change_request'
-  | 'schedule_specific_day_request';
+  | "general_fitness_knowledge"
+  | "workout_plan_request"
+  | "specific_exercise_request"
+  | "muscle_group_routine_request"
+  | "meal_plan_request"
+  | "combined_plan_request"
+  | "body_recomposition_request"
+  | "unsafe_weight_loss_request"
+  | "profile_completion_request"
+  | "frequency_change_request"
+  | "schedule_specific_day_request";
 
 export type RouteCategory =
-  | 'exercise_request'
-  | 'workout_session_request'
-  | 'training_schedule_request'
-  | 'nutrition_macro_request'
-  | 'meal_plan_request'
-  | 'combined_plan_request';
+  | "exercise_request"
+  | "workout_session_request"
+  | "training_schedule_request"
+  | "nutrition_macro_request"
+  | "meal_plan_request"
+  | "combined_plan_request";
 
-export type ResponseLanguage = 'vi' | 'en';
+export type ResponseLanguage = "vi" | "en";
 
 export interface InBodySegmental {
   rightArm?: number;
@@ -58,18 +58,23 @@ export interface TrainingConstraints {
 export interface UserProfile {
   userId?: string;
   age?: number;
-  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  gender?: "MALE" | "FEMALE" | "OTHER";
   heightCm?: number;
   currentWeightKg?: number;
   targetWeightKg?: number;
-  goal?: 'WEIGHT_LOSS' | 'MUSCLE_GAIN' | 'MAINTENANCE' | 'ATHLETIC_PERFORMANCE' | 'RECOMPOSITION';
+  goal?:
+    | "WEIGHT_LOSS"
+    | "MUSCLE_GAIN"
+    | "MAINTENANCE"
+    | "ATHLETIC_PERFORMANCE"
+    | "RECOMPOSITION";
   activityLevel?:
-    | 'SEDENTARY'
-    | 'LIGHTLY_ACTIVE'
-    | 'MODERATELY_ACTIVE'
-    | 'VERY_ACTIVE'
-    | 'EXTREMELY_ACTIVE';
-  experienceLevel?: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+    | "SEDENTARY"
+    | "LIGHTLY_ACTIVE"
+    | "MODERATELY_ACTIVE"
+    | "VERY_ACTIVE"
+    | "EXTREMELY_ACTIVE";
+  experienceLevel?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
   foodPreference?: string;
   training: TrainingConstraints;
   inBody?: InBodyMetrics;
@@ -81,8 +86,16 @@ export interface InputIntent {
   routeIntent?: RoutedIntentType;
   routeCategory?: RouteCategory;
   detailMode?: boolean;
-  goalHint?: 'fat_loss' | 'muscle_gain' | 'maintenance' | 'recomposition';
-  muscleGroupHint?: 'biceps' | 'triceps' | 'chest' | 'back' | 'legs' | 'shoulders' | 'core' | 'forearms';
+  goalHint?: "fat_loss" | "muscle_gain" | "maintenance" | "recomposition";
+  muscleGroupHint?:
+    | "biceps"
+    | "triceps"
+    | "chest"
+    | "back"
+    | "legs"
+    | "shoulders"
+    | "core"
+    | "forearms";
   mealPreferenceHint?: string;
   parsedTrainingDays?: number;
   minimumExercisesPerDay?: number;
@@ -96,8 +109,16 @@ export interface InputIntent {
 export interface IntentRoute {
   normalizedQuestion: string;
   intent: RoutedIntentType;
-  goalHint?: 'fat_loss' | 'muscle_gain' | 'maintenance' | 'recomposition';
-  muscleGroupHint?: 'biceps' | 'triceps' | 'chest' | 'back' | 'legs' | 'shoulders' | 'core' | 'forearms';
+  goalHint?: "fat_loss" | "muscle_gain" | "maintenance" | "recomposition";
+  muscleGroupHint?:
+    | "biceps"
+    | "triceps"
+    | "chest"
+    | "back"
+    | "legs"
+    | "shoulders"
+    | "core"
+    | "forearms";
   parsedTrainingDays?: number;
   missingFields: string[];
 }
@@ -105,7 +126,7 @@ export interface IntentRoute {
 export interface LanguageDecision {
   responseLanguage: ResponseLanguage;
   locked: boolean;
-  lockReason?: 'explicit_user_request' | 'user_last_message';
+  lockReason?: "explicit_user_request" | "user_last_message";
 }
 
 export interface RetrievalDocument {
@@ -153,7 +174,7 @@ export interface NutritionTargets {
   carbsGrams?: number;
   deficitOrSurplusKcal?: number;
   formula: string;
-  confidence: 'low' | 'medium' | 'high';
+  confidence: "low" | "medium" | "high";
 }
 
 export interface WorkoutRecommendation {
@@ -253,23 +274,23 @@ export interface PromptSections {
 
 /** Explains why a plan parameter was adjusted based on body metrics. */
 export interface AdjustmentReason {
-  metric:          string;          // e.g. "bodyFatPct"
-  observed_value:  string | number; // e.g. "28.6%"
-  interpretation:  string;          // human-readable explanation
-  plan_adjustment: string;          // what was changed and why
+  metric: string; // e.g. "bodyFatPct"
+  observed_value: string | number; // e.g. "28.6%"
+  interpretation: string; // human-readable explanation
+  plan_adjustment: string; // what was changed and why
 }
 
 /** A piece of evidence used to inform the plan (from RAG or curated knowledge). */
 export interface EvidenceUsed {
-  title:       string;
-  source_url:  string;
-  category:    string;
-  source_type: string;  // "guideline" | "paper" | "dataset" | "curated_summary"
-  source?:     string;
-  year?:       string;
-  date?:       string;
-  citation?:   string;
-  summary:     string;  // 1–2 sentence summary of the relevant finding
+  title: string;
+  source_url: string;
+  category: string;
+  source_type: string; // "guideline" | "paper" | "dataset" | "curated_summary"
+  source?: string;
+  year?: string;
+  date?: string;
+  citation?: string;
+  summary: string; // 1–2 sentence summary of the relevant finding
 }
 
 export interface FinalAnswerPayload {

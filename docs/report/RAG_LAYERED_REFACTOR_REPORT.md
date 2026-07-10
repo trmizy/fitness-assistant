@@ -1,9 +1,11 @@
 # RAG Layered Refactor Report
 
 ## Scope
+
 Refactor AI service question-answering stack into deterministic layered architecture while preserving `/ai/ask` response compatibility.
 
 ## Implemented Layers
+
 1. Input and intent parsing: `src/llm/input_parser.ts`
 2. Personalization extraction: `src/llm/profile_extractor.ts`
 3. Retrieval pipeline: `src/llm/retriever.ts`
@@ -19,11 +21,13 @@ Refactor AI service question-answering stack into deterministic layered architec
 8. Evaluation seed cases: `src/evaluation/evaluation_tests.ts`
 
 ## API Compatibility
+
 - Existing `/ai/ask` route remains active.
 - Existing fields remain returned: `conversationId`, `question`, `answer`, `modelUsed`, `responseTime`, `relevance`, `relevanceExplanation`, `promptTokens`, `completionTokens`, `totalTokens`.
 - Added non-breaking enrichment fields: `traceId`, `usedFallback`, `missingFields`, `validationNotes`, `recommendation`.
 
 ## Behavior Improvements
+
 - Retrieval is explicit and thresholded with query expansion.
 - Nutrition and workout recommendations are deterministic and independent from LLM creativity.
 - Prompt includes deterministic recommendation section as single source of truth.
@@ -31,6 +35,7 @@ Refactor AI service question-answering stack into deterministic layered architec
 - Orchestration emits trace metadata for observability.
 
 ## Current Flow
+
 ```mermaid
 flowchart TD
   A[User question] --> B[input_parser]
@@ -49,7 +54,9 @@ flowchart TD
 ```
 
 ## Evaluation Coverage
+
 `src/evaluation/evaluation_tests.ts` includes 20 cases across:
+
 - retrieval relevance (4)
 - personalization depth (4)
 - nutrition consistency (4)
@@ -57,15 +64,18 @@ flowchart TD
 - fallback behavior (4)
 
 Executable harness:
+
 - `src/evaluation/run_evaluation_tests.ts`
 - Run command: `pnpm --filter @gym-coach/ai-service test:evaluation`
 - Latest result: `20/20 passed`
 
 ## Build Validation
+
 - Command executed: `pnpm --filter @gym-coach/ai-service build`
 - Result: success
 
 ## TODO
+
 1. Add automated test runner (Vitest or Jest) and convert evaluation cases to executable assertions.
 2. Expand retrieval corpus beyond exercises (nutrition and coaching policy chunks).
 3. Add response schema contract test for frontend integration.

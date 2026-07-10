@@ -1,11 +1,11 @@
-﻿import express, { Request, Response, NextFunction } from 'express';
-import { metricsMiddleware, register, logger } from '@gym-coach/shared';
-import aiRoutes from './routes/ai.routes';
-import planRoutes from './routes/plan.routes';
-import adminAiRoutes from './routes/admin.routes';
-import internalRoutes from './routes/internal.routes';
-import { ApiError, formatErrorResponse } from './errors/api-error';
-import { llmService } from './services/llm.service';
+import express, { Request, Response, NextFunction } from "express";
+import { metricsMiddleware, register, logger } from "@gym-coach/shared";
+import aiRoutes from "./routes/ai.routes";
+import planRoutes from "./routes/plan.routes";
+import adminAiRoutes from "./routes/admin.routes";
+import internalRoutes from "./routes/internal.routes";
+import { ApiError, formatErrorResponse } from "./errors/api-error";
+import { llmService } from "./services/llm.service";
 
 const app = express();
 
@@ -17,15 +17,15 @@ app.use(metricsMiddleware());
 export let qdrantAvailable = false;
 export function setQdrantAvailable(available: boolean): void {
   qdrantAvailable = available;
-  logger.info({ available }, 'Qdrant availability state updated');
+  logger.info({ available }, "Qdrant availability state updated");
 }
 
-app.get('/health', async (_req, res) => {
+app.get("/health", async (_req, res) => {
   const llm = await llmService.getHealthStatus();
   res.json({
-    status: 'ok',
-    service: 'ai-service',
-    retrieval: qdrantAvailable ? 'available' : 'degraded',
+    status: "ok",
+    service: "ai-service",
+    retrieval: qdrantAvailable ? "available" : "degraded",
     llmAvailable: llm.llmAvailable,
     llmProvider: llm.llmProvider,
     llmUrl: llm.llmUrl,
@@ -33,15 +33,15 @@ app.get('/health', async (_req, res) => {
   });
 });
 
-app.get('/metrics', async (_req, res) => {
-  res.set('Content-Type', register.contentType);
+app.get("/metrics", async (_req, res) => {
+  res.set("Content-Type", register.contentType);
   res.end(await register.metrics());
 });
 
-app.use('/ai', aiRoutes);
-app.use('/plans', planRoutes);
-app.use('/admin/ai', adminAiRoutes);
-app.use('/internal', internalRoutes);
+app.use("/ai", aiRoutes);
+app.use("/plans", planRoutes);
+app.use("/admin/ai", adminAiRoutes);
+app.use("/internal", internalRoutes);
 
 // Global error handler.
 // Must have 4 parameters so Express recognises it as an error-handling middleware.
@@ -51,8 +51,12 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     res.status(err.statusCode).json(err.toJSON());
     return;
   }
-  logger.error({ err }, 'Unhandled error');
-  res.status(500).json(formatErrorResponse('INTERNAL_ERROR', 'An unexpected error occurred'));
+  logger.error({ err }, "Unhandled error");
+  res
+    .status(500)
+    .json(
+      formatErrorResponse("INTERNAL_ERROR", "An unexpected error occurred"),
+    );
 });
 
 export default app;

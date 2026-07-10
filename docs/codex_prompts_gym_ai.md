@@ -1,4 +1,5 @@
 # Bộ prompt Codex — AI Gym Assistant Knowledge Pipeline
+
 > Dán từng prompt theo thứ tự vào Claude Code / Codex CLI / Cursor Agent.
 > Mỗi prompt là một session độc lập. KHÔNG bỏ qua bước nào.
 
@@ -12,6 +13,7 @@ Tạo file `CLAUDE.md` ở root repo, dán nội dung sau. Claude Code tự đ�
 # Project: AI Gym Assistant — Knowledge Update Pipeline
 
 ## Stack
+
 - Python 3.11, FastAPI 0.111, Celery 5.4, SQLAlchemy 2.0 (async), asyncpg
 - RabbitMQ 3 (broker), Redis 7 (result backend + cache)
 - Qdrant (vector DB, hybrid dense+sparse), PostgreSQL 16
@@ -22,27 +24,29 @@ Tạo file `CLAUDE.md` ở root repo, dán nội dung sau. Claude Code tự đ�
 - Streamlit (pipeline dashboard)
 
 ## Project layout
+
 src/
-  config.py            # Settings (pydantic-settings)
-  models/              # db_models.py (SQLAlchemy), pydantic_models.py
-  infra/               # database.py, minio_client.py, qdrant_setup.py, redis_client.py
-  pipeline/
-    celery_app.py
-    tasks/             # crawl.py, process.py, embed.py
-    scheduler.py
-  rag/                 # embedder.py, searcher.py, reranker.py, prompts.py
-  api/
-    main.py
-    routers/           # ask.py, health.py, pipeline_status.py
-  monitoring/          # metrics.py, dashboard.py
+config.py # Settings (pydantic-settings)
+models/ # db_models.py (SQLAlchemy), pydantic_models.py
+infra/ # database.py, minio_client.py, qdrant_setup.py, redis_client.py
+pipeline/
+celery_app.py
+tasks/ # crawl.py, process.py, embed.py
+scheduler.py
+rag/ # embedder.py, searcher.py, reranker.py, prompts.py
+api/
+main.py
+routers/ # ask.py, health.py, pipeline_status.py
+monitoring/ # metrics.py, dashboard.py
 db/init.sql
-scripts/               # seed_sources.py, init_qdrant.py
-tests/                 # conftest.py, test_pipeline.py, test_rag.py
-monitoring/            # prometheus.yml, grafana/
+scripts/ # seed_sources.py, init_qdrant.py
+tests/ # conftest.py, test_pipeline.py, test_rag.py
+monitoring/ # prometheus.yml, grafana/
 docker-compose.yml
-requirements/          # base.txt, worker.txt, api.txt, dev.txt
+requirements/ # base.txt, worker.txt, api.txt, dev.txt
 
 ## Key rules
+
 - All DB access via SQLAlchemy async (AsyncSession)
 - All tasks are Celery tasks; no direct function calls between pipeline stages
 - Every chunk stored in Qdrant MUST have payload: document_id, chunk_id, text,

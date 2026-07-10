@@ -1,1 +1,2 @@
+* text=auto eol=lf
 backend/services/*/src/generated/prisma/** -diff

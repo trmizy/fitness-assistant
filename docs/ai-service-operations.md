@@ -335,12 +335,12 @@ data: {"type":"done","conversationId":"..."}
 
 Cac event type:
 
-| Type | Payload | Y nghia |
-| --- | --- | --- |
-| `status` | `{ message }` | Cap nhat milestone pipeline |
-| `token` | `{ content }` | Chunk text hien thi typing |
-| `done` | `{ conversationId }` | Stream thanh cong |
-| `error` | `{ message }` | Stream loi |
+| Type     | Payload              | Y nghia                     |
+| -------- | -------------------- | --------------------------- |
+| `status` | `{ message }`        | Cap nhat milestone pipeline |
+| `token`  | `{ content }`        | Chunk text hien thi typing  |
+| `done`   | `{ conversationId }` | Stream thanh cong           |
+| `error`  | `{ message }`        | Stream loi                  |
 
 ### 7.4 Luu y Quan Trong Ve Streaming
 
@@ -372,15 +372,15 @@ Frontend doc stream bang:
 ```ts
 const reader = response.body.getReader();
 const decoder = new TextDecoder();
-let buffer = '';
+let buffer = "";
 ```
 
 Moi chunk duoc tach theo newline:
 
 ```ts
 buffer += decoder.decode(value, { stream: true });
-const lines = buffer.split('\n');
-buffer = lines.pop() ?? '';
+const lines = buffer.split("\n");
+buffer = lines.pop() ?? "";
 ```
 
 Frontend chi xu ly line bat dau bang:
@@ -528,10 +528,12 @@ Generate flow:
 13. Worker validates JSON shape and exerciseIds.
 14. Worker repairs deterministic issues if possible.
 15. Worker attaches:
-   - `adjustment_reason`
-   - `evidence_used`
-   - `safety_notes`
-   - camelCase aliases
+
+- `adjustment_reason`
+- `evidence_used`
+- `safety_notes`
+- camelCase aliases
+
 16. Worker marks plan `COMPLETED` or `FAILED`.
 
 Generate command:

@@ -1,43 +1,52 @@
-import { ContractStatus } from '../generated/prisma';
-import { contractRepository } from '../repositories/contract.repository';
+import { ContractStatus } from "../generated/prisma";
+import { contractRepository } from "../repositories/contract.repository";
 
 function normalizeEmail(email?: string | null): string {
-  return (email || '').toLowerCase().trim();
+  return (email || "").toLowerCase().trim();
 }
 
 export const dropboxSignWebhookService = {
   async handleEvent(event: any): Promise<void> {
     const eventType: string = event.event?.eventType;
-    const requestId: string | undefined = event.signatureRequest?.signatureRequestId;
+    const requestId: string | undefined =
+      event.signatureRequest?.signatureRequestId;
     if (!requestId) return;
 
     const contract = await contractRepository.findByESignRequestId(requestId);
     if (!contract) return; // unknown requestId — ignore for security
 
-    if (eventType === 'signature_request_signed') {
+    if (eventType === "signature_request_signed") {
       const signatures: any[] = event.signatureRequest?.signatures || [];
 
       // Dropbox Sign doesn't fire all_signed when two signers share the same email address.
       // Detect this case: if every signature slot is signed, activate immediately.
       const allSigned =
         signatures.length > 0 &&
-        signatures.every((s: any) => s.statusCode === 'signed') &&
+        signatures.every((s: any) => s.statusCode === "signed") &&
         contract.status === ContractStatus.PENDING_SIGNATURE;
 
       if (allSigned) {
         const updates: Record<string, unknown> = {
-          eSignStatus: 'SIGNED',
+          eSignStatus: "SIGNED",
           status: ContractStatus.ACTIVE,
           fullySignedAt: new Date(),
           ...(contract.startDate ? {} : { startDate: new Date() }),
         };
         for (const sig of signatures) {
-          const signedAt = sig.signedAt ? new Date(sig.signedAt * 1000) : new Date();
+          const signedAt = sig.signedAt
+            ? new Date(sig.signedAt * 1000)
+            : new Date();
           const sigEmail = normalizeEmail(sig.signerEmailAddress);
-          if (sigEmail === normalizeEmail(contract.clientSignerEmail) && !contract.clientSignedAt) {
+          if (
+            sigEmail === normalizeEmail(contract.clientSignerEmail) &&
+            !contract.clientSignedAt
+          ) {
             updates.clientSignedAt = signedAt;
           }
-          if (sigEmail === normalizeEmail(contract.ptSignerEmail) && !contract.ptSignedAt) {
+          if (
+            sigEmail === normalizeEmail(contract.ptSignerEmail) &&
+            !contract.ptSignedAt
+          ) {
             updates.ptSignedAt = signedAt;
           }
         }
@@ -45,10 +54,14 @@ export const dropboxSignWebhookService = {
         return;
       }
 
-      const updates: Record<string, unknown> = { eSignStatus: 'PARTIALLY_SIGNED' };
+      const updates: Record<string, unknown> = {
+        eSignStatus: "PARTIALLY_SIGNED",
+      };
       for (const sig of signatures) {
-        if (sig.statusCode !== 'signed') continue;
-        const signedAt = sig.signedAt ? new Date(sig.signedAt * 1000) : new Date();
+        if (sig.statusCode !== "signed") continue;
+        const signedAt = sig.signedAt
+          ? new Date(sig.signedAt * 1000)
+          : new Date();
         const sigEmail = normalizeEmail(sig.signerEmailAddress);
 
         if (sigEmail === normalizeEmail(contract.clientSignerEmail)) {
@@ -61,7 +74,7 @@ export const dropboxSignWebhookService = {
       await contractRepository.updateESignFields(contract.id, updates);
     }
 
-    if (eventType === 'signature_request_all_signed') {
+    if (eventType === "signature_request_all_signed") {
       // Idempotency: skip if already ACTIVE (webhook may fire more than once)
       if (contract.status === ContractStatus.ACTIVE) return;
       // Safety: only transition from PENDING_SIGNATURE → ACTIVE
@@ -69,7 +82,7 @@ export const dropboxSignWebhookService = {
       if (contract.status !== ContractStatus.PENDING_SIGNATURE) return;
 
       const updates: Record<string, unknown> = {
-        eSignStatus: 'SIGNED',
+        eSignStatus: "SIGNED",
         status: ContractStatus.ACTIVE,
         fullySignedAt: new Date(),
         // Set startDate only if not already specified in contract terms
@@ -79,13 +92,21 @@ export const dropboxSignWebhookService = {
       // Backfill individual signedAt if not already recorded
       const signatures: any[] = event.signatureRequest?.signatures || [];
       for (const sig of signatures) {
-        const signedAt = sig.signedAt ? new Date(sig.signedAt * 1000) : new Date();
+        const signedAt = sig.signedAt
+          ? new Date(sig.signedAt * 1000)
+          : new Date();
         const sigEmail = normalizeEmail(sig.signerEmailAddress);
 
-        if (sigEmail === normalizeEmail(contract.clientSignerEmail) && !contract.clientSignedAt) {
+        if (
+          sigEmail === normalizeEmail(contract.clientSignerEmail) &&
+          !contract.clientSignedAt
+        ) {
           updates.clientSignedAt = signedAt;
         }
-        if (sigEmail === normalizeEmail(contract.ptSignerEmail) && !contract.ptSignedAt) {
+        if (
+          sigEmail === normalizeEmail(contract.ptSignerEmail) &&
+          !contract.ptSignedAt
+        ) {
           updates.ptSignedAt = signedAt;
         }
       }
@@ -93,12 +114,16 @@ export const dropboxSignWebhookService = {
       await contractRepository.updateESignFields(contract.id, updates);
     }
 
-    if (eventType === 'signature_request_declined') {
-      await contractRepository.updateESignFields(contract.id, { eSignStatus: 'DECLINED' });
+    if (eventType === "signature_request_declined") {
+      await contractRepository.updateESignFields(contract.id, {
+        eSignStatus: "DECLINED",
+      });
     }
 
-    if (eventType === 'signature_request_expired') {
-      await contractRepository.updateESignFields(contract.id, { eSignStatus: 'EXPIRED' });
+    if (eventType === "signature_request_expired") {
+      await contractRepository.updateESignFields(contract.id, {
+        eSignStatus: "EXPIRED",
+      });
     }
   },
 };

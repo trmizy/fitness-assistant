@@ -1,5 +1,5 @@
-import { ContractStatus, PackageType, SessionMode } from '../generated/prisma';
-import { prisma } from './profile.repository';
+import { ContractStatus, PackageType, SessionMode } from "../generated/prisma";
+import { prisma } from "./profile.repository";
 
 export const contractRepository = {
   create: (data: {
@@ -20,8 +20,7 @@ export const contractRepository = {
     clientMessage?: string;
     terms?: string;
     notes?: string;
-  }) =>
-    prisma.contract.create({ data }),
+  }) => prisma.contract.create({ data }),
 
   findById: (id: string) => prisma.contract.findUnique({ where: { id } }),
 
@@ -29,7 +28,7 @@ export const contractRepository = {
     prisma.contract.findUnique({
       where: { id },
       include: {
-        sessions: { orderBy: { scheduledStartAt: 'asc' } },
+        sessions: { orderBy: { scheduledStartAt: "asc" } },
         reviews: true,
       },
     }),
@@ -37,13 +36,13 @@ export const contractRepository = {
   findByPT: (ptUserId: string, status?: ContractStatus) =>
     prisma.contract.findMany({
       where: { ptUserId, ...(status && { status }) },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     }),
 
   findByClient: (clientUserId: string, status?: ContractStatus) =>
     prisma.contract.findMany({
       where: { clientUserId, ...(status && { status }) },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     }),
 
   /** Find any ACTIVE or PENDING_REVIEW contract for a client (across all PTs) */
@@ -61,7 +60,13 @@ export const contractRepository = {
       where: {
         ptUserId,
         clientUserId,
-        status: { in: [ContractStatus.PENDING_REVIEW, ContractStatus.PENDING_SIGNATURE, ContractStatus.ACTIVE] },
+        status: {
+          in: [
+            ContractStatus.PENDING_REVIEW,
+            ContractStatus.PENDING_SIGNATURE,
+            ContractStatus.ACTIVE,
+          ],
+        },
       },
     }),
 
@@ -83,11 +88,21 @@ export const contractRepository = {
           { ptUserId: userAId, clientUserId: userBId },
           { ptUserId: userBId, clientUserId: userAId },
         ],
-        status: { in: [ContractStatus.ACTIVE, ContractStatus.PENDING_SIGNATURE, ContractStatus.COMPLETED] },
+        status: {
+          in: [
+            ContractStatus.ACTIVE,
+            ContractStatus.PENDING_SIGNATURE,
+            ContractStatus.COMPLETED,
+          ],
+        },
       },
     }),
 
-  updateStatus: (id: string, status: ContractStatus, extra?: Record<string, any>) =>
+  updateStatus: (
+    id: string,
+    status: ContractStatus,
+    extra?: Record<string, any>,
+  ) =>
     prisma.contract.update({
       where: { id },
       data: { status, ...extra },
@@ -115,7 +130,7 @@ export const contractRepository = {
   findAll: (skip = 0, take = 50, status?: ContractStatus) =>
     prisma.contract.findMany({
       where: status ? { status } : undefined,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       skip,
       take,
     }),
@@ -127,19 +142,21 @@ export const contractRepository = {
     if (userIds.length === 0) return {};
     const [asPT, asClient] = await Promise.all([
       prisma.contract.groupBy({
-        by: ['ptUserId'],
+        by: ["ptUserId"],
         where: { ptUserId: { in: userIds } },
         _count: true,
       }),
       prisma.contract.groupBy({
-        by: ['clientUserId'],
+        by: ["clientUserId"],
         where: { clientUserId: { in: userIds } },
         _count: true,
       }),
     ]);
     const result: Record<string, number> = {};
-    for (const row of asPT)    result[row.ptUserId]     = (result[row.ptUserId]     ?? 0) + row._count;
-    for (const row of asClient) result[row.clientUserId] = (result[row.clientUserId] ?? 0) + row._count;
+    for (const row of asPT)
+      result[row.ptUserId] = (result[row.ptUserId] ?? 0) + row._count;
+    for (const row of asClient)
+      result[row.clientUserId] = (result[row.clientUserId] ?? 0) + row._count;
     return result;
   },
 

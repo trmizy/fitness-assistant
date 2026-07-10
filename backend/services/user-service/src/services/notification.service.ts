@@ -1,16 +1,28 @@
-import axios from 'axios';
-import { logger } from '@gym-coach/shared';
-import { NotificationEventType, NotificationEntityType } from '../generated/prisma';
-import { notificationRepository } from '../repositories/notification.repository';
+import axios from "axios";
+import { logger } from "@gym-coach/shared";
+import {
+  NotificationEventType,
+  NotificationEntityType,
+} from "../generated/prisma";
+import { notificationRepository } from "../repositories/notification.repository";
 
-const CHAT_SERVICE_URL = process.env.CHAT_SERVICE_URL || 'http://chat-service:3005';
-const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || '';
+const CHAT_SERVICE_URL =
+  process.env.CHAT_SERVICE_URL || "http://chat-service:3005";
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || "";
 
-function pushToSocket(payload: { userId?: string; adminBroadcast?: boolean; notification: any }) {
-  axios.post(`${CHAT_SERVICE_URL}/internal/push-notification`, payload, {
-    timeout: 3000,
-    headers: { 'x-internal-secret': INTERNAL_API_SECRET },
-  }).catch((err) => logger.warn({ err }, 'Failed to push realtime notification'));
+function pushToSocket(payload: {
+  userId?: string;
+  adminBroadcast?: boolean;
+  notification: any;
+}) {
+  axios
+    .post(`${CHAT_SERVICE_URL}/internal/push-notification`, payload, {
+      timeout: 3000,
+      headers: { "x-internal-secret": INTERNAL_API_SECRET },
+    })
+    .catch((err) =>
+      logger.warn({ err }, "Failed to push realtime notification"),
+    );
 }
 
 export const notificationService = {

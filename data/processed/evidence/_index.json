@@ -5,13 +5,7 @@
     "file": "espen-bia-1.jsonl",
     "category": "bia_validation",
     "evidence_level": "clinical_guideline",
-    "tags": [
-      "BIA",
-      "body composition",
-      "impedance",
-      "ESPEN",
-      "clinical"
-    ]
+    "tags": ["BIA", "body composition", "impedance", "ESPEN", "clinical"]
   },
   {
     "id": "espen-bia-2",
@@ -19,13 +13,7 @@
     "file": "espen-bia-2.jsonl",
     "category": "bia_validation",
     "evidence_level": "clinical_guideline",
-    "tags": [
-      "BIA",
-      "body composition",
-      "disease",
-      "sports",
-      "ESPEN"
-    ]
+    "tags": ["BIA", "body composition", "disease", "sports", "ESPEN"]
   },
   {
     "id": "hhs-pa-2018",
@@ -47,12 +35,7 @@
     "file": "who-pa-2020.jsonl",
     "category": "physical_activity",
     "evidence_level": "government_guideline",
-    "tags": [
-      "physical activity",
-      "WHO",
-      "global",
-      "sedentary"
-    ]
+    "tags": ["physical activity", "WHO", "global", "sedentary"]
   },
   {
     "id": "issn-protein-2017",
@@ -60,13 +43,7 @@
     "file": "issn-protein-2017.jsonl",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": [
-      "protein",
-      "muscle",
-      "g/kg",
-      "ISSN",
-      "sports nutrition"
-    ]
+    "tags": ["protein", "muscle", "g/kg", "ISSN", "sports nutrition"]
   },
   {
     "id": "issn-diets-2017",
@@ -74,13 +51,7 @@
     "file": "issn-diets-2017.jsonl",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": [
-      "diet",
-      "fat loss",
-      "macros",
-      "ISSN",
-      "body composition"
-    ]
+    "tags": ["diet", "fat loss", "macros", "ISSN", "body composition"]
   },
   {
     "id": "issn-performance-2017",
@@ -88,13 +59,7 @@
     "file": "issn-performance-2017.jsonl",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": [
-      "performance",
-      "creatine",
-      "caffeine",
-      "carbohydrate",
-      "ISSN"
-    ]
+    "tags": ["performance", "creatine", "caffeine", "carbohydrate", "ISSN"]
   },
   {
     "id": "issn-timing-2014",

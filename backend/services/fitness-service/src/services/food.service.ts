@@ -1,12 +1,12 @@
-import axios from 'axios';
-import { foodRepository } from '../repositories/food.repository';
+import axios from "axios";
+import { foodRepository } from "../repositories/food.repository";
 
 async function fetchPexelsImage(foodName: string): Promise<string | null> {
   const key = process.env.PEXELS_API_KEY;
   if (!key) return null;
   try {
-    const res = await axios.get('https://api.pexels.com/v1/search', {
-      params: { query: foodName, per_page: 1, orientation: 'square' },
+    const res = await axios.get("https://api.pexels.com/v1/search", {
+      params: { query: foodName, per_page: 1, orientation: "square" },
       headers: { Authorization: key },
       timeout: 5000,
     });

@@ -1,24 +1,48 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import { User, Edit3, Check, Zap, ChevronRight, Award, Loader2, Camera } from "lucide-react";
+import {
+  User,
+  Edit3,
+  Check,
+  Zap,
+  ChevronRight,
+  Award,
+  Loader2,
+  Camera,
+} from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { profileService } from "../../services/api";
 import { toast } from "sonner";
 
 const goals = [
-  { key: "lose_fat",       label: "Giảm mỡ",            emoji: "🔥" },
-  { key: "gain_muscle",    label: "Tăng cơ",             emoji: "💪" },
-  { key: "gain_weight",    label: "Tăng cân",            emoji: "📈" },
-  { key: "maintain",       label: "Duy trì vóc dáng",   emoji: "⚖️" },
+  { key: "lose_fat", label: "Giảm mỡ", emoji: "🔥" },
+  { key: "gain_muscle", label: "Tăng cơ", emoji: "💪" },
+  { key: "gain_weight", label: "Tăng cân", emoji: "📈" },
+  { key: "maintain", label: "Duy trì vóc dáng", emoji: "⚖️" },
   { key: "improve_health", label: "Cải thiện sức khỏe", emoji: "❤️" },
 ];
 
-const activityLevels = ["Ít vận động", "Vận động nhẹ", "Vận động vừa", "Năng động", "Cực kỳ năng động"];
-const dietPrefs      = ["Không yêu cầu", "Nhiều protein", "Ăn chay (có trứng/sữa)", "Thuần chay", "Keto", "Ít tinh bột"];
+const activityLevels = [
+  "Ít vận động",
+  "Vận động nhẹ",
+  "Vận động vừa",
+  "Năng động",
+  "Cực kỳ năng động",
+];
+const dietPrefs = [
+  "Không yêu cầu",
+  "Nhiều protein",
+  "Ăn chay (có trứng/sữa)",
+  "Thuần chay",
+  "Keto",
+  "Ít tinh bột",
+];
 
-const inputClass  = "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 transition-all";
-const selectClass = "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 bg-zinc-800/60 text-zinc-200";
+const inputClass =
+  "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 transition-all";
+const selectClass =
+  "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 bg-zinc-800/60 text-zinc-200";
 
 export function ProfilePage() {
   const { user, isPT, setActiveView, updateUser } = useApp();
@@ -31,15 +55,15 @@ export function ProfilePage() {
       const res = await profileService.getProfile();
       return res.profile;
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
   });
 
-  const [editing,  setEditing]  = useState(false);
-  const [goal,     setGoal]     = useState("lose_fat");
+  const [editing, setEditing] = useState(false);
+  const [goal, setGoal] = useState("lose_fat");
   const [activity, setActivity] = useState("Vận động vừa");
-  const [diet,     setDiet]     = useState("Nhiều protein");
+  const [diet, setDiet] = useState("Nhiều protein");
 
-  const [age,    setAge]    = useState("");
+  const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -47,7 +71,7 @@ export function ProfilePage() {
   // Sync isPT from profile API into context/localStorage when user is approved
   useEffect(() => {
     if (profileData?.isPT && !isPT) {
-      updateUser({ isPT: true, role: 'PT' });
+      updateUser({ isPT: true, role: "PT" });
     }
   }, [profileData?.isPT]);
 
@@ -58,7 +82,7 @@ export function ProfilePage() {
           WEIGHT_LOSS: "lose_fat",
           MUSCLE_GAIN: "gain_muscle",
           MAINTENANCE: "maintain",
-          ATHLETIC_PERFORMANCE: "improve_health"
+          ATHLETIC_PERFORMANCE: "improve_health",
         };
         setGoal(goalMap[profileData.goal] || "lose_fat");
       }
@@ -68,7 +92,7 @@ export function ProfilePage() {
           LIGHTLY_ACTIVE: "Vận động nhẹ",
           MODERATELY_ACTIVE: "Vận động vừa",
           VERY_ACTIVE: "Năng động",
-          EXTREMELY_ACTIVE: "Cực kỳ năng động"
+          EXTREMELY_ACTIVE: "Cực kỳ năng động",
         };
         setActivity(activityMap[profileData.activityLevel] || "Vận động vừa");
       }
@@ -80,7 +104,9 @@ export function ProfilePage() {
     }
   }, [profileData]);
 
-  const ptStatus: "not_pt" | "pending" | "approved" = profileData?.isPT ? "approved" : "not_pt";
+  const ptStatus: "not_pt" | "pending" | "approved" = profileData?.isPT
+    ? "approved"
+    : "not_pt";
 
   const queryClient = useQueryClient();
 
@@ -95,7 +121,7 @@ export function ProfilePage() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || "Cập nhật hồ sơ thất bại");
-    }
+    },
   });
 
   const photoMutation = useMutation({
@@ -109,12 +135,24 @@ export function ProfilePage() {
 
   const handleSave = () => {
     updateMutation.mutate({
-      goal: goal === "lose_fat" ? "WEIGHT_LOSS" : goal === "gain_muscle" ? "MUSCLE_GAIN" : goal === "maintain" ? "MAINTENANCE" : "ATHLETIC_PERFORMANCE",
-      activityLevel: activity === "Ít vận động" ? "SEDENTARY"
-        : activity === "Vận động nhẹ" ? "LIGHTLY_ACTIVE"
-        : activity === "Vận động vừa" ? "MODERATELY_ACTIVE"
-        : activity === "Năng động" ? "VERY_ACTIVE"
-        : "EXTREMELY_ACTIVE",
+      goal:
+        goal === "lose_fat"
+          ? "WEIGHT_LOSS"
+          : goal === "gain_muscle"
+            ? "MUSCLE_GAIN"
+            : goal === "maintain"
+              ? "MAINTENANCE"
+              : "ATHLETIC_PERFORMANCE",
+      activityLevel:
+        activity === "Ít vận động"
+          ? "SEDENTARY"
+          : activity === "Vận động nhẹ"
+            ? "LIGHTLY_ACTIVE"
+            : activity === "Vận động vừa"
+              ? "MODERATELY_ACTIVE"
+              : activity === "Năng động"
+                ? "VERY_ACTIVE"
+                : "EXTREMELY_ACTIVE",
       age: age ? parseInt(age) : undefined,
       gender: gender ? gender.toUpperCase() : undefined,
       heightCm: height ? parseFloat(height) : undefined,
@@ -132,9 +170,27 @@ export function ProfilePage() {
   }
 
   const ptStatusConfig = {
-    not_pt:   { label: "Chưa đăng ký",     bg: "bg-zinc-700/50",  text: "text-zinc-400",  border: "border-zinc-700",     desc: "Đăng ký để trở thành huấn luyện viên PT được chứng nhận trên nền tảng này" },
-    pending:  { label: "Đang xét duyệt",   bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", desc: "Đơn đăng ký PT của bạn đang được xem xét (2–5 ngày làm việc)" },
-    approved: { label: "Đã được duyệt",    bg: "bg-green-500/10", text: "text-green-400", border: "border-green-500/20", desc: "Bạn là huấn luyện viên PT đã được xác minh" },
+    not_pt: {
+      label: "Chưa đăng ký",
+      bg: "bg-zinc-700/50",
+      text: "text-zinc-400",
+      border: "border-zinc-700",
+      desc: "Đăng ký để trở thành huấn luyện viên PT được chứng nhận trên nền tảng này",
+    },
+    pending: {
+      label: "Đang xét duyệt",
+      bg: "bg-amber-500/10",
+      text: "text-amber-400",
+      border: "border-amber-500/20",
+      desc: "Đơn đăng ký PT của bạn đang được xem xét (2–5 ngày làm việc)",
+    },
+    approved: {
+      label: "Đã được duyệt",
+      bg: "bg-green-500/10",
+      text: "text-green-400",
+      border: "border-green-500/20",
+      desc: "Bạn là huấn luyện viên PT đã được xác minh",
+    },
   };
 
   const handleSwitchToPT = () => {
@@ -150,10 +206,12 @@ export function ProfilePage() {
           <h1 className="text-zinc-100 flex items-center gap-2">
             <User className="w-5 h-5 text-green-400" /> Hồ sơ & Mục tiêu
           </h1>
-          <p className="text-zinc-500 text-sm mt-0.5">Thông tin cá nhân và tùy chọn tập luyện</p>
+          <p className="text-zinc-500 text-sm mt-0.5">
+            Thông tin cá nhân và tùy chọn tập luyện
+          </p>
         </div>
         <button
-          onClick={() => editing ? handleSave() : setEditing(true)}
+          onClick={() => (editing ? handleSave() : setEditing(true))}
           disabled={updateMutation.isPending}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-lg ${
             editing
@@ -164,9 +222,13 @@ export function ProfilePage() {
           {updateMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : editing ? (
-            <><Check className="w-4 h-4" /> Lưu</>
+            <>
+              <Check className="w-4 h-4" /> Lưu
+            </>
           ) : (
-            <><Edit3 className="w-4 h-4" /> Chỉnh sửa</>
+            <>
+              <Edit3 className="w-4 h-4" /> Chỉnh sửa
+            </>
           )}
         </button>
       </div>
@@ -183,7 +245,8 @@ export function ProfilePage() {
               />
             ) : (
               <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-black text-2xl font-bold shadow-xl shadow-green-500/20">
-                {user?.firstName?.[0] || "?"}{user?.lastName?.[0] || ""}
+                {user?.firstName?.[0] || "?"}
+                {user?.lastName?.[0] || ""}
               </div>
             )}
             {editing && (
@@ -192,9 +255,11 @@ export function ProfilePage() {
                 disabled={photoMutation.isPending}
                 className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                {photoMutation.isPending
-                  ? <Loader2 className="w-5 h-5 text-white animate-spin" />
-                  : <Camera className="w-5 h-5 text-white" />}
+                {photoMutation.isPending ? (
+                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-5 h-5 text-white" />
+                )}
               </button>
             )}
           </div>
@@ -203,14 +268,22 @@ export function ProfilePage() {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={e => { const f = e.target.files?.[0]; if (f) photoMutation.mutate(f); e.target.value = ""; }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) photoMutation.mutate(f);
+              e.target.value = "";
+            }}
           />
-          <h2 className="text-zinc-100 font-bold">{user ? `${user.firstName} ${user.lastName}` : "Client"}</h2>
+          <h2 className="text-zinc-100 font-bold">
+            {user ? `${user.firstName} ${user.lastName}` : "Client"}
+          </h2>
           <p className="text-zinc-500 text-sm mt-0.5">
             {isPT ? "Huấn luyện viên PT" : "Thành viên"} · Từ 2026
           </p>
           <div className="flex gap-2 mt-3 flex-wrap justify-center">
-            <span className="px-2.5 py-1 bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-semibold rounded-full">Hoạt động</span>
+            <span className="px-2.5 py-1 bg-green-500/10 text-green-400 border border-green-500/20 text-xs font-semibold rounded-full">
+              Hoạt động
+            </span>
             {isPT && (
               <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold rounded-full flex items-center gap-1">
                 <Zap className="w-2.5 h-2.5" /> Tài khoản PT
@@ -231,17 +304,34 @@ export function ProfilePage() {
         <div className="lg:col-span-2 space-y-4">
           {/* Personal info */}
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-            <h3 className="text-sm font-semibold text-zinc-200 mb-3">Thông tin cá nhân</h3>
+            <h3 className="text-sm font-semibold text-zinc-200 mb-3">
+              Thông tin cá nhân
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { label: "Họ và tên",       value: user ? `${user.firstName} ${user.lastName}` : "" },
-                { label: "Email",            value: user?.email || "" },
-                { label: "Tuổi",             value: age,    setter: setAge,    type: "number" },
-                { label: "Chiều cao (cm)",   value: height, setter: setHeight, type: "number" },
-                { label: "Cân nặng (kg)",    value: weight, setter: setWeight, type: "number" },
-              ].map(f => (
+                {
+                  label: "Họ và tên",
+                  value: user ? `${user.firstName} ${user.lastName}` : "",
+                },
+                { label: "Email", value: user?.email || "" },
+                { label: "Tuổi", value: age, setter: setAge, type: "number" },
+                {
+                  label: "Chiều cao (cm)",
+                  value: height,
+                  setter: setHeight,
+                  type: "number",
+                },
+                {
+                  label: "Cân nặng (kg)",
+                  value: weight,
+                  setter: setWeight,
+                  type: "number",
+                },
+              ].map((f) => (
                 <div key={f.label}>
-                  <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">{f.label}</label>
+                  <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                    {f.label}
+                  </label>
                   {editing && f.setter ? (
                     <input
                       type={f.type}
@@ -250,21 +340,35 @@ export function ProfilePage() {
                       className={inputClass}
                     />
                   ) : (
-                    <div className="text-sm font-medium text-zinc-300 py-2">{f.value || "Chưa thiết lập"}</div>
+                    <div className="text-sm font-medium text-zinc-300 py-2">
+                      {f.value || "Chưa thiết lập"}
+                    </div>
                   )}
                 </div>
               ))}
               <div>
-                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">Giới tính</label>
+                <label className="text-xs text-zinc-600 mb-1 block uppercase tracking-wider">
+                  Giới tính
+                </label>
                 {editing ? (
-                  <select value={gender} onChange={e => setGender(e.target.value)} className={selectClass}>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    className={selectClass}
+                  >
                     <option value="MALE">Nam</option>
                     <option value="FEMALE">Nữ</option>
                     <option value="OTHER">Khác</option>
                   </select>
                 ) : (
                   <div className="text-sm font-medium text-zinc-300 py-2">
-                    {gender === "MALE" ? "Nam" : gender === "FEMALE" ? "Nữ" : gender === "OTHER" ? "Khác" : "Chưa thiết lập"}
+                    {gender === "MALE"
+                      ? "Nam"
+                      : gender === "FEMALE"
+                        ? "Nữ"
+                        : gender === "OTHER"
+                          ? "Khác"
+                          : "Chưa thiết lập"}
                   </div>
                 )}
               </div>
@@ -273,9 +377,11 @@ export function ProfilePage() {
 
           {/* Fitness goal */}
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-            <h3 className="text-sm font-semibold text-zinc-200 mb-3">Mục tiêu tập luyện</h3>
+            <h3 className="text-sm font-semibold text-zinc-200 mb-3">
+              Mục tiêu tập luyện
+            </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {goals.map(g => (
+              {goals.map((g) => (
                 <button
                   key={g.key}
                   onClick={() => editing && setGoal(g.key)}
@@ -296,34 +402,64 @@ export function ProfilePage() {
 
           {/* Preferences */}
           <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4">
-            <h3 className="text-sm font-semibold text-zinc-200 mb-3">Tùy chọn</h3>
+            <h3 className="text-sm font-semibold text-zinc-200 mb-3">
+              Tùy chọn
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">Mức độ hoạt động</label>
+                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                  Mức độ hoạt động
+                </label>
                 {editing ? (
-                  <select value={activity} onChange={e => setActivity(e.target.value)} className={selectClass}>
-                    {activityLevels.map(a => <option key={a}>{a}</option>)}
+                  <select
+                    value={activity}
+                    onChange={(e) => setActivity(e.target.value)}
+                    className={selectClass}
+                  >
+                    {activityLevels.map((a) => (
+                      <option key={a}>{a}</option>
+                    ))}
                   </select>
                 ) : (
-                  <div className="text-sm font-medium text-zinc-300 py-2">{activity}</div>
+                  <div className="text-sm font-medium text-zinc-300 py-2">
+                    {activity}
+                  </div>
                 )}
               </div>
               <div>
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">Chế độ ăn</label>
+                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                  Chế độ ăn
+                </label>
                 {editing ? (
-                  <select value={diet} onChange={e => setDiet(e.target.value)} className={selectClass}>
-                    {dietPrefs.map(d => <option key={d}>{d}</option>)}
+                  <select
+                    value={diet}
+                    onChange={(e) => setDiet(e.target.value)}
+                    className={selectClass}
+                  >
+                    {dietPrefs.map((d) => (
+                      <option key={d}>{d}</option>
+                    ))}
                   </select>
                 ) : (
-                  <div className="text-sm font-medium text-zinc-300 py-2">{diet}</div>
+                  <div className="text-sm font-medium text-zinc-300 py-2">
+                    {diet}
+                  </div>
                 )}
               </div>
               <div className="sm:col-span-2">
-                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">Ghi chú sức khỏe</label>
+                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                  Ghi chú sức khỏe
+                </label>
                 {editing ? (
-                  <textarea rows={2} placeholder="Chấn thương hoặc tình trạng sức khỏe cần lưu ý..." className={`${inputClass} resize-none`} />
+                  <textarea
+                    rows={2}
+                    placeholder="Chấn thương hoặc tình trạng sức khỏe cần lưu ý..."
+                    className={`${inputClass} resize-none`}
+                  />
                 ) : (
-                  <div className="text-sm text-zinc-400 py-2">Không có chấn thương.</div>
+                  <div className="text-sm text-zinc-400 py-2">
+                    Không có chấn thương.
+                  </div>
                 )}
               </div>
             </div>
@@ -342,10 +478,17 @@ export function ProfilePage() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-zinc-100 font-bold">Tài khoản PT đang hoạt động</h3>
-                  <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-500/10 text-green-400 border border-green-500/20">Đã xác minh</span>
+                  <h3 className="text-zinc-100 font-bold">
+                    Tài khoản PT đang hoạt động
+                  </h3>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-green-500/10 text-green-400 border border-green-500/20">
+                    Đã xác minh
+                  </span>
                 </div>
-                <p className="text-zinc-500 text-sm mt-0.5">Bạn có quyền truy cập vào không gian làm việc PT với đầy đủ công cụ huấn luyện.</p>
+                <p className="text-zinc-500 text-sm mt-0.5">
+                  Bạn có quyền truy cập vào không gian làm việc PT với đầy đủ
+                  công cụ huấn luyện.
+                </p>
               </div>
             </div>
             <button
@@ -366,12 +509,18 @@ export function ProfilePage() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-zinc-100 font-bold">Trở thành Huấn luyện viên PT</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${ptStatusConfig[ptStatus].bg} ${ptStatusConfig[ptStatus].text} ${ptStatusConfig[ptStatus].border}`}>
+                  <h3 className="text-zinc-100 font-bold">
+                    Trở thành Huấn luyện viên PT
+                  </h3>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${ptStatusConfig[ptStatus].bg} ${ptStatusConfig[ptStatus].text} ${ptStatusConfig[ptStatus].border}`}
+                  >
                     {ptStatusConfig[ptStatus].label}
                   </span>
                 </div>
-                <p className="text-zinc-500 text-sm mt-0.5">{ptStatusConfig[ptStatus].desc}</p>
+                <p className="text-zinc-500 text-sm mt-0.5">
+                  {ptStatusConfig[ptStatus].desc}
+                </p>
               </div>
             </div>
             {ptStatus === "not_pt" && (

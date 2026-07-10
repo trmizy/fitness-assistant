@@ -1,29 +1,33 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import type { SignOptions } from 'jsonwebtoken';
-import crypto from 'crypto';
-import { authRepository } from '../repositories/auth.repository';
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import type { SignOptions } from "jsonwebtoken";
+import crypto from "crypto";
+import { authRepository } from "../repositories/auth.repository";
 import type {
   RegisterStartDto,
   RegisterVerifyDto,
   UpdateMeDto,
   UpdateUserRoleDto,
-} from '../models/auth.models';
-import { sendOtpEmail } from './email.service';
+} from "../models/auth.models";
+import { sendOtpEmail } from "./email.service";
 
 const ACCESS_TOKEN_SECRET =
-  process.env.JWT_SECRET || 'dev_jwt_secret_change_in_production';
+  process.env.JWT_SECRET || "dev_jwt_secret_change_in_production";
 const REFRESH_TOKEN_SECRET =
-  process.env.JWT_REFRESH_SECRET || 'refresh-secret-key-change-in-production';
+  process.env.JWT_REFRESH_SECRET || "refresh-secret-key-change-in-production";
 const ACCESS_TOKEN_EXPIRY =
-  (process.env.JWT_ACCESS_EXPIRY as SignOptions['expiresIn']) || '15m';
+  (process.env.JWT_ACCESS_EXPIRY as SignOptions["expiresIn"]) || "15m";
 const REFRESH_TOKEN_EXPIRY =
-  (process.env.JWT_REFRESH_EXPIRY as SignOptions['expiresIn']) || '7d';
+  (process.env.JWT_REFRESH_EXPIRY as SignOptions["expiresIn"]) || "7d";
 const OTP_EXPIRY_MINUTES = Number(process.env.OTP_EXPIRY_MINUTES || 10);
 const OTP_RESEND_SECONDS = Number(process.env.OTP_RESEND_SECONDS || 60);
 const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5);
 
-function generateAccessToken(userId: string, role: string, email: string): string {
+function generateAccessToken(
+  userId: string,
+  role: string,
+  email: string,
+): string {
   return jwt.sign({ userId, role, email }, ACCESS_TOKEN_SECRET, {
     expiresIn: ACCESS_TOKEN_EXPIRY,
   });
@@ -48,7 +52,7 @@ function makeOtpExpiry(): Date {
 }
 
 function hashOtp(otp: string): string {
-  return crypto.createHash('sha256').update(otp).digest('hex');
+  return crypto.createHash("sha256").update(otp).digest("hex");
 }
 
 function generateOtp(): string {
@@ -64,9 +68,11 @@ export const authService = {
     const existing = await authRepository.findUserByEmail(data.email);
     // BUG-001 / TC-AUTH-02: must be a hard 409 conflict, not 400 — clearer for
     // the frontend to distinguish "already verified" from "validation error".
-    if (existing) throw { status: 409, message: 'Email đã đăng ký' };
+    if (existing) throw { status: 409, message: "Email đã đăng ký" };
 
-    const previous = await authRepository.findEmailVerificationByEmail(data.email);
+    const previous = await authRepository.findEmailVerificationByEmail(
+      data.email,
+    );
     if (previous?.sentAt) {
       const secondsSinceLastSend =
         (Date.now() - previous.sentAt.getTime()) / 1000;
@@ -109,12 +115,12 @@ export const authService = {
       expiresInMinutes: number;
       devOtp?: string;
     } = {
-      message: 'OTP sent',
+      message: "OTP sent",
       email: data.email,
       expiresInMinutes: OTP_EXPIRY_MINUTES,
     };
 
-    if (!emailResult.delivered && process.env.NODE_ENV !== 'production') {
+    if (!emailResult.delivered && process.env.NODE_ENV !== "production") {
       response.devOtp = otp;
     }
 
@@ -122,27 +128,29 @@ export const authService = {
   },
 
   async verifyRegistration(data: RegisterVerifyDto) {
-    const record = await authRepository.findEmailVerificationByEmail(data.email);
-    if (!record) throw { status: 400, message: 'OTP not found' };
+    const record = await authRepository.findEmailVerificationByEmail(
+      data.email,
+    );
+    if (!record) throw { status: 400, message: "OTP not found" };
 
     if (record.expiresAt < new Date()) {
-      throw { status: 400, message: 'OTP expired' };
+      throw { status: 400, message: "OTP expired" };
     }
 
     if (record.attempts >= OTP_MAX_ATTEMPTS) {
-      throw { status: 429, message: 'OTP attempts exceeded' };
+      throw { status: 429, message: "OTP attempts exceeded" };
     }
 
     const otpHash = hashOtp(data.otp);
     if (otpHash !== record.otpHash) {
       await authRepository.incrementEmailVerificationAttempts(data.email);
-      throw { status: 400, message: 'Invalid OTP' };
+      throw { status: 400, message: "Invalid OTP" };
     }
 
     const existing = await authRepository.findUserByEmail(data.email);
     if (existing) {
       await authRepository.deleteEmailVerification(data.email);
-      throw { status: 400, message: 'Email already registered' };
+      throw { status: 400, message: "Email already registered" };
     }
 
     const user = await authRepository.createUser({
@@ -150,7 +158,7 @@ export const authService = {
       password: record.passwordHash,
       firstName: record.firstName ?? undefined,
       lastName: record.lastName ?? undefined,
-      role: 'CUSTOMER',
+      role: "CUSTOMER",
     });
 
     await authRepository.deleteEmailVerification(data.email);
@@ -178,16 +186,16 @@ export const authService = {
 
   async login(email: string, password: string) {
     const user = await authRepository.findUserByEmail(email);
-    if (!user) throw { status: 401, message: 'Invalid credentials' };
+    if (!user) throw { status: 401, message: "Invalid credentials" };
 
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) throw { status: 401, message: 'Invalid credentials' };
+    if (!validPassword) throw { status: 401, message: "Invalid credentials" };
 
     // BUG-002 / TC-AUTH-10: disabled accounts cannot log in. `isActive` is added
     // by the `users_isactive` migration; if the column doesn't exist yet (e.g. pre-
     // migration container), the value is undefined → treat as active.
     if ((user as any).isActive === false) {
-      throw { status: 403, message: 'Tài khoản đã bị vô hiệu hóa' };
+      throw { status: 403, message: "Tài khoản đã bị vô hiệu hóa" };
     }
 
     const accessToken = generateAccessToken(user.id, user.role, user.email);
@@ -213,7 +221,9 @@ export const authService = {
 
   // Admin disable/enable. Returns the updated user (without password).
   async setUserActive(userId: string, isActive: boolean) {
-    const updated = await authRepository.updateUser(userId, { isActive } as any);
+    const updated = await authRepository.updateUser(userId, {
+      isActive,
+    } as any);
     return {
       id: updated.id,
       email: updated.email,
@@ -226,15 +236,15 @@ export const authService = {
     try {
       jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
     } catch {
-      throw { status: 401, message: 'Invalid refresh token' };
+      throw { status: 401, message: "Invalid refresh token" };
     }
 
     const storedToken = await authRepository.findRefreshToken(refreshToken);
-    if (!storedToken) throw { status: 401, message: 'Refresh token not found' };
+    if (!storedToken) throw { status: 401, message: "Refresh token not found" };
 
     if (storedToken.expiresAt < new Date()) {
       await authRepository.deleteRefreshToken(storedToken.id);
-      throw { status: 401, message: 'Refresh token expired' };
+      throw { status: 401, message: "Refresh token expired" };
     }
 
     const accessToken = generateAccessToken(
@@ -258,7 +268,8 @@ export const authService = {
   },
 
   async logout(refreshToken: string): Promise<string | undefined> {
-    const deleted = await authRepository.deleteRefreshTokenByValue(refreshToken);
+    const deleted =
+      await authRepository.deleteRefreshTokenByValue(refreshToken);
     if (deleted.count > 0) {
       try {
         const decoded: any = jwt.decode(refreshToken);
@@ -275,11 +286,11 @@ export const authService = {
     try {
       decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
     } catch {
-      throw { status: 401, message: 'Invalid token' };
+      throw { status: 401, message: "Invalid token" };
     }
 
     const user = await authRepository.findUserById(decoded.userId);
-    if (!user) throw { status: 401, message: 'User not found' };
+    if (!user) throw { status: 401, message: "User not found" };
     return user;
   },
 

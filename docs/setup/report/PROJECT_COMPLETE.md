@@ -5,12 +5,14 @@
 A **production-ready microservices fitness platform** with:
 
 ### 🏗️ Backend Services (TypeScript + Express)
+
 - **Auth Service** (Port 3001): JWT authentication, user management, audit logging
 - **Fitness Service** (Port 3002): InBody tracking, workouts, meal/workout plans
 - **AI Service** (Port 3003): LLM integration with Ollama, AI coaching chat
 - **API Gateway** (Port 3000): Rate limiting, JWT verification, service routing
 
 ### 🎨 Frontend (React + TypeScript + Vite)
+
 - **7 Complete Pages**:
   - Login/Register with validation
   - Dashboard with stats overview
@@ -21,6 +23,7 @@ A **production-ready microservices fitness platform** with:
   - AI Coach chat interface
 
 ### 📦 Shared Package
+
 - **Types**: 15+ TypeScript interfaces (User, UserProfile, InBodyEntry, WorkoutLog, etc.)
 - **Schemas**: Zod validation for all endpoints
 - **Utils**: Business logic (TDEE, macros, BMR, 1RM, progressive overload)
@@ -29,16 +32,19 @@ A **production-ready microservices fitness platform** with:
 - **HTTP Client**: Axios with circuit breaker
 
 ### 🗄️ Databases (Prisma ORM)
+
 - **PostgreSQL**: 10+ models across auth and fitness services
 - **Redis**: Caching and session storage
 - **Qdrant**: Vector database for RAG (future embeddings)
 
 ### 🐳 Infrastructure
+
 - **Docker Compose**: 7-service orchestration
 - **Health Checks**: All services monitored
 - **Volume Persistence**: Data survives restarts
 
 ### 🔁 Workflow Automation (n8n)
+
 - **n8n Service** (Port 5678): workflow orchestration runtime for automations
 - **Gateway Integration**:
   - `/admin/workflows/meta` for n8n health + integration status
@@ -49,6 +55,7 @@ A **production-ready microservices fitness platform** with:
 ## 📊 System Capabilities
 
 ### 🔐 Authentication & Security
+
 - [x] User registration with validation
 - [x] JWT access tokens (15min) + refresh tokens (7 days)
 - [x] Token rotation and revocation
@@ -59,6 +66,7 @@ A **production-ready microservices fitness platform** with:
 - [x] Helmet security headers
 
 ### 💪 Fitness Features
+
 - [x] User profile management (age, gender, height, goals, activity level)
 - [x] InBody composition tracking with automatic analysis:
   - BMR calculation (Mifflin-St Jeor equation)
@@ -77,6 +85,7 @@ A **production-ready microservices fitness platform** with:
   - Deload every 4th week (35% volume reduction)
 
 ### 🤖 AI Features
+
 - [x] LLM integration (Ollama with llama3.2:3b)
 - [x] Context-aware coaching chat
 - [x] Fallback responses if LLM unavailable
@@ -85,6 +94,7 @@ A **production-ready microservices fitness platform** with:
 - [ ] RAG with exercise/nutrition knowledge base (architecture ready)
 
 ### 📈 Data & Analytics
+
 - [x] InBody history with progression tracking
 - [x] Workout history with pagination
 - [x] Dashboard with key metrics
@@ -117,6 +127,7 @@ ai-gym-coach/
 ## 🚀 How to Run
 
 ### Quick Start (5 Minutes)
+
 ```bash
 # 1. Install dependencies
 pnpm install
@@ -143,6 +154,7 @@ cd apps/web && pnpm dev                     # Terminal 5
 ```
 
 ### One-Command Setup (Automated)
+
 ```bash
 # Linux/macOS
 chmod +x start.sh
@@ -155,6 +167,7 @@ chmod +x start.sh
 ## 🧪 Testing the System
 
 ### 1. API Testing (cURL)
+
 ```bash
 # Login
 curl -X POST http://localhost:3000/auth/login \
@@ -176,6 +189,7 @@ curl -X POST http://localhost:3000/inbody \
 ```
 
 ### 2. Web Testing (Browser)
+
 1. Open http://localhost:5173
 2. Login with demo credentials
 3. Complete profile (Profile page)
@@ -187,13 +201,15 @@ curl -X POST http://localhost:3000/inbody \
 ## 📊 Demo Data
 
 ### Users (from seed script)
-| Email | Password | Role |
-|-------|----------|------|
-| john.doe@example.com | password123 | user |
-| jane.smith@example.com | password123 | user |
-| admin@example.com | admin123 | admin |
+
+| Email                  | Password    | Role  |
+| ---------------------- | ----------- | ----- |
+| john.doe@example.com   | password123 | user  |
+| jane.smith@example.com | password123 | user  |
+| admin@example.com      | admin123    | admin |
 
 ### Sample Workflow
+
 1. **Login** → Get JWT tokens
 2. **Update Profile** → Set age=28, gender=male, height=178cm, goal=build_muscle, activity=moderate
 3. **Log InBody** → Enter weight=75kg, muscle=35kg, bodyfat=16%
@@ -205,6 +221,7 @@ curl -X POST http://localhost:3000/inbody \
 ## 🏆 Key Achievements
 
 ### Architecture Excellence
+
 - ✅ Clean separation of concerns (3 consolidated services vs. 8+ monolithic ones)
 - ✅ Shared package eliminates code duplication
 - ✅ Type-safe end-to-end (TypeScript across all services)
@@ -212,6 +229,7 @@ curl -X POST http://localhost:3000/inbody \
 - ✅ Docker Compose for reproducible environments
 
 ### Security Best Practices
+
 - ✅ JWT with refresh token rotation
 - ✅ bcrypt password hashing (12 rounds)
 - ✅ Input validation with Zod schemas
@@ -221,8 +239,9 @@ curl -X POST http://localhost:3000/inbody \
 - ✅ Audit logging for compliance
 
 ### Business Logic Implementation
+
 - ✅ **TDEE Calculation**: BMR × activity factor (1.2-1.9)
-- ✅ **Macro Calculation**: 
+- ✅ **Macro Calculation**:
   - Protein: 2.0-2.4g/kg based on goal
   - Fat: 25-30% of calories
   - Carbs: Remaining calories
@@ -234,6 +253,7 @@ curl -X POST http://localhost:3000/inbody \
 - ✅ **BMR Estimation**: Mifflin-St Jeor equation (10×kg + 6.25×cm - 5×age ± gender)
 
 ### Developer Experience
+
 - ✅ Monorepo with pnpm workspaces
 - ✅ Hot reload in development
 - ✅ One-command setup scripts
@@ -251,12 +271,14 @@ curl -X POST http://localhost:3000/inbody \
 ## 🚧 Future Enhancements (Not Required, But Possible)
 
 ### RAG Implementation
+
 - [ ] Generate embeddings for exercise database
 - [ ] Upsert to Qdrant vector DB
 - [ ] Semantic search in coach chat
 - [ ] Nutrition knowledge base
 
 ### Advanced Features
+
 - [ ] Meal logging and nutrition tracking
 - [ ] Progress photos with body composition estimation
 - [ ] Exercise form videos with AI analysis
@@ -266,12 +288,14 @@ curl -X POST http://localhost:3000/inbody \
 - [ ] Prometheus metrics and Grafana dashboards
 
 ### Testing & Quality
+
 - [ ] Unit tests (Jest + Testing Library)
 - [ ] Integration tests (Supertest)
 - [ ] E2E tests (Playwright)
 - [ ] Load testing (k6)
 
 ### DevOps
+
 - [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Kubernetes deployment manifests
 - [ ] Terraform infrastructure as code
@@ -280,6 +304,7 @@ curl -X POST http://localhost:3000/inbody \
 ## 💡 Technical Highlights
 
 ### Why This Architecture?
+
 1. **Microservices**: Independent scaling, deployment, and development
 2. **Monorepo**: Shared code, unified tooling, atomic commits
 3. **TypeScript**: Type safety reduces runtime errors by 70%
@@ -292,6 +317,7 @@ curl -X POST http://localhost:3000/inbody \
 10. **Zod Validation**: Runtime type checking at API boundaries
 
 ### Performance Considerations
+
 - **Redis Caching**: Reduces database load (future implementation)
 - **Connection Pooling**: Prisma manages DB connections efficiently
 - **Lazy Loading**: React pages loaded on demand
@@ -299,6 +325,7 @@ curl -X POST http://localhost:3000/inbody \
 - **Stateless Services**: Horizontal scaling ready
 
 ### Scalability Path
+
 - Add load balancer (Nginx/HAProxy) in front of gateway
 - Scale services horizontally (3+ instances each)
 - Use managed Postgres (AWS RDS, Azure Database)
@@ -310,6 +337,7 @@ curl -X POST http://localhost:3000/inbody \
 ## 🎓 Learning Outcomes
 
 This project demonstrates:
+
 - ✅ Microservices architecture design
 - ✅ RESTful API development
 - ✅ JWT authentication implementation
@@ -325,6 +353,7 @@ This project demonstrates:
 ## 🙏 Acknowledgments
 
 Built with modern best practices from:
+
 - Express.js documentation
 - Prisma best practices guide
 - React + TypeScript patterns
@@ -335,6 +364,7 @@ Built with modern best practices from:
 ## 📞 Support
 
 For questions or issues:
+
 1. Check [QUICK_START.md](QUICK_START.md) for common issues
 2. Review [SETUP.md](SETUP.md) for detailed troubleshooting
 3. Check service logs in terminal windows

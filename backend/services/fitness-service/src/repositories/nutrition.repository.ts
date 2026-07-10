@@ -1,5 +1,5 @@
-import { prisma } from './prisma';
-import { randomUUID } from 'crypto';
+import { prisma } from "./prisma";
+import { randomUUID } from "crypto";
 
 type NutritionGoalRow = {
   id: string;
@@ -15,7 +15,7 @@ export const nutritionRepository = {
   findMany: (where: Record<string, any>) =>
     prisma.nutritionLog.findMany({
       where,
-      orderBy: { date: 'desc' },
+      orderBy: { date: "desc" },
       take: 100,
     }),
 
@@ -58,7 +58,9 @@ export const nutritionRepository = {
       where: { userId, date: { gte: startDate } },
     }),
 
-  findGoalByUserId: async (userId: string): Promise<NutritionGoalRow | null> => {
+  findGoalByUserId: async (
+    userId: string,
+  ): Promise<NutritionGoalRow | null> => {
     const rows = await prisma.$queryRaw<NutritionGoalRow[]>`
       SELECT
         id,
@@ -77,7 +79,13 @@ export const nutritionRepository = {
 
   upsertGoal: async (
     userId: string,
-    data: { calories: number; protein: number; carbs: number; fat: number; waterMl?: number | null },
+    data: {
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+      waterMl?: number | null;
+    },
   ): Promise<NutritionGoalRow> => {
     const rows = await prisma.$queryRaw<NutritionGoalRow[]>`
       INSERT INTO nutrition_goals (

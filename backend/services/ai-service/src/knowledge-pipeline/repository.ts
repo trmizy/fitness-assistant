@@ -1,7 +1,13 @@
-import { prisma } from '../repositories/conversation.repository';
-import { DEFAULT_KNOWLEDGE_SOURCES } from './source-registry';
-import { newId } from './hash';
-import type { KnowledgeDocumentStatus, KnowledgeSource, PipelineCounters, ProcessedKnowledgeDocument, RawKnowledgeDocument } from './types';
+import { prisma } from "../repositories/conversation.repository";
+import { DEFAULT_KNOWLEDGE_SOURCES } from "./source-registry";
+import { newId } from "./hash";
+import type {
+  KnowledgeDocumentStatus,
+  KnowledgeSource,
+  PipelineCounters,
+  ProcessedKnowledgeDocument,
+  RawKnowledgeDocument,
+} from "./types";
 
 type SourceRow = {
   id: string;
@@ -104,7 +110,7 @@ function mapSource(row: SourceRow): KnowledgeSource {
     id: row.id,
     name: row.name,
     baseUrl: row.base_url,
-    sourceType: row.source_type as KnowledgeSource['sourceType'],
+    sourceType: row.source_type as KnowledgeSource["sourceType"],
     trustTier: row.trust_tier,
     isActive: row.is_active,
   };
@@ -148,23 +154,23 @@ function mapReviewDocument(row: ReviewDocumentRow): ReviewDocumentForEmbedding {
       id: row.source_id,
       name: row.source_name,
       baseUrl: row.base_url,
-      sourceType: row.source_type as KnowledgeSource['sourceType'],
+      sourceType: row.source_type as KnowledgeSource["sourceType"],
       trustTier: row.trust_tier,
       isActive: row.is_active,
     },
     document: {
       sourceId: row.source_id,
       url: row.url,
-      title: row.title ?? 'Untitled evidence',
+      title: row.title ?? "Untitled evidence",
       author: row.author,
-      language: row.language ?? 'en',
+      language: row.language ?? "en",
       contentHash: row.content_hash,
-      rawObjectKey: row.raw_object_key ?? '',
-      cleanText: row.clean_text ?? '',
-      sourceFile: row.raw_object_key ?? 'review_queue',
+      rawObjectKey: row.raw_object_key ?? "",
+      cleanText: row.clean_text ?? "",
+      sourceFile: row.raw_object_key ?? "review_queue",
       tags: [],
       publishedAt: row.published_at,
-      topic: (row.topic ?? 'GENERAL') as ProcessedKnowledgeDocument['topic'],
+      topic: (row.topic ?? "GENERAL") as ProcessedKnowledgeDocument["topic"],
       trustScore: row.trust_score === null ? 0 : Number(row.trust_score),
       qualityScore: row.quality_score === null ? 0 : Number(row.quality_score),
       safetyFlag: row.safety_flag,
@@ -207,7 +213,11 @@ export const knowledgeRepository = {
     return id;
   },
 
-  async finishPipelineRun(runId: string, status: 'SUCCESS' | 'FAILED', counters: PipelineCounters): Promise<void> {
+  async finishPipelineRun(
+    runId: string,
+    status: "SUCCESS" | "FAILED",
+    counters: PipelineCounters,
+  ): Promise<void> {
     await prisma.$executeRaw`
       UPDATE "knowledge_pipeline_runs"
       SET
@@ -221,7 +231,10 @@ export const knowledgeRepository = {
     `;
   },
 
-  async insertDocumentIfNew(doc: RawKnowledgeDocument, force: boolean): Promise<{ id: string; inserted: boolean }> {
+  async insertDocumentIfNew(
+    doc: RawKnowledgeDocument,
+    force: boolean,
+  ): Promise<{ id: string; inserted: boolean }> {
     const existing = await prisma.$queryRaw<DocumentRow[]>`
       SELECT "id", "status"
       FROM "knowledge_documents"
@@ -268,7 +281,11 @@ export const knowledgeRepository = {
     return { id, inserted: true };
   },
 
-  async markProcessed(documentId: string, doc: ProcessedKnowledgeDocument, status: KnowledgeDocumentStatus): Promise<void> {
+  async markProcessed(
+    documentId: string,
+    doc: ProcessedKnowledgeDocument,
+    status: KnowledgeDocumentStatus,
+  ): Promise<void> {
     await prisma.$executeRaw`
       UPDATE "knowledge_documents"
       SET
@@ -304,7 +321,13 @@ export const knowledgeRepository = {
     `;
   },
 
-  async insertChunk(documentId: string, chunkIndex: number, text: string, tokenCount: number, vectorId: string): Promise<void> {
+  async insertChunk(
+    documentId: string,
+    chunkIndex: number,
+    text: string,
+    tokenCount: number,
+    vectorId: string,
+  ): Promise<void> {
     await prisma.$executeRaw`
       INSERT INTO "knowledge_chunks" ("id", "document_id", "chunk_index", "text", "token_count", "vector_id")
       VALUES (${newId()}, ${documentId}, ${chunkIndex}, ${text}, ${tokenCount}, ${vectorId})
@@ -368,7 +391,9 @@ export const knowledgeRepository = {
     return rows.map(mapReviewQueue);
   },
 
-  async getReviewDocument(reviewId: string): Promise<ReviewDocumentForEmbedding | null> {
+  async getReviewDocument(
+    reviewId: string,
+  ): Promise<ReviewDocumentForEmbedding | null> {
     const rows = await prisma.$queryRaw<ReviewDocumentRow[]>`
       SELECT
         rq."id" AS "review_id",
@@ -401,7 +426,10 @@ export const knowledgeRepository = {
     return rows[0] ? mapReviewDocument(rows[0]) : null;
   },
 
-  async approveReviewItem(reviewId: string, reviewedBy: string | null): Promise<void> {
+  async approveReviewItem(
+    reviewId: string,
+    reviewedBy: string | null,
+  ): Promise<void> {
     await prisma.$executeRaw`
       UPDATE "knowledge_review_queue"
       SET "status" = 'APPROVED',
@@ -420,7 +448,11 @@ export const knowledgeRepository = {
     `;
   },
 
-  async rejectReviewItem(reviewId: string, reviewedBy: string | null, reason: string | null): Promise<void> {
+  async rejectReviewItem(
+    reviewId: string,
+    reviewedBy: string | null,
+    reason: string | null,
+  ): Promise<void> {
     await prisma.$executeRaw`
       UPDATE "knowledge_review_queue"
       SET "status" = 'REJECTED',
@@ -431,7 +463,7 @@ export const knowledgeRepository = {
     await prisma.$executeRaw`
       UPDATE "knowledge_documents"
       SET "status" = 'REJECTED',
-          "rejection_reason" = ${reason ?? 'rejected_by_reviewer'},
+          "rejection_reason" = ${reason ?? "rejected_by_reviewer"},
           "processed_at" = CURRENT_TIMESTAMP
       WHERE "id" = (
         SELECT "document_id" FROM "knowledge_review_queue" WHERE "id" = ${reviewId}

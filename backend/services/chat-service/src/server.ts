@@ -1,8 +1,8 @@
-import 'dotenv/config';
-import http from 'http';
-import app from './app';
-import { initSocket } from './socket';
-import { logger } from '@gym-coach/shared';
+import "dotenv/config";
+import http from "http";
+import app from "./app";
+import { initSocket } from "./socket";
+import { logger } from "@gym-coach/shared";
 
 const PORT = Number(process.env.CHAT_SERVICE_PORT) || 3005;
 

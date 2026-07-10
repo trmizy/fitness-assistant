@@ -1,11 +1,13 @@
-﻿import { getQdrantClient } from '../../repositories/qdrant';
-import { llmService } from '../../services/llm.service';
-import type { NormalizedResearchRecord } from '../types';
-import { chunkResearchRecord } from './chunk';
+import { getQdrantClient } from "../../repositories/qdrant";
+import { llmService } from "../../services/llm.service";
+import type { NormalizedResearchRecord } from "../types";
+import { chunkResearchRecord } from "./chunk";
 
-const COLLECTION = process.env.RESEARCH_QDRANT_COLLECTION || 'fitness_evidence';
+const COLLECTION = process.env.RESEARCH_QDRANT_COLLECTION || "fitness_evidence";
 
-export async function indexResearchRecordsToQdrant(records: NormalizedResearchRecord[]): Promise<{ collection: string; chunks: number }> {
+export async function indexResearchRecordsToQdrant(
+  records: NormalizedResearchRecord[],
+): Promise<{ collection: string; chunks: number }> {
   const chunks = records.flatMap((record) => chunkResearchRecord(record));
   if (chunks.length === 0) return { collection: COLLECTION, chunks: 0 };
 
@@ -13,7 +15,9 @@ export async function indexResearchRecordsToQdrant(records: NormalizedResearchRe
   try {
     await client.getCollection(COLLECTION);
   } catch {
-    await client.createCollection(COLLECTION, { vectors: { size: 768, distance: 'Cosine' } });
+    await client.createCollection(COLLECTION, {
+      vectors: { size: 768, distance: "Cosine" },
+    });
   }
 
   const points = [];
@@ -40,8 +44,8 @@ export async function indexResearchRecordsToQdrant(records: NormalizedResearchRe
         content_hash: chunk.metadata.content_hash,
         evidence_score: chunk.metadata.evidence_score,
         evidence_score_reason: chunk.metadata.evidence_score_reason,
-        source_type: 'research_automation',
-        source_file: 'data/research/normalized',
+        source_type: "research_automation",
+        source_file: "data/research/normalized",
         chunk_id: chunk.metadata.chunk_id,
       },
     });

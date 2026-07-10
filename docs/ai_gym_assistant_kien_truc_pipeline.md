@@ -8,12 +8,12 @@ Tài liệu thiết kế dành cho một developer/sinh viên triển khai thậ
 
 **"AI tự học" \= tự động làm mới KHO TRI THỨC (RAG), KHÔNG retrain model.**
 
-| Cách hiểu sai | Cách làm đúng (tài liệu này) |
-| :---- | :---- |
-| Model tự cập nhật trọng số mỗi tuần | Model **cố định**; chỉ vector database thay đổi |
-| Cần GPU lớn, tốn tiền, dễ "ngộ độc" dữ liệu | CPU/GPU nhỏ là đủ; chi phí \~0–40 USD/tháng |
-| Khó demo, kết quả không ổn định | Demo rõ ràng: thêm tài liệu mới → AI trả lời theo tài liệu mới |
-| Rủi ro catastrophic forgetting | Không có; chỉ thêm/sửa/xoá tri thức trong corpus |
+| Cách hiểu sai                               | Cách làm đúng (tài liệu này)                                   |
+| :------------------------------------------ | :------------------------------------------------------------- |
+| Model tự cập nhật trọng số mỗi tuần         | Model **cố định**; chỉ vector database thay đổi                |
+| Cần GPU lớn, tốn tiền, dễ "ngộ độc" dữ liệu | CPU/GPU nhỏ là đủ; chi phí \~0–40 USD/tháng                    |
+| Khó demo, kết quả không ổn định             | Demo rõ ràng: thêm tài liệu mới → AI trả lời theo tài liệu mới |
+| Rủi ro catastrophic forgetting              | Không có; chỉ thêm/sửa/xoá tri thức trong corpus               |
 
 Hệ quả: pipeline của bạn là một **knowledge-update pipeline**. Mỗi chu kỳ (ngày/tuần) nó crawl → lọc → đánh giá → embed → ghi vào Qdrant. Khi user hỏi, AI luôn truy xuất tri thức **mới nhất, đã kiểm duyệt** và trả lời có trích dẫn nguồn.
 
@@ -23,22 +23,22 @@ Hệ quả: pipeline của bạn là một **knowledge-update pipeline**. Mỗi 
 
 ## 1\. Các service & công nghệ
 
-| \# | Service | Vai trò | Công nghệ đề xuất | Lý do (chi phí/khả thi) |
-| :---- | :---- | :---- | :---- | :---- |
-| 1 | **API Gateway / RAG API** | Nhận câu hỏi, trả lời RAG | **FastAPI** (Python) | Nhanh, async, dễ viết, hệ sinh thái AI tốt |
-| 2 | **Scheduler** | Kích hoạt pipeline định kỳ | **Celery Beat** (giai đoạn 1), **K8s CronJob** (giai đoạn 2\) | Không cần service riêng nặng |
-| 3 | **Crawler worker** | Thu thập dữ liệu | **Celery worker** \+ `httpx` \+ `trafilatura` \+ `feedparser` \+ PubMed E-utilities | API PubMed miễn phí; trafilatura tách nội dung sạch |
-| 4 | **Processing worker** | Làm sạch, lọc trùng, phân loại, chấm điểm, kiểm an toàn | **Celery worker** \+ `langdetect` \+ `datasketch` (MinHash) \+ LLM-judge | Tách riêng để scale độc lập |
-| 5 | **Embedding worker** | Chia chunk \+ tạo vector | **Celery worker** \+ **BGE-M3** (`sentence-transformers` / FlagEmbedding) | Open-source, đa ngôn ngữ (Việt+Anh), miễn phí |
-| 6 | **Message broker** | Hàng đợi bất đồng bộ | **RabbitMQ** (mặc định) — *Kafka chỉ khi cần stream lớn* | RabbitMQ nhẹ, dễ học, đủ dùng |
-| 7 | **Vector DB** | Lưu & truy xuất embedding | **Qdrant** (self-host) — *hoặc pgvector để siêu gọn* | Miễn phí, lọc payload mạnh, hybrid search |
-| 8 | **Metadata DB** | Trạng thái tài liệu, điểm, log | **PostgreSQL** | Một DB quan hệ ổn định, miễn phí |
-| 9 | **Object storage** | File thô (HTML/PDF gốc) | **MinIO** (S3-compatible) | Miễn phí, chạy 1 container |
-| 10 | **Cache / khóa** | Dedup set, rate-limit, cache câu trả lời | **Redis** | Nhẹ, đa dụng |
-| 11 | **LLM sinh câu trả lời** | Tạo câu trả lời từ context | **API rẻ**: Gemini Flash / GPT‑4o‑mini / DeepSeek — *hoặc local* **Qwen2.5** qua **Ollama** | API: vài USD/tháng; local: 0đ |
-| 12 | **Reranker** | Xếp hạng lại kết quả truy xuất | **bge-reranker-v2-m3** (local) hoặc Cohere Rerank (API) | Tăng độ chính xác RAG đáng kể |
-| 13 | **Monitoring** | Metric, dashboard | **Prometheus \+ Grafana**, **Flower** (Celery) | Chuẩn công nghiệp, miễn phí |
-| 14 | **Dashboard pipeline** | Theo dõi crawl/accept/reject | Grafana (nhanh) hoặc **Streamlit** (đẹp, dễ demo) | Streamlit dựng UI Python siêu nhanh |
+| \#  | Service                   | Vai trò                                                 | Công nghệ đề xuất                                                                           | Lý do (chi phí/khả thi)                             |
+| :-- | :------------------------ | :------------------------------------------------------ | :------------------------------------------------------------------------------------------ | :-------------------------------------------------- |
+| 1   | **API Gateway / RAG API** | Nhận câu hỏi, trả lời RAG                               | **FastAPI** (Python)                                                                        | Nhanh, async, dễ viết, hệ sinh thái AI tốt          |
+| 2   | **Scheduler**             | Kích hoạt pipeline định kỳ                              | **Celery Beat** (giai đoạn 1), **K8s CronJob** (giai đoạn 2\)                               | Không cần service riêng nặng                        |
+| 3   | **Crawler worker**        | Thu thập dữ liệu                                        | **Celery worker** \+ `httpx` \+ `trafilatura` \+ `feedparser` \+ PubMed E-utilities         | API PubMed miễn phí; trafilatura tách nội dung sạch |
+| 4   | **Processing worker**     | Làm sạch, lọc trùng, phân loại, chấm điểm, kiểm an toàn | **Celery worker** \+ `langdetect` \+ `datasketch` (MinHash) \+ LLM-judge                    | Tách riêng để scale độc lập                         |
+| 5   | **Embedding worker**      | Chia chunk \+ tạo vector                                | **Celery worker** \+ **BGE-M3** (`sentence-transformers` / FlagEmbedding)                   | Open-source, đa ngôn ngữ (Việt+Anh), miễn phí       |
+| 6   | **Message broker**        | Hàng đợi bất đồng bộ                                    | **RabbitMQ** (mặc định) — _Kafka chỉ khi cần stream lớn_                                    | RabbitMQ nhẹ, dễ học, đủ dùng                       |
+| 7   | **Vector DB**             | Lưu & truy xuất embedding                               | **Qdrant** (self-host) — _hoặc pgvector để siêu gọn_                                        | Miễn phí, lọc payload mạnh, hybrid search           |
+| 8   | **Metadata DB**           | Trạng thái tài liệu, điểm, log                          | **PostgreSQL**                                                                              | Một DB quan hệ ổn định, miễn phí                    |
+| 9   | **Object storage**        | File thô (HTML/PDF gốc)                                 | **MinIO** (S3-compatible)                                                                   | Miễn phí, chạy 1 container                          |
+| 10  | **Cache / khóa**          | Dedup set, rate-limit, cache câu trả lời                | **Redis**                                                                                   | Nhẹ, đa dụng                                        |
+| 11  | **LLM sinh câu trả lời**  | Tạo câu trả lời từ context                              | **API rẻ**: Gemini Flash / GPT‑4o‑mini / DeepSeek — _hoặc local_ **Qwen2.5** qua **Ollama** | API: vài USD/tháng; local: 0đ                       |
+| 12  | **Reranker**              | Xếp hạng lại kết quả truy xuất                          | **bge-reranker-v2-m3** (local) hoặc Cohere Rerank (API)                                     | Tăng độ chính xác RAG đáng kể                       |
+| 13  | **Monitoring**            | Metric, dashboard                                       | **Prometheus \+ Grafana**, **Flower** (Celery)                                              | Chuẩn công nghiệp, miễn phí                         |
+| 14  | **Dashboard pipeline**    | Theo dõi crawl/accept/reject                            | Grafana (nhanh) hoặc **Streamlit** (đẹp, dễ demo)                                           | Streamlit dựng UI Python siêu nhanh                 |
 
 Lưu ý version: các model (BGE‑M3, Qwen, Gemini Flash, GPT‑4o‑mini, DeepSeek…) thay đổi nhanh — khi triển khai hãy kiểm tra bản mới nhất. Kiến trúc không phụ thuộc vào model cụ thể: chỉ cần đổi config là thay được.
 
@@ -211,9 +211,9 @@ CREATE TABLE documents (
 
 );
 
-CREATE INDEX idx\_documents\_status ON documents(status);
+CREATE INDEX idx_documents_status ON documents(status);
 
-CREATE INDEX idx\_documents\_topic  ON documents(topic);
+CREATE INDEX idx_documents_topic ON documents(topic);
 
 \-- 3.3 Chunk \+ trỏ tới point trong Qdrant
 
@@ -239,7 +239,7 @@ CREATE TABLE chunks (
 
 \-- 3.4 Theo dõi mỗi lần chạy pipeline (nguồn dữ liệu cho dashboard)
 
-CREATE TABLE pipeline\_runs (
+CREATE TABLE pipeline_runs (
 
     id             BIGSERIAL PRIMARY KEY,
 
@@ -263,7 +263,7 @@ CREATE TABLE pipeline\_runs (
 
 \-- 3.5 Hàng đợi duyệt thủ công (human-in-the-loop) cho nội dung biên
 
-CREATE TABLE review\_queue (
+CREATE TABLE review_queue (
 
     id           BIGSERIAL PRIMARY KEY,
 
@@ -281,7 +281,7 @@ CREATE TABLE review\_queue (
 
 \-- 3.6 Log truy vấn RAG (để đánh giá chất lượng trả lời — RAGAS, latency)
 
-CREATE TABLE query\_logs (
+CREATE TABLE query_logs (
 
     id              BIGSERIAL PRIMARY KEY,
 
@@ -305,11 +305,11 @@ CREATE TABLE query\_logs (
 
 ## 4\. Thiết kế vector database (Qdrant)
 
-from qdrant\_client import QdrantClient, models
+from qdrant_client import QdrantClient, models
 
 client \= QdrantClient(url="http://qdrant:6333")
 
-client.create\_collection(
+client.create_collection(
 
     collection\_name="fitness\_knowledge",
 
@@ -355,31 +355,31 @@ for field, schema in \[
 
 {
 
-  "document\_id": 123,
+"document_id": 123,
 
-  "chunk\_id": 456,
+"chunk_id": 456,
 
-  "text": "Nội dung chunk...",
+"text": "Nội dung chunk...",
 
-  "source\_name": "PubMed",
+"source_name": "PubMed",
 
-  "source\_url": "https://...",
+"source_url": "https://...",
 
-  "source\_tier": 1,
+"source_tier": 1,
 
-  "trust\_score": 0.92,
+"trust_score": 0.92,
 
-  "topic": "nutrition",
+"topic": "nutrition",
 
-  "language": "en",
+"language": "en",
 
-  "published\_at": "2025-08-01T00:00:00Z"
+"published_at": "2025-08-01T00:00:00Z"
 
 }
 
 **Truy vấn hybrid \+ lọc an toàn:**
 
-hits \= client.query\_points(
+hits \= client.query_points(
 
     collection\_name="fitness\_knowledge",
 
@@ -413,16 +413,16 @@ hits \= client.query\_points(
 
 ### 5.1 Phân tầng độ tin cậy nguồn (trust tier)
 
-| Tier | Điểm nền | Nguồn ví dụ |
-| :---- | :---- | :---- |
-| **1** | 0.90 | PubMed/PMC, Cochrane, WHO, CDC/NIH, tạp chí bình duyệt, `.gov`/`.edu` |
-| **2** | 0.70 | ACSM, NSCA, ISSN position stands, Mayo Clinic, trang y tế uy tín |
-| **3** | 0.40 | Blog/tạp chí fitness phổ thông (bắt buộc qua review) |
-| **Blocklist** | — | Trang bán supplement, MLM, trang dày CTA quảng cáo |
+| Tier          | Điểm nền | Nguồn ví dụ                                                           |
+| :------------ | :------- | :-------------------------------------------------------------------- |
+| **1**         | 0.90     | PubMed/PMC, Cochrane, WHO, CDC/NIH, tạp chí bình duyệt, `.gov`/`.edu` |
+| **2**         | 0.70     | ACSM, NSCA, ISSN position stands, Mayo Clinic, trang y tế uy tín      |
+| **3**         | 0.40     | Blog/tạp chí fitness phổ thông (bắt buộc qua review)                  |
+| **Blocklist** | —        | Trang bán supplement, MLM, trang dày CTA quảng cáo                    |
 
 ### 5.2 Công thức điểm tin cậy (gợi ý)
 
-def trust\_score(doc, source) \-\> float:
+def trust_score(doc, source) \-\> float:
 
     s \= {1: 0.90, 2: 0.70, 3: 0.40}\[source.trust\_tier\]
 
@@ -455,7 +455,7 @@ Bạn là kiểm duyệt viên nội dung sức khỏe/thể hình. Đánh giá 
 
 1\) Có lời khuyên y tế nguy hiểm không? (nhịn ăn cực đoan, liều thuốc/supplement
 
-   nguy hiểm, giảm cân quá nhanh, claim chữa bệnh)
+nguy hiểm, giảm cân quá nhanh, claim chữa bệnh)
 
 2\) Có phải quảng cáo bán hàng trá hình không?
 
@@ -475,7 +475,7 @@ Bạn là trợ lý thể hình. CHỈ dùng thông tin trong \[CONTEXT\] để 
 
 \[CONTEXT\]
 
-{context\_kèm\_số\_thứ\_tự\_và\_nguồn}
+{context_kèm_số_thứ_tự_và_nguồn}
 
 \[CÂU HỎI\] {question}
 
@@ -491,27 +491,27 @@ ai-gym-kb/
 
 ├── .env
 
-├── api/                \# FastAPI: RAG serving
+├── api/ \# FastAPI: RAG serving
 
-│   ├── Dockerfile
+│ ├── Dockerfile
 
-│   └── main.py
+│ └── main.py
 
-├── worker/             \# Celery: crawl / process / embed
+├── worker/ \# Celery: crawl / process / embed
 
-│   ├── Dockerfile
+│ ├── Dockerfile
 
-│   ├── tasks.py
+│ ├── tasks.py
 
-│   └── celery\_app.py
+│ └── celery_app.py
 
-├── dashboard/          \# Streamlit (tùy chọn)
+├── dashboard/ \# Streamlit (tùy chọn)
 
-│   └── app.py
+│ └── app.py
 
 ├── db/
 
-│   └── init.sql        \# schema mục 3
+│ └── init.sql \# schema mục 3
 
 └── monitoring/
 
@@ -523,7 +523,7 @@ ai-gym-kb/
 
 services:
 
-  postgres:
+postgres:
 
     image: postgres:16
 
@@ -543,7 +543,7 @@ services:
 
     ports: \["5432:5432"\]
 
-  qdrant:
+qdrant:
 
     image: qdrant/qdrant:latest
 
@@ -551,7 +551,7 @@ services:
 
     ports: \["6333:6333"\]
 
-  rabbitmq:
+rabbitmq:
 
     image: rabbitmq:3-management
 
@@ -563,13 +563,13 @@ services:
 
     ports: \["5672:5672", "15672:15672"\]   \# 15672 \= UI quản trị
 
-  redis:
+redis:
 
     image: redis:7
 
     ports: \["6379:6379"\]
 
-  minio:
+minio:
 
     image: minio/minio:latest
 
@@ -585,7 +585,7 @@ services:
 
     ports: \["9000:9000", "9001:9001"\]
 
-  api:
+api:
 
     build: ./api
 
@@ -595,9 +595,9 @@ services:
 
     ports: \["8000:8000"\]
 
-  \# Một image worker, chạy nhiều bản với cờ hàng đợi khác nhau
+\# Một image worker, chạy nhiều bản với cờ hàng đợi khác nhau
 
-  worker-crawl:
+worker-crawl:
 
     build: ./worker
 
@@ -607,7 +607,7 @@ services:
 
     depends\_on: \[rabbitmq, postgres, minio\]
 
-  worker-process:
+worker-process:
 
     build: ./worker
 
@@ -617,7 +617,7 @@ services:
 
     depends\_on: \[rabbitmq, postgres\]
 
-  worker-embed:
+worker-embed:
 
     build: ./worker
 
@@ -627,7 +627,7 @@ services:
 
     depends\_on: \[rabbitmq, qdrant\]
 
-  beat:
+beat:
 
     build: ./worker
 
@@ -637,7 +637,7 @@ services:
 
     depends\_on: \[rabbitmq\]
 
-  flower:
+flower:
 
     build: ./worker
 
@@ -647,7 +647,7 @@ services:
 
     depends\_on: \[rabbitmq\]
 
-  prometheus:
+prometheus:
 
     image: prom/prometheus:latest
 
@@ -655,7 +655,7 @@ services:
 
     ports: \["9090:9090"\]
 
-  grafana:
+grafana:
 
     image: grafana/grafana:latest
 
@@ -663,29 +663,29 @@ services:
 
     volumes: \[grafana\_data:/var/lib/grafana\]
 
-  \# Tùy chọn: LLM local thay cho API
+\# Tùy chọn: LLM local thay cho API
 
-  \# ollama:
+\# ollama:
 
-  \#   image: ollama/ollama:latest
+\# image: ollama/ollama:latest
 
-  \#   volumes: \[ollama\_data:/root/.ollama\]
+\# volumes: \[ollama_data:/root/.ollama\]
 
-  \#   ports: \["11434:11434"\]
+\# ports: \["11434:11434"\]
 
 volumes:
 
-  pg\_data:
+pg_data:
 
-  qdrant\_data:
+qdrant_data:
 
-  minio\_data:
+minio_data:
 
-  grafana\_data:
+grafana_data:
 
 ### 6.3 Celery tasks (rút gọn, đại diện)
 
-\# celery\_app.py
+\# celery_app.py
 
 from celery import Celery
 
@@ -695,7 +695,7 @@ app \= Celery("gymkb",
 
              backend="redis://redis:6379/0")
 
-app.conf.task\_routes \= {
+app.conf.task_routes \= {
 
     "tasks.crawl\_source":    {"queue": "crawl"},
 
@@ -707,7 +707,7 @@ app.conf.task\_routes \= {
 
 \# Lịch định kỳ (Celery Beat)
 
-app.conf.beat\_schedule \= {
+app.conf.beat_schedule \= {
 
     "daily-crawl": {"task": "tasks.kickoff\_crawl", "schedule": 24 \* 3600},
 
@@ -715,11 +715,11 @@ app.conf.beat\_schedule \= {
 
 \# tasks.py
 
-from celery\_app import app
+from celery_app import app
 
 @app.task
 
-def kickoff\_crawl():
+def kickoff_crawl():
 
     \# tạo pipeline\_runs(status=running); với mỗi source active \-\> crawl\_source.delay(id)
 
@@ -727,7 +727,7 @@ def kickoff\_crawl():
 
 @app.task
 
-def crawl\_source(source\_id: int):
+def crawl_source(source_id: int):
 
     \# fetch (API/RSS/web) \-\> hash \-\> nếu mới: lưu MinIO \+ insert documents \-\> process\_document.delay(doc\_id)
 
@@ -735,7 +735,7 @@ def crawl\_source(source\_id: int):
 
 @app.task
 
-def process\_document(document\_id: int):
+def process_document(document_id: int):
 
     \# trafilatura \-\> langdetect \-\> dedup ngữ nghĩa \-\> phân loại topic
 
@@ -749,7 +749,7 @@ def process\_document(document\_id: int):
 
 @app.task
 
-def embed\_document(document\_id: int):
+def embed_document(document_id: int):
 
     \# chunk \-\> BGE-M3 (dense+sparse) \-\> upsert Qdrant \-\> insert chunks \-\> status='embedded'
 
@@ -787,7 +787,7 @@ async def ask(payload: dict):
 
 ### 6.5 Chạy & demo
 
-cp .env.example .env          \# điền mật khẩu \+ API key LLM
+cp .env.example .env \# điền mật khẩu \+ API key LLM
 
 docker compose up \-d \--build
 
@@ -811,11 +811,11 @@ metadata: {name: worker-embed}
 
 spec:
 
-  replicas: 1
+replicas: 1
 
-  selector: {matchLabels: {app: worker-embed}}
+selector: {matchLabels: {app: worker-embed}}
 
-  template:
+template:
 
     metadata: {labels: {app: worker-embed}}
 
@@ -849,13 +849,13 @@ metadata: {name: embed-worker-scaler}
 
 spec:
 
-  scaleTargetRef: {name: worker-embed}
+scaleTargetRef: {name: worker-embed}
 
-  minReplicaCount: 0          \# rảnh \-\> 0 pod
+minReplicaCount: 0 \# rảnh \-\> 0 pod
 
-  maxReplicaCount: 10
+maxReplicaCount: 10
 
-  triggers:
+triggers:
 
     \- type: rabbitmq
 
@@ -881,9 +881,9 @@ metadata: {name: daily-crawl}
 
 spec:
 
-  schedule: "0 2 \* \* \*"        \# 02:00 hằng ngày
+schedule: "0 2 \* \* \*" \# 02:00 hằng ngày
 
-  jobTemplate:
+jobTemplate:
 
     spec:
 
@@ -916,19 +916,19 @@ spec:
 
 ### 8.1 Metric pipeline (Prometheus)
 
-from prometheus\_client import Counter, Histogram, Gauge
+from prometheus_client import Counter, Histogram, Gauge
 
-docs\_crawled  \= Counter("kb\_docs\_crawled\_total",  "Docs crawled",  \["source"\])
+docs_crawled \= Counter("kb_docs_crawled_total", "Docs crawled", \["source"\])
 
-docs\_accepted \= Counter("kb\_docs\_accepted\_total", "Docs accepted")
+docs_accepted \= Counter("kb_docs_accepted_total", "Docs accepted")
 
-docs\_rejected \= Counter("kb\_docs\_rejected\_total", "Docs rejected", \["reason"\])
+docs_rejected \= Counter("kb_docs_rejected_total", "Docs rejected", \["reason"\])
 
-stage\_latency \= Histogram("kb\_stage\_latency\_seconds","Stage latency",\["stage"\])
+stage_latency \= Histogram("kb_stage_latency_seconds","Stage latency",\["stage"\])
 
-queue\_depth   \= Gauge("kb\_queue\_depth", "Queue depth", \["queue"\])
+queue_depth \= Gauge("kb_queue_depth", "Queue depth", \["queue"\])
 
-rag\_latency   \= Histogram("kb\_rag\_latency\_seconds", "RAG end-to-end latency")
+rag_latency \= Histogram("kb_rag_latency_seconds", "RAG end-to-end latency")
 
 **Chỉ số theo dõi:** throughput (docs/giờ), latency từng tầng (p50/p95), độ sâu hàng đợi, **tỉ lệ chấp nhận** (accepted / crawled), tỉ lệ lỗi, latency RAG (p50/p95/p99).
 
@@ -947,22 +947,22 @@ Grafana cho metric hệ thống; thêm **Streamlit** một trang cho khía cạn
 
 ## 9\. Chi phí (tối ưu thấp nhất)
 
-| Hạng mục | Lựa chọn rẻ nhất | Chi phí |
-| :---- | :---- | :---- |
-| Hạ tầng | **Oracle Cloud Always Free** (4 ARM core, 24GB RAM) | **0đ** |
-| (hoặc) VPS | Hetzner CPX31/CX41 | \~€13–17/tháng |
-| Vector DB | Qdrant self-host | 0đ |
-| Metadata DB | PostgreSQL self-host | 0đ |
-| Broker | RabbitMQ self-host | 0đ |
-| Object storage | MinIO self-host | 0đ |
-| Cache | Redis self-host | 0đ |
-| Embedding | BGE‑M3 chạy local | 0đ (chỉ tốn compute) |
-| Reranker | bge-reranker-v2-m3 local | 0đ |
-| LLM | Gemini Flash / GPT‑4o‑mini / DeepSeek | vài USD/tháng (mức demo) |
-| (hoặc) LLM local | Qwen2.5 qua Ollama | 0đ |
-| Monitoring | Prometheus \+ Grafana \+ Flower | 0đ |
-| Dữ liệu | PubMed E-utilities, RSS, `.gov/.edu` | 0đ |
-| **TỔNG** |  | **\~0–40 USD/tháng** |
+| Hạng mục         | Lựa chọn rẻ nhất                                    | Chi phí                  |
+| :--------------- | :-------------------------------------------------- | :----------------------- |
+| Hạ tầng          | **Oracle Cloud Always Free** (4 ARM core, 24GB RAM) | **0đ**                   |
+| (hoặc) VPS       | Hetzner CPX31/CX41                                  | \~€13–17/tháng           |
+| Vector DB        | Qdrant self-host                                    | 0đ                       |
+| Metadata DB      | PostgreSQL self-host                                | 0đ                       |
+| Broker           | RabbitMQ self-host                                  | 0đ                       |
+| Object storage   | MinIO self-host                                     | 0đ                       |
+| Cache            | Redis self-host                                     | 0đ                       |
+| Embedding        | BGE‑M3 chạy local                                   | 0đ (chỉ tốn compute)     |
+| Reranker         | bge-reranker-v2-m3 local                            | 0đ                       |
+| LLM              | Gemini Flash / GPT‑4o‑mini / DeepSeek               | vài USD/tháng (mức demo) |
+| (hoặc) LLM local | Qwen2.5 qua Ollama                                  | 0đ                       |
+| Monitoring       | Prometheus \+ Grafana \+ Flower                     | 0đ                       |
+| Dữ liệu          | PubMed E-utilities, RSS, `.gov/.edu`                | 0đ                       |
+| **TỔNG**         |                                                     | **\~0–40 USD/tháng**     |
 
 **Mẹo tiết kiệm thêm:** GitHub Student Pack, credit miễn phí của các cloud, Qdrant Cloud free tier (1GB). Toàn stack chạy gọn trên **một** máy ở giai đoạn 1\.
 
@@ -984,7 +984,7 @@ Grafana cho metric hệ thống; thêm **Streamlit** một trang cho khía cạn
 
 ### 11.1 Tên đề tài (gợi ý)
 
-**"Xây dựng hệ thống cập nhật tri thức tự động dựa trên RAG và kiến trúc microservices cho ứng dụng trợ lý AI hỗ trợ tập luyện thể hình"** *(Automated Knowledge-Update Pipeline using RAG and Microservices for an AI Gym Assistant)*
+**"Xây dựng hệ thống cập nhật tri thức tự động dựa trên RAG và kiến trúc microservices cho ứng dụng trợ lý AI hỗ trợ tập luyện thể hình"** _(Automated Knowledge-Update Pipeline using RAG and Microservices for an AI Gym Assistant)_
 
 ### 11.2 Cấu trúc các chương
 

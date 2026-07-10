@@ -2,27 +2,69 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Dumbbell, ChevronLeft, ChevronRight, Plus, Lock,
-  AlertCircle, Share2, Star, ArrowUpDown, ChevronDown,
-  Clock, MessageSquare, Timer, Target, BarChart3,
-  Zap, Calendar, TrendingUp, Play, GripVertical, Trash2,
-  Check, X, SkipForward, Pause, RotateCcw, Trophy, PartyPopper,
-  Search, SlidersHorizontal
+  Dumbbell,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Lock,
+  AlertCircle,
+  Share2,
+  Star,
+  ArrowUpDown,
+  ChevronDown,
+  Clock,
+  MessageSquare,
+  Timer,
+  Target,
+  BarChart3,
+  Zap,
+  Calendar,
+  TrendingUp,
+  Play,
+  GripVertical,
+  Trash2,
+  Check,
+  X,
+  SkipForward,
+  Pause,
+  RotateCcw,
+  Trophy,
+  PartyPopper,
+  Search,
+  SlidersHorizontal,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip,
-  PieChart, Pie, Cell, CartesianGrid
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  CartesianGrid,
 } from "recharts";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
-import { workoutService, inbodyService, type WorkoutScheduleRecord } from "../../services/api";
+import {
+  workoutService,
+  inbodyService,
+  type WorkoutScheduleRecord,
+} from "../../services/api";
 
 // Format helper
-const formatVideoUrlToImg = (videoUrl: string | null | undefined, frame: 0 | 1) => {
+const formatVideoUrlToImg = (
+  videoUrl: string | null | undefined,
+  frame: 0 | 1,
+) => {
   if (!videoUrl) return null;
   // If it's already a github raw url ending in .jpg, just replace the last part
-  if (videoUrl.includes('yuhonas/free-exercise-db') && videoUrl.endsWith('.jpg')) {
+  if (
+    videoUrl.includes("yuhonas/free-exercise-db") &&
+    videoUrl.endsWith(".jpg")
+  ) {
     return videoUrl.replace(/\/[^\/]+$/, `/${frame}.jpg`);
   }
   return videoUrl; // Fallback
@@ -33,7 +75,12 @@ const formatVideoUrlToImg = (videoUrl: string | null | undefined, frame: 0 | 1) 
  * Both images come from yuhonas/free-exercise-db GitHub raw content.
  * Falls back gracefully if either image fails to load.
  */
-function ExerciseFlipDemo({ img1, img2, alt, className = "" }: {
+function ExerciseFlipDemo({
+  img1,
+  img2,
+  alt,
+  className = "",
+}: {
   img1: string | null | undefined;
   img2: string | null | undefined;
   alt: string;
@@ -57,7 +104,9 @@ function ExerciseFlipDemo({ img1, img2, alt, className = "" }: {
   // Fallback if no source provided, or if the primary image failed to load
   if (!img1 || img1Error) {
     return (
-      <div className={`relative flex items-center justify-center bg-zinc-900/60 border border-zinc-800/30 rounded-2xl overflow-hidden ${className}`}>
+      <div
+        className={`relative flex items-center justify-center bg-zinc-900/60 border border-zinc-800/30 rounded-2xl overflow-hidden ${className}`}
+      >
         <Dumbbell className="w-10 h-10 text-zinc-700" />
       </div>
     );
@@ -94,8 +143,12 @@ function ExerciseFlipDemo({ img1, img2, alt, className = "" }: {
       {/* Animation indicator */}
       {canAnimate && (
         <div className="absolute bottom-2 right-2 flex gap-1">
-          <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${!showSecond ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-          <span className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${showSecond ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+          <span
+            className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${!showSecond ? "bg-emerald-400" : "bg-zinc-600"}`}
+          />
+          <span
+            className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${showSecond ? "bg-emerald-400" : "bg-zinc-600"}`}
+          />
         </div>
       )}
     </div>
@@ -103,7 +156,8 @@ function ExerciseFlipDemo({ img1, img2, alt, className = "" }: {
 }
 
 /* ───── Data ───── */
-const heroImg = "https://images.unsplash.com/photo-1628935291759-bbaf33a66dc6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxneW0lMjB3b3Jrb3V0JTIwbXVzY2xlJTIwdHJhaW5pbmclMjBkYXJrfGVufDF8fHx8MTc3NjA2NjY0NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral";
+const heroImg =
+  "https://images.unsplash.com/photo-1628935291759-bbaf33a66dc6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxneW0lMjB3b3Jrb3V0JTIwbXVzY2xlJTIwdHJhaW5pbmclMjBkYXJrfGVufDF8fHx8MTc3NjA2NjY0NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral";
 
 const GOAL_LABELS: Record<string, string> = {
   WEIGHT_LOSS: "Giảm mỡ",
@@ -130,7 +184,10 @@ const MUSCLE_FILTERS = [
 
 function labelizeEnum(value?: string | null) {
   if (!value) return "--";
-  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  return value
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function groupTitle(value?: string | null) {
@@ -158,13 +215,17 @@ function parseApiDateOnly(value: string | Date) {
 }
 
 function isSameCalendarDay(left: Date, right: Date) {
-  return left.getFullYear() === right.getFullYear()
-    && left.getMonth() === right.getMonth()
-    && left.getDate() === right.getDate();
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
 }
 
 function toApiDateTime(date: Date) {
-  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString();
+  return new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  ).toISOString();
 }
 
 function getMonthRange(month: Date) {
@@ -192,7 +253,9 @@ function mapProgramExercise(ex: any) {
     notes: ex.notes ?? "",
     img: formatVideoUrlToImg(exercise.videoUrl, 0),
     img2: formatVideoUrlToImg(exercise.videoUrl, 1),
-    type: (exercise.typeOfActivity === "CARDIO" ? "cardio" : "strength") as "cardio" | "strength",
+    type: (exercise.typeOfActivity === "CARDIO" ? "cardio" : "strength") as
+      | "cardio"
+      | "strength",
     bodyPart: exercise.bodyPart,
     equipment: exercise.typeOfEquipment,
     activityType: exercise.typeOfActivity,
@@ -223,11 +286,15 @@ const DAYS_IN_APRIL = 30;
 const FIRST_DAY_OFFSET = 2;
 const trainingMarkers = [1, 3, 5, 8, 10, 12, 15, 17, 19, 22, 24, 26, 29];
 
-
 type MetricKey = "weight" | "bodyfat" | "muscle" | "water";
 type MetricUnit = "kg" | "%";
 type MetricDataKey = "kg" | "pct";
-type BodyMetricPoint = { week: string; fullDate: string; kg?: number; pct?: number };
+type BodyMetricPoint = {
+  week: string;
+  fullDate: string;
+  kg?: number;
+  pct?: number;
+};
 type BodyMetricOption = {
   key: MetricKey;
   label: string;
@@ -242,11 +309,44 @@ type BodyMetricOption = {
   canPersist: boolean;
 };
 
-const METRIC_BASE_OPTIONS: Array<Pick<BodyMetricOption, "key" | "label" | "unit" | "color" | "dataKey" | "canPersist">> = [
-  { key: "weight", label: "Cân nặng", unit: "kg", color: "#10b981", dataKey: "kg", canPersist: true },
-  { key: "bodyfat", label: "Mỡ cơ thể", unit: "%", color: "#f59e0b", dataKey: "pct", canPersist: true },
-  { key: "muscle", label: "Cơ bắp", unit: "kg", color: "#3b82f6", dataKey: "kg", canPersist: true },
-  { key: "water", label: "Nước cơ thể", unit: "%", color: "#06b6d4", dataKey: "pct", canPersist: false },
+const METRIC_BASE_OPTIONS: Array<
+  Pick<
+    BodyMetricOption,
+    "key" | "label" | "unit" | "color" | "dataKey" | "canPersist"
+  >
+> = [
+  {
+    key: "weight",
+    label: "Cân nặng",
+    unit: "kg",
+    color: "#10b981",
+    dataKey: "kg",
+    canPersist: true,
+  },
+  {
+    key: "bodyfat",
+    label: "Mỡ cơ thể",
+    unit: "%",
+    color: "#f59e0b",
+    dataKey: "pct",
+    canPersist: true,
+  },
+  {
+    key: "muscle",
+    label: "Cơ bắp",
+    unit: "kg",
+    color: "#3b82f6",
+    dataKey: "kg",
+    canPersist: true,
+  },
+  {
+    key: "water",
+    label: "Nước cơ thể",
+    unit: "%",
+    color: "#06b6d4",
+    dataKey: "pct",
+    canPersist: false,
+  },
 ];
 
 function inBodyDateKey(entry: any): string {
@@ -280,9 +380,20 @@ function metricNumber(...values: any[]): number | null {
 function bodyMetricValue(entry: any, key: MetricKey): number | null {
   if (!entry) return null;
   if (key === "weight") return metricNumber(entry.weight, entry.weightKg);
-  if (key === "muscle") return metricNumber(entry.muscleMass, entry.muscleMassKg, entry.skeletalMuscleKg);
+  if (key === "muscle")
+    return metricNumber(
+      entry.muscleMass,
+      entry.muscleMassKg,
+      entry.skeletalMuscleKg,
+    );
   if (key === "water") {
-    return metricNumber(entry.bodyWaterPct, entry.bodyWaterPercentage, entry.bodyWater, entry.waterPct, entry.totalBodyWaterPct);
+    return metricNumber(
+      entry.bodyWaterPct,
+      entry.bodyWaterPercentage,
+      entry.bodyWater,
+      entry.waterPct,
+      entry.totalBodyWaterPct,
+    );
   }
 
   const bodyFatPct = metricNumber(entry.bodyFatPct, entry.bodyFatPercentage);
@@ -306,10 +417,21 @@ function bodyFatKgFromEntry(entry: any): number | null {
 
 function metricTarget(profile: any, key: MetricKey): number | null {
   if (!profile) return null;
-  if (key === "weight") return metricNumber(profile.targetWeight, profile.targetWeightKg);
-  if (key === "bodyfat") return metricNumber(profile.targetBodyFatPct, profile.bodyFatTargetPct);
-  if (key === "muscle") return metricNumber(profile.targetMuscleMass, profile.targetMuscleMassKg, profile.skeletalMuscleTargetKg);
-  return metricNumber(profile.targetBodyWaterPct, profile.bodyWaterTargetPct, profile.waterTargetPct);
+  if (key === "weight")
+    return metricNumber(profile.targetWeight, profile.targetWeightKg);
+  if (key === "bodyfat")
+    return metricNumber(profile.targetBodyFatPct, profile.bodyFatTargetPct);
+  if (key === "muscle")
+    return metricNumber(
+      profile.targetMuscleMass,
+      profile.targetMuscleMassKg,
+      profile.skeletalMuscleTargetKg,
+    );
+  return metricNumber(
+    profile.targetBodyWaterPct,
+    profile.bodyWaterTargetPct,
+    profile.waterTargetPct,
+  );
 }
 
 function formatMetricValue(value: number | null, unit: MetricUnit): string {
@@ -319,7 +441,10 @@ function formatMetricValue(value: number | null, unit: MetricUnit): string {
   return unit === "%" ? `${text}%` : `${text} ${unit}`;
 }
 
-function metricDomain(data: BodyMetricPoint[], dataKey: MetricDataKey): [number, number] | ["auto", "auto"] {
+function metricDomain(
+  data: BodyMetricPoint[],
+  dataKey: MetricDataKey,
+): [number, number] | ["auto", "auto"] {
   const values = data
     .map((point) => point[dataKey])
     .filter((value): value is number => Number.isFinite(value));
@@ -328,10 +453,7 @@ function metricDomain(data: BodyMetricPoint[], dataKey: MetricDataKey): [number,
   const max = Math.max(...values);
   const span = Math.max(max - min, dataKey === "pct" ? 2 : 1);
   const pad = span * 0.25;
-  return [
-    Math.floor((min - pad) * 10) / 10,
-    Math.ceil((max + pad) * 10) / 10,
-  ];
+  return [Math.floor((min - pad) * 10) / 10, Math.ceil((max + pad) * 10) / 10];
 }
 
 type Tab = "overview" | "plan";
@@ -377,7 +499,10 @@ const DEFAULT_MANUAL_WEEKDAYS: Record<number, number[]> = {
   7: [1, 2, 3, 4, 5, 6, 0],
 };
 
-function buildManualDays(daysPerWeek: number, previous: ManualBuilderDay[] = []) {
+function buildManualDays(
+  daysPerWeek: number,
+  previous: ManualBuilderDay[] = [],
+) {
   return Array.from({ length: daysPerWeek }, (_, index) => {
     const previousDay = previous[index];
     return {
@@ -397,7 +522,12 @@ function exerciseUsesExternalWeight(exercise: any) {
 
 function scheduleProgressPercent(schedule?: WorkoutScheduleRecord | null) {
   if (!schedule) return 0;
-  if (schedule.status === "COMPLETED" || schedule.workoutId || schedule.workout?.id) return 100;
+  if (
+    schedule.status === "COMPLETED" ||
+    schedule.workoutId ||
+    schedule.workout?.id
+  )
+    return 100;
   const progress = Number(schedule.progressPercent ?? 0);
   return Number.isFinite(progress) ? Math.max(0, Math.min(100, progress)) : 0;
 }
@@ -427,12 +557,16 @@ export function WorkoutLogPage() {
   const [selectedDay, setSelectedDay] = useState(1);
   const [dayExercises, setDayExercises] = useState<any[]>([]);
   const [currentWorkoutId, setCurrentWorkoutId] = useState<string | null>(null);
-  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(null);
+  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [calendarExpanded, setCalendarExpanded] = useState(true);
   const [selectedExercise, setSelectedExercise] = useState<any | null>(null);
-  const [selectedProgramDayId, setSelectedProgramDayId] = useState<string | null>(null);
+  const [selectedProgramDayId, setSelectedProgramDayId] = useState<
+    string | null
+  >(null);
 
   // Dynamic Navigation & Stats
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -448,10 +582,14 @@ export function WorkoutLogPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const handlePrevMonth = () => {
-    setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1));
+    setCalendarMonth(
+      new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1),
+    );
   };
   const handleNextMonth = () => {
-    setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1));
+    setCalendarMonth(
+      new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1),
+    );
   };
 
   const applyInBodyHistory = useCallback((value: any) => {
@@ -459,7 +597,10 @@ export function WorkoutLogPage() {
       ? [...value].sort((a: any, b: any) => {
           const cmp = inBodyDateKey(b).localeCompare(inBodyDateKey(a));
           if (cmp !== 0) return cmp;
-          return Date.parse(String(b?.createdAt ?? 0)) - Date.parse(String(a?.createdAt ?? 0));
+          return (
+            Date.parse(String(b?.createdAt ?? 0)) -
+            Date.parse(String(a?.createdAt ?? 0))
+          );
         })
       : [];
 
@@ -474,7 +615,9 @@ export function WorkoutLogPage() {
     setLatestInBody(inbody);
     const measuredAt = parseInBodyMeasurementDate(inbody);
     const fallbackCreatedAt = new Date(inbody.createdAt);
-    const metricDate = !Number.isNaN(measuredAt.getTime()) ? measuredAt : fallbackCreatedAt;
+    const metricDate = !Number.isNaN(measuredAt.getTime())
+      ? measuredAt
+      : fallbackCreatedAt;
     const diff = Number.isNaN(metricDate.getTime())
       ? null
       : Math.floor((Date.now() - metricDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -486,8 +629,16 @@ export function WorkoutLogPage() {
     const fetchAllData = async () => {
       setIsLoading(true);
       try {
-        const { inbodyService, profileService } = await import("../../services/api");
-        const [historyResult, inbodyHistoryResult, statsResult, schedulesResult, programResult, profileResult] = await Promise.allSettled([
+        const { inbodyService, profileService } =
+          await import("../../services/api");
+        const [
+          historyResult,
+          inbodyHistoryResult,
+          statsResult,
+          schedulesResult,
+          programResult,
+          profileResult,
+        ] = await Promise.allSettled([
           workoutService.getHistory(1, 50), // Fetch last 50 workouts to fill cache
           inbodyService.getHistory(),
           workoutService.getStats(),
@@ -496,16 +647,17 @@ export function WorkoutLogPage() {
           profileService.getProfile(),
         ]);
 
-        if (programResult.status === 'fulfilled') {
+        if (programResult.status === "fulfilled") {
           setCurrentProgram(programResult.value);
         }
-        if (profileResult.status === 'fulfilled') {
+        if (profileResult.status === "fulfilled") {
           setUserProfile(profileResult.value?.profile ?? profileResult.value);
         }
 
         // 1. Build Workout Cache
         const cache: Record<string, any> = {};
-        const history = historyResult.status === 'fulfilled' ? historyResult.value : null;
+        const history =
+          historyResult.status === "fulfilled" ? historyResult.value : null;
         if (history && Array.isArray(history)) {
           history.forEach((w: any) => {
             const d = new Date(w.date).toDateString();
@@ -523,10 +675,12 @@ export function WorkoutLogPage() {
             id: we.id,
             dbId: we.exerciseId,
             name: we.exercise.exerciseName,
-            prescription: `${we.sets}×${we.reps || 10}${we.weight ? '×' + we.weight + ' kg' : ''}`,
+            prescription: `${we.sets}×${we.reps || 10}${we.weight ? "×" + we.weight + " kg" : ""}`,
             img: formatVideoUrlToImg(we.exercise.videoUrl, 0),
             img2: formatVideoUrlToImg(we.exercise.videoUrl, 1),
-            type: (we.exercise.typeOfActivity === "CARDIO" ? "cardio" : "strength") as "cardio" | "strength",
+            type: (we.exercise.typeOfActivity === "CARDIO"
+              ? "cardio"
+              : "strength") as "cardio" | "strength",
             description: we.exercise.instructions,
             muscles: we.exercise.muscleGroupsActivated || [],
             tips: [],
@@ -538,9 +692,16 @@ export function WorkoutLogPage() {
         }
 
         // 3. InBody Stats
-        applyInBodyHistory(inbodyHistoryResult.status === 'fulfilled' ? inbodyHistoryResult.value : []);
-        setWorkoutStats(statsResult.status === 'fulfilled' ? statsResult.value : null);
-        const schedules = schedulesResult.status === 'fulfilled' ? schedulesResult.value : [];
+        applyInBodyHistory(
+          inbodyHistoryResult.status === "fulfilled"
+            ? inbodyHistoryResult.value
+            : [],
+        );
+        setWorkoutStats(
+          statsResult.status === "fulfilled" ? statsResult.value : null,
+        );
+        const schedules =
+          schedulesResult.status === "fulfilled" ? schedulesResult.value : [];
         setAiSchedules(Array.isArray(schedules) ? schedules : []);
       } catch (err) {
         console.error("Failed to fetch all data:", err);
@@ -576,41 +737,62 @@ export function WorkoutLogPage() {
 
   // Calendar schedule modal
   const [showCalendarAdd, setShowCalendarAdd] = useState(false);
-  const [scheduleDateInput, setScheduleDateInput] = useState(() => toDateInputValue(new Date()));
+  const [scheduleDateInput, setScheduleDateInput] = useState(() =>
+    toDateInputValue(new Date()),
+  );
   const [scheduleProgramDayId, setScheduleProgramDayId] = useState("");
   const [scheduleNotes, setScheduleNotes] = useState("");
   const [savingSchedule, setSavingSchedule] = useState(false);
   type WeekdaySlot = { enabled: boolean; time: string };
-  const [weekdaySlots, setWeekdaySlots] = useState<Record<number, WeekdaySlot>>({
-    1: { enabled: true, time: "07:00" },
-    3: { enabled: true, time: "07:00" },
-    5: { enabled: true, time: "09:00" },
-  });
+  const [weekdaySlots, setWeekdaySlots] = useState<Record<number, WeekdaySlot>>(
+    {
+      1: { enabled: true, time: "07:00" },
+      3: { enabled: true, time: "07:00" },
+      5: { enabled: true, time: "09:00" },
+    },
+  );
   const [exceptions, setExceptions] = useState<Set<number>>(new Set());
   const WD_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
   const derivedMarkers: number[] = [];
 
   const [showManualBuilder, setShowManualBuilder] = useState(false);
   const [savingManualProgram, setSavingManualProgram] = useState(false);
-  const [manualProgramName, setManualProgramName] = useState("Chương trình thủ công");
+  const [manualProgramName, setManualProgramName] = useState(
+    "Chương trình thủ công",
+  );
   const [manualDurationWeeks, setManualDurationWeeks] = useState("4");
-  const [manualStartDate, setManualStartDate] = useState(() => toDateInputValue(new Date()));
+  const [manualStartDate, setManualStartDate] = useState(() =>
+    toDateInputValue(new Date()),
+  );
   const [manualDaysPerWeek, setManualDaysPerWeek] = useState(3);
-  const [manualSelectedWeekdays, setManualSelectedWeekdays] = useState<number[]>(DEFAULT_MANUAL_WEEKDAYS[3]);
-  const [manualDays, setManualDays] = useState<ManualBuilderDay[]>(() => buildManualDays(3));
-  const [manualEditingDayIndex, setManualEditingDayIndex] = useState<number | null>(null);
+  const [manualSelectedWeekdays, setManualSelectedWeekdays] = useState<
+    number[]
+  >(DEFAULT_MANUAL_WEEKDAYS[3]);
+  const [manualDays, setManualDays] = useState<ManualBuilderDay[]>(() =>
+    buildManualDays(3),
+  );
+  const [manualEditingDayIndex, setManualEditingDayIndex] = useState<
+    number | null
+  >(null);
 
   // Build per-day schedule info for the calendar
   const schedulesByDay = (() => {
     const map = new Map<number, CalendarDayInfo[]>();
     try {
-      for (const s of (aiSchedules || [])) {
+      for (const s of aiSchedules || []) {
         const d = parseApiDateOnly(s.date);
         if (isNaN(d.getTime())) continue;
-        if (d.getFullYear() !== calendarMonth.getFullYear() || d.getMonth() !== calendarMonth.getMonth()) continue;
+        if (
+          d.getFullYear() !== calendarMonth.getFullYear() ||
+          d.getMonth() !== calendarMonth.getMonth()
+        )
+          continue;
         const day = d.getDate();
-        const rawTitle = s.programDay?.title || '';
-        const dayTitle = rawTitle || `Buổi tập ${s.programDay?.dayNumber ?? ''}`.trim() || 'Buổi tập';
+        const rawTitle = s.programDay?.title || "";
+        const dayTitle =
+          rawTitle ||
+          `Buổi tập ${s.programDay?.dayNumber ?? ""}`.trim() ||
+          "Buổi tập";
         const exerciseCount = s.programDay?.exercises?.length ?? 0;
         const list = map.get(day) ?? [];
         list.push({
@@ -624,19 +806,25 @@ export function WorkoutLogPage() {
         });
         map.set(day, list);
       }
-    } catch { /* keep empty map */ }
+    } catch {
+      /* keep empty map */
+    }
     return map;
   })();
 
   // Fallback flat markers for backward compat
-  const calendarMarkers = Array.from(schedulesByDay.keys()).sort((a, b) => a - b);
+  const calendarMarkers = Array.from(schedulesByDay.keys()).sort(
+    (a, b) => a - b,
+  );
 
   // Log modal
   const [showLogModal, setShowLogModal] = useState(false);
   const [logMetric, setLogMetric] = useState<MetricKey>("weight");
   const [logValue, setLogValue] = useState("");
   const [isSavingMetric, setIsSavingMetric] = useState(false);
-  const [activeCharts, setActiveCharts] = useState<Set<MetricKey>>(new Set<MetricKey>(["weight"]));
+  const [activeCharts, setActiveCharts] = useState<Set<MetricKey>>(
+    new Set<MetricKey>(["weight"]),
+  );
 
   // Edit mode
   const [editMode, setEditMode] = useState(false);
@@ -652,43 +840,63 @@ export function WorkoutLogPage() {
     setAiSchedules(Array.isArray(schedules) ? schedules : []);
   }, [calendarMonth]);
 
-  const findScheduleForDate = useCallback((date: Date) => {
-    return aiSchedules.find((schedule) => isSameCalendarDay(parseApiDateOnly(schedule.date), date)) || null;
-  }, [aiSchedules]);
+  const findScheduleForDate = useCallback(
+    (date: Date) => {
+      return (
+        aiSchedules.find((schedule) =>
+          isSameCalendarDay(parseApiDateOnly(schedule.date), date),
+        ) || null
+      );
+    },
+    [aiSchedules],
+  );
 
   const selectedSchedule = useCallback(() => {
     if (selectedScheduleId) {
-      const byId = aiSchedules.find((schedule) => schedule.id === selectedScheduleId);
+      const byId = aiSchedules.find(
+        (schedule) => schedule.id === selectedScheduleId,
+      );
       if (byId) return byId;
     }
     return findScheduleForDate(selectedDate);
   }, [aiSchedules, findScheduleForDate, selectedDate, selectedScheduleId]);
 
-  const applyScheduleProgress = useCallback((scheduleId: string, result: any) => {
-    setAiSchedules((previous) => previous.map((schedule) => {
-      if (schedule.id !== scheduleId) return schedule;
-      return {
-        ...schedule,
-        workoutId: result.workoutId ?? schedule.workoutId,
-        workout: result.workoutId ? { ...(schedule.workout || {}), id: result.workoutId } : schedule.workout,
-        status: result.dayStatus === "completed" ? "COMPLETED" : "IN_PROGRESS",
-        progressPercent: result.progressPercent,
-        completedExercises: result.completedExercises,
-        totalExercises: result.totalExercises,
-        completedSets: result.completedSets,
-        totalSets: result.totalSets,
-        completedAt: result.completedAt ?? schedule.completedAt,
-      };
-    }));
-  }, []);
+  const applyScheduleProgress = useCallback(
+    (scheduleId: string, result: any) => {
+      setAiSchedules((previous) =>
+        previous.map((schedule) => {
+          if (schedule.id !== scheduleId) return schedule;
+          return {
+            ...schedule,
+            workoutId: result.workoutId ?? schedule.workoutId,
+            workout: result.workoutId
+              ? { ...(schedule.workout || {}), id: result.workoutId }
+              : schedule.workout,
+            status:
+              result.dayStatus === "completed" ? "COMPLETED" : "IN_PROGRESS",
+            progressPercent: result.progressPercent,
+            completedExercises: result.completedExercises,
+            totalExercises: result.totalExercises,
+            completedSets: result.completedSets,
+            totalSets: result.totalSets,
+            completedAt: result.completedAt ?? schedule.completedAt,
+          };
+        }),
+      );
+    },
+    [],
+  );
 
-  const openScheduleModal = useCallback((date = selectedDate) => {
-    setScheduleDateInput(toDateInputValue(date));
-    const firstDay = currentProgram?.days?.[0];
-    setScheduleProgramDayId((prev) => prev || firstDay?.id || "");
-    setScheduleNotes("");
-    setShowCalendarAdd(true);
-  }, [currentProgram, selectedDate]);
+  const openScheduleModal = useCallback(
+    (date = selectedDate) => {
+      setScheduleDateInput(toDateInputValue(date));
+      const firstDay = currentProgram?.days?.[0];
+      setScheduleProgramDayId((prev) => prev || firstDay?.id || "");
+      setScheduleNotes("");
+      setShowCalendarAdd(true);
+    },
+    [currentProgram, selectedDate],
+  );
 
   const handleCreateSchedule = async () => {
     if (!currentProgram?.days?.length) {
@@ -714,11 +922,17 @@ export function WorkoutLogPage() {
       await refetchProgramAndSchedules();
       setSelectedDate(new Date(`${scheduleDateInput}T00:00:00`));
       setShowCalendarAdd(false);
-      toast.success(result?.alreadyExists ? "Ngày này đã có lịch tập." : "Đã thêm lịch tập.");
+      toast.success(
+        result?.alreadyExists
+          ? "Ngày này đã có lịch tập."
+          : "Đã thêm lịch tập.",
+      );
     } catch (error: any) {
-      const message = error?.response?.status === 409
-        ? "Ngày này đã có lịch tập."
-        : error?.response?.data?.error || "Không thể thêm lịch tập. Vui lòng thử lại.";
+      const message =
+        error?.response?.status === 409
+          ? "Ngày này đã có lịch tập."
+          : error?.response?.data?.error ||
+            "Không thể thêm lịch tập. Vui lòng thử lại.";
       toast.error(message);
     } finally {
       setSavingSchedule(false);
@@ -731,7 +945,11 @@ export function WorkoutLogPage() {
       toast.error("Vui lòng nhập tên chương trình");
       return;
     }
-    if (!Number.isFinite(durationWeeks) || durationWeeks < 1 || durationWeeks > 52) {
+    if (
+      !Number.isFinite(durationWeeks) ||
+      durationWeeks < 1 ||
+      durationWeeks > 52
+    ) {
       toast.error("Số tuần phải trong khoảng 1-52");
       return;
     }
@@ -770,9 +988,13 @@ export function WorkoutLogPage() {
       });
       await refetchProgramAndSchedules();
       setShowManualBuilder(false);
-      toast.success(`Đã tạo chương trình thủ công với ${result?.createdScheduleCount ?? 0} lịch tập`);
+      toast.success(
+        `Đã tạo chương trình thủ công với ${result?.createdScheduleCount ?? 0} lịch tập`,
+      );
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || "Không thể tạo chương trình thủ công");
+      toast.error(
+        error?.response?.data?.error || "Không thể tạo chương trình thủ công",
+      );
     } finally {
       setSavingManualProgram(false);
     }
@@ -818,18 +1040,30 @@ export function WorkoutLogPage() {
           };
 
           if (!payload.exerciseId) {
-            throw new Error(`Exercise "${ex.name}" does not have a database ID.`);
+            throw new Error(
+              `Exercise "${ex.name}" does not have a database ID.`,
+            );
           }
 
           if (ex.programExerciseId && existingIds.has(ex.programExerciseId)) {
-            await workoutService.updateProgramExercise(ex.programExerciseId, payload);
+            await workoutService.updateProgramExercise(
+              ex.programExerciseId,
+              payload,
+            );
           } else {
-            await workoutService.addProgramExercise(selectedProgramDayId, payload);
+            await workoutService.addProgramExercise(
+              selectedProgramDayId,
+              payload,
+            );
           }
         }
 
-        const editedIds = new Set(editExercises.map((ex) => ex.programExerciseId).filter(Boolean));
-        const selectedDayModel = (currentProgram.days || []).find((day: any) => day.id === selectedProgramDayId);
+        const editedIds = new Set(
+          editExercises.map((ex) => ex.programExerciseId).filter(Boolean),
+        );
+        const selectedDayModel = (currentProgram.days || []).find(
+          (day: any) => day.id === selectedProgramDayId,
+        );
         for (const existing of selectedDayModel?.exercises || []) {
           if (!editedIds.has(existing.id)) {
             await workoutService.deleteProgramExercise(existing.id);
@@ -850,8 +1084,10 @@ export function WorkoutLogPage() {
           // Ensure we have a valid UUID for exerciseId
           // If it's a seed ID or missing, we need to skip it or handle it
           const exerciseId = ex.dbId;
-          if (!exerciseId || exerciseId.startsWith('seed')) {
-             throw new Error(`Exercise "${ex.name}" does not have a valid database ID. Please remove and re-add it from the search list.`);
+          if (!exerciseId || exerciseId.startsWith("seed")) {
+            throw new Error(
+              `Exercise "${ex.name}" does not have a valid database ID. Please remove and re-add it from the search list.`,
+            );
           }
           return {
             exerciseId: exerciseId,
@@ -859,7 +1095,7 @@ export function WorkoutLogPage() {
             reps: 10,
             weight: 0,
           };
-        })
+        }),
       };
 
       if (currentWorkoutId) {
@@ -870,7 +1106,21 @@ export function WorkoutLogPage() {
           setCurrentWorkoutId(res.id);
           // Update cache with the new workout
           const dStr = saveDate.toDateString();
-          setWorkoutCache({ ...workoutCache, [dStr]: { ...res, exercises: editExercises.map(e => ({ ...e, exercise: { exerciseName: e.name, videoUrl: e.img, instructions: e.description, muscleGroupsActivated: e.muscles } })) } });
+          setWorkoutCache({
+            ...workoutCache,
+            [dStr]: {
+              ...res,
+              exercises: editExercises.map((e) => ({
+                ...e,
+                exercise: {
+                  exerciseName: e.name,
+                  videoUrl: e.img,
+                  instructions: e.description,
+                  muscleGroupsActivated: e.muscles,
+                },
+              })),
+            },
+          });
         }
       }
 
@@ -897,10 +1147,16 @@ export function WorkoutLogPage() {
 
   // Active workout state
   const [activeExIdx, setActiveExIdx] = useState(0);
-  const [completedExercises, setCompletedExercises] = useState<Set<number>>(new Set());
-  const [activeExerciseLogs, setActiveExerciseLogs] = useState<Record<number, ActiveExerciseLog>>({});
+  const [completedExercises, setCompletedExercises] = useState<Set<number>>(
+    new Set(),
+  );
+  const [activeExerciseLogs, setActiveExerciseLogs] = useState<
+    Record<number, ActiveExerciseLog>
+  >({});
   const [isCompletingWorkout, setIsCompletingWorkout] = useState(false);
-  const [showExerciseDetail, setShowExerciseDetail] = useState<any | null>(null);
+  const [showExerciseDetail, setShowExerciseDetail] = useState<any | null>(
+    null,
+  );
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [restTimerRunning, setRestTimerRunning] = useState(false);
@@ -921,8 +1177,12 @@ export function WorkoutLogPage() {
   const [pickerMuscleGroup, setPickerMuscleGroup] = useState("");
   const [pickerEquipment, setPickerEquipment] = useState("");
   const [pickerActivityType, setPickerActivityType] = useState("");
-  const [pickerSort, setPickerSort] = useState<"name" | "bodyPart" | "equipment">("bodyPart");
-  const [replaceExerciseIndex, setReplaceExerciseIndex] = useState<number | null>(null);
+  const [pickerSort, setPickerSort] = useState<
+    "name" | "bodyPart" | "equipment"
+  >("bodyPart");
+  const [replaceExerciseIndex, setReplaceExerciseIndex] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedDbSearch(dbSearch.trim()), 300);
@@ -931,7 +1191,8 @@ export function WorkoutLogPage() {
 
   useEffect(() => {
     if (!showAddExercise) return;
-    workoutService.getExerciseFilterOptions()
+    workoutService
+      .getExerciseFilterOptions()
       .then(setExerciseOptions)
       .catch(() => setExerciseOptions({}));
   }, [showAddExercise]);
@@ -963,34 +1224,50 @@ export function WorkoutLogPage() {
     setManualDays((previous) => buildManualDays(nextDaysPerWeek, previous));
   }, []);
 
-  const toggleManualWeekday = useCallback((weekday: number) => {
-    setManualSelectedWeekdays((previous) => {
-      if (previous.includes(weekday)) {
-        return previous.filter((item) => item !== weekday);
-      }
-      if (previous.length >= manualDaysPerWeek) {
-        toast.error(`Chỉ chọn ${manualDaysPerWeek} ngày tập trong tuần`);
-        return previous;
-      }
-      return MANUAL_WEEKDAYS.map((option) => option.value).filter((value) => [...previous, weekday].includes(value));
-    });
-  }, [manualDaysPerWeek]);
+  const toggleManualWeekday = useCallback(
+    (weekday: number) => {
+      setManualSelectedWeekdays((previous) => {
+        if (previous.includes(weekday)) {
+          return previous.filter((item) => item !== weekday);
+        }
+        if (previous.length >= manualDaysPerWeek) {
+          toast.error(`Chỉ chọn ${manualDaysPerWeek} ngày tập trong tuần`);
+          return previous;
+        }
+        return MANUAL_WEEKDAYS.map((option) => option.value).filter((value) =>
+          [...previous, weekday].includes(value),
+        );
+      });
+    },
+    [manualDaysPerWeek],
+  );
 
   const preselectExerciseFilter = useCallback((exercise: any) => {
     setDbSearch("");
     setPickerEquipment("");
     setPickerActivityType("");
-    const muscles = Array.isArray(exercise?.muscles) ? exercise.muscles.map((m: string) => m.toLowerCase()) : [];
+    const muscles = Array.isArray(exercise?.muscles)
+      ? exercise.muscles.map((m: string) => m.toLowerCase())
+      : [];
     if (exercise?.bodyPart === "CORE" || muscles.includes("abdominals")) {
       setPickerBodyPart("CORE");
       setPickerMuscleGroup("");
-    } else if (exercise?.bodyPart === "LOWER_BODY" || muscles.some((m: string) => ["quadriceps", "hamstrings", "glutes", "calves"].includes(m))) {
+    } else if (
+      exercise?.bodyPart === "LOWER_BODY" ||
+      muscles.some((m: string) =>
+        ["quadriceps", "hamstrings", "glutes", "calves"].includes(m),
+      )
+    ) {
       setPickerBodyPart("LOWER_BODY");
       setPickerMuscleGroup("");
     } else if (muscles.includes("chest")) {
       setPickerBodyPart("");
       setPickerMuscleGroup("chest");
-    } else if (muscles.some((m: string) => ["lats", "middle back", "lower back", "traps"].includes(m))) {
+    } else if (
+      muscles.some((m: string) =>
+        ["lats", "middle back", "lower back", "traps"].includes(m),
+      )
+    ) {
       setPickerBodyPart("");
       setPickerMuscleGroup("back");
     } else if (muscles.includes("shoulders")) {
@@ -1009,16 +1286,25 @@ export function WorkoutLogPage() {
   }, []);
 
   const exercisesQuery = useQuery({
-    queryKey: ["exercises", debouncedDbSearch, pickerBodyPart, pickerMuscleGroup, pickerEquipment, pickerActivityType, 1],
-    queryFn: () => workoutService.getExercises({
-      search: debouncedDbSearch || undefined,
-      bodyPart: pickerBodyPart || undefined,
-      muscleGroup: pickerMuscleGroup || undefined,
-      equipment: pickerEquipment || undefined,
-      activityType: pickerActivityType || undefined,
-      page: 1,
-      limit: 60,
-    }),
+    queryKey: [
+      "exercises",
+      debouncedDbSearch,
+      pickerBodyPart,
+      pickerMuscleGroup,
+      pickerEquipment,
+      pickerActivityType,
+      1,
+    ],
+    queryFn: () =>
+      workoutService.getExercises({
+        search: debouncedDbSearch || undefined,
+        bodyPart: pickerBodyPart || undefined,
+        muscleGroup: pickerMuscleGroup || undefined,
+        equipment: pickerEquipment || undefined,
+        activityType: pickerActivityType || undefined,
+        page: 1,
+        limit: 60,
+      }),
     enabled: showAddExercise,
     staleTime: 30_000,
   });
@@ -1031,25 +1317,43 @@ export function WorkoutLogPage() {
       return;
     }
     setDbError(null);
-    setDbExercises(Array.isArray(exercisesQuery.data) ? exercisesQuery.data : []);
+    setDbExercises(
+      Array.isArray(exercisesQuery.data) ? exercisesQuery.data : [],
+    );
   }, [exercisesQuery.data, exercisesQuery.isError, exercisesQuery.isFetching]);
 
   const sortedDbExercises = [...dbExercises].sort((a, b) => {
     if (pickerSort === "bodyPart") {
-      return String(a.bodyPart || "").localeCompare(String(b.bodyPart || "")) || String(a.exerciseName || "").localeCompare(String(b.exerciseName || ""));
+      return (
+        String(a.bodyPart || "").localeCompare(String(b.bodyPart || "")) ||
+        String(a.exerciseName || "").localeCompare(String(b.exerciseName || ""))
+      );
     }
     if (pickerSort === "equipment") {
-      return String(a.typeOfEquipment || "").localeCompare(String(b.typeOfEquipment || "")) || String(a.exerciseName || "").localeCompare(String(b.exerciseName || ""));
+      return (
+        String(a.typeOfEquipment || "").localeCompare(
+          String(b.typeOfEquipment || ""),
+        ) ||
+        String(a.exerciseName || "").localeCompare(String(b.exerciseName || ""))
+      );
     }
-    return String(a.exerciseName || "").localeCompare(String(b.exerciseName || ""));
+    return String(a.exerciseName || "").localeCompare(
+      String(b.exerciseName || ""),
+    );
   });
 
-  const groupedDbExercises = sortedDbExercises.reduce((groups: Record<string, any[]>, exercise) => {
-    const key = pickerSort === "equipment" ? groupTitle(exercise.typeOfEquipment) : groupTitle(exercise.bodyPart);
-    groups[key] = groups[key] || [];
-    groups[key].push(exercise);
-    return groups;
-  }, {});
+  const groupedDbExercises = sortedDbExercises.reduce(
+    (groups: Record<string, any[]>, exercise) => {
+      const key =
+        pickerSort === "equipment"
+          ? groupTitle(exercise.typeOfEquipment)
+          : groupTitle(exercise.bodyPart);
+      groups[key] = groups[key] || [];
+      groups[key].push(exercise);
+      return groups;
+    },
+    {},
+  );
 
   const handleAddFromDB = async (dbEx: any) => {
     const newEx = {
@@ -1063,7 +1367,9 @@ export function WorkoutLogPage() {
       notes: "",
       img: formatVideoUrlToImg(dbEx.videoUrl, 0),
       img2: formatVideoUrlToImg(dbEx.videoUrl, 1),
-      type: (dbEx.typeOfActivity === "CARDIO" ? "cardio" : "strength") as "cardio"|"strength",
+      type: (dbEx.typeOfActivity === "CARDIO" ? "cardio" : "strength") as
+        | "cardio"
+        | "strength",
       bodyPart: dbEx.bodyPart,
       equipment: dbEx.typeOfEquipment,
       activityType: dbEx.typeOfActivity,
@@ -1073,22 +1379,24 @@ export function WorkoutLogPage() {
       tips: [],
     };
     if (showManualBuilder && manualEditingDayIndex !== null) {
-      setManualDays((previous) => previous.map((day, index) => {
-        if (index !== manualEditingDayIndex) return day;
-        return {
-          ...day,
-          exercises: [
-            ...day.exercises,
-            {
-              exerciseId: dbEx.id,
-              exerciseName: dbEx.exerciseName,
-              sets: 3,
-              reps: 10,
-              restSeconds: 90,
-            },
-          ],
-        };
-      }));
+      setManualDays((previous) =>
+        previous.map((day, index) => {
+          if (index !== manualEditingDayIndex) return day;
+          return {
+            ...day,
+            exercises: [
+              ...day.exercises,
+              {
+                exerciseId: dbEx.id,
+                exerciseName: dbEx.exerciseName,
+                sets: 3,
+                reps: 10,
+                restSeconds: 90,
+              },
+            ],
+          };
+        }),
+      );
       setShowAddExercise(false);
       return;
     }
@@ -1098,8 +1406,15 @@ export function WorkoutLogPage() {
       if (existing?.programExerciseId) {
         setDbLoading(true);
         try {
-          await workoutService.updateProgramExercise(existing.programExerciseId, { exerciseId: dbEx.id });
-          next[replaceExerciseIndex] = { ...newEx, id: existing.id, programExerciseId: existing.programExerciseId };
+          await workoutService.updateProgramExercise(
+            existing.programExerciseId,
+            { exerciseId: dbEx.id },
+          );
+          next[replaceExerciseIndex] = {
+            ...newEx,
+            id: existing.id,
+            programExerciseId: existing.programExerciseId,
+          };
           setEditExercises(next);
           setDayExercises(next);
           await refetchProgramAndSchedules();
@@ -1113,7 +1428,11 @@ export function WorkoutLogPage() {
           setDbLoading(false);
         }
       } else {
-        next[replaceExerciseIndex] = { ...newEx, id: existing?.id, programExerciseId: existing?.programExerciseId };
+        next[replaceExerciseIndex] = {
+          ...newEx,
+          id: existing?.id,
+          programExerciseId: existing?.programExerciseId,
+        };
         setEditExercises(next);
       }
       setReplaceExerciseIndex(null);
@@ -1130,7 +1449,9 @@ export function WorkoutLogPage() {
     } else if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [timerRunning]);
 
   // Rest timer effect
@@ -1141,29 +1462,62 @@ export function WorkoutLogPage() {
       if (restRef.current) clearInterval(restRef.current);
       if (restTimerRunning && restSeconds <= 0) setRestTimerRunning(false);
     }
-    return () => { if (restRef.current) clearInterval(restRef.current); };
+    return () => {
+      if (restRef.current) clearInterval(restRef.current);
+    };
   }, [restTimerRunning, restSeconds]);
 
-  const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+  const formatTime = (s: number) =>
+    `${Math.floor(s / 60)
+      .toString()
+      .padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   const fireConfetti = useCallback(() => {
     const duration = 4000;
     const end = Date.now() + duration;
-    const colors = ["#10b981", "#22c55e", "#a3e635", "#34d399", "#6ee7b7", "#ffffff"];
+    const colors = [
+      "#10b981",
+      "#22c55e",
+      "#a3e635",
+      "#34d399",
+      "#6ee7b7",
+      "#ffffff",
+    ];
     const frame = () => {
-      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors });
-      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors });
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.7 },
+        colors,
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.7 },
+        colors,
+      });
       if (Date.now() < end) requestAnimationFrame(frame);
     };
     // Big burst first
-    confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors, scalar: 1.2 });
+    confetti({
+      particleCount: 150,
+      spread: 100,
+      origin: { y: 0.6 },
+      colors,
+      scalar: 1.2,
+    });
     frame();
   }, []);
 
   const persistCompletedWorkout = async () => {
     const scheduleForSave = selectedSchedule();
-    const saveDate = scheduleForSave?.date ? parseApiDateOnly(scheduleForSave.date) : selectedDate;
-    const scheduleWorkoutId = scheduleForSave?.workoutId || scheduleForSave?.workout?.id || null;
+    const saveDate = scheduleForSave?.date
+      ? parseApiDateOnly(scheduleForSave.date)
+      : selectedDate;
+    const scheduleWorkoutId =
+      scheduleForSave?.workoutId || scheduleForSave?.workout?.id || null;
     const scheduleId = selectedScheduleId || scheduleForSave?.id || undefined;
     const payload = {
       scheduleId,
@@ -1177,7 +1531,10 @@ export function WorkoutLogPage() {
           exerciseId: exercise.dbId,
           sets: Number(exercise.sets) || 1,
           reps: Number(exercise.reps) || undefined,
-          duration: exercise.type === "cardio" ? Number(exercise.duration) || undefined : undefined,
+          duration:
+            exercise.type === "cardio"
+              ? Number(exercise.duration) || undefined
+              : undefined,
           weight: Number.isFinite(weight) ? weight : undefined,
           notes: log?.noWeight ? "Không dùng tạ" : undefined,
         };
@@ -1199,7 +1556,9 @@ export function WorkoutLogPage() {
     if (needsWeight && !currentLog?.noWeight) {
       const weight = Number(currentLog?.weightKg);
       if (!Number.isFinite(weight) || weight <= 0) {
-        toast.error("Vui lòng nhập tổng số kg tạ cho bài này hoặc chọn Không dùng tạ.");
+        toast.error(
+          "Vui lòng nhập tổng số kg tạ cho bài này hoặc chọn Không dùng tạ.",
+        );
         return;
       }
     }
@@ -1222,7 +1581,10 @@ export function WorkoutLogPage() {
         newCompleted.add(activeExIdx);
         setCompletedExercises(newCompleted);
 
-        if (result.progressPercent >= 100 || result.completedExercises >= result.totalExercises) {
+        if (
+          result.progressPercent >= 100 ||
+          result.completedExercises >= result.totalExercises
+        ) {
           setTimerRunning(false);
           setTimerSeconds(0);
           setShowCompletion(true);
@@ -1243,7 +1605,10 @@ export function WorkoutLogPage() {
         }
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || "Khong the luu trang thai hoan thanh bai tap.");
+      toast.error(
+        error?.response?.data?.error ||
+          "Khong the luu trang thai hoan thanh bai tap.",
+      );
       setCompletedExercises(previousCompleted);
       return;
     } finally {
@@ -1277,13 +1642,17 @@ export function WorkoutLogPage() {
       .sort((a: any, b: any) => {
         const cmp = inBodyDateKey(a).localeCompare(inBodyDateKey(b));
         if (cmp !== 0) return cmp;
-        return Date.parse(String(a?.createdAt ?? 0)) - Date.parse(String(b?.createdAt ?? 0));
+        return (
+          Date.parse(String(a?.createdAt ?? 0)) -
+          Date.parse(String(b?.createdAt ?? 0))
+        );
       })
       .slice(-8);
   }, [inbodyHistory]);
 
   const metricOptions = useMemo<BodyMetricOption[]>(() => {
-    const latestMetricEntry = bodyMetricHistoryAsc[bodyMetricHistoryAsc.length - 1] ?? latestInBody;
+    const latestMetricEntry =
+      bodyMetricHistoryAsc[bodyMetricHistoryAsc.length - 1] ?? latestInBody;
 
     return METRIC_BASE_OPTIONS.map((base) => {
       const data = bodyMetricHistoryAsc
@@ -1294,7 +1663,10 @@ export function WorkoutLogPage() {
           const measuredAt = parseInBodyMeasurementDate(entry);
           const week = Number.isNaN(measuredAt.getTime())
             ? `L${index + 1}`
-            : measuredAt.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+            : measuredAt.toLocaleDateString("vi-VN", {
+                day: "2-digit",
+                month: "2-digit",
+              });
           const fullDate = Number.isNaN(measuredAt.getTime())
             ? "Không rõ ngày đo"
             : measuredAt.toLocaleDateString("vi-VN");
@@ -1309,7 +1681,10 @@ export function WorkoutLogPage() {
       return {
         ...base,
         current: formatMetricValue(currentValue, base.unit),
-        target: targetValue === null ? undefined : formatMetricValue(targetValue, base.unit),
+        target:
+          targetValue === null
+            ? undefined
+            : formatMetricValue(targetValue, base.unit),
         data,
         domain: metricDomain(data, base.dataKey),
         hasData: data.length > 0,
@@ -1317,12 +1692,15 @@ export function WorkoutLogPage() {
     });
   }, [bodyMetricHistoryAsc, latestInBody, userProfile]);
 
-  const selectedLogMetric = metricOptions.find((m) => m.key === logMetric) ?? metricOptions[0];
+  const selectedLogMetric =
+    metricOptions.find((m) => m.key === logMetric) ?? metricOptions[0];
 
   const handleSaveMetricLog = async () => {
     if (!selectedLogMetric) return;
     if (!selectedLogMetric.canPersist) {
-      toast.warning("Chỉ số nước cơ thể chưa có cột lưu trong InBody. Hãy nhập qua phiếu InBody khi backend hỗ trợ.");
+      toast.warning(
+        "Chỉ số nước cơ thể chưa có cột lưu trong InBody. Hãy nhập qua phiếu InBody khi backend hỗ trợ.",
+      );
       return;
     }
 
@@ -1341,7 +1719,8 @@ export function WorkoutLogPage() {
     if (logMetric === "weight") {
       weight = value;
       if (bodyFatPct !== null) bodyFat = Math.round(weight * bodyFatPct) / 100;
-      else if (bodyFat !== null && weight > 0) bodyFatPct = Math.round((bodyFat / weight) * 1000) / 10;
+      else if (bodyFat !== null && weight > 0)
+        bodyFatPct = Math.round((bodyFat / weight) * 1000) / 10;
     } else if (logMetric === "bodyfat") {
       bodyFatPct = value;
       bodyFat = weight !== null ? Math.round(weight * value) / 100 : null;
@@ -1350,12 +1729,22 @@ export function WorkoutLogPage() {
     }
 
     if (weight === null || muscleMass === null || bodyFat === null) {
-      toast.error("Cần có đủ cân nặng, cơ bắp và mỡ cơ thể để ghi InBody. Hãy nhập InBody đầy đủ trước.");
+      toast.error(
+        "Cần có đủ cân nặng, cơ bắp và mỡ cơ thể để ghi InBody. Hãy nhập InBody đầy đủ trước.",
+      );
       return;
     }
 
-    const height = metricNumber(source.height, source.heightCm, userProfile?.heightCm, userProfile?.height);
-    const bmi = height && height > 0 ? Math.round((weight / ((height / 100) ** 2)) * 10) / 10 : undefined;
+    const height = metricNumber(
+      source.height,
+      source.heightCm,
+      userProfile?.heightCm,
+      userProfile?.height,
+    );
+    const bmi =
+      height && height > 0
+        ? Math.round((weight / (height / 100) ** 2) * 10) / 10
+        : undefined;
 
     setIsSavingMetric(true);
     try {
@@ -1366,7 +1755,8 @@ export function WorkoutLogPage() {
         bmi,
         muscleMass: Math.round(muscleMass * 10) / 10,
         bodyFat: Math.round(bodyFat * 10) / 10,
-        bodyFatPct: bodyFatPct === null ? undefined : Math.round(bodyFatPct * 10) / 10,
+        bodyFatPct:
+          bodyFatPct === null ? undefined : Math.round(bodyFatPct * 10) / 10,
         status: "manual",
       });
       const refreshed = await inbodyService.getHistory();
@@ -1378,7 +1768,9 @@ export function WorkoutLogPage() {
       setLogValue("");
       toast.success("Đã lưu chỉ số cơ thể.");
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || "Không thể lưu chỉ số cơ thể.");
+      toast.error(
+        error?.response?.data?.error || "Không thể lưu chỉ số cơ thể.",
+      );
     } finally {
       setIsSavingMetric(false);
     }
@@ -1386,7 +1778,9 @@ export function WorkoutLogPage() {
 
   const profileGoal = userProfile?.goal;
   const programGoal = currentProgram?.goal;
-  const hasGoalMismatch = Boolean(profileGoal && programGoal && profileGoal !== programGoal);
+  const hasGoalMismatch = Boolean(
+    profileGoal && programGoal && profileGoal !== programGoal,
+  );
 
   return (
     <div className="p-5 md:p-8 space-y-7 max-w-[1400px] mx-auto">
@@ -1402,22 +1796,39 @@ export function WorkoutLogPage() {
                 <Dumbbell className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h1 className="text-2xl text-white tracking-tight">Workout Log</h1>
-                <p className="text-zinc-500 text-sm">Lên kế hoạch và theo dõi quá trình tập luyện</p>
+                <h1 className="text-2xl text-white tracking-tight">
+                  Workout Log
+                </h1>
+                <p className="text-zinc-500 text-sm">
+                  Lên kế hoạch và theo dõi quá trình tập luyện
+                </p>
               </div>
             </div>
           </div>
 
           <div className="hidden lg:flex items-center gap-3">
             {[
-              { label: "Kế hoạch", value: currentProgram?.name || "Chưa có", icon: Zap },
-              { label: "Tuần này", value: `${workoutStats?.weeklyWorkouts || 0} / ${currentProgram?.daysPerWeek || 0} buổi`, icon: Calendar },
+              {
+                label: "Kế hoạch",
+                value: currentProgram?.name || "Chưa có",
+                icon: Zap,
+              },
+              {
+                label: "Tuần này",
+                value: `${workoutStats?.weeklyWorkouts || 0} / ${currentProgram?.daysPerWeek || 0} buổi`,
+                icon: Calendar,
+              },
               { label: "Streak", value: "0 ngày", icon: TrendingUp },
             ].map((s) => (
-              <div key={s.label} className="px-4 py-2.5 rounded-xl bg-zinc-900/70 border border-zinc-800/50 min-w-[130px]">
+              <div
+                key={s.label}
+                className="px-4 py-2.5 rounded-xl bg-zinc-900/70 border border-zinc-800/50 min-w-[130px]"
+              >
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <s.icon className="w-3 h-3 text-emerald-500/60" />
-                  <span className="text-[10px] text-zinc-600 uppercase tracking-wider">{s.label}</span>
+                  <span className="text-[10px] text-zinc-600 uppercase tracking-wider">
+                    {s.label}
+                  </span>
                 </div>
                 <p className="text-sm text-zinc-300">{s.value}</p>
               </div>
@@ -1431,7 +1842,10 @@ export function WorkoutLogPage() {
         {(["overview", "plan"] as Tab[]).map((t) => (
           <button
             key={t}
-            onClick={() => { setTab(t); setPlanView("main"); }}
+            onClick={() => {
+              setTab(t);
+              setPlanView("main");
+            }}
             className={`px-8 py-2.5 rounded-xl text-sm transition-all ${
               tab === t
                 ? "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]"
@@ -1449,15 +1863,22 @@ export function WorkoutLogPage() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-amber-200">Lịch tập chưa đồng bộ với mục tiêu mới</p>
+              <p className="text-sm font-semibold text-amber-200">
+                Lịch tập chưa đồng bộ với mục tiêu mới
+              </p>
               <p className="text-xs text-amber-100/70 mt-1">
-                Mục tiêu hồ sơ của bạn đã đổi sang {goalLabel(profileGoal)}, nhưng lịch tập hiện tại vẫn là {goalLabel(programGoal)}.
+                Mục tiêu hồ sơ của bạn đã đổi sang {goalLabel(profileGoal)},
+                nhưng lịch tập hiện tại vẫn là {goalLabel(programGoal)}.
               </p>
             </div>
           </div>
           <div className="flex gap-2 shrink-0">
             <button
-              onClick={() => navigate(`/client/plans?goal=${encodeURIComponent(profileGoal || "")}`)}
+              onClick={() =>
+                navigate(
+                  `/client/plans?goal=${encodeURIComponent(profileGoal || "")}`,
+                )
+              }
               className="px-3 py-2 rounded-xl bg-amber-400 text-black text-xs font-semibold hover:bg-amber-300 transition-colors"
             >
               Cập nhật lịch theo mục tiêu mới
@@ -1480,7 +1901,9 @@ export function WorkoutLogPage() {
                   <AlertCircle className="w-5 h-5 text-emerald-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm text-emerald-100/90">Đã đến lúc cập nhật chỉ số cơ thể</p>
+                  <p className="text-sm text-emerald-100/90">
+                    Đã đến lúc cập nhật chỉ số cơ thể
+                  </p>
                   <p className="text-xs text-emerald-500/40 mt-0.5">
                     {daysSinceInBody !== null
                       ? `Cập nhật ${daysSinceInBody} ngày trước · Nên quét InBody`
@@ -1500,7 +1923,11 @@ export function WorkoutLogPage() {
           {/* Hero + Upcoming */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 group relative rounded-2xl overflow-hidden border border-zinc-700/25 h-64">
-              <img src={heroImg} alt="Training" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+              <img
+                src={heroImg}
+                alt="Training"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+              />
               <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/25" />
               <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/20 via-transparent to-transparent" />
               <div className="absolute top-4 right-4 flex gap-2">
@@ -1512,25 +1939,43 @@ export function WorkoutLogPage() {
                 </span>
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-6">
-                <span className="text-[10px] text-emerald-400/60 uppercase tracking-[0.2em] mb-1.5 block">Chương trình hiện tại</span>
-                <h2 className="text-2xl text-white mb-2 tracking-tight">{currentProgram ? currentProgram.name : "Chưa có chương trình"}</h2>
+                <span className="text-[10px] text-emerald-400/60 uppercase tracking-[0.2em] mb-1.5 block">
+                  Chương trình hiện tại
+                </span>
+                <h2 className="text-2xl text-white mb-2 tracking-tight">
+                  {currentProgram
+                    ? currentProgram.name
+                    : "Chưa có chương trình"}
+                </h2>
                 {hasGoalMismatch && (
                   <div className="mb-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 inline-block">
                     <p className="text-[11px] text-amber-400 flex items-center gap-1.5">
                       <AlertCircle className="w-3 h-3" />
-                      Mục tiêu trong Hồ sơ ({goalLabel(userProfile.goal)}) khác với Chương trình hiện tại ({goalLabel(currentProgram.goal)})
+                      Mục tiêu trong Hồ sơ ({goalLabel(userProfile.goal)}) khác
+                      với Chương trình hiện tại (
+                      {goalLabel(currentProgram.goal)})
                     </p>
                   </div>
                 )}
                 {currentProgram && (
                   <div className="flex items-center gap-4 text-xs text-zinc-400">
-                    <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3 text-zinc-600" /> {currentProgram.durationWeeks || 4} tuần</span>
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="w-3 h-3 text-zinc-600" />{" "}
+                      {currentProgram.durationWeeks || 4} tuần
+                    </span>
                     <span className="text-zinc-700">·</span>
-                    <span>{currentProgram.daysPerWeek || workoutStats?.workoutsPerWeek || 3} buổi/tuần</span>
+                    <span>
+                      {currentProgram.daysPerWeek ||
+                        workoutStats?.workoutsPerWeek ||
+                        3}{" "}
+                      buổi/tuần
+                    </span>
                     <span className="text-zinc-700">·</span>
                     {currentProgram.sourceType === "AI_PLAN" && (
                       <>
-                        <span className="px-2 py-0.5 rounded-full border border-sky-500/25 bg-sky-500/10 text-sky-300">AI</span>
+                        <span className="px-2 py-0.5 rounded-full border border-sky-500/25 bg-sky-500/10 text-sky-300">
+                          AI
+                        </span>
                         <span className="text-zinc-700">·</span>
                       </>
                     )}
@@ -1540,25 +1985,36 @@ export function WorkoutLogPage() {
                         <span className="text-zinc-700">·</span>
                       </>
                     )}
-                    <span>Đã hoàn thành: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
+                    <span>
+                      Đã hoàn thành:{" "}
+                      <span className="text-emerald-400">
+                        {workoutStats?.totalWorkouts || 0}
+                      </span>
+                    </span>
                   </div>
                 )}
                 <div className="mt-3 h-1.5 bg-white/[0.06] rounded-full overflow-hidden max-w-sm">
                   <div
                     className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-1000"
-                    style={{ width: `${Math.min(100, ((workoutStats?.totalWorkouts || 0) / 36) * 100)}%` }}
+                    style={{
+                      width: `${Math.min(100, ((workoutStats?.totalWorkouts || 0) / 36) * 100)}%`,
+                    }}
                   />
                 </div>
               </div>
             </div>
 
-            <GlassPanel title="Buổi tập sắp tới" icon={<Dumbbell className="w-4 h-4 text-emerald-400" />}>
+            <GlassPanel
+              title="Buổi tập sắp tới"
+              icon={<Dumbbell className="w-4 h-4 text-emerald-400" />}
+            >
               <div className="space-y-2.5">
                 {aiSchedules.length > 0 ? (
                   aiSchedules.slice(0, 5).map((schedule) => {
                     const programDay = schedule.programDay;
-                    const programName = programDay?.program?.name || 'AI Plan';
-                    const dayTitle = programDay?.title || `Day ${programDay?.dayNumber || 1}`;
+                    const programName = programDay?.program?.name || "AI Plan";
+                    const dayTitle =
+                      programDay?.title || `Day ${programDay?.dayNumber || 1}`;
                     const exerciseCount = programDay?.exercises?.length || 0;
                     return (
                       <div
@@ -1570,9 +2026,14 @@ export function WorkoutLogPage() {
                             <Calendar className="w-3.5 h-3.5 text-emerald-400" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm text-zinc-200 truncate">{dayTitle}</p>
+                            <p className="text-sm text-zinc-200 truncate">
+                              {dayTitle}
+                            </p>
                             <p className="text-[11px] text-zinc-500 truncate">
-                              {new Date(schedule.date).toLocaleDateString('vi-VN')} · {exerciseCount} bài · {programName}
+                              {new Date(schedule.date).toLocaleDateString(
+                                "vi-VN",
+                              )}{" "}
+                              · {exerciseCount} bài · {programName}
                             </p>
                           </div>
                           <span className="text-[10px] px-2 py-1 rounded-full border border-emerald-500/20 text-emerald-300">
@@ -1584,7 +2045,11 @@ export function WorkoutLogPage() {
                               setSelectedDay(programDay?.dayNumber || 1);
                               setSelectedDate(new Date(schedule.date));
                               setSelectedScheduleId(schedule.id);
-                              setCurrentWorkoutId(schedule.workoutId || schedule.workout?.id || null);
+                              setCurrentWorkoutId(
+                                schedule.workoutId ||
+                                  schedule.workout?.id ||
+                                  null,
+                              );
                               setPlanView("dayDetail");
                             }}
                             className="text-[10px] px-2 py-1 rounded-full border border-zinc-700/50 text-zinc-300 hover:bg-zinc-800"
@@ -1593,7 +2058,12 @@ export function WorkoutLogPage() {
                           </button>
                           <button
                             onClick={async () => {
-                              if (!window.confirm("Xóa lịch tập này khỏi lịch? Workout đã hoàn thành sẽ không bị xóa.")) return;
+                              if (
+                                !window.confirm(
+                                  "Xóa lịch tập này khỏi lịch? Workout đã hoàn thành sẽ không bị xóa.",
+                                )
+                              )
+                                return;
                               await workoutService.deleteSchedule(schedule.id);
                               await refetchProgramAndSchedules();
                             }}
@@ -1607,9 +2077,11 @@ export function WorkoutLogPage() {
                   })
                 ) : (
                   <div className="rounded-xl border border-dashed border-zinc-700/30 bg-zinc-900/25 p-4 text-center">
-                    <p className="text-sm text-zinc-400">Bạn chưa có lịch tập sắp tới</p>
+                    <p className="text-sm text-zinc-400">
+                      Bạn chưa có lịch tập sắp tới
+                    </p>
                     <button
-                      onClick={() => navigate('/client/plans')}
+                      onClick={() => navigate("/client/plans")}
                       className="mt-3 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400 transition-colors"
                     >
                       Tạo bằng AI
@@ -1622,10 +2094,18 @@ export function WorkoutLogPage() {
 
           {/* Calendar + Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <button onClick={openManualBuilder} className="lg:col-span-2 justify-self-start px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15">
+            <button
+              onClick={openManualBuilder}
+              className="lg:col-span-2 justify-self-start px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15"
+            >
               Tạo thủ công
             </button>
-            <GlassPanel title="Lịch tập" icon={<Calendar className="w-4 h-4 text-emerald-400" />} actionLabel="Thêm" onAction={() => setShowCalendarAdd(true)}>
+            <GlassPanel
+              title="Lịch tập"
+              icon={<Calendar className="w-4 h-4 text-emerald-400" />}
+              actionLabel="Thêm"
+              onAction={() => setShowCalendarAdd(true)}
+            >
               <CalendarGrid
                 schedulesByDay={schedulesByDay}
                 markers={calendarMarkers}
@@ -1633,13 +2113,21 @@ export function WorkoutLogPage() {
                 onPrevMonth={handlePrevMonth}
                 onNextMonth={handleNextMonth}
                 onDayClick={(day) => {
-                  const clickedDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
+                  const clickedDate = new Date(
+                    calendarMonth.getFullYear(),
+                    calendarMonth.getMonth(),
+                    day,
+                  );
                   const dStr = clickedDate.toDateString();
                   setSelectedDate(clickedDate);
                   const scheduleForDay = findScheduleForDate(clickedDate);
                   setSelectedDay(scheduleForDay?.programDay?.dayNumber || day);
                   setSelectedScheduleId(scheduleForDay?.id || null);
-                  setCurrentWorkoutId(scheduleForDay?.workoutId || scheduleForDay?.workout?.id || null);
+                  setCurrentWorkoutId(
+                    scheduleForDay?.workoutId ||
+                      scheduleForDay?.workout?.id ||
+                      null,
+                  );
 
                   // Prefer the persisted schedule. Workout history can contain legacy
                   // date-shifted rows, so it is only a fallback for unscheduled days.
@@ -1654,10 +2142,12 @@ export function WorkoutLogPage() {
                       id: we.id,
                       dbId: we.exerciseId,
                       name: we.exercise.exerciseName,
-                      prescription: `${we.sets}×${we.reps || 10}${we.weight ? '×' + we.weight + ' kg' : ''}`,
+                      prescription: `${we.sets}×${we.reps || 10}${we.weight ? "×" + we.weight + " kg" : ""}`,
                       img: formatVideoUrlToImg(we.exercise.videoUrl, 0),
                       img2: formatVideoUrlToImg(we.exercise.videoUrl, 1),
-                      type: (we.exercise.typeOfActivity === "CARDIO" ? "cardio" : "strength") as "cardio" | "strength",
+                      type: (we.exercise.typeOfActivity === "CARDIO"
+                        ? "cardio"
+                        : "strength") as "cardio" | "strength",
                       description: we.exercise.instructions,
                       muscles: we.exercise.muscleGroupsActivated || [],
                       tips: [],
@@ -1672,7 +2162,12 @@ export function WorkoutLogPage() {
               />
             </GlassPanel>
 
-            <GlassPanel title="Chỉ số cơ thể" icon={<TrendingUp className="w-4 h-4 text-emerald-400" />} actionLabel="+ Log" onAction={() => setShowLogModal(true)}>
+            <GlassPanel
+              title="Chỉ số cơ thể"
+              icon={<TrendingUp className="w-4 h-4 text-emerald-400" />}
+              actionLabel="+ Log"
+              onAction={() => setShowLogModal(true)}
+            >
               {/* Active metric chips */}
               <div className="flex flex-wrap gap-2 mb-4">
                 {metricOptions.map((m) => {
@@ -1691,7 +2186,15 @@ export function WorkoutLogPage() {
                           ? "border-opacity-30 bg-opacity-10"
                           : "border-zinc-700/20 bg-zinc-800/20 text-zinc-600 hover:text-zinc-400"
                       }`}
-                      style={isActive ? { borderColor: m.color + "40", backgroundColor: m.color + "15", color: m.color } : {}}
+                      style={
+                        isActive
+                          ? {
+                              borderColor: m.color + "40",
+                              backgroundColor: m.color + "15",
+                              color: m.color,
+                            }
+                          : {}
+                      }
                     >
                       {m.label}
                     </button>
@@ -1706,23 +2209,73 @@ export function WorkoutLogPage() {
                 return (
                   <div key={chartKey} className="mb-4 last:mb-0">
                     <p className="text-xs text-zinc-500 mb-2">
-                      {m.label}: <span style={{ color: m.color }}>{m.current}</span>
-                      {m.target ? <> · Mục tiêu: <span className="text-zinc-400">{m.target}</span></> : null}
+                      {m.label}:{" "}
+                      <span style={{ color: m.color }}>{m.current}</span>
+                      {m.target ? (
+                        <>
+                          {" "}
+                          · Mục tiêu:{" "}
+                          <span className="text-zinc-400">{m.target}</span>
+                        </>
+                      ) : null}
                     </p>
                     <div className="h-40">
                       {m.hasData ? (
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={m.data as any}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#18181b" />
-                            <XAxis dataKey="week" tick={{ fontSize: 10, fill: "#3f3f46" }} axisLine={false} tickLine={false} />
-                            <YAxis domain={m.domain as any} tick={{ fontSize: 10, fill: "#3f3f46" }} axisLine={false} tickLine={false} />
-                            <Tooltip contentStyle={{ fontSize: 12, borderRadius: 14, border: "1px solid #1e1e24", backgroundColor: "rgba(8,8,12,0.96)", color: "#e4e4e7" }} formatter={(v: number) => [`${v}${m.unit === "%" ? "%" : ` ${m.unit}`}`, m.label]} labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate || ""} />
-                            <Line type="monotone" dataKey={m.dataKey} stroke={m.color} strokeWidth={2.5} dot={{ r: 3, fill: m.color, strokeWidth: 0 }} activeDot={{ r: 6, fill: m.color, stroke: "#0a0a0f", strokeWidth: 3 }} />
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              stroke="#18181b"
+                            />
+                            <XAxis
+                              dataKey="week"
+                              tick={{ fontSize: 10, fill: "#3f3f46" }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <YAxis
+                              domain={m.domain as any}
+                              tick={{ fontSize: 10, fill: "#3f3f46" }}
+                              axisLine={false}
+                              tickLine={false}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                fontSize: 12,
+                                borderRadius: 14,
+                                border: "1px solid #1e1e24",
+                                backgroundColor: "rgba(8,8,12,0.96)",
+                                color: "#e4e4e7",
+                              }}
+                              formatter={(v: number) => [
+                                `${v}${m.unit === "%" ? "%" : ` ${m.unit}`}`,
+                                m.label,
+                              ]}
+                              labelFormatter={(_, payload) =>
+                                payload?.[0]?.payload?.fullDate || ""
+                              }
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey={m.dataKey}
+                              stroke={m.color}
+                              strokeWidth={2.5}
+                              dot={{ r: 3, fill: m.color, strokeWidth: 0 }}
+                              activeDot={{
+                                r: 6,
+                                fill: m.color,
+                                stroke: "#0a0a0f",
+                                strokeWidth: 3,
+                              }}
+                            />
                           </LineChart>
                         </ResponsiveContainer>
                       ) : (
                         <div className="h-full rounded-xl border border-dashed border-zinc-800/60 bg-zinc-950/20 flex items-center justify-center px-4 text-center">
-                          <span className="text-xs text-zinc-500">Chưa có dữ liệu {m.label.toLowerCase()} trong InBody.</span>
+                          <span className="text-xs text-zinc-500">
+                            Chưa có dữ liệu {m.label.toLowerCase()} trong
+                            InBody.
+                          </span>
                         </div>
                       )}
                     </div>
@@ -1744,41 +2297,99 @@ export function WorkoutLogPage() {
                   </div>
                   <h3 className="text-sm text-zinc-100">Phân bổ nhóm cơ</h3>
                 </div>
-                <TimeFilterBar value={muscleFilter} onChange={setMuscleFilter} />
+                <TimeFilterBar
+                  value={muscleFilter}
+                  onChange={setMuscleFilter}
+                />
                 <div className="flex items-start gap-8 mt-6">
                   <div className="shrink-0" style={{ width: 180, height: 180 }}>
                     <div className="relative w-full h-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-                          <Pie data={muscleChartData} cx="50%" cy="50%" innerRadius={38} outerRadius={62} paddingAngle={2.5} dataKey="value" strokeWidth={0}
-                            label={({ cx, cy, midAngle, outerRadius, value, name }) => {
+                        <PieChart
+                          margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                        >
+                          <Pie
+                            data={muscleChartData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={38}
+                            outerRadius={62}
+                            paddingAngle={2.5}
+                            dataKey="value"
+                            strokeWidth={0}
+                            label={({
+                              cx,
+                              cy,
+                              midAngle,
+                              outerRadius,
+                              value,
+                              name,
+                            }) => {
                               const RADIAN = Math.PI / 180;
                               const radius = outerRadius + 18;
-                              const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                              const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                              return <text x={x} y={y} fill="#d4d4d8" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={10}>{value}%</text>;
-                            }} labelLine={false}>
-                            {muscleChartData.map((d) => <Cell key={`mc-${d.name}`} fill={d.color} />)}
+                              const x =
+                                cx + radius * Math.cos(-midAngle * RADIAN);
+                              const y =
+                                cy + radius * Math.sin(-midAngle * RADIAN);
+                              return (
+                                <text
+                                  x={x}
+                                  y={y}
+                                  fill="#d4d4d8"
+                                  textAnchor={x > cx ? "start" : "end"}
+                                  dominantBaseline="central"
+                                  fontSize={10}
+                                >
+                                  {value}%
+                                </text>
+                              );
+                            }}
+                            labelLine={false}
+                          >
+                            {muscleChartData.map((d) => (
+                              <Cell key={`mc-${d.name}`} fill={d.color} />
+                            ))}
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="text-center">
                           <span className="text-base text-white">6</span>
-                          <p className="text-[9px] text-zinc-600 mt-0.5">Nhóm</p>
+                          <p className="text-[9px] text-zinc-600 mt-0.5">
+                            Nhóm
+                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="flex-1 space-y-3 pt-1">
                     {muscleChartData.map((d) => (
-                      <div key={`ml-${d.name}`} className="flex items-center gap-3">
-                        <span className="w-3 h-3 rounded-[4px] shrink-0" style={{ backgroundColor: d.color, boxShadow: `0 0 8px ${d.color}40` }} />
-                        <span className="text-xs text-zinc-300 flex-1 min-w-[64px]">{d.name}</span>
+                      <div
+                        key={`ml-${d.name}`}
+                        className="flex items-center gap-3"
+                      >
+                        <span
+                          className="w-3 h-3 rounded-[4px] shrink-0"
+                          style={{
+                            backgroundColor: d.color,
+                            boxShadow: `0 0 8px ${d.color}40`,
+                          }}
+                        />
+                        <span className="text-xs text-zinc-300 flex-1 min-w-[64px]">
+                          {d.name}
+                        </span>
                         <div className="w-24 h-[7px] bg-zinc-800/80 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full transition-all" style={{ width: `${d.value * 2}%`, backgroundColor: d.color }} />
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${d.value * 2}%`,
+                              backgroundColor: d.color,
+                            }}
+                          />
                         </div>
-                        <span className="text-xs text-zinc-400 w-10 text-right tabular-nums">{d.value}%</span>
+                        <span className="text-xs text-zinc-400 w-10 text-right tabular-nums">
+                          {d.value}%
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1794,43 +2405,103 @@ export function WorkoutLogPage() {
                   <div className="w-8 h-8 rounded-xl bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center">
                     <BarChart3 className="w-4 h-4 text-emerald-400" />
                   </div>
-                  <h3 className="text-sm text-zinc-100">Phân bổ loại bài tập</h3>
+                  <h3 className="text-sm text-zinc-100">
+                    Phân bổ loại bài tập
+                  </h3>
                 </div>
-                <TimeFilterBar value={exerciseFilter} onChange={setExerciseFilter} />
+                <TimeFilterBar
+                  value={exerciseFilter}
+                  onChange={setExerciseFilter}
+                />
                 <div className="flex items-start gap-8 mt-6">
                   <div className="shrink-0" style={{ width: 180, height: 180 }}>
                     <div className="relative w-full h-full">
                       <ResponsiveContainer width="100%" height="100%">
-                        <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-                          <Pie data={exerciseTypeData} cx="50%" cy="50%" innerRadius={38} outerRadius={62} paddingAngle={2.5} dataKey="value" strokeWidth={0}
-                            label={({ cx, cy, midAngle, outerRadius, value, name }) => {
+                        <PieChart
+                          margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                        >
+                          <Pie
+                            data={exerciseTypeData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={38}
+                            outerRadius={62}
+                            paddingAngle={2.5}
+                            dataKey="value"
+                            strokeWidth={0}
+                            label={({
+                              cx,
+                              cy,
+                              midAngle,
+                              outerRadius,
+                              value,
+                              name,
+                            }) => {
                               const RADIAN = Math.PI / 180;
                               const radius = outerRadius + 18;
-                              const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                              const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                              return <text x={x} y={y} fill="#d4d4d8" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={10}>{value}%</text>;
-                            }} labelLine={false}>
-                            {exerciseTypeData.map((d) => <Cell key={`et-${d.name}`} fill={d.color} />)}
+                              const x =
+                                cx + radius * Math.cos(-midAngle * RADIAN);
+                              const y =
+                                cy + radius * Math.sin(-midAngle * RADIAN);
+                              return (
+                                <text
+                                  x={x}
+                                  y={y}
+                                  fill="#d4d4d8"
+                                  textAnchor={x > cx ? "start" : "end"}
+                                  dominantBaseline="central"
+                                  fontSize={10}
+                                >
+                                  {value}%
+                                </text>
+                              );
+                            }}
+                            labelLine={false}
+                          >
+                            {exerciseTypeData.map((d) => (
+                              <Cell key={`et-${d.name}`} fill={d.color} />
+                            ))}
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="text-center">
                           <span className="text-base text-white">4</span>
-                          <p className="text-[9px] text-zinc-600 mt-0.5">Loại</p>
+                          <p className="text-[9px] text-zinc-600 mt-0.5">
+                            Loại
+                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="flex-1 space-y-4 pt-2">
                     {exerciseTypeData.map((d) => (
-                      <div key={`el-${d.name}`} className="flex items-center gap-3">
-                        <span className="w-3 h-3 rounded-[4px] shrink-0" style={{ backgroundColor: d.color, boxShadow: `0 0 8px ${d.color}40` }} />
-                        <span className="text-xs text-zinc-300 flex-1 min-w-[64px]">{d.name}</span>
+                      <div
+                        key={`el-${d.name}`}
+                        className="flex items-center gap-3"
+                      >
+                        <span
+                          className="w-3 h-3 rounded-[4px] shrink-0"
+                          style={{
+                            backgroundColor: d.color,
+                            boxShadow: `0 0 8px ${d.color}40`,
+                          }}
+                        />
+                        <span className="text-xs text-zinc-300 flex-1 min-w-[64px]">
+                          {d.name}
+                        </span>
                         <div className="w-24 h-[7px] bg-zinc-800/80 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full transition-all" style={{ width: `${d.value * 2}%`, backgroundColor: d.color }} />
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${d.value * 2}%`,
+                              backgroundColor: d.color,
+                            }}
+                          />
                         </div>
-                        <span className="text-xs text-zinc-400 w-10 text-right tabular-nums">{d.value}%</span>
+                        <span className="text-xs text-zinc-400 w-10 text-right tabular-nums">
+                          {d.value}%
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1846,7 +2517,11 @@ export function WorkoutLogPage() {
         <div className="space-y-7">
           {/* Cinematic Hero */}
           <div className="group relative rounded-2xl overflow-hidden border border-zinc-700/20 h-60">
-            <img src={heroImg} alt="Training" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+            <img
+              src={heroImg}
+              alt="Training"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+            />
             <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/15" />
             <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/15 via-transparent to-transparent" />
 
@@ -1858,17 +2533,30 @@ export function WorkoutLogPage() {
               <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/15 text-[11px] text-amber-300 backdrop-blur-md">
                 <Star className="w-3 h-3" /> 4.8
               </span>
-              <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-[11px] text-emerald-300 backdrop-blur-md">At Gym</span>
-              <span className="px-3 py-1.5 rounded-xl bg-zinc-500/10 border border-zinc-500/15 text-[11px] text-zinc-300 backdrop-blur-md">Intermediate</span>
+              <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-[11px] text-emerald-300 backdrop-blur-md">
+                At Gym
+              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-zinc-500/10 border border-zinc-500/15 text-[11px] text-zinc-300 backdrop-blur-md">
+                Intermediate
+              </span>
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 p-6">
-              <span className="text-[10px] text-emerald-400/50 uppercase tracking-[0.2em] mb-1.5 block">Chương trình</span>
-              <h2 className="text-2xl text-white mb-2 tracking-tight">{currentProgram ? currentProgram.name : "Chưa có chương trình"}</h2>
+              <span className="text-[10px] text-emerald-400/50 uppercase tracking-[0.2em] mb-1.5 block">
+                Chương trình
+              </span>
+              <h2 className="text-2xl text-white mb-2 tracking-tight">
+                {currentProgram ? currentProgram.name : "Chưa có chương trình"}
+              </h2>
               {currentProgram && (
                 <button
                   onClick={async () => {
-                    if (!window.confirm("Ẩn chương trình hiện tại? Workout đã hoàn thành sẽ không bị xóa.")) return;
+                    if (
+                      !window.confirm(
+                        "Ẩn chương trình hiện tại? Workout đã hoàn thành sẽ không bị xóa.",
+                      )
+                    )
+                      return;
                     await workoutService.archiveProgram(currentProgram.id);
                     await refetchProgramAndSchedules();
                   }}
@@ -1879,13 +2567,23 @@ export function WorkoutLogPage() {
               )}
               {currentProgram && (
                 <div className="flex items-center gap-4 text-xs text-zinc-400">
-                  <span className="flex items-center gap-1.5"><Dumbbell className="w-3 h-3 text-emerald-500/50" /> {currentProgram.durationWeeks || 4} tuần</span>
+                  <span className="flex items-center gap-1.5">
+                    <Dumbbell className="w-3 h-3 text-emerald-500/50" />{" "}
+                    {currentProgram.durationWeeks || 4} tuần
+                  </span>
                   <span className="text-zinc-700">·</span>
-                  <span>{currentProgram.daysPerWeek || workoutStats?.workoutsPerWeek || 3} buổi/tuần</span>
+                  <span>
+                    {currentProgram.daysPerWeek ||
+                      workoutStats?.workoutsPerWeek ||
+                      3}{" "}
+                    buổi/tuần
+                  </span>
                   <span className="text-zinc-700">·</span>
                   {currentProgram.sourceType === "AI_PLAN" && (
                     <>
-                      <span className="px-2 py-0.5 rounded-full border border-sky-500/25 bg-sky-500/10 text-sky-300">AI</span>
+                      <span className="px-2 py-0.5 rounded-full border border-sky-500/25 bg-sky-500/10 text-sky-300">
+                        AI
+                      </span>
                       <span className="text-zinc-700">·</span>
                     </>
                   )}
@@ -1895,13 +2593,20 @@ export function WorkoutLogPage() {
                       <span className="text-zinc-700">·</span>
                     </>
                   )}
-                  <span>Đã hoàn thành: <span className="text-emerald-400">{workoutStats?.totalWorkouts || 0}</span></span>
+                  <span>
+                    Đã hoàn thành:{" "}
+                    <span className="text-emerald-400">
+                      {workoutStats?.totalWorkouts || 0}
+                    </span>
+                  </span>
                 </div>
               )}
               <div className="mt-3 h-1.5 bg-white/[0.05] rounded-full overflow-hidden max-w-md">
                 <div
                   className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.35)] transition-all duration-1000"
-                  style={{ width: `${Math.min(100, ((workoutStats?.totalWorkouts || 0) / 36) * 100)}%` }}
+                  style={{
+                    width: `${Math.min(100, ((workoutStats?.totalWorkouts || 0) / 36) * 100)}%`,
+                  }}
                 />
               </div>
             </div>
@@ -1913,76 +2618,142 @@ export function WorkoutLogPage() {
             <div className="xl:col-span-2">
               <SectionTitle title="Ngày tập" />
               <div className="space-y-3 mt-4">
-                {currentProgram?.days?.length ? currentProgram.days.map((w: any) => {
-                  const schedules = [
-                    ...aiSchedules.filter((schedule) => schedule.programDay?.id === w.id),
-                    ...(Array.isArray(w.schedules) ? w.schedules : []),
-                  ];
-                  const todayStart = new Date();
-                  todayStart.setHours(0, 0, 0, 0);
-                  const nextSchedule =
-                    schedules.find((schedule: any) => !schedule.workoutId && new Date(schedule.date) >= todayStart) ||
-                    schedules.find((schedule: any) => !schedule.workoutId) ||
-                    schedules[0] ||
-                    aiSchedules.find((schedule) => schedule.programDay?.id === w.id);
-                  const dayProgress = scheduleProgressPercent(nextSchedule);
-                  return (
-                  <button
-                    key={`td-${w.day || w.dayNumber}`}
-                    onClick={() => {
-                      if (!w.locked) {
-                        setSelectedDay(w.day || w.dayNumber);
-                        setSelectedDate(nextSchedule?.date ? new Date(nextSchedule.date) : new Date());
-                        setSelectedScheduleId(nextSchedule?.id || null);
-                        setCurrentWorkoutId(nextSchedule?.workoutId || nextSchedule?.workout?.id || null);
-                        setPlanView("dayDetail");
-                      }
-                    }}
-                    disabled={w.locked}
-                    className={`group/card w-full rounded-2xl border p-5 transition-all text-left relative overflow-hidden ${
-                      w.locked
-                        ? "bg-zinc-900/20 border-zinc-800/25 opacity-40 cursor-not-allowed"
-                        : "bg-zinc-900/50 border-zinc-800/30 hover:border-emerald-500/20 hover:shadow-[0_0_30px_rgba(16,185,129,0.04)] active:scale-[0.99]"
-                    }`}
-                  >
-                    {!w.locked && <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/0 group-hover/card:from-emerald-500/[0.02] group-hover/card:to-transparent transition-all duration-300" />}
-
-                    <div className="relative flex items-center gap-4">
-                      {/* Ring */}
-                      <div className="relative shrink-0">
-                        <svg width="52" height="52" viewBox="0 0 52 52">
-                          <circle cx="26" cy="26" r="22" fill="none" stroke={w.locked ? "#18181b" : "#064e3b"} strokeWidth="3" />
-                          {!w.locked && dayProgress > 0 && (
-                            <circle cx="26" cy="26" r="22" fill="none" stroke="#10b981" strokeWidth="3"
-                              strokeDasharray={`${(dayProgress / 100) * 138} 138`} strokeLinecap="round" transform="rotate(-90 26 26)" />
-                          )}
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          {w.locked ? <Lock className="w-4 h-4 text-zinc-700" /> : <span className="text-[11px] text-emerald-400">{dayProgress}%</span>}
-                        </div>
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-zinc-100">Ngày {w.day || w.dayNumber}</p>
-                        <p className="text-xs text-zinc-500 mt-0.5 truncate">{w.title}</p>
+                {currentProgram?.days?.length ? (
+                  currentProgram.days.map((w: any) => {
+                    const schedules = [
+                      ...aiSchedules.filter(
+                        (schedule) => schedule.programDay?.id === w.id,
+                      ),
+                      ...(Array.isArray(w.schedules) ? w.schedules : []),
+                    ];
+                    const todayStart = new Date();
+                    todayStart.setHours(0, 0, 0, 0);
+                    const nextSchedule =
+                      schedules.find(
+                        (schedule: any) =>
+                          !schedule.workoutId &&
+                          new Date(schedule.date) >= todayStart,
+                      ) ||
+                      schedules.find((schedule: any) => !schedule.workoutId) ||
+                      schedules[0] ||
+                      aiSchedules.find(
+                        (schedule) => schedule.programDay?.id === w.id,
+                      );
+                    const dayProgress = scheduleProgressPercent(nextSchedule);
+                    return (
+                      <button
+                        key={`td-${w.day || w.dayNumber}`}
+                        onClick={() => {
+                          if (!w.locked) {
+                            setSelectedDay(w.day || w.dayNumber);
+                            setSelectedDate(
+                              nextSchedule?.date
+                                ? new Date(nextSchedule.date)
+                                : new Date(),
+                            );
+                            setSelectedScheduleId(nextSchedule?.id || null);
+                            setCurrentWorkoutId(
+                              nextSchedule?.workoutId ||
+                                nextSchedule?.workout?.id ||
+                                null,
+                            );
+                            setPlanView("dayDetail");
+                          }
+                        }}
+                        disabled={w.locked}
+                        className={`group/card w-full rounded-2xl border p-5 transition-all text-left relative overflow-hidden ${
+                          w.locked
+                            ? "bg-zinc-900/20 border-zinc-800/25 opacity-40 cursor-not-allowed"
+                            : "bg-zinc-900/50 border-zinc-800/30 hover:border-emerald-500/20 hover:shadow-[0_0_30px_rgba(16,185,129,0.04)] active:scale-[0.99]"
+                        }`}
+                      >
                         {!w.locked && (
-                          <div className="flex items-center gap-3 mt-2">
-                            <span className="text-[10px] text-zinc-600 flex items-center gap-1"><Clock className="w-3 h-3" /> {w.duration || '1h'}</span>
-                            <span className="text-[10px] text-zinc-600">{w.exercises?.length || w.exercises || 0} bài tập</span>
-                          </div>
+                          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/0 group-hover/card:from-emerald-500/[0.02] group-hover/card:to-transparent transition-all duration-300" />
                         )}
-                      </div>
 
-                      {!w.locked && <ChevronRight className="w-4 h-4 text-zinc-700 group-hover/card:text-emerald-400 transition-colors shrink-0" />}
-                    </div>
-                  </button>
-                  );
-                }) : (
+                        <div className="relative flex items-center gap-4">
+                          {/* Ring */}
+                          <div className="relative shrink-0">
+                            <svg width="52" height="52" viewBox="0 0 52 52">
+                              <circle
+                                cx="26"
+                                cy="26"
+                                r="22"
+                                fill="none"
+                                stroke={w.locked ? "#18181b" : "#064e3b"}
+                                strokeWidth="3"
+                              />
+                              {!w.locked && dayProgress > 0 && (
+                                <circle
+                                  cx="26"
+                                  cy="26"
+                                  r="22"
+                                  fill="none"
+                                  stroke="#10b981"
+                                  strokeWidth="3"
+                                  strokeDasharray={`${(dayProgress / 100) * 138} 138`}
+                                  strokeLinecap="round"
+                                  transform="rotate(-90 26 26)"
+                                />
+                              )}
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              {w.locked ? (
+                                <Lock className="w-4 h-4 text-zinc-700" />
+                              ) : (
+                                <span className="text-[11px] text-emerald-400">
+                                  {dayProgress}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-zinc-100">
+                              Ngày {w.day || w.dayNumber}
+                            </p>
+                            <p className="text-xs text-zinc-500 mt-0.5 truncate">
+                              {w.title}
+                            </p>
+                            {!w.locked && (
+                              <div className="flex items-center gap-3 mt-2">
+                                <span className="text-[10px] text-zinc-600 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />{" "}
+                                  {w.duration || "1h"}
+                                </span>
+                                <span className="text-[10px] text-zinc-600">
+                                  {w.exercises?.length || w.exercises || 0} bài
+                                  tập
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {!w.locked && (
+                            <ChevronRight className="w-4 h-4 text-zinc-700 group-hover/card:text-emerald-400 transition-colors shrink-0" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
                   <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-6 text-center">
-                    <p className="text-sm text-zinc-400">Bạn chưa có lịch tập hiện tại</p>
+                    <p className="text-sm text-zinc-400">
+                      Bạn chưa có lịch tập hiện tại
+                    </p>
                     <div className="mt-4 flex justify-center gap-2">
-                      <button onClick={openManualBuilder} className="px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800">Tạo thủ công</button>
-                      <button onClick={() => navigate('/client/plans')} className="px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Tạo bằng AI</button>
+                      <button
+                        onClick={openManualBuilder}
+                        className="px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800"
+                      >
+                        Tạo thủ công
+                      </button>
+                      <button
+                        onClick={() => navigate("/client/plans")}
+                        className="px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400"
+                      >
+                        Tạo bằng AI
+                      </button>
                     </div>
                   </div>
                 )}
@@ -1996,11 +2767,21 @@ export function WorkoutLogPage() {
                 <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/[0.02] rounded-full blur-[60px] pointer-events-none" />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-5">
-                    <button onClick={openManualBuilder} className="px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15">Tạo thủ công</button>
+                    <button
+                      onClick={openManualBuilder}
+                      className="px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs hover:bg-emerald-500/15"
+                    >
+                      Tạo thủ công
+                    </button>
                     <SectionTitle title="Lịch tập" />
-                    <button onClick={() => setCalendarExpanded(!calendarExpanded)} className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-400 transition-colors">
+                    <button
+                      onClick={() => setCalendarExpanded(!calendarExpanded)}
+                      className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-400 transition-colors"
+                    >
                       {calendarExpanded ? "Thu gọn" : "Mở rộng"}
-                      <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${!calendarExpanded ? "rotate-180" : ""}`} />
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform duration-300 ${!calendarExpanded ? "rotate-180" : ""}`}
+                      />
                     </button>
                   </div>
                   {calendarExpanded && (
@@ -2011,12 +2792,22 @@ export function WorkoutLogPage() {
                       onPrevMonth={handlePrevMonth}
                       onNextMonth={handleNextMonth}
                       onDayClick={(day) => {
-                        const clickedDate = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
+                        const clickedDate = new Date(
+                          calendarMonth.getFullYear(),
+                          calendarMonth.getMonth(),
+                          day,
+                        );
                         setSelectedDate(clickedDate);
                         const scheduleForDay = findScheduleForDate(clickedDate);
-                        setSelectedDay(scheduleForDay?.programDay?.dayNumber || day);
+                        setSelectedDay(
+                          scheduleForDay?.programDay?.dayNumber || day,
+                        );
                         setSelectedScheduleId(scheduleForDay?.id || null);
-                        setCurrentWorkoutId(scheduleForDay?.workoutId || scheduleForDay?.workout?.id || null);
+                        setCurrentWorkoutId(
+                          scheduleForDay?.workoutId ||
+                            scheduleForDay?.workout?.id ||
+                            null,
+                        );
 
                         if (scheduleForDay?.programDay?.dayNumber) {
                           setSelectedDay(scheduleForDay.programDay.dayNumber);
@@ -2035,588 +2826,857 @@ export function WorkoutLogPage() {
       )}
 
       {/* ═══════════════ DAY DETAIL ═══════════════ */}
-      {tab === "plan" && planView === "dayDetail" && (() => {
-        const programDays = currentProgram?.days || [];
-        const wd = programDays.find((d: any) => d.dayNumber === selectedDay) || programDays[0];
-        const detailSchedule = selectedSchedule();
-        const detailProgress = scheduleProgressPercent(detailSchedule);
-        if (!wd) {
-          return (
-            <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-8 text-center">
-              <p className="text-sm text-zinc-400">Bạn chưa có ngày tập trong chương trình hiện tại</p>
-              <button onClick={() => navigate('/client/plans')} className="mt-4 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Tạo bằng AI</button>
-            </div>
-          );
-        }
-        return (
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <button onClick={() => setPlanView("main")} className="w-10 h-10 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
-                <ChevronLeft className="w-5 h-5 text-zinc-400" />
-              </button>
-              <div>
-                <h2 className="text-lg text-white tracking-tight">Ngày {selectedDay} — Chi tiết bài tập</h2>
-                <p className="text-xs text-zinc-500">{wd.title}</p>
+      {tab === "plan" &&
+        planView === "dayDetail" &&
+        (() => {
+          const programDays = currentProgram?.days || [];
+          const wd =
+            programDays.find((d: any) => d.dayNumber === selectedDay) ||
+            programDays[0];
+          const detailSchedule = selectedSchedule();
+          const detailProgress = scheduleProgressPercent(detailSchedule);
+          if (!wd) {
+            return (
+              <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-8 text-center">
+                <p className="text-sm text-zinc-400">
+                  Bạn chưa có ngày tập trong chương trình hiện tại
+                </p>
+                <button
+                  onClick={() => navigate("/client/plans")}
+                  className="mt-4 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400"
+                >
+                  Tạo bằng AI
+                </button>
               </div>
-              <button
-                onClick={async () => {
-                  const title = window.prompt("Tên buổi tập", wd.title || "");
-                  if (!title || title === wd.title) return;
-                  await workoutService.updateProgramDay(wd.id, { title });
-                  await refetchProgramAndSchedules();
-                }}
-                className="ml-auto px-3 py-2 rounded-xl border border-zinc-700/40 text-xs text-zinc-300 hover:bg-zinc-800"
-              >
-                Sửa tên buổi
-              </button>
-            </div>
+            );
+          }
+          return (
+            <div className="space-y-6">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setPlanView("main")}
+                  className="w-10 h-10 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5 text-zinc-400" />
+                </button>
+                <div>
+                  <h2 className="text-lg text-white tracking-tight">
+                    Ngày {selectedDay} — Chi tiết bài tập
+                  </h2>
+                  <p className="text-xs text-zinc-500">{wd.title}</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    const title = window.prompt("Tên buổi tập", wd.title || "");
+                    if (!title || title === wd.title) return;
+                    await workoutService.updateProgramDay(wd.id, { title });
+                    await refetchProgramAndSchedules();
+                  }}
+                  className="ml-auto px-3 py-2 rounded-xl border border-zinc-700/40 text-xs text-zinc-300 hover:bg-zinc-800"
+                >
+                  Sửa tên buổi
+                </button>
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Summary */}
-              <div className="rounded-2xl border border-zinc-800/30 bg-gradient-to-b from-zinc-900/50 to-zinc-900/30 p-6 relative overflow-hidden">
-                <div className="absolute -top-10 -right-10 w-36 h-36 bg-emerald-500/[0.03] rounded-full blur-[40px]" />
-                <div className="relative">
-                  <div className="flex justify-center mb-6">
-                    <div className="relative">
-                      <svg width="110" height="110" viewBox="0 0 110 110">
-                        <circle cx="55" cy="55" r="48" fill="none" stroke="#064e3b" strokeWidth="4" />
-                        {detailProgress > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Summary */}
+                <div className="rounded-2xl border border-zinc-800/30 bg-gradient-to-b from-zinc-900/50 to-zinc-900/30 p-6 relative overflow-hidden">
+                  <div className="absolute -top-10 -right-10 w-36 h-36 bg-emerald-500/[0.03] rounded-full blur-[40px]" />
+                  <div className="relative">
+                    <div className="flex justify-center mb-6">
+                      <div className="relative">
+                        <svg width="110" height="110" viewBox="0 0 110 110">
                           <circle
                             cx="55"
                             cy="55"
                             r="48"
                             fill="none"
-                            stroke="#10b981"
+                            stroke="#064e3b"
                             strokeWidth="4"
-                            strokeDasharray={`${(detailProgress / 100) * 302} 302`}
-                            strokeLinecap="round"
-                            transform="rotate(-90 55 55)"
                           />
-                        )}
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-center">
-                          <span className="text-2xl text-emerald-400">{detailProgress}%</span>
-                          <p className="text-[9px] text-zinc-600 mt-0.5">Hoàn thành</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-center mb-5">
-                    <h3 className="text-base text-zinc-100 mb-0.5">Ngày {selectedDay}</h3>
-                    <p className="text-xs text-zinc-500">{wd.title}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    <div className="bg-zinc-800/25 rounded-xl border border-zinc-700/20 p-3.5 text-center">
-                      <Clock className="w-4 h-4 text-emerald-500/50 mx-auto mb-1" />
-                      <p className="text-sm text-zinc-200">{wd.duration || '1h'}</p>
-                      <p className="text-[10px] text-zinc-600">Thời gian</p>
-                    </div>
-                    <div className="bg-zinc-800/25 rounded-xl border border-zinc-700/20 p-3.5 text-center">
-                      <Dumbbell className="w-4 h-4 text-emerald-500/50 mx-auto mb-1" />
-                      <p className="text-sm text-zinc-200">{wd.exercises?.length || wd.exercises || 0}</p>
-                      <p className="text-[10px] text-zinc-600">Bài tập</p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={async () => {
-                      if (detailSchedule?.id) {
-                        try {
-                          const started = await workoutService.startSchedule(detailSchedule.id);
-                          applyScheduleProgress(detailSchedule.id, started);
-                          setSelectedScheduleId(detailSchedule.id);
-                          setCurrentWorkoutId(started.workoutId || detailSchedule.workoutId || detailSchedule.workout?.id || null);
-                        } catch (error: any) {
-                          toast.error(error?.response?.data?.error || "Khong the bat dau buoi tap. Vui long thu lai.");
-                          return;
-                        }
-                      } else {
-                        setCurrentWorkoutId(detailSchedule?.workoutId || detailSchedule?.workout?.id || null);
-                      }
-                      setPlanView("activeExercise");
-                    }}
-                    className="w-full py-3.5 rounded-xl bg-emerald-500 text-black text-sm tracking-wider transition-all hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-[0.98] flex items-center justify-center gap-2"
-                  >
-                    <Play className="w-4 h-4" /> BẮT ĐẦU TẬP
-                  </button>
-                </div>
-              </div>
-
-              {/* Exercises */}
-              <div className="lg:col-span-2">
-                <div className="flex items-center justify-between">
-                  <SectionTitle title="Bài tập" badge={`${editMode ? editExercises.length : dayExercises.length}`} />
-                  {editMode ? (
-                    <div className="flex items-center gap-2">
-                      {editMode && (
-                        <span className="text-[10px] text-zinc-500 italic mr-2">
-                          {isSaving ? "Đang lưu..." : "Đã lưu"}
-                        </span>
-                      )}
-                      <button
-                        onClick={() => {
-                          setDayExercises(editExercises);
-                          setEditMode(false);
-                        }}
-                        className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 hover:border-zinc-600/30"
-                      >
-                        <Check className="w-3 h-3 text-emerald-400" /> Xong
-                      </button>
-                      <button
-                        onClick={() => handleSaveWorkout(false)}
-                        disabled={isSaving}
-                        className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/25 disabled:opacity-50"
-                      >
-                        {isSaving ? (
-                          <div className="w-3 h-3 border border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
-                        ) : (
-                          <Check className="w-3 h-3" />
-                        )}
-                        {isSaving ? "Đang lưu..." : "Lưu ngay"}
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={() => { setEditExercises([...dayExercises]); setEditMode(true); }} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20">
-                      <ArrowUpDown className="w-3 h-3" /> Sửa
-                    </button>
-                  )}
-                </div>
-
-                {editMode ? (
-                  /* ── Edit Mode: reorderable list ── */
-                  <div className="space-y-2 mt-4">
-                    {isLoading ? (
-                      <div className="py-12 flex flex-col items-center justify-center space-y-4">
-                        <div className="w-8 h-8 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
-                        <p className="text-xs text-zinc-500">Đang tải...</p>
-                      </div>
-                    ) : editExercises.map((ex, i) => (
-                      <div
-                        key={`edit-${ex.id}`}
-                        draggable
-                        onDragStart={() => setDragIdx(i)}
-                        onDragOver={(e) => { e.preventDefault(); }}
-                        onDrop={() => {
-                          if (dragIdx === null || dragIdx === i) return;
-                          const items = [...editExercises];
-                          const [moved] = items.splice(dragIdx, 1);
-                          items.splice(i, 0, moved);
-                          setEditExercises(items);
-                          setDragIdx(null);
-                        }}
-                        onDragEnd={() => setDragIdx(null)}
-                        className={`rounded-2xl border p-4 flex items-center gap-4 transition-all ${
-                          dragIdx === i
-                            ? "border-emerald-500/30 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.08)]"
-                            : "border-zinc-800/30 bg-zinc-900/40 hover:border-zinc-700/40"
-                        }`}
-                      >
-                        <div className="cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 transition-colors">
-                          <GripVertical className="w-4 h-4" />
-                        </div>
-                        <span className="w-6 h-6 rounded-lg bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center text-[10px] text-zinc-500 shrink-0">{i + 1}</span>
-                        <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25" onClick={() => setShowExerciseDetail(ex)}>
-                          <ExerciseFlipDemo
-                            img1={ex.img}
-                            img2={ex.img2}
-                            alt={ex.name}
-                            className="w-full h-full"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-zinc-100 truncate">{ex.name}</p>
-                          <p className="text-xs text-zinc-500 mt-0.5">{ex.prescription}</p>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {[
-                              ["sets", "Sets"],
-                              ["reps", "Reps"],
-                              ["restSeconds", "Rest"],
-                            ].map(([key, label]) => (
-                              <label key={key} className="flex items-center gap-1 text-[10px] text-zinc-500">
-                                {label}
-                                <input
-                                  type="number"
-                                  min={key === "restSeconds" ? 0 : 1}
-                                  value={ex[key] ?? ""}
-                                  onChange={(event) => {
-                                    const next = [...editExercises];
-                                    next[i] = { ...next[i], [key]: Number(event.target.value) || (key === "restSeconds" ? 0 : 1) };
-                                    next[i].prescription = `${next[i].sets ?? 3}×${next[i].reps ?? 10}${next[i].restSeconds ? ` · nghỉ ${next[i].restSeconds}s` : ""}`;
-                                    setEditExercises(next);
-                                  }}
-                                  className="w-14 rounded-md border border-zinc-700/50 bg-zinc-950/60 px-2 py-1 text-[10px] text-zinc-200 outline-none focus:border-emerald-500/40"
-                                />
-                              </label>
-                            ))}
+                          {detailProgress > 0 && (
+                            <circle
+                              cx="55"
+                              cy="55"
+                              r="48"
+                              fill="none"
+                              stroke="#10b981"
+                              strokeWidth="4"
+                              strokeDasharray={`${(detailProgress / 100) * 302} 302`}
+                              strokeLinecap="round"
+                              transform="rotate(-90 55 55)"
+                            />
+                          )}
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-center">
+                            <span className="text-2xl text-emerald-400">
+                              {detailProgress}%
+                            </span>
+                            <p className="text-[9px] text-zinc-600 mt-0.5">
+                              Hoàn thành
+                            </p>
                           </div>
                         </div>
-                        <span className={`text-[10px] px-2.5 py-1 rounded-lg border shrink-0 ${
-                          ex.type === "cardio"
-                            ? "text-emerald-300 border-emerald-500/15 bg-emerald-500/6"
-                            : "text-green-300 border-green-500/15 bg-green-500/6"
-                        }`}>
-                          {ex.type === "cardio" ? "Cardio" : "Strength"}
-                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-center mb-5">
+                      <h3 className="text-base text-zinc-100 mb-0.5">
+                        Ngày {selectedDay}
+                      </h3>
+                      <p className="text-xs text-zinc-500">{wd.title}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      <div className="bg-zinc-800/25 rounded-xl border border-zinc-700/20 p-3.5 text-center">
+                        <Clock className="w-4 h-4 text-emerald-500/50 mx-auto mb-1" />
+                        <p className="text-sm text-zinc-200">
+                          {wd.duration || "1h"}
+                        </p>
+                        <p className="text-[10px] text-zinc-600">Thời gian</p>
+                      </div>
+                      <div className="bg-zinc-800/25 rounded-xl border border-zinc-700/20 p-3.5 text-center">
+                        <Dumbbell className="w-4 h-4 text-emerald-500/50 mx-auto mb-1" />
+                        <p className="text-sm text-zinc-200">
+                          {wd.exercises?.length || wd.exercises || 0}
+                        </p>
+                        <p className="text-[10px] text-zinc-600">Bài tập</p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        if (detailSchedule?.id) {
+                          try {
+                            const started = await workoutService.startSchedule(
+                              detailSchedule.id,
+                            );
+                            applyScheduleProgress(detailSchedule.id, started);
+                            setSelectedScheduleId(detailSchedule.id);
+                            setCurrentWorkoutId(
+                              started.workoutId ||
+                                detailSchedule.workoutId ||
+                                detailSchedule.workout?.id ||
+                                null,
+                            );
+                          } catch (error: any) {
+                            toast.error(
+                              error?.response?.data?.error ||
+                                "Khong the bat dau buoi tap. Vui long thu lai.",
+                            );
+                            return;
+                          }
+                        } else {
+                          setCurrentWorkoutId(
+                            detailSchedule?.workoutId ||
+                              detailSchedule?.workout?.id ||
+                              null,
+                          );
+                        }
+                        setPlanView("activeExercise");
+                      }}
+                      className="w-full py-3.5 rounded-xl bg-emerald-500 text-black text-sm tracking-wider transition-all hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-[0.98] flex items-center justify-center gap-2"
+                    >
+                      <Play className="w-4 h-4" /> BẮT ĐẦU TẬP
+                    </button>
+                  </div>
+                </div>
+
+                {/* Exercises */}
+                <div className="lg:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <SectionTitle
+                      title="Bài tập"
+                      badge={`${editMode ? editExercises.length : dayExercises.length}`}
+                    />
+                    {editMode ? (
+                      <div className="flex items-center gap-2">
+                        {editMode && (
+                          <span className="text-[10px] text-zinc-500 italic mr-2">
+                            {isSaving ? "Đang lưu..." : "Đã lưu"}
+                          </span>
+                        )}
                         <button
                           onClick={() => {
-                            setReplaceExerciseIndex(i);
-                            preselectExerciseFilter(ex);
-                            setShowAddExercise(true);
+                            setDayExercises(editExercises);
+                            setEditMode(false);
                           }}
-                          className="px-2.5 py-1 rounded-lg border border-zinc-700/40 text-[10px] text-zinc-300 hover:bg-zinc-800 shrink-0"
+                          className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 hover:border-zinc-600/30"
                         >
-                          Đổi bài
+                          <Check className="w-3 h-3 text-emerald-400" /> Xong
                         </button>
                         <button
-                          onClick={() => {
-                            if (editExercises.length <= 1) {
-                              alert("Mỗi ngày tập cần ít nhất 1 bài tập.");
-                              return;
-                            }
-                            if (!window.confirm("Xóa bài tập này khỏi ngày tập?")) return;
-                            setEditExercises(editExercises.filter((_, j) => j !== i));
-                          }}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-red-400 hover:bg-red-500/8 transition-all shrink-0"
+                          onClick={() => handleSaveWorkout(false)}
+                          disabled={isSaving}
+                          className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/25 disabled:opacity-50"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          {isSaving ? (
+                            <div className="w-3 h-3 border border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+                          ) : (
+                            <Check className="w-3 h-3" />
+                          )}
+                          {isSaving ? "Đang lưu..." : "Lưu ngay"}
                         </button>
                       </div>
-                    ))}
-                    {!isLoading && (
+                    ) : (
                       <button
                         onClick={() => {
-                          clearExerciseFilters();
-                          setReplaceExerciseIndex(null);
-                          setShowAddExercise(true);
+                          setEditExercises([...dayExercises]);
+                          setEditMode(true);
                         }}
-                        className="w-full rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/20 p-4 flex items-center justify-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/20 transition-all"
+                        className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20"
                       >
-                        <Plus className="w-4 h-4" /> Thêm bài tập
+                        <ArrowUpDown className="w-3 h-3" /> Sửa
                       </button>
                     )}
                   </div>
-                ) : (
-                  /* ── Normal Mode: clickable cards ── */
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                    {isLoading ? (
-                      <div className="col-span-full py-12 flex flex-col items-center justify-center space-y-4">
-                        <div className="w-8 h-8 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
-                        <p className="text-xs text-zinc-500">Đang tải bài tập...</p>
-                      </div>
-                    ) : dayExercises.map((ex, i) => (
-                      <div
-                        key={`ex-${i}-${ex.name}`}
-                        onClick={() => setShowExerciseDetail(ex)}
-                        className="group/ex rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-4 flex items-center gap-4 hover:border-emerald-500/15 hover:shadow-[0_0_20px_rgba(16,185,129,0.03)] transition-all cursor-pointer relative overflow-hidden"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 group-hover/ex:from-emerald-500/[0.015] to-transparent transition-all duration-300" />
-                        <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25">
-                          <ExerciseFlipDemo
-                            img1={ex.img}
-                            img2={ex.img2}
-                            alt={ex.name}
-                            className="w-full h-full"
-                          />
-                        </div>
-                        <div className="relative flex-1 min-w-0">
-                          <p className="text-sm text-zinc-100 truncate">{ex.name}</p>
-                          <p className="text-xs text-zinc-500 mt-1">{ex.prescription}</p>
-                        </div>
-                        <span className={`relative text-[10px] px-2.5 py-1 rounded-lg border shrink-0 ${
-                          ex.type === "cardio"
-                            ? "text-emerald-300 border-emerald-500/15 bg-emerald-500/6"
-                            : "text-green-300 border-green-500/15 bg-green-500/6"
-                        }`}>
-                          {ex.type === "cardio" ? "Cardio" : "Strength"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
-      {/* ═══════════════ ACTIVE EXERCISE ═══════════════ */}
-      {tab === "plan" && planView === "activeExercise" && !showCompletion && (() => {
-        if (dayExercises.length === 0) {
-          return (
-            <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-8 text-center">
-              <p className="text-sm text-zinc-400">Ngày tập này chưa có bài tập</p>
-              <button onClick={() => setPlanView("dayDetail")} className="mt-4 px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800">Quay lai</button>
+                  {editMode ? (
+                    /* ── Edit Mode: reorderable list ── */
+                    <div className="space-y-2 mt-4">
+                      {isLoading ? (
+                        <div className="py-12 flex flex-col items-center justify-center space-y-4">
+                          <div className="w-8 h-8 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
+                          <p className="text-xs text-zinc-500">Đang tải...</p>
+                        </div>
+                      ) : (
+                        editExercises.map((ex, i) => (
+                          <div
+                            key={`edit-${ex.id}`}
+                            draggable
+                            onDragStart={() => setDragIdx(i)}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                            }}
+                            onDrop={() => {
+                              if (dragIdx === null || dragIdx === i) return;
+                              const items = [...editExercises];
+                              const [moved] = items.splice(dragIdx, 1);
+                              items.splice(i, 0, moved);
+                              setEditExercises(items);
+                              setDragIdx(null);
+                            }}
+                            onDragEnd={() => setDragIdx(null)}
+                            className={`rounded-2xl border p-4 flex items-center gap-4 transition-all ${
+                              dragIdx === i
+                                ? "border-emerald-500/30 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.08)]"
+                                : "border-zinc-800/30 bg-zinc-900/40 hover:border-zinc-700/40"
+                            }`}
+                          >
+                            <div className="cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 transition-colors">
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+                            <span className="w-6 h-6 rounded-lg bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center text-[10px] text-zinc-500 shrink-0">
+                              {i + 1}
+                            </span>
+                            <div
+                              className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25"
+                              onClick={() => setShowExerciseDetail(ex)}
+                            >
+                              <ExerciseFlipDemo
+                                img1={ex.img}
+                                img2={ex.img2}
+                                alt={ex.name}
+                                className="w-full h-full"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-zinc-100 truncate">
+                                {ex.name}
+                              </p>
+                              <p className="text-xs text-zinc-500 mt-0.5">
+                                {ex.prescription}
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                {[
+                                  ["sets", "Sets"],
+                                  ["reps", "Reps"],
+                                  ["restSeconds", "Rest"],
+                                ].map(([key, label]) => (
+                                  <label
+                                    key={key}
+                                    className="flex items-center gap-1 text-[10px] text-zinc-500"
+                                  >
+                                    {label}
+                                    <input
+                                      type="number"
+                                      min={key === "restSeconds" ? 0 : 1}
+                                      value={ex[key] ?? ""}
+                                      onChange={(event) => {
+                                        const next = [...editExercises];
+                                        next[i] = {
+                                          ...next[i],
+                                          [key]:
+                                            Number(event.target.value) ||
+                                            (key === "restSeconds" ? 0 : 1),
+                                        };
+                                        next[i].prescription =
+                                          `${next[i].sets ?? 3}×${next[i].reps ?? 10}${next[i].restSeconds ? ` · nghỉ ${next[i].restSeconds}s` : ""}`;
+                                        setEditExercises(next);
+                                      }}
+                                      className="w-14 rounded-md border border-zinc-700/50 bg-zinc-950/60 px-2 py-1 text-[10px] text-zinc-200 outline-none focus:border-emerald-500/40"
+                                    />
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                            <span
+                              className={`text-[10px] px-2.5 py-1 rounded-lg border shrink-0 ${
+                                ex.type === "cardio"
+                                  ? "text-emerald-300 border-emerald-500/15 bg-emerald-500/6"
+                                  : "text-green-300 border-green-500/15 bg-green-500/6"
+                              }`}
+                            >
+                              {ex.type === "cardio" ? "Cardio" : "Strength"}
+                            </span>
+                            <button
+                              onClick={() => {
+                                setReplaceExerciseIndex(i);
+                                preselectExerciseFilter(ex);
+                                setShowAddExercise(true);
+                              }}
+                              className="px-2.5 py-1 rounded-lg border border-zinc-700/40 text-[10px] text-zinc-300 hover:bg-zinc-800 shrink-0"
+                            >
+                              Đổi bài
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (editExercises.length <= 1) {
+                                  alert("Mỗi ngày tập cần ít nhất 1 bài tập.");
+                                  return;
+                                }
+                                if (
+                                  !window.confirm(
+                                    "Xóa bài tập này khỏi ngày tập?",
+                                  )
+                                )
+                                  return;
+                                setEditExercises(
+                                  editExercises.filter((_, j) => j !== i),
+                                );
+                              }}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-red-400 hover:bg-red-500/8 transition-all shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                      {!isLoading && (
+                        <button
+                          onClick={() => {
+                            clearExerciseFilters();
+                            setReplaceExerciseIndex(null);
+                            setShowAddExercise(true);
+                          }}
+                          className="w-full rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/20 p-4 flex items-center justify-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/20 transition-all"
+                        >
+                          <Plus className="w-4 h-4" /> Thêm bài tập
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    /* ── Normal Mode: clickable cards ── */
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                      {isLoading ? (
+                        <div className="col-span-full py-12 flex flex-col items-center justify-center space-y-4">
+                          <div className="w-8 h-8 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
+                          <p className="text-xs text-zinc-500">
+                            Đang tải bài tập...
+                          </p>
+                        </div>
+                      ) : (
+                        dayExercises.map((ex, i) => (
+                          <div
+                            key={`ex-${i}-${ex.name}`}
+                            onClick={() => setShowExerciseDetail(ex)}
+                            className="group/ex rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-4 flex items-center gap-4 hover:border-emerald-500/15 hover:shadow-[0_0_20px_rgba(16,185,129,0.03)] transition-all cursor-pointer relative overflow-hidden"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 group-hover/ex:from-emerald-500/[0.015] to-transparent transition-all duration-300" />
+                            <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-zinc-700/25">
+                              <ExerciseFlipDemo
+                                img1={ex.img}
+                                img2={ex.img2}
+                                alt={ex.name}
+                                className="w-full h-full"
+                              />
+                            </div>
+                            <div className="relative flex-1 min-w-0">
+                              <p className="text-sm text-zinc-100 truncate">
+                                {ex.name}
+                              </p>
+                              <p className="text-xs text-zinc-500 mt-1">
+                                {ex.prescription}
+                              </p>
+                            </div>
+                            <span
+                              className={`relative text-[10px] px-2.5 py-1 rounded-lg border shrink-0 ${
+                                ex.type === "cardio"
+                                  ? "text-emerald-300 border-emerald-500/15 bg-emerald-500/6"
+                                  : "text-green-300 border-green-500/15 bg-green-500/6"
+                              }`}
+                            >
+                              {ex.type === "cardio" ? "Cardio" : "Strength"}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           );
-        }
-        const curEx = dayExercises[activeExIdx];
-        const isCompleted = completedExercises.has(activeExIdx);
-        const progressPct = (completedExercises.size / dayExercises.length) * 100;
-        const requiresExternalWeight = exerciseUsesExternalWeight(curEx);
-        const activeLog = activeExerciseLogs[activeExIdx] || {
-          weightKg: "",
-          noWeight: !requiresExternalWeight,
-        };
-        const updateActiveLog = (patch: Partial<ActiveExerciseLog>) => {
-          setActiveExerciseLogs((prev) => ({
-            ...prev,
-            [activeExIdx]: {
-              weightKg: prev[activeExIdx]?.weightKg ?? "",
-              noWeight: prev[activeExIdx]?.noWeight ?? !requiresExternalWeight,
-              ...patch,
-            },
-          }));
-        };
-        return (
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-4">
-            <button onClick={() => setPlanView("dayDetail")} className="w-10 h-10 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
-              <ChevronLeft className="w-5 h-5 text-zinc-400" />
-            </button>
-            <div className="flex-1">
-              <h2 className="text-base text-white">
-                <span className="text-emerald-400">{activeExIdx + 1}</span><span className="text-zinc-600">/{dayExercises.length}</span>{" "}
-                <span className="text-zinc-300">{curEx.type === "cardio" ? "Cardio" : "Strength"} — {curEx.name}</span>
-              </h2>
-              <p className="text-xs text-zinc-500">{curEx.prescription}</p>
-            </div>
-            {/* Timer button */}
-            {!timerRunning ? (
-              <button onClick={() => setTimerRunning(true)} className="px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-sm text-emerald-300 hover:bg-emerald-500/15 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)] transition-all flex items-center gap-2">
-                <Play className="w-4 h-4" /> {timerSeconds > 0 ? "Tiếp tục" : "Bắt giờ"}
-              </button>
-            ) : (
-              <button onClick={() => setTimerRunning(false)} className="px-5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/15 text-sm text-amber-300 hover:bg-amber-500/15 transition-all flex items-center gap-2">
-                <Pause className="w-4 h-4" /> Tạm dừng
-              </button>
-            )}
-          </div>
+        })()}
 
-          {/* Overall progress bar */}
-          <div className="rounded-xl bg-zinc-900/40 border border-zinc-800/30 p-3 flex items-center gap-4">
-            <span className="text-[10px] text-zinc-600 uppercase tracking-wider shrink-0">Tiến độ</span>
-            <div className="flex-1 h-2 bg-zinc-800/50 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.35)]" style={{ width: `${progressPct}%` }} />
-            </div>
-            <span className="text-xs text-emerald-400 shrink-0">{completedExercises.size}/{dayExercises.length}</span>
-          </div>
+      {/* ═══════════════ ACTIVE EXERCISE ═══════════════ */}
+      {tab === "plan" &&
+        planView === "activeExercise" &&
+        !showCompletion &&
+        (() => {
+          if (dayExercises.length === 0) {
+            return (
+              <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-8 text-center">
+                <p className="text-sm text-zinc-400">
+                  Ngày tập này chưa có bài tập
+                </p>
+                <button
+                  onClick={() => setPlanView("dayDetail")}
+                  className="mt-4 px-3 py-2 rounded-lg border border-zinc-700/50 text-zinc-300 text-xs hover:bg-zinc-800"
+                >
+                  Quay lai
+                </button>
+              </div>
+            );
+          }
+          const curEx = dayExercises[activeExIdx];
+          const isCompleted = completedExercises.has(activeExIdx);
+          const progressPct =
+            (completedExercises.size / dayExercises.length) * 100;
+          const requiresExternalWeight = exerciseUsesExternalWeight(curEx);
+          const activeLog = activeExerciseLogs[activeExIdx] || {
+            weightKg: "",
+            noWeight: !requiresExternalWeight,
+          };
+          const updateActiveLog = (patch: Partial<ActiveExerciseLog>) => {
+            setActiveExerciseLogs((prev) => ({
+              ...prev,
+              [activeExIdx]: {
+                weightKg: prev[activeExIdx]?.weightKg ?? "",
+                noWeight:
+                  prev[activeExIdx]?.noWeight ?? !requiresExternalWeight,
+                ...patch,
+              },
+            }));
+          };
+          return (
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setPlanView("dayDetail")}
+                  className="w-10 h-10 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5 text-zinc-400" />
+                </button>
+                <div className="flex-1">
+                  <h2 className="text-base text-white">
+                    <span className="text-emerald-400">{activeExIdx + 1}</span>
+                    <span className="text-zinc-600">
+                      /{dayExercises.length}
+                    </span>{" "}
+                    <span className="text-zinc-300">
+                      {curEx.type === "cardio" ? "Cardio" : "Strength"} —{" "}
+                      {curEx.name}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-zinc-500">{curEx.prescription}</p>
+                </div>
+                {/* Timer button */}
+                {!timerRunning ? (
+                  <button
+                    onClick={() => setTimerRunning(true)}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-sm text-emerald-300 hover:bg-emerald-500/15 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)] transition-all flex items-center gap-2"
+                  >
+                    <Play className="w-4 h-4" />{" "}
+                    {timerSeconds > 0 ? "Tiếp tục" : "Bắt giờ"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setTimerRunning(false)}
+                    className="px-5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/15 text-sm text-amber-300 hover:bg-amber-500/15 transition-all flex items-center gap-2"
+                  >
+                    <Pause className="w-4 h-4" /> Tạm dừng
+                  </button>
+                )}
+              </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left: Media + Info */}
-            <div className="space-y-5">
-              {/* Rest timer banner */}
-              {restTimerRunning && restSeconds > 0 && (
-                <div className="rounded-2xl border border-amber-500/15 bg-amber-950/20 p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center shrink-0">
-                      <Timer className="w-4 h-4 text-amber-400" />
+              {/* Overall progress bar */}
+              <div className="rounded-xl bg-zinc-900/40 border border-zinc-800/30 p-3 flex items-center gap-4">
+                <span className="text-[10px] text-zinc-600 uppercase tracking-wider shrink-0">
+                  Tiến độ
+                </span>
+                <div className="flex-1 h-2 bg-zinc-800/50 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full transition-all duration-500 shadow-[0_0_8px_rgba(16,185,129,0.35)]"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+                <span className="text-xs text-emerald-400 shrink-0">
+                  {completedExercises.size}/{dayExercises.length}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left: Media + Info */}
+                <div className="space-y-5">
+                  {/* Rest timer banner */}
+                  {restTimerRunning && restSeconds > 0 && (
+                    <div className="rounded-2xl border border-amber-500/15 bg-amber-950/20 p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/15 flex items-center justify-center shrink-0">
+                          <Timer className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-amber-200">
+                            Nghỉ giữa set
+                          </p>
+                          <p className="text-xs text-amber-400/50">
+                            Nghỉ ngơi trước set tiếp
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl text-amber-300 tabular-nums">
+                          {formatTime(restSeconds)}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setRestTimerRunning(false);
+                            setRestSeconds(90);
+                          }}
+                          className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/15 flex items-center justify-center hover:bg-amber-500/20 transition-all"
+                        >
+                          <SkipForward className="w-3.5 h-3.5 text-amber-400" />
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-amber-200">Nghỉ giữa set</p>
-                      <p className="text-xs text-amber-400/50">Nghỉ ngơi trước set tiếp</p>
+                  )}
+
+                  <div className="rounded-2xl border border-emerald-500/10 bg-emerald-950/20 p-4 flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/8 border border-emerald-500/15 flex items-center justify-center shrink-0">
+                      <BarChart3 className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <p className="text-xs text-emerald-200/60">
+                      Hoạt ảnh bài tập — bấm để xem chi tiết
+                    </p>
+                  </div>
+
+                  {/* Exercise flip animation demo */}
+                  <div
+                    onClick={() => setShowExerciseDetail(curEx)}
+                    className="rounded-2xl overflow-hidden border border-zinc-800/30 aspect-video relative group cursor-pointer"
+                  >
+                    <ExerciseFlipDemo
+                      img1={curEx.img}
+                      img2={(curEx as any).img2}
+                      alt={curEx.name}
+                      className="w-full h-full rounded-2xl"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div className="w-14 h-14 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+                        <Play className="w-6 h-6 text-white ml-0.5" />
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl text-amber-300 tabular-nums">{formatTime(restSeconds)}</span>
-                    <button onClick={() => { setRestTimerRunning(false); setRestSeconds(90); }} className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/15 flex items-center justify-center hover:bg-amber-500/20 transition-all">
-                      <SkipForward className="w-3.5 h-3.5 text-amber-400" />
+
+                  <div className="text-center space-y-2 py-2">
+                    <h3 className="text-xl text-white tracking-tight">
+                      {curEx.name}
+                    </h3>
+                    <p className="text-sm text-zinc-500">
+                      Lịch tập:{" "}
+                      <span className="text-emerald-400/70">
+                        {curEx.prescription}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right: Timer rings + Logging + Navigation */}
+                <div className="space-y-5">
+                  {/* Timer & Stats rings */}
+                  <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-8">
+                    <div className="flex items-center justify-center gap-10">
+                      {/* Elapsed Timer */}
+                      <div className="flex flex-col items-center gap-2.5">
+                        <div
+                          className="relative"
+                          style={{ width: 90, height: 90 }}
+                        >
+                          <svg width="90" height="90" viewBox="0 0 90 90">
+                            <circle
+                              cx="45"
+                              cy="45"
+                              r="39"
+                              fill="none"
+                              stroke="#064e3b"
+                              strokeWidth="3"
+                            />
+                            <circle
+                              cx="45"
+                              cy="45"
+                              r="39"
+                              fill="none"
+                              stroke={timerRunning ? "#10b981" : "#22c55e"}
+                              strokeWidth="3"
+                              strokeDasharray={`${Math.min((timerSeconds / 600) * 245, 245)} 245`}
+                              strokeLinecap="round"
+                              transform="rotate(-90 45 45)"
+                              className="transition-all duration-1000"
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span
+                              className={`text-base tabular-nums ${timerRunning ? "text-emerald-400" : "text-zinc-300"}`}
+                            >
+                              {formatTime(timerSeconds)}
+                            </span>
+                          </div>
+                          {timerRunning && (
+                            <div className="absolute inset-0 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-pulse" />
+                          )}
+                        </div>
+                        <span className="text-[11px] text-zinc-500">
+                          Đã qua
+                        </span>
+                      </div>
+                      {/* Rest */}
+                      <div className="flex flex-col items-center gap-2.5">
+                        <div
+                          className="relative"
+                          style={{ width: 90, height: 90 }}
+                        >
+                          <svg width="90" height="90" viewBox="0 0 90 90">
+                            <circle
+                              cx="45"
+                              cy="45"
+                              r="39"
+                              fill="none"
+                              stroke="#18181b"
+                              strokeWidth="3"
+                            />
+                            {restTimerRunning && (
+                              <circle
+                                cx="45"
+                                cy="45"
+                                r="39"
+                                fill="none"
+                                stroke="#f59e0b"
+                                strokeWidth="3"
+                                strokeDasharray={`${(restSeconds / 90) * 245} 245`}
+                                strokeLinecap="round"
+                                transform="rotate(-90 45 45)"
+                                className="transition-all duration-1000"
+                              />
+                            )}
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            {restTimerRunning ? (
+                              <span className="text-base text-amber-300 tabular-nums">
+                                {formatTime(restSeconds)}
+                              </span>
+                            ) : (
+                              <Timer className="w-5 h-5 text-zinc-600" />
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-zinc-500">Nghỉ</span>
+                      </div>
+                      {/* Set Progress */}
+                      <div className="flex flex-col items-center gap-2.5">
+                        <div
+                          className="relative"
+                          style={{ width: 90, height: 90 }}
+                        >
+                          <svg width="90" height="90" viewBox="0 0 90 90">
+                            <circle
+                              cx="45"
+                              cy="45"
+                              r="39"
+                              fill="none"
+                              stroke="#064e3b"
+                              strokeWidth="3"
+                            />
+                            <circle
+                              cx="45"
+                              cy="45"
+                              r="39"
+                              fill="none"
+                              stroke="#10b981"
+                              strokeWidth="3"
+                              strokeDasharray={`${(progressPct / 100) * 245} 245`}
+                              strokeLinecap="round"
+                              transform="rotate(-90 45 45)"
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-base text-emerald-400">
+                              {completedExercises.size}/{dayExercises.length}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-zinc-500">Xong</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Log Entry */}
+                  <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 space-y-4">
+                    <p className="text-xs text-zinc-600 uppercase tracking-wider">
+                      Ghi chép
+                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={activeLog.noWeight ? "" : activeLog.weightKg}
+                        onChange={(e) =>
+                          updateActiveLog({
+                            weightKg: e.target.value,
+                            noWeight: false,
+                          })
+                        }
+                        disabled={activeLog.noWeight}
+                        placeholder={
+                          curEx.type === "cardio"
+                            ? "Nhập thời gian (phút)..."
+                            : "Nhập tạ (kg)..."
+                        }
+                        className="flex-1 px-5 py-4 rounded-xl bg-zinc-800/30 border border-zinc-700/25 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/25 focus:ring-1 focus:ring-emerald-500/10 focus:shadow-[0_0_12px_rgba(16,185,129,0.06)] transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateActiveLog({
+                            noWeight: !activeLog.noWeight,
+                            weightKg: "",
+                          })
+                        }
+                        disabled={!requiresExternalWeight}
+                        className={`px-4 h-14 rounded-xl border text-sm font-medium transition-all ${
+                          activeLog.noWeight
+                            ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                            : "border-zinc-700/40 bg-zinc-800/30 text-zinc-300 hover:bg-zinc-800"
+                        } disabled:cursor-default`}
+                      >
+                        Không dùng tạ
+                      </button>
+                    </div>
+                    {requiresExternalWeight && !activeLog.noWeight && (
+                      <p className="text-[11px] text-amber-300/80">
+                        Bắt buộc nhập tổng kg tạ trước khi hoàn thành bài này.
+                      </p>
+                    )}
+                    <button className="flex items-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 transition-colors">
+                      <MessageSquare className="w-3.5 h-3.5" /> Thêm ghi chú
                     </button>
                   </div>
-                </div>
-              )}
 
-              <div className="rounded-2xl border border-emerald-500/10 bg-emerald-950/20 p-4 flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/8 border border-emerald-500/15 flex items-center justify-center shrink-0">
-                  <BarChart3 className="w-4 h-4 text-emerald-400" />
-                </div>
-                <p className="text-xs text-emerald-200/60">Hoạt ảnh bài tập — bấm để xem chi tiết</p>
-              </div>
-
-              {/* Exercise flip animation demo */}
-              <div
-                onClick={() => setShowExerciseDetail(curEx)}
-                className="rounded-2xl overflow-hidden border border-zinc-800/30 aspect-video relative group cursor-pointer"
-              >
-                <ExerciseFlipDemo
-                  img1={curEx.img}
-                  img2={(curEx as any).img2}
-                  alt={curEx.name}
-                  className="w-full h-full rounded-2xl"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  <div className="w-14 h-14 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center">
-                    <Play className="w-6 h-6 text-white ml-0.5" />
+                  {/* Navigation buttons */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <button
+                      onClick={() => {
+                        if (activeExIdx > 0) {
+                          setActiveExIdx(activeExIdx - 1);
+                          setTimerRunning(false);
+                          setTimerSeconds(0);
+                        }
+                      }}
+                      disabled={activeExIdx === 0}
+                      className="py-3.5 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Trước
+                    </button>
+                    <button
+                      onClick={handleCompleteExercise}
+                      disabled={isCompleted || isCompletingWorkout}
+                      className={`py-3.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${
+                        isCompleted || isCompletingWorkout
+                          ? "bg-emerald-500/10 border border-emerald-500/15 text-emerald-500/50 cursor-not-allowed"
+                          : "bg-emerald-500 text-black hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98]"
+                      }`}
+                    >
+                      <Check className="w-4 h-4" />{" "}
+                      {isCompleted ? "Xong" : "Hoàn thành"}
+                    </button>
+                    <button
+                      onClick={handleSkipExercise}
+                      disabled={activeExIdx === dayExercises.length - 1}
+                      className="py-3.5 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      Bỏ qua <SkipForward className="w-4 h-4" />
+                    </button>
                   </div>
-                </div>
-              </div>
 
-              <div className="text-center space-y-2 py-2">
-                <h3 className="text-xl text-white tracking-tight">{curEx.name}</h3>
-                <p className="text-sm text-zinc-500">Lịch tập: <span className="text-emerald-400/70">{curEx.prescription}</span></p>
-              </div>
-            </div>
-
-            {/* Right: Timer rings + Logging + Navigation */}
-            <div className="space-y-5">
-              {/* Timer & Stats rings */}
-              <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-8">
-                <div className="flex items-center justify-center gap-10">
-                  {/* Elapsed Timer */}
-                  <div className="flex flex-col items-center gap-2.5">
-                    <div className="relative" style={{ width: 90, height: 90 }}>
-                      <svg width="90" height="90" viewBox="0 0 90 90">
-                        <circle cx="45" cy="45" r="39" fill="none" stroke="#064e3b" strokeWidth="3" />
-                        <circle cx="45" cy="45" r="39" fill="none" stroke={timerRunning ? "#10b981" : "#22c55e"} strokeWidth="3"
-                          strokeDasharray={`${Math.min((timerSeconds / 600) * 245, 245)} 245`} strokeLinecap="round" transform="rotate(-90 45 45)"
-                          className="transition-all duration-1000" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className={`text-base tabular-nums ${timerRunning ? "text-emerald-400" : "text-zinc-300"}`}>{formatTime(timerSeconds)}</span>
-                      </div>
-                      {timerRunning && <div className="absolute inset-0 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-pulse" />}
+                  {/* Exercise list mini nav */}
+                  <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-4">
+                    <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">
+                      Danh sách bài tập
+                    </p>
+                    <div className="space-y-1.5">
+                      {dayExercises.map((ex, i) => {
+                        const done = completedExercises.has(i);
+                        const active = i === activeExIdx;
+                        return (
+                          <button
+                            key={`nav-${i}`}
+                            onClick={() => {
+                              setActiveExIdx(i);
+                              setTimerRunning(false);
+                              setTimerSeconds(0);
+                            }}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-all ${
+                              active
+                                ? "bg-emerald-500/8 border border-emerald-500/15"
+                                : "hover:bg-zinc-800/30 border border-transparent"
+                            }`}
+                          >
+                            <div
+                              className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                                done
+                                  ? "bg-emerald-500 text-black"
+                                  : active
+                                    ? "bg-emerald-500/15 border border-emerald-500/25"
+                                    : "bg-zinc-800/40 border border-zinc-700/25"
+                              }`}
+                            >
+                              {done ? (
+                                <Check className="w-3 h-3" />
+                              ) : (
+                                <span className="text-[10px] text-zinc-500">
+                                  {i + 1}
+                                </span>
+                              )}
+                            </div>
+                            <span
+                              className={`text-xs truncate ${done ? "text-zinc-500 line-through" : active ? "text-emerald-300" : "text-zinc-400"}`}
+                            >
+                              {ex.name}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <span className="text-[11px] text-zinc-500">Đã qua</span>
                   </div>
-                  {/* Rest */}
-                  <div className="flex flex-col items-center gap-2.5">
-                    <div className="relative" style={{ width: 90, height: 90 }}>
-                      <svg width="90" height="90" viewBox="0 0 90 90">
-                        <circle cx="45" cy="45" r="39" fill="none" stroke="#18181b" strokeWidth="3" />
-                        {restTimerRunning && (
-                          <circle cx="45" cy="45" r="39" fill="none" stroke="#f59e0b" strokeWidth="3"
-                            strokeDasharray={`${(restSeconds / 90) * 245} 245`} strokeLinecap="round" transform="rotate(-90 45 45)"
-                            className="transition-all duration-1000" />
-                        )}
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        {restTimerRunning ? (
-                          <span className="text-base text-amber-300 tabular-nums">{formatTime(restSeconds)}</span>
-                        ) : (
-                          <Timer className="w-5 h-5 text-zinc-600" />
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-[11px] text-zinc-500">Nghỉ</span>
-                  </div>
-                  {/* Set Progress */}
-                  <div className="flex flex-col items-center gap-2.5">
-                    <div className="relative" style={{ width: 90, height: 90 }}>
-                      <svg width="90" height="90" viewBox="0 0 90 90">
-                        <circle cx="45" cy="45" r="39" fill="none" stroke="#064e3b" strokeWidth="3" />
-                        <circle cx="45" cy="45" r="39" fill="none" stroke="#10b981" strokeWidth="3"
-                          strokeDasharray={`${progressPct / 100 * 245} 245`} strokeLinecap="round" transform="rotate(-90 45 45)" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-base text-emerald-400">{completedExercises.size}/{dayExercises.length}</span>
-                      </div>
-                    </div>
-                    <span className="text-[11px] text-zinc-500">Xong</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Log Entry */}
-              <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-6 space-y-4">
-                <p className="text-xs text-zinc-600 uppercase tracking-wider">Ghi chép</p>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={activeLog.noWeight ? "" : activeLog.weightKg}
-                    onChange={(e) => updateActiveLog({ weightKg: e.target.value, noWeight: false })}
-                    disabled={activeLog.noWeight}
-                    placeholder={curEx.type === "cardio" ? "Nhập thời gian (phút)..." : "Nhập tạ (kg)..."}
-                    className="flex-1 px-5 py-4 rounded-xl bg-zinc-800/30 border border-zinc-700/25 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/25 focus:ring-1 focus:ring-emerald-500/10 focus:shadow-[0_0_12px_rgba(16,185,129,0.06)] transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => updateActiveLog({ noWeight: !activeLog.noWeight, weightKg: "" })}
-                    disabled={!requiresExternalWeight}
-                    className={`px-4 h-14 rounded-xl border text-sm font-medium transition-all ${
-                      activeLog.noWeight
-                        ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
-                        : "border-zinc-700/40 bg-zinc-800/30 text-zinc-300 hover:bg-zinc-800"
-                    } disabled:cursor-default`}
-                  >
-                    Không dùng tạ
-                  </button>
-                </div>
-                {requiresExternalWeight && !activeLog.noWeight && (
-                  <p className="text-[11px] text-amber-300/80">Bắt buộc nhập tổng kg tạ trước khi hoàn thành bài này.</p>
-                )}
-                <button className="flex items-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 transition-colors">
-                  <MessageSquare className="w-3.5 h-3.5" /> Thêm ghi chú
-                </button>
-              </div>
-
-              {/* Navigation buttons */}
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  onClick={() => { if (activeExIdx > 0) { setActiveExIdx(activeExIdx - 1); setTimerRunning(false); setTimerSeconds(0); } }}
-                  disabled={activeExIdx === 0}
-                  className="py-3.5 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <ChevronLeft className="w-4 h-4" /> Trước
-                </button>
-                <button
-                  onClick={handleCompleteExercise}
-                  disabled={isCompleted || isCompletingWorkout}
-                  className={`py-3.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${
-                    isCompleted || isCompletingWorkout
-                      ? "bg-emerald-500/10 border border-emerald-500/15 text-emerald-500/50 cursor-not-allowed"
-                      : "bg-emerald-500 text-black hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98]"
-                  }`}
-                >
-                  <Check className="w-4 h-4" /> {isCompleted ? "Xong" : "Hoàn thành"}
-                </button>
-                <button
-                  onClick={handleSkipExercise}
-                  disabled={activeExIdx === dayExercises.length - 1}
-                  className="py-3.5 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  Bỏ qua <SkipForward className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Exercise list mini nav */}
-              <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/40 p-4">
-                <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Danh sách bài tập</p>
-                <div className="space-y-1.5">
-                  {dayExercises.map((ex, i) => {
-                    const done = completedExercises.has(i);
-                    const active = i === activeExIdx;
-                    return (
-                      <button
-                        key={`nav-${i}`}
-                        onClick={() => { setActiveExIdx(i); setTimerRunning(false); setTimerSeconds(0); }}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-all ${
-                          active
-                            ? "bg-emerald-500/8 border border-emerald-500/15"
-                            : "hover:bg-zinc-800/30 border border-transparent"
-                        }`}
-                      >
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
-                          done ? "bg-emerald-500 text-black" : active ? "bg-emerald-500/15 border border-emerald-500/25" : "bg-zinc-800/40 border border-zinc-700/25"
-                        }`}>
-                          {done ? <Check className="w-3 h-3" /> : <span className="text-[10px] text-zinc-500">{i + 1}</span>}
-                        </div>
-                        <span className={`text-xs truncate ${done ? "text-zinc-500 line-through" : active ? "text-emerald-300" : "text-zinc-400"}`}>{ex.name}</span>
-                      </button>
-                    );
-                  })}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* ═══════════════ WORKOUT COMPLETION ═══════════════ */}
       {tab === "plan" && planView === "activeExercise" && showCompletion && (
@@ -2633,18 +3693,34 @@ export function WorkoutLogPage() {
             </div>
 
             <div>
-              <h2 className="text-3xl text-white tracking-tight mb-3">Hoàn thành buổi tập!</h2>
-              <p className="text-zinc-400 text-sm">Xuất sắc ngày {selectedDay} — hoàn thành {dayExercises.length} bài tập! Hãy duy trì phong độ.</p>
+              <h2 className="text-3xl text-white tracking-tight mb-3">
+                Hoàn thành buổi tập!
+              </h2>
+              <p className="text-zinc-400 text-sm">
+                Xuất sắc ngày {selectedDay} — hoàn thành {dayExercises.length}{" "}
+                bài tập! Hãy duy trì phong độ.
+              </p>
             </div>
 
             {/* Stats */}
             <div className="flex items-center justify-center gap-6">
               {[
-                { label: "Bài tập", value: `${dayExercises.length}/${dayExercises.length}`, icon: Dumbbell },
-                { label: "Thời gian", value: formatTime(timerSeconds || 0), icon: Clock },
+                {
+                  label: "Bài tập",
+                  value: `${dayExercises.length}/${dayExercises.length}`,
+                  icon: Dumbbell,
+                },
+                {
+                  label: "Thời gian",
+                  value: formatTime(timerSeconds || 0),
+                  icon: Clock,
+                },
                 { label: "Trạng thái", value: "Hoàn thành", icon: Check },
               ].map((s) => (
-                <div key={s.label} className="px-5 py-4 rounded-2xl bg-zinc-900/50 border border-zinc-800/30 min-w-[120px]">
+                <div
+                  key={s.label}
+                  className="px-5 py-4 rounded-2xl bg-zinc-900/50 border border-zinc-800/30 min-w-[120px]"
+                >
                   <s.icon className="w-4 h-4 text-emerald-500/60 mx-auto mb-2" />
                   <p className="text-sm text-emerald-300">{s.value}</p>
                   <p className="text-[10px] text-zinc-600 mt-0.5">{s.label}</p>
@@ -2655,13 +3731,17 @@ export function WorkoutLogPage() {
             {/* Actions */}
             <div className="flex items-center justify-center gap-4">
               <button
-                onClick={() => { setPlanView("dayDetail"); }}
+                onClick={() => {
+                  setPlanView("dayDetail");
+                }}
                 className="px-8 py-3.5 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-300 hover:bg-zinc-800/70 transition-all"
               >
                 Quay lại chi tiết
               </button>
               <button
-                onClick={() => { setPlanView("main"); }}
+                onClick={() => {
+                  setPlanView("main");
+                }}
                 className="px-8 py-3.5 rounded-xl bg-emerald-500 text-black text-sm hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] flex items-center gap-2"
               >
                 <Trophy className="w-4 h-4" /> Xem tất cả ngày
@@ -2673,14 +3753,20 @@ export function WorkoutLogPage() {
 
       {/* ═══════════════ EXERCISE DETAIL MODAL ═══════════════ */}
       {showExerciseDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowExerciseDetail(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowExerciseDetail(null)}
+        >
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           <div
             className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl shadow-black/50"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close */}
-            <button onClick={() => setShowExerciseDetail(null)} className="absolute top-4 right-4 z-10 w-9 h-9 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/60 transition-all">
+            <button
+              onClick={() => setShowExerciseDetail(null)}
+              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.06] flex items-center justify-center hover:bg-black/60 transition-all"
+            >
               <Plus className="w-4 h-4 text-white/60 rotate-45" />
             </button>
 
@@ -2704,39 +3790,61 @@ export function WorkoutLogPage() {
               {/* Header */}
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-xl text-white tracking-tight">{showExerciseDetail.name}</h2>
-                  <p className="text-sm text-emerald-400 mt-1">{showExerciseDetail.prescription || "Chưa có lịch tập"}</p>
+                  <h2 className="text-xl text-white tracking-tight">
+                    {showExerciseDetail.name}
+                  </h2>
+                  <p className="text-sm text-emerald-400 mt-1">
+                    {showExerciseDetail.prescription || "Chưa có lịch tập"}
+                  </p>
                 </div>
-                <span className={`text-[11px] px-3 py-1.5 rounded-xl border shrink-0 ${
-                  showExerciseDetail.type === "cardio"
-                    ? "text-emerald-300 border-emerald-500/15 bg-emerald-500/6"
-                    : "text-green-300 border-green-500/15 bg-green-500/6"
-                }`}>
+                <span
+                  className={`text-[11px] px-3 py-1.5 rounded-xl border shrink-0 ${
+                    showExerciseDetail.type === "cardio"
+                      ? "text-emerald-300 border-emerald-500/15 bg-emerald-500/6"
+                      : "text-green-300 border-green-500/15 bg-green-500/6"
+                  }`}
+                >
                   {showExerciseDetail.type === "cardio" ? "Cardio" : "Strength"}
                 </span>
               </div>
 
               {/* Description */}
               <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
-                <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">Mô tả</p>
-                <p className="text-sm text-zinc-300 leading-relaxed">{showExerciseDetail.description}</p>
+                <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">
+                  Mô tả
+                </p>
+                <p className="text-sm text-zinc-300 leading-relaxed">
+                  {showExerciseDetail.description}
+                </p>
               </div>
 
               {/* Muscles & Tips */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
-                  <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Cơ mục tiêu</p>
+                  <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">
+                    Cơ mục tiêu
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {showExerciseDetail.muscles.map((m: string) => (
-                      <span key={m} className="px-3 py-1.5 rounded-lg bg-emerald-500/8 border border-emerald-500/12 text-xs text-emerald-300">{m}</span>
+                      <span
+                        key={m}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-500/8 border border-emerald-500/12 text-xs text-emerald-300"
+                      >
+                        {m}
+                      </span>
                     ))}
                   </div>
                 </div>
                 <div className="rounded-xl bg-zinc-800/30 border border-zinc-700/20 p-4">
-                  <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">Mẹo hay</p>
+                  <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">
+                    Mẹo hay
+                  </p>
                   <ul className="space-y-2">
                     {showExerciseDetail.tips?.map((t: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-zinc-400">
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 text-xs text-zinc-400"
+                      >
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
                         {t}
                       </li>
@@ -2751,51 +3859,111 @@ export function WorkoutLogPage() {
 
       {/* ═══════════════ CALENDAR SCHEDULE MODAL ═══════════════ */}
       {showManualBuilder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowManualBuilder(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowManualBuilder(false)}
+        >
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-          <div className="relative w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="relative w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg text-white">Tạo chương trình thủ công</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">Chọn lịch trong tuần, rồi tự custom bài tập cho từng buổi.</p>
+                <h2 className="text-lg text-white">
+                  Tạo chương trình thủ công
+                </h2>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Chọn lịch trong tuần, rồi tự custom bài tập cho từng buổi.
+                </p>
               </div>
-              <button onClick={() => setShowManualBuilder(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+              <button
+                onClick={() => setShowManualBuilder(false)}
+                className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all"
+              >
                 <X className="w-4 h-4 text-zinc-400" />
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <label className="space-y-1 md:col-span-2">
-                <span className="block text-xs font-semibold text-zinc-400">Tên chương trình</span>
-                <input value={manualProgramName} onChange={(event) => setManualProgramName(event.target.value)} className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50" />
+                <span className="block text-xs font-semibold text-zinc-400">
+                  Tên chương trình
+                </span>
+                <input
+                  value={manualProgramName}
+                  onChange={(event) => setManualProgramName(event.target.value)}
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50"
+                />
               </label>
               <label className="space-y-1">
-                <span className="block text-xs font-semibold text-zinc-400">Ngày bắt đầu</span>
-                <input type="date" value={manualStartDate} onChange={(event) => setManualStartDate(event.target.value)} className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50 [color-scheme:dark]" />
+                <span className="block text-xs font-semibold text-zinc-400">
+                  Ngày bắt đầu
+                </span>
+                <input
+                  type="date"
+                  value={manualStartDate}
+                  onChange={(event) => setManualStartDate(event.target.value)}
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50 [color-scheme:dark]"
+                />
               </label>
               <label className="space-y-1">
-                <span className="block text-xs font-semibold text-zinc-400">Số tuần</span>
-                <input type="number" min={1} max={52} value={manualDurationWeeks} onChange={(event) => setManualDurationWeeks(event.target.value)} className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50" />
+                <span className="block text-xs font-semibold text-zinc-400">
+                  Số tuần
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  max={52}
+                  value={manualDurationWeeks}
+                  onChange={(event) =>
+                    setManualDurationWeeks(event.target.value)
+                  }
+                  className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50"
+                />
               </label>
             </div>
 
             <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm text-zinc-100 font-semibold">Số buổi và ngày tập</p>
-                  <p className="text-xs text-zinc-500">Chọn đúng số ngày bằng số buổi/tuần.</p>
+                  <p className="text-sm text-zinc-100 font-semibold">
+                    Số buổi và ngày tập
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    Chọn đúng số ngày bằng số buổi/tuần.
+                  </p>
                 </div>
-                <select value={manualDaysPerWeek} onChange={(event) => updateManualDaysPerWeek(Number(event.target.value))} className="rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/50">
-                  {[1, 2, 3, 4, 5, 6, 7].map((value) => <option key={value} value={value}>{value} buổi/tuần</option>)}
+                <select
+                  value={manualDaysPerWeek}
+                  onChange={(event) =>
+                    updateManualDaysPerWeek(Number(event.target.value))
+                  }
+                  className="rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/50"
+                >
+                  {[1, 2, 3, 4, 5, 6, 7].map((value) => (
+                    <option key={value} value={value}>
+                      {value} buổi/tuần
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
                 {MANUAL_WEEKDAYS.map((weekday) => {
                   const active = manualSelectedWeekdays.includes(weekday.value);
                   return (
-                    <button key={weekday.value} type="button" onClick={() => toggleManualWeekday(weekday.value)} className={`rounded-xl border px-3 py-2 text-sm transition-colors ${active ? "border-emerald-500/35 bg-emerald-500/15 text-emerald-300" : "border-zinc-800 bg-zinc-900 text-zinc-500 hover:text-zinc-200"}`}>
-                      <span className="block font-semibold">{weekday.short}</span>
-                      <span className="block text-[10px] opacity-70">{weekday.label}</span>
+                    <button
+                      key={weekday.value}
+                      type="button"
+                      onClick={() => toggleManualWeekday(weekday.value)}
+                      className={`rounded-xl border px-3 py-2 text-sm transition-colors ${active ? "border-emerald-500/35 bg-emerald-500/15 text-emerald-300" : "border-zinc-800 bg-zinc-900 text-zinc-500 hover:text-zinc-200"}`}
+                    >
+                      <span className="block font-semibold">
+                        {weekday.short}
+                      </span>
+                      <span className="block text-[10px] opacity-70">
+                        {weekday.label}
+                      </span>
                     </button>
                   );
                 })}
@@ -2804,35 +3972,104 @@ export function WorkoutLogPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {manualDays.map((day, dayIndex) => (
-                <div key={day.dayNumber} className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3">
+                <div
+                  key={day.dayNumber}
+                  className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 space-y-3"
+                >
                   <div className="flex items-center gap-3">
-                    <span className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-semibold">{day.dayNumber}</span>
-                    <input value={day.title} onChange={(event) => setManualDays((previous) => previous.map((item, index) => index === dayIndex ? { ...item, title: event.target.value } : item))} className="flex-1 rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/50" />
-                    <button type="button" onClick={() => { setManualEditingDayIndex(dayIndex); clearExerciseFilters(); setReplaceExerciseIndex(null); setShowAddExercise(true); }} className="px-3 py-2 rounded-xl bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400">Thêm bài</button>
+                    <span className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-center justify-center text-xs font-semibold">
+                      {day.dayNumber}
+                    </span>
+                    <input
+                      value={day.title}
+                      onChange={(event) =>
+                        setManualDays((previous) =>
+                          previous.map((item, index) =>
+                            index === dayIndex
+                              ? { ...item, title: event.target.value }
+                              : item,
+                          ),
+                        )
+                      }
+                      className="flex-1 rounded-xl bg-zinc-900 border border-zinc-800 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualEditingDayIndex(dayIndex);
+                        clearExerciseFilters();
+                        setReplaceExerciseIndex(null);
+                        setShowAddExercise(true);
+                      }}
+                      className="px-3 py-2 rounded-xl bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400"
+                    >
+                      Thêm bài
+                    </button>
                   </div>
                   <div className="space-y-2">
                     {day.exercises.length === 0 ? (
-                      <p className="text-xs text-zinc-500 rounded-lg border border-dashed border-zinc-800 p-3">Chưa có bài tập.</p>
-                    ) : day.exercises.map((exercise, exerciseIndex) => (
-                      <div key={`${exercise.exerciseId}-${exerciseIndex}`} className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs text-zinc-100">{exerciseIndex + 1}. {exercise.exerciseName}</p>
-                          <p className="text-[10px] text-zinc-500">{exercise.sets}x{exercise.reps} · nghỉ {exercise.restSeconds}s</p>
+                      <p className="text-xs text-zinc-500 rounded-lg border border-dashed border-zinc-800 p-3">
+                        Chưa có bài tập.
+                      </p>
+                    ) : (
+                      day.exercises.map((exercise, exerciseIndex) => (
+                        <div
+                          key={`${exercise.exerciseId}-${exerciseIndex}`}
+                          className="flex items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-900/60 p-2"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs text-zinc-100">
+                              {exerciseIndex + 1}. {exercise.exerciseName}
+                            </p>
+                            <p className="text-[10px] text-zinc-500">
+                              {exercise.sets}x{exercise.reps} · nghỉ{" "}
+                              {exercise.restSeconds}s
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setManualDays((previous) =>
+                                previous.map((item, index) =>
+                                  index === dayIndex
+                                    ? {
+                                        ...item,
+                                        exercises: item.exercises.filter(
+                                          (_, removeIndex) =>
+                                            removeIndex !== exerciseIndex,
+                                        ),
+                                      }
+                                    : item,
+                                ),
+                              )
+                            }
+                            className="h-8 w-8 rounded-lg border border-red-500/20 bg-red-500/10 text-red-300 flex items-center justify-center hover:bg-red-500/20"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                        <button type="button" onClick={() => setManualDays((previous) => previous.map((item, index) => index === dayIndex ? { ...item, exercises: item.exercises.filter((_, removeIndex) => removeIndex !== exerciseIndex) } : item))} className="h-8 w-8 rounded-lg border border-red-500/20 bg-red-500/10 text-red-300 flex items-center justify-center hover:bg-red-500/20">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               ))}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <button onClick={() => setShowManualBuilder(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
-              <button onClick={handleCreateManualProgram} disabled={savingManualProgram} className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm font-semibold hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
-                {savingManualProgram ? "Đang lưu..." : "Lưu chương trình thủ công"}
+              <button
+                onClick={() => setShowManualBuilder(false)}
+                className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleCreateManualProgram}
+                disabled={savingManualProgram}
+                className="flex-1 py-3 rounded-xl bg-emerald-500 text-black text-sm font-semibold hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {savingManualProgram
+                  ? "Đang lưu..."
+                  : "Lưu chương trình thủ công"}
               </button>
             </div>
           </div>
@@ -2840,22 +4077,36 @@ export function WorkoutLogPage() {
       )}
 
       {showCalendarAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowCalendarAdd(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowCalendarAdd(false)}
+        >
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg text-white">Thêm lịch tập</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">Chọn ngày và buổi tập từ chương trình hiện tại</p>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Chọn ngày và buổi tập từ chương trình hiện tại
+                </p>
               </div>
-              <button onClick={() => setShowCalendarAdd(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+              <button
+                onClick={() => setShowCalendarAdd(false)}
+                className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all"
+              >
                 <X className="w-4 h-4 text-zinc-400" />
               </button>
             </div>
 
             {!currentProgram?.days?.length ? (
               <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4">
-                <p className="text-sm text-amber-100">Bạn chưa có chương trình tập. Hãy tạo AI Plan hoặc tạo chương trình thủ công trước.</p>
+                <p className="text-sm text-amber-100">
+                  Bạn chưa có chương trình tập. Hãy tạo AI Plan hoặc tạo chương
+                  trình thủ công trước.
+                </p>
                 <button
                   onClick={() => navigate("/client/plans")}
                   className="mt-3 px-3 py-2 rounded-lg bg-emerald-500 text-black text-xs font-semibold hover:bg-emerald-400"
@@ -2867,25 +4118,34 @@ export function WorkoutLogPage() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <label className="space-y-1">
-                    <span className="block text-xs font-semibold text-zinc-400">Ngày tập</span>
+                    <span className="block text-xs font-semibold text-zinc-400">
+                      Ngày tập
+                    </span>
                     <input
                       type="date"
                       value={scheduleDateInput}
-                      onChange={(event) => setScheduleDateInput(event.target.value)}
+                      onChange={(event) =>
+                        setScheduleDateInput(event.target.value)
+                      }
                       className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50 [color-scheme:dark]"
                     />
                   </label>
                   <label className="space-y-1">
-                    <span className="block text-xs font-semibold text-zinc-400">Buổi tập</span>
+                    <span className="block text-xs font-semibold text-zinc-400">
+                      Buổi tập
+                    </span>
                     <select
                       value={scheduleProgramDayId}
-                      onChange={(event) => setScheduleProgramDayId(event.target.value)}
+                      onChange={(event) =>
+                        setScheduleProgramDayId(event.target.value)
+                      }
                       className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-zinc-100 outline-none focus:border-emerald-500/50"
                     >
                       <option value="">Chọn buổi tập</option>
                       {(currentProgram.days || []).map((day: any) => (
                         <option key={day.id} value={day.id}>
-                          Ngày {day.dayNumber} - {day.title || "Buổi tập"} ({day.exercises?.length || 0} bài)
+                          Ngày {day.dayNumber} - {day.title || "Buổi tập"} (
+                          {day.exercises?.length || 0} bài)
                         </option>
                       ))}
                     </select>
@@ -2893,19 +4153,35 @@ export function WorkoutLogPage() {
                 </div>
 
                 {(() => {
-                  const day = (currentProgram.days || []).find((item: any) => item.id === scheduleProgramDayId);
+                  const day = (currentProgram.days || []).find(
+                    (item: any) => item.id === scheduleProgramDayId,
+                  );
                   const exercises = day?.exercises || [];
                   return day ? (
                     <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-3">
-                      <div className="text-sm text-zinc-100 font-semibold">{day.title || `Ngày ${day.dayNumber}`}</div>
+                      <div className="text-sm text-zinc-100 font-semibold">
+                        {day.title || `Ngày ${day.dayNumber}`}
+                      </div>
                       <div className="mt-2 space-y-1.5 max-h-44 overflow-y-auto">
-                        {exercises.length > 0 ? exercises.map((exercise: any, index: number) => (
-                          <div key={exercise.id || index} className="flex items-center justify-between gap-3 text-xs text-zinc-400">
-                            <span className="truncate">{index + 1}. {exercise.exercise?.exerciseName || "Bài tập"}</span>
-                            <span className="text-zinc-600 shrink-0">{exercise.sets || 3}x{exercise.reps || 10}</span>
-                          </div>
-                        )) : (
-                          <p className="text-xs text-zinc-500">Buổi này chưa có bài tập.</p>
+                        {exercises.length > 0 ? (
+                          exercises.map((exercise: any, index: number) => (
+                            <div
+                              key={exercise.id || index}
+                              className="flex items-center justify-between gap-3 text-xs text-zinc-400"
+                            >
+                              <span className="truncate">
+                                {index + 1}.{" "}
+                                {exercise.exercise?.exerciseName || "Bài tập"}
+                              </span>
+                              <span className="text-zinc-600 shrink-0">
+                                {exercise.sets || 3}x{exercise.reps || 10}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-zinc-500">
+                            Buổi này chưa có bài tập.
+                          </p>
                         )}
                       </div>
                     </div>
@@ -2913,7 +4189,9 @@ export function WorkoutLogPage() {
                 })()}
 
                 <label className="space-y-1 block">
-                  <span className="block text-xs font-semibold text-zinc-400">Ghi chú</span>
+                  <span className="block text-xs font-semibold text-zinc-400">
+                    Ghi chú
+                  </span>
                   <textarea
                     value={scheduleNotes}
                     onChange={(event) => setScheduleNotes(event.target.value)}
@@ -2927,39 +4205,63 @@ export function WorkoutLogPage() {
 
             {/* ── Step 1: Weekday selection ── */}
             <div className="hidden">
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">1 · Ngày & giờ tập</p>
+              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-3">
+                1 · Ngày & giờ tập
+              </p>
               <div className="space-y-2">
                 {WD_LABELS.map((label, idx) => {
                   const slot = weekdaySlots[idx];
                   const enabled = !!slot?.enabled;
                   return (
-                    <div key={label} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                      enabled ? "border-emerald-500/20 bg-emerald-500/[0.04]" : "border-zinc-800/30 bg-zinc-800/15"
-                    }`}>
+                    <div
+                      key={label}
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                        enabled
+                          ? "border-emerald-500/20 bg-emerald-500/[0.04]"
+                          : "border-zinc-800/30 bg-zinc-800/15"
+                      }`}
+                    >
                       {/* Toggle */}
                       <button
                         onClick={() => {
                           const next = { ...weekdaySlots };
-                          if (enabled) { delete next[idx]; } else { next[idx] = { enabled: true, time: "07:00" }; }
+                          if (enabled) {
+                            delete next[idx];
+                          } else {
+                            next[idx] = { enabled: true, time: "07:00" };
+                          }
                           setWeekdaySlots(next);
                         }}
                         className={`relative rounded-full transition-all shrink-0 ${enabled ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]" : "bg-zinc-700"}`}
                         style={{ width: 38, height: 22 }}
                       >
-                        <div className={`absolute top-[3px] w-[16px] h-[16px] rounded-full bg-white shadow-md transition-transform ${enabled ? "left-[19px]" : "left-[3px]"}`} />
+                        <div
+                          className={`absolute top-[3px] w-[16px] h-[16px] rounded-full bg-white shadow-md transition-transform ${enabled ? "left-[19px]" : "left-[3px]"}`}
+                        />
                       </button>
 
-                      <span className={`text-sm w-12 shrink-0 ${enabled ? "text-zinc-100" : "text-zinc-600"}`}>{label}</span>
+                      <span
+                        className={`text-sm w-12 shrink-0 ${enabled ? "text-zinc-100" : "text-zinc-600"}`}
+                      >
+                        {label}
+                      </span>
 
                       {enabled ? (
                         <input
                           type="time"
                           value={slot.time}
-                          onChange={(e) => setWeekdaySlots({ ...weekdaySlots, [idx]: { ...slot, time: e.target.value } })}
+                          onChange={(e) =>
+                            setWeekdaySlots({
+                              ...weekdaySlots,
+                              [idx]: { ...slot, time: e.target.value },
+                            })
+                          }
                           className="ml-auto px-3 py-1.5 rounded-lg bg-zinc-800/40 border border-zinc-700/25 text-sm text-emerald-300 focus:outline-none focus:border-emerald-500/25 transition-all [color-scheme:dark]"
                         />
                       ) : (
-                        <span className="ml-auto text-xs text-zinc-700">Ngày nghỉ</span>
+                        <span className="ml-auto text-xs text-zinc-700">
+                          Ngày nghỉ
+                        </span>
                       )}
                     </div>
                   );
@@ -2971,16 +4273,35 @@ export function WorkoutLogPage() {
             <div className="hidden rounded-xl bg-emerald-950/20 border border-emerald-500/10 p-3.5 flex items-center gap-3">
               <Calendar className="w-4 h-4 text-emerald-400 shrink-0" />
               <p className="text-xs text-emerald-200/70">
-                <span className="text-emerald-300">{Object.keys(weekdaySlots).length} ngày/tuần</span> → <span className="text-emerald-300">{derivedMarkers.length} buổi</span> trong tháng 4/2026
+                <span className="text-emerald-300">
+                  {Object.keys(weekdaySlots).length} ngày/tuần
+                </span>{" "}
+                →{" "}
+                <span className="text-emerald-300">
+                  {derivedMarkers.length} buổi
+                </span>{" "}
+                trong tháng 4/2026
               </p>
             </div>
 
             {/* ── Step 2: Exceptions ── */}
             <div className="hidden">
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">2 · Ngoại lệ <span className="normal-case text-zinc-700">— bấm ngày để bỏ qua</span></p>
+              <p className="text-[10px] text-zinc-600 uppercase tracking-wider mb-2">
+                2 · Ngoại lệ{" "}
+                <span className="normal-case text-zinc-700">
+                  — bấm ngày để bỏ qua
+                </span>
+              </p>
               <div className="rounded-xl bg-zinc-800/20 border border-zinc-800/25 p-4">
                 <div className="grid grid-cols-7 gap-1 text-center mb-2">
-                  {WD_LABELS.map((d) => <span key={d} className="text-[9px] text-zinc-700 uppercase tracking-wider">{d}</span>)}
+                  {WD_LABELS.map((d) => (
+                    <span
+                      key={d}
+                      className="text-[9px] text-zinc-700 uppercase tracking-wider"
+                    >
+                      {d}
+                    </span>
+                  ))}
                 </div>
                 <div className="grid grid-cols-7 gap-1 text-center">
                   {(() => {
@@ -2990,7 +4311,7 @@ export function WorkoutLogPage() {
                     while (cells.length % 7 !== 0) cells.push(null);
                     return cells.map((day, i) => {
                       if (day === null) return <span key={`exc-e-${i}`} />;
-                      const dow = ((day + FIRST_DAY_OFFSET - 1) % 7);
+                      const dow = (day + FIRST_DAY_OFFSET - 1) % 7;
                       const isScheduled = !!weekdaySlots[dow]?.enabled;
                       const isException = exceptions.has(day);
                       const isActive = isScheduled && !isException;
@@ -3000,7 +4321,8 @@ export function WorkoutLogPage() {
                           onClick={() => {
                             if (!isScheduled) return;
                             const next = new Set(exceptions);
-                            if (isException) next.delete(day); else next.add(day);
+                            if (isException) next.delete(day);
+                            else next.add(day);
                             setExceptions(next);
                           }}
                           disabled={!isScheduled}
@@ -3008,18 +4330,25 @@ export function WorkoutLogPage() {
                             isException
                               ? "bg-red-500/10 text-red-400 border border-red-500/20 line-through"
                               : isActive
-                              ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/15 hover:bg-emerald-500/20"
-                              : "text-zinc-700 cursor-default"
+                                ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/15 hover:bg-emerald-500/20"
+                                : "text-zinc-700 cursor-default"
                           }`}
-                        >{day}</button>
+                        >
+                          {day}
+                        </button>
                       );
                     });
                   })()}
                 </div>
                 {exceptions.size > 0 && (
                   <div className="mt-3 flex items-center justify-between">
-                    <p className="text-[11px] text-red-400/60">{exceptions.size} ngày bị bỏ qua</p>
-                    <button onClick={() => setExceptions(new Set())} className="text-[11px] text-zinc-500 hover:text-zinc-400 flex items-center gap-1 transition-colors">
+                    <p className="text-[11px] text-red-400/60">
+                      {exceptions.size} ngày bị bỏ qua
+                    </p>
+                    <button
+                      onClick={() => setExceptions(new Set())}
+                      className="text-[11px] text-zinc-500 hover:text-zinc-400 flex items-center gap-1 transition-colors"
+                    >
                       <RotateCcw className="w-3 h-3" /> Xóa tất cả
                     </button>
                   </div>
@@ -3028,7 +4357,12 @@ export function WorkoutLogPage() {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => setShowCalendarAdd(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
+              <button
+                onClick={() => setShowCalendarAdd(false)}
+                className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all"
+              >
+                Hủy
+              </button>
               <button
                 onClick={handleCreateSchedule}
                 disabled={savingSchedule || !currentProgram?.days?.length}
@@ -3043,19 +4377,30 @@ export function WorkoutLogPage() {
 
       {/* ═══════════════ LOG METRIC MODAL ═══════════════ */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowLogModal(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowLogModal(false)}
+        >
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-          <div className="relative w-full max-w-md rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-zinc-700/30 bg-zinc-900/95 shadow-2xl p-6 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-lg text-white">Ghi chỉ số</h2>
-              <button onClick={() => setShowLogModal(false)} className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all">
+              <button
+                onClick={() => setShowLogModal(false)}
+                className="w-8 h-8 rounded-xl bg-zinc-800/60 border border-zinc-700/30 flex items-center justify-center hover:bg-zinc-700/60 transition-all"
+              >
                 <X className="w-4 h-4 text-zinc-400" />
               </button>
             </div>
 
             {/* Metric type selector */}
             <div>
-              <p className="text-xs text-zinc-600 uppercase tracking-wider mb-3">Loại chỉ số</p>
+              <p className="text-xs text-zinc-600 uppercase tracking-wider mb-3">
+                Loại chỉ số
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 {metricOptions.map((m) => (
                   <button
@@ -3066,13 +4411,29 @@ export function WorkoutLogPage() {
                         ? "border-opacity-30 bg-opacity-10"
                         : "border-zinc-800/30 bg-zinc-800/20 hover:border-zinc-700/40"
                     }`}
-                    style={logMetric === m.key ? { borderColor: m.color + "40", backgroundColor: m.color + "10" } : {}}
+                    style={
+                      logMetric === m.key
+                        ? {
+                            borderColor: m.color + "40",
+                            backgroundColor: m.color + "10",
+                          }
+                        : {}
+                    }
                   >
                     <div className="flex items-center gap-2 mb-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} />
-                      <span className={`text-sm ${logMetric === m.key ? "text-zinc-100" : "text-zinc-400"}`}>{m.label}</span>
+                      <div
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: m.color }}
+                      />
+                      <span
+                        className={`text-sm ${logMetric === m.key ? "text-zinc-100" : "text-zinc-400"}`}
+                      >
+                        {m.label}
+                      </span>
                     </div>
-                    <p className="text-[10px] text-zinc-600">Hiện tại: {m.current}</p>
+                    <p className="text-[10px] text-zinc-600">
+                      Hiện tại: {m.current}
+                    </p>
                   </button>
                 ))}
               </div>
@@ -3080,7 +4441,9 @@ export function WorkoutLogPage() {
 
             {/* Value input */}
             <div>
-              <p className="text-xs text-zinc-600 uppercase tracking-wider mb-2">Giá trị</p>
+              <p className="text-xs text-zinc-600 uppercase tracking-wider mb-2">
+                Giá trị
+              </p>
               <div className="flex items-center gap-3">
                 <input
                   type="number"
@@ -3089,27 +4452,43 @@ export function WorkoutLogPage() {
                   placeholder={`Nhập ${selectedLogMetric?.unit ?? ""}...`}
                   className="flex-1 px-5 py-4 rounded-xl bg-zinc-800/30 border border-zinc-700/25 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/25 focus:ring-1 focus:ring-emerald-500/10 transition-all"
                 />
-                <span className="text-sm text-zinc-500">{selectedLogMetric?.unit}</span>
+                <span className="text-sm text-zinc-500">
+                  {selectedLogMetric?.unit}
+                </span>
               </div>
               {!selectedLogMetric?.canPersist && (
                 <p className="text-xs text-amber-300/80 mt-2">
-                  Chỉ số này chưa có cột lưu trong InBody, nên không thể ghi vào DB lúc này.
+                  Chỉ số này chưa có cột lưu trong InBody, nên không thể ghi vào
+                  DB lúc này.
                 </p>
               )}
             </div>
 
             {/* Auto-add chart toggle */}
             <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-zinc-400">Thêm biểu đồ vào Dashboard</span>
-              <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
-                activeCharts.has(logMetric) ? "bg-emerald-500 border-emerald-500" : "border-zinc-700 hover:border-zinc-600"
-              }`}>
-                {activeCharts.has(logMetric) && <Check className="w-3 h-3 text-black" />}
+              <span className="text-sm text-zinc-400">
+                Thêm biểu đồ vào Dashboard
+              </span>
+              <div
+                className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+                  activeCharts.has(logMetric)
+                    ? "bg-emerald-500 border-emerald-500"
+                    : "border-zinc-700 hover:border-zinc-600"
+                }`}
+              >
+                {activeCharts.has(logMetric) && (
+                  <Check className="w-3 h-3 text-black" />
+                )}
               </div>
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => setShowLogModal(false)} className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all">Hủy</button>
+              <button
+                onClick={() => setShowLogModal(false)}
+                className="flex-1 py-3 rounded-xl bg-zinc-800/50 border border-zinc-700/30 text-sm text-zinc-400 hover:bg-zinc-800/70 transition-all"
+              >
+                Hủy
+              </button>
               <button
                 onClick={handleSaveMetricLog}
                 disabled={isSavingMetric || !selectedLogMetric?.canPersist}
@@ -3123,7 +4502,10 @@ export function WorkoutLogPage() {
       )}
       {/* ═══════════════ ADD EXERCISE FROM DB MODAL ═══════════════ */}
       {showAddExercise && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowAddExercise(false)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowAddExercise(false)}
+        >
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           <div
             className="relative w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl border border-zinc-700/30 bg-zinc-900 shadow-2xl shadow-black/50 overflow-hidden"
@@ -3132,10 +4514,19 @@ export function WorkoutLogPage() {
             <div className="p-4 border-b border-zinc-800/50 space-y-3">
               <div className="flex items-center gap-3">
                 <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-zinc-100">{replaceExerciseIndex !== null ? "Đổi bài tập" : "Thêm bài tập"}</h3>
-                  <p className="text-xs text-zinc-500">Dữ liệu lấy trực tiếp từ Exercise DB</p>
+                  <h3 className="text-sm font-semibold text-zinc-100">
+                    {replaceExerciseIndex !== null
+                      ? "Đổi bài tập"
+                      : "Thêm bài tập"}
+                  </h3>
+                  <p className="text-xs text-zinc-500">
+                    Dữ liệu lấy trực tiếp từ Exercise DB
+                  </p>
                 </div>
-                <button onClick={() => setShowAddExercise(false)} className="w-10 h-10 rounded-xl bg-zinc-800/50 flex items-center justify-center hover:bg-zinc-700 transition-colors shrink-0">
+                <button
+                  onClick={() => setShowAddExercise(false)}
+                  className="w-10 h-10 rounded-xl bg-zinc-800/50 flex items-center justify-center hover:bg-zinc-700 transition-colors shrink-0"
+                >
                   <X className="w-4 h-4 text-zinc-400" />
                 </button>
               </div>
@@ -3154,7 +4545,9 @@ export function WorkoutLogPage() {
 
               <div className="flex flex-wrap gap-2">
                 {MUSCLE_FILTERS.map((filter) => {
-                  const active = pickerBodyPart === filter.bodyPart && pickerMuscleGroup === filter.muscleGroup;
+                  const active =
+                    pickerBodyPart === filter.bodyPart &&
+                    pickerMuscleGroup === filter.muscleGroup;
                   return (
                     <button
                       key={filter.label}
@@ -3186,9 +4579,13 @@ export function WorkoutLogPage() {
                     className="w-full appearance-none rounded-xl border border-zinc-800 bg-zinc-950 pl-9 pr-3 py-2 text-xs text-zinc-200 outline-none focus:border-emerald-500/40"
                   >
                     <option value="">Tất cả thiết bị</option>
-                    {(exerciseOptions.equipments || []).map((equipment: string) => (
-                      <option key={equipment} value={equipment}>{labelizeEnum(equipment)}</option>
-                    ))}
+                    {(exerciseOptions.equipments || []).map(
+                      (equipment: string) => (
+                        <option key={equipment} value={equipment}>
+                          {labelizeEnum(equipment)}
+                        </option>
+                      ),
+                    )}
                   </select>
                 </label>
 
@@ -3198,14 +4595,22 @@ export function WorkoutLogPage() {
                   className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-200 outline-none focus:border-emerald-500/40"
                 >
                   <option value="">Tất cả loại bài</option>
-                  {(exerciseOptions.activityTypes || []).map((activity: string) => (
-                    <option key={activity} value={activity}>{labelizeEnum(activity)}</option>
-                  ))}
+                  {(exerciseOptions.activityTypes || []).map(
+                    (activity: string) => (
+                      <option key={activity} value={activity}>
+                        {labelizeEnum(activity)}
+                      </option>
+                    ),
+                  )}
                 </select>
 
                 <select
                   value={pickerSort}
-                  onChange={(e) => setPickerSort(e.target.value as "name" | "bodyPart" | "equipment")}
+                  onChange={(e) =>
+                    setPickerSort(
+                      e.target.value as "name" | "bodyPart" | "equipment",
+                    )
+                  }
                   className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-200 outline-none focus:border-emerald-500/40"
                 >
                   <option value="bodyPart">Sắp xếp theo nhóm cơ</option>
@@ -3227,7 +4632,10 @@ export function WorkoutLogPage() {
               {dbLoading ? (
                 <div className="space-y-3">
                   {[0, 1, 2, 3, 4].map((item) => (
-                    <div key={item} className="h-20 rounded-xl border border-zinc-800/50 bg-zinc-800/20 animate-pulse" />
+                    <div
+                      key={item}
+                      className="h-20 rounded-xl border border-zinc-800/50 bg-zinc-800/20 animate-pulse"
+                    />
                   ))}
                 </div>
               ) : dbError ? (
@@ -3243,7 +4651,9 @@ export function WorkoutLogPage() {
                 </div>
               ) : sortedDbExercises.length === 0 ? (
                 <div className="py-12 text-center">
-                  <p className="text-sm text-zinc-500">Không tìm thấy bài tập phù hợp</p>
+                  <p className="text-sm text-zinc-500">
+                    Không tìm thấy bài tập phù hợp
+                  </p>
                   <button
                     type="button"
                     onClick={clearExerciseFilters}
@@ -3254,57 +4664,71 @@ export function WorkoutLogPage() {
                 </div>
               ) : (
                 <div className="space-y-5">
-                  {Object.entries(groupedDbExercises).map(([group, exercises]) => {
-                    const groupExercises = exercises as any[];
-                    return (
-                    <section key={group} className="space-y-2">
-                      <div className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm py-1 flex items-center gap-2">
-                        <div className="text-[11px] uppercase tracking-wider text-emerald-300 font-semibold">{group}</div>
-                        <div className="h-px flex-1 bg-zinc-800" />
-                        <div className="text-[10px] text-zinc-500">{groupExercises.length} bài</div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {groupExercises.map((ex: any) => (
-                          <button
-                            key={ex.id}
-                            onClick={() => handleAddFromDB(ex)}
-                            className="w-full text-left p-3 rounded-xl border border-zinc-800/40 bg-zinc-800/20 hover:bg-zinc-800/60 hover:border-emerald-500/30 transition-all flex items-center gap-4 group"
-                          >
-                            <div className="w-14 h-14 rounded-lg bg-zinc-900 overflow-hidden shrink-0 border border-zinc-700/50">
-                              <ExerciseFlipDemo
-                                img1={formatVideoUrlToImg(ex.videoUrl, 0)}
-                                img2={formatVideoUrlToImg(ex.videoUrl, 1)}
-                                alt={ex.exerciseName}
-                                className="w-full h-full"
-                              />
+                  {Object.entries(groupedDbExercises).map(
+                    ([group, exercises]) => {
+                      const groupExercises = exercises as any[];
+                      return (
+                        <section key={group} className="space-y-2">
+                          <div className="sticky top-0 z-10 bg-zinc-900/95 backdrop-blur-sm py-1 flex items-center gap-2">
+                            <div className="text-[11px] uppercase tracking-wider text-emerald-300 font-semibold">
+                              {group}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-zinc-200 truncate">{ex.exerciseName}</p>
-                              <div className="flex flex-wrap gap-1.5 mt-2">
-                                <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">{labelizeEnum(ex.bodyPart)}</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">{labelizeEnum(ex.typeOfEquipment)}</span>
-                                <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">{labelizeEnum(ex.typeOfActivity)}</span>
-                              </div>
-                              {Array.isArray(ex.muscleGroupsActivated) && ex.muscleGroupsActivated.length > 0 && (
-                                <p className="mt-1.5 text-[10px] text-zinc-500 truncate">
-                                  {ex.muscleGroupsActivated.join(", ")}
-                                </p>
-                              )}
+                            <div className="h-px flex-1 bg-zinc-800" />
+                            <div className="text-[10px] text-zinc-500">
+                              {groupExercises.length} bài
                             </div>
-                            <Plus className="w-4 h-4 text-emerald-500/0 group-hover:text-emerald-400 transition-colors shrink-0" />
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                    );
-                  })}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {groupExercises.map((ex: any) => (
+                              <button
+                                key={ex.id}
+                                onClick={() => handleAddFromDB(ex)}
+                                className="w-full text-left p-3 rounded-xl border border-zinc-800/40 bg-zinc-800/20 hover:bg-zinc-800/60 hover:border-emerald-500/30 transition-all flex items-center gap-4 group"
+                              >
+                                <div className="w-14 h-14 rounded-lg bg-zinc-900 overflow-hidden shrink-0 border border-zinc-700/50">
+                                  <ExerciseFlipDemo
+                                    img1={formatVideoUrlToImg(ex.videoUrl, 0)}
+                                    img2={formatVideoUrlToImg(ex.videoUrl, 1)}
+                                    alt={ex.exerciseName}
+                                    className="w-full h-full"
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-zinc-200 truncate">
+                                    {ex.exerciseName}
+                                  </p>
+                                  <div className="flex flex-wrap gap-1.5 mt-2">
+                                    <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">
+                                      {labelizeEnum(ex.bodyPart)}
+                                    </span>
+                                    <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">
+                                      {labelizeEnum(ex.typeOfEquipment)}
+                                    </span>
+                                    <span className="text-[10px] px-2 py-0.5 rounded-md border border-zinc-700/40 text-zinc-400">
+                                      {labelizeEnum(ex.typeOfActivity)}
+                                    </span>
+                                  </div>
+                                  {Array.isArray(ex.muscleGroupsActivated) &&
+                                    ex.muscleGroupsActivated.length > 0 && (
+                                      <p className="mt-1.5 text-[10px] text-zinc-500 truncate">
+                                        {ex.muscleGroupsActivated.join(", ")}
+                                      </p>
+                                    )}
+                                </div>
+                                <Plus className="w-4 h-4 text-emerald-500/0 group-hover:text-emerald-400 transition-colors shrink-0" />
+                              </button>
+                            ))}
+                          </div>
+                        </section>
+                      );
+                    },
+                  )}
                 </div>
               )}
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
@@ -3313,7 +4737,13 @@ export function WorkoutLogPage() {
 /* Sub-components                         */
 /* ═══════════════════════════════════════ */
 
-function GlassPanel({ title, icon, actionLabel, onAction, children }: {
+function GlassPanel({
+  title,
+  icon,
+  actionLabel,
+  onAction,
+  children,
+}: {
   title: string;
   icon?: React.ReactNode;
   actionLabel?: string;
@@ -3326,11 +4756,18 @@ function GlassPanel({ title, icon, actionLabel, onAction, children }: {
       <div className="relative">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            {icon && <div className="w-8 h-8 rounded-xl bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center">{icon}</div>}
+            {icon && (
+              <div className="w-8 h-8 rounded-xl bg-zinc-800/50 border border-zinc-700/25 flex items-center justify-center">
+                {icon}
+              </div>
+            )}
             <h3 className="text-sm text-zinc-100">{title}</h3>
           </div>
           {actionLabel && (
-            <button onClick={onAction} className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20">
+            <button
+              onClick={onAction}
+              className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 transition-colors px-3 py-1.5 rounded-lg bg-emerald-500/6 border border-emerald-500/12 hover:border-emerald-500/20"
+            >
               <Plus className="w-3 h-3" /> {actionLabel}
             </button>
           )}
@@ -3346,7 +4783,11 @@ function SectionTitle({ title, badge }: { title: string; badge?: string }) {
     <div className="flex items-center gap-2">
       <div className="w-1 h-5 rounded-full bg-gradient-to-b from-emerald-400 to-green-600" />
       <h3 className="text-sm text-zinc-100">{title}</h3>
-      {badge && <span className="text-[10px] text-zinc-500 bg-zinc-800/50 px-2 py-0.5 rounded-md border border-zinc-700/25">{badge}</span>}
+      {badge && (
+        <span className="text-[10px] text-zinc-500 bg-zinc-800/50 px-2 py-0.5 rounded-md border border-zinc-700/25">
+          {badge}
+        </span>
+      )}
     </div>
   );
 }
@@ -3358,15 +4799,25 @@ const TIME_FILTER_LABELS: Record<TimeFilter, string> = {
   all: "Tất cả",
 };
 
-function TimeFilterBar({ value, onChange }: { value: TimeFilter; onChange: (v: TimeFilter) => void }) {
+function TimeFilterBar({
+  value,
+  onChange,
+}: {
+  value: TimeFilter;
+  onChange: (v: TimeFilter) => void;
+}) {
   return (
     <div className="flex bg-zinc-800/30 rounded-xl p-1 border border-zinc-700/20 w-fit mt-1">
       {(["last", "week", "month", "all"] as TimeFilter[]).map((v) => (
-        <button key={v} onClick={() => onChange(v)} className={`px-4 py-1.5 rounded-lg text-xs transition-all ${
-          value === v
-            ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.06)]"
-            : "text-zinc-500 hover:text-zinc-400 border border-transparent"
-        }`}>
+        <button
+          key={v}
+          onClick={() => onChange(v)}
+          className={`px-4 py-1.5 rounded-lg text-xs transition-all ${
+            value === v
+              ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/15 shadow-[0_0_8px_rgba(16,185,129,0.06)]"
+              : "text-zinc-500 hover:text-zinc-400 border border-transparent"
+          }`}
+        >
           {TIME_FILTER_LABELS[v]}
         </button>
       ))}
@@ -3384,9 +4835,16 @@ type CalendarDayInfo = {
   workoutId?: string | null;
 };
 
-function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth, onDayClick }: {
+function CalendarGrid({
+  schedulesByDay,
+  markers,
+  month,
+  onPrevMonth,
+  onNextMonth,
+  onDayClick,
+}: {
   schedulesByDay?: Map<number, CalendarDayInfo[]>;
-  markers?: number[];  // fallback: plain day markers
+  markers?: number[]; // fallback: plain day markers
   month: Date;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -3400,7 +4858,10 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
   const firstDayOfMonth = new Date(year, monthIdx, 1).getDay();
   const offset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
-  const monthLabel = month.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const monthLabel = month.toLocaleString("default", {
+    month: "long",
+    year: "numeric",
+  });
 
   const cells: (number | null)[] = [];
   for (let i = 0; i < offset; i++) cells.push(null);
@@ -3408,7 +4869,8 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
   while (cells.length % 7 !== 0) cells.push(null);
 
   const todayDate = new Date();
-  const isCurrentMonth = todayDate.getFullYear() === year && todayDate.getMonth() === monthIdx;
+  const isCurrentMonth =
+    todayDate.getFullYear() === year && todayDate.getMonth() === monthIdx;
   const todayDay = isCurrentMonth ? todayDate.getDate() : -1;
 
   // Use schedulesByDay if available, else fall back to markers[]
@@ -3431,7 +4893,9 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
         >
           <ChevronLeft className="w-4 h-4 text-zinc-500" />
         </button>
-        <span className="text-sm text-zinc-200 min-w-[120px] text-center">{monthLabel}</span>
+        <span className="text-sm text-zinc-200 min-w-[120px] text-center">
+          {monthLabel}
+        </span>
         <button
           onClick={onNextMonth}
           className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors"
@@ -3440,11 +4904,20 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1.5 text-center">
-        {dayLabels.map((d) => <span key={d} className="text-[10px] text-zinc-600 py-1 uppercase tracking-wider">{d}</span>)}
+        {dayLabels.map((d) => (
+          <span
+            key={d}
+            className="text-[10px] text-zinc-600 py-1 uppercase tracking-wider"
+          >
+            {d}
+          </span>
+        ))}
         {cells.map((day, i) => {
           if (day === null) return <span key={`e-${i}`} className="h-[52px]" />;
           const dayInfos = hasSchedules ? (schedulesByDay!.get(day) ?? []) : [];
-          const isTraining = hasSchedules ? dayInfos.length > 0 : activeMarkers.includes(day);
+          const isTraining = hasSchedules
+            ? dayInfos.length > 0
+            : activeMarkers.includes(day);
           const isToday = day === todayDay;
           const firstInfo = dayInfos[0];
           const extraCount = dayInfos.length > 1 ? dayInfos.length - 1 : 0;
@@ -3453,18 +4926,22 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
             <div
               key={`d-${day}`}
               onClick={() => onDayClick(day)}
-              title={firstInfo
-                ? `${firstInfo.title}${firstInfo.exerciseCount ? ` · ${firstInfo.exerciseCount} bài` : ''}${firstInfo.programName ? `\n${firstInfo.programName}` : ''}`
-                : undefined}
+              title={
+                firstInfo
+                  ? `${firstInfo.title}${firstInfo.exerciseCount ? ` · ${firstInfo.exerciseCount} bài` : ""}${firstInfo.programName ? `\n${firstInfo.programName}` : ""}`
+                  : undefined
+              }
               className={`relative w-full h-[52px] flex flex-col items-center pt-1.5 rounded-xl text-xs transition-all cursor-pointer overflow-hidden ${
                 isTraining
                   ? "bg-emerald-500 text-black shadow-[0_0_14px_rgba(16,185,129,0.3)] hover:bg-emerald-400"
                   : isToday
-                  ? "border border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                  : "text-zinc-500 hover:bg-zinc-800/30 hover:text-zinc-400"
+                    ? "border border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                    : "text-zinc-500 hover:bg-zinc-800/30 hover:text-zinc-400"
               }`}
             >
-              <span className={`text-[11px] font-medium leading-none ${isTraining ? 'text-black font-bold' : isToday ? 'text-emerald-400' : ''}`}>
+              <span
+                className={`text-[11px] font-medium leading-none ${isTraining ? "text-black font-bold" : isToday ? "text-emerald-400" : ""}`}
+              >
                 {day}
               </span>
               {isTraining && firstInfo && (
@@ -3476,7 +4953,9 @@ function CalendarGrid({ schedulesByDay, markers, month, onPrevMonth, onNextMonth
                 <span className="mt-[5px] block w-1.5 h-1.5 rounded-full bg-black/60 shadow-[0_0_4px_rgba(0,0,0,0.2)]" />
               )}
               {extraCount > 0 && isTraining && (
-                <span className="text-[6.5px] text-black/70 font-semibold leading-none mt-0.5">+{extraCount}</span>
+                <span className="text-[6.5px] text-black/70 font-semibold leading-none mt-0.5">
+                  +{extraCount}
+                </span>
               )}
             </div>
           );

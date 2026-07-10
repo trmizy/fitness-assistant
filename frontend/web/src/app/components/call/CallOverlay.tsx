@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react';
-import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, X } from 'lucide-react';
-import { useCall } from '../../context/CallContext';
+import { useEffect, useRef } from "react";
+import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff, X } from "lucide-react";
+import { useCall } from "../../context/CallContext";
 
 function formatDuration(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 // ── Incoming call modal ────────────────────────────────────────
@@ -18,11 +18,13 @@ function IncomingCallUI() {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 w-80 text-center shadow-2xl">
         <div className="w-16 h-16 bg-emerald-500/15 border border-emerald-500/20 rounded-full flex items-center justify-center text-2xl font-bold text-emerald-400 mx-auto mb-4">
-          {info.callerName?.charAt(0) || 'U'}
+          {info.callerName?.charAt(0) || "U"}
         </div>
-        <h3 className="text-zinc-100 font-bold text-lg mb-1">{info.callerName || 'Unknown'}</h3>
+        <h3 className="text-zinc-100 font-bold text-lg mb-1">
+          {info.callerName || "Unknown"}
+        </h3>
         <p className="text-zinc-400 text-sm mb-6">
-          Incoming {info.callType === 'VIDEO' ? 'video' : 'voice'} call...
+          Incoming {info.callType === "VIDEO" ? "video" : "voice"} call...
         </p>
         <div className="flex items-center justify-center gap-6">
           <button
@@ -55,7 +57,8 @@ function OutgoingCallUI() {
         </div>
         <h3 className="text-zinc-100 font-bold text-lg mb-1">Calling...</h3>
         <p className="text-zinc-400 text-sm mb-6">
-          {state.callInfo?.callType === 'VIDEO' ? 'Video' : 'Voice'} call — waiting for answer
+          {state.callInfo?.callType === "VIDEO" ? "Video" : "Voice"} call —
+          waiting for answer
         </p>
         <button
           onClick={cancelCall}
@@ -83,10 +86,11 @@ function ConnectingUI() {
 
 // ── Active call UI ─────────────────────────────────────────────
 function ActiveCallUI() {
-  const { state, endCall, toggleMute, toggleVideo, localStream, remoteStream } = useCall();
+  const { state, endCall, toggleMute, toggleVideo, localStream, remoteStream } =
+    useCall();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const isVideo = state.callInfo?.callType === 'VIDEO';
+  const isVideo = state.callInfo?.callType === "VIDEO";
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -137,9 +141,11 @@ function ActiveCallUI() {
         /* Voice call — centered avatar */
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="w-24 h-24 bg-emerald-500/15 border-2 border-emerald-500/20 rounded-full flex items-center justify-center text-4xl font-bold text-emerald-400 mb-4">
-            {state.callInfo?.callerName?.charAt(0) || 'U'}
+            {state.callInfo?.callerName?.charAt(0) || "U"}
           </div>
-          <h3 className="text-zinc-100 font-bold text-xl mb-1">{state.callInfo?.callerName || 'In Call'}</h3>
+          <h3 className="text-zinc-100 font-bold text-xl mb-1">
+            {state.callInfo?.callerName || "In Call"}
+          </h3>
           <p className="text-green-400 text-sm font-medium mb-2">
             {formatDuration(state.callDuration)}
           </p>
@@ -154,28 +160,38 @@ function ActiveCallUI() {
       {/* Controls bar */}
       <div className="bg-zinc-900 border-t border-zinc-800 px-6 py-4 flex items-center justify-center gap-4">
         {isVideo && (
-          <p className="text-green-400 text-sm font-medium mr-4">{formatDuration(state.callDuration)}</p>
+          <p className="text-green-400 text-sm font-medium mr-4">
+            {formatDuration(state.callDuration)}
+          </p>
         )}
         <button
           onClick={toggleMute}
           className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
             state.isMuted
-              ? 'bg-red-500/20 border border-red-500/30'
-              : 'bg-zinc-800 border border-zinc-700 hover:bg-zinc-700'
+              ? "bg-red-500/20 border border-red-500/30"
+              : "bg-zinc-800 border border-zinc-700 hover:bg-zinc-700"
           }`}
         >
-          {state.isMuted ? <MicOff className="w-5 h-5 text-red-400" /> : <Mic className="w-5 h-5 text-zinc-300" />}
+          {state.isMuted ? (
+            <MicOff className="w-5 h-5 text-red-400" />
+          ) : (
+            <Mic className="w-5 h-5 text-zinc-300" />
+          )}
         </button>
         {isVideo && (
           <button
             onClick={toggleVideo}
             className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
               state.isVideoOff
-                ? 'bg-red-500/20 border border-red-500/30'
-                : 'bg-zinc-800 border border-zinc-700 hover:bg-zinc-700'
+                ? "bg-red-500/20 border border-red-500/30"
+                : "bg-zinc-800 border border-zinc-700 hover:bg-zinc-700"
             }`}
           >
-            {state.isVideoOff ? <VideoOff className="w-5 h-5 text-red-400" /> : <Video className="w-5 h-5 text-zinc-300" />}
+            {state.isVideoOff ? (
+              <VideoOff className="w-5 h-5 text-red-400" />
+            ) : (
+              <Video className="w-5 h-5 text-zinc-300" />
+            )}
           </button>
         )}
         <button
@@ -194,13 +210,13 @@ export function CallOverlay() {
   const { state } = useCall();
 
   switch (state.uiState) {
-    case 'incoming':
+    case "incoming":
       return <IncomingCallUI />;
-    case 'outgoing':
+    case "outgoing":
       return <OutgoingCallUI />;
-    case 'connecting':
+    case "connecting":
       return <ConnectingUI />;
-    case 'active':
+    case "active":
       return <ActiveCallUI />;
     default:
       return null;

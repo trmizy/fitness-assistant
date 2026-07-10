@@ -1,34 +1,71 @@
-import { PrismaClient, PTApplicationStatus } from '../generated/prisma';
+import { PrismaClient, PTApplicationStatus } from "../generated/prisma";
 
 const prisma = new PrismaClient();
 
 // Whitelist of fields the applicant can write via saveDraft
 const WRITABLE_FIELDS = new Set([
-  'phoneNumber', 'nationalIdNumber', 'currentAddress',
-  'idCardFrontUrl', 'idCardBackUrl', 'portraitPhotoUrl',
-  'yearsOfExperience', 'educationBackground', 'previousWorkExperience', 'professionalBio',
-  'mainSpecialties', 'targetClientGroups', 'primaryTrainingGoals', 'trainingMethodsApproach',
-  'portfolioUrl', 'linkedinUrl', 'websiteUrl', 'socialLinks',
-  'availabilityNotes', 'availableTimeSlots', 'serviceMode', 'operatingAreas',
-  'desiredSessionPrice', 'availableDays', 'availableFrom', 'availableUntil',
-  'gymAffiliation', 'packagePrice', 'sessionsPerPackage', 'monthlyProgramPrice', 'additionalPricingNotes',
-  'onlinePricePerSession', 'offlinePricePerSession', 'onlinePackagePrice', 'offlinePackagePrice',
-  'otherReferences', 'availabilityBlocks', 'sessionDurationMinutes',
+  "phoneNumber",
+  "nationalIdNumber",
+  "currentAddress",
+  "idCardFrontUrl",
+  "idCardBackUrl",
+  "portraitPhotoUrl",
+  "yearsOfExperience",
+  "educationBackground",
+  "previousWorkExperience",
+  "professionalBio",
+  "mainSpecialties",
+  "targetClientGroups",
+  "primaryTrainingGoals",
+  "trainingMethodsApproach",
+  "portfolioUrl",
+  "linkedinUrl",
+  "websiteUrl",
+  "socialLinks",
+  "availabilityNotes",
+  "availableTimeSlots",
+  "serviceMode",
+  "operatingAreas",
+  "desiredSessionPrice",
+  "availableDays",
+  "availableFrom",
+  "availableUntil",
+  "gymAffiliation",
+  "packagePrice",
+  "sessionsPerPackage",
+  "monthlyProgramPrice",
+  "additionalPricingNotes",
+  "onlinePricePerSession",
+  "offlinePricePerSession",
+  "onlinePackagePrice",
+  "offlinePackagePrice",
+  "otherReferences",
+  "availabilityBlocks",
+  "sessionDurationMinutes",
   // Location fields
-  'residenceProvinceCode', 'residenceWardCode', 'residenceAddressLine', 'residenceLegacyDistrictName',
-  'applicationTrainingLocations',
+  "residenceProvinceCode",
+  "residenceWardCode",
+  "residenceAddressLine",
+  "residenceLegacyDistrictName",
+  "applicationTrainingLocations",
 ]);
 
 const CERT_WRITABLE_FIELDS = new Set([
-  'certificateName', 'issuingOrganization', 'isCurrentlyValid',
-  'certificationStatus', 'issueDate', 'expirationDate', 'certificateFileUrl',
+  "certificateName",
+  "issuingOrganization",
+  "isCurrentlyValid",
+  "certificationStatus",
+  "issueDate",
+  "expirationDate",
+  "certificateFileUrl",
 ]);
 
-const MEDIA_WRITABLE_FIELDS = new Set([
-  'groupType', 'fileUrl', 'label',
-]);
+const MEDIA_WRITABLE_FIELDS = new Set(["groupType", "fileUrl", "label"]);
 
-function pickFields(obj: Record<string, any>, allowed: Set<string>): Record<string, any> {
+function pickFields(
+  obj: Record<string, any>,
+  allowed: Set<string>,
+): Record<string, any> {
   const result: Record<string, any> = {};
   for (const key of allowed) {
     if (obj[key] !== undefined) {
@@ -41,8 +78,8 @@ function pickFields(obj: Record<string, any>, allowed: Set<string>): Record<stri
 function sanitizeCert(c: any): Record<string, any> {
   const clean = pickFields(c, CERT_WRITABLE_FIELDS);
   // Convert empty date strings to null for Prisma DateTime fields
-  if (clean.issueDate === '') clean.issueDate = null;
-  if (clean.expirationDate === '') clean.expirationDate = null;
+  if (clean.issueDate === "") clean.issueDate = null;
+  if (clean.expirationDate === "") clean.expirationDate = null;
   return clean;
 }
 
@@ -129,7 +166,11 @@ export const ptApplicationRepository = {
     });
   },
 
-  updateStatus: async (id: string, status: PTApplicationStatus, extra: any = {}) => {
+  updateStatus: async (
+    id: string,
+    status: PTApplicationStatus,
+    extra: any = {},
+  ) => {
     return prisma.pTApplication.update({
       where: { id },
       data: {
@@ -140,7 +181,10 @@ export const ptApplicationRepository = {
     });
   },
 
-  findAll: async (filters: { status?: PTApplicationStatus; search?: string }) => {
+  findAll: async (filters: {
+    status?: PTApplicationStatus;
+    search?: string;
+  }) => {
     const { status, search } = filters;
     return prisma.pTApplication.findMany({
       where: {
@@ -148,7 +192,12 @@ export const ptApplicationRepository = {
         ...(search && {
           OR: [
             { phoneNumber: { contains: search } },
-            { professionalBio: { contains: search, mode: 'insensitive' as const } },
+            {
+              professionalBio: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
           ],
         }),
       },
@@ -157,7 +206,7 @@ export const ptApplicationRepository = {
         certificates: true,
         media: true,
       },
-      orderBy: { submittedAt: 'desc' },
+      orderBy: { submittedAt: "desc" },
     });
   },
 };

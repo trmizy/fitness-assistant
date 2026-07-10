@@ -45,9 +45,7 @@
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Thieu set/rep/nghi cho bai tap"
-        ]
+        "misses": ["Thieu set/rep/nghi cho bai tap"]
       },
       "forbiddenCheck": {
         "passed": true,
@@ -95,9 +93,7 @@
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Thieu set/rep/nghi cho bai tap"
-        ]
+        "misses": ["Thieu set/rep/nghi cho bai tap"]
       },
       "forbiddenCheck": {
         "passed": true,
@@ -112,9 +108,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Finisher dot mo"
-        ]
+        "misses": ["Finisher dot mo"]
       },
       "characteristicsCheck": {
         "passed": false,
@@ -158,9 +152,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Muc tieu 45 phut"
-        ]
+        "misses": ["Muc tieu 45 phut"]
       },
       "characteristicsCheck": {
         "passed": false,
@@ -171,9 +163,7 @@
       },
       "forbiddenCheck": {
         "passed": false,
-        "hits": [
-          "Khong co progression"
-        ]
+        "hits": ["Khong co progression"]
       },
       "answerPreview": "## 💪 Buổi Tập Theo Yêu Cầu\n\n🎯 **Mục tiêu buổi tập:** Full-body hypertrophy session with balanced push, pull, and lower body work.\n> Lịch mặc định — bắt đầu ngay được.\n\n### 🏋️ Danh Sách Bài Tập\n- **Goblet Squat**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Romanian Deadlift**: 4 hiệp × 8-10 reps — nghỉ 2 phút\n- **Dumbbell Bench Press**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Seated Cable Row**: 4 hiệp × 8-12 reps — nghỉ 1p30s\n- **Dumbbell Shoulder Press**: 3 hiệp × 10-12 reps — nghỉ 1p15s\n- **Plank**: 3 hiệp × 45-60 seconds reps — nghỉ 45s\n\n### 🔧 Kỹ Thuật Thực Hiện\n1. Warm up 8-10 minutes before first compound lift.\n2. Stop each set with 1-2 reps in reserve.\n3. Prioritize form over load on every repetition.\n\n### 📈 Tăng Tải Tiến Bộ\n1. Add 1-2 reps per week until top range is achieved, then increase load.\n2. Track sets, reps, and load for every exercise to ensure progression.\n\n**Để cá nhân hóa thêm:**\n1. Can you share your weight?\n2. Can you share your height?"
     },
@@ -262,9 +252,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Luu y form"
-        ]
+        "misses": ["Luu y form"]
       },
       "characteristicsCheck": {
         "passed": false,
@@ -335,11 +323,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Khoi dong",
-          "Ha nhiet",
-          "Phuong an giam muc do"
-        ]
+        "misses": ["Khoi dong", "Ha nhiet", "Phuong an giam muc do"]
       },
       "characteristicsCheck": {
         "passed": false,
@@ -361,9 +345,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Luu y cue ky thuat"
-        ]
+        "misses": ["Luu y cue ky thuat"]
       },
       "characteristicsCheck": {
         "passed": false,
@@ -394,9 +376,7 @@
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Lich tap co dau hieu thieu buoi/ngay"
-        ]
+        "misses": ["Lich tap co dau hieu thieu buoi/ngay"]
       },
       "forbiddenCheck": {
         "passed": true,
@@ -411,16 +391,11 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Lich theo dung ngay user ranh",
-          "Noi dung moi buoi"
-        ]
+        "misses": ["Lich theo dung ngay user ranh", "Noi dung moi buoi"]
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Chua the hien ca nhan hoa ro theo user_profile"
-        ]
+        "misses": ["Chua the hien ca nhan hoa ro theo user_profile"]
       },
       "forbiddenCheck": {
         "passed": true,
@@ -487,9 +462,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Muc do tang dan"
-        ]
+        "misses": ["Muc do tang dan"]
       },
       "characteristicsCheck": {
         "passed": false,
@@ -538,9 +511,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Khuyen nghi hoat dong ngoai gio"
-        ]
+        "misses": ["Khuyen nghi hoat dong ngoai gio"]
       },
       "characteristicsCheck": {
         "passed": false,
@@ -642,16 +613,11 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Buoi 1 upper",
-          "Huong dan nghi va tang tai"
-        ]
+        "misses": ["Buoi 1 upper", "Huong dan nghi va tang tai"]
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Lich tap co dau hieu thieu buoi/ngay"
-        ]
+        "misses": ["Lich tap co dau hieu thieu buoi/ngay"]
       },
       "forbiddenCheck": {
         "passed": true,
@@ -776,9 +742,7 @@
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Chua the hien ca nhan hoa ro theo user_profile"
-        ]
+        "misses": ["Chua the hien ca nhan hoa ro theo user_profile"]
       },
       "forbiddenCheck": {
         "passed": true,
@@ -793,10 +757,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Thuc don cac bua",
-          "Luu y vi chat"
-        ]
+        "misses": ["Thuc don cac bua", "Luu y vi chat"]
       },
       "characteristicsCheck": {
         "passed": false,
@@ -826,9 +787,7 @@
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Chua the hien ca nhan hoa ro theo user_profile"
-        ]
+        "misses": ["Chua the hien ca nhan hoa ro theo user_profile"]
       },
       "forbiddenCheck": {
         "passed": true,
@@ -852,9 +811,7 @@
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Chua the hien ca nhan hoa ro theo user_profile"
-        ]
+        "misses": ["Chua the hien ca nhan hoa ro theo user_profile"]
       },
       "forbiddenCheck": {
         "passed": true,
@@ -896,10 +853,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Mon de mang di lam",
-          "Huong dan chia bua"
-        ]
+        "misses": ["Mon de mang di lam", "Huong dan chia bua"]
       },
       "characteristicsCheck": {
         "passed": true,
@@ -918,16 +872,11 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Muc calories/macro",
-          "Thuc don 14 ngay"
-        ]
+        "misses": ["Muc calories/macro", "Thuc don 14 ngay"]
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Chua the hien ca nhan hoa ro theo user_profile"
-        ]
+        "misses": ["Chua the hien ca nhan hoa ro theo user_profile"]
       },
       "forbiddenCheck": {
         "passed": true,
@@ -942,11 +891,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Macro tung ngay",
-          "Thuc don 7 ngay",
-          "Luu y dien giai/nuoc"
-        ]
+        "misses": ["Macro tung ngay", "Thuc don 7 ngay", "Luu y dien giai/nuoc"]
       },
       "characteristicsCheck": {
         "passed": true,
@@ -954,9 +899,7 @@
       },
       "forbiddenCheck": {
         "passed": false,
-        "hits": [
-          "Macro khong theo keto"
-        ]
+        "hits": ["Macro khong theo keto"]
       },
       "answerPreview": "Dưới đây là thực đơn keto 3 ngày cho người dùng:\n\n## 🥗 Dinh Dưỡng Mục Tiêu\n| Chỉ số | Giá trị |\n|--------|---------|\n| Calo | **1700** kcal/day |\n| Đạm | **1,6 g/kg CBM** |\n| Carb | **20-50 g** |\n| Béo | **70-80 g** |\n\n## 🍽️ Gợi Ý Thực Đơn\n### Bữa Sáng (Trước tập):\n- 3 quả trứng đánh tan, 1 thìa bơ, muối tiêu\n- 1 ly sữa chua không đường, 1 thìa trái cây khô\n\n### Bữa Trưa:\n- 120g thịt gà nướng, 20g bơ, 10g rau củ xào\n- 1 cốc salad trái cây, 1/4 cốc dầu ô liu\n\n### Bữa Tối:\n- 100g cá hồi luộc, 15g bơ, 10g rau củ xào\n- 1 cốc sữa chua không đường, 1 thìa trái cây khô\n\n## 🔄 Cách Điều Chỉnh Theo Thời Gian\n- tăng calo nếu cần\n- giảm carb nếu có dấu hiệu thừa cân\n- tăng protein nếu cần tăng đạm\n\n## ⚡ Hành Động Tuần Này\n1. Ăn ít hơn 100 calo so với nhu cầu\n2. Uống nhiều nước\n3. Tập luyện cardio 20 phút mỗi ngày\n\n**Giả định:** Không có thông tin về trọng lượng và chiều cao, do đó không thể tính toán chính xác macros.\n\n**Để cá nhân hóa thêm:** 1. Hãy cung cấp thông tin về trọng lượng và chiều c"
     },
@@ -967,17 +910,11 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "4 bua moi ngay",
-          "Goi y thuc pham",
-          "Huong dan dieu chinh"
-        ]
+        "misses": ["4 bua moi ngay", "Goi y thuc pham", "Huong dan dieu chinh"]
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Chua the hien ca nhan hoa ro theo user_profile"
-        ]
+        "misses": ["Chua the hien ca nhan hoa ro theo user_profile"]
       },
       "forbiddenCheck": {
         "passed": true,
@@ -992,15 +929,11 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Huong dan doc nhan san pham"
-        ]
+        "misses": ["Huong dan doc nhan san pham"]
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Chua the hien ca nhan hoa ro theo user_profile"
-        ]
+        "misses": ["Chua the hien ca nhan hoa ro theo user_profile"]
       },
       "forbiddenCheck": {
         "passed": true,
@@ -1015,10 +948,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Thuc don mau cho 2 loai ngay",
-          "Huong dan xoay bua"
-        ]
+        "misses": ["Thuc don mau cho 2 loai ngay", "Huong dan xoay bua"]
       },
       "characteristicsCheck": {
         "passed": false,
@@ -1040,10 +970,7 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "5 bua/day ro rang",
-          "Hydration va electrolytes"
-        ]
+        "misses": ["5 bua/day ro rang", "Hydration va electrolytes"]
       },
       "characteristicsCheck": {
         "passed": false,
@@ -1065,16 +992,11 @@
       "statusCode": 200,
       "sectionCheck": {
         "passed": false,
-        "misses": [
-          "Uoc tinh chi phi tung bua",
-          "Meo toi uu mua sam"
-        ]
+        "misses": ["Uoc tinh chi phi tung bua", "Meo toi uu mua sam"]
       },
       "characteristicsCheck": {
         "passed": false,
-        "misses": [
-          "Chua the hien ca nhan hoa ro theo user_profile"
-        ]
+        "misses": ["Chua the hien ca nhan hoa ro theo user_profile"]
       },
       "forbiddenCheck": {
         "passed": true,

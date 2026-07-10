@@ -7,21 +7,22 @@ their purpose, authoritative status, configuration, and usage.
 
 ## 1. Dataset Summary
 
-| Dataset | Type | Authoritative | Used For | Requires Key |
-|---------|------|:---:|----------|:---:|
-| USDA FoodData Central | REST API | **YES** | Calories, protein, carbs, fats | ✅ |
-| Open Food Facts | REST API | No | Branded foods, barcodes, images | No |
-| wger | REST API | No | Exercise catalog, metadata | No |
-| free-exercise-db | Local JSON | No | Exercise seed / fallback | No |
-| ExerciseDB | REST API (RapidAPI) | No | Large exercise catalog (optional) | ✅ |
-| NHANES (CDC) | Local CSV | No | Analytics / demo only | No |
-| Kaggle Datasets | Local CSV | No | Analytics / demo only | No |
+| Dataset               | Type                | Authoritative | Used For                          | Requires Key |
+| --------------------- | ------------------- | :-----------: | --------------------------------- | :----------: |
+| USDA FoodData Central | REST API            |    **YES**    | Calories, protein, carbs, fats    |      ✅      |
+| Open Food Facts       | REST API            |      No       | Branded foods, barcodes, images   |      No      |
+| wger                  | REST API            |      No       | Exercise catalog, metadata        |      No      |
+| free-exercise-db      | Local JSON          |      No       | Exercise seed / fallback          |      No      |
+| ExerciseDB            | REST API (RapidAPI) |      No       | Large exercise catalog (optional) |      ✅      |
+| NHANES (CDC)          | Local CSV           |      No       | Analytics / demo only             |      No      |
+| Kaggle Datasets       | Local CSV           |      No       | Analytics / demo only             |      No      |
 
 ---
 
 ## 2. Source of Truth Rule
 
 **USDA FoodData Central is the single source of truth for all macro totals:**
+
 - Calories (kcal)
 - Protein (g)
 - Carbohydrates (g)
@@ -37,6 +38,7 @@ This rule is enforced in `src/datasets/utils/sourceRanker.ts → mergeFoodDetail
 ## 3. Provider Details
 
 ### USDA FoodData Central
+
 - **URL:** https://fdc.nal.usda.gov
 - **API docs:** https://fdc.nal.usda.gov/api-guide.html
 - **License:** Public domain (U.S. government data)
@@ -44,6 +46,7 @@ This rule is enforced in `src/datasets/utils/sourceRanker.ts → mergeFoodDetail
 - **Provider:** `src/datasets/providers/usda/usda.provider.ts`
 
 ### Open Food Facts
+
 - **URL:** https://world.openfoodfacts.org
 - **License:** Open Database License (ODbL)
   - You must attribute Open Food Facts if you republish or redistribute data.
@@ -52,6 +55,7 @@ This rule is enforced in `src/datasets/utils/sourceRanker.ts → mergeFoodDetail
 - **Provider:** `src/datasets/providers/openfoodfacts/off.provider.ts`
 
 ### wger
+
 - **URL:** https://wger.de
 - **License:** AGPLv3
   - Server-side API consumption is fine for development and internal use.
@@ -60,6 +64,7 @@ This rule is enforced in `src/datasets/utils/sourceRanker.ts → mergeFoodDetail
 - **Provider:** `src/datasets/providers/wger/wger.provider.ts`
 
 ### free-exercise-db
+
 - **URL:** https://github.com/yuhonas/free-exercise-db
 - **License:** MIT — commercial use allowed, no attribution required.
 - **Env var:** `FREE_EXERCISE_DB_ENABLED` (default: `true`)
@@ -67,6 +72,7 @@ This rule is enforced in `src/datasets/utils/sourceRanker.ts → mergeFoodDetail
 - **Provider:** `src/datasets/providers/free-exercise-db/free-exercise.provider.ts`
 
 ### ExerciseDB ⚠️ OPTIONAL — LICENSE REVIEW REQUIRED
+
 - **URL:** https://rapidapi.com/justin-WFnsXH_t6/api/exercisedb
 - **License:** RapidAPI Terms of Service + ExerciseDB terms
   - Free tier: ~50 requests/day — development only.
@@ -84,6 +90,7 @@ This rule is enforced in `src/datasets/utils/sourceRanker.ts → mergeFoodDetail
 - **Default:** Disabled.
 
 ### NHANES (CDC) — Analytics/Demo Only
+
 - **URL:** https://www.cdc.gov/nchs/nhanes/
 - **License:** U.S. public domain
 - **⚠️ Restriction:** Must NOT be used as live nutrition truth. Analytics/demo/offline only.
@@ -92,6 +99,7 @@ This rule is enforced in `src/datasets/utils/sourceRanker.ts → mergeFoodDetail
 - **Provider:** `src/datasets/providers/nhanes/nhanes.provider.ts`
 
 ### Kaggle Fitness Datasets — Analytics/Demo Only
+
 - **URL:** https://www.kaggle.com/datasets
 - **License:** Varies per dataset — check individual listings before use.
 - **⚠️ Restriction:** Must NOT be used as live nutrition truth. Analytics/demo/offline only.
@@ -184,10 +192,12 @@ src/datasets/
 ## 7. Usage Examples
 
 ### Resolve food nutrition (USDA authoritative)
-```typescript
-import { foodNutritionResolverService } from './src/datasets/services/foodNutritionResolverService';
 
-const detail = await foodNutritionResolverService.resolveByName('chicken breast');
+```typescript
+import { foodNutritionResolverService } from "./src/datasets/services/foodNutritionResolverService";
+
+const detail =
+  await foodNutritionResolverService.resolveByName("chicken breast");
 if (detail) {
   const { calories, proteinG, carbsG, fatG } = detail.nutrition;
   console.log(`${detail.name}: ${calories}kcal, ${proteinG}g protein`);
@@ -196,24 +206,28 @@ if (detail) {
 ```
 
 ### Search foods (USDA first, OFF fallback)
-```typescript
-import { foodSearchService } from './src/datasets/services/foodSearchService';
 
-const results = await foodSearchService.search('salmon', 5);
+```typescript
+import { foodSearchService } from "./src/datasets/services/foodSearchService";
+
+const results = await foodSearchService.search("salmon", 5);
 // Returns USDA results when USDA_API_KEY is set
 ```
 
 ### Barcode lookup (OFF → upgrade with USDA)
+
 ```typescript
-const detail = await foodNutritionResolverService.resolveByBarcode('5000112637922');
+const detail =
+  await foodNutritionResolverService.resolveByBarcode("5000112637922");
 // Returns OFF branding/barcode + USDA macros merged in
 ```
 
 ### Search exercises
-```typescript
-import { exerciseCatalogService } from './src/datasets/services/exerciseCatalogService';
 
-const result = await exerciseCatalogService.search('bicep curl', 10);
+```typescript
+import { exerciseCatalogService } from "./src/datasets/services/exerciseCatalogService";
+
+const result = await exerciseCatalogService.search("bicep curl", 10);
 // Checks free-exercise-db first, then wger, then ExerciseDB if enabled
 ```
 
@@ -227,6 +241,7 @@ npx tsx --test src/datasets/__tests__/datasets.test.ts
 ```
 
 Tests cover:
+
 - USDA beats Open Food Facts on macro totals
 - Open Food Facts enriches branding without overriding USDA macros
 - Normalized exercise search across multiple sources
@@ -237,6 +252,7 @@ Tests cover:
 ## 9. Graceful Degradation
 
 If a provider is disabled or unavailable:
+
 - The app starts normally — no crash.
 - Disabled USDA → food search falls back to Open Food Facts (macros are supplementary).
 - Disabled wger → exercise search uses only the local seed.

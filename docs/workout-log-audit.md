@@ -36,9 +36,10 @@ pnpm --filter @gym-coach/fitness-service run db:migrate
 ## Progress Formula
 
 ```ts
-progressPercent = totalExercises === 0
-  ? 0
-  : Math.round((completedExercises / totalExercises) * 100)
+progressPercent =
+  totalExercises === 0
+    ? 0
+    : Math.round((completedExercises / totalExercises) * 100);
 ```
 
 The backend recomputes this after start, quick complete, and set updates. The UI should display the backend value and only use local state for immediate active-session row highlighting.

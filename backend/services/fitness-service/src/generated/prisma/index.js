@@ -432,7 +432,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/workspace/backend/services/fitness-service/src/generated/prisma",
+      "value": "/app/backend/services/fitness-service/src/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -450,12 +450,11 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/workspace/backend/services/fitness-service/prisma/schema.prisma",
+    "sourceFilePath": "/app/backend/services/fitness-service/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
-    "schemaEnvPath": "../../../.env"
+    "rootEnvPath": null
   },
   "relativePath": "../../../prisma",
   "clientVersion": "5.22.0",
@@ -464,7 +463,6 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
-  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {

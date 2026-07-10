@@ -1,18 +1,37 @@
-import { createContext, useContext, useReducer, useEffect, useRef, useCallback, type ReactNode } from 'react';
-import { toast } from 'sonner';
-import { connectSocket, getSocket } from '../services/socket';
-import { useWebRTC } from '../hooks/useWebRTC';
-import { useApp } from './AppContext';
-import type { CallUIState, CallSessionInfo, CallType } from '../types';
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useRef,
+  useCallback,
+  type ReactNode,
+} from "react";
+import { toast } from "sonner";
+import { connectSocket, getSocket } from "../services/socket";
+import { useWebRTC } from "../hooks/useWebRTC";
+import { useApp } from "./AppContext";
+import type { CallUIState, CallSessionInfo, CallType } from "../types";
 
 const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
 ];
 
-interface ExistingCallData { callSessionId: string; status: string; iceServers?: RTCIceServer[]; }
-interface MediaToggledData { callSessionId: string; userId: string; kind: 'audio' | 'video'; enabled: boolean; }
-interface CallErrorData { message?: string; }
+interface ExistingCallData {
+  callSessionId: string;
+  status: string;
+  iceServers?: RTCIceServer[];
+}
+interface MediaToggledData {
+  callSessionId: string;
+  userId: string;
+  kind: "audio" | "video";
+  enabled: boolean;
+}
+interface CallErrorData {
+  message?: string;
+}
 
 // ── State ──────────────────────────────────────────────────────
 interface CallState {
@@ -26,7 +45,7 @@ interface CallState {
 }
 
 const initialState: CallState = {
-  uiState: 'idle',
+  uiState: "idle",
   callInfo: null,
   isMuted: false,
   isVideoOff: false,
@@ -36,41 +55,48 @@ const initialState: CallState = {
 };
 
 type Action =
-  | { type: 'SET_OUTGOING'; payload: CallSessionInfo }
-  | { type: 'SET_INCOMING'; payload: CallSessionInfo }
-  | { type: 'SET_CONNECTING' }
-  | { type: 'SET_ACTIVE' }
-  | { type: 'SET_IDLE' }
-  | { type: 'TOGGLE_MUTE'; payload: boolean }
-  | { type: 'TOGGLE_VIDEO'; payload: boolean }
-  | { type: 'SET_REMOTE_MEDIA'; payload: { kind: 'audio' | 'video'; enabled: boolean } }
-  | { type: 'TICK_DURATION' }
-  | { type: 'UPDATE_CALL_SESSION_ID'; payload: string };
+  | { type: "SET_OUTGOING"; payload: CallSessionInfo }
+  | { type: "SET_INCOMING"; payload: CallSessionInfo }
+  | { type: "SET_CONNECTING" }
+  | { type: "SET_ACTIVE" }
+  | { type: "SET_IDLE" }
+  | { type: "TOGGLE_MUTE"; payload: boolean }
+  | { type: "TOGGLE_VIDEO"; payload: boolean }
+  | {
+      type: "SET_REMOTE_MEDIA";
+      payload: { kind: "audio" | "video"; enabled: boolean };
+    }
+  | { type: "TICK_DURATION" }
+  | { type: "UPDATE_CALL_SESSION_ID"; payload: string };
 
 function callReducer(state: CallState, action: Action): CallState {
   switch (action.type) {
-    case 'SET_OUTGOING':
-      return { ...state, uiState: 'outgoing', callInfo: action.payload };
-    case 'SET_INCOMING':
-      return { ...state, uiState: 'incoming', callInfo: action.payload };
-    case 'SET_CONNECTING':
-      return { ...state, uiState: 'connecting' };
-    case 'SET_ACTIVE':
-      return { ...state, uiState: 'active', callDuration: 0 };
-    case 'SET_IDLE':
+    case "SET_OUTGOING":
+      return { ...state, uiState: "outgoing", callInfo: action.payload };
+    case "SET_INCOMING":
+      return { ...state, uiState: "incoming", callInfo: action.payload };
+    case "SET_CONNECTING":
+      return { ...state, uiState: "connecting" };
+    case "SET_ACTIVE":
+      return { ...state, uiState: "active", callDuration: 0 };
+    case "SET_IDLE":
       return initialState;
-    case 'TOGGLE_MUTE':
+    case "TOGGLE_MUTE":
       return { ...state, isMuted: action.payload };
-    case 'TOGGLE_VIDEO':
+    case "TOGGLE_VIDEO":
       return { ...state, isVideoOff: action.payload };
-    case 'SET_REMOTE_MEDIA':
-      if (action.payload.kind === 'audio') return { ...state, remoteMuted: !action.payload.enabled };
+    case "SET_REMOTE_MEDIA":
+      if (action.payload.kind === "audio")
+        return { ...state, remoteMuted: !action.payload.enabled };
       return { ...state, remoteVideoOff: !action.payload.enabled };
-    case 'TICK_DURATION':
+    case "TICK_DURATION":
       return { ...state, callDuration: state.callDuration + 1 };
-    case 'UPDATE_CALL_SESSION_ID':
+    case "UPDATE_CALL_SESSION_ID":
       return state.callInfo
-        ? { ...state, callInfo: { ...state.callInfo, callSessionId: action.payload } }
+        ? {
+            ...state,
+            callInfo: { ...state.callInfo, callSessionId: action.payload },
+          }
         : state;
     default:
       return state;
@@ -80,8 +106,16 @@ function callReducer(state: CallState, action: Action): CallState {
 // ── Context ────────────────────────────────────────────────────
 interface CallContextValue {
   state: CallState;
-  initiateCall: (calleeId: string, callType: CallType, conversationId: string) => void;
-  joinCoachingSession: (session: { id: string; otherUserId: string; joinToken: string }) => Promise<void>;
+  initiateCall: (
+    calleeId: string,
+    callType: CallType,
+    conversationId: string,
+  ) => void;
+  joinCoachingSession: (session: {
+    id: string;
+    otherUserId: string;
+    joinToken: string;
+  }) => Promise<void>;
   acceptCall: () => void;
   rejectCall: () => void;
   cancelCall: () => void;
@@ -96,7 +130,7 @@ const CallContext = createContext<CallContextValue | null>(null);
 
 export function useCall() {
   const ctx = useContext(CallContext);
-  if (!ctx) throw new Error('useCall must be used within CallProvider');
+  if (!ctx) throw new Error("useCall must be used within CallProvider");
   return ctx;
 }
 
@@ -116,28 +150,37 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const s = stateRef.current;
     if (s.callInfo?.callSessionId) {
       const socket = getSocket();
-      socket.emit('call:ice_candidate', {
+      socket.emit("call:ice_candidate", {
         callSessionId: s.callInfo.callSessionId,
         candidate: candidate.toJSON(),
       });
     }
   }, []);
 
-  const handleConnectionStateChange = useCallback((connState: RTCPeerConnectionState) => {
-    if (connState === 'connected') {
-      dispatch({ type: 'SET_ACTIVE' });
-      if (durationRef.current) clearInterval(durationRef.current);
-      durationRef.current = setInterval(() => dispatch({ type: 'TICK_DURATION' }), 1000);
-    } else if (connState === 'failed') {
-      const s = stateRef.current;
-      if (s.callInfo?.callSessionId) {
-        const socket = getSocket();
-        socket.emit('call:end', { callSessionId: s.callInfo.callSessionId, reason: 'ice_failed' });
+  const handleConnectionStateChange = useCallback(
+    (connState: RTCPeerConnectionState) => {
+      if (connState === "connected") {
+        dispatch({ type: "SET_ACTIVE" });
+        if (durationRef.current) clearInterval(durationRef.current);
+        durationRef.current = setInterval(
+          () => dispatch({ type: "TICK_DURATION" }),
+          1000,
+        );
+      } else if (connState === "failed") {
+        const s = stateRef.current;
+        if (s.callInfo?.callSessionId) {
+          const socket = getSocket();
+          socket.emit("call:end", {
+            callSessionId: s.callInfo.callSessionId,
+            reason: "ice_failed",
+          });
+        }
+        toast.error("Connection failed");
+        doCleanup();
       }
-      toast.error('Connection failed');
-      doCleanup();
-    }
-  }, []);
+    },
+    [],
+  );
 
   const webrtc = useWebRTC(handleIceCandidate, handleConnectionStateChange);
   const webrtcRef = useRef(webrtc);
@@ -149,7 +192,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       clearInterval(durationRef.current);
       durationRef.current = null;
     }
-    dispatch({ type: 'SET_IDLE' });
+    dispatch({ type: "SET_IDLE" });
   }, []);
 
   // ── Socket listeners (registered once) ─────────────────────
@@ -159,14 +202,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const socket = connectSocket();
 
     const onIncoming = (data: any) => {
-      if (stateRef.current.uiState !== 'idle') return;
+      if (stateRef.current.uiState !== "idle") return;
       iceServersRef.current = data.iceServers || [];
       dispatch({
-        type: 'SET_INCOMING',
+        type: "SET_INCOMING",
         payload: {
           callSessionId: data.callSessionId,
           callerId: data.callerId,
-          calleeId: '',
+          calleeId: "",
           callerName: data.callerName,
           callType: data.callType,
           origin: data.origin,
@@ -178,22 +221,28 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
     const onInitiated = (data: any) => {
       iceServersRef.current = data.iceServers || [];
-      dispatch({ type: 'UPDATE_CALL_SESSION_ID', payload: data.callSessionId });
+      dispatch({ type: "UPDATE_CALL_SESSION_ID", payload: data.callSessionId });
     };
 
     // Caller receives accepted → create PeerConnection + offer (media already acquired)
     const onAccepted = async (data: any) => {
       if (!isCallerRef.current) return;
       iceServersRef.current = data.iceServers || iceServersRef.current;
-      dispatch({ type: 'SET_CONNECTING' });
+      dispatch({ type: "SET_CONNECTING" });
       try {
         webrtcRef.current.createConnection(iceServersRef.current);
         const offer = await webrtcRef.current.createOffer();
-        socket.emit('call:offer', { callSessionId: data.callSessionId, sdp: offer });
+        socket.emit("call:offer", {
+          callSessionId: data.callSessionId,
+          sdp: offer,
+        });
       } catch (err) {
-        console.error('Failed to create offer:', err);
-        socket.emit('call:end', { callSessionId: data.callSessionId, reason: 'webrtc_error' });
-        toast.error('Failed to establish connection');
+        console.error("Failed to create offer:", err);
+        socket.emit("call:end", {
+          callSessionId: data.callSessionId,
+          reason: "webrtc_error",
+        });
+        toast.error("Failed to establish connection");
         doCleanup();
       }
     };
@@ -201,15 +250,21 @@ export function CallProvider({ children }: { children: ReactNode }) {
     // Callee receives offer → create PeerConnection + answer (media already acquired)
     const onOffer = async (data: any) => {
       if (isCallerRef.current) return;
-      dispatch({ type: 'SET_CONNECTING' });
+      dispatch({ type: "SET_CONNECTING" });
       try {
         webrtcRef.current.createConnection(iceServersRef.current);
         const answer = await webrtcRef.current.createAnswer(data.sdp);
-        socket.emit('call:answer', { callSessionId: data.callSessionId, sdp: answer });
+        socket.emit("call:answer", {
+          callSessionId: data.callSessionId,
+          sdp: answer,
+        });
       } catch (err) {
-        console.error('Failed to create answer:', err);
-        socket.emit('call:end', { callSessionId: data.callSessionId, reason: 'webrtc_error' });
-        toast.error('Failed to establish connection');
+        console.error("Failed to create answer:", err);
+        socket.emit("call:end", {
+          callSessionId: data.callSessionId,
+          reason: "webrtc_error",
+        });
+        toast.error("Failed to establish connection");
         doCleanup();
       }
     };
@@ -218,7 +273,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       try {
         await webrtcRef.current.setRemoteAnswer(data.sdp);
       } catch (err) {
-        console.error('Failed to set remote answer:', err);
+        console.error("Failed to set remote answer:", err);
       }
     };
 
@@ -226,7 +281,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
       try {
         await webrtcRef.current.addIceCandidate(data.candidate);
       } catch (err) {
-        console.error('Failed to add ICE candidate:', err);
+        console.error("Failed to add ICE candidate:", err);
       }
     };
 
@@ -234,21 +289,27 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
     const onMissed = () => {
       const s = stateRef.current;
-      if (s.callInfo?.origin === 'SESSION') {
-        toast.info('Người còn lại chưa online trong buổi học. Vui lòng chờ hoặc thử lại sau.');
+      if (s.callInfo?.origin === "SESSION") {
+        toast.info(
+          "Người còn lại chưa online trong buổi học. Vui lòng chờ hoặc thử lại sau.",
+        );
       }
       doCleanup();
     };
 
     const onExisting = (data: ExistingCallData) => {
       const { callSessionId, status, iceServers } = data;
-      if (['RINGING', 'INITIATING', 'ACCEPTED'].includes(status)) {
+      if (["RINGING", "INITIATING", "ACCEPTED"].includes(status)) {
         isCallerRef.current = false;
-        iceServersRef.current = iceServers?.length ? iceServers : DEFAULT_ICE_SERVERS;
-        dispatch({ type: 'UPDATE_CALL_SESSION_ID', payload: callSessionId });
-        connectSocket().emit('call:accept', { callSessionId });
-      } else if (status === 'ACTIVE') {
-        toast.error('Buổi học đang diễn ra. Vui lòng tham gia lại từ trang lịch học.');
+        iceServersRef.current = iceServers?.length
+          ? iceServers
+          : DEFAULT_ICE_SERVERS;
+        dispatch({ type: "UPDATE_CALL_SESSION_ID", payload: callSessionId });
+        connectSocket().emit("call:accept", { callSessionId });
+      } else if (status === "ACTIVE") {
+        toast.error(
+          "Buổi học đang diễn ra. Vui lòng tham gia lại từ trang lịch học.",
+        );
         doCleanup();
       } else {
         doCleanup();
@@ -256,127 +317,150 @@ export function CallProvider({ children }: { children: ReactNode }) {
     };
 
     const onMediaToggled = (data: MediaToggledData) => {
-      dispatch({ type: 'SET_REMOTE_MEDIA', payload: { kind: data.kind, enabled: data.enabled } });
+      dispatch({
+        type: "SET_REMOTE_MEDIA",
+        payload: { kind: data.kind, enabled: data.enabled },
+      });
     };
 
     const onError = (data: CallErrorData) => {
-      const isTokenError = data.message?.includes('token') || data.message?.includes('join');
-      toast.error(isTokenError
-        ? 'Phiên tham gia không hợp lệ hoặc đã hết hạn. Vui lòng bấm tham gia lại.'
-        : data.message || 'Lỗi cuộc gọi');
+      const isTokenError =
+        data.message?.includes("token") || data.message?.includes("join");
+      toast.error(
+        isTokenError
+          ? "Phiên tham gia không hợp lệ hoặc đã hết hạn. Vui lòng bấm tham gia lại."
+          : data.message || "Lỗi cuộc gọi",
+      );
       doCleanup();
     };
 
-    socket.on('call:incoming', onIncoming);
-    socket.on('call:initiated', onInitiated);
-    socket.on('call:accepted', onAccepted);
-    socket.on('call:offer', onOffer);
-    socket.on('call:answer', onAnswer);
-    socket.on('call:ice_candidate', onIceCandidate);
-    socket.on('call:rejected', onCallEnd);
-    socket.on('call:cancelled', onCallEnd);
-    socket.on('call:ended', onCallEnd);
-    socket.on('call:missed', onMissed);
-    socket.on('call:failed', onCallEnd);
-    socket.on('call:accepted_elsewhere', onCallEnd);
-    socket.on('call:existing', onExisting);
-    socket.on('call:media_toggled', onMediaToggled);
-    socket.on('call:error', onError);
+    socket.on("call:incoming", onIncoming);
+    socket.on("call:initiated", onInitiated);
+    socket.on("call:accepted", onAccepted);
+    socket.on("call:offer", onOffer);
+    socket.on("call:answer", onAnswer);
+    socket.on("call:ice_candidate", onIceCandidate);
+    socket.on("call:rejected", onCallEnd);
+    socket.on("call:cancelled", onCallEnd);
+    socket.on("call:ended", onCallEnd);
+    socket.on("call:missed", onMissed);
+    socket.on("call:failed", onCallEnd);
+    socket.on("call:accepted_elsewhere", onCallEnd);
+    socket.on("call:existing", onExisting);
+    socket.on("call:media_toggled", onMediaToggled);
+    socket.on("call:error", onError);
 
     return () => {
-      socket.off('call:incoming', onIncoming);
-      socket.off('call:initiated', onInitiated);
-      socket.off('call:accepted', onAccepted);
-      socket.off('call:offer', onOffer);
-      socket.off('call:answer', onAnswer);
-      socket.off('call:ice_candidate', onIceCandidate);
-      socket.off('call:rejected', onCallEnd);
-      socket.off('call:cancelled', onCallEnd);
-      socket.off('call:ended', onCallEnd);
-      socket.off('call:missed', onMissed);
-      socket.off('call:failed', onCallEnd);
-      socket.off('call:accepted_elsewhere', onCallEnd);
-      socket.off('call:existing', onExisting);
-      socket.off('call:media_toggled', onMediaToggled);
-      socket.off('call:error', onError);
+      socket.off("call:incoming", onIncoming);
+      socket.off("call:initiated", onInitiated);
+      socket.off("call:accepted", onAccepted);
+      socket.off("call:offer", onOffer);
+      socket.off("call:answer", onAnswer);
+      socket.off("call:ice_candidate", onIceCandidate);
+      socket.off("call:rejected", onCallEnd);
+      socket.off("call:cancelled", onCallEnd);
+      socket.off("call:ended", onCallEnd);
+      socket.off("call:missed", onMissed);
+      socket.off("call:failed", onCallEnd);
+      socket.off("call:accepted_elsewhere", onCallEnd);
+      socket.off("call:existing", onExisting);
+      socket.off("call:media_toggled", onMediaToggled);
+      socket.off("call:error", onError);
     };
   }, [isAuthenticated, doCleanup]);
 
   // ── Actions (acquire media in click context, THEN signal) ──
 
-  const initiateCall = useCallback(async (calleeId: string, callType: CallType, conversationId: string) => {
-    if (stateRef.current.uiState !== 'idle') return;
+  const initiateCall = useCallback(
+    async (calleeId: string, callType: CallType, conversationId: string) => {
+      if (stateRef.current.uiState !== "idle") return;
 
-    // 1. Acquire media FIRST (user gesture context = click)
-    if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error('getUserMedia not supported — use HTTPS or localhost');
-      return;
-    }
-    try {
-      await webrtcRef.current.acquireMedia(callType);
-    } catch (err: any) {
-      console.error('getUserMedia failed:', err?.name, err?.message, err);
-      toast.error(`Mic/camera error: ${err?.name || 'Unknown'} — ${err?.message || ''}`);
-      return;
-    }
+      // 1. Acquire media FIRST (user gesture context = click)
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast.error("getUserMedia not supported — use HTTPS or localhost");
+        return;
+      }
+      try {
+        await webrtcRef.current.acquireMedia(callType);
+      } catch (err: any) {
+        console.error("getUserMedia failed:", err?.name, err?.message, err);
+        toast.error(
+          `Mic/camera error: ${err?.name || "Unknown"} — ${err?.message || ""}`,
+        );
+        return;
+      }
 
-    // 2. Now emit socket event
-    const socket = connectSocket();
-    isCallerRef.current = true;
+      // 2. Now emit socket event
+      const socket = connectSocket();
+      isCallerRef.current = true;
 
-    dispatch({
-      type: 'SET_OUTGOING',
-      payload: {
-        callSessionId: '',
-        callerId: '',
+      dispatch({
+        type: "SET_OUTGOING",
+        payload: {
+          callSessionId: "",
+          callerId: "",
+          calleeId,
+          callType,
+          origin: "CHAT",
+          conversationId,
+        },
+      });
+
+      socket.emit("call:initiate", {
         calleeId,
         callType,
-        origin: 'CHAT',
         conversationId,
-      },
-    });
+        origin: "CHAT",
+      });
+    },
+    [],
+  );
 
-    socket.emit('call:initiate', { calleeId, callType, conversationId, origin: 'CHAT' });
-  }, []);
+  const joinCoachingSession = useCallback(
+    async (session: {
+      id: string;
+      otherUserId: string;
+      joinToken: string;
+    }): Promise<void> => {
+      if (stateRef.current.uiState !== "idle") return;
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast.error(
+          "Trình duyệt không hỗ trợ camera/micro hoặc cần chạy trên HTTPS/localhost",
+        );
+        return;
+      }
+      try {
+        await webrtcRef.current.acquireMedia("VIDEO");
+      } catch (err: any) {
+        toast.error(
+          "Không thể truy cập camera/micro. Vui lòng kiểm tra quyền trình duyệt.",
+        );
+        return;
+      }
 
-  const joinCoachingSession = useCallback(async (session: {
-    id: string;
-    otherUserId: string;
-    joinToken: string;
-  }): Promise<void> => {
-    if (stateRef.current.uiState !== 'idle') return;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error('Trình duyệt không hỗ trợ camera/micro hoặc cần chạy trên HTTPS/localhost');
-      return;
-    }
-    try {
-      await webrtcRef.current.acquireMedia('VIDEO');
-    } catch (err: any) {
-      toast.error('Không thể truy cập camera/micro. Vui lòng kiểm tra quyền trình duyệt.');
-      return;
-    }
-
-    const socket = connectSocket();
-    isCallerRef.current = true;
-    dispatch({
-      type: 'SET_OUTGOING',
-      payload: {
-        callSessionId: '',
-        callerId: '',
+      const socket = connectSocket();
+      isCallerRef.current = true;
+      dispatch({
+        type: "SET_OUTGOING",
+        payload: {
+          callSessionId: "",
+          callerId: "",
+          calleeId: session.otherUserId,
+          callType: "VIDEO",
+          origin: "SESSION",
+          conversationId: "",
+        },
+      });
+      socket.emit("call:initiate", {
         calleeId: session.otherUserId,
-        callType: 'VIDEO',
-        origin: 'SESSION',
-        conversationId: '',
-      },
-    });
-    socket.emit('call:initiate', {
-      calleeId: session.otherUserId,
-      callType: 'VIDEO',
-      origin: 'SESSION',
-      coachingSessionId: session.id,
-      joinToken: session.joinToken,
-    });
-  }, []);
+        callType: "VIDEO",
+        origin: "SESSION",
+        coachingSessionId: session.id,
+        joinToken: session.joinToken,
+      });
+    },
+    [],
+  );
 
   const acceptCall = useCallback(async () => {
     const s = stateRef.current;
@@ -384,19 +468,21 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
     // 1. Acquire media FIRST (user gesture context = click)
     if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error('getUserMedia not supported — use HTTPS or localhost');
+      toast.error("getUserMedia not supported — use HTTPS or localhost");
       doCleanup();
       return;
     }
     try {
-      await webrtcRef.current.acquireMedia(s.callInfo.callType || 'VOICE');
+      await webrtcRef.current.acquireMedia(s.callInfo.callType || "VOICE");
     } catch (err: any) {
-      console.error('getUserMedia failed:', err?.name, err?.message, err);
-      toast.error(`Mic/camera error: ${err?.name || 'Unknown'} — ${err?.message || ''}`);
+      console.error("getUserMedia failed:", err?.name, err?.message, err);
+      toast.error(
+        `Mic/camera error: ${err?.name || "Unknown"} — ${err?.message || ""}`,
+      );
 
       // Reject the call since we can't take it
       const socket = connectSocket();
-      socket.emit('call:reject', { callSessionId: s.callInfo.callSessionId });
+      socket.emit("call:reject", { callSessionId: s.callInfo.callSessionId });
       doCleanup();
       return;
     }
@@ -404,14 +490,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
     // 2. Now accept on server
     isCallerRef.current = false;
     const socket = connectSocket();
-    socket.emit('call:accept', { callSessionId: s.callInfo.callSessionId });
+    socket.emit("call:accept", { callSessionId: s.callInfo.callSessionId });
   }, [doCleanup]);
 
   const rejectCall = useCallback(() => {
     const s = stateRef.current;
     if (!s.callInfo?.callSessionId) return;
     const socket = connectSocket();
-    socket.emit('call:reject', { callSessionId: s.callInfo.callSessionId });
+    socket.emit("call:reject", { callSessionId: s.callInfo.callSessionId });
     doCleanup();
   }, [doCleanup]);
 
@@ -419,7 +505,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const s = stateRef.current;
     if (s.callInfo?.callSessionId) {
       const socket = connectSocket();
-      socket.emit('call:cancel', { callSessionId: s.callInfo.callSessionId });
+      socket.emit("call:cancel", { callSessionId: s.callInfo.callSessionId });
     }
     doCleanup();
   }, [doCleanup]);
@@ -428,20 +514,20 @@ export function CallProvider({ children }: { children: ReactNode }) {
     const s = stateRef.current;
     if (!s.callInfo?.callSessionId) return;
     const socket = connectSocket();
-    socket.emit('call:end', { callSessionId: s.callInfo.callSessionId });
+    socket.emit("call:end", { callSessionId: s.callInfo.callSessionId });
     doCleanup();
   }, [doCleanup]);
 
   const toggleMute = useCallback(() => {
     const newMuted = webrtcRef.current.toggleMute();
-    dispatch({ type: 'TOGGLE_MUTE', payload: newMuted });
+    dispatch({ type: "TOGGLE_MUTE", payload: newMuted });
 
     const s = stateRef.current;
     if (s.callInfo?.callSessionId) {
       const socket = getSocket();
-      socket.emit('call:media_toggle', {
+      socket.emit("call:media_toggle", {
         callSessionId: s.callInfo.callSessionId,
-        kind: 'audio',
+        kind: "audio",
         enabled: !newMuted,
       });
     }
@@ -449,14 +535,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const toggleVideo = useCallback(() => {
     const newOff = webrtcRef.current.toggleVideo();
-    dispatch({ type: 'TOGGLE_VIDEO', payload: newOff });
+    dispatch({ type: "TOGGLE_VIDEO", payload: newOff });
 
     const s = stateRef.current;
     if (s.callInfo?.callSessionId) {
       const socket = getSocket();
-      socket.emit('call:media_toggle', {
+      socket.emit("call:media_toggle", {
         callSessionId: s.callInfo.callSessionId,
-        kind: 'video',
+        kind: "video",
         enabled: !newOff,
       });
     }

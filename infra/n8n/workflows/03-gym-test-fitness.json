@@ -75,7 +75,9 @@
       "main": [[{ "node": "Start Timer", "type": "main", "index": 0 }]]
     },
     "Start Timer": {
-      "main": [[{ "node": "Check Fitness Service", "type": "main", "index": 0 }]]
+      "main": [
+        [{ "node": "Check Fitness Service", "type": "main", "index": 0 }]
+      ]
     },
     "Check Fitness Service": {
       "main": [[{ "node": "Check Fitness API", "type": "main", "index": 0 }]]
@@ -91,7 +93,10 @@
   "_meta": {
     "description": "Sub-workflow: checks fitness-service /health endpoint twice (service and API reachability). Called by orchestrator via POST /webhook/gym-test-fitness.",
     "webhook_path": "gym-test-fitness",
-    "checks": ["http://fitness-service:3002/health", "http://fitness-service:3002/health"],
+    "checks": [
+      "http://fitness-service:3002/health",
+      "http://fitness-service:3002/health"
+    ],
     "response_schema": {
       "passed": "boolean",
       "step": "Fitness",

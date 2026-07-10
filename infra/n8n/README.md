@@ -5,6 +5,7 @@ n8n chạy như một service riêng biệt trong Docker Compose. Nó **không**
 ## Vai trò của n8n trong hệ thống này
 
 n8n phục vụ các tác vụ **automation hậu kỳ**:
+
 - Scheduled reports (weekly AI coach stats)
 - PT approval workflows
 - User notifications (email/Slack)
@@ -15,12 +16,15 @@ n8n phục vụ các tác vụ **automation hậu kỳ**:
 ## Cách truy cập
 
 ### Admin UI (qua Gateway — recommended)
+
 ```
 http://localhost:3000/admin/workflows/studio
 ```
+
 Được bảo vệ bởi JWT + ADMIN role. Embed trong Admin Portal tại `/admin/workflows`.
 
 ### Trực tiếp (local dev only)
+
 ```
 http://localhost:5678
 Username: admin  (N8N_BASIC_AUTH_USER)
@@ -46,8 +50,8 @@ Password: ...    (N8N_BASIC_AUTH_PASSWORD từ .env)
 
 ## Workflows hiện có
 
-| File | Mô tả | Trigger |
-|------|-------|---------|
+| File                           | Mô tả                        | Trigger          |
+| ------------------------------ | ---------------------------- | ---------------- |
 | `sample-weekly-ai-report.json` | Weekly AI coach usage report | Cron: Monday 8am |
 
 ## Gọi gateway từ n8n

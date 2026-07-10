@@ -1,8 +1,8 @@
-import { Request, Response } from 'express';
-import { z } from 'zod';
-import { logger } from '@gym-coach/shared';
-import { authService } from '../services/auth.service';
-import { authRepository } from '../repositories/auth.repository';
+import { Request, Response } from "express";
+import { z } from "zod";
+import { logger } from "@gym-coach/shared";
+import { authService } from "../services/auth.service";
+import { authRepository } from "../repositories/auth.repository";
 import {
   registerStartSchema,
   registerVerifySchema,
@@ -10,20 +10,21 @@ import {
   refreshSchema,
   updateMeSchema,
   updateUserRoleSchema,
-} from '../models/auth.models';
+} from "../models/auth.models";
 
 const INTERNAL_SERVICE_SECRET =
-  process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
+  process.env.INTERNAL_SERVICE_SECRET ||
+  "dev_internal_service_secret_change_in_production";
 
 function getBearerToken(req: Request): string | null {
-  const token = req.headers.authorization?.split(' ')[1];
+  const token = req.headers.authorization?.split(" ")[1];
   return token || null;
 }
 
 function auditMeta(req: Request) {
   return {
     ipAddress: req.ip || req.socket.remoteAddress || null,
-    userAgent: req.get('user-agent') || null,
+    userAgent: req.get("user-agent") || null,
   };
 }
 
@@ -32,13 +33,13 @@ export const authController = {
     try {
       const token = getBearerToken(req);
       if (!token) {
-        res.status(401).json({ error: 'No token provided' });
+        res.status(401).json({ error: "No token provided" });
         return;
       }
 
       const actor = await authService.verifyToken(token);
-      if (actor.role !== 'ADMIN') {
-        res.status(403).json({ error: 'Forbidden: admin role required' });
+      if (actor.role !== "ADMIN") {
+        res.status(403).json({ error: "Forbidden: admin role required" });
         return;
       }
 
@@ -49,8 +50,8 @@ export const authController = {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error(error, 'List users error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "List users error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
@@ -61,15 +62,17 @@ export const authController = {
       res.status(202).json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        res
+          .status(400)
+          .json({ error: "Validation failed", details: error.errors });
         return;
       }
       if (error.status) {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error(error, 'Register error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "Register error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
@@ -79,21 +82,23 @@ export const authController = {
       const result = await authService.verifyRegistration(body);
       await authRepository.createAuditLog({
         userId: result.user.id,
-        action: 'REGISTER',
+        action: "REGISTER",
         ...auditMeta(req),
       });
       res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        res
+          .status(400)
+          .json({ error: "Validation failed", details: error.errors });
         return;
       }
       if (error.status) {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error(error, 'Verify registration error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "Verify registration error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
@@ -103,21 +108,23 @@ export const authController = {
       const result = await authService.login(body.email, body.password);
       await authRepository.createAuditLog({
         userId: result.user.id,
-        action: 'LOGIN',
+        action: "LOGIN",
         ...auditMeta(req),
       });
       res.json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        res
+          .status(400)
+          .json({ error: "Validation failed", details: error.errors });
         return;
       }
       if (error.status) {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error(error, 'Login error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "Login error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
@@ -127,21 +134,26 @@ export const authController = {
       const result = await authService.refresh(body.refreshToken);
       await authRepository.createAuditLog({
         userId: result.userId,
-        action: 'REFRESH_TOKEN',
+        action: "REFRESH_TOKEN",
         ...auditMeta(req),
       });
-      res.json({ accessToken: result.accessToken, refreshToken: result.refreshToken });
+      res.json({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        res
+          .status(400)
+          .json({ error: "Validation failed", details: error.errors });
         return;
       }
       if (error.status) {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error(error, 'Refresh token error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "Refresh token error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
@@ -152,22 +164,22 @@ export const authController = {
       if (userId) {
         await authRepository.createAuditLog({
           userId,
-          action: 'LOGOUT',
+          action: "LOGOUT",
           ...auditMeta(req),
         });
       }
-      res.json({ message: 'Logged out successfully' });
+      res.json({ message: "Logged out successfully" });
     } catch (error: any) {
-      logger.error(error, 'Logout error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "Logout error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
   async verify(req: Request, res: Response): Promise<void> {
     try {
-      const token = req.headers.authorization?.split(' ')[1];
+      const token = req.headers.authorization?.split(" ")[1];
       if (!token) {
-        res.status(401).json({ error: 'No token provided' });
+        res.status(401).json({ error: "No token provided" });
         return;
       }
       const user = await authService.verifyToken(token);
@@ -177,8 +189,8 @@ export const authController = {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error(error, 'Verify token error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "Verify token error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
@@ -186,7 +198,7 @@ export const authController = {
     try {
       const token = getBearerToken(req);
       if (!token) {
-        res.status(401).json({ error: 'No token provided' });
+        res.status(401).json({ error: "No token provided" });
         return;
       }
 
@@ -195,15 +207,17 @@ export const authController = {
       res.json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        res
+          .status(400)
+          .json({ error: "Validation failed", details: error.errors });
         return;
       }
       if (error.status) {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error(error, 'Update me error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "Update me error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
@@ -211,82 +225,90 @@ export const authController = {
     try {
       const token = getBearerToken(req);
       if (!token) {
-        res.status(401).json({ error: 'No token provided' });
+        res.status(401).json({ error: "No token provided" });
         return;
       }
 
       const actor = await authService.verifyToken(token);
-      if (actor.role !== 'ADMIN') {
-        res.status(403).json({ error: 'Forbidden: admin role required' });
+      if (actor.role !== "ADMIN") {
+        res.status(403).json({ error: "Forbidden: admin role required" });
         return;
       }
 
       const body = updateUserRoleSchema.parse(req.body);
-      if (body.role === 'ADMIN') {
-        res.status(403).json({ error: 'Forbidden: assigning ADMIN role is not allowed' });
+      if (body.role === "ADMIN") {
+        res
+          .status(403)
+          .json({ error: "Forbidden: assigning ADMIN role is not allowed" });
         return;
       }
       const result = await authService.updateUserRole(req.params.userId, body);
       res.json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        res
+          .status(400)
+          .json({ error: "Validation failed", details: error.errors });
         return;
       }
       if (error.status) {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error(error, 'Update user role error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "Update user role error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
   async batchGetUsersInternal(req: Request, res: Response): Promise<void> {
     try {
-      const serviceSecret = req.headers['x-service-secret'];
-      const secret = Array.isArray(serviceSecret) ? serviceSecret[0] : serviceSecret;
+      const serviceSecret = req.headers["x-service-secret"];
+      const secret = Array.isArray(serviceSecret)
+        ? serviceSecret[0]
+        : serviceSecret;
       if (!INTERNAL_SERVICE_SECRET) {
-        res.status(503).json({ error: 'Internal endpoint disabled' });
+        res.status(503).json({ error: "Internal endpoint disabled" });
         return;
       }
       if (!secret || secret !== INTERNAL_SERVICE_SECRET) {
-        res.status(401).json({ error: 'Invalid service secret' });
+        res.status(401).json({ error: "Invalid service secret" });
         return;
       }
       const { userIds } = req.body;
       if (!Array.isArray(userIds) || userIds.length === 0) {
-        res.status(400).json({ error: 'userIds must be a non-empty array' });
+        res.status(400).json({ error: "userIds must be a non-empty array" });
         return;
       }
       const users = await authRepository.findUsersByIds(userIds as string[]);
       res.json({ users });
     } catch (error: any) {
-      logger.error(error, 'Batch get users internal error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "Batch get users internal error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
   async getUserInternal(req: Request, res: Response): Promise<void> {
     try {
-      const serviceSecret = req.headers['x-service-secret'];
-      const secret = Array.isArray(serviceSecret) ? serviceSecret[0] : serviceSecret;
+      const serviceSecret = req.headers["x-service-secret"];
+      const secret = Array.isArray(serviceSecret)
+        ? serviceSecret[0]
+        : serviceSecret;
 
       // Defense-in-depth: server.ts already fails to start without
       // INTERNAL_SERVICE_SECRET, but we re-check here so a future code path can't
       // accidentally bypass it.
       if (!INTERNAL_SERVICE_SECRET) {
-        res.status(503).json({ error: 'Internal endpoint disabled' });
+        res.status(503).json({ error: "Internal endpoint disabled" });
         return;
       }
       if (!secret || secret !== INTERNAL_SERVICE_SECRET) {
-        res.status(401).json({ error: 'Invalid service secret' });
+        res.status(401).json({ error: "Invalid service secret" });
         return;
       }
 
       const user = await authRepository.findUserById(req.params.userId);
       if (!user) {
-        res.status(404).json({ error: 'User not found' });
+        res.status(404).json({ error: "User not found" });
         return;
       }
       // Minimal response shape — never leak password/refresh-token.
@@ -301,8 +323,8 @@ export const authController = {
         },
       });
     } catch (error: any) {
-      logger.error(error, 'Internal get user error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "Internal get user error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
@@ -312,57 +334,72 @@ export const authController = {
   async setUserActive(req: Request, res: Response): Promise<void> {
     try {
       const authHeader = req.headers.authorization;
-      if (!authHeader?.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'No token provided' });
+      if (!authHeader?.startsWith("Bearer ")) {
+        res.status(401).json({ error: "No token provided" });
         return;
       }
       const token = authHeader.substring(7);
       const verified = await authService.verifyToken(token);
-      if (!verified || verified.role !== 'ADMIN') {
-        res.status(403).json({ error: 'Admin role required' });
+      if (!verified || verified.role !== "ADMIN") {
+        res.status(403).json({ error: "Admin role required" });
         return;
       }
       const desired = req.body?.isActive;
-      const isActive = desired !== undefined ? !!desired : (req.path.endsWith('/disable') ? false : true);
-      const updated = await authService.setUserActive(req.params.userId, isActive);
+      const isActive =
+        desired !== undefined
+          ? !!desired
+          : req.path.endsWith("/disable")
+            ? false
+            : true;
+      const updated = await authService.setUserActive(
+        req.params.userId,
+        isActive,
+      );
       res.json({ user: updated });
     } catch (error: any) {
-      if (error.status) { res.status(error.status).json({ error: error.message }); return; }
-      logger.error(error, 'setUserActive error');
-      res.status(500).json({ error: 'Internal server error' });
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error(error, "setUserActive error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
   async updateUserRoleInternal(req: Request, res: Response): Promise<void> {
     try {
-      const serviceSecret = req.headers['x-service-secret'];
+      const serviceSecret = req.headers["x-service-secret"];
       const secret = Array.isArray(serviceSecret)
         ? serviceSecret[0]
         : serviceSecret;
 
       if (!secret || secret !== INTERNAL_SERVICE_SECRET) {
-        res.status(403).json({ error: 'Forbidden: invalid service secret' });
+        res.status(403).json({ error: "Forbidden: invalid service secret" });
         return;
       }
 
       const body = updateUserRoleSchema.parse(req.body);
-      if (body.role === 'ADMIN') {
-        res.status(403).json({ error: 'Forbidden: assigning ADMIN role is not allowed' });
+      if (body.role === "ADMIN") {
+        res
+          .status(403)
+          .json({ error: "Forbidden: assigning ADMIN role is not allowed" });
         return;
       }
       const result = await authService.updateUserRole(req.params.userId, body);
       res.json(result);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ error: 'Validation failed', details: error.errors });
+        res
+          .status(400)
+          .json({ error: "Validation failed", details: error.errors });
         return;
       }
       if (error.status) {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error(error, 'Internal update user role error');
-      res.status(500).json({ error: 'Internal server error' });
+      logger.error(error, "Internal update user role error");
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 };

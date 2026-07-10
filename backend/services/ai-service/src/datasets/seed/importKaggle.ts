@@ -32,27 +32,29 @@
  *   npm run import:kaggle
  */
 
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
-import path from 'node:path';
-import { kaggleProvider } from '../providers/kaggle/kaggle.provider';
+import path from "node:path";
+import { kaggleProvider } from "../providers/kaggle/kaggle.provider";
 
-const KAGGLE_DIR = path.join(process.cwd(), 'data', 'datasets', 'kaggle');
+const KAGGLE_DIR = path.join(process.cwd(), "data", "datasets", "kaggle");
 
 async function main() {
-  console.log('📊  Kaggle datasets import check');
+  console.log("📊  Kaggle datasets import check");
   console.log(`    Directory: ${KAGGLE_DIR}`);
 
   const datasets = kaggleProvider.listDatasets(KAGGLE_DIR);
 
   if (datasets.length === 0) {
     console.warn(
-      '⚠️   No Kaggle datasets found.\n' +
-        '    Download datasets and place them in: ' + KAGGLE_DIR + '\n' +
-        '    Example:\n' +
-        '      kaggle datasets download ashwinik123/nutritional-facts-for-most-common-foods\n' +
-        `      -p ${path.join(KAGGLE_DIR, 'nutritional-facts')}`,
+      "⚠️   No Kaggle datasets found.\n" +
+        "    Download datasets and place them in: " +
+        KAGGLE_DIR +
+        "\n" +
+        "    Example:\n" +
+        "      kaggle datasets download ashwinik123/nutritional-facts-for-most-common-foods\n" +
+        `      -p ${path.join(KAGGLE_DIR, "nutritional-facts")}`,
     );
     return;
   }
@@ -64,21 +66,25 @@ async function main() {
     const datasetDir = path.join(KAGGLE_DIR, dataset);
 
     // Find CSV files in this dataset directory
-    const { readdirSync } = await import('node:fs');
-    const csvFiles = readdirSync(datasetDir).filter((f) => f.endsWith('.csv'));
+    const { readdirSync } = await import("node:fs");
+    const csvFiles = readdirSync(datasetDir).filter((f) => f.endsWith(".csv"));
 
     for (const csv of csvFiles.slice(0, 3)) {
       const filePath = path.join(datasetDir, csv);
       const preview = await kaggleProvider.preview(filePath, 2);
-      console.log(`      📄 ${csv}: ${preview.rowCount} rows, columns: ${preview.columns.slice(0, 5).join(', ')}`);
+      console.log(
+        `      📄 ${csv}: ${preview.rowCount} rows, columns: ${preview.columns.slice(0, 5).join(", ")}`,
+      );
     }
   }
 
-  console.log('\n✅  Kaggle datasets scanned.');
-  console.log('    Remember: Kaggle data is for analytics/demo only — never live nutrition truth.');
+  console.log("\n✅  Kaggle datasets scanned.");
+  console.log(
+    "    Remember: Kaggle data is for analytics/demo only — never live nutrition truth.",
+  );
 }
 
 main().catch((err) => {
-  console.error('❌  Kaggle import check failed:', err);
+  console.error("❌  Kaggle import check failed:", err);
   process.exit(1);
 });

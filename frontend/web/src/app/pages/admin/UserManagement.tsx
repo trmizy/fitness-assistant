@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
-import { Search, Shield, UserCheck, UserX, MoreVertical, Loader2, RefreshCw } from "lucide-react";
+import {
+  Search,
+  Shield,
+  UserCheck,
+  UserX,
+  MoreVertical,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -25,11 +33,11 @@ const initials = (name: string) =>
     .slice(0, 2);
 
 export function UserManagement() {
-  const [users, setUsers]             = useState<AdminUser[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState<string | null>(null);
-  const [search, setSearch]           = useState("");
-  const [roleFilter, setRoleFilter]   = useState("All");
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
 
@@ -58,12 +66,14 @@ export function UserManagement() {
       (u.name.toLowerCase().includes(search.toLowerCase()) ||
         u.email.toLowerCase().includes(search.toLowerCase())) &&
       (roleFilter === "All" || u.role === roleFilter) &&
-      (statusFilter === "All" || u.status === statusFilter)
+      (statusFilter === "All" || u.status === statusFilter),
   );
 
   const statusBadge = (status: string) => {
-    if (status === "Active")  return "bg-green-500/10 text-green-400 border-green-500/20";
-    if (status === "Pending") return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+    if (status === "Active")
+      return "bg-green-500/10 text-green-400 border-green-500/20";
+    if (status === "Pending")
+      return "bg-amber-500/10 text-amber-400 border-amber-500/20";
     return "bg-zinc-700/50 text-zinc-500 border-zinc-700";
   };
 
@@ -71,15 +81,15 @@ export function UserManagement() {
     role === "PT"
       ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
       : role === "Admin"
-      ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-      : "bg-blue-500/10 text-blue-400 border-blue-500/20";
+        ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+        : "bg-blue-500/10 text-blue-400 border-blue-500/20";
 
   const avatarBg = (role: string) =>
     role === "PT"
       ? "bg-emerald-500/20 text-emerald-400"
       : role === "Admin"
-      ? "bg-purple-500/20 text-purple-400"
-      : "bg-blue-500/20 text-blue-400";
+        ? "bg-purple-500/20 text-purple-400"
+        : "bg-blue-500/20 text-blue-400";
 
   const activeCount = users.filter((u) => u.status === "Active").length;
 
@@ -100,7 +110,9 @@ export function UserManagement() {
           disabled={loading}
           className="flex items-center gap-1.5 px-3 py-2 text-xs text-zinc-400 border border-zinc-700/50 rounded-lg hover:bg-zinc-800/50 transition-colors disabled:opacity-50"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
+          />
           Refresh
         </button>
       </div>
@@ -199,8 +211,12 @@ export function UserManagement() {
                             {initials(u.name)}
                           </div>
                           <div>
-                            <div className="text-sm font-semibold text-zinc-200">{u.name}</div>
-                            <div className="text-xs text-zinc-500">{u.email}</div>
+                            <div className="text-sm font-semibold text-zinc-200">
+                              {u.name}
+                            </div>
+                            <div className="text-xs text-zinc-500">
+                              {u.email}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -218,8 +234,12 @@ export function UserManagement() {
                           {u.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-zinc-500">{u.joined}</td>
-                      <td className="px-4 py-3 text-sm text-zinc-500">{u.lastActive}</td>
+                      <td className="px-4 py-3 text-sm text-zinc-500">
+                        {u.joined}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-zinc-500">
+                        {u.lastActive}
+                      </td>
                       <td className="px-4 py-3">
                         <button className="p-1 text-zinc-600 hover:text-zinc-300 rounded transition-colors">
                           <MoreVertical className="w-4 h-4" />
@@ -252,7 +272,9 @@ export function UserManagement() {
                   {initials(selectedUser.name)}
                 </div>
                 <h3 className="text-zinc-100 font-bold">{selectedUser.name}</h3>
-                <p className="text-xs text-zinc-500 mt-0.5">{selectedUser.email}</p>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  {selectedUser.email}
+                </p>
                 <span
                   className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-semibold border mt-2 ${statusBadge(selectedUser.status)}`}
                 >
@@ -263,15 +285,17 @@ export function UserManagement() {
 
               <div className="space-y-2.5 text-sm border-b border-zinc-800/60 pb-4 mb-4">
                 {[
-                  { label: "Role",        value: selectedUser.role },
-                  { label: "Joined",      value: selectedUser.joined },
+                  { label: "Role", value: selectedUser.role },
+                  { label: "Joined", value: selectedUser.joined },
                   { label: "Last Active", value: selectedUser.lastActive },
-                  { label: "Sessions",    value: String(selectedUser.sessions) },
-                  { label: "Contracts",   value: String(selectedUser.contracts) },
+                  { label: "Sessions", value: String(selectedUser.sessions) },
+                  { label: "Contracts", value: String(selectedUser.contracts) },
                 ].map((row) => (
                   <div key={row.label} className="flex justify-between">
                     <span className="text-zinc-500">{row.label}</span>
-                    <span className="text-zinc-300 font-medium">{row.value}</span>
+                    <span className="text-zinc-300 font-medium">
+                      {row.value}
+                    </span>
                   </div>
                 ))}
               </div>

@@ -1,5 +1,5 @@
-import { workoutRepository } from '../repositories/workout.repository';
-import { nutritionRepository } from '../repositories/nutrition.repository';
+import { workoutRepository } from "../repositories/workout.repository";
+import { nutritionRepository } from "../repositories/nutrition.repository";
 
 export const statsService = {
   async getWorkoutStats(userId: string, days = 30) {
@@ -8,10 +8,19 @@ export const statsService = {
 
     const workouts = await workoutRepository.findForStats(userId, startDate);
     const totalWorkouts = workouts.length;
-    type WorkoutStat = { duration?: number | null; exercises: { length: number } | unknown[] };
+    type WorkoutStat = {
+      duration?: number | null;
+      exercises: { length: number } | unknown[];
+    };
     const typedWorkouts = workouts as WorkoutStat[];
-    const totalDuration = typedWorkouts.reduce((sum, w) => sum + (w.duration || 0), 0);
-    const totalExercises = typedWorkouts.reduce((sum, w) => sum + (w.exercises as unknown[]).length, 0);
+    const totalDuration = typedWorkouts.reduce(
+      (sum, w) => sum + (w.duration || 0),
+      0,
+    );
+    const totalExercises = typedWorkouts.reduce(
+      (sum, w) => sum + (w.exercises as unknown[]).length,
+      0,
+    );
 
     return {
       totalWorkouts,
@@ -27,8 +36,16 @@ export const statsService = {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    type NutritionStat = { calories: number; protein?: number | null; carbs?: number | null; fats?: number | null };
-    const logs = (await nutritionRepository.findForStats(userId, startDate)) as NutritionStat[];
+    type NutritionStat = {
+      calories: number;
+      protein?: number | null;
+      carbs?: number | null;
+      fats?: number | null;
+    };
+    const logs = (await nutritionRepository.findForStats(
+      userId,
+      startDate,
+    )) as NutritionStat[];
     const totalCalories = logs.reduce((sum, l) => sum + l.calories, 0);
     const totalProtein = logs.reduce((sum, l) => sum + (l.protein || 0), 0);
     const totalCarbs = logs.reduce((sum, l) => sum + (l.carbs || 0), 0);

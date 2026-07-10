@@ -1,11 +1,14 @@
-﻿import { z } from 'zod';
-import { logger } from '@gym-coach/shared';
-import { conversationRepository, PlanStatus } from '../repositories/conversation.repository';
-import { llmService } from './llm.service';
-import { aiQueue } from '../workers/ai.queue';
-import type { GenerateWorkoutRequest } from '../schemas/ai.schemas';
-import type { GeneratePlanRequest as PlanGenerateRequest } from '../schemas/plan.schemas';
-import { ApiError, LlmGenerationError } from '../errors/api-error';
+import { z } from "zod";
+import { logger } from "@gym-coach/shared";
+import {
+  conversationRepository,
+  PlanStatus,
+} from "../repositories/conversation.repository";
+import { llmService } from "./llm.service";
+import { aiQueue } from "../workers/ai.queue";
+import type { GenerateWorkoutRequest } from "../schemas/ai.schemas";
+import type { GeneratePlanRequest as PlanGenerateRequest } from "../schemas/plan.schemas";
+import { ApiError, LlmGenerationError } from "../errors/api-error";
 
 // Quick-workout exercise schema, simpler than the full multi-week plan.
 const QuickExerciseSchema = z.object({
@@ -20,38 +23,48 @@ type QuickExercise = z.infer<typeof QuickExerciseSchema>;
 function parseExercisesFromLlm(rawAnswer: string): QuickExercise[] {
   const arrayMatch = rawAnswer.match(/\[[\s\S]*?\]/);
   if (!arrayMatch) {
-    logger.warn({ answerSnippet: rawAnswer.slice(0, 200) }, 'generateWorkout: no JSON array found in LLM answer');
-    throw new LlmGenerationError('LLM returned malformed workout output');
+    logger.warn(
+      { answerSnippet: rawAnswer.slice(0, 200) },
+      "generateWorkout: no JSON array found in LLM answer",
+    );
+    throw new LlmGenerationError("LLM returned malformed workout output");
   }
   try {
     const parsed: unknown = JSON.parse(arrayMatch[0]);
     if (!Array.isArray(parsed)) {
-      throw new LlmGenerationError('LLM workout output did not include an exercises array');
+      throw new LlmGenerationError(
+        "LLM workout output did not include an exercises array",
+      );
     }
     const exercises = parsed
       .map((item) => QuickExerciseSchema.safeParse(item))
       .filter((r): r is z.SafeParseSuccess<QuickExercise> => r.success)
       .map((r) => r.data);
     if (exercises.length === 0) {
-      throw new LlmGenerationError('LLM workout output did not include valid exercises');
+      throw new LlmGenerationError(
+        "LLM workout output did not include valid exercises",
+      );
     }
     return exercises;
   } catch (err) {
     if (err instanceof LlmGenerationError) throw err;
-    logger.warn({ err }, 'generateWorkout: failed to parse exercises JSON');
-    throw new LlmGenerationError('LLM returned malformed workout JSON');
+    logger.warn({ err }, "generateWorkout: failed to parse exercises JSON");
+    throw new LlmGenerationError("LLM returned malformed workout JSON");
   }
 }
 
 export const conversationService = {
   async getConversations(userId: string, limit = 10) {
-    const conversations = await conversationRepository.findMany({ userId }, limit);
+    const conversations = await conversationRepository.findMany(
+      { userId },
+      limit,
+    );
     return { conversations };
   },
 
   async submitFeedback(conversationId: string, feedback: number) {
     await conversationRepository.updateFeedback(conversationId, feedback);
-    return { success: true, message: 'Feedback recorded' };
+    return { success: true, message: "Feedback recorded" };
   },
 
   async getFeedbackStats() {
@@ -64,7 +77,8 @@ export const conversationService = {
       totalConversations: total,
       thumbsUp,
       thumbsDown,
-      satisfactionRate: total > 0 ? Number(((thumbsUp / total) * 100).toFixed(1)) : 0,
+      satisfactionRate:
+        total > 0 ? Number(((thumbsUp / total) * 100).toFixed(1)) : 0,
     };
   },
 
@@ -73,8 +87,8 @@ export const conversationService = {
     const prompt = `Generate a single workout session with these requirements:
 - Goal: ${goal}
 - Session duration: ${duration} minutes
-- Available equipment: ${equipment.length ? equipment.join(', ') : 'bodyweight only'}
-- Target body parts: ${bodyParts.length ? bodyParts.join(', ') : 'full body'}
+- Available equipment: ${equipment.length ? equipment.join(", ") : "bodyweight only"}
+- Target body parts: ${bodyParts.length ? bodyParts.join(", ") : "full body"}
 
 Return ONLY a JSON array of exercises. No markdown, no explanation.
 [
@@ -92,15 +106,27 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     };
   },
 
-  async queuePlanGeneration(params: PlanGenerateRequest & {
-    userId: string;
-    ptUserId?: string | null;
-    clientName?: string | null;
-    exercisesPerDay?: number;
-    trainingLocation?: string;
-    equipmentPreference?: string;
-  }) {
-    const { userId, goal, durationWeeks, daysPerWeek, exercisesPerDay, ptUserId = null, clientName = null, trainingLocation, equipmentPreference } = params;
+  async queuePlanGeneration(
+    params: PlanGenerateRequest & {
+      userId: string;
+      ptUserId?: string | null;
+      clientName?: string | null;
+      exercisesPerDay?: number;
+      trainingLocation?: string;
+      equipmentPreference?: string;
+    },
+  ) {
+    const {
+      userId,
+      goal,
+      durationWeeks,
+      daysPerWeek,
+      exercisesPerDay,
+      ptUserId = null,
+      clientName = null,
+      trainingLocation,
+      equipmentPreference,
+    } = params;
 
     const plan = await conversationRepository.createWorkoutPlan({
       userId,
@@ -113,20 +139,23 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       clientName,
     });
 
-    const job = await aiQueue.add('generate-plan', {
+    const job = await aiQueue.add("generate-plan", {
       planId: plan.id,
       userId,
       goal,
       durationWeeks,
       daysPerWeek,
       exercisesPerDay,
-      trainingLocation: trainingLocation ?? 'GYM',
-      equipmentPreference: equipmentPreference ?? 'MIXED_GYM',
+      trainingLocation: trainingLocation ?? "GYM",
+      equipmentPreference: equipmentPreference ?? "MIXED_GYM",
     });
 
     await conversationRepository.updatePlanJob(plan.id, job.id!);
 
-    logger.info({ planId: plan.id, jobId: job.id, userId, ptUserId }, 'Plan generation queued');
+    logger.info(
+      { planId: plan.id, jobId: job.id, userId, ptUserId },
+      "Plan generation queued",
+    );
     return { planId: plan.id, jobId: job.id!, status: PlanStatus.QUEUED };
   },
 
@@ -137,25 +166,38 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     daysPerWeek?: number;
     exercisesPerDay?: number;
   }) {
-    const original = await conversationRepository.findPlanById(params.originalPlanId);
+    const original = await conversationRepository.findPlanById(
+      params.originalPlanId,
+    );
     if (!original) {
-      throw new ApiError('PLAN_NOT_FOUND', `Plan ${params.originalPlanId} not found`, 404);
+      throw new ApiError(
+        "PLAN_NOT_FOUND",
+        `Plan ${params.originalPlanId} not found`,
+        404,
+      );
     }
     if (original.userId !== params.userId) {
-      throw new ApiError('FORBIDDEN', 'You do not have access to this plan', 403);
+      throw new ApiError(
+        "FORBIDDEN",
+        "You do not have access to this plan",
+        403,
+      );
     }
     if (original.status !== PlanStatus.COMPLETED) {
       throw new ApiError(
-        'PLAN_NOT_COMPLETED',
-        'Only COMPLETED plans can be adjusted. Wait for the current plan to finish generating.',
+        "PLAN_NOT_COMPLETED",
+        "Only COMPLETED plans can be adjusted. Wait for the current plan to finish generating.",
         409,
       );
     }
 
     const newVersion = original.version + 1;
-    const originalPlanContent = original.plan as { exercisesPerDay?: number } | null;
+    const originalPlanContent = original.plan as {
+      exercisesPerDay?: number;
+    } | null;
     const daysPerWeek = params.daysPerWeek ?? original.daysPerWeek;
-    const exercisesPerDay = params.exercisesPerDay ?? originalPlanContent?.exercisesPerDay ?? 4;
+    const exercisesPerDay =
+      params.exercisesPerDay ?? originalPlanContent?.exercisesPerDay ?? 4;
 
     const newPlan = await conversationRepository.createAdjustedPlan({
       userId: params.userId,
@@ -167,7 +209,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       version: newVersion,
     });
 
-    const job = await aiQueue.add('generate-plan', {
+    const job = await aiQueue.add("generate-plan", {
       planId: newPlan.id,
       userId: params.userId,
       goal: original.goal,
@@ -180,10 +222,19 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
     await conversationRepository.updatePlanJob(newPlan.id, job.id!);
 
     logger.info(
-      { newPlanId: newPlan.id, originalPlanId: params.originalPlanId, version: newVersion },
-      'Plan adjustment queued',
+      {
+        newPlanId: newPlan.id,
+        originalPlanId: params.originalPlanId,
+        version: newVersion,
+      },
+      "Plan adjustment queued",
     );
-    return { planId: newPlan.id, jobId: job.id!, version: newVersion, status: PlanStatus.QUEUED };
+    return {
+      planId: newPlan.id,
+      jobId: job.id!,
+      version: newVersion,
+      status: PlanStatus.QUEUED,
+    };
   },
 
   // Nutrition plan queueing.
@@ -227,7 +278,7 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
       mealsPerDay,
     });
 
-    const job = await aiQueue.add('generate-nutrition-plan', {
+    const job = await aiQueue.add("generate-nutrition-plan", {
       planId: plan.id,
       userId,
       goal,
@@ -259,7 +310,10 @@ Return ONLY a JSON array of exercises. No markdown, no explanation.
 
     await conversationRepository.updateNutritionPlanJob(plan.id, job.id!);
 
-    logger.info({ planId: plan.id, jobId: job.id, userId }, 'Nutrition plan generation queued');
+    logger.info(
+      { planId: plan.id, jobId: job.id, userId },
+      "Nutrition plan generation queued",
+    );
     return { planId: plan.id, jobId: job.id!, status: PlanStatus.QUEUED };
   },
 };

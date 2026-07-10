@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from "../generated/prisma";
 
 const prisma = new PrismaClient();
 
@@ -10,7 +10,7 @@ export const trainingLocationRepository = {
         province: { select: { name: true } },
         ward: { select: { name: true } },
       },
-      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+      orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
     }),
 
   findByIdAndOwner: (id: string, ptUserId: string) =>
@@ -18,15 +18,18 @@ export const trainingLocationRepository = {
       where: { id, ptUserId },
     }),
 
-  create: async (ptUserId: string, data: {
-    provinceCode: number;
-    wardCode?: number | null;
-    gymName?: string | null;
-    addressLine?: string | null;
-    legacyDistrictName?: string | null;
-    isPrimary?: boolean;
-    note?: string | null;
-  }) => {
+  create: async (
+    ptUserId: string,
+    data: {
+      provinceCode: number;
+      wardCode?: number | null;
+      gymName?: string | null;
+      addressLine?: string | null;
+      legacyDistrictName?: string | null;
+      isPrimary?: boolean;
+      note?: string | null;
+    },
+  ) => {
     return prisma.$transaction(async (tx) => {
       if (data.isPrimary) {
         await tx.pTTrainingLocation.updateMany({
@@ -53,16 +56,20 @@ export const trainingLocationRepository = {
     });
   },
 
-  update: async (id: string, ptUserId: string, data: {
-    provinceCode?: number;
-    wardCode?: number | null;
-    gymName?: string | null;
-    addressLine?: string | null;
-    legacyDistrictName?: string | null;
-    isPrimary?: boolean;
-    isActive?: boolean;
-    note?: string | null;
-  }) => {
+  update: async (
+    id: string,
+    ptUserId: string,
+    data: {
+      provinceCode?: number;
+      wardCode?: number | null;
+      gymName?: string | null;
+      addressLine?: string | null;
+      legacyDistrictName?: string | null;
+      isPrimary?: boolean;
+      isActive?: boolean;
+      note?: string | null;
+    },
+  ) => {
     return prisma.$transaction(async (tx) => {
       if (data.isPrimary === true) {
         await tx.pTTrainingLocation.updateMany({

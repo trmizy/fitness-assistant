@@ -11,10 +11,10 @@
  *   GET /admin/ai/queue
  *   GET /admin/ai/errors
  */
-import { Request, Response, NextFunction } from 'express';
-import { logger } from '@gym-coach/shared';
-import { conversationRepository } from '../repositories/conversation.repository';
-import { aiQueue } from '../workers/ai.queue';
+import { Request, Response, NextFunction } from "express";
+import { logger } from "@gym-coach/shared";
+import { conversationRepository } from "../repositories/conversation.repository";
+import { aiQueue } from "../workers/ai.queue";
 import {
   enqueueLocalEvidenceRefresh,
   enqueuePubMedRefresh,
@@ -24,43 +24,57 @@ import {
   removeKnowledgeRefreshSchedules,
   scheduleKnowledgeRefreshes,
   updateKnowledgeQueueDepthMetrics,
-} from '../knowledge-pipeline/queue';
-import { knowledgeRepository } from '../knowledge-pipeline/repository';
-import { embedAndUpsertDocument } from '../knowledge-pipeline/qdrant-writer';
-import { formatSuccessResponse, formatErrorResponse } from '../errors/api-error';
-import type { AdminRequestsQuery } from '../repositories/conversation.repository';
+} from "../knowledge-pipeline/queue";
+import { knowledgeRepository } from "../knowledge-pipeline/repository";
+import { embedAndUpsertDocument } from "../knowledge-pipeline/qdrant-writer";
+import {
+  formatSuccessResponse,
+  formatErrorResponse,
+} from "../errors/api-error";
+import type { AdminRequestsQuery } from "../repositories/conversation.repository";
 
-type KnowledgeJobKind = 'local' | 'pubmed' | 'rss' | 'web';
+type KnowledgeJobKind = "local" | "pubmed" | "rss" | "web";
 
 function readParam(req: Request, name: string): unknown {
   const body = req.body as Record<string, unknown> | undefined;
-  if (body && Object.prototype.hasOwnProperty.call(body, name)) return body[name];
+  if (body && Object.prototype.hasOwnProperty.call(body, name))
+    return body[name];
   return req.query[name];
 }
 
-function readBoolean(req: Request, name: string, defaultValue: boolean): boolean {
+function readBoolean(
+  req: Request,
+  name: string,
+  defaultValue: boolean,
+): boolean {
   const value = readParam(req, name);
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'string') {
-    if (value.toLowerCase() === 'true') return true;
-    if (value.toLowerCase() === 'false') return false;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    if (value.toLowerCase() === "true") return true;
+    if (value.toLowerCase() === "false") return false;
   }
   return defaultValue;
 }
 
 function readString(req: Request, name: string): string | undefined {
   const value = readParam(req, name);
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-function readLimit(req: Request, defaultValue: number, maxValue: number): number {
-  const raw = Number(readParam(req, 'limit'));
+function readLimit(
+  req: Request,
+  defaultValue: number,
+  maxValue: number,
+): number {
+  const raw = Number(readParam(req, "limit"));
   if (!Number.isFinite(raw)) return defaultValue;
   return Math.min(maxValue, Math.max(1, Math.floor(raw)));
 }
 
 function isKnowledgeJobKind(kind: string): kind is KnowledgeJobKind {
-  return kind === 'local' || kind === 'pubmed' || kind === 'rss' || kind === 'web';
+  return (
+    kind === "local" || kind === "pubmed" || kind === "rss" || kind === "web"
+  );
 }
 
 export const adminController = {
@@ -70,16 +84,21 @@ export const adminController = {
    * language split, and plan job counts.
    * Also enriches with live BullMQ queue counts.
    */
-  async getOverview(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getOverview(
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
-      const [dbStats, waiting, active, completed, failed, delayed] = await Promise.all([
-        conversationRepository.adminGetOverviewStats(),
-        aiQueue.getWaitingCount().catch(() => null),
-        aiQueue.getActiveCount().catch(() => null),
-        aiQueue.getCompletedCount().catch(() => null),
-        aiQueue.getFailedCount().catch(() => null),
-        aiQueue.getDelayedCount().catch(() => null),
-      ]);
+      const [dbStats, waiting, active, completed, failed, delayed] =
+        await Promise.all([
+          conversationRepository.adminGetOverviewStats(),
+          aiQueue.getWaitingCount().catch(() => null),
+          aiQueue.getActiveCount().catch(() => null),
+          aiQueue.getCompletedCount().catch(() => null),
+          aiQueue.getFailedCount().catch(() => null),
+          aiQueue.getDelayedCount().catch(() => null),
+        ]);
 
       res.json(
         formatSuccessResponse({
@@ -91,17 +110,17 @@ export const adminController = {
             ...dbStats.plans,
             // BullMQ live counts (may be null if Redis is down)
             queue: {
-              waiting:   waiting   ?? null,
-              active:    active    ?? null,
+              waiting: waiting ?? null,
+              active: active ?? null,
               completed: completed ?? null,
-              failed:    failed    ?? null,
-              delayed:   delayed   ?? null,
+              failed: failed ?? null,
+              delayed: delayed ?? null,
             },
           },
         }),
       );
     } catch (err) {
-      logger.error({ err }, 'Admin overview query failed');
+      logger.error({ err }, "Admin overview query failed");
       next(err);
     }
   },
@@ -111,19 +130,23 @@ export const adminController = {
    * Paginated list of conversations with observability metadata.
    * No raw answer text — just metadata for the table.
    */
-  async listRequests(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async listRequests(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     const query: AdminRequestsQuery = {
-      filter: (req.query['filter'] as AdminRequestsQuery['filter']) ?? 'all',
-      intent: (req.query['intent'] as string) || undefined,
-      page:   Math.max(1, Number(req.query['page'])  || 1),
-      limit:  Math.min(100, Math.max(1, Number(req.query['limit']) || 20)),
+      filter: (req.query["filter"] as AdminRequestsQuery["filter"]) ?? "all",
+      intent: (req.query["intent"] as string) || undefined,
+      page: Math.max(1, Number(req.query["page"]) || 1),
+      limit: Math.min(100, Math.max(1, Number(req.query["limit"]) || 20)),
     };
 
     try {
       const result = await conversationRepository.adminListRequests(query);
       res.json(formatSuccessResponse(result));
     } catch (err) {
-      logger.error({ err, query }, 'Admin list requests failed');
+      logger.error({ err, query }, "Admin list requests failed");
       next(err);
     }
   },
@@ -133,18 +156,26 @@ export const adminController = {
    * Full conversation detail for the trace drawer.
    * Returns question + answer text + all observability fields.
    */
-  async getRequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getRequest(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     const { id } = req.params;
 
     try {
       const conversation = await conversationRepository.adminGetRequest(id);
       if (!conversation) {
-        res.status(404).json(formatErrorResponse('NOT_FOUND', `Conversation ${id} not found`));
+        res
+          .status(404)
+          .json(
+            formatErrorResponse("NOT_FOUND", `Conversation ${id} not found`),
+          );
         return;
       }
       res.json(formatSuccessResponse({ conversation }));
     } catch (err) {
-      logger.error({ err, id }, 'Admin get request detail failed');
+      logger.error({ err, id }, "Admin get request detail failed");
       next(err);
     }
   },
@@ -153,16 +184,21 @@ export const adminController = {
    * GET /admin/ai/queue
    * Recent WorkoutPlan records (last 30) plus live BullMQ queue counts.
    */
-  async getQueue(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getQueue(
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
-      const [plans, waiting, active, completed, failed, delayed] = await Promise.all([
-        conversationRepository.adminListPlans(30),
-        aiQueue.getWaitingCount().catch(() => null),
-        aiQueue.getActiveCount().catch(() => null),
-        aiQueue.getCompletedCount().catch(() => null),
-        aiQueue.getFailedCount().catch(() => null),
-        aiQueue.getDelayedCount().catch(() => null),
-      ]);
+      const [plans, waiting, active, completed, failed, delayed] =
+        await Promise.all([
+          conversationRepository.adminListPlans(30),
+          aiQueue.getWaitingCount().catch(() => null),
+          aiQueue.getActiveCount().catch(() => null),
+          aiQueue.getCompletedCount().catch(() => null),
+          aiQueue.getFailedCount().catch(() => null),
+          aiQueue.getDelayedCount().catch(() => null),
+        ]);
 
       res.json(
         formatSuccessResponse({
@@ -172,7 +208,7 @@ export const adminController = {
         }),
       );
     } catch (err) {
-      logger.error({ err }, 'Admin queue query failed');
+      logger.error({ err }, "Admin queue query failed");
       next(err);
     }
   },
@@ -181,12 +217,21 @@ export const adminController = {
    * GET /admin/ai/errors
    * Failed plans (any time) + conversations with validation warnings (last 7 days).
    */
-  async getErrors(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getErrors(
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const errors = await conversationRepository.adminGetErrors();
-      res.json(formatSuccessResponse({ generatedAt: new Date().toISOString(), ...errors }));
+      res.json(
+        formatSuccessResponse({
+          generatedAt: new Date().toISOString(),
+          ...errors,
+        }),
+      );
     } catch (err) {
-      logger.error({ err }, 'Admin errors query failed');
+      logger.error({ err }, "Admin errors query failed");
       next(err);
     }
   },
@@ -196,7 +241,11 @@ export const adminController = {
    * Knowledge-update pipeline dashboard data: recent runs, review queue,
    * live BullMQ counts, and scheduled repeatable jobs.
    */
-  async getKnowledgePipeline(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getKnowledgePipeline(
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const queue = getKnowledgePipelineQueue();
       const [runs, reviewItems, queueCounts, repeatable] = await Promise.all([
@@ -206,18 +255,26 @@ export const adminController = {
         queue.getRepeatableJobs().catch(() => []),
       ]);
 
-      res.json(formatSuccessResponse({
-        generatedAt: new Date().toISOString(),
-        runs,
-        reviewItems,
-        queue: {
-          name: queue.name,
-          ...(queueCounts ?? { waiting: null, active: null, completed: null, failed: null, delayed: null }),
-          repeatable,
-        },
-      }));
+      res.json(
+        formatSuccessResponse({
+          generatedAt: new Date().toISOString(),
+          runs,
+          reviewItems,
+          queue: {
+            name: queue.name,
+            ...(queueCounts ?? {
+              waiting: null,
+              active: null,
+              completed: null,
+              failed: null,
+              delayed: null,
+            }),
+            repeatable,
+          },
+        }),
+      );
     } catch (err) {
-      logger.error({ err }, 'Admin knowledge pipeline query failed');
+      logger.error({ err }, "Admin knowledge pipeline query failed");
       next(err);
     }
   },
@@ -226,33 +283,62 @@ export const adminController = {
    * POST /admin/ai/knowledge/jobs/:kind
    * Queue a manual pipeline refresh. kind is one of: local, pubmed, rss, web.
    */
-  async enqueueKnowledgePipeline(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async enqueueKnowledgePipeline(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     const { kind } = req.params;
     if (!isKnowledgeJobKind(kind)) {
-      res.status(400).json(formatErrorResponse('VALIDATION_ERROR', 'Unknown knowledge job kind'));
+      res
+        .status(400)
+        .json(
+          formatErrorResponse("VALIDATION_ERROR", "Unknown knowledge job kind"),
+        );
       return;
     }
 
-    const embed = readBoolean(req, 'embed', true);
-    const force = readBoolean(req, 'force', false);
+    const embed = readBoolean(req, "embed", true);
+    const force = readBoolean(req, "force", false);
 
     try {
-      const job = kind === 'local'
-        ? await enqueueLocalEvidenceRefresh({ embed, force, limit: readLimit(req, 25, 250) })
-        : kind === 'pubmed'
-          ? await enqueuePubMedRefresh({ embed, force, limit: readLimit(req, 10, 50), query: readString(req, 'query') })
-          : kind === 'rss'
-            ? await enqueueRssRefresh({ embed, force, limit: readLimit(req, 10, 50), sourceId: readString(req, 'sourceId') })
-            : await enqueueWebRefresh({ embed, force, sourceId: readString(req, 'sourceId') });
+      const job =
+        kind === "local"
+          ? await enqueueLocalEvidenceRefresh({
+              embed,
+              force,
+              limit: readLimit(req, 25, 250),
+            })
+          : kind === "pubmed"
+            ? await enqueuePubMedRefresh({
+                embed,
+                force,
+                limit: readLimit(req, 10, 50),
+                query: readString(req, "query"),
+              })
+            : kind === "rss"
+              ? await enqueueRssRefresh({
+                  embed,
+                  force,
+                  limit: readLimit(req, 10, 50),
+                  sourceId: readString(req, "sourceId"),
+                })
+              : await enqueueWebRefresh({
+                  embed,
+                  force,
+                  sourceId: readString(req, "sourceId"),
+                });
 
-      res.status(202).json(formatSuccessResponse({
-        queued: true,
-        kind,
-        jobId: job.id,
-        queue: job.queueName,
-      }));
+      res.status(202).json(
+        formatSuccessResponse({
+          queued: true,
+          kind,
+          jobId: job.id,
+          queue: job.queueName,
+        }),
+      );
     } catch (err) {
-      logger.error({ err, kind }, 'Admin enqueue knowledge pipeline failed');
+      logger.error({ err, kind }, "Admin enqueue knowledge pipeline failed");
       next(err);
     }
   },
@@ -261,31 +347,54 @@ export const adminController = {
    * POST /admin/ai/knowledge/review/:reviewId/approve
    * Approve a review item and optionally embed it immediately.
    */
-  async approveKnowledgeReviewItem(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async approveKnowledgeReviewItem(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     const { reviewId } = req.params;
 
     try {
       const review = await knowledgeRepository.getReviewDocument(reviewId);
       if (!review) {
-        res.status(404).json(formatErrorResponse('NOT_FOUND', `Knowledge review item ${reviewId} not found`));
+        res
+          .status(404)
+          .json(
+            formatErrorResponse(
+              "NOT_FOUND",
+              `Knowledge review item ${reviewId} not found`,
+            ),
+          );
         return;
       }
 
-      await knowledgeRepository.approveReviewItem(review.reviewId, req.context?.userId ?? null);
+      await knowledgeRepository.approveReviewItem(
+        review.reviewId,
+        req.context?.userId ?? null,
+      );
 
       let embeddedChunks = 0;
-      if (readBoolean(req, 'embed', true)) {
-        embeddedChunks = await embedAndUpsertDocument(review.documentId, review.document, review.source);
+      if (readBoolean(req, "embed", true)) {
+        embeddedChunks = await embedAndUpsertDocument(
+          review.documentId,
+          review.document,
+          review.source,
+        );
       }
 
-      res.json(formatSuccessResponse({
-        approved: true,
-        reviewId: review.reviewId,
-        documentId: review.documentId,
-        embeddedChunks,
-      }));
+      res.json(
+        formatSuccessResponse({
+          approved: true,
+          reviewId: review.reviewId,
+          documentId: review.documentId,
+          embeddedChunks,
+        }),
+      );
     } catch (err) {
-      logger.error({ err, reviewId }, 'Admin approve knowledge review item failed');
+      logger.error(
+        { err, reviewId },
+        "Admin approve knowledge review item failed",
+      );
       next(err);
     }
   },
@@ -294,25 +403,45 @@ export const adminController = {
    * POST /admin/ai/knowledge/review/:reviewId/reject
    * Reject a pending review item.
    */
-  async rejectKnowledgeReviewItem(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async rejectKnowledgeReviewItem(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     const { reviewId } = req.params;
 
     try {
       const review = await knowledgeRepository.getReviewDocument(reviewId);
       if (!review) {
-        res.status(404).json(formatErrorResponse('NOT_FOUND', `Knowledge review item ${reviewId} not found`));
+        res
+          .status(404)
+          .json(
+            formatErrorResponse(
+              "NOT_FOUND",
+              `Knowledge review item ${reviewId} not found`,
+            ),
+          );
         return;
       }
 
       await knowledgeRepository.rejectReviewItem(
         review.reviewId,
         req.context?.userId ?? null,
-        readString(req, 'reason') ?? 'rejected_by_admin',
+        readString(req, "reason") ?? "rejected_by_admin",
       );
 
-      res.json(formatSuccessResponse({ rejected: true, reviewId: review.reviewId, documentId: review.documentId }));
+      res.json(
+        formatSuccessResponse({
+          rejected: true,
+          reviewId: review.reviewId,
+          documentId: review.documentId,
+        }),
+      );
     } catch (err) {
-      logger.error({ err, reviewId }, 'Admin reject knowledge review item failed');
+      logger.error(
+        { err, reviewId },
+        "Admin reject knowledge review item failed",
+      );
       next(err);
     }
   },
@@ -321,12 +450,16 @@ export const adminController = {
    * POST /admin/ai/knowledge/schedule
    * Register repeatable BullMQ jobs for the knowledge pipeline.
    */
-  async scheduleKnowledgePipeline(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async scheduleKnowledgePipeline(
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const jobs = await scheduleKnowledgeRefreshes();
       res.status(202).json(formatSuccessResponse({ scheduled: true, jobs }));
     } catch (err) {
-      logger.error({ err }, 'Admin schedule knowledge pipeline failed');
+      logger.error({ err }, "Admin schedule knowledge pipeline failed");
       next(err);
     }
   },
@@ -335,12 +468,16 @@ export const adminController = {
    * DELETE /admin/ai/knowledge/schedule
    * Remove repeatable BullMQ jobs for the knowledge pipeline.
    */
-  async clearKnowledgeSchedule(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async clearKnowledgeSchedule(
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const removed = await removeKnowledgeRefreshSchedules();
       res.json(formatSuccessResponse({ cleared: true, removed }));
     } catch (err) {
-      logger.error({ err }, 'Admin clear knowledge schedule failed');
+      logger.error({ err }, "Admin clear knowledge schedule failed");
       next(err);
     }
   },

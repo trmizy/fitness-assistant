@@ -99,9 +99,11 @@ Thu tu thuc thi hien tai:
    - Hoac khi `mentionsInjury = true`
    - Neu unsafe request bi block thi khong vao LLM path
 10. Neu can LLM:
-   - `promptBuilder.build(...)`
-   - `llmService.callLLM(prompt)`
-   - `labelLocalizer.localize(...)`
+
+- `promptBuilder.build(...)`
+- `llmService.callLLM(prompt)`
+- `labelLocalizer.localize(...)`
+
 11. `answerValidator.validate(...)`
 12. `traceLogger.end(...)`
 13. Tra ve `FinalAnswerPayload`

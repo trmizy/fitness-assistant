@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Evaluate optional coach fine-tuning outputs and dataset behavior."""
 from __future__ import annotations
 

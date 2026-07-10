@@ -1,20 +1,22 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
-import { prisma } from '../repositories/conversation.repository';
-import { runRssPipeline } from '../knowledge-pipeline/service';
+import { prisma } from "../repositories/conversation.repository";
+import { runRssPipeline } from "../knowledge-pipeline/service";
 
 function readArgs() {
   const args = process.argv.slice(2);
-  const limitArg = args.find((arg) => arg.startsWith('--limit='));
-  const sourceArg = args.find((arg) => arg.startsWith('--source='));
-  const limit = limitArg ? Number.parseInt(limitArg.split('=')[1] ?? '', 10) : undefined;
+  const limitArg = args.find((arg) => arg.startsWith("--limit="));
+  const sourceArg = args.find((arg) => arg.startsWith("--source="));
+  const limit = limitArg
+    ? Number.parseInt(limitArg.split("=")[1] ?? "", 10)
+    : undefined;
 
   return {
-    sourceId: sourceArg ? sourceArg.slice('--source='.length) : undefined,
+    sourceId: sourceArg ? sourceArg.slice("--source=".length) : undefined,
     limit: Number.isFinite(limit) ? limit : undefined,
-    embed: !args.includes('--no-embed'),
-    force: args.includes('--force'),
+    embed: !args.includes("--no-embed"),
+    force: args.includes("--force"),
   };
 }
 

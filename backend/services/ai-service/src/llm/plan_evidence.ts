@@ -1,23 +1,30 @@
-import type { BodyCompAnalysis } from './body_composition_rules';
-import type { EvidenceUsed, RetrievalDocument, UserProfile } from './types';
+import type { BodyCompAnalysis } from "./body_composition_rules";
+import type { EvidenceUsed, RetrievalDocument, UserProfile } from "./types";
 
 export type PlanEvidenceBundle = {
-  adjustment_reason: BodyCompAnalysis['adjustments'];
+  adjustment_reason: BodyCompAnalysis["adjustments"];
   evidence_used: EvidenceUsed[];
   safety_notes: string[];
 };
 
-function readMetadataString(metadata: Record<string, unknown>, keys: string[]): string {
+function readMetadataString(
+  metadata: Record<string, unknown>,
+  keys: string[],
+): string {
   for (const key of keys) {
     const value = metadata[key];
-    if (typeof value === 'string' && value.trim()) return value.trim();
-    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value))
+      return String(value);
   }
-  return '';
+  return "";
 }
 
-function readEvidenceDate(metadata: Record<string, unknown>): { date?: string; year?: string } {
-  const raw = readMetadataString(metadata, ['published_at', 'date', 'year']);
+function readEvidenceDate(metadata: Record<string, unknown>): {
+  date?: string;
+  year?: string;
+} {
+  const raw = readMetadataString(metadata, ["published_at", "date", "year"]);
   if (!raw) return {};
   const yearMatch = raw.match(/\b(19|20)\d{2}\b/);
   return {
@@ -26,16 +33,27 @@ function readEvidenceDate(metadata: Record<string, unknown>): { date?: string; y
   };
 }
 
-export function evidenceUsedFromDocs(docs: RetrievalDocument[]): EvidenceUsed[] {
+export function evidenceUsedFromDocs(
+  docs: RetrievalDocument[],
+): EvidenceUsed[] {
   const seen = new Set<string>();
   const evidence: EvidenceUsed[] = [];
 
   for (const doc of docs) {
     const metadata = doc.metadata ?? {};
-    const sourceUrl = typeof metadata.source_url === 'string' ? metadata.source_url.trim() : '';
-    const title = typeof metadata.title === 'string' ? metadata.title.trim() : '';
-    const sourceType = typeof metadata.source_type === 'string' ? metadata.source_type.trim() : 'curated_summary';
-    const source = readMetadataString(metadata, ['source_name', 'source', 'publisher']);
+    const sourceUrl =
+      typeof metadata.source_url === "string" ? metadata.source_url.trim() : "";
+    const title =
+      typeof metadata.title === "string" ? metadata.title.trim() : "";
+    const sourceType =
+      typeof metadata.source_type === "string"
+        ? metadata.source_type.trim()
+        : "curated_summary";
+    const source = readMetadataString(metadata, [
+      "source_name",
+      "source",
+      "publisher",
+    ]);
     const { date, year } = readEvidenceDate(metadata);
 
     if (!sourceUrl || !title) continue;
@@ -47,13 +65,16 @@ export function evidenceUsedFromDocs(docs: RetrievalDocument[]): EvidenceUsed[] 
     evidence.push({
       title,
       source_url: sourceUrl,
-      category: typeof metadata.category === 'string' ? metadata.category : doc.category,
+      category:
+        typeof metadata.category === "string"
+          ? metadata.category
+          : doc.category,
       source_type: sourceType,
-      summary: doc.pageContent.replace(/\s+/g, ' ').slice(0, 180),
+      summary: doc.pageContent.replace(/\s+/g, " ").slice(0, 180),
       ...(source ? { source } : {}),
       ...(date ? { date } : {}),
       ...(year ? { year } : {}),
-      citation: [title, year].filter(Boolean).join(', '),
+      citation: [title, year].filter(Boolean).join(", "),
     });
   }
 
@@ -92,45 +113,52 @@ export function attachEvidenceToPlanContent<T extends Record<string, any>>(
 
   target._metadata = target._metadata || {};
   target._metadata.evidenceApplied = true;
-  target._metadata.evidenceSourcePolicy = 'retriever_metadata_only';
+  target._metadata.evidenceSourcePolicy = "retriever_metadata_only";
 
   return content;
 }
 
 export function formatEvidenceForPlanPrompt(docs: RetrievalDocument[]): string {
-  if (docs.length === 0) return 'No retrieved evidence passed the similarity threshold.';
+  if (docs.length === 0)
+    return "No retrieved evidence passed the similarity threshold.";
 
-  return docs.slice(0, 2).map((doc, index) => {
-    const metadata = doc.metadata ?? {};
-    return [
-      `E${index + 1}: ${metadata.title || 'Untitled evidence'}`,
-      `source_type: ${metadata.source_type || 'curated_summary'}`,
-      `source_url: ${metadata.source_url || 'unknown'}`,
-      `source: ${metadata.source_name || metadata.source || 'unknown'}`,
-      `date: ${metadata.published_at || metadata.date || metadata.year || 'unknown'}`,
-      `category: ${doc.category}`,
-      `summary: ${doc.pageContent.replace(/\s+/g, ' ').slice(0, 180)}`,
-    ].join('\n');
-  }).join('\n\n');
+  return docs
+    .slice(0, 2)
+    .map((doc, index) => {
+      const metadata = doc.metadata ?? {};
+      return [
+        `E${index + 1}: ${metadata.title || "Untitled evidence"}`,
+        `source_type: ${metadata.source_type || "curated_summary"}`,
+        `source_url: ${metadata.source_url || "unknown"}`,
+        `source: ${metadata.source_name || metadata.source || "unknown"}`,
+        `date: ${metadata.published_at || metadata.date || metadata.year || "unknown"}`,
+        `category: ${doc.category}`,
+        `summary: ${doc.pageContent.replace(/\s+/g, " ").slice(0, 180)}`,
+      ].join("\n");
+    })
+    .join("\n\n");
 }
 
-export function formatMockProfileForPlanPrompt(profile: UserProfile, recentWorkoutLogs: unknown[] = []): string {
+export function formatMockProfileForPlanPrompt(
+  profile: UserProfile,
+  recentWorkoutLogs: unknown[] = [],
+): string {
   const lines = [
-    `age=${profile.age ?? 'unknown'}`,
-    `heightCm=${profile.heightCm ?? 'unknown'}`,
-    `weightKg=${profile.currentWeightKg ?? 'unknown'}`,
-    `goal=${profile.goal ?? 'unknown'}`,
-    `activityLevel=${profile.activityLevel ?? 'unknown'}`,
-    `experience=${profile.experienceLevel ?? 'unknown'}`,
-    `BMI=${profile.inBody?.bmi ?? 'unknown'}`,
-    `bodyFatPct=${profile.inBody?.bodyFatPct ?? 'unknown'}`,
-    `muscleMassKg=${profile.inBody?.skeletalMuscleKg ?? 'unknown'}`,
-    `injuries=${profile.training.injuries.join(', ') || 'none'}`,
+    `age=${profile.age ?? "unknown"}`,
+    `heightCm=${profile.heightCm ?? "unknown"}`,
+    `weightKg=${profile.currentWeightKg ?? "unknown"}`,
+    `goal=${profile.goal ?? "unknown"}`,
+    `activityLevel=${profile.activityLevel ?? "unknown"}`,
+    `experience=${profile.experienceLevel ?? "unknown"}`,
+    `BMI=${profile.inBody?.bmi ?? "unknown"}`,
+    `bodyFatPct=${profile.inBody?.bodyFatPct ?? "unknown"}`,
+    `muscleMassKg=${profile.inBody?.skeletalMuscleKg ?? "unknown"}`,
+    `injuries=${profile.training.injuries.join(", ") || "none"}`,
   ];
 
   if (recentWorkoutLogs.length > 0) {
     lines.push(`recentWorkoutLogs=${JSON.stringify(recentWorkoutLogs)}`);
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }

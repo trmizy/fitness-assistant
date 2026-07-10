@@ -1062,11 +1062,7 @@
         "Ton trong han che an uong",
         "Co tinh lien tuc"
       ],
-      "forbidden_issues": [
-        "Co mon hai san",
-        "Thieu ngay",
-        "Khong co macro"
-      ]
+      "forbidden_issues": ["Co mon hai san", "Thieu ngay", "Khong co macro"]
     },
     {
       "id": "NU09",
@@ -1117,11 +1113,7 @@
         "Du 4 bua",
         "Khong rut gon"
       ],
-      "forbidden_issues": [
-        "Tra loi tieng Anh",
-        "Thieu bua",
-        "Khong co macro"
-      ]
+      "forbidden_issues": ["Tra loi tieng Anh", "Thieu bua", "Khong co macro"]
     },
     {
       "id": "NU11",

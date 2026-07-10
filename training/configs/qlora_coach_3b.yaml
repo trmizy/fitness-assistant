@@ -1,4 +1,4 @@
-﻿base_model: llama3.2:3b
+base_model: llama3.2:3b
 output_dir: training/outputs/fitness-coach-qlora
 train_file: training/data/processed/train.jsonl
 eval_file: training/data/processed/eval.jsonl

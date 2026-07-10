@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const registerSchema = z.object({
   email: z.string().email(),
@@ -28,7 +28,7 @@ export const updateMeSchema = z.object({
   lastName: z.string().trim().min(1).max(100).optional(),
 });
 
-export const roleSchema = z.enum(['ADMIN', 'CUSTOMER', 'PT']);
+export const roleSchema = z.enum(["ADMIN", "CUSTOMER", "PT"]);
 
 export const updateUserRoleSchema = z.object({
   role: roleSchema,

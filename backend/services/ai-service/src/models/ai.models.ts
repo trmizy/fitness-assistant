@@ -17,6 +17,6 @@ export interface LLMResponse {
 }
 
 export interface RelevanceEval {
-  Relevance: 'NON_RELEVANT' | 'PARTLY_RELEVANT' | 'RELEVANT' | 'UNKNOWN';
+  Relevance: "NON_RELEVANT" | "PARTLY_RELEVANT" | "RELEVANT" | "UNKNOWN";
   Explanation: string;
 }

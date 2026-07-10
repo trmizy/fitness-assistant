@@ -1,10 +1,10 @@
-import { LLM_MODEL, llmService } from './llm.service';
-import { conversationRepository } from '../repositories/conversation.repository';
-import type { RelevanceEval } from '../models/ai.models';
-import { llmOrchestrator } from '../llm/orchestrator.service';
-import type { ProgressCallback } from '../llm/orchestrator.service';
-import { logger } from '@gym-coach/shared';
-import { LlmError } from '../errors/api-error';
+import { LLM_MODEL, llmService } from "./llm.service";
+import { conversationRepository } from "../repositories/conversation.repository";
+import type { RelevanceEval } from "../models/ai.models";
+import { llmOrchestrator } from "../llm/orchestrator.service";
+import type { ProgressCallback } from "../llm/orchestrator.service";
+import { logger } from "@gym-coach/shared";
+import { LlmError } from "../errors/api-error";
 
 /**
  * LLM self-evaluation is DISABLED by default.
@@ -15,7 +15,7 @@ import { LlmError } from '../errors/api-error';
  *
  *   ENABLE_LLM_SELF_EVAL=true
  */
-const SELF_EVAL_ENABLED = process.env.ENABLE_LLM_SELF_EVAL === 'true';
+const SELF_EVAL_ENABLED = process.env.ENABLE_LLM_SELF_EVAL === "true";
 
 const EVALUATION_PROMPT = `
 You are an expert evaluator for a RAG system.
@@ -35,9 +35,10 @@ async function evaluateRelevance(
   answer: string,
 ): Promise<RelevanceEval> {
   try {
-    const prompt = EVALUATION_PROMPT
-      .replace('{question}', question)
-      .replace('{answer}', answer.slice(0, 1500)); // cap to avoid huge prompts
+    const prompt = EVALUATION_PROMPT.replace("{question}", question).replace(
+      "{answer}",
+      answer.slice(0, 1500),
+    ); // cap to avoid huge prompts
     const result = await llmService.callLLM(prompt);
     const jsonMatch = result.answer.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -48,21 +49,37 @@ async function evaluateRelevance(
     }
   } catch (err) {
     // Self-eval failures must not propagate — log and continue.
-    logger.warn({ err }, 'Self-evaluation failed, continuing without relevance score');
+    logger.warn(
+      { err },
+      "Self-evaluation failed, continuing without relevance score",
+    );
   }
-  return { Relevance: 'UNKNOWN', Explanation: 'Evaluation skipped or failed' };
+  return { Relevance: "UNKNOWN", Explanation: "Evaluation skipped or failed" };
 }
 
 export const ragService = {
-  async rag(question: string, userId?: string, authHeader?: string, onProgress?: ProgressCallback) {
+  async rag(
+    question: string,
+    userId?: string,
+    authHeader?: string,
+    onProgress?: ProgressCallback,
+  ) {
     const startTime = Date.now();
 
     // May throw LlmError if the LLM provider is down — propagates to controller.
-    const orchestrated = await llmOrchestrator.run(question, userId, authHeader, onProgress);
+    const orchestrated = await llmOrchestrator.run(
+      question,
+      userId,
+      authHeader,
+      onProgress,
+    );
     const responseTime = (Date.now() - startTime) / 1000;
 
     // Self-evaluation: second LLM call, gated behind env flag.
-    let relevanceEval: RelevanceEval = { Relevance: null as unknown as RelevanceEval['Relevance'], Explanation: null as unknown as string };
+    let relevanceEval: RelevanceEval = {
+      Relevance: null as unknown as RelevanceEval["Relevance"],
+      Explanation: null as unknown as string,
+    };
     if (SELF_EVAL_ENABLED) {
       relevanceEval = await evaluateRelevance(question, orchestrated.answer);
     }
@@ -76,7 +93,9 @@ export const ragService = {
       modelUsed: LLM_MODEL,
       responseTime,
       relevance: SELF_EVAL_ENABLED ? relevanceEval.Relevance : null,
-      relevanceExplanation: SELF_EVAL_ENABLED ? relevanceEval.Explanation : null,
+      relevanceExplanation: SELF_EVAL_ENABLED
+        ? relevanceEval.Explanation
+        : null,
       promptTokens: orchestrated.promptTokens,
       completionTokens: orchestrated.completionTokens,
       totalTokens: orchestrated.totalTokens,
@@ -84,7 +103,8 @@ export const ragService = {
       // ── Observability fields ────────────────────────────────────────────────
       traceId: orchestrated.traceId,
       usedFallback: orchestrated.usedFallback,
-      usedDeterministicFallback: orchestrated.usedDeterministicFallbackBecauseOfValidation,
+      usedDeterministicFallback:
+        orchestrated.usedDeterministicFallbackBecauseOfValidation,
       responseLanguage: orchestrated.responseLanguage,
       routeIntent: orchestrated.routeIntent,
       warningCount: orchestrated.warningCount,
@@ -97,7 +117,10 @@ export const ragService = {
       modelUsed: LLM_MODEL,
       responseTime,
       ...(SELF_EVAL_ENABLED
-        ? { relevance: relevanceEval.Relevance, relevanceExplanation: relevanceEval.Explanation }
+        ? {
+            relevance: relevanceEval.Relevance,
+            relevanceExplanation: relevanceEval.Explanation,
+          }
         : {}),
       promptTokens: orchestrated.promptTokens,
       completionTokens: orchestrated.completionTokens,
@@ -108,11 +131,21 @@ export const ragService = {
       missingFields: orchestrated.missingFields,
       validationNotes: orchestrated.validationNotes,
       recommendation: orchestrated.recommendation,
-      ...(orchestrated.adjustmentReasons ? { adjustmentReasons: orchestrated.adjustmentReasons } : {}),
-      ...(orchestrated.evidenceUsed ? { evidenceUsed: orchestrated.evidenceUsed } : {}),
-      ...(orchestrated.safetyNotes ? { safetyNotes: orchestrated.safetyNotes } : {}),
-      ...(orchestrated.workoutSchedule ? { workoutSchedule: orchestrated.workoutSchedule } : {}),
-      ...(orchestrated.nutritionSchedule ? { nutritionSchedule: orchestrated.nutritionSchedule } : {}),
+      ...(orchestrated.adjustmentReasons
+        ? { adjustmentReasons: orchestrated.adjustmentReasons }
+        : {}),
+      ...(orchestrated.evidenceUsed
+        ? { evidenceUsed: orchestrated.evidenceUsed }
+        : {}),
+      ...(orchestrated.safetyNotes
+        ? { safetyNotes: orchestrated.safetyNotes }
+        : {}),
+      ...(orchestrated.workoutSchedule
+        ? { workoutSchedule: orchestrated.workoutSchedule }
+        : {}),
+      ...(orchestrated.nutritionSchedule
+        ? { nutritionSchedule: orchestrated.nutritionSchedule }
+        : {}),
     };
   },
 };

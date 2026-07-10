@@ -427,4 +427,4 @@ Invoke-RestMethod -Uri "http://localhost:3003/health" | ConvertTo-Json
 - Trong Docker, `ai-service` can dung URL noi bo de lay profile/lich su:
   - `USER_SERVICE_URL=http://user-service:3004`
   - `FITNESS_SERVICE_URL=http://fitness-service:3002`
-  Neu de mac dinh `localhost` thi AI se khong doc duoc profile da co san va se hoi lai thong tin co ban.
+    Neu de mac dinh `localhost` thi AI se khong doc duoc profile da co san va se hoi lai thong tin co ban.

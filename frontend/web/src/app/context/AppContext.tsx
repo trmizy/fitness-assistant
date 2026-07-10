@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { User } from "../types";
 import { authService } from "../services/api";
@@ -31,18 +37,27 @@ function hasUsableToken(token: string | null): token is string {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
-  const [isAuthenticated, setIsAuth]  = useState(() => hasUsableToken(localStorage.getItem("accessToken")));
+  const [isAuthenticated, setIsAuth] = useState(() =>
+    hasUsableToken(localStorage.getItem("accessToken")),
+  );
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeView, setActiveView]   = useState<WorkspaceView>("client");
-  const [user, setUser]               = useState<User | null>(() => {
+  const [activeView, setActiveView] = useState<WorkspaceView>("client");
+  const [user, setUser] = useState<User | null>(() => {
     try {
       const stored = localStorage.getItem("user");
       return stored ? JSON.parse(stored) : null;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
   });
 
-  const role: UserRole = user?.role === "ADMIN" ? "admin" : (user?.isPT || user?.role === "PT" ? "pt" : "client");
-  const isPT    = role === "pt";
+  const role: UserRole =
+    user?.role === "ADMIN"
+      ? "admin"
+      : user?.isPT || user?.role === "PT"
+        ? "pt"
+        : "client";
+  const isPT = role === "pt";
   const isAdmin = role === "admin";
 
   // Set default view based on role when user changes
@@ -85,7 +100,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateUser = useCallback((updates: Partial<User>) => {
-    setUser(prev => {
+    setUser((prev) => {
       if (!prev) return prev;
       const next = { ...prev, ...updates };
       localStorage.setItem("user", JSON.stringify(next));
@@ -94,14 +109,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AppContext.Provider value={{
-      user, role, isPT, isAdmin,
-      activeView, setActiveView,
-      isAuthenticated, login, logout,
-      setUser,
-      sidebarOpen, setSidebarOpen,
-      updateUser
-    }}>
+    <AppContext.Provider
+      value={{
+        user,
+        role,
+        isPT,
+        isAdmin,
+        activeView,
+        setActiveView,
+        isAuthenticated,
+        login,
+        logout,
+        setUser,
+        sidebarOpen,
+        setSidebarOpen,
+        updateUser,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );

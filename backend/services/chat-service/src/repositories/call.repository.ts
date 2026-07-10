@@ -1,5 +1,5 @@
-import { CallStatus, CallType, CallOrigin } from '@prisma/client';
-import { prisma } from './chat.repository';
+import { CallStatus, CallType, CallOrigin } from "@prisma/client";
+import { prisma } from "./chat.repository";
 
 export const callRepository = {
   create: (data: {
@@ -20,8 +20,7 @@ export const callRepository = {
       },
     }),
 
-  findById: (id: string) =>
-    prisma.callSession.findUnique({ where: { id } }),
+  findById: (id: string) => prisma.callSession.findUnique({ where: { id } }),
 
   updateStatus: (id: string, status: CallStatus, extra?: Record<string, any>) =>
     prisma.callSession.update({
@@ -34,7 +33,9 @@ export const callRepository = {
     prisma.callSession.findFirst({
       where: {
         OR: [{ callerId: userId }, { calleeId: userId }],
-        status: { in: ['INITIATING', 'RINGING', 'ACCEPTED', 'CONNECTING', 'ACTIVE'] },
+        status: {
+          in: ["INITIATING", "RINGING", "ACCEPTED", "CONNECTING", "ACTIVE"],
+        },
       },
     }),
 
@@ -42,7 +43,7 @@ export const callRepository = {
   findByConversationId: (conversationId: string, take = 50) =>
     prisma.callSession.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take,
     }),
 
@@ -51,7 +52,7 @@ export const callRepository = {
     prisma.callSession.findFirst({
       where: {
         coachingSessionId,
-        status: { in: ['RINGING', 'ACCEPTED', 'CONNECTING', 'ACTIVE'] },
+        status: { in: ["RINGING", "ACCEPTED", "CONNECTING", "ACTIVE"] },
       },
     }),
 };

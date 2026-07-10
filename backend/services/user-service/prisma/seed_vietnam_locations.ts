@@ -4,10 +4,10 @@
 // Commit: 67757d43dcbb9e1406088c185c660a115fb1f546
 // Do NOT fetch from GitHub at runtime — data is vendored in prisma/data/
 
-import { PrismaClient } from '../src/generated/prisma';
-import { normalizeVietnamese } from '../src/utils/normalize';
-import * as fs from 'fs';
-import * as path from 'path';
+import { PrismaClient } from "../src/generated/prisma";
+import { normalizeVietnamese } from "../src/utils/normalize";
+import * as fs from "fs";
+import * as path from "path";
 
 const prisma = new PrismaClient();
 
@@ -31,12 +31,14 @@ interface ProvinceData {
 async function main() {
   const existing = await prisma.vietnamProvince.count();
   if (existing > 0) {
-    console.log(`Vietnam locations already seeded (${existing} provinces). Skipping.`);
+    console.log(
+      `Vietnam locations already seeded (${existing} provinces). Skipping.`,
+    );
     return;
   }
 
-  const dataPath = path.join(__dirname, 'data', 'vietnam_provinces.json');
-  const raw = fs.readFileSync(dataPath, 'utf-8');
+  const dataPath = path.join(__dirname, "data", "vietnam_provinces.json");
+  const raw = fs.readFileSync(dataPath, "utf-8");
   const provinces: ProvinceData[] = JSON.parse(raw);
 
   let provinceCount = 0;

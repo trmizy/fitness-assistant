@@ -1,4 +1,4 @@
-﻿# Optional Coach Fine-Tuning Pipeline
+# Optional Coach Fine-Tuning Pipeline
 
 This folder is optional. The running product still uses Ollama + Qdrant + RAG as
 the primary knowledge and evidence architecture. Fine-tuning is research tooling

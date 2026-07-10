@@ -106,7 +106,10 @@
   "_meta": {
     "description": "Sub-workflow: checks ai-service /health and Qdrant vector DB /collections. Called by orchestrator via POST /webhook/gym-test-ai.",
     "webhook_path": "gym-test-ai",
-    "checks": ["http://ai-service:3003/health", "http://qdrant:6333/collections"],
+    "checks": [
+      "http://ai-service:3003/health",
+      "http://qdrant:6333/collections"
+    ],
     "note": "Qdrant health endpoint may be unavailable on this build; /collections shape is used for readiness.",
     "response_schema": {
       "passed": "boolean",

@@ -20,8 +20,14 @@
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "options": { "0": { "text": "DOWN", "color": "red" } }, "type": "value" },
-            { "options": { "1": { "text": "UP", "color": "green" } }, "type": "value" }
+            {
+              "options": { "0": { "text": "DOWN", "color": "red" } },
+              "type": "value"
+            },
+            {
+              "options": { "1": { "text": "UP", "color": "green" } },
+              "type": "value"
+            }
           ],
           "thresholds": {
             "mode": "absolute",
@@ -34,7 +40,11 @@
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
         "orientation": "horizontal",
         "textMode": "auto",
         "colorMode": "background",
@@ -58,12 +68,25 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "gradientMode": "scheme", "spanNulls": true },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "gradientMode": "scheme",
+            "spanNulls": true
+          },
           "unit": "reqps"
         },
         "overrides": []
       },
-      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } }
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max"]
+        },
+        "tooltip": { "mode": "multi" }
+      }
     },
     {
       "title": "Error Rate % (5xx responses)",
@@ -78,7 +101,12 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "gradientMode": "scheme" },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "scheme"
+          },
           "unit": "percent",
           "thresholds": {
             "mode": "absolute",
@@ -91,7 +119,14 @@
         },
         "overrides": []
       },
-      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } }
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max"]
+        },
+        "tooltip": { "mode": "multi" }
+      }
     },
     {
       "title": "Request Latency p95 (seconds)",
@@ -119,7 +154,14 @@
         },
         "overrides": []
       },
-      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } }
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max"]
+        },
+        "tooltip": { "mode": "multi" }
+      }
     },
     {
       "title": "Request Latency p50 (seconds)",
@@ -139,7 +181,14 @@
         },
         "overrides": []
       },
-      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } }
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max"]
+        },
+        "tooltip": { "mode": "multi" }
+      }
     },
     {
       "title": "Service Uptime (seconds)",
@@ -178,7 +227,11 @@
         }
       ],
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
     },
     {
       "title": "Redis — Memory Usage",
@@ -192,7 +245,11 @@
         }
       ],
       "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
     },
     {
       "title": "Redis — Connected Clients",
@@ -206,7 +263,11 @@
         }
       ],
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
     }
   ],
   "refresh": "10s",

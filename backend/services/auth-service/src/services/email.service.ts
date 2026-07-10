@@ -1,5 +1,5 @@
-import nodemailer from 'nodemailer';
-import { logger } from '@gym-coach/shared';
+import nodemailer from "nodemailer";
+import { logger } from "@gym-coach/shared";
 
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
@@ -7,7 +7,7 @@ const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const SMTP_FROM = process.env.SMTP_FROM;
 const SMTP_SECURE =
-  (process.env.SMTP_SECURE || '').toLowerCase() === 'true' || SMTP_PORT === 465;
+  (process.env.SMTP_SECURE || "").toLowerCase() === "true" || SMTP_PORT === 465;
 
 function assertSmtpConfig() {
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_FROM) {
@@ -25,13 +25,13 @@ export async function sendOtpEmail(
 ) {
   const hasSmtpConfig = assertSmtpConfig();
   if (!hasSmtpConfig) {
-    if (process.env.NODE_ENV === 'production') {
-      throw { status: 500, message: 'Email service not configured' };
+    if (process.env.NODE_ENV === "production") {
+      throw { status: 500, message: "Email service not configured" };
     }
 
     logger.warn(
       { to, otp },
-      'SMTP not configured. Using development OTP fallback.',
+      "SMTP not configured. Using development OTP fallback.",
     );
     return { delivered: false as const };
   }
@@ -40,19 +40,20 @@ export async function sendOtpEmail(
     host: SMTP_HOST,
     port: SMTP_PORT,
     secure: SMTP_SECURE,
-    auth: SMTP_USER && SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
+    auth:
+      SMTP_USER && SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
   });
 
-  const greeting = firstName ? `Hi ${firstName},` : 'Hi,';
-  const subject = 'Your AI Gym Coach verification code';
+  const greeting = firstName ? `Hi ${firstName},` : "Hi,";
+  const subject = "Your AI Gym Coach verification code";
   const text = [
     `${greeting}`,
-    '',
+    "",
     `Your verification code is: ${otp}`,
     `It expires in ${expiresInMinutes} minutes.`,
-    '',
-    'If you did not request this, please ignore this email.',
-  ].join('\n');
+    "",
+    "If you did not request this, please ignore this email.",
+  ].join("\n");
 
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.5;">
@@ -72,6 +73,6 @@ export async function sendOtpEmail(
     html,
   });
 
-  logger.info({ to }, 'OTP email sent');
+  logger.info({ to }, "OTP email sent");
   return { delivered: true as const };
 }

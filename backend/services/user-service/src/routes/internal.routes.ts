@@ -1,8 +1,8 @@
-import { Router } from 'express';
-import { serviceSecretMiddleware } from '../middleware/serviceSecret.middleware';
-import { contractController } from '../controllers/contract.controller';
-import { profileService } from '../services/profile.service';
-import { inbodyService } from '../services/inbody.service';
+import { Router } from "express";
+import { serviceSecretMiddleware } from "../middleware/serviceSecret.middleware";
+import { contractController } from "../controllers/contract.controller";
+import { profileService } from "../services/profile.service";
+import { inbodyService } from "../services/inbody.service";
 
 const router = Router();
 
@@ -11,20 +11,23 @@ router.use(serviceSecretMiddleware);
 
 // Chat-service calls this to decide whether a (from, to) pair can chat.
 // Implements BR-29 (loosened): client → APPROVED PT discovery chat is allowed even without contract.
-router.get('/chat-eligibility', contractController.chatEligibility as any);
+router.get("/chat-eligibility", contractController.chatEligibility as any);
 
 // ai-service calls this to verify that a contractId belongs to the given client and is ACTIVE.
 // Returns { ptUserId, contractId } or { ptUserId: null }.
-router.get('/contracts/active-pt', contractController.getActivePTForClient as any);
+router.get(
+  "/contracts/active-pt",
+  contractController.getActivePTForClient as any,
+);
 
 // ai-service workers run without an end-user bearer token. These read-only
 // endpoints expose the same user-owned context after service-secret validation.
-router.get('/profile/:userId', async (req, res) => {
+router.get("/profile/:userId", async (req, res) => {
   const result = await profileService.getProfile(req.params.userId);
   res.json(result);
 });
 
-router.get('/inbody/:userId', async (req, res) => {
+router.get("/inbody/:userId", async (req, res) => {
   const history = await inbodyService.getHistory(req.params.userId);
   res.json(history);
 });

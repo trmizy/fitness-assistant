@@ -1,12 +1,18 @@
-export type KnowledgeSourceType = 'RSS' | 'API' | 'WEB' | 'LOCAL';
+export type KnowledgeSourceType = "RSS" | "API" | "WEB" | "LOCAL";
 export type KnowledgeDocumentTopic =
-  | 'TRAINING'
-  | 'NUTRITION'
-  | 'RECOVERY'
-  | 'INJURY'
-  | 'BODY_COMPOSITION'
-  | 'GENERAL';
-export type KnowledgeDocumentStatus = 'CRAWLED' | 'CLEANED' | 'SCORED' | 'EMBEDDED' | 'REJECTED' | 'REVIEW';
+  | "TRAINING"
+  | "NUTRITION"
+  | "RECOVERY"
+  | "INJURY"
+  | "BODY_COMPOSITION"
+  | "GENERAL";
+export type KnowledgeDocumentStatus =
+  | "CRAWLED"
+  | "CLEANED"
+  | "SCORED"
+  | "EMBEDDED"
+  | "REJECTED"
+  | "REVIEW";
 
 export type KnowledgeSource = {
   id: string;

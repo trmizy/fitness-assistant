@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
 /**
  * Role guard middleware for ai-service.
@@ -11,7 +11,7 @@ import { Request, Response, NextFunction } from 'express';
 export function requireRole(roles: string[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!roles.includes(req.context?.role)) {
-      res.status(403).json({ error: 'Insufficient role' });
+      res.status(403).json({ error: "Insufficient role" });
       return;
     }
     next();

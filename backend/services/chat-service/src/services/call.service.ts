@@ -1,5 +1,5 @@
-import { CallStatus, CallType, CallOrigin } from '@prisma/client';
-import { callRepository } from '../repositories/call.repository';
+import { CallStatus, CallType, CallOrigin } from "@prisma/client";
+import { callRepository } from "../repositories/call.repository";
 
 export const callService = {
   async initiateCall(data: {
@@ -17,15 +17,17 @@ export const callService = {
     ]);
 
     if (callerBusy) {
-      return { error: 'You are already in a call' };
+      return { error: "You are already in a call" };
     }
     if (calleeBusy) {
-      return { error: 'User is busy' };
+      return { error: "User is busy" };
     }
 
     // For session-linked calls, check if there's already an active call for this session
-    if (data.origin === 'SESSION' && data.coachingSessionId) {
-      const existing = await callRepository.findActiveByCoachingSession(data.coachingSessionId);
+    if (data.origin === "SESSION" && data.coachingSessionId) {
+      const existing = await callRepository.findActiveByCoachingSession(
+        data.coachingSessionId,
+      );
       if (existing) {
         return { existingCall: existing };
       }
@@ -46,64 +48,87 @@ export const callService = {
 
   async acceptCall(callSessionId: string, userId: string) {
     const call = await callRepository.findById(callSessionId);
-    if (!call) return { error: 'Call not found' };
-    if (call.calleeId !== userId) return { error: 'Not authorized' };
+    if (!call) return { error: "Call not found" };
+    if (call.calleeId !== userId) return { error: "Not authorized" };
 
     // First-accept-wins: check status is still RINGING (atomic guard for multi-tab)
     if (call.status !== CallStatus.RINGING) {
-      return { error: 'Call is no longer ringing', alreadyHandled: true };
+      return { error: "Call is no longer ringing", alreadyHandled: true };
     }
 
-    const updated = await callRepository.updateStatus(callSessionId, CallStatus.ACCEPTED, {
-      answeredAt: new Date(),
-    });
+    const updated = await callRepository.updateStatus(
+      callSessionId,
+      CallStatus.ACCEPTED,
+      {
+        answeredAt: new Date(),
+      },
+    );
     return { call: updated };
   },
 
   async rejectCall(callSessionId: string, userId: string) {
     const call = await callRepository.findById(callSessionId);
-    if (!call) return { error: 'Call not found' };
-    if (call.calleeId !== userId) return { error: 'Not authorized' };
-    if (call.status !== CallStatus.RINGING) return { error: 'Call is no longer ringing' };
+    if (!call) return { error: "Call not found" };
+    if (call.calleeId !== userId) return { error: "Not authorized" };
+    if (call.status !== CallStatus.RINGING)
+      return { error: "Call is no longer ringing" };
 
-    const updated = await callRepository.updateStatus(callSessionId, CallStatus.REJECTED, {
-      endedAt: new Date(),
-      endReason: 'rejected',
-    });
+    const updated = await callRepository.updateStatus(
+      callSessionId,
+      CallStatus.REJECTED,
+      {
+        endedAt: new Date(),
+        endReason: "rejected",
+      },
+    );
     return { call: updated };
   },
 
   async cancelCall(callSessionId: string, userId: string) {
     const call = await callRepository.findById(callSessionId);
-    if (!call) return { error: 'Call not found' };
-    if (call.callerId !== userId) return { error: 'Not authorized' };
-    if (call.status !== CallStatus.RINGING && call.status !== CallStatus.INITIATING) {
-      return { error: 'Call cannot be cancelled in current state' };
+    if (!call) return { error: "Call not found" };
+    if (call.callerId !== userId) return { error: "Not authorized" };
+    if (
+      call.status !== CallStatus.RINGING &&
+      call.status !== CallStatus.INITIATING
+    ) {
+      return { error: "Call cannot be cancelled in current state" };
     }
 
-    const updated = await callRepository.updateStatus(callSessionId, CallStatus.CANCELLED, {
-      endedAt: new Date(),
-      endReason: 'cancelled',
-    });
+    const updated = await callRepository.updateStatus(
+      callSessionId,
+      CallStatus.CANCELLED,
+      {
+        endedAt: new Date(),
+        endReason: "cancelled",
+      },
+    );
     return { call: updated };
   },
 
   async endCall(callSessionId: string, userId: string, reason?: string) {
     const call = await callRepository.findById(callSessionId);
-    if (!call) return { error: 'Call not found' };
-    if (call.callerId !== userId && call.calleeId !== userId) return { error: 'Not authorized' };
+    if (!call) return { error: "Call not found" };
+    if (call.callerId !== userId && call.calleeId !== userId)
+      return { error: "Not authorized" };
 
     const activeStates: CallStatus[] = [
-      CallStatus.ACCEPTED, CallStatus.CONNECTING, CallStatus.ACTIVE,
+      CallStatus.ACCEPTED,
+      CallStatus.CONNECTING,
+      CallStatus.ACTIVE,
     ];
     if (!activeStates.includes(call.status)) {
-      return { error: 'Call is not in an active state' };
+      return { error: "Call is not in an active state" };
     }
 
-    const updated = await callRepository.updateStatus(callSessionId, CallStatus.ENDED, {
-      endedAt: new Date(),
-      endReason: reason || 'hangup',
-    });
+    const updated = await callRepository.updateStatus(
+      callSessionId,
+      CallStatus.ENDED,
+      {
+        endedAt: new Date(),
+        endReason: reason || "hangup",
+      },
+    );
     return { call: updated };
   },
 
@@ -113,7 +138,7 @@ export const callService = {
 
     return callRepository.updateStatus(callSessionId, CallStatus.MISSED, {
       endedAt: new Date(),
-      endReason: 'no_answer',
+      endReason: "no_answer",
     });
   },
 

@@ -1,7 +1,7 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from "node:crypto";
 
 export function sha256(input: string): string {
-  return createHash('sha256').update(input).digest('hex');
+  return createHash("sha256").update(input).digest("hex");
 }
 
 export function stableUuid(input: string): string {
@@ -13,7 +13,7 @@ export function stableUuid(input: string): string {
     `4${hex.slice(13, 16)}`,
     `${variant}${hex.slice(17, 20)}`,
     hex.slice(20, 32),
-  ].join('-');
+  ].join("-");
 }
 
 export function newId(): string {

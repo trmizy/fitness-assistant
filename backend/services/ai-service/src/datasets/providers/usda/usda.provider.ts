@@ -1,6 +1,11 @@
-import { httpGet } from '../../utils/httpClient';
-import { mapUsdaFoodDetail, mapUsdaSearchFood, type UsdaFoodDetail, type UsdaSearchFood } from './usda.mapper';
-import type { FoodDetail, FoodSearchItem } from '../../types';
+import { httpGet } from "../../utils/httpClient";
+import {
+  mapUsdaFoodDetail,
+  mapUsdaSearchFood,
+  type UsdaFoodDetail,
+  type UsdaSearchFood,
+} from "./usda.mapper";
+import type { FoodDetail, FoodSearchItem } from "../../types";
 
 interface UsdaSearchResponse {
   totalHits: number;
@@ -29,10 +34,10 @@ export const usdaProvider = {
     apiKey: string,
     pageSize = 10,
   ): Promise<FoodSearchItem[]> {
-    if (!apiKey) throw new Error('[USDA] API key is required.');
+    if (!apiKey) throw new Error("[USDA] API key is required.");
 
     const data = await httpGet<UsdaSearchResponse>(
-      'https://api.nal.usda.gov/fdc/v1/foods/search',
+      "https://api.nal.usda.gov/fdc/v1/foods/search",
       { query, pageSize, api_key: apiKey },
     );
 
@@ -44,7 +49,7 @@ export const usdaProvider = {
    * Use this after searchFoods to get the full macro breakdown.
    */
   async getFoodDetails(fdcId: string, apiKey: string): Promise<FoodDetail> {
-    if (!apiKey) throw new Error('[USDA] API key is required.');
+    if (!apiKey) throw new Error("[USDA] API key is required.");
 
     const data = await httpGet<UsdaFoodDetail>(
       `https://api.nal.usda.gov/fdc/v1/food/${fdcId}`,

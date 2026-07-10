@@ -9,9 +9,9 @@
  *                  Restricted to offline analytics / demo / testing.
  */
 export type AuthoritativenessLevel =
-  | 'authoritative'
-  | 'supplementary'
-  | 'analytics_only';
+  | "authoritative"
+  | "supplementary"
+  | "analytics_only";
 
 export interface SourceAttribution {
   providerName: string;
@@ -37,11 +37,11 @@ export interface DatasetProviderMetadata {
  * When USDA data is present, its four core macro fields are the only truth.
  */
 export interface NutritionFacts {
-  calories: number | null;   // kcal
-  proteinG: number | null;   // grams
-  carbsG: number | null;     // grams
-  fatG: number | null;       // grams
-  fiberG?: number | null;    // grams (optional enrichment)
+  calories: number | null; // kcal
+  proteinG: number | null; // grams
+  carbsG: number | null; // grams
+  fatG: number | null; // grams
+  fiberG?: number | null; // grams (optional enrichment)
   servingSize?: number | null;
   servingUnit?: string | null;
 }
@@ -51,7 +51,7 @@ export interface FoodSearchItem {
   name: string;
   brand?: string;
   category?: string;
-  dataType?: string;          // e.g. "Branded", "Foundation", "SR Legacy"
+  dataType?: string; // e.g. "Branded", "Foundation", "SR Legacy"
   source: SourceAttribution;
 }
 

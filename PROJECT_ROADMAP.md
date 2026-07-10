@@ -51,14 +51,18 @@ Infra: Qdrant (:6333), Redis (:6379), Prometheus (:9090), Grafana (:3100)
 Hàm `buildSpecificRoutineByIntent()` xử lý chest, back, biceps, push day, arms — nhưng **thiếu hoàn toàn case cho legs, shoulders, core**. Khi user hỏi "cho tôi bài tập chân", `muscleGroupHint = 'legs'` nhưng không match case nào, rơi vào `buildGeneralSpecificRoutine()` (full-body generic routine).
 
 **Việc cần làm:**
+
 - [ ] Viết `buildLegsRoutine()`: squat, RDL, leg press, leg curl, leg extension, calf raise (có `techniqueNotes`, `overloadGuide`)
 - [ ] Viết `buildShouldersRoutine()`: OHP, lateral raise, face pull, rear delt fly, Arnold press
 - [ ] Viết `buildCoreRoutine()`: plank, ab wheel, hollow body, cable crunch, Copenhagen plank
 - [ ] Thêm case trong `buildSpecificRoutineByIntent()`:
   ```typescript
-  if (intent.muscleGroupHint === 'legs') return buildLegsRoutine(Boolean(intent.detailMode));
-  if (intent.muscleGroupHint === 'shoulders') return buildShouldersRoutine(Boolean(intent.detailMode));
-  if (intent.muscleGroupHint === 'core') return buildCoreRoutine(Boolean(intent.detailMode));
+  if (intent.muscleGroupHint === "legs")
+    return buildLegsRoutine(Boolean(intent.detailMode));
+  if (intent.muscleGroupHint === "shoulders")
+    return buildShouldersRoutine(Boolean(intent.detailMode));
+  if (intent.muscleGroupHint === "core")
+    return buildCoreRoutine(Boolean(intent.detailMode));
   ```
 - [ ] Thêm case tương ứng trong `answer_validator.ts:validateRequiredSections()` để validate legs/shoulders response
 
@@ -71,6 +75,7 @@ Hàm `buildSpecificRoutineByIntent()` xử lý chest, back, biceps, push day, ar
 `buildWorkoutPlanTemplate()` hardcode barbell-heavy exercises (Back Squat, Barbell Row, Deadlift) nhưng không đọc `profile.training.availableEquipment`. User chỉ có dumbbell tại nhà vẫn nhận plan yêu cầu barbell + rack.
 
 **Việc cần làm:**
+
 - [ ] Viết `filterExercisesByEquipment(exercises: ExercisePrescription[], equipment: string[]): ExercisePrescription[]`
   - Nếu `equipment` rỗng hoặc có `'barbell'/'rack'` → giữ nguyên
   - Nếu chỉ có `'dumbbell'` → thay barbell variations bằng dumbbell equivalent (Back Squat → Goblet Squat, Barbell Row → Dumbbell Row)
@@ -87,6 +92,7 @@ Hàm `buildSpecificRoutineByIntent()` xử lý chest, back, biceps, push day, ar
 `extractSessionContext()` chỉ scan `c.question` (câu hỏi của user), bỏ qua `c.answer`. Nếu AI đã đưa plan 5 ngày ở turn trước, turn sau nó không biết và có thể đưa plan 3 ngày mặc định.
 
 **Việc cần làm:**
+
 - [ ] Mở rộng `extractSessionContext()` để đọc cả `c.answer`:
   - Detect plan đã đưa (regex: `\d+ ngày/tuần`, specific day names)
   - Detect nutrition targets đã đưa (calories, protein đã mention trong answer)
@@ -102,14 +108,15 @@ Hàm `buildSpecificRoutineByIntent()` xử lý chest, back, biceps, push day, ar
 
 Các câu hỏi sau đây rơi vào `general_fitness_knowledge` mà không có deterministic handler riêng:
 
-| Loại câu hỏi | Ví dụ | Vấn đề |
-|---|---|---|
-| Supplement | "tôi có nên dùng creatine không?" | Không có validation rule riêng |
-| Recovery/sleep | "ngủ bao nhiêu tiếng để phục hồi?" | Không có handler |
-| Progress tracking | "tôi đã tập 2 tháng, làm sao đánh giá tiến độ?" | Không contextual |
-| Deload | "khi nào cần tuần deload?" | Không có guidance |
+| Loại câu hỏi      | Ví dụ                                           | Vấn đề                         |
+| ----------------- | ----------------------------------------------- | ------------------------------ |
+| Supplement        | "tôi có nên dùng creatine không?"               | Không có validation rule riêng |
+| Recovery/sleep    | "ngủ bao nhiêu tiếng để phục hồi?"              | Không có handler               |
+| Progress tracking | "tôi đã tập 2 tháng, làm sao đánh giá tiến độ?" | Không contextual               |
+| Deload            | "khi nào cần tuần deload?"                      | Không có guidance              |
 
 **Việc cần làm:**
+
 - [ ] Thêm intent `supplement_request` với pattern: `/(creatine|whey|bcaa|pre.?workout|thực phẩm bổ sung|supplement)/i`
 - [ ] Thêm intent `recovery_request` với pattern: `/(ngủ|sleep|phục hồi|recovery|rest|deload|nghỉ ngơi)/i`
 - [ ] Thêm intent `progress_assessment_request` với pattern: `/(tiến độ|progress|đánh giá|kết quả sau|sau \d+ tháng)/i`
@@ -125,6 +132,7 @@ Các câu hỏi sau đây rơi vào `general_fitness_knowledge` mà không có d
 `num_predict: 1024` chỉ đủ cho plan 4 ngày. Plan 5-6 ngày với đầy đủ sets/reps/rest thường bị cut giữa bảng. Model 3B params cũng thường hallucinate exercise names hoặc số calories.
 
 **Việc cần làm:**
+
 - [ ] Tăng `num_predict` từ 1024 → 1800 (đủ cho 6-day PPL với nutrition)
 - [ ] Thêm `num_ctx: 6144` (từ 4096) để fit full prompt khi có chat history dài
 - [ ] Test với `llama3.2:8b-instruct` hoặc `qwen2.5:7b` — so sánh quality vs latency
@@ -140,11 +148,18 @@ Các câu hỏi sau đây rơi vào `general_fitness_knowledge` mà không có d
 ~12 regex patterns hardcode trong code. Không có cách thêm domain mới mà không sửa code.
 
 **Việc cần làm:**
+
 - [ ] Tạo `data/config/query_expansions.json` với cấu trúc:
   ```json
   [
-    { "patterns": ["fat loss", "giam mo"], "expansions": ["calorie deficit high protein"] },
-    { "patterns": ["muscle gain", "tang co"], "expansions": ["progressive overload hypertrophy"] }
+    {
+      "patterns": ["fat loss", "giam mo"],
+      "expansions": ["calorie deficit high protein"]
+    },
+    {
+      "patterns": ["muscle gain", "tang co"],
+      "expansions": ["progressive overload hypertrophy"]
+    }
   ]
   ```
 - [ ] Load file này vào `expandQueries()` thay cho hardcoded regex
@@ -157,7 +172,7 @@ Các câu hỏi sau đây rơi vào `general_fitness_knowledge` mà không có d
 **File:** `backend/services/ai-service/src/controllers/ai.controller.ts:67-73`
 
 ```typescript
-await delay(450);  // fake delay — không phản ánh thực tế
+await delay(450); // fake delay — không phản ánh thực tế
 await delay(450);
 await delay(350);
 ```
@@ -165,6 +180,7 @@ await delay(350);
 Tổng ~1250ms delay nhân tạo trước khi bắt đầu stream tokens. User thấy "Đang đọc hồ sơ..." nhưng thực ra RAG đã xong từ lâu.
 
 **Việc cần làm:**
+
 - [ ] Thay fake status events bằng real progress events từ RAG pipeline:
   - `profile_fetched` — khi `profileExtractor.extract()` resolve
   - `retrieval_done` — khi `retriever.retrieve()` resolve
@@ -179,12 +195,15 @@ Tổng ~1250ms delay nhân tạo trước khi bắt đầu stream tokens. User t
 **File:** `backend/services/ai-service/src/llm/answer_validator.ts:100-115`
 
 ```typescript
-warnings.push(...requireSection(answer, [/ðŸ¥—|dinh dưỡng|nutrition/i], 'nutrition'));
+warnings.push(
+  ...requireSection(answer, [/ðŸ¥—|dinh dưỡng|nutrition/i], "nutrition"),
+);
 ```
 
 `ðŸ¥—` là emoji 🥗 bị encode sai (UTF-8 mojibake). Pattern sẽ không match emoji trong response thực tế.
 
 **Việc cần làm:**
+
 - [ ] Fix tất cả emoji bị encode sai trong `validateRequiredSections()`:
   - `ðŸ¥—` → `🥗` hoặc bỏ emoji, chỉ dùng text pattern
   - Kiểm tra toàn bộ file cho ký tự tương tự
@@ -199,6 +218,7 @@ warnings.push(...requireSection(answer, [/ðŸ¥—|dinh dưỡng|nutrition/i], 
 Cache TTL = 60s. Nếu user vừa cập nhật cân nặng/mục tiêu trong profile, AI sẽ trả lời dựa trên data cũ trong vòng 60 giây.
 
 **Việc cần làm:**
+
 - [ ] Giảm TTL xuống 30s hoặc thêm `Cache-Control: no-cache` header khi profile vừa được update
 - [ ] Hoặc: expose endpoint `POST /ai/invalidate-cache` cho user-service gọi khi profile thay đổi
 - [ ] Thêm log khi serve từ cache để dễ debug
@@ -214,6 +234,7 @@ Cache TTL = 60s. Nếu user vừa cập nhật cân nặng/mục tiêu trong pro
 Gateway proxy đến các service không có timeout riêng — nếu ai-service bị treo (Ollama hung), request sẽ treo vô thời hạn.
 
 **Việc cần làm:**
+
 - [ ] Thêm `axios.defaults.timeout` hoặc per-route timeout:
   - `/ai/ask`: 130s (Ollama có thể chậm)
   - `/ai/ask/stream`: 180s
@@ -229,6 +250,7 @@ Gateway proxy đến các service không có timeout riêng — nếu ai-service
 Health endpoint trả về status của tất cả services nhưng không phân biệt degraded vs down. Nếu ai-service down, toàn bộ health endpoint trả `status: "unhealthy"` dù các service khác hoạt động bình thường.
 
 **Việc cần làm:**
+
 - [ ] Thêm `critical` vs `optional` service classification:
   - Critical: auth, fitness, user
   - Optional: ai, chat, n8n
@@ -244,6 +266,7 @@ Health endpoint trả về status của tất cả services nhưng không phân 
 Rate limit áp dụng uniform cho tất cả endpoints. `/ai/ask` là heavy endpoint cần limit thấp hơn; `/auth/login` cần stricter brute-force protection.
 
 **Việc cần làm:**
+
 - [ ] Tạo tiered rate limits:
   - `/ai/ask*`: 20 req/min per user
   - `/auth/login`: 5 req/min per IP
@@ -260,6 +283,7 @@ Rate limit áp dụng uniform cho tất cả endpoints. `/ai/ask` là heavy endp
 **File:** `backend/services/auth-service/src/` (verification logic)
 
 **Việc cần làm:**
+
 - [ ] Verify OTP expiry ≤ 10 phút từ lúc tạo
 - [ ] Invalidate OTP sau khi dùng một lần (prevent replay)
 - [ ] Rate limit `/auth/register/verify`: max 5 lần sai → block 15 phút
@@ -271,6 +295,7 @@ Rate limit áp dụng uniform cho tất cả endpoints. `/ai/ask` là heavy endp
 Khi refresh token được dùng, token cũ vẫn còn valid cho đến khi hết hạn (7 ngày). Nếu token bị leak, attacker có thể dùng token cũ song song.
 
 **Việc cần làm:**
+
 - [ ] Implement refresh token rotation: mỗi lần dùng refresh token → revoke cái cũ, issue cái mới
 - [ ] Store refresh token hash trong DB để validate
 - [ ] Endpoint `POST /auth/logout/all` để revoke tất cả sessions
@@ -282,6 +307,7 @@ Khi refresh token được dùng, token cũ vẫn còn valid cho đến khi hế
 Hiện không có endpoint `forgot-password` / `reset-password`.
 
 **Việc cần làm:**
+
 - [ ] `POST /auth/forgot-password` — send reset link qua email (6-digit token, expire 15 phút)
 - [ ] `POST /auth/reset-password` — validate token, update password hash
 - [ ] n8n workflow để gửi email reset
@@ -295,18 +321,20 @@ Hiện không có endpoint `forgot-password` / `reset-password`.
 **File:** `backend/services/fitness-service/src/controllers/workout.controller.ts`
 
 Hiện không validate:
+
 - Số sets (có thể = 0 hoặc 1000)
 - Số reps (có thể âm)
 - Weight (có thể là 9999kg)
 - Exercise ID có tồn tại không
 
 **Việc cần làm:**
+
 - [ ] Viết Zod schema cho `CreateWorkoutRequest`:
   ```typescript
-  sets: z.number().int().min(1).max(20)
-  reps: z.number().int().min(1).max(100)
-  weightKg: z.number().min(0).max(500).optional()
-  exerciseId: z.string().uuid()
+  sets: z.number().int().min(1).max(20);
+  reps: z.number().int().min(1).max(100);
+  weightKg: z.number().min(0).max(500).optional();
+  exerciseId: z.string().uuid();
   ```
 - [ ] Validate exercise IDs tồn tại trong DB trước khi lưu
 - [ ] Max 30 exercises per workout session
@@ -321,6 +349,7 @@ Hiện không validate:
 Admin cần thêm/sửa/xóa exercises nhưng không có endpoints này.
 
 **Việc cần làm:**
+
 - [ ] `POST /exercises` — create exercise (ADMIN only, với full validation)
 - [ ] `PATCH /exercises/:id` — update exercise metadata
 - [ ] `DELETE /exercises/:id` — soft delete (set `deletedAt`, không xóa thật)
@@ -334,6 +363,7 @@ Admin cần thêm/sửa/xóa exercises nhưng không có endpoints này.
 User muốn xem progress theo thời gian: volume per muscle group, weight progression, frequency chart.
 
 **Việc cần làm:**
+
 - [ ] `GET /stats/volume?from=&to=` — total volume per muscle group per week
 - [ ] `GET /stats/progression/:exerciseId` — weight/reps progression chart data
 - [ ] `GET /stats/frequency` — workouts per week last 12 weeks
@@ -347,6 +377,7 @@ User muốn xem progress theo thời gian: volume per muscle group, weight progr
 Hiện chỉ log calories/protein/carbs/fat cho cả ngày. Không track từng bữa, không có food database.
 
 **Việc cần làm:**
+
 - [ ] `POST /nutrition/meals` — log từng bữa ăn riêng (breakfast, lunch, dinner, snack)
 - [ ] `GET /nutrition/meals?date=` — lấy meals của ngày cụ thể
 - [ ] Integrate food database (FatSecret API hoặc Open Food Facts) để tìm nutrition info
@@ -362,6 +393,7 @@ Hiện chỉ log calories/protein/carbs/fat cho cả ngày. Không track từng 
 Seed script đang ở `src/` thay vì `prisma/`. Điều này được note trong HANDOVER.md line 37.
 
 **Việc cần làm:**
+
 - [ ] Move `seed_exercises_json.ts` và `raw_exercises.json` về `prisma/`
 - [ ] Update import path trong `prisma/seed.ts`
 - [ ] Verify seeding vẫn hoạt động sau khi move
@@ -376,6 +408,7 @@ Seed script đang ở `src/` thay vì `prisma/`. Điều này được note tron
 File Redis repository tồn tại nhưng không có controller nào sử dụng cache.
 
 **Việc cần làm:**
+
 - [ ] Cache exercise list (873 items, không thay đổi thường xuyên) — TTL 1 giờ
 - [ ] Cache user workout history — TTL 5 phút, invalidate khi có workout mới
 - [ ] Cache nutrition daily summary — TTL 10 phút
@@ -391,6 +424,7 @@ File Redis repository tồn tại nhưng không có controller nào sử dụng 
 Endpoint nhận bất kỳ file nào, sau đó gọi Python subprocess `inbody_extractor/`. Không có MIME type check hay file size limit.
 
 **Việc cần làm:**
+
 - [ ] Validate MIME type: chỉ accept `image/jpeg`, `image/png`, `application/pdf`
 - [ ] File size limit: max 10MB
 - [ ] Scan filename để tránh path traversal (`../`)
@@ -404,6 +438,7 @@ Endpoint nhận bất kỳ file nào, sau đó gọi Python subprocess `inbody_e
 Nếu Python subprocess crash, status InBody record bị stuck ở `"pending"` vô thời hạn.
 
 **Việc cần làm:**
+
 - [ ] Update record status sang `"failed"` khi OCR throw error
 - [ ] Trả lại error message rõ ràng cho user
 - [ ] Endpoint `POST /inbody/:id/retry` để trigger lại OCR
@@ -416,6 +451,7 @@ Nếu Python subprocess crash, status InBody record bị stuck ở `"pending"` v
 User muốn xem progress cân nặng, body fat % theo thời gian (line chart).
 
 **Việc cần làm:**
+
 - [ ] `GET /inbody/history?limit=12` — trả về array InBody entries sorted by date
 - [ ] `GET /inbody/trends` — calculated deltas: weight change, muscle change, fat change
 - [ ] Frontend: biểu đồ InBody trend trong trang `/inbody`
@@ -429,6 +465,7 @@ User muốn xem progress cân nặng, body fat % theo thời gian (line chart).
 Có endpoint submit application nhưng không có workflow approval hoàn chỉnh.
 
 **Việc cần làm:**
+
 - [ ] Admin `PATCH /pt-applications/:id/approve` → thay đổi role user → PT trong auth service
 - [ ] Admin `PATCH /pt-applications/:id/reject` → gửi rejection email via n8n
 - [ ] Notification cho user khi application status thay đổi
@@ -445,6 +482,7 @@ Có endpoint submit application nhưng không có workflow approval hoàn chỉn
 Controller không có logic. Socket.IO được init nhưng không có event handlers. Message không được lưu vào DB.
 
 **Việc cần làm (theo thứ tự):**
+
 - [ ] **Step 1 — HTTP endpoints:**
   - `GET /chat/rooms` — list chat rooms của user
   - `POST /chat/rooms` — tạo room mới (PT-Client)
@@ -472,6 +510,7 @@ Controller không có logic. Socket.IO được init nhưng không có event han
 PT và client chat thường xuyên hỏi về bài tập/dinh dưỡng. Hiện Chat service độc lập với AI.
 
 **Việc cần làm:**
+
 - [ ] Thêm command `/ask [question]` trong chat → forward tới AI service → paste AI response vào chat
 - [ ] PT có thể share AI-generated plan trực tiếp vào chat room
 
@@ -486,6 +525,7 @@ PT và client chat thường xuyên hỏi về bài tập/dinh dưỡng. Hiện 
 Suggestion pills như "Create my workout plan", "What should I eat?" hardcoded tiếng Anh trong app tiếng Việt.
 
 **Việc cần làm:**
+
 - [ ] Move suggestions sang i18n strings hoặc fetch từ API
 - [ ] Tiếng Việt: "Lập lịch tập cho tôi", "Tôi nên ăn gì?", "Bài tập chân hôm nay", "Cách tăng cơ nhanh"
 - [ ] Thêm suggestions context-aware: nếu user có InBody mới → suggest "Phân tích InBody của tôi"
@@ -497,6 +537,7 @@ Suggestion pills như "Create my workout plan", "What should I eat?" hardcoded t
 Nhiều trang dùng spinner đơn giản khi fetch data. Trải nghiệm không tốt khi load chậm.
 
 **Việc cần làm:**
+
 - [ ] Skeleton loader cho: Dashboard (metric cards), WorkoutLog (exercise list), AICoachPage (chat history)
 - [ ] Use `@radix-ui/react-skeleton` hoặc Tailwind `animate-pulse` pattern
 - [ ] Error boundary + retry button khi fetch fail
@@ -510,12 +551,16 @@ Nhiều trang dùng spinner đơn giản khi fetch data. Trải nghiệm không 
 `isRefreshing` flag không đủ để prevent race nếu nhiều 401 hit cùng lúc — có thể trigger multiple refresh calls.
 
 **Việc cần làm:**
+
 - [ ] Replace `isRefreshing` flag với `refreshPromise: Promise<string> | null`:
   ```typescript
   let refreshPromise: Promise<string> | null = null;
   // Nếu đang refresh → return cùng promise thay vì trigger mới
-  if (refreshPromise) return refreshPromise.then(token => retry(config, token));
-  refreshPromise = doRefresh().finally(() => { refreshPromise = null; });
+  if (refreshPromise)
+    return refreshPromise.then((token) => retry(config, token));
+  refreshPromise = doRefresh().finally(() => {
+    refreshPromise = null;
+  });
   ```
 
 ---
@@ -525,6 +570,7 @@ Nhiều trang dùng spinner đơn giản khi fetch data. Trải nghiệm không 
 Nếu mất mạng giữa chừng, app im lặng — không có toast, không có retry.
 
 **Việc cần làm:**
+
 - [ ] Thêm network status detection (`navigator.onLine` + `online`/`offline` events)
 - [ ] Toast notification khi mất kết nối: "Mất kết nối — đang thử lại..."
 - [ ] Auto-retry với exponential backoff cho API calls quan trọng
@@ -539,6 +585,7 @@ Nếu mất mạng giữa chừng, app im lặng — không có toast, không c�
 Trang này có UI để log exercises nhưng một số operations vẫn còn mock hoặc thiếu validation feedback.
 
 **Việc cần làm:**
+
 - [ ] Verify `POST /workouts` được call đúng khi submit
 - [ ] Hiển thị error message cụ thể khi save fail
 - [ ] Exercise search phải show real data từ 873 exercises trong DB
@@ -563,6 +610,7 @@ Trang này có UI để log exercises nhưng một số operations vẫn còn mo
 **File:** `frontend/web/src/app/pages/admin/AdminObservabilityPage.tsx`
 
 **Việc cần làm:**
+
 - [ ] Hiển thị: average LLM response latency, fallback rate, validation warning rate
 - [ ] Chart: intents distribution (workout_plan vs meal_plan vs general vs ...)
 - [ ] Alert khi fallback rate > 20% trong 1 giờ (hiện tại AI đang trả deterministic thay vì LLM)
@@ -573,6 +621,7 @@ Trang này có UI để log exercises nhưng một số operations vẫn còn mo
 ### 8.8 Không có PWA / mobile-friendly improvements
 
 **Việc cần làm:**
+
 - [ ] Add `manifest.json` và service worker cho installable PWA
 - [ ] Test responsive layout trên mobile (320px, 375px, 414px width)
 - [ ] Bottom navigation bar trên mobile (thay side nav)
@@ -587,6 +636,7 @@ Trang này có UI để log exercises nhưng một số operations vẫn còn mo
 PostgreSQL data trong named volume `fitness-postgres-data`. Nếu volume bị xóa hoặc corrupt → mất tất cả data.
 
 **Việc cần làm:**
+
 - [ ] Thêm `pg_dump` cron job chạy daily, lưu vào `./backups/` mount
 - [ ] Backup retention: 7 daily + 4 weekly
 - [ ] Test restore procedure ít nhất 1 lần
@@ -599,6 +649,7 @@ PostgreSQL data trong named volume `fitness-postgres-data`. Nếu volume bị x�
 Tất cả services dùng `tsx watch` (dev mode) ngay cả khi deploy production.
 
 **Việc cần làm:**
+
 - [ ] Viết `Dockerfile.prod` cho mỗi service:
   - Stage 1: `node:20-alpine` + pnpm build (tsc compile)
   - Stage 2: copy dist/ + node_modules production only
@@ -618,6 +669,7 @@ Tất cả services dùng `tsx watch` (dev mode) ngay cả khi deploy production
 n8n (:5678) được setup nhưng không có document về workflows đã tạo, triggers, và dependencies.
 
 **Việc cần làm:**
+
 - [ ] Export tất cả workflows ra `infra/n8n/workflows/*.json`
 - [ ] Viết doc: danh sách workflows, triggers, webhook endpoints
 - [ ] Backup n8n data vào git (hiện chỉ trong Docker volume)
@@ -631,6 +683,7 @@ n8n (:5678) được setup nhưng không có document về workflows đã tạo,
 Config yêu cầu NVIDIA GPU nhưng không có GPU vẫn start (fallback CPU) mà không log cảnh báo.
 
 **Việc cần làm:**
+
 - [ ] Thêm healthcheck cho Ollama verify GPU mode: `ollama list | grep -v error`
 - [ ] Log GPU status khi Ollama start
 - [ ] Tạo `docker-compose.dev.cpu.yml` variant không có GPU requirements để dùng trên máy không có GPU
@@ -642,6 +695,7 @@ Config yêu cầu NVIDIA GPU nhưng không có GPU vẫn start (fallback CPU) m�
 Prometheus đang collect metrics nhưng Grafana chưa có alerting rules.
 
 **Việc cần làm:**
+
 - [ ] Grafana alert khi:
   - AI service error rate > 5%
   - P95 response time > 5s
@@ -656,17 +710,18 @@ Prometheus đang collect metrics nhưng Grafana chưa có alerting rules.
 
 ### 10.1 Test coverage rất thấp — chỉ AI service có tests
 
-| Service | Test files | Coverage |
-|---------|-----------|---------|
-| AI Service | 5 files (unit + integration) | ~60% |
-| Gateway | 1 file (integration) | ~40% |
-| Fitness Service | **0** | 0% |
-| User Service | **0** | 0% |
-| Auth Service | **0** | 0% |
-| Chat Service | **0** | 0% |
-| Frontend | **0** | 0% |
+| Service         | Test files                   | Coverage |
+| --------------- | ---------------------------- | -------- |
+| AI Service      | 5 files (unit + integration) | ~60%     |
+| Gateway         | 1 file (integration)         | ~40%     |
+| Fitness Service | **0**                        | 0%       |
+| User Service    | **0**                        | 0%       |
+| Auth Service    | **0**                        | 0%       |
+| Chat Service    | **0**                        | 0%       |
+| Frontend        | **0**                        | 0%       |
 
 **Việc cần làm:**
+
 - [ ] **Fitness Service tests (priority):**
   - `workout.controller.test.ts` — CRUD operations, validation
   - `exercise.controller.test.ts` — search, filter
@@ -693,6 +748,7 @@ Prometheus đang collect metrics nhưng Grafana chưa có alerting rules.
 Hiện `ai.flow.test.ts` cần Ollama + Qdrant thực sự để chạy → không thể chạy trong CI/CD.
 
 **Việc cần làm:**
+
 - [ ] Tạo `MockLlmService` trả về canned responses
 - [ ] Tạo `MockQdrantClient` với in-memory vector store
 - [ ] Các test này chạy được với `pnpm test` không cần external dependencies
@@ -705,6 +761,7 @@ Hiện `ai.flow.test.ts` cần Ollama + Qdrant thực sự để chạy → khô
 Không biết system handle được bao nhiêu concurrent users.
 
 **Việc cần làm:**
+
 - [ ] Viết k6 scripts:
   - Scenario 1: 10 users concurrent ask AI coach
   - Scenario 2: 50 users log workout simultaneously
@@ -729,6 +786,7 @@ Không biết system handle được bao nhiêu concurrent users.
 `INTERNAL_SERVICE_SECRET` có default là `dev_internal_service_secret_change_in_production` — nếu ai quên set env var trong production, secret này bị expose.
 
 **Việc cần làm:**
+
 - [ ] Throw error khi `INTERNAL_SERVICE_SECRET` không được set (hoặc = default) trong `NODE_ENV=production`
 - [ ] Minimum length: 32 ký tự
 - [ ] Rotate secret dễ dàng mà không restart service (support 2 concurrent secrets trong 5 phút window)
@@ -742,6 +800,7 @@ Không biết system handle được bao nhiêu concurrent users.
 N8N dùng basic auth với default `admin/admin123`.
 
 **Việc cần làm:**
+
 - [ ] Require `N8N_BASIC_AUTH_PASSWORD` được set trong env
 - [ ] Minimum password length: 16 ký tự
 - [ ] Block n8n admin endpoint trong gateway nếu không phải ADMIN role
@@ -753,6 +812,7 @@ N8N dùng basic auth với default `admin/admin123`.
 Frontend sử dụng cookie-based tokens (nếu có). API không có CSRF validation.
 
 **Việc cần làm:**
+
 - [ ] Verify tất cả mutating requests đi qua `Authorization: Bearer` header (không dùng cookie) — nếu đúng thì CSRF không áp dụng
 - [ ] Nếu có cookie auth flow: add `SameSite=Strict` + CSRF token header check
 
@@ -761,6 +821,7 @@ Frontend sử dụng cookie-based tokens (nếu có). API không có CSRF valida
 ### 11.5 Log có thể leak sensitive data
 
 **Việc cần làm:**
+
 - [ ] Audit tất cả `logger.*` calls — đảm bảo không log: JWT tokens, passwords, full user profile data
 - [ ] Mask fields trong log: `authorization: '[REDACTED]'`, `password: '[REDACTED]'`
 - [ ] Configure log retention: production logs không giữ quá 30 ngày
@@ -771,59 +832,59 @@ Frontend sử dụng cookie-based tokens (nếu có). API không có CSRF valida
 
 ### 🔴 P0 — Fix ngay (bugs và security)
 
-| # | Việc làm | File(s) | Effort |
-|---|---|---|---|
-| P0-1 | Fix emoji encoding trong answer_validator.ts | `ai-service/src/llm/answer_validator.ts:100` | 30 min |
-| P0-2 | Thêm leg/shoulder/core routines vào recommendation_engine | `recommendation_engine.ts:447-463` | 3h |
-| P0-3 | Validate MIME type + size cho InBody upload | `user-service/src/routes/inbody.routes.ts` | 1h |
-| P0-4 | Throw error khi INTERNAL_SERVICE_SECRET = default trong production | `gateway/src/routes/proxy.routes.ts:18` | 30 min |
+| #    | Việc làm                                                           | File(s)                                      | Effort |
+| ---- | ------------------------------------------------------------------ | -------------------------------------------- | ------ |
+| P0-1 | Fix emoji encoding trong answer_validator.ts                       | `ai-service/src/llm/answer_validator.ts:100` | 30 min |
+| P0-2 | Thêm leg/shoulder/core routines vào recommendation_engine          | `recommendation_engine.ts:447-463`           | 3h     |
+| P0-3 | Validate MIME type + size cho InBody upload                        | `user-service/src/routes/inbody.routes.ts`   | 1h     |
+| P0-4 | Throw error khi INTERNAL_SERVICE_SECRET = default trong production | `gateway/src/routes/proxy.routes.ts:18`      | 30 min |
 
 ---
 
 ### 🟠 P1 — Sprint tiếp theo (quality & correctness)
 
-| # | Việc làm | File(s) | Effort |
-|---|---|---|---|
-| P1-1 | Equipment filtering cho workout plans | `recommendation_engine.ts:322-349` | 4h |
-| P1-2 | Workout validation schemas (Zod) | `fitness-service/src/controllers/` | 3h |
-| P1-3 | Tăng num_predict + temperature setting cho LLM | `llm.service.ts:75-79` | 1h |
-| P1-4 | Fix token refresh race condition | `frontend/src/app/services/api.ts:94` | 2h |
-| P1-5 | Move seed script về prisma/ folder | `fitness-service/src/seed_exercises_json.ts` | 30 min |
-| P1-6 | Tests cho Fitness Service (CRUD + validation) | `fitness-service/src/__tests__/` | 8h |
-| P1-7 | Conversation context đọc cả answer không chỉ question | `prompt_builder.ts:39-62` | 2h |
+| #    | Việc làm                                              | File(s)                                      | Effort |
+| ---- | ----------------------------------------------------- | -------------------------------------------- | ------ |
+| P1-1 | Equipment filtering cho workout plans                 | `recommendation_engine.ts:322-349`           | 4h     |
+| P1-2 | Workout validation schemas (Zod)                      | `fitness-service/src/controllers/`           | 3h     |
+| P1-3 | Tăng num_predict + temperature setting cho LLM        | `llm.service.ts:75-79`                       | 1h     |
+| P1-4 | Fix token refresh race condition                      | `frontend/src/app/services/api.ts:94`        | 2h     |
+| P1-5 | Move seed script về prisma/ folder                    | `fitness-service/src/seed_exercises_json.ts` | 30 min |
+| P1-6 | Tests cho Fitness Service (CRUD + validation)         | `fitness-service/src/__tests__/`             | 8h     |
+| P1-7 | Conversation context đọc cả answer không chỉ question | `prompt_builder.ts:39-62`                    | 2h     |
 
 ---
 
 ### 🟡 P2 — Feature completion
 
-| # | Việc làm | File(s) | Effort |
-|---|---|---|---|
-| P2-1 | Chat Service: implement core messaging | `chat-service/src/` | 2 ngày |
-| P2-2 | Fitness Service: workout statistics endpoints | `fitness-service/src/controllers/stats.controller.ts` | 1 ngày |
-| P2-3 | Exercise CRUD endpoints (POST/PATCH/DELETE) | `fitness-service/src/controllers/exercise.controller.ts` | 4h |
-| P2-4 | Auth: password reset flow | `auth-service/src/routes/auth.routes.ts` | 1 ngày |
-| P2-5 | Frontend: skeleton loaders + error states | `frontend/src/app/pages/` | 4h |
-| P2-6 | AI suggestion pills tiếng Việt | `AICoachPage.tsx:53-60` | 1h |
-| P2-7 | PT Application approval workflow (end-to-end) | `user-service + auth-service + n8n` | 1 ngày |
-| P2-8 | Real progress events thay fake delays | `ai.controller.ts:67-73` | 3h |
-| P2-9 | InBody OCR failure recovery | `user-service/src/routes/inbody.routes.ts` | 2h |
+| #    | Việc làm                                      | File(s)                                                  | Effort |
+| ---- | --------------------------------------------- | -------------------------------------------------------- | ------ |
+| P2-1 | Chat Service: implement core messaging        | `chat-service/src/`                                      | 2 ngày |
+| P2-2 | Fitness Service: workout statistics endpoints | `fitness-service/src/controllers/stats.controller.ts`    | 1 ngày |
+| P2-3 | Exercise CRUD endpoints (POST/PATCH/DELETE)   | `fitness-service/src/controllers/exercise.controller.ts` | 4h     |
+| P2-4 | Auth: password reset flow                     | `auth-service/src/routes/auth.routes.ts`                 | 1 ngày |
+| P2-5 | Frontend: skeleton loaders + error states     | `frontend/src/app/pages/`                                | 4h     |
+| P2-6 | AI suggestion pills tiếng Việt                | `AICoachPage.tsx:53-60`                                  | 1h     |
+| P2-7 | PT Application approval workflow (end-to-end) | `user-service + auth-service + n8n`                      | 1 ngày |
+| P2-8 | Real progress events thay fake delays         | `ai.controller.ts:67-73`                                 | 3h     |
+| P2-9 | InBody OCR failure recovery                   | `user-service/src/routes/inbody.routes.ts`               | 2h     |
 
 ---
 
 ### 🟢 P3 — Polish & Production readiness
 
-| # | Việc làm | Effort |
-|---|---|---|
-| P3-1 | Dockerfile.prod cho tất cả services | 1 ngày |
-| P3-2 | PostgreSQL automated backup | 3h |
-| P3-3 | Grafana alerting rules | 2h |
-| P3-4 | Load testing với k6 | 1 ngày |
-| P3-5 | Frontend E2E tests (Playwright) | 2 ngày |
-| P3-6 | PWA / mobile responsive improvements | 1 ngày |
-| P3-7 | Query expansion move sang JSON config | 2h |
-| P3-8 | n8n workflows backup và documentation | 3h |
-| P3-9 | Refresh token rotation | 4h |
-| P3-10 | Profile cache invalidation on update | 1h |
+| #     | Việc làm                              | Effort |
+| ----- | ------------------------------------- | ------ |
+| P3-1  | Dockerfile.prod cho tất cả services   | 1 ngày |
+| P3-2  | PostgreSQL automated backup           | 3h     |
+| P3-3  | Grafana alerting rules                | 2h     |
+| P3-4  | Load testing với k6                   | 1 ngày |
+| P3-5  | Frontend E2E tests (Playwright)       | 2 ngày |
+| P3-6  | PWA / mobile responsive improvements  | 1 ngày |
+| P3-7  | Query expansion move sang JSON config | 2h     |
+| P3-8  | n8n workflows backup và documentation | 3h     |
+| P3-9  | Refresh token rotation                | 4h     |
+| P3-10 | Profile cache invalidation on update  | 1h     |
 
 ---
 
@@ -833,4 +894,3 @@ Frontend sử dụng cookie-based tokens (nếu có). API không có CSRF valida
 - P0 nên fix trước khi demo cho bất kỳ user thực nào
 - Chat Service (P2-1) là feature lớn nhất còn thiếu — nên bắt đầu sớm vì phụ thuộc nhiều layer
 - Test coverage nên được tăng song song với development, không phải để sau
-

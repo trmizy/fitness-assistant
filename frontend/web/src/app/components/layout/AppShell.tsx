@@ -8,8 +8,8 @@ import bgGym from "../../../assets/bg-gym.jpg";
 
 export function AppShell() {
   const { isAuthenticated, isPT, setActiveView } = useApp();
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -39,7 +39,7 @@ function AppShellInner() {
   const { sidebarOpen, setSidebarOpen } = useApp();
 
   return (
-    <div 
+    <div
       className="flex h-screen overflow-hidden bg-cover bg-center bg-no-repeat relative"
       style={{ backgroundImage: `url(${bgGym})` }}
     >

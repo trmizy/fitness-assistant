@@ -1,6 +1,7 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = process.env.AI_TEST_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL =
+  process.env.AI_TEST_API_BASE_URL || "http://localhost:3000";
 const ACCESS_TOKEN = process.env.AI_TEST_ACCESS_TOKEN;
 const EMAIL = process.env.AI_TEST_EMAIL;
 const PASSWORD = process.env.AI_TEST_PASSWORD;
@@ -8,11 +9,18 @@ const PASSWORD = process.env.AI_TEST_PASSWORD;
 async function getToken(): Promise<string> {
   if (ACCESS_TOKEN) return ACCESS_TOKEN;
   if (!EMAIL || !PASSWORD) {
-    throw new Error('Set AI_TEST_ACCESS_TOKEN or AI_TEST_EMAIL + AI_TEST_PASSWORD.');
+    throw new Error(
+      "Set AI_TEST_ACCESS_TOKEN or AI_TEST_EMAIL + AI_TEST_PASSWORD.",
+    );
   }
-  const res = await axios.post(`${API_BASE_URL}/auth/login`, { email: EMAIL, password: PASSWORD }, { timeout: 8000 });
+  const res = await axios.post(
+    `${API_BASE_URL}/auth/login`,
+    { email: EMAIL, password: PASSWORD },
+    { timeout: 8000 },
+  );
   const token = res.data?.accessToken ?? res.data?.data?.accessToken;
-  if (!token) throw new Error('Login succeeded but no accessToken was returned.');
+  if (!token)
+    throw new Error("Login succeeded but no accessToken was returned.");
   return token;
 }
 
@@ -34,20 +42,28 @@ function assertNoGeneralPlanFallback(answer: string, question: string): void {
   ];
   for (const pattern of forbidden) {
     if (pattern.test(answer)) {
-      throw new Error(`General-plan fallback leaked for "${question}": matched ${pattern}`);
+      throw new Error(
+        `General-plan fallback leaked for "${question}": matched ${pattern}`,
+      );
     }
   }
 }
 
 async function ask(question: string, headers: Record<string, string>) {
   const started = Date.now();
-  const res = await axios.post(`${API_BASE_URL}/ai/ask`, { question }, { headers, timeout: 20000 });
+  const res = await axios.post(
+    `${API_BASE_URL}/ai/ask`,
+    { question },
+    { headers, timeout: 20000 },
+  );
   const payload = unwrap(res);
-  const answer = String(payload.answer ?? '');
+  const answer = String(payload.answer ?? "");
   const schedule = payload.workoutSchedule;
   if (!answer.trim()) throw new Error(`Empty answer for question: ${question}`);
   if (!schedule || schedule.source === undefined) {
-    throw new Error(`Missing workoutSchedule metadata for question: ${question}`);
+    throw new Error(
+      `Missing workoutSchedule metadata for question: ${question}`,
+    );
   }
   assertNoGeneralPlanFallback(answer, question);
   return { question, latencyMs: Date.now() - started, answer, schedule };
@@ -59,37 +75,37 @@ async function main() {
 
   const cases = [
     {
-      label: 'A',
-      question: 'thứ 3 tuần này tập gì',
-      expectedTargetDate: '2026-06-02',
-      expectedSource: 'scheduled_session',
+      label: "A",
+      question: "thứ 3 tuần này tập gì",
+      expectedTargetDate: "2026-06-02",
+      expectedSource: "scheduled_session",
     },
     {
-      label: 'B',
-      question: 'thứ 5 tuần này thì sao',
-      expectedTargetDate: '2026-06-04',
+      label: "B",
+      question: "thứ 5 tuần này thì sao",
+      expectedTargetDate: "2026-06-04",
     },
     {
-      label: 'C',
-      question: 'thú 5 tuần này tập gì',
-      expectedTargetDate: '2026-06-04',
+      label: "C",
+      question: "thú 5 tuần này tập gì",
+      expectedTargetDate: "2026-06-04",
     },
     {
-      label: 'D',
-      question: 'thứ 5 ngày 18 tháng 6 tập gì',
-      expectedTargetDate: '2026-06-18',
+      label: "D",
+      question: "thứ 5 ngày 18 tháng 6 tập gì",
+      expectedTargetDate: "2026-06-18",
       mustSayNoSpecificScheduleIfNotScheduled: true,
     },
     {
-      label: 'E',
-      question: '18/6 tập gì',
-      expectedTargetDate: '2026-06-18',
+      label: "E",
+      question: "18/6 tập gì",
+      expectedTargetDate: "2026-06-18",
       mustSayNoSpecificScheduleIfNotScheduled: true,
     },
     {
-      label: 'F',
-      question: 'còn thứ 6 thì sao',
-      expectedTargetDate: '2026-06-05',
+      label: "F",
+      question: "còn thứ 6 thì sao",
+      expectedTargetDate: "2026-06-05",
     },
   ];
 
@@ -101,34 +117,49 @@ async function main() {
         `${testCase.label}: expected targetDate=${testCase.expectedTargetDate}, got ${schedule.targetDate}`,
       );
     }
-    if (testCase.expectedSource && schedule.source !== testCase.expectedSource) {
-      throw new Error(`${testCase.label}: expected source=${testCase.expectedSource}, got ${schedule.source}`);
+    if (
+      testCase.expectedSource &&
+      schedule.source !== testCase.expectedSource
+    ) {
+      throw new Error(
+        `${testCase.label}: expected source=${testCase.expectedSource}, got ${schedule.source}`,
+      );
     }
     if (
       testCase.mustSayNoSpecificScheduleIfNotScheduled &&
-      schedule.source !== 'scheduled_session' &&
+      schedule.source !== "scheduled_session" &&
       !/chưa thấy lịch tập cụ thể/i.test(answer)
     ) {
-      throw new Error(`${testCase.label}: explicit date without scheduled_session must say no specific schedule.`);
+      throw new Error(
+        `${testCase.label}: explicit date without scheduled_session must say no specific schedule.`,
+      );
     }
 
-    console.log(JSON.stringify({
-      label: testCase.label,
-      question: testCase.question,
-      latencyMs: result.latencyMs,
-      targetDate: schedule.targetDate,
-      source: schedule.source,
-      scheduledWorkoutFound: schedule.scheduledWorkoutFound,
-      answerPreview: answer.slice(0, 360),
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          label: testCase.label,
+          question: testCase.question,
+          latencyMs: result.latencyMs,
+          targetDate: schedule.targetDate,
+          source: schedule.source,
+          scheduledWorkoutFound: schedule.scheduledWorkoutFound,
+          answerPreview: answer.slice(0, 360),
+        },
+        null,
+        2,
+      ),
+    );
   }
 
-  console.log('PASS: workout schedule chat lookup handled weekday/date/follow-up cases without general-plan fallback.');
+  console.log(
+    "PASS: workout schedule chat lookup handled weekday/date/follow-up cases without general-plan fallback.",
+  );
 }
 
 main().catch((err) => {
   const detail = err?.response?.data ?? err?.message ?? err;
-  console.error('FAIL ai:test:workout-schedule-chat');
+  console.error("FAIL ai:test:workout-schedule-chat");
   console.error(detail);
   process.exit(1);
 });

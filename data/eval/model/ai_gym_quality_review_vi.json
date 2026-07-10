@@ -81,9 +81,7 @@
         "gender": "male",
         "goal": "muscle_gain",
         "training_level": "intermediate",
-        "injuries": [
-          "lower_back_sensitivity"
-        ],
+        "injuries": ["lower_back_sensitivity"],
         "equipment": "full_gym",
         "language": "vi"
       },
@@ -142,9 +140,7 @@
         "gender": "female",
         "goal": "fat_loss",
         "training_level": "beginner",
-        "injuries": [
-          "knee_pain"
-        ],
+        "injuries": ["knee_pain"],
         "equipment": "gym_cardio_zone",
         "language": "vi"
       },
@@ -308,9 +304,7 @@
           "Bai tap chua day du set/rep/nghi.",
           "Thieu luu y ky thuat/an toan."
         ],
-        "sai_gi": [
-          "Khong dam bao tra loi hoan toan bang tieng Viet."
-        ],
+        "sai_gi": ["Khong dam bao tra loi hoan toan bang tieng Viet."],
         "co_mau_thuan_gi": [
           "Macro (2230 kcal) lech lon so voi tong kcal (800)."
         ],
@@ -362,9 +356,7 @@
         "gender": "male",
         "goal": "shoulder_hypertrophy_safe",
         "training_level": "intermediate",
-        "injuries": [
-          "shoulder_impingement_history"
-        ],
+        "injuries": ["shoulder_impingement_history"],
         "equipment": "full_gym",
         "language": "vi"
       },
@@ -378,9 +370,7 @@
           "Bai tap chua day du set/rep/nghi.",
           "Thieu luu y ky thuat/an toan."
         ],
-        "sai_gi": [
-          "Tra loi chua dung tam cau hoi cua user."
-        ],
+        "sai_gi": ["Tra loi chua dung tam cau hoi cua user."],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [
           "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
@@ -484,12 +474,7 @@
         "gender": "female",
         "goal": "fat_loss_and_tone",
         "training_level": "intermediate",
-        "available_days": [
-          "Mon",
-          "Wed",
-          "Fri",
-          "Sat"
-        ],
+        "available_days": ["Mon", "Wed", "Fri", "Sat"],
         "language": "vi"
       },
       "status_code": 200,
@@ -561,9 +546,7 @@
         "gender": "female",
         "goal": "postpartum_recovery",
         "training_level": "beginner",
-        "special_conditions": [
-          "postpartum_6_months"
-        ],
+        "special_conditions": ["postpartum_6_months"],
         "days_available": 4,
         "language": "vi"
       },
@@ -645,9 +628,7 @@
       "qa_review": {
         "ket_luan": "PASS",
         "diem": "8/10",
-        "thieu_gi": [
-          "Lich tap co dau hieu thieu buoi/ngay so voi yeu cau."
-        ],
+        "thieu_gi": ["Lich tap co dau hieu thieu buoi/ngay so voi yeu cau."],
         "sai_gi": [],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [
@@ -674,12 +655,8 @@
       "qa_review": {
         "ket_luan": "FAIL",
         "diem": "6/10",
-        "thieu_gi": [
-          "Lich tap co dau hieu thieu buoi/ngay so voi yeu cau."
-        ],
-        "sai_gi": [
-          "Tra loi chua dung tam cau hoi cua user."
-        ],
+        "thieu_gi": ["Lich tap co dau hieu thieu buoi/ngay so voi yeu cau."],
+        "sai_gi": ["Tra loi chua dung tam cau hoi cua user."],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [
           "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
@@ -803,12 +780,8 @@
       "qa_review": {
         "ket_luan": "FAIL",
         "diem": "6/10",
-        "thieu_gi": [
-          "Lich tap co dau hieu thieu buoi/ngay so voi yeu cau."
-        ],
-        "sai_gi": [
-          "Tra loi chua dung tam cau hoi cua user."
-        ],
+        "thieu_gi": ["Lich tap co dau hieu thieu buoi/ngay so voi yeu cau."],
+        "sai_gi": ["Tra loi chua dung tam cau hoi cua user."],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [
           "Bo sung day du cac phan bat buoc theo nhom cau hoi.",
@@ -834,9 +807,7 @@
       "qa_review": {
         "ket_luan": "PASS",
         "diem": "9/10",
-        "thieu_gi": [
-          "Thieu huong dan dieu chinh theo tien do."
-        ],
+        "thieu_gi": ["Thieu huong dan dieu chinh theo tien do."],
         "sai_gi": [],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [
@@ -863,9 +834,7 @@
       "qa_review": {
         "ket_luan": "PASS",
         "diem": "9/10",
-        "thieu_gi": [
-          "Thieu huong dan dieu chinh theo tien do."
-        ],
+        "thieu_gi": ["Thieu huong dan dieu chinh theo tien do."],
         "sai_gi": [],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [
@@ -891,9 +860,7 @@
       "qa_review": {
         "ket_luan": "PASS",
         "diem": "9/10",
-        "thieu_gi": [
-          "Thieu huong dan dieu chinh theo tien do."
-        ],
+        "thieu_gi": ["Thieu huong dan dieu chinh theo tien do."],
         "sai_gi": [],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [
@@ -939,9 +906,7 @@
         "age": 45,
         "gender": "male",
         "goal": "fat_loss",
-        "medical_conditions": [
-          "type_2_diabetes"
-        ],
+        "medical_conditions": ["type_2_diabetes"],
         "language": "vi"
       },
       "status_code": 200,
@@ -949,9 +914,7 @@
       "qa_review": {
         "ket_luan": "PASS",
         "diem": "9/10",
-        "thieu_gi": [
-          "Thieu huong dan dieu chinh theo tien do."
-        ],
+        "thieu_gi": ["Thieu huong dan dieu chinh theo tien do."],
         "sai_gi": [],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [
@@ -1029,9 +992,7 @@
         "age": 32,
         "gender": "female",
         "goal": "fat_loss",
-        "food_restrictions": [
-          "no_seafood"
-        ],
+        "food_restrictions": ["no_seafood"],
         "language": "vi"
       },
       "status_code": 200,
@@ -1039,9 +1000,7 @@
       "qa_review": {
         "ket_luan": "PASS",
         "diem": "9/10",
-        "thieu_gi": [
-          "Thieu huong dan dieu chinh theo tien do."
-        ],
+        "thieu_gi": ["Thieu huong dan dieu chinh theo tien do."],
         "sai_gi": [],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [
@@ -1066,9 +1025,7 @@
       "qa_review": {
         "ket_luan": "PASS",
         "diem": "9/10",
-        "thieu_gi": [
-          "Thieu huong dan dieu chinh theo tien do."
-        ],
+        "thieu_gi": ["Thieu huong dan dieu chinh theo tien do."],
         "sai_gi": [],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [
@@ -1092,12 +1049,8 @@
       "qa_review": {
         "ket_luan": "FAIL",
         "diem": "5/10",
-        "thieu_gi": [
-          "Thieu huong dan dieu chinh theo tien do."
-        ],
-        "sai_gi": [
-          "Tra loi chua dung tam cau hoi cua user."
-        ],
+        "thieu_gi": ["Thieu huong dan dieu chinh theo tien do."],
+        "sai_gi": ["Tra loi chua dung tam cau hoi cua user."],
         "co_mau_thuan_gi": [
           "Macro (880 kcal) lech lon so voi tong kcal (140)."
         ],
@@ -1117,9 +1070,7 @@
         "age": 28,
         "gender": "male",
         "goal": "muscle_gain",
-        "allergies": [
-          "lactose"
-        ],
+        "allergies": ["lactose"],
         "language": "vi"
       },
       "status_code": 200,
@@ -1127,9 +1078,7 @@
       "qa_review": {
         "ket_luan": "PASS",
         "diem": "9/10",
-        "thieu_gi": [
-          "Thieu huong dan dieu chinh theo tien do."
-        ],
+        "thieu_gi": ["Thieu huong dan dieu chinh theo tien do."],
         "sai_gi": [],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [
@@ -1211,9 +1160,7 @@
       "qa_review": {
         "ket_luan": "PASS",
         "diem": "9/10",
-        "thieu_gi": [
-          "Thieu huong dan dieu chinh theo tien do."
-        ],
+        "thieu_gi": ["Thieu huong dan dieu chinh theo tien do."],
         "sai_gi": [],
         "co_mau_thuan_gi": [],
         "can_sua_the_nao": [

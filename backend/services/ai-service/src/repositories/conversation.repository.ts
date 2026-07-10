@@ -1,5 +1,5 @@
-import { PrismaClient, PlanStatus } from '../generated/prisma';
-import type { PlanContent } from '../schemas/plan.schemas';
+import { PrismaClient, PlanStatus } from "../generated/prisma";
+import type { PlanContent } from "../schemas/plan.schemas";
 
 export { PlanStatus };
 export const prisma = new PrismaClient();
@@ -29,7 +29,12 @@ export type CreateConversationInput = {
 
 // ── Admin observability types ─────────────────────────────────────────────────
 
-export type AdminRequestsFilter = 'all' | 'fallback' | 'slow' | 'warnings' | 'failed';
+export type AdminRequestsFilter =
+  | "all"
+  | "fallback"
+  | "slow"
+  | "warnings"
+  | "failed";
 
 export type AdminRequestsQuery = {
   filter?: AdminRequestsFilter;
@@ -46,7 +51,7 @@ export const conversationRepository = {
   findMany(where: { userId?: string }, limit = 10) {
     return prisma.conversation.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
   },
@@ -71,7 +76,7 @@ export const conversationRepository = {
   async adminGetOverviewStats() {
     const now = new Date();
     const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const since7d  = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000);
+    const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const [
       total,
@@ -97,7 +102,9 @@ export const conversationRepository = {
         FROM "conversations"
         WHERE "created_at" >= ${since7d}
       `,
-      prisma.conversation.count({ where: { responseTime: { gt: 10 }, createdAt: { gte: since7d } } }),
+      prisma.conversation.count({
+        where: { responseTime: { gt: 10 }, createdAt: { gte: since7d } },
+      }),
       prisma.$queryRaw<Array<{ route_intent: string | null; cnt: bigint }>>`
         SELECT "route_intent", COUNT(*) AS cnt
         FROM "conversations"
@@ -106,25 +113,27 @@ export const conversationRepository = {
         ORDER BY cnt DESC
         LIMIT 10
       `,
-      prisma.$queryRaw<Array<{ response_language: string | null; cnt: bigint }>>`
+      prisma.$queryRaw<
+        Array<{ response_language: string | null; cnt: bigint }>
+      >`
         SELECT "response_language", COUNT(*) AS cnt
         FROM "conversations"
         WHERE "created_at" >= ${since7d} AND "response_language" IS NOT NULL
         GROUP BY "response_language"
       `,
-      prisma.workoutPlan.groupBy({ by: ['status'], _count: { _all: true } }),
+      prisma.workoutPlan.groupBy({ by: ["status"], _count: { _all: true } }),
     ]);
 
     const avgLatency = avgResult[0]?.avg ?? null;
     const p95Latency = avgResult[0]?.p95 ?? null;
 
     const intentDistribution = intentRows.map((r) => ({
-      intent: r.route_intent ?? 'unknown',
+      intent: r.route_intent ?? "unknown",
       count: Number(r.cnt),
     }));
 
     const languageDistribution = langRows.map((r) => ({
-      language: r.response_language ?? 'unknown',
+      language: r.response_language ?? "unknown",
       count: Number(r.cnt),
     }));
 
@@ -137,20 +146,27 @@ export const conversationRepository = {
       conversations: {
         total,
         last24h: total24h,
-        fallbackRate: total > 0 ? Number(((fallbackCount / total) * 100).toFixed(1)) : 0,
-        deterministicFallbackRate: total > 0 ? Number(((deterministicFallbackCount / total) * 100).toFixed(1)) : 0,
-        warningRate: total > 0 ? Number(((warningCount / total) * 100).toFixed(1)) : 0,
-        avgLatencySeconds: avgLatency !== null ? Number(Number(avgLatency).toFixed(3)) : null,
-        p95LatencySeconds: p95Latency !== null ? Number(Number(p95Latency).toFixed(3)) : null,
+        fallbackRate:
+          total > 0 ? Number(((fallbackCount / total) * 100).toFixed(1)) : 0,
+        deterministicFallbackRate:
+          total > 0
+            ? Number(((deterministicFallbackCount / total) * 100).toFixed(1))
+            : 0,
+        warningRate:
+          total > 0 ? Number(((warningCount / total) * 100).toFixed(1)) : 0,
+        avgLatencySeconds:
+          avgLatency !== null ? Number(Number(avgLatency).toFixed(3)) : null,
+        p95LatencySeconds:
+          p95Latency !== null ? Number(Number(p95Latency).toFixed(3)) : null,
         slowCount,
       },
       intents: intentDistribution,
       languages: languageDistribution,
       plans: {
-        queued:     planStatusMap['QUEUED']     ?? 0,
-        processing: planStatusMap['PROCESSING'] ?? 0,
-        completed:  planStatusMap['COMPLETED']  ?? 0,
-        failed:     planStatusMap['FAILED']     ?? 0,
+        queued: planStatusMap["QUEUED"] ?? 0,
+        processing: planStatusMap["PROCESSING"] ?? 0,
+        completed: planStatusMap["COMPLETED"] ?? 0,
+        failed: planStatusMap["FAILED"] ?? 0,
       },
     };
   },
@@ -159,19 +175,19 @@ export const conversationRepository = {
    * Paginated list of conversations for the admin request table.
    */
   async adminListRequests(query: AdminRequestsQuery) {
-    const { filter = 'all', intent, page = 1, limit = 20 } = query;
+    const { filter = "all", intent, page = 1, limit = 20 } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    if (filter === 'fallback') where.usedFallback = true;
-    if (filter === 'slow')     where.responseTime = { gt: 10 };
-    if (filter === 'warnings') where.warningCount = { gt: 0 };
-    if (intent)                where.routeIntent = intent;
+    if (filter === "fallback") where.usedFallback = true;
+    if (filter === "slow") where.responseTime = { gt: 10 };
+    if (filter === "warnings") where.warningCount = { gt: 0 };
+    if (intent) where.routeIntent = intent;
 
     const [items, total] = await Promise.all([
       prisma.conversation.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip,
         take: limit,
         select: {
@@ -240,7 +256,7 @@ export const conversationRepository = {
    */
   async adminListPlans(limit = 30) {
     return prisma.workoutPlan.findMany({
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
       select: {
         id: true,
@@ -268,16 +284,34 @@ export const conversationRepository = {
 
     const [failedPlans, highWarnConversations] = await Promise.all([
       prisma.workoutPlan.findMany({
-        where:     { status: PlanStatus.FAILED },
-        orderBy:   { updatedAt: 'desc' },
-        take:      20,
-        select:    { id: true, userId: true, name: true, goal: true, failReason: true, updatedAt: true, jobId: true, version: true },
+        where: { status: PlanStatus.FAILED },
+        orderBy: { updatedAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          userId: true,
+          name: true,
+          goal: true,
+          failReason: true,
+          updatedAt: true,
+          jobId: true,
+          version: true,
+        },
       }),
       prisma.conversation.findMany({
-        where:     { warningCount: { gt: 0 }, createdAt: { gte: since7d } },
-        orderBy:   { createdAt: 'desc' },
-        take:      20,
-        select:    { id: true, userId: true, question: true, routeIntent: true, warningCount: true, responseTime: true, createdAt: true, traceId: true },
+        where: { warningCount: { gt: 0 }, createdAt: { gte: since7d } },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          userId: true,
+          question: true,
+          routeIntent: true,
+          warningCount: true,
+          responseTime: true,
+          createdAt: true,
+          traceId: true,
+        },
       }),
     ]);
 
@@ -297,7 +331,13 @@ export const conversationRepository = {
     clientName?: string | null;
   }) {
     return prisma.workoutPlan.create({
-      data: { ...data, plan: {}, status: PlanStatus.QUEUED, version: 1, archivedAt: null },
+      data: {
+        ...data,
+        plan: {},
+        status: PlanStatus.QUEUED,
+        version: 1,
+        archivedAt: null,
+      },
     });
   },
 
@@ -312,7 +352,10 @@ export const conversationRepository = {
   updatePlanStatus(planId: string, status: PlanStatus) {
     return prisma.workoutPlan.updateMany({
       where: { id: planId },
-      data: { status, ...(status !== PlanStatus.FAILED ? { failReason: null } : {}) },
+      data: {
+        status,
+        ...(status !== PlanStatus.FAILED ? { failReason: null } : {}),
+      },
     });
   },
 
@@ -330,9 +373,9 @@ export const conversationRepository = {
         failReason: null,
         // PlanContent is a plain JS object — cast via unknown to satisfy Prisma's JsonValue
         plan: content as unknown as Parameters<
-          (typeof prisma.workoutPlan)['update']
-        >[0]['data']['plan'],
-        ...(existing?.ptUserId ? { ptReviewStatus: 'PENDING_PT_REVIEW' } : {}),
+          (typeof prisma.workoutPlan)["update"]
+        >[0]["data"]["plan"],
+        ...(existing?.ptUserId ? { ptReviewStatus: "PENDING_PT_REVIEW" } : {}),
       },
     });
   },
@@ -346,16 +389,24 @@ export const conversationRepository = {
 
   findPlansByUser(userId: string, status?: PlanStatus, limit = 10) {
     return prisma.workoutPlan.findMany({
-      where: { userId, ...(status !== undefined ? { status } : {}), archivedAt: null },
-      orderBy: { createdAt: 'desc' },
+      where: {
+        userId,
+        ...(status !== undefined ? { status } : {}),
+        archivedAt: null,
+      },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
   },
 
-  findPlansByUserIncludingArchived(userId: string, status?: PlanStatus, limit = 10) {
+  findPlansByUserIncludingArchived(
+    userId: string,
+    status?: PlanStatus,
+    limit = 10,
+  ) {
     return prisma.workoutPlan.findMany({
       where: { userId, ...(status !== undefined ? { status } : {}) },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
   },
@@ -415,11 +466,17 @@ export const conversationRepository = {
   },
 
   updateNutritionPlanJob(planId: string, jobId: string) {
-    return prisma.nutritionPlan.updateMany({ where: { id: planId }, data: { jobId } });
+    return prisma.nutritionPlan.updateMany({
+      where: { id: planId },
+      data: { jobId },
+    });
   },
 
   updateNutritionPlanStatus(planId: string, status: PlanStatus) {
-    return prisma.nutritionPlan.updateMany({ where: { id: planId }, data: { status } });
+    return prisma.nutritionPlan.updateMany({
+      where: { id: planId },
+      data: { status },
+    });
   },
 
   updateNutritionPlanCompletion(planId: string, content: unknown) {
@@ -427,7 +484,9 @@ export const conversationRepository = {
       where: { id: planId },
       data: {
         status: PlanStatus.COMPLETED,
-        plan: content as Parameters<(typeof prisma.nutritionPlan)['update']>[0]['data']['plan'],
+        plan: content as Parameters<
+          (typeof prisma.nutritionPlan)["update"]
+        >[0]["data"]["plan"],
       },
     });
   },
@@ -441,8 +500,12 @@ export const conversationRepository = {
 
   findNutritionPlansByUser(userId: string, status?: PlanStatus, limit = 10) {
     return prisma.nutritionPlan.findMany({
-      where: { userId, ...(status !== undefined ? { status } : {}), archivedAt: null },
-      orderBy: { createdAt: 'desc' },
+      where: {
+        userId,
+        ...(status !== undefined ? { status } : {}),
+        archivedAt: null,
+      },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
   },

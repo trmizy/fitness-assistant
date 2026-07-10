@@ -7,8 +7,12 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.trim().split(/\s+/).filter(Boolean).length * 1.25);
 }
 
-export function chunkText(text: string, chunkChars = 1200, overlapChars = 160): TextChunk[] {
-  const normalized = text.replace(/\s+/g, ' ').trim();
+export function chunkText(
+  text: string,
+  chunkChars = 1200,
+  overlapChars = 160,
+): TextChunk[] {
+  const normalized = text.replace(/\s+/g, " ").trim();
   if (!normalized) return [];
 
   const chunks: TextChunk[] = [];
@@ -20,7 +24,11 @@ export function chunkText(text: string, chunkChars = 1200, overlapChars = 160): 
 
     if (targetEnd < normalized.length) {
       const window = normalized.slice(start, targetEnd);
-      const sentenceEnd = Math.max(window.lastIndexOf('. '), window.lastIndexOf('; '), window.lastIndexOf(': '));
+      const sentenceEnd = Math.max(
+        window.lastIndexOf(". "),
+        window.lastIndexOf("; "),
+        window.lastIndexOf(": "),
+      );
       if (sentenceEnd > chunkChars * 0.55) {
         end = start + sentenceEnd + 1;
       }

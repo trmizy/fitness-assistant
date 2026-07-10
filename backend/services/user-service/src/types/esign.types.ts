@@ -1,7 +1,7 @@
 export interface ESignSendRequest {
   contractId: string;
   testMode: boolean;
-  signers: { email: string; name: string; role: 'client' | 'pt' }[];
+  signers: { email: string; name: string; role: "client" | "pt" }[];
   pdfPath: string;
   title: string;
   subject: string;

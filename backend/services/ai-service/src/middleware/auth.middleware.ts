@@ -21,9 +21,9 @@
  *   → Reject all requests — mis-configured service must not be reachable.
  * ──────────────────────────────────────────────────────────────────────────────
  */
-import { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../errors/api-error';
-import { logger } from '@gym-coach/shared';
+import { Request, Response, NextFunction } from "express";
+import { ApiError } from "../errors/api-error";
+import { logger } from "@gym-coach/shared";
 
 // Augment Express Request so every handler has strongly-typed context.
 declare global {
@@ -47,51 +47,71 @@ function extractHeader(req: Request, name: string): string | undefined {
   return value;
 }
 
-export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
+export function requireAuth(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): void {
   const secret = process.env.INTERNAL_SERVICE_SECRET;
-  const isDev = process.env.NODE_ENV !== 'production';
+  const isDev = process.env.NODE_ENV !== "production";
 
   if (!secret) {
     if (!isDev) {
       // Misconfigured production service — fail safe.
       return next(
-        new ApiError('INTERNAL_ERROR', 'Service authentication is not configured', 500),
+        new ApiError(
+          "INTERNAL_ERROR",
+          "Service authentication is not configured",
+          500,
+        ),
       );
     }
     // Development convenience: trust x-user-id without token validation.
-    const rawUserId = extractHeader(req, 'x-user-id');
+    const rawUserId = extractHeader(req, "x-user-id");
     if (!rawUserId) {
-      return next(new ApiError('UNAUTHORIZED', 'Missing x-user-id header', 401));
+      return next(
+        new ApiError("UNAUTHORIZED", "Missing x-user-id header", 401),
+      );
     }
     logger.warn(
       { path: req.path },
-      'INTERNAL_SERVICE_SECRET not set — trusting x-user-id without token validation (dev mode only)',
+      "INTERNAL_SERVICE_SECRET not set — trusting x-user-id without token validation (dev mode only)",
     );
     req.context = {
       userId: rawUserId,
-      role: (extractHeader(req, 'x-user-role') ?? '').trim(),
-      authorizationHeader: extractHeader(req, 'authorization'),
+      role: (extractHeader(req, "x-user-role") ?? "").trim(),
+      authorizationHeader: extractHeader(req, "authorization"),
     };
     return next();
   }
 
   // Production path: validate the gateway token first.
-  const internalToken = extractHeader(req, 'x-internal-token');
+  const internalToken = extractHeader(req, "x-internal-token");
   if (internalToken !== secret) {
     return next(
-      new ApiError('UNAUTHORIZED', 'Request must originate from the API gateway', 401),
+      new ApiError(
+        "UNAUTHORIZED",
+        "Request must originate from the API gateway",
+        401,
+      ),
     );
   }
 
-  const rawUserId = extractHeader(req, 'x-user-id');
-  if (!rawUserId || rawUserId.trim() === '') {
-    return next(new ApiError('UNAUTHORIZED', 'Missing user identity in gateway headers', 401));
+  const rawUserId = extractHeader(req, "x-user-id");
+  if (!rawUserId || rawUserId.trim() === "") {
+    return next(
+      new ApiError(
+        "UNAUTHORIZED",
+        "Missing user identity in gateway headers",
+        401,
+      ),
+    );
   }
 
   req.context = {
     userId: rawUserId.trim(),
-    role: (extractHeader(req, 'x-user-role') ?? '').trim(),
-    authorizationHeader: extractHeader(req, 'authorization'),
+    role: (extractHeader(req, "x-user-role") ?? "").trim(),
+    authorizationHeader: extractHeader(req, "authorization"),
   };
   next();
 }

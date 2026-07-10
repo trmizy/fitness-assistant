@@ -1,7 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { useApp, UserRole } from "../../context/AppContext";
-import { Dumbbell, User, Zap, ArrowRight, ArrowLeft, Check, Mail, Lock, UserCircle } from "lucide-react";
+import {
+  Dumbbell,
+  User,
+  Zap,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  Mail,
+  Lock,
+  UserCircle,
+} from "lucide-react";
 import { authService, profileService } from "../../services/api";
 import { toast } from "sonner";
 
@@ -24,14 +34,14 @@ export function RegisterPage() {
     heightCm: "",
     currentWeight: "",
     activityLevel: "LIGHTLY_ACTIVE",
-    goal: ""
+    goal: "",
   });
 
   const goals = [
-    { key: "WEIGHT_LOSS",           label: "Giảm mỡ",              emoji: "🔥" },
-    { key: "MUSCLE_GAIN",           label: "Tăng cơ",              emoji: "💪" },
-    { key: "MAINTENANCE",           label: "Duy trì cân nặng",     emoji: "⚖️" },
-    { key: "ATHLETIC_PERFORMANCE",  label: "Cải thiện sức khỏe",   emoji: "❤️" },
+    { key: "WEIGHT_LOSS", label: "Giảm mỡ", emoji: "🔥" },
+    { key: "MUSCLE_GAIN", label: "Tăng cơ", emoji: "💪" },
+    { key: "MAINTENANCE", label: "Duy trì cân nặng", emoji: "⚖️" },
+    { key: "ATHLETIC_PERFORMANCE", label: "Cải thiện sức khỏe", emoji: "❤️" },
   ];
 
   const handleRegister = async () => {
@@ -55,9 +65,9 @@ export function RegisterPage() {
         toast.error("Email này đã được đăng ký. Bạn có muốn đăng nhập không?", {
           action: {
             label: "Đăng nhập ngay",
-            onClick: () => navigate("/login")
+            onClick: () => navigate("/login"),
           },
-          duration: 5000
+          duration: 5000,
         });
       } else {
         toast.error(errorMsg || "Đăng ký thất bại");
@@ -93,7 +103,13 @@ export function RegisterPage() {
     const heightVal = parseFloat(profile.heightCm);
     const weightVal = parseFloat(profile.currentWeight);
 
-    if (!profile.age || !profile.heightCm || !profile.currentWeight || !profile.gender || !profile.goal) {
+    if (
+      !profile.age ||
+      !profile.heightCm ||
+      !profile.currentWeight ||
+      !profile.gender ||
+      !profile.goal
+    ) {
       toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
       return;
     }
@@ -111,7 +127,7 @@ export function RegisterPage() {
         goal: profile.goal,
         age: ageVal,
         heightCm: heightVal,
-        currentWeight: weightVal
+        currentWeight: weightVal,
       };
 
       await profileService.updateProfile(payload);
@@ -144,22 +160,30 @@ export function RegisterPage() {
             <div className="w-7 h-7 bg-green-500 rounded-lg flex items-center justify-center">
               <Dumbbell className="w-4 h-4 text-black" />
             </div>
-            <span className="text-white font-bold tracking-tight uppercase">Fitness AI</span>
+            <span className="text-white font-bold tracking-tight uppercase">
+              Fitness AI
+            </span>
           </div>
 
           {/* Stepper */}
           <div className="flex items-center gap-1">
             {steps.map((s, i) => (
               <div key={s} className="flex items-center gap-1 flex-1">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-all ${
-                  i < step   ? "bg-green-500 text-black"
-                  : i === step ? "bg-zinc-100 text-zinc-900"
-                               : "bg-zinc-700 text-zinc-500"
-                }`}>
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-all ${
+                    i < step
+                      ? "bg-green-500 text-black"
+                      : i === step
+                        ? "bg-zinc-100 text-zinc-900"
+                        : "bg-zinc-700 text-zinc-500"
+                  }`}
+                >
                   {i < step ? <Check className="w-3 h-3" /> : i + 1}
                 </div>
                 {i < steps.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-1 rounded-full transition-all ${i < step ? "bg-green-500" : "bg-zinc-700"}`} />
+                  <div
+                    className={`flex-1 h-0.5 mx-1 rounded-full transition-all ${i < step ? "bg-green-500" : "bg-zinc-700"}`}
+                  />
                 )}
               </div>
             ))}
@@ -171,8 +195,12 @@ export function RegisterPage() {
           {step === 0 && (
             <div className="space-y-4">
               <div className="mb-2">
-                <h2 className="text-xl font-bold text-zinc-100">Tạo tài khoản</h2>
-                <p className="text-sm text-zinc-500">Gia nhập cộng đồng thể dục của chúng tôi</p>
+                <h2 className="text-xl font-bold text-zinc-100">
+                  Tạo tài khoản
+                </h2>
+                <p className="text-sm text-zinc-500">
+                  Gia nhập cộng đồng thể dục của chúng tôi
+                </p>
               </div>
 
               <div className="space-y-3">
@@ -214,14 +242,19 @@ export function RegisterPage() {
               <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Mail className="w-6 h-6 text-green-500" />
               </div>
-              <h2 className="text-xl font-bold text-zinc-100">Kiểm tra email của bạn</h2>
+              <h2 className="text-xl font-bold text-zinc-100">
+                Kiểm tra email của bạn
+              </h2>
               <p className="text-sm text-zinc-500 px-4">
-                Chúng tôi đã gửi mã xác nhận 6 chữ số đến <span className="text-zinc-200 font-semibold">{email}</span>
+                Chúng tôi đã gửi mã xác nhận 6 chữ số đến{" "}
+                <span className="text-zinc-200 font-semibold">{email}</span>
               </p>
 
               <input
                 value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) =>
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
                 className="w-full bg-zinc-800 border-2 border-zinc-700 rounded-xl py-3 text-center text-2xl font-bold tracking-[0.5em] text-green-500 focus:border-green-500 outline-none transition-all"
                 placeholder=""
               />
@@ -242,19 +275,27 @@ export function RegisterPage() {
               <h2 className="text-xl font-bold text-zinc-100">Hồ sơ của bạn</h2>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Tuổi</label>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">
+                    Tuổi
+                  </label>
                   <input
                     value={profile.age}
-                    onChange={(e) => setProfile({...profile, age: e.target.value})}
+                    onChange={(e) =>
+                      setProfile({ ...profile, age: e.target.value })
+                    }
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
                     placeholder=""
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold tracking-wider">Giới tính</label>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold tracking-wider">
+                    Giới tính
+                  </label>
                   <select
                     value={profile.gender}
-                    onChange={(e) => setProfile({...profile, gender: e.target.value})}
+                    onChange={(e) =>
+                      setProfile({ ...profile, gender: e.target.value })
+                    }
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500 transition-all cursor-pointer"
                   >
                     <option value="MALE">Nam ♂</option>
@@ -263,19 +304,27 @@ export function RegisterPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Chiều cao (cm)</label>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">
+                    Chiều cao (cm)
+                  </label>
                   <input
                     value={profile.heightCm}
-                    onChange={(e) => setProfile({...profile, heightCm: e.target.value})}
+                    onChange={(e) =>
+                      setProfile({ ...profile, heightCm: e.target.value })
+                    }
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
                     placeholder=""
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">Cân nặng (kg)</label>
+                  <label className="text-[10px] text-zinc-500 mb-1 block uppercase font-bold">
+                    Cân nặng (kg)
+                  </label>
                   <input
                     value={profile.currentWeight}
-                    onChange={(e) => setProfile({...profile, currentWeight: e.target.value})}
+                    onChange={(e) =>
+                      setProfile({ ...profile, currentWeight: e.target.value })
+                    }
                     className="w-full px-3 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:ring-1 focus:ring-green-500"
                     placeholder=""
                   />
@@ -287,19 +336,29 @@ export function RegisterPage() {
           {/* Step 3: Mục tiêu */}
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-zinc-100">Chọn mục tiêu của bạn</h2>
+              <h2 className="text-xl font-bold text-zinc-100">
+                Chọn mục tiêu của bạn
+              </h2>
               <div className="space-y-2">
                 {goals.map((g) => (
                   <button
                     key={g.key}
-                    onClick={() => setProfile({...profile, goal: g.key})}
+                    onClick={() => setProfile({ ...profile, goal: g.key })}
                     className={`flex items-center gap-3 w-full px-4 py-3 border rounded-xl transition-all text-left ${
-                      profile.goal === g.key ? "border-green-500 bg-green-500/10" : "border-zinc-700 hover:border-zinc-600"
+                      profile.goal === g.key
+                        ? "border-green-500 bg-green-500/10"
+                        : "border-zinc-700 hover:border-zinc-600"
                     }`}
                   >
                     <span className="text-xl">{g.emoji}</span>
-                    <span className={`text-sm font-semibold ${profile.goal === g.key ? "text-green-500" : "text-zinc-300"}`}>{g.label}</span>
-                    {profile.goal === g.key && <Check className="w-4 h-4 text-green-500 ml-auto" />}
+                    <span
+                      className={`text-sm font-semibold ${profile.goal === g.key ? "text-green-500" : "text-zinc-300"}`}
+                    >
+                      {g.label}
+                    </span>
+                    {profile.goal === g.key && (
+                      <Check className="w-4 h-4 text-green-500 ml-auto" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -312,8 +371,12 @@ export function RegisterPage() {
               <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto border border-green-500/20">
                 <Check className="w-8 h-8 text-green-500" />
               </div>
-              <h2 className="text-2xl font-bold text-zinc-100">Chào mừng bạn!</h2>
-              <p className="text-zinc-500">Hồ sơ thể dục của bạn đã sẵn sàng.</p>
+              <h2 className="text-2xl font-bold text-zinc-100">
+                Chào mừng bạn!
+              </h2>
+              <p className="text-zinc-500">
+                Hồ sơ thể dục của bạn đã sẵn sàng.
+              </p>
             </div>
           )}
 
@@ -334,7 +397,8 @@ export function RegisterPage() {
                 disabled={loading}
                 className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 transition-all flex items-center justify-center gap-2"
               >
-                {loading ? "Đang gửi..." : "Tiếp tục"} <ArrowRight className="w-4 h-4" />
+                {loading ? "Đang gửi..." : "Tiếp tục"}{" "}
+                <ArrowRight className="w-4 h-4" />
               </button>
             )}
 
@@ -344,17 +408,27 @@ export function RegisterPage() {
                 disabled={loading}
                 className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 transition-all flex items-center justify-center gap-2"
               >
-                {loading ? "Đang xác minh..." : "Xác minh mã"} <ArrowRight className="w-4 h-4" />
+                {loading ? "Đang xác minh..." : "Xác minh mã"}{" "}
+                <ArrowRight className="w-4 h-4" />
               </button>
             )}
 
             {(step === 2 || step === 3) && (
               <button
-                onClick={() => step === 2 ? setStep(3) : handleSaveProfile()}
-                disabled={loading || (step === 2 && (!profile.age || !profile.gender || !profile.heightCm || !profile.currentWeight)) || (step === 3 && !profile.goal)}
+                onClick={() => (step === 2 ? setStep(3) : handleSaveProfile())}
+                disabled={
+                  loading ||
+                  (step === 2 &&
+                    (!profile.age ||
+                      !profile.gender ||
+                      !profile.heightCm ||
+                      !profile.currentWeight)) ||
+                  (step === 3 && !profile.goal)
+                }
                 className="flex-1 py-2.5 bg-green-500 text-black rounded-xl font-bold hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               >
-                {loading ? "Đang lưu..." : "Tiếp tục"} <ArrowRight className="w-4 h-4" />
+                {loading ? "Đang lưu..." : "Tiếp tục"}{" "}
+                <ArrowRight className="w-4 h-4" />
               </button>
             )}
 
@@ -370,7 +444,13 @@ export function RegisterPage() {
 
           {step === 0 && (
             <p className="text-center text-sm text-zinc-500 mt-6">
-              Đã có tài khoản? <Link to="/login" className="text-green-500 font-semibold hover:underline">Đăng nhập</Link>
+              Đã có tài khoản?{" "}
+              <Link
+                to="/login"
+                className="text-green-500 font-semibold hover:underline"
+              >
+                Đăng nhập
+              </Link>
             </p>
           )}
         </div>

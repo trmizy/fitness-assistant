@@ -1,15 +1,19 @@
-import type { EvidenceUsed } from '../llm/types';
+import type { EvidenceUsed } from "../llm/types";
 
-export type CoachSex = 'male' | 'female' | 'other' | null;
+export type CoachSex = "male" | "female" | "other" | null;
 export type CoachGoal =
-  | 'weight_loss'
-  | 'muscle_gain'
-  | 'maintenance'
-  | 'athletic_performance'
-  | 'recomposition'
-  | 'general_fitness'
+  | "weight_loss"
+  | "muscle_gain"
+  | "maintenance"
+  | "athletic_performance"
+  | "recomposition"
+  | "general_fitness"
   | null;
-export type CoachExperienceLevel = 'beginner' | 'intermediate' | 'advanced' | null;
+export type CoachExperienceLevel =
+  | "beginner"
+  | "intermediate"
+  | "advanced"
+  | null;
 
 export interface UserProfileContext {
   user_id?: string;
@@ -42,7 +46,7 @@ export interface InBodyTrendContext {
   weight_change_kg: number | null;
   body_fat_percent_change: number | null;
   skeletal_muscle_mass_change_kg: number | null;
-  direction: 'improving' | 'declining' | 'mixed' | 'stable' | 'unknown';
+  direction: "improving" | "declining" | "mixed" | "stable" | "unknown";
 }
 
 export interface TrainingSummaryContext {
@@ -50,7 +54,7 @@ export interface TrainingSummaryContext {
   weekly_sets_by_muscle: Record<string, number>;
   average_rpe: number | null;
   average_rir: number | null;
-  progression_status: 'progressing' | 'maintaining' | 'regressing' | 'unknown';
+  progression_status: "progressing" | "maintaining" | "regressing" | "unknown";
   missed_sessions: number | null;
   recent_session_count: number;
 }
@@ -61,7 +65,7 @@ export interface NutritionSummaryContext {
   avg_carbs_g: number | null;
   avg_fat_g: number | null;
   adherence_percent: number | null;
-  weight_trend: 'up' | 'down' | 'stable' | 'unknown';
+  weight_trend: "up" | "down" | "stable" | "unknown";
 }
 
 export interface RecoveryContext {

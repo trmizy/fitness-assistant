@@ -1,4 +1,4 @@
-import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type AxiosRequestConfig } from "axios";
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
@@ -39,9 +39,9 @@ export async function httpPost<T>(
 
 function normalizeHttpError(err: unknown, context: string): Error {
   if (err instanceof AxiosError) {
-    const status = err.response?.status ?? 'no-response';
+    const status = err.response?.status ?? "no-response";
     const body =
-      typeof err.response?.data === 'string'
+      typeof err.response?.data === "string"
         ? err.response.data.slice(0, 200)
         : JSON.stringify(err.response?.data ?? {}).slice(0, 200);
     return new Error(`[DatasetHTTP] ${context} → ${status}: ${body}`);

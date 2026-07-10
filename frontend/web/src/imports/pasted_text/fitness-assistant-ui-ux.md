@@ -4,6 +4,7 @@ PRODUCT OVERVIEW
 This is a health-tech and fitness-coaching platform for tracking gym training and personal health, analyzing body metrics from InBody reports, generating AI-powered workout and nutrition plans, connecting clients with personal trainers (PTs), supporting contract-based coaching relationships, scheduling sessions, realtime chat, and online coaching.
 
 The product should feel like a modern, premium, data-driven health platform:
+
 - trustworthy
 - clean
 - professional
@@ -14,6 +15,7 @@ The product should feel like a modern, premium, data-driven health platform:
 
 PRIMARY USERS / ROLES
 Design the product for 3 roles:
+
 1. Client
 2. PT / Coach
 3. Admin
@@ -26,6 +28,7 @@ Do not create visually extreme or overly artistic layouts that are hard to imple
 
 VISUAL STYLE
 Create a modern health-tech UI with:
+
 - light mode first
 - clean card-based layouts
 - soft but professional shadows
@@ -41,28 +44,31 @@ Create a modern health-tech UI with:
 
 COLOR DIRECTION
 Use a health-tech color system:
+
 - Primary: deep blue or blue-teal
 - Secondary accents: teal, green, soft cyan
 - Success: green
 - Warning: amber
 - Danger: red
 - Neutral: slate / gray scale
-Avoid overly saturated neon colors.
-The interface should feel calm, intelligent, and trustworthy.
+  Avoid overly saturated neon colors.
+  The interface should feel calm, intelligent, and trustworthy.
 
 TYPOGRAPHY
 Use a clean modern sans-serif style.
 Emphasize readability for:
+
 - data cards
 - tables
 - charts
 - forms
 - long dashboards
 - health metrics
-Headings should feel structured and professional.
-Body text should be clear and compact without feeling cramped.
+  Headings should feel structured and professional.
+  Body text should be clear and compact without feeling cramped.
 
 OVERALL UX PRINCIPLES
+
 - clarity over decoration
 - professional enterprise-grade layout with consumer-friendly polish
 - strong information hierarchy
@@ -79,9 +85,10 @@ APP STRUCTURE
 Create a full information architecture and UI system for these major modules.
 
 ==================================================
-1. AUTHENTICATION
-==================================================
-Design these screens:
+
+1. # AUTHENTICATION
+   Design these screens:
+
 - Login
 - Register
 - Forgot password
@@ -89,6 +96,7 @@ Design these screens:
 - Optional onboarding flow after registration
 
 Auth design style:
+
 - clean split-screen or centered card layout
 - premium health-tech feel
 - optional illustration or abstract fitness/AI visualization
@@ -96,12 +104,11 @@ Auth design style:
 - social login placeholders if needed
 - CTA hierarchy should be obvious
 
-==================================================
-2. CLIENT APPLICATION
-==================================================
+# ================================================== 2. CLIENT APPLICATION
 
 2.1 Client Dashboard
 Design a rich dashboard page with:
+
 - top greeting section
 - quick summary of current health/training state
 - key health metric cards
@@ -122,6 +129,7 @@ Design a rich dashboard page with:
   - Book Session
 
 Include:
+
 - KPI cards
 - mini charts
 - progress rings/bars
@@ -129,8 +137,9 @@ Include:
 - recommendation cards
 - alerts/reminders section
 
-2.2 Profile & Goal Setup
-Design a page for:
+  2.2 Profile & Goal Setup
+  Design a page for:
+
 - personal profile
 - age, gender, height, weight baseline
 - fitness goal selection:
@@ -148,14 +157,16 @@ Design a page for:
 - “Become a PT” CTA with state display
 
 This page should feel:
+
 - guided
 - editable
 - structured in sections
 - easy to scan
 - suitable for long forms
 
-2.3 InBody Module
-Design a complete InBody experience:
+  2.3 InBody Module
+  Design a complete InBody experience:
+
 - InBody overview page
 - upload image page
 - image preview page
@@ -167,6 +178,7 @@ Design a complete InBody experience:
 - trend dashboard for body metrics
 
 Important metrics:
+
 - weight
 - height
 - skeletal muscle mass
@@ -175,6 +187,7 @@ Important metrics:
 - segmental fat analysis
 
 Design needs:
+
 - image upload card
 - extraction status badges:
   - Uploaded
@@ -192,6 +205,7 @@ Make this one of the most impressive modules visually because it is a core featu
 
 2.4 Workout Log
 Design screens for:
+
 - today’s workout
 - exercise list
 - exercise detail
@@ -202,6 +216,7 @@ Design screens for:
 - personal records
 
 UI should include:
+
 - exercise cards
 - tables for set logging
 - check state / completed state
@@ -209,8 +224,9 @@ UI should include:
 - expandable exercise details
 - workout calendar/history
 
-2.5 Nutrition Log
-Design screens for:
+  2.5 Nutrition Log
+  Design screens for:
+
 - daily meal logging
 - calories/macros summary
 - meal cards
@@ -220,13 +236,15 @@ Design screens for:
 - weekly nutrition compliance
 
 UI should balance:
+
 - numbers
 - charts
 - cards
 - clear meal grouping
 
-2.6 AI Plans
-Design a plan management module for clients:
+  2.6 AI Plans
+  Design a plan management module for clients:
+
 - AI-generated workout plan
 - AI-generated meal plan
 - plan detail page
@@ -242,6 +260,7 @@ Design a plan management module for clients:
 - version comparison between AI draft and approved plan
 
 Include:
+
 - tabs
 - plan summary cards
 - exercise/day accordions
@@ -250,8 +269,9 @@ Include:
 - status badges
 - notes from PT
 
-2.7 PT Discovery / Coaching Marketplace
-Design pages for:
+  2.7 PT Discovery / Coaching Marketplace
+  Design pages for:
+
 - PT listing page
 - filter sidebar
 - PT profile card
@@ -265,13 +285,15 @@ Design pages for:
 - CTA to request coaching / create contract
 
 Style:
+
 - professional marketplace feel
 - trustworthy
 - strong profile cards
 - strong service/package layout
 
-2.8 Contract Module
-Design a full contract experience:
+  2.8 Contract Module
+  Design a full contract experience:
+
 - contract list
 - contract detail page
 - contract creation/review page
@@ -288,6 +310,7 @@ Design a full contract experience:
   - Cancelled
 
 Important UX:
+
 - the contract should feel formal and trustworthy
 - include legal/terms summary section
 - show quota / remaining sessions
@@ -295,8 +318,9 @@ Important UX:
 - show signature status
 - show next allowed actions
 
-2.9 Coaching Schedule / Booking
-Design:
+  2.9 Coaching Schedule / Booking
+  Design:
+
 - booking calendar
 - available slots
 - session booking flow
@@ -306,15 +330,17 @@ Design:
 - reschedule / cancel states
 
 Important:
+
 - active contract should visually unlock booking
 - non-active contract should show restriction state
 - schedule should be easy to read
 
-2.10 Chat Module
-Design a realtime chat experience between client and PT.
-The chat should feel contextual and linked to a contract/coaching relationship.
+  2.10 Chat Module
+  Design a realtime chat experience between client and PT.
+  The chat should feel contextual and linked to a contract/coaching relationship.
 
 Include:
+
 - conversation list
 - message panel
 - contract context header
@@ -327,8 +353,9 @@ Include:
 - clean modern message bubbles
 - desktop two-column layout
 
-2.11 Video Coaching
-Design:
+  2.11 Video Coaching
+  Design:
+
 - waiting room
 - live session layout
 - video area placeholders
@@ -338,11 +365,13 @@ Design:
 - post-session summary page
 
 Style:
+
 - clean, focused, minimal distractions
 - professional coaching environment
 
-2.12 AI Coach
-Design an AI assistant/chat page:
+  2.12 AI Coach
+  Design an AI assistant/chat page:
+
 - conversation panel
 - input prompt
 - suggested prompts
@@ -353,12 +382,11 @@ Design an AI assistant/chat page:
 
 This page should feel intelligent and safe.
 
-==================================================
-3. PT / COACH APPLICATION
-==================================================
+# ================================================== 3. PT / COACH APPLICATION
 
 3.1 PT Dashboard
 Design a professional PT dashboard with:
+
 - active clients count
 - upcoming sessions
 - active contracts
@@ -368,8 +396,9 @@ Design a professional PT dashboard with:
 - revenue/package summary placeholder
 - coaching productivity snapshot
 
-3.2 Client List
-Design:
+  3.2 Client List
+  Design:
+
 - searchable list/table
 - filters
 - client cards
@@ -378,9 +407,10 @@ Design:
 - latest InBody snapshot
 - progress summary
 
-3.3 Client Detail Page
-This should be a very important PT screen.
-Include:
+  3.3 Client Detail Page
+  This should be a very important PT screen.
+  Include:
+
 - client profile summary
 - active goal
 - contract summary
@@ -398,28 +428,32 @@ The PT should immediately understand the client’s condition and progress.
 
 3.4 Plan Review / Adjustment
 Design a PT workflow where:
+
 - AI suggests a plan
 - PT reviews and modifies it
 - PT approves or requests changes
 - comparison between AI version and PT final version is visible
 
 Use:
+
 - side-by-side or diff-inspired layout
 - inline editing
 - comments
 - approval buttons
 - review status
 
-3.5 Coaching Schedule
-Design PT schedule view:
+  3.5 Coaching Schedule
+  Design PT schedule view:
+
 - calendar
 - session cards
 - filters
 - session detail drawer
 - reschedule / cancel controls
 
-3.6 Session Notes
-Design a structured note-taking interface for PT:
+  3.6 Session Notes
+  Design a structured note-taking interface for PT:
+
 - session summary
 - pain points
 - progress
@@ -427,8 +461,9 @@ Design a structured note-taking interface for PT:
 - next session focus
 - homework / client tasks
 
-3.7 PT Profile & Services
-Design:
+  3.7 PT Profile & Services
+  Design:
+
 - PT public profile editor
 - bio
 - certifications placeholder
@@ -441,12 +476,11 @@ Design:
   - Approved
   - Rejected
 
-==================================================
-4. ADMIN APPLICATION
-==================================================
+# ================================================== 4. ADMIN APPLICATION
 
 4.1 Admin Dashboard
 Design an admin dashboard that shows:
+
 - total users
 - total PTs
 - active contracts
@@ -456,23 +490,26 @@ Design an admin dashboard that shows:
 - usage overview
 - important alerts
 
-4.2 User Management
-Design:
+  4.2 User Management
+  Design:
+
 - searchable/filterable table
 - user detail drawer
 - role/status indicators
 - account actions
 
-4.3 PT Management
-Design:
+  4.3 PT Management
+  Design:
+
 - PT list
 - PT verification review
 - approval workflow
 - PT profile audit
 - package/service overview
 
-4.4 Contract Management
-Design:
+  4.4 Contract Management
+  Design:
+
 - contract table
 - statuses
 - filters
@@ -480,27 +517,28 @@ Design:
 - important dates
 - action history
 
-4.5 Session Management
-Design:
+  4.5 Session Management
+  Design:
+
 - coaching session overview
 - session status filters
 - PT/client references
 - support/admin intervention controls
 
-4.6 System Monitoring Overview
-Design a monitoring page for thesis/demo:
+  4.6 System Monitoring Overview
+  Design a monitoring page for thesis/demo:
+
 - request volume
 - OCR extraction status
 - processing queue status
 - system alerts
 - charts for service health
-Keep it understandable for non-dev judges while still looking technical.
+  Keep it understandable for non-dev judges while still looking technical.
 
-==================================================
-5. NAVIGATION SYSTEM
-==================================================
+# ================================================== 5. NAVIGATION SYSTEM
 
 Create a complete navigation system:
+
 - desktop left sidebar
 - topbar with:
   - search
@@ -513,11 +551,10 @@ Create a complete navigation system:
 - responsive sidebar behavior
 - mobile fallback concept
 
-==================================================
-6. DESIGN SYSTEM
-==================================================
+# ================================================== 6. DESIGN SYSTEM
 
 Create a reusable design system including:
+
 - color palette
 - semantic colors
 - typography scale
@@ -552,11 +589,10 @@ Create a reusable design system including:
 - session note editor
 - AI recommendation card
 
-==================================================
-7. REQUIRED STATUS / STATE DESIGN
-==================================================
+# ================================================== 7. REQUIRED STATUS / STATE DESIGN
 
 Design explicit UI states for:
+
 - AI Plan:
   - Draft
   - Pending PT Review
@@ -600,11 +636,10 @@ Design explicit UI states for:
   - Live
   - Ended
 
-==================================================
-8. IMPORTANT END-TO-END FLOWS
-==================================================
+# ================================================== 8. IMPORTANT END-TO-END FLOWS
 
 Design complete flows for:
+
 1. Register → onboarding → set goals → dashboard
 2. Upload InBody image → processing → OCR review → confirm save → trend dashboard
 3. AI plan generated → PT review → plan activated
@@ -614,11 +649,10 @@ Design complete flows for:
 7. Client clicks “Become a PT” → status shown in profile
 8. Admin reviews PT verification / system overview
 
-==================================================
-9. LAYOUT / COMPONENT EXPECTATIONS
-==================================================
+# ================================================== 9. LAYOUT / COMPONENT EXPECTATIONS
 
 Use:
+
 - dashboard cards
 - charts
 - trend lines
@@ -633,31 +667,30 @@ Use:
 - review confirmation interfaces
 
 For data-heavy pages, create:
+
 - overview header
 - filter/action toolbar
 - main content grid
 - right-side contextual panel when useful
 
-==================================================
-10. RESPONSIVE BEHAVIOR
-==================================================
+# ================================================== 10. RESPONSIVE BEHAVIOR
 
 Design desktop-first, but also provide responsive logic for:
+
 - tablet
 - mobile fallback
-Make mobile simplified but still usable for:
+  Make mobile simplified but still usable for:
 - dashboard
 - chat
 - InBody upload
 - workout logging
 - schedule
-Do not make mobile the primary layout.
+  Do not make mobile the primary layout.
 
-==================================================
-11. MICROCOPY STYLE
-==================================================
+# ================================================== 11. MICROCOPY STYLE
 
 Microcopy tone:
+
 - clear
 - professional
 - supportive
@@ -666,11 +699,10 @@ Microcopy tone:
 - concise for dashboards
 - explicit for forms and status messages
 
-==================================================
-12. OUTPUT FORMAT
-==================================================
+# ================================================== 12. OUTPUT FORMAT
 
 Generate:
+
 1. design direction / moodboard description
 2. sitemap / information architecture
 3. design system
@@ -682,11 +714,10 @@ Generate:
 9. main flows for all 3 roles
 10. state variations for loading, empty, success, error, processing, restricted, and approval states
 
-==================================================
-13. PRIORITY SCREENS
-==================================================
+# ================================================== 13. PRIORITY SCREENS
 
 If you need to prioritize, start with these:
+
 1. Client Dashboard
 2. InBody Upload + OCR Review + InBody History
 3. AI Plan page
@@ -700,6 +731,7 @@ If you need to prioritize, start with these:
 
 FINAL DESIGN GOAL
 The final interface should be:
+
 - beautiful enough for presentation/demo
 - clear enough for judges to understand the business logic
 - realistic enough for developers to build with React + Tailwind

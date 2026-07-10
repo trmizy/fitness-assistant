@@ -1,17 +1,22 @@
-import type { FoodDetail, FoodSearchItem, NutritionFacts, SourceAttribution } from '../../types';
+import type {
+  FoodDetail,
+  FoodSearchItem,
+  NutritionFacts,
+  SourceAttribution,
+} from "../../types";
 
 const OFF_SOURCE: SourceAttribution = {
-  providerName: 'Open Food Facts',
-  sourceUrl: 'https://world.openfoodfacts.org',
+  providerName: "Open Food Facts",
+  sourceUrl: "https://world.openfoodfacts.org",
   authoritative: false,
-  level: 'supplementary',
+  level: "supplementary",
 };
 
 // ─── Internal OFF API shapes ──────────────────────────────────────────────────
 
 export interface OffNutriments {
-  'energy-kcal_100g'?: number;
-  'energy-kcal_serving'?: number;
+  "energy-kcal_100g"?: number;
+  "energy-kcal_serving"?: number;
   proteins_100g?: number;
   proteins_serving?: number;
   carbohydrates_100g?: number;
@@ -36,20 +41,26 @@ export interface OffProduct {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function parseServingSize(raw?: string): { size: number | null; unit: string | null } {
+function parseServingSize(raw?: string): {
+  size: number | null;
+  unit: string | null;
+} {
   if (!raw) return { size: null, unit: null };
   const match = raw.match(/^([\d.]+)\s*([a-zA-Z]*)/);
   if (!match) return { size: null, unit: raw };
   return { size: Number(match[1]) || null, unit: match[2] || null };
 }
 
-function mapNutrition(n: OffNutriments | undefined, serving: string | undefined): NutritionFacts {
+function mapNutrition(
+  n: OffNutriments | undefined,
+  serving: string | undefined,
+): NutritionFacts {
   if (!n) {
     return { calories: null, proteinG: null, carbsG: null, fatG: null };
   }
   const { size, unit } = parseServingSize(serving);
   return {
-    calories: n['energy-kcal_100g'] ?? n['energy-kcal_serving'] ?? null,
+    calories: n["energy-kcal_100g"] ?? n["energy-kcal_serving"] ?? null,
     proteinG: n.proteins_100g ?? n.proteins_serving ?? null,
     carbsG: n.carbohydrates_100g ?? n.carbohydrates_serving ?? null,
     fatG: n.fat_100g ?? n.fat_serving ?? null,
@@ -64,9 +75,9 @@ function mapNutrition(n: OffNutriments | undefined, serving: string | undefined)
 export function mapOffProductToSearchItem(p: OffProduct): FoodSearchItem {
   return {
     id: p._id ?? p.code ?? crypto.randomUUID(),
-    name: p.product_name ?? 'Unknown',
+    name: p.product_name ?? "Unknown",
     brand: p.brands,
-    category: p.categories?.split(',')[0]?.trim(),
+    category: p.categories?.split(",")[0]?.trim(),
     source: OFF_SOURCE,
   };
 }
@@ -74,9 +85,9 @@ export function mapOffProductToSearchItem(p: OffProduct): FoodSearchItem {
 export function mapOffProductToDetail(p: OffProduct): FoodDetail {
   return {
     id: p._id ?? p.code ?? crypto.randomUUID(),
-    name: p.product_name ?? 'Unknown',
+    name: p.product_name ?? "Unknown",
     brand: p.brands,
-    category: p.categories?.split(',')[0]?.trim(),
+    category: p.categories?.split(",")[0]?.trim(),
     nutrition: mapNutrition(p.nutriments, p.serving_size),
     barcode: p.code,
     ingredients: p.ingredients_text,
