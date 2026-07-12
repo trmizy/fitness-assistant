@@ -10,6 +10,7 @@ import { formatVND } from "../../utils/currency";
 const statusConfig: Record<ContractStatus, { label: string; color: string; dot: string }> = {
   PENDING_REVIEW:    { label: "Pending Review",  color: "bg-amber-500/10 text-amber-400 border-amber-500/20",   dot: "bg-amber-500" },
   PENDING_SIGNATURE: { label: "Awaiting Sign",   color: "bg-purple-500/10 text-purple-400 border-purple-500/20", dot: "bg-purple-500" },
+  PENDING_PAYMENT:   { label: "Payment Due",     color: "bg-orange-500/10 text-orange-400 border-orange-500/20", dot: "bg-orange-500" },
   ACTIVE:            { label: "Active",          color: "bg-green-500/10 text-green-400 border-green-500/20",   dot: "bg-green-500" },
   COMPLETED:         { label: "Completed",       color: "bg-blue-500/10 text-blue-400 border-blue-500/20",     dot: "bg-blue-500" },
   EXPIRED:           { label: "Expired",         color: "bg-zinc-700/50 text-zinc-400 border-zinc-700",        dot: "bg-zinc-500" },
@@ -58,6 +59,21 @@ export function ContractPage() {
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.error || "Failed to cancel");
+    },
+  });
+
+  const payMutation = useMutation({
+    mutationFn: (id: string) => contractService.pay(id),
+    onSuccess: (result: any) => {
+      if (result?.payment?.status === "PAID") {
+        toast.success("Payment successful — contract is now active!");
+      } else {
+        toast.error(result?.payment?.failureReason || "Payment failed — check your wallet balance");
+      }
+      queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error || "Failed to pay");
     },
   });
 
@@ -215,6 +231,17 @@ export function ContractPage() {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
+                {selected.status === "PENDING_PAYMENT" && (
+                  <button
+                    type="button"
+                    onClick={() => payMutation.mutate(selected.id)}
+                    disabled={payMutation.isPending}
+                    className="flex items-center gap-2 bg-orange-500 hover:bg-orange-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-orange-500/20 disabled:opacity-60"
+                  >
+                    {payMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    Pay Now ({formatPrice(selected.price)})
+                  </button>
+                )}
                 {selected.status === "ACTIVE" && (
                   <button
                     type="button"
@@ -224,14 +251,14 @@ export function ContractPage() {
                     <Calendar className="w-4 h-4" /> Book Session
                   </button>
                 )}
-                {(selected.status === "ACTIVE" || selected.status === "PENDING_REVIEW") && (
+                {(selected.status === "ACTIVE" || selected.status === "PENDING_REVIEW" || selected.status === "PENDING_PAYMENT") && (
                   <button
                     type="button"
                     onClick={() => setShowCancelDialog(true)}
                     className="flex items-center gap-2 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
                   >
                     <XCircle className="w-4 h-4" />
-                    {selected.status === "PENDING_REVIEW" ? "Withdraw Request" : "Cancel Contract"}
+                    {selected.status === "ACTIVE" ? "Cancel Contract" : "Withdraw Request"}
                   </button>
                 )}
               </div>
@@ -246,14 +273,14 @@ export function ContractPage() {
           <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-5 border-b border-zinc-800/60">
               <h3 className="text-zinc-100 font-bold">
-                {selected.status === "PENDING_REVIEW" ? "Withdraw Request" : "Cancel Contract"}
+                {selected.status === "ACTIVE" ? "Cancel Contract" : "Withdraw Request"}
               </h3>
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-zinc-400">
-                {selected.status === "PENDING_REVIEW"
-                  ? "Are you sure you want to withdraw this coaching request?"
-                  : "Are you sure you want to cancel this contract? This action cannot be undone."}
+                {selected.status === "ACTIVE"
+                  ? "Are you sure you want to cancel this contract? This action cannot be undone."
+                  : "Are you sure you want to withdraw this coaching request?"}
               </p>
               <div>
                 <label htmlFor="contract-cancel-reason" className="text-xs font-semibold text-zinc-400 mb-1.5 block">Reason</label>
@@ -282,7 +309,7 @@ export function ContractPage() {
                 className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-white text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
               >
                 {cancelMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {selected.status === "PENDING_REVIEW" ? "Withdraw" : "Cancel"}
+                {selected.status === "ACTIVE" ? "Cancel" : "Withdraw"}
               </button>
             </div>
           </div>

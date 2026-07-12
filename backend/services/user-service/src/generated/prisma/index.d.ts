@@ -160,6 +160,7 @@ export type MediaGroupType = (typeof MediaGroupType)[keyof typeof MediaGroupType
 export const ContractStatus: {
   PENDING_REVIEW: 'PENDING_REVIEW',
   PENDING_SIGNATURE: 'PENDING_SIGNATURE',
+  PENDING_PAYMENT: 'PENDING_PAYMENT',
   ACTIVE: 'ACTIVE',
   COMPLETED: 'COMPLETED',
   EXPIRED: 'EXPIRED',
@@ -185,6 +186,14 @@ export const SessionMode: {
 };
 
 export type SessionMode = (typeof SessionMode)[keyof typeof SessionMode]
+
+
+export const ContractSource: {
+  INDEPENDENT: 'INDEPENDENT',
+  GYM: 'GYM'
+};
+
+export type ContractSource = (typeof ContractSource)[keyof typeof ContractSource]
 
 
 export const SessionStatus: {
@@ -275,6 +284,10 @@ export const PackageType: typeof $Enums.PackageType
 export type SessionMode = $Enums.SessionMode
 
 export const SessionMode: typeof $Enums.SessionMode
+
+export type ContractSource = $Enums.ContractSource
+
+export const ContractSource: typeof $Enums.ContractSource
 
 export type SessionStatus = $Enums.SessionStatus
 
@@ -7165,6 +7178,9 @@ export namespace Prisma {
     eSignError: string | null
     clientSignerEmail: string | null
     ptSignerEmail: string | null
+    gymId: string | null
+    source: $Enums.ContractSource | null
+    paymentTransactionId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7206,6 +7222,9 @@ export namespace Prisma {
     eSignError: string | null
     clientSignerEmail: string | null
     ptSignerEmail: string | null
+    gymId: string | null
+    source: $Enums.ContractSource | null
+    paymentTransactionId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7247,6 +7266,9 @@ export namespace Prisma {
     eSignError: number
     clientSignerEmail: number
     ptSignerEmail: number
+    gymId: number
+    source: number
+    paymentTransactionId: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -7308,6 +7330,9 @@ export namespace Prisma {
     eSignError?: true
     clientSignerEmail?: true
     ptSignerEmail?: true
+    gymId?: true
+    source?: true
+    paymentTransactionId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7349,6 +7374,9 @@ export namespace Prisma {
     eSignError?: true
     clientSignerEmail?: true
     ptSignerEmail?: true
+    gymId?: true
+    source?: true
+    paymentTransactionId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7390,6 +7418,9 @@ export namespace Prisma {
     eSignError?: true
     clientSignerEmail?: true
     ptSignerEmail?: true
+    gymId?: true
+    source?: true
+    paymentTransactionId?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -7518,6 +7549,9 @@ export namespace Prisma {
     eSignError: string | null
     clientSignerEmail: string | null
     ptSignerEmail: string | null
+    gymId: string | null
+    source: $Enums.ContractSource
+    paymentTransactionId: string | null
     createdAt: Date
     updatedAt: Date
     _count: ContractCountAggregateOutputType | null
@@ -7578,6 +7612,9 @@ export namespace Prisma {
     eSignError?: boolean
     clientSignerEmail?: boolean
     ptSignerEmail?: boolean
+    gymId?: boolean
+    source?: boolean
+    paymentTransactionId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     sessions?: boolean | Contract$sessionsArgs<ExtArgs>
@@ -7622,6 +7659,9 @@ export namespace Prisma {
     eSignError?: boolean
     clientSignerEmail?: boolean
     ptSignerEmail?: boolean
+    gymId?: boolean
+    source?: boolean
+    paymentTransactionId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["contract"]>
@@ -7663,6 +7703,9 @@ export namespace Prisma {
     eSignError?: boolean
     clientSignerEmail?: boolean
     ptSignerEmail?: boolean
+    gymId?: boolean
+    source?: boolean
+    paymentTransactionId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -7717,6 +7760,9 @@ export namespace Prisma {
       eSignError: string | null
       clientSignerEmail: string | null
       ptSignerEmail: string | null
+      gymId: string | null
+      source: $Enums.ContractSource
+      paymentTransactionId: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["contract"]>
@@ -8150,6 +8196,9 @@ export namespace Prisma {
     readonly eSignError: FieldRef<"Contract", 'String'>
     readonly clientSignerEmail: FieldRef<"Contract", 'String'>
     readonly ptSignerEmail: FieldRef<"Contract", 'String'>
+    readonly gymId: FieldRef<"Contract", 'String'>
+    readonly source: FieldRef<"Contract", 'ContractSource'>
+    readonly paymentTransactionId: FieldRef<"Contract", 'String'>
     readonly createdAt: FieldRef<"Contract", 'DateTime'>
     readonly updatedAt: FieldRef<"Contract", 'DateTime'>
   }
@@ -17882,6 +17931,9 @@ export namespace Prisma {
     eSignError: 'eSignError',
     clientSignerEmail: 'clientSignerEmail',
     ptSignerEmail: 'ptSignerEmail',
+    gymId: 'gymId',
+    source: 'source',
+    paymentTransactionId: 'paymentTransactionId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -18296,6 +18348,20 @@ export namespace Prisma {
    * Reference to a field of type 'SessionMode[]'
    */
   export type ListEnumSessionModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SessionMode[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'ContractSource'
+   */
+  export type EnumContractSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContractSource'>
+    
+
+
+  /**
+   * Reference to a field of type 'ContractSource[]'
+   */
+  export type ListEnumContractSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContractSource[]'>
     
 
 
@@ -18986,6 +19052,9 @@ export namespace Prisma {
     eSignError?: StringNullableFilter<"Contract"> | string | null
     clientSignerEmail?: StringNullableFilter<"Contract"> | string | null
     ptSignerEmail?: StringNullableFilter<"Contract"> | string | null
+    gymId?: StringNullableFilter<"Contract"> | string | null
+    source?: EnumContractSourceFilter<"Contract"> | $Enums.ContractSource
+    paymentTransactionId?: StringNullableFilter<"Contract"> | string | null
     createdAt?: DateTimeFilter<"Contract"> | Date | string
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
     sessions?: SessionListRelationFilter
@@ -19029,6 +19098,9 @@ export namespace Prisma {
     eSignError?: SortOrderInput | SortOrder
     clientSignerEmail?: SortOrderInput | SortOrder
     ptSignerEmail?: SortOrderInput | SortOrder
+    gymId?: SortOrderInput | SortOrder
+    source?: SortOrder
+    paymentTransactionId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     sessions?: SessionOrderByRelationAggregateInput
@@ -19075,6 +19147,9 @@ export namespace Prisma {
     eSignError?: StringNullableFilter<"Contract"> | string | null
     clientSignerEmail?: StringNullableFilter<"Contract"> | string | null
     ptSignerEmail?: StringNullableFilter<"Contract"> | string | null
+    gymId?: StringNullableFilter<"Contract"> | string | null
+    source?: EnumContractSourceFilter<"Contract"> | $Enums.ContractSource
+    paymentTransactionId?: StringNullableFilter<"Contract"> | string | null
     createdAt?: DateTimeFilter<"Contract"> | Date | string
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
     sessions?: SessionListRelationFilter
@@ -19118,6 +19193,9 @@ export namespace Prisma {
     eSignError?: SortOrderInput | SortOrder
     clientSignerEmail?: SortOrderInput | SortOrder
     ptSignerEmail?: SortOrderInput | SortOrder
+    gymId?: SortOrderInput | SortOrder
+    source?: SortOrder
+    paymentTransactionId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ContractCountOrderByAggregateInput
@@ -19167,6 +19245,9 @@ export namespace Prisma {
     eSignError?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     clientSignerEmail?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     ptSignerEmail?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    gymId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    source?: EnumContractSourceWithAggregatesFilter<"Contract"> | $Enums.ContractSource
+    paymentTransactionId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Contract"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Contract"> | Date | string
   }
@@ -20729,6 +20810,9 @@ export namespace Prisma {
     eSignError?: string | null
     clientSignerEmail?: string | null
     ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutContractInput
@@ -20772,6 +20856,9 @@ export namespace Prisma {
     eSignError?: string | null
     clientSignerEmail?: string | null
     ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
@@ -20815,6 +20902,9 @@ export namespace Prisma {
     eSignError?: NullableStringFieldUpdateOperationsInput | string | null
     clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutContractNestedInput
@@ -20858,6 +20948,9 @@ export namespace Prisma {
     eSignError?: NullableStringFieldUpdateOperationsInput | string | null
     clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
@@ -20901,6 +20994,9 @@ export namespace Prisma {
     eSignError?: string | null
     clientSignerEmail?: string | null
     ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20942,6 +21038,9 @@ export namespace Prisma {
     eSignError?: NullableStringFieldUpdateOperationsInput | string | null
     clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20983,6 +21082,9 @@ export namespace Prisma {
     eSignError?: NullableStringFieldUpdateOperationsInput | string | null
     clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -22679,6 +22781,13 @@ export namespace Prisma {
     not?: NestedEnumSessionModeNullableFilter<$PrismaModel> | $Enums.SessionMode | null
   }
 
+  export type EnumContractSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractSourceFilter<$PrismaModel> | $Enums.ContractSource
+  }
+
   export type SessionListRelationFilter = {
     every?: SessionWhereInput
     some?: SessionWhereInput
@@ -22736,6 +22845,9 @@ export namespace Prisma {
     eSignError?: SortOrder
     clientSignerEmail?: SortOrder
     ptSignerEmail?: SortOrder
+    gymId?: SortOrder
+    source?: SortOrder
+    paymentTransactionId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -22786,6 +22898,9 @@ export namespace Prisma {
     eSignError?: SortOrder
     clientSignerEmail?: SortOrder
     ptSignerEmail?: SortOrder
+    gymId?: SortOrder
+    source?: SortOrder
+    paymentTransactionId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -22827,6 +22942,9 @@ export namespace Prisma {
     eSignError?: SortOrder
     clientSignerEmail?: SortOrder
     ptSignerEmail?: SortOrder
+    gymId?: SortOrder
+    source?: SortOrder
+    paymentTransactionId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -22868,6 +22986,16 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumSessionModeNullableFilter<$PrismaModel>
     _max?: NestedEnumSessionModeNullableFilter<$PrismaModel>
+  }
+
+  export type EnumContractSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractSourceWithAggregatesFilter<$PrismaModel> | $Enums.ContractSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumContractSourceFilter<$PrismaModel>
+    _max?: NestedEnumContractSourceFilter<$PrismaModel>
   }
 
   export type EnumSessionStatusFilter<$PrismaModel = never> = {
@@ -23863,6 +23991,10 @@ export namespace Prisma {
     set?: $Enums.SessionMode | null
   }
 
+  export type EnumContractSourceFieldUpdateOperationsInput = {
+    set?: $Enums.ContractSource
+  }
+
   export type SessionUpdateManyWithoutContractNestedInput = {
     create?: XOR<SessionCreateWithoutContractInput, SessionUncheckedCreateWithoutContractInput> | SessionCreateWithoutContractInput[] | SessionUncheckedCreateWithoutContractInput[]
     connectOrCreate?: SessionCreateOrConnectWithoutContractInput | SessionCreateOrConnectWithoutContractInput[]
@@ -24584,6 +24716,13 @@ export namespace Prisma {
     not?: NestedEnumSessionModeNullableFilter<$PrismaModel> | $Enums.SessionMode | null
   }
 
+  export type NestedEnumContractSourceFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractSourceFilter<$PrismaModel> | $Enums.ContractSource
+  }
+
   export type NestedEnumContractStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractStatus | EnumContractStatusFieldRefInput<$PrismaModel>
     in?: $Enums.ContractStatus[] | ListEnumContractStatusFieldRefInput<$PrismaModel>
@@ -24612,6 +24751,16 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumSessionModeNullableFilter<$PrismaModel>
     _max?: NestedEnumSessionModeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumContractSourceWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
+    in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
+    not?: NestedEnumContractSourceWithAggregatesFilter<$PrismaModel> | $Enums.ContractSource
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumContractSourceFilter<$PrismaModel>
+    _max?: NestedEnumContractSourceFilter<$PrismaModel>
   }
 
   export type NestedEnumSessionStatusFilter<$PrismaModel = never> = {
@@ -25942,6 +26091,9 @@ export namespace Prisma {
     eSignError?: string | null
     clientSignerEmail?: string | null
     ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
@@ -25984,6 +26136,9 @@ export namespace Prisma {
     eSignError?: string | null
     clientSignerEmail?: string | null
     ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
@@ -26065,6 +26220,9 @@ export namespace Prisma {
     eSignError?: NullableStringFieldUpdateOperationsInput | string | null
     clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
@@ -26107,6 +26265,9 @@ export namespace Prisma {
     eSignError?: NullableStringFieldUpdateOperationsInput | string | null
     clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
@@ -26223,6 +26384,9 @@ export namespace Prisma {
     eSignError?: string | null
     clientSignerEmail?: string | null
     ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutContractInput
@@ -26265,6 +26429,9 @@ export namespace Prisma {
     eSignError?: string | null
     clientSignerEmail?: string | null
     ptSignerEmail?: string | null
+    gymId?: string | null
+    source?: $Enums.ContractSource
+    paymentTransactionId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
@@ -26374,6 +26541,9 @@ export namespace Prisma {
     eSignError?: NullableStringFieldUpdateOperationsInput | string | null
     clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutContractNestedInput
@@ -26416,6 +26586,9 @@ export namespace Prisma {
     eSignError?: NullableStringFieldUpdateOperationsInput | string | null
     clientSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
     ptSignerEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    gymId?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput

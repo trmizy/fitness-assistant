@@ -41,6 +41,8 @@ export namespace $Enums {
   export const Role: {
   CUSTOMER: 'CUSTOMER',
   PT: 'PT',
+  GYM_OWNER: 'GYM_OWNER',
+  GYM_STAFF: 'GYM_STAFF',
   ADMIN: 'ADMIN'
 };
 

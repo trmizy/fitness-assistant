@@ -1,0 +1,133 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum GymStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum GymMembershipPlanStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum GymMembershipContractStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum AffiliationStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+enum AffiliationEmployment {
+  IN_HOUSE
+  FREELANCE
+  PARTNER
+}
+
+enum GymTrainerVisibility {
+  PUBLIC
+  INTERNAL_ONLY
+}
+
+model Gym {
+  id          String    @id @default(uuid())
+  ownerId     String    @map("owner_id")
+  name        String
+  description String?
+  address     String
+  city        String?
+  phone       String?
+  email       String?
+  status      GymStatus @default(PENDING_REVIEW)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  plans        GymMembershipPlan[]
+  memberships  GymMembershipContract[]
+  affiliations GymTrainerAffiliation[]
+
+  @@index([status])
+  @@index([ownerId])
+  @@map("gyms")
+}
+
+model GymMembershipPlan {
+  id           String                  @id @default(uuid())
+  gymId        String                  @map("gym_id")
+  name         String
+  description  String?
+  price        Decimal                 @db.Decimal(12, 2)
+  durationDays Int                     @map("duration_days")
+  visitLimit   Int?                    @map("visit_limit")
+  status       GymMembershipPlanStatus @default(ACTIVE)
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  gym         Gym                     @relation(fields: [gymId], references: [id])
+  memberships GymMembershipContract[]
+
+  @@index([gymId, status])
+  @@map("gym_membership_plans")
+}
+
+model GymMembershipContract {
+  id                   String                      @id @default(uuid())
+  gymId                String                      @map("gym_id")
+  planId               String                      @map("plan_id")
+  clientId             String                      @map("client_id")
+  status               GymMembershipContractStatus @default(PENDING_PAYMENT)
+  paymentTxnId         String?                     @map("payment_txn_id")
+  startDate            DateTime?                   @map("start_date")
+  endDate              DateTime?                   @map("end_date")
+  priceAtPurchase      Decimal                     @map("price_at_purchase") @db.Decimal(12, 2)
+  durationDaysSnapshot Int                         @map("duration_days_snapshot")
+  totalVisits          Int?                        @map("total_visits")
+  usedVisits           Int                         @default(0) @map("used_visits")
+  createdAt            DateTime                    @default(now()) @map("created_at")
+  updatedAt            DateTime                    @updatedAt @map("updated_at")
+
+  gym  Gym               @relation(fields: [gymId], references: [id])
+  plan GymMembershipPlan @relation(fields: [planId], references: [id])
+
+  @@index([clientId, status])
+  @@index([gymId, status])
+  @@map("gym_membership_contracts")
+}
+
+model GymTrainerAffiliation {
+  id             String                @id @default(uuid())
+  gymId          String                @map("gym_id")
+  ptId           String                @map("pt_id")
+  status         AffiliationStatus     @default(PENDING)
+  employmentType AffiliationEmployment @default(FREELANCE) @map("employment_type")
+  visibility     GymTrainerVisibility  @default(PUBLIC)
+  commissionRate Decimal?              @map("commission_rate") @db.Decimal(5, 4)
+  invitedBy      String?               @map("invited_by")
+  joinedAt       DateTime?             @map("joined_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  gym Gym @relation(fields: [gymId], references: [id])
+
+  @@unique([gymId, ptId])
+  @@index([ptId, status])
+  @@index([gymId, status])
+  @@map("gym_trainer_affiliations")
+}

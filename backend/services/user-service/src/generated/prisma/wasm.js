@@ -262,6 +262,9 @@ exports.Prisma.ContractScalarFieldEnum = {
   eSignError: 'eSignError',
   clientSignerEmail: 'clientSignerEmail',
   ptSignerEmail: 'ptSignerEmail',
+  gymId: 'gymId',
+  source: 'source',
+  paymentTransactionId: 'paymentTransactionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -469,6 +472,7 @@ exports.MediaGroupType = exports.$Enums.MediaGroupType = {
 exports.ContractStatus = exports.$Enums.ContractStatus = {
   PENDING_REVIEW: 'PENDING_REVIEW',
   PENDING_SIGNATURE: 'PENDING_SIGNATURE',
+  PENDING_PAYMENT: 'PENDING_PAYMENT',
   ACTIVE: 'ACTIVE',
   COMPLETED: 'COMPLETED',
   EXPIRED: 'EXPIRED',
@@ -485,6 +489,11 @@ exports.SessionMode = exports.$Enums.SessionMode = {
   ONLINE: 'ONLINE',
   OFFLINE: 'OFFLINE',
   HYBRID: 'HYBRID'
+};
+
+exports.ContractSource = exports.$Enums.ContractSource = {
+  INDEPENDENT: 'INDEPENDENT',
+  GYM: 'GYM'
 };
 
 exports.SessionStatus = exports.$Enums.SessionStatus = {

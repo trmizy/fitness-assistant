@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Activity, Brain, FileText, MessageSquare,
   Calendar, Dumbbell, Utensils, Users, Search, Bot, User,
   Shield, UserCheck, Monitor, X, LogOut, ClipboardList,
-  Zap, Workflow
+  Zap, Workflow, Wallet
 } from "lucide-react";
 
 // ─── Navigation definitions ────────────────────────────────────────────────
@@ -21,6 +21,9 @@ const clientNavFull = [
   { label: "Đặt lịch",         icon: Calendar,        to: "/client/booking"   },
   { label: "Chat",              icon: MessageSquare,   to: "/client/chat"      },
   { label: "AI Coach",          icon: Bot,             to: "/client/ai-coach"  },
+  { label: "Tìm phòng gym",    icon: Search,          to: "/client/gyms"      },
+  { label: "Hội viên gym",     icon: Dumbbell,        to: "/client/gym-memberships" },
+  { label: "Ví",               icon: Wallet,          to: "/client/wallet"    },
   { label: "Hồ sơ",            icon: User,            to: "/client/profile"   },
 ];
 
@@ -35,6 +38,7 @@ const ptWorkspaceNav = [
   { label: "Duyệt kế hoạch",  icon: ClipboardList,   to: "/pt/plans"      },
   { label: "Lịch dạy",        icon: Calendar,        to: "/pt/schedule"   },
   { label: "Chat",             icon: MessageSquare,   to: "/pt/chat"       },
+  { label: "Ví thu nhập",      icon: Wallet,          to: "/pt/wallet"     },
   { label: "Hồ sơ PT",        icon: User,            to: "/pt/profile"    },
 ];
 
@@ -46,6 +50,11 @@ const adminNav = [
   { label: "Giám sát hệ thống", icon: Monitor,        to: "/admin/system"           },
   { label: "Workflows",        icon: Workflow,        to: "/admin/workflows"        },
   { label: "AI Observability", icon: Brain,           to: "/admin/ai-observability" },
+];
+
+/** Gym owner / staff nav — wallet balance is shown per-gym inside GymManagePage */
+const gymOwnerNav = [
+  { label: "Phòng gym của tôi", icon: Dumbbell, to: "/gym-owner/gyms" },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -109,6 +118,8 @@ export function Sidebar() {
   let navItems: NavItem[];
   if (isAdmin) {
     navItems = adminNav;
+  } else if (role === "gym_owner" || role === "gym_staff") {
+    navItems = gymOwnerNav;
   } else if (isPT) {
     navItems = activeView === "pt" ? ptWorkspaceNav : ptClientNav;
   } else {
@@ -212,7 +223,11 @@ export function Sidebar() {
               {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email.split('@')[0] : "Client"}
             </div>
             <div className="text-xs text-zinc-500 truncate">
-              {role === "client" ? "Thành viên" : role === "pt" ? "Huấn luyện viên" : "Quản trị viên"}
+              {role === "client" ? "Thành viên"
+                : role === "pt" ? "Huấn luyện viên"
+                : role === "gym_owner" ? "Chủ phòng gym"
+                : role === "gym_staff" ? "Nhân viên gym"
+                : "Quản trị viên"}
             </div>
           </div>
         </div>

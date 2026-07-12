@@ -17,6 +17,12 @@ router.get('/chat-eligibility', contractController.chatEligibility as any);
 // Returns { ptUserId, contractId } or { ptUserId: null }.
 router.get('/contracts/active-pt', contractController.getActivePTForClient as any);
 
+// payment-service calls these after a wallet-transfer PAID / a successful refund reversal —
+// both are idempotent and verify the transaction against payment-service before mutating
+// (§1.8 in the plan): never trust the caller blindly, even behind the service secret.
+router.post('/contracts/:id/activate-after-payment', contractController.activateAfterPayment as any);
+router.post('/contracts/:id/cancel-after-refund', contractController.cancelAfterRefund as any);
+
 // ai-service workers run without an end-user bearer token. These read-only
 // endpoints expose the same user-owned context after service-secret validation.
 router.get('/profile/:userId', async (req, res) => {

@@ -223,11 +223,17 @@ model PTApplicationMedia {
 enum ContractStatus {
   PENDING_REVIEW    // Client requested, awaiting PT decision
   PENDING_SIGNATURE // PT accepted, waiting for both parties to e-sign
-  ACTIVE            // Contract in effect (both signed or no e-sign required)
+  PENDING_PAYMENT   // Signed (or no e-sign required), awaiting wallet payment
+  ACTIVE            // Signed and paid — contract in effect
   COMPLETED         // All sessions used
   EXPIRED           // Past end date
   CANCELLED         // Terminated early by either party
   REJECTED          // PT declined the request
+}
+
+enum ContractSource {
+  INDEPENDENT // PT hired directly, no gym involved
+  GYM         // PT hired via gym affiliation (schema-ready; enforcement is a follow-up phase)
 }
 
 enum PackageType {
@@ -328,6 +334,11 @@ model Contract {
   eSignError         String?        @map("esign_error")
   clientSignerEmail  String?        @map("client_signer_email")
   ptSignerEmail      String?        @map("pt_signer_email")
+
+  // Payment gate (Phase 4) — schema-ready for PT-via-gym; enforcement is a follow-up phase.
+  gymId              String?        @map("gym_id")
+  source             ContractSource @default(INDEPENDENT)
+  paymentTransactionId String?      @map("payment_transaction_id")
 
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")

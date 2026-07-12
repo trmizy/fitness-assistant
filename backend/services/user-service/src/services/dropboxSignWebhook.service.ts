@@ -25,11 +25,13 @@ export const dropboxSignWebhookService = {
         contract.status === ContractStatus.PENDING_SIGNATURE;
 
       if (allSigned) {
+        // Both signed -> PENDING_PAYMENT (not ACTIVE) — the contract only reaches ACTIVE
+        // once the client pays via POST /contracts/:id/pay (Phase 4 payment gate).
+        // startDate is set at payment time, not here.
         const updates: Record<string, unknown> = {
           eSignStatus: 'SIGNED',
-          status: ContractStatus.ACTIVE,
+          status: ContractStatus.PENDING_PAYMENT,
           fullySignedAt: new Date(),
-          ...(contract.startDate ? {} : { startDate: new Date() }),
         };
         for (const sig of signatures) {
           const signedAt = sig.signedAt ? new Date(sig.signedAt * 1000) : new Date();
@@ -62,18 +64,18 @@ export const dropboxSignWebhookService = {
     }
 
     if (eventType === 'signature_request_all_signed') {
-      // Idempotency: skip if already ACTIVE (webhook may fire more than once)
-      if (contract.status === ContractStatus.ACTIVE) return;
-      // Safety: only transition from PENDING_SIGNATURE → ACTIVE
-      // TODO: add Dropbox Sign HMAC event hash verification for production hardening
+      // Idempotency: skip if this webhook already moved the contract past PENDING_SIGNATURE
+      // (webhook may fire more than once; the contract may now be PENDING_PAYMENT or ACTIVE).
+      // Safety: only transition from PENDING_SIGNATURE — TODO: add Dropbox Sign HMAC event
+      // hash verification for production hardening.
       if (contract.status !== ContractStatus.PENDING_SIGNATURE) return;
 
+      // Both signed -> PENDING_PAYMENT (not ACTIVE) — the contract only reaches ACTIVE
+      // once the client pays via POST /contracts/:id/pay (Phase 4 payment gate).
       const updates: Record<string, unknown> = {
         eSignStatus: 'SIGNED',
-        status: ContractStatus.ACTIVE,
+        status: ContractStatus.PENDING_PAYMENT,
         fullySignedAt: new Date(),
-        // Set startDate only if not already specified in contract terms
-        ...(contract.startDate ? {} : { startDate: new Date() }),
       };
 
       // Backfill individual signedAt if not already recorded

@@ -28,9 +28,15 @@ export function LoginPage() {
       const success = await login(email, password);
       if (success) {
         const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-        const role = storedUser.role === "ADMIN" ? "admin" : (storedUser.isPT ? "pt" : "client");
+        // Normalize casing — backend/store may store the role in different cases.
+        const role = String(storedUser.role || "").toUpperCase();
 
-        navigate(role === "pt" ? "/pt/dashboard" : role === "admin" ? "/admin/dashboard" : "/client/dashboard");
+        const dest =
+          role === "ADMIN" ? "/admin/dashboard"
+          : (role === "GYM_OWNER" || role === "GYM_STAFF") ? "/gym-owner/gyms"
+          : storedUser.isPT ? "/pt/dashboard"
+          : "/client/dashboard";
+        navigate(dest);
       } else {
         setError("Email hoặc mật khẩu không đúng");
       }

@@ -1,0 +1,190 @@
+import { randomUUID } from 'crypto';
+import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import { logger } from '@gym-coach/shared';
+import axios from 'axios';
+import { transactionRepository } from '../repositories/transaction.repository';
+import { walletService } from '../services/wallet.service';
+import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
+import { Prisma } from '../generated/prisma';
+
+const GYM_SERVICE_URL = process.env.GYM_SERVICE_URL || 'http://localhost:3006';
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
+const INTERNAL_SERVICE_SECRET =
+  process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
+
+const router = Router();
+
+// GET /admin/payments
+router.get('/', (_req, res) => {
+  res.json({ success: true, data: [] });
+});
+
+// GET /admin/payments/commissions
+router.get('/commissions', (_req, res) => {
+  res.json({ success: true, data: [] });
+});
+
+// PATCH /admin/payments/commissions/:id/settle
+router.patch('/commissions/:id/settle', (_req, res) => {
+  res.status(501).json({ success: false, error: { code: 'NOT_IMPLEMENTED' } });
+});
+
+const refundSchema = z.object({
+  adminId: z.string().min(1),
+  reason: z.string().min(1),
+});
+
+// POST /admin/payments/:id/refund — payment-service is the single source of truth for
+// refund/ledger/commission logic; gym-service and user-service never reimplement this,
+// they only call this endpoint (see plan §5, §2.2).
+router.post('/:id/refund', async (req: Request, res: Response) => {
+  const parsed = refundSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const { adminId, reason } = parsed.data;
+  const originalTransactionId = req.params.id;
+
+  const original = await transactionRepository.findById(originalTransactionId);
+  if (!original) {
+    return res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } });
+  }
+
+  // Only a PAID original can ever be refunded — blocks double-refunding an already-REFUNDED
+  // transaction, and blocks refunding anything that never actually completed.
+  if (original.status !== 'PAID') {
+    const code = original.status === 'REFUNDED' ? 'ALREADY_REFUNDED' : 'NOT_REFUNDABLE';
+    return res.status(409).json({ success: false, error: { code } });
+  }
+
+  if (!original.payerWalletId || !original.receiverWalletId) {
+    return res.status(400).json({ success: false, error: { code: 'NOT_REFUNDABLE', message: 'Original transaction has no wallet references (likely a top-up, not a purchase)' } });
+  }
+
+  const commission = await transactionRepository.findCommissionByTransactionId(original.id);
+  if (!commission) {
+    return res.status(500).json({ success: false, error: { code: 'MISSING_COMMISSION_RECORD' } });
+  }
+
+  const refundRequestId = randomUUID();
+  const idempotencyKey = `refund:${refundRequestId}`;
+  const fingerprint = computeFingerprint({
+    originalTransactionId: original.id,
+    amount: original.amount.toString(),
+    adminId,
+  });
+  const check = await checkIdempotency(idempotencyKey, fingerprint);
+  if (check.kind === 'CONFLICT') {
+    return res.status(409).json({ success: false, error: { code: 'IDEMPOTENCY_KEY_CONFLICT' } });
+  }
+
+  // Balance check before touching anything — a wallet is never allowed to go negative,
+  // including for refunds. This system has no debt/negative-balance concept.
+  const affordable = await walletService.checkRefundAffordable(
+    original.receiverWalletId,
+    commission.partnerPayoutAmount,
+    commission.platformFeeAmount,
+  );
+
+  const refundTxn = await transactionRepository.create({
+    payerId: original.payerId,
+    purpose: 'REFUND',
+    gymId: original.gymId,
+    ptId: original.ptId,
+    membershipId: original.membershipId,
+    ptContractId: original.ptContractId,
+    amount: original.amount,
+    currency: original.currency,
+    status: 'PROCESSING',
+    idempotencyKey,
+    requestFingerprint: fingerprint,
+    payerWalletId: original.payerWalletId,
+    receiverWalletId: original.receiverWalletId,
+    relatedEntityType: original.relatedEntityType,
+    relatedEntityId: original.relatedEntityId,
+    activationStatus: 'PENDING',
+    initiatedBy: adminId,
+    sourceService: 'payment-service',
+    refundOfTransactionId: original.id,
+    metadata: { reason },
+  });
+
+  if (!affordable) {
+    await transactionRepository.markFailed(refundTxn.id);
+    return res.status(409).json({
+      success: false,
+      error: { code: 'INSUFFICIENT_REFUND_FUNDS' },
+      data: { transactionId: refundTxn.id, status: 'FAILED' },
+    });
+  }
+
+  try {
+    await walletService.reverseTransfer({
+      payerWalletId: original.payerWalletId,
+      receiverWalletId: original.receiverWalletId,
+      amount: new Prisma.Decimal(original.amount),
+      commissionAmount: commission.platformFeeAmount,
+      refundTransactionId: refundTxn.id,
+      originalTransactionId: original.id,
+      platformCommissionId: commission.id,
+    });
+  } catch (err) {
+    logger.error({ error: 'Refund reversal failed', transactionId: refundTxn.id, message: (err as Error).message });
+    await transactionRepository.markFailed(refundTxn.id);
+    return res.status(500).json({ success: false, error: { code: 'REFUND_FAILED' }, data: { transactionId: refundTxn.id, status: 'FAILED' } });
+  }
+
+  // Ledger reversal succeeded and both transactions have flipped (PAID / REFUNDED) — now
+  // synchronously call the matching cancel-after-refund endpoint. If this call fails, the
+  // money side is already correct and final; the refund-cancellation reconciliation poll
+  // (§1.4) will retry until the entity is actually cancelled.
+  try {
+    const body = { originalTransactionId: original.id, refundTransactionId: refundTxn.id };
+    const headers = { 'x-service-secret': INTERNAL_SERVICE_SECRET };
+    const url = original.relatedEntityType === 'GYM_MEMBERSHIP'
+      ? `${GYM_SERVICE_URL}/internal/gym-memberships/${original.relatedEntityId}/cancel-after-refund`
+      : `${USER_SERVICE_URL}/internal/contracts/${original.relatedEntityId}/cancel-after-refund`;
+    await axios.post(url, body, { headers, timeout: 10_000 });
+    await transactionRepository.markActivated(refundTxn.id);
+  } catch (err) {
+    logger.warn({ error: 'cancel-after-refund call failed, reconciliation will retry', transactionId: refundTxn.id, message: (err as Error).message });
+  }
+
+  return res.json({ success: true, data: { transactionId: refundTxn.id, status: 'PAID' } });
+});
+
+// POST /admin/payments/:transactionId/retry-activation — manual retry for a transaction
+// that exceeded the reconciliation job's automatic retry cap (§1.4). Reuses the same
+// idempotent activate / cancel-after-refund endpoints the reconciliation job itself calls.
+router.post('/:transactionId/retry-activation', async (req: Request, res: Response) => {
+  const txn = await transactionRepository.findById(req.params.transactionId);
+  if (!txn) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } });
+  if (txn.status !== 'PAID' || txn.activationStatus === 'ACTIVATED') {
+    return res.status(400).json({ success: false, error: { code: 'NOTHING_TO_RETRY' } });
+  }
+
+  const headers = { 'x-service-secret': INTERNAL_SERVICE_SECRET };
+  try {
+    if (txn.purpose === 'REFUND') {
+      const body = { originalTransactionId: txn.refundOfTransactionId, refundTransactionId: txn.id };
+      const url = txn.relatedEntityType === 'GYM_MEMBERSHIP'
+        ? `${GYM_SERVICE_URL}/internal/gym-memberships/${txn.relatedEntityId}/cancel-after-refund`
+        : `${USER_SERVICE_URL}/internal/contracts/${txn.relatedEntityId}/cancel-after-refund`;
+      await axios.post(url, body, { headers, timeout: 10_000 });
+    } else {
+      const body = { transactionId: txn.id };
+      const url = txn.relatedEntityType === 'GYM_MEMBERSHIP'
+        ? `${GYM_SERVICE_URL}/internal/gym-memberships/${txn.relatedEntityId}/activate`
+        : `${USER_SERVICE_URL}/internal/contracts/${txn.relatedEntityId}/activate-after-payment`;
+      await axios.post(url, body, { headers, timeout: 10_000 });
+    }
+    await transactionRepository.markActivated(txn.id);
+    return res.json({ success: true });
+  } catch (err) {
+    logger.error({ error: 'Manual retry-activation failed', transactionId: txn.id, message: (err as Error).message });
+    return res.status(502).json({ success: false, error: { code: 'RETRY_FAILED', message: (err as Error).message } });
+  }
+});
+
+export default router;

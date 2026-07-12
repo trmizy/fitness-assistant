@@ -15,92 +15,92 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
 
 /**
  * Model Exercise
- *
+ * 
  */
 export type Exercise = $Result.DefaultSelection<Prisma.$ExercisePayload>
 /**
  * Model Workout
- *
+ * 
  */
 export type Workout = $Result.DefaultSelection<Prisma.$WorkoutPayload>
 /**
  * Model WorkoutExercise
- *
+ * 
  */
 export type WorkoutExercise = $Result.DefaultSelection<Prisma.$WorkoutExercisePayload>
 /**
  * Model WorkoutSet
- *
+ * 
  */
 export type WorkoutSet = $Result.DefaultSelection<Prisma.$WorkoutSetPayload>
 /**
  * Model Food
- *
+ * 
  */
 export type Food = $Result.DefaultSelection<Prisma.$FoodPayload>
 /**
  * Model FoodAlias
- *
+ * 
  */
 export type FoodAlias = $Result.DefaultSelection<Prisma.$FoodAliasPayload>
 /**
  * Model NutritionLog
- *
+ * 
  */
 export type NutritionLog = $Result.DefaultSelection<Prisma.$NutritionLogPayload>
 /**
  * Model NutritionGoal
- *
+ * 
  */
 export type NutritionGoal = $Result.DefaultSelection<Prisma.$NutritionGoalPayload>
 /**
  * Model BodyMetrics
- *
+ * 
  */
 export type BodyMetrics = $Result.DefaultSelection<Prisma.$BodyMetricsPayload>
 /**
  * Model WorkoutProgram
- *
+ * 
  */
 export type WorkoutProgram = $Result.DefaultSelection<Prisma.$WorkoutProgramPayload>
 /**
  * Model WorkoutProgramDay
- *
+ * 
  */
 export type WorkoutProgramDay = $Result.DefaultSelection<Prisma.$WorkoutProgramDayPayload>
 /**
  * Model WorkoutProgramExercise
- *
+ * 
  */
 export type WorkoutProgramExercise = $Result.DefaultSelection<Prisma.$WorkoutProgramExercisePayload>
 /**
  * Model WorkoutSchedule
- *
+ * 
  */
 export type WorkoutSchedule = $Result.DefaultSelection<Prisma.$WorkoutSchedulePayload>
 /**
  * Model NutritionProgram
- *
+ * 
  */
 export type NutritionProgram = $Result.DefaultSelection<Prisma.$NutritionProgramPayload>
 /**
  * Model NutritionProgramDay
- *
+ * 
  */
 export type NutritionProgramDay = $Result.DefaultSelection<Prisma.$NutritionProgramDayPayload>
 /**
  * Model NutritionProgramMeal
- *
+ * 
  */
 export type NutritionProgramMeal = $Result.DefaultSelection<Prisma.$NutritionProgramMealPayload>
 /**
  * Model NutritionProgramMealItem
- *
+ * 
  */
 export type NutritionProgramMealItem = $Result.DefaultSelection<Prisma.$NutritionProgramMealItemPayload>
 /**
  * Model NutritionMealCompletion
- *
+ * 
  */
 export type NutritionMealCompletion = $Result.DefaultSelection<Prisma.$NutritionMealCompletionPayload>
 
@@ -173,7 +173,7 @@ export const MovementType: typeof $Enums.MovementType
 
 /**
  * ##  Prisma Client ʲˢ
- *
+ * 
  * Type-safe database client for TypeScript & Node.js
  * @example
  * ```
@@ -182,7 +182,7 @@ export const MovementType: typeof $Enums.MovementType
  * const exercises = await prisma.exercise.findMany()
  * ```
  *
- *
+ * 
  * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
  */
 export class PrismaClient<
@@ -194,7 +194,7 @@ export class PrismaClient<
 
     /**
    * ##  Prisma Client ʲˢ
-   *
+   * 
    * Type-safe database client for TypeScript & Node.js
    * @example
    * ```
@@ -203,7 +203,7 @@ export class PrismaClient<
    * const exercises = await prisma.exercise.findMany()
    * ```
    *
-   *
+   * 
    * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client).
    */
 
@@ -233,7 +233,7 @@ export class PrismaClient<
    * ```
    * const result = await prisma.$executeRaw`UPDATE User SET cool = ${true} WHERE email = ${'user@email.com'};`
    * ```
-   *
+   * 
    * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $executeRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<number>;
@@ -245,7 +245,7 @@ export class PrismaClient<
    * ```
    * const result = await prisma.$executeRawUnsafe('UPDATE User SET cool = $1 WHERE email = $2 ;', true, 'user@email.com')
    * ```
-   *
+   * 
    * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $executeRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<number>;
@@ -256,7 +256,7 @@ export class PrismaClient<
    * ```
    * const result = await prisma.$queryRaw`SELECT * FROM User WHERE id = ${1} OR email = ${'user@email.com'};`
    * ```
-   *
+   * 
    * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $queryRaw<T = unknown>(query: TemplateStringsArray | Prisma.Sql, ...values: any[]): Prisma.PrismaPromise<T>;
@@ -268,7 +268,7 @@ export class PrismaClient<
    * ```
    * const result = await prisma.$queryRawUnsafe('SELECT * FROM User WHERE id = $1 OR email = $2;', 1, 'user@email.com')
    * ```
-   *
+   * 
    * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/raw-database-access).
    */
   $queryRawUnsafe<T = unknown>(query: string, ...values: any[]): Prisma.PrismaPromise<T>;
@@ -284,7 +284,7 @@ export class PrismaClient<
    *   prisma.user.create({ data: { name: 'Alice' } }),
    * ])
    * ```
-   *
+   * 
    * Read more in our [docs](https://www.prisma.io/docs/concepts/components/prisma-client/transactions).
    */
   $transaction<P extends Prisma.PrismaPromise<any>[]>(arg: [...P], options?: { isolationLevel?: Prisma.TransactionIsolationLevel }): $Utils.JsPromise<runtime.Types.Utils.UnwrapTuple<P>>
@@ -514,7 +514,7 @@ export namespace Prisma {
   export type DecimalJsLike = runtime.DecimalJsLike
 
   /**
-   * Metrics
+   * Metrics 
    */
   export type Metrics = runtime.Metrics
   export type Metric<T> = runtime.Metric<T>
@@ -539,7 +539,7 @@ export namespace Prisma {
     client: string
   }
 
-  export const prismaVersion: PrismaVersion
+  export const prismaVersion: PrismaVersion 
 
   /**
    * Utility Types
@@ -555,15 +555,15 @@ export namespace Prisma {
 
   /**
    * Types of the values used to represent different kinds of `null` values when working with JSON fields.
-   *
+   * 
    * @see https://www.prisma.io/docs/concepts/components/prisma-client/working-with-fields/working-with-json-fields#filtering-on-a-json-field
    */
   namespace NullTypes {
     /**
     * Type of `Prisma.DbNull`.
-    *
+    * 
     * You cannot use other instances of this class. Please use the `Prisma.DbNull` value.
-    *
+    * 
     * @see https://www.prisma.io/docs/concepts/components/prisma-client/working-with-fields/working-with-json-fields#filtering-on-a-json-field
     */
     class DbNull {
@@ -573,9 +573,9 @@ export namespace Prisma {
 
     /**
     * Type of `Prisma.JsonNull`.
-    *
+    * 
     * You cannot use other instances of this class. Please use the `Prisma.JsonNull` value.
-    *
+    * 
     * @see https://www.prisma.io/docs/concepts/components/prisma-client/working-with-fields/working-with-json-fields#filtering-on-a-json-field
     */
     class JsonNull {
@@ -585,9 +585,9 @@ export namespace Prisma {
 
     /**
     * Type of `Prisma.AnyNull`.
-    *
+    * 
     * You cannot use other instances of this class. Please use the `Prisma.AnyNull` value.
-    *
+    * 
     * @see https://www.prisma.io/docs/concepts/components/prisma-client/working-with-fields/working-with-json-fields#filtering-on-a-json-field
     */
     class AnyNull {
@@ -598,21 +598,21 @@ export namespace Prisma {
 
   /**
    * Helper for filtering JSON entries that have `null` on the database (empty on the db)
-   *
+   * 
    * @see https://www.prisma.io/docs/concepts/components/prisma-client/working-with-fields/working-with-json-fields#filtering-on-a-json-field
    */
   export const DbNull: NullTypes.DbNull
 
   /**
    * Helper for filtering JSON entries that have JSON `null` values (not empty on the db)
-   *
+   * 
    * @see https://www.prisma.io/docs/concepts/components/prisma-client/working-with-fields/working-with-json-fields#filtering-on-a-json-field
    */
   export const JsonNull: NullTypes.JsonNull
 
   /**
    * Helper for filtering JSON entries that are `Prisma.DbNull` or `Prisma.JsonNull`
-   *
+   * 
    * @see https://www.prisma.io/docs/concepts/components/prisma-client/working-with-fields/working-with-json-fields#filtering-on-a-json-field
    */
   export const AnyNull: NullTypes.AnyNull
@@ -2256,7 +2256,7 @@ export namespace Prisma {
      * ```
      * // Defaults to stdout
      * log: ['query', 'info', 'warn', 'error']
-     *
+     * 
      * // Emit as events
      * log: [
      *   { emit: 'stdout', level: 'query' },
@@ -2795,43 +2795,43 @@ export namespace Prisma {
     where?: ExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Exercises to fetch.
      */
     orderBy?: ExerciseOrderByWithRelationInput | ExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: ExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Exercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Exercises.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned Exercises
     **/
     _count?: true | ExerciseCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: ExerciseMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: ExerciseMaxAggregateInputType
@@ -2967,7 +2967,7 @@ export namespace Prisma {
 
   type ExerciseGetPayload<S extends boolean | null | undefined | ExerciseDefaultArgs> = $Result.GetResult<Prisma.$ExercisePayload, S>
 
-  type ExerciseCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type ExerciseCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<ExerciseFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: ExerciseCountAggregateInputType | true
     }
@@ -2988,7 +2988,7 @@ export namespace Prisma {
     findUnique<T extends ExerciseFindUniqueArgs>(args: SelectSubset<T, ExerciseFindUniqueArgs<ExtArgs>>): Prisma__ExerciseClient<$Result.GetResult<Prisma.$ExercisePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one Exercise that matches the filter or throw an error with `error.code='P2025'`
+     * Find one Exercise that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {ExerciseFindUniqueOrThrowArgs} args - Arguments to find a Exercise
      * @example
@@ -3040,13 +3040,13 @@ export namespace Prisma {
      * @example
      * // Get all Exercises
      * const exercises = await prisma.exercise.findMany()
-     *
+     * 
      * // Get first 10 Exercises
      * const exercises = await prisma.exercise.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const exerciseWithIdOnly = await prisma.exercise.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends ExerciseFindManyArgs>(args?: SelectSubset<T, ExerciseFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExercisePayload<ExtArgs>, T, "findMany">>
 
@@ -3060,7 +3060,7 @@ export namespace Prisma {
      *     // ... data to create a Exercise
      *   }
      * })
-     *
+     * 
      */
     create<T extends ExerciseCreateArgs>(args: SelectSubset<T, ExerciseCreateArgs<ExtArgs>>): Prisma__ExerciseClient<$Result.GetResult<Prisma.$ExercisePayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -3074,7 +3074,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends ExerciseCreateManyArgs>(args?: SelectSubset<T, ExerciseCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -3088,9 +3088,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many Exercises and only return the `id`
-     * const exerciseWithIdOnly = await prisma.exercise.createManyAndReturn({
+     * const exerciseWithIdOnly = await prisma.exercise.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -3098,7 +3098,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends ExerciseCreateManyAndReturnArgs>(args?: SelectSubset<T, ExerciseCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExercisePayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -3112,7 +3112,7 @@ export namespace Prisma {
      *     // ... filter to delete one Exercise
      *   }
      * })
-     *
+     * 
      */
     delete<T extends ExerciseDeleteArgs>(args: SelectSubset<T, ExerciseDeleteArgs<ExtArgs>>): Prisma__ExerciseClient<$Result.GetResult<Prisma.$ExercisePayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -3129,7 +3129,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends ExerciseUpdateArgs>(args: SelectSubset<T, ExerciseUpdateArgs<ExtArgs>>): Prisma__ExerciseClient<$Result.GetResult<Prisma.$ExercisePayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -3143,7 +3143,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends ExerciseDeleteManyArgs>(args?: SelectSubset<T, ExerciseDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -3162,7 +3162,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends ExerciseUpdateManyArgs>(args: SelectSubset<T, ExerciseUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -3251,7 +3251,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends ExerciseGroupByArgs,
@@ -3354,7 +3354,7 @@ export namespace Prisma {
 
   /**
    * Fields of the Exercise model
-   */
+   */ 
   interface ExerciseFieldRefs {
     readonly id: FieldRef<"Exercise", 'String'>
     readonly exerciseName: FieldRef<"Exercise", 'String'>
@@ -3368,7 +3368,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"Exercise", 'DateTime'>
     readonly updatedAt: FieldRef<"Exercise", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -3425,31 +3425,31 @@ export namespace Prisma {
     where?: ExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Exercises to fetch.
      */
     orderBy?: ExerciseOrderByWithRelationInput | ExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for Exercises.
      */
     cursor?: ExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Exercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Exercises.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of Exercises.
      */
     distinct?: ExerciseScalarFieldEnum | ExerciseScalarFieldEnum[]
@@ -3473,31 +3473,31 @@ export namespace Prisma {
     where?: ExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Exercises to fetch.
      */
     orderBy?: ExerciseOrderByWithRelationInput | ExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for Exercises.
      */
     cursor?: ExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Exercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Exercises.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of Exercises.
      */
     distinct?: ExerciseScalarFieldEnum | ExerciseScalarFieldEnum[]
@@ -3521,25 +3521,25 @@ export namespace Prisma {
     where?: ExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Exercises to fetch.
      */
     orderBy?: ExerciseOrderByWithRelationInput | ExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing Exercises.
      */
     cursor?: ExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Exercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Exercises.
      */
     skip?: number
@@ -3845,55 +3845,55 @@ export namespace Prisma {
     where?: WorkoutWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Workouts to fetch.
      */
     orderBy?: WorkoutOrderByWithRelationInput | WorkoutOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: WorkoutWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Workouts from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Workouts.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned Workouts
     **/
     _count?: true | WorkoutCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: WorkoutAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: WorkoutSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: WorkoutMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: WorkoutMaxAggregateInputType
@@ -4023,7 +4023,7 @@ export namespace Prisma {
 
   type WorkoutGetPayload<S extends boolean | null | undefined | WorkoutDefaultArgs> = $Result.GetResult<Prisma.$WorkoutPayload, S>
 
-  type WorkoutCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type WorkoutCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<WorkoutFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: WorkoutCountAggregateInputType | true
     }
@@ -4044,7 +4044,7 @@ export namespace Prisma {
     findUnique<T extends WorkoutFindUniqueArgs>(args: SelectSubset<T, WorkoutFindUniqueArgs<ExtArgs>>): Prisma__WorkoutClient<$Result.GetResult<Prisma.$WorkoutPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one Workout that matches the filter or throw an error with `error.code='P2025'`
+     * Find one Workout that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {WorkoutFindUniqueOrThrowArgs} args - Arguments to find a Workout
      * @example
@@ -4096,13 +4096,13 @@ export namespace Prisma {
      * @example
      * // Get all Workouts
      * const workouts = await prisma.workout.findMany()
-     *
+     * 
      * // Get first 10 Workouts
      * const workouts = await prisma.workout.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const workoutWithIdOnly = await prisma.workout.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends WorkoutFindManyArgs>(args?: SelectSubset<T, WorkoutFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutPayload<ExtArgs>, T, "findMany">>
 
@@ -4116,7 +4116,7 @@ export namespace Prisma {
      *     // ... data to create a Workout
      *   }
      * })
-     *
+     * 
      */
     create<T extends WorkoutCreateArgs>(args: SelectSubset<T, WorkoutCreateArgs<ExtArgs>>): Prisma__WorkoutClient<$Result.GetResult<Prisma.$WorkoutPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -4130,7 +4130,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends WorkoutCreateManyArgs>(args?: SelectSubset<T, WorkoutCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -4144,9 +4144,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many Workouts and only return the `id`
-     * const workoutWithIdOnly = await prisma.workout.createManyAndReturn({
+     * const workoutWithIdOnly = await prisma.workout.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -4154,7 +4154,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends WorkoutCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkoutCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -4168,7 +4168,7 @@ export namespace Prisma {
      *     // ... filter to delete one Workout
      *   }
      * })
-     *
+     * 
      */
     delete<T extends WorkoutDeleteArgs>(args: SelectSubset<T, WorkoutDeleteArgs<ExtArgs>>): Prisma__WorkoutClient<$Result.GetResult<Prisma.$WorkoutPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -4185,7 +4185,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends WorkoutUpdateArgs>(args: SelectSubset<T, WorkoutUpdateArgs<ExtArgs>>): Prisma__WorkoutClient<$Result.GetResult<Prisma.$WorkoutPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -4199,7 +4199,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends WorkoutDeleteManyArgs>(args?: SelectSubset<T, WorkoutDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -4218,7 +4218,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends WorkoutUpdateManyArgs>(args: SelectSubset<T, WorkoutUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -4307,7 +4307,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends WorkoutGroupByArgs,
@@ -4410,7 +4410,7 @@ export namespace Prisma {
 
   /**
    * Fields of the Workout model
-   */
+   */ 
   interface WorkoutFieldRefs {
     readonly id: FieldRef<"Workout", 'String'>
     readonly userId: FieldRef<"Workout", 'String'>
@@ -4422,7 +4422,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"Workout", 'DateTime'>
     readonly updatedAt: FieldRef<"Workout", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -4479,31 +4479,31 @@ export namespace Prisma {
     where?: WorkoutWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Workouts to fetch.
      */
     orderBy?: WorkoutOrderByWithRelationInput | WorkoutOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for Workouts.
      */
     cursor?: WorkoutWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Workouts from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Workouts.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of Workouts.
      */
     distinct?: WorkoutScalarFieldEnum | WorkoutScalarFieldEnum[]
@@ -4527,31 +4527,31 @@ export namespace Prisma {
     where?: WorkoutWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Workouts to fetch.
      */
     orderBy?: WorkoutOrderByWithRelationInput | WorkoutOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for Workouts.
      */
     cursor?: WorkoutWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Workouts from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Workouts.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of Workouts.
      */
     distinct?: WorkoutScalarFieldEnum | WorkoutScalarFieldEnum[]
@@ -4575,25 +4575,25 @@ export namespace Prisma {
     where?: WorkoutWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Workouts to fetch.
      */
     orderBy?: WorkoutOrderByWithRelationInput | WorkoutOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing Workouts.
      */
     cursor?: WorkoutWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Workouts from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Workouts.
      */
     skip?: number
@@ -4921,55 +4921,55 @@ export namespace Prisma {
     where?: WorkoutExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutExercises to fetch.
      */
     orderBy?: WorkoutExerciseOrderByWithRelationInput | WorkoutExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: WorkoutExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutExercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutExercises.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned WorkoutExercises
     **/
     _count?: true | WorkoutExerciseCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: WorkoutExerciseAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: WorkoutExerciseSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: WorkoutExerciseMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: WorkoutExerciseMaxAggregateInputType
@@ -5112,7 +5112,7 @@ export namespace Prisma {
 
   type WorkoutExerciseGetPayload<S extends boolean | null | undefined | WorkoutExerciseDefaultArgs> = $Result.GetResult<Prisma.$WorkoutExercisePayload, S>
 
-  type WorkoutExerciseCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type WorkoutExerciseCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<WorkoutExerciseFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: WorkoutExerciseCountAggregateInputType | true
     }
@@ -5133,7 +5133,7 @@ export namespace Prisma {
     findUnique<T extends WorkoutExerciseFindUniqueArgs>(args: SelectSubset<T, WorkoutExerciseFindUniqueArgs<ExtArgs>>): Prisma__WorkoutExerciseClient<$Result.GetResult<Prisma.$WorkoutExercisePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one WorkoutExercise that matches the filter or throw an error with `error.code='P2025'`
+     * Find one WorkoutExercise that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {WorkoutExerciseFindUniqueOrThrowArgs} args - Arguments to find a WorkoutExercise
      * @example
@@ -5185,13 +5185,13 @@ export namespace Prisma {
      * @example
      * // Get all WorkoutExercises
      * const workoutExercises = await prisma.workoutExercise.findMany()
-     *
+     * 
      * // Get first 10 WorkoutExercises
      * const workoutExercises = await prisma.workoutExercise.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const workoutExerciseWithIdOnly = await prisma.workoutExercise.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends WorkoutExerciseFindManyArgs>(args?: SelectSubset<T, WorkoutExerciseFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutExercisePayload<ExtArgs>, T, "findMany">>
 
@@ -5205,7 +5205,7 @@ export namespace Prisma {
      *     // ... data to create a WorkoutExercise
      *   }
      * })
-     *
+     * 
      */
     create<T extends WorkoutExerciseCreateArgs>(args: SelectSubset<T, WorkoutExerciseCreateArgs<ExtArgs>>): Prisma__WorkoutExerciseClient<$Result.GetResult<Prisma.$WorkoutExercisePayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -5219,7 +5219,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends WorkoutExerciseCreateManyArgs>(args?: SelectSubset<T, WorkoutExerciseCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -5233,9 +5233,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many WorkoutExercises and only return the `id`
-     * const workoutExerciseWithIdOnly = await prisma.workoutExercise.createManyAndReturn({
+     * const workoutExerciseWithIdOnly = await prisma.workoutExercise.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -5243,7 +5243,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends WorkoutExerciseCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkoutExerciseCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutExercisePayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -5257,7 +5257,7 @@ export namespace Prisma {
      *     // ... filter to delete one WorkoutExercise
      *   }
      * })
-     *
+     * 
      */
     delete<T extends WorkoutExerciseDeleteArgs>(args: SelectSubset<T, WorkoutExerciseDeleteArgs<ExtArgs>>): Prisma__WorkoutExerciseClient<$Result.GetResult<Prisma.$WorkoutExercisePayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -5274,7 +5274,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends WorkoutExerciseUpdateArgs>(args: SelectSubset<T, WorkoutExerciseUpdateArgs<ExtArgs>>): Prisma__WorkoutExerciseClient<$Result.GetResult<Prisma.$WorkoutExercisePayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -5288,7 +5288,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends WorkoutExerciseDeleteManyArgs>(args?: SelectSubset<T, WorkoutExerciseDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -5307,7 +5307,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends WorkoutExerciseUpdateManyArgs>(args: SelectSubset<T, WorkoutExerciseUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -5396,7 +5396,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends WorkoutExerciseGroupByArgs,
@@ -5500,7 +5500,7 @@ export namespace Prisma {
 
   /**
    * Fields of the WorkoutExercise model
-   */
+   */ 
   interface WorkoutExerciseFieldRefs {
     readonly id: FieldRef<"WorkoutExercise", 'String'>
     readonly workoutId: FieldRef<"WorkoutExercise", 'String'>
@@ -5513,7 +5513,7 @@ export namespace Prisma {
     readonly order: FieldRef<"WorkoutExercise", 'Int'>
     readonly createdAt: FieldRef<"WorkoutExercise", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -5570,31 +5570,31 @@ export namespace Prisma {
     where?: WorkoutExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutExercises to fetch.
      */
     orderBy?: WorkoutExerciseOrderByWithRelationInput | WorkoutExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutExercises.
      */
     cursor?: WorkoutExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutExercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutExercises.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutExercises.
      */
     distinct?: WorkoutExerciseScalarFieldEnum | WorkoutExerciseScalarFieldEnum[]
@@ -5618,31 +5618,31 @@ export namespace Prisma {
     where?: WorkoutExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutExercises to fetch.
      */
     orderBy?: WorkoutExerciseOrderByWithRelationInput | WorkoutExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutExercises.
      */
     cursor?: WorkoutExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutExercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutExercises.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutExercises.
      */
     distinct?: WorkoutExerciseScalarFieldEnum | WorkoutExerciseScalarFieldEnum[]
@@ -5666,25 +5666,25 @@ export namespace Prisma {
     where?: WorkoutExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutExercises to fetch.
      */
     orderBy?: WorkoutExerciseOrderByWithRelationInput | WorkoutExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing WorkoutExercises.
      */
     cursor?: WorkoutExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutExercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutExercises.
      */
     skip?: number
@@ -5980,55 +5980,55 @@ export namespace Prisma {
     where?: WorkoutSetWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutSets to fetch.
      */
     orderBy?: WorkoutSetOrderByWithRelationInput | WorkoutSetOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: WorkoutSetWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutSets from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutSets.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned WorkoutSets
     **/
     _count?: true | WorkoutSetCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: WorkoutSetAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: WorkoutSetSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: WorkoutSetMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: WorkoutSetMaxAggregateInputType
@@ -6151,7 +6151,7 @@ export namespace Prisma {
 
   type WorkoutSetGetPayload<S extends boolean | null | undefined | WorkoutSetDefaultArgs> = $Result.GetResult<Prisma.$WorkoutSetPayload, S>
 
-  type WorkoutSetCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type WorkoutSetCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<WorkoutSetFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: WorkoutSetCountAggregateInputType | true
     }
@@ -6172,7 +6172,7 @@ export namespace Prisma {
     findUnique<T extends WorkoutSetFindUniqueArgs>(args: SelectSubset<T, WorkoutSetFindUniqueArgs<ExtArgs>>): Prisma__WorkoutSetClient<$Result.GetResult<Prisma.$WorkoutSetPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one WorkoutSet that matches the filter or throw an error with `error.code='P2025'`
+     * Find one WorkoutSet that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {WorkoutSetFindUniqueOrThrowArgs} args - Arguments to find a WorkoutSet
      * @example
@@ -6224,13 +6224,13 @@ export namespace Prisma {
      * @example
      * // Get all WorkoutSets
      * const workoutSets = await prisma.workoutSet.findMany()
-     *
+     * 
      * // Get first 10 WorkoutSets
      * const workoutSets = await prisma.workoutSet.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const workoutSetWithIdOnly = await prisma.workoutSet.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends WorkoutSetFindManyArgs>(args?: SelectSubset<T, WorkoutSetFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutSetPayload<ExtArgs>, T, "findMany">>
 
@@ -6244,7 +6244,7 @@ export namespace Prisma {
      *     // ... data to create a WorkoutSet
      *   }
      * })
-     *
+     * 
      */
     create<T extends WorkoutSetCreateArgs>(args: SelectSubset<T, WorkoutSetCreateArgs<ExtArgs>>): Prisma__WorkoutSetClient<$Result.GetResult<Prisma.$WorkoutSetPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -6258,7 +6258,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends WorkoutSetCreateManyArgs>(args?: SelectSubset<T, WorkoutSetCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -6272,9 +6272,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many WorkoutSets and only return the `id`
-     * const workoutSetWithIdOnly = await prisma.workoutSet.createManyAndReturn({
+     * const workoutSetWithIdOnly = await prisma.workoutSet.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -6282,7 +6282,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends WorkoutSetCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkoutSetCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutSetPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -6296,7 +6296,7 @@ export namespace Prisma {
      *     // ... filter to delete one WorkoutSet
      *   }
      * })
-     *
+     * 
      */
     delete<T extends WorkoutSetDeleteArgs>(args: SelectSubset<T, WorkoutSetDeleteArgs<ExtArgs>>): Prisma__WorkoutSetClient<$Result.GetResult<Prisma.$WorkoutSetPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -6313,7 +6313,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends WorkoutSetUpdateArgs>(args: SelectSubset<T, WorkoutSetUpdateArgs<ExtArgs>>): Prisma__WorkoutSetClient<$Result.GetResult<Prisma.$WorkoutSetPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -6327,7 +6327,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends WorkoutSetDeleteManyArgs>(args?: SelectSubset<T, WorkoutSetDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -6346,7 +6346,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends WorkoutSetUpdateManyArgs>(args: SelectSubset<T, WorkoutSetUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -6435,7 +6435,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends WorkoutSetGroupByArgs,
@@ -6537,7 +6537,7 @@ export namespace Prisma {
 
   /**
    * Fields of the WorkoutSet model
-   */
+   */ 
   interface WorkoutSetFieldRefs {
     readonly id: FieldRef<"WorkoutSet", 'String'>
     readonly workoutExerciseId: FieldRef<"WorkoutSet", 'String'>
@@ -6548,7 +6548,7 @@ export namespace Prisma {
     readonly completed: FieldRef<"WorkoutSet", 'Boolean'>
     readonly createdAt: FieldRef<"WorkoutSet", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -6605,31 +6605,31 @@ export namespace Prisma {
     where?: WorkoutSetWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutSets to fetch.
      */
     orderBy?: WorkoutSetOrderByWithRelationInput | WorkoutSetOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutSets.
      */
     cursor?: WorkoutSetWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutSets from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutSets.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutSets.
      */
     distinct?: WorkoutSetScalarFieldEnum | WorkoutSetScalarFieldEnum[]
@@ -6653,31 +6653,31 @@ export namespace Prisma {
     where?: WorkoutSetWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutSets to fetch.
      */
     orderBy?: WorkoutSetOrderByWithRelationInput | WorkoutSetOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutSets.
      */
     cursor?: WorkoutSetWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutSets from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutSets.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutSets.
      */
     distinct?: WorkoutSetScalarFieldEnum | WorkoutSetScalarFieldEnum[]
@@ -6701,25 +6701,25 @@ export namespace Prisma {
     where?: WorkoutSetWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutSets to fetch.
      */
     orderBy?: WorkoutSetOrderByWithRelationInput | WorkoutSetOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing WorkoutSets.
      */
     cursor?: WorkoutSetWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutSets from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutSets.
      */
     skip?: number
@@ -7005,55 +7005,55 @@ export namespace Prisma {
     where?: FoodWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Foods to fetch.
      */
     orderBy?: FoodOrderByWithRelationInput | FoodOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: FoodWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Foods from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Foods.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned Foods
     **/
     _count?: true | FoodCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: FoodAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: FoodSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: FoodMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: FoodMaxAggregateInputType
@@ -7183,7 +7183,7 @@ export namespace Prisma {
 
   type FoodGetPayload<S extends boolean | null | undefined | FoodDefaultArgs> = $Result.GetResult<Prisma.$FoodPayload, S>
 
-  type FoodCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type FoodCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<FoodFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: FoodCountAggregateInputType | true
     }
@@ -7204,7 +7204,7 @@ export namespace Prisma {
     findUnique<T extends FoodFindUniqueArgs>(args: SelectSubset<T, FoodFindUniqueArgs<ExtArgs>>): Prisma__FoodClient<$Result.GetResult<Prisma.$FoodPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one Food that matches the filter or throw an error with `error.code='P2025'`
+     * Find one Food that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {FoodFindUniqueOrThrowArgs} args - Arguments to find a Food
      * @example
@@ -7256,13 +7256,13 @@ export namespace Prisma {
      * @example
      * // Get all Foods
      * const foods = await prisma.food.findMany()
-     *
+     * 
      * // Get first 10 Foods
      * const foods = await prisma.food.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const foodWithIdOnly = await prisma.food.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends FoodFindManyArgs>(args?: SelectSubset<T, FoodFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FoodPayload<ExtArgs>, T, "findMany">>
 
@@ -7276,7 +7276,7 @@ export namespace Prisma {
      *     // ... data to create a Food
      *   }
      * })
-     *
+     * 
      */
     create<T extends FoodCreateArgs>(args: SelectSubset<T, FoodCreateArgs<ExtArgs>>): Prisma__FoodClient<$Result.GetResult<Prisma.$FoodPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -7290,7 +7290,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends FoodCreateManyArgs>(args?: SelectSubset<T, FoodCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -7304,9 +7304,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many Foods and only return the `id`
-     * const foodWithIdOnly = await prisma.food.createManyAndReturn({
+     * const foodWithIdOnly = await prisma.food.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -7314,7 +7314,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends FoodCreateManyAndReturnArgs>(args?: SelectSubset<T, FoodCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FoodPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -7328,7 +7328,7 @@ export namespace Prisma {
      *     // ... filter to delete one Food
      *   }
      * })
-     *
+     * 
      */
     delete<T extends FoodDeleteArgs>(args: SelectSubset<T, FoodDeleteArgs<ExtArgs>>): Prisma__FoodClient<$Result.GetResult<Prisma.$FoodPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -7345,7 +7345,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends FoodUpdateArgs>(args: SelectSubset<T, FoodUpdateArgs<ExtArgs>>): Prisma__FoodClient<$Result.GetResult<Prisma.$FoodPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -7359,7 +7359,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends FoodDeleteManyArgs>(args?: SelectSubset<T, FoodDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -7378,7 +7378,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends FoodUpdateManyArgs>(args: SelectSubset<T, FoodUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -7467,7 +7467,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends FoodGroupByArgs,
@@ -7570,7 +7570,7 @@ export namespace Prisma {
 
   /**
    * Fields of the Food model
-   */
+   */ 
   interface FoodFieldRefs {
     readonly id: FieldRef<"Food", 'String'>
     readonly fdcId: FieldRef<"Food", 'Int'>
@@ -7582,7 +7582,7 @@ export namespace Prisma {
     readonly source: FieldRef<"Food", 'String'>
     readonly imageUrl: FieldRef<"Food", 'String'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -7639,31 +7639,31 @@ export namespace Prisma {
     where?: FoodWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Foods to fetch.
      */
     orderBy?: FoodOrderByWithRelationInput | FoodOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for Foods.
      */
     cursor?: FoodWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Foods from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Foods.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of Foods.
      */
     distinct?: FoodScalarFieldEnum | FoodScalarFieldEnum[]
@@ -7687,31 +7687,31 @@ export namespace Prisma {
     where?: FoodWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Foods to fetch.
      */
     orderBy?: FoodOrderByWithRelationInput | FoodOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for Foods.
      */
     cursor?: FoodWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Foods from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Foods.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of Foods.
      */
     distinct?: FoodScalarFieldEnum | FoodScalarFieldEnum[]
@@ -7735,25 +7735,25 @@ export namespace Prisma {
     where?: FoodWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of Foods to fetch.
      */
     orderBy?: FoodOrderByWithRelationInput | FoodOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing Foods.
      */
     cursor?: FoodWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` Foods from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` Foods.
      */
     skip?: number
@@ -8035,43 +8035,43 @@ export namespace Prisma {
     where?: FoodAliasWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of FoodAliases to fetch.
      */
     orderBy?: FoodAliasOrderByWithRelationInput | FoodAliasOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: FoodAliasWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` FoodAliases from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` FoodAliases.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned FoodAliases
     **/
     _count?: true | FoodAliasCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: FoodAliasMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: FoodAliasMaxAggregateInputType
@@ -8190,7 +8190,7 @@ export namespace Prisma {
 
   type FoodAliasGetPayload<S extends boolean | null | undefined | FoodAliasDefaultArgs> = $Result.GetResult<Prisma.$FoodAliasPayload, S>
 
-  type FoodAliasCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type FoodAliasCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<FoodAliasFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: FoodAliasCountAggregateInputType | true
     }
@@ -8211,7 +8211,7 @@ export namespace Prisma {
     findUnique<T extends FoodAliasFindUniqueArgs>(args: SelectSubset<T, FoodAliasFindUniqueArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one FoodAlias that matches the filter or throw an error with `error.code='P2025'`
+     * Find one FoodAlias that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {FoodAliasFindUniqueOrThrowArgs} args - Arguments to find a FoodAlias
      * @example
@@ -8263,13 +8263,13 @@ export namespace Prisma {
      * @example
      * // Get all FoodAliases
      * const foodAliases = await prisma.foodAlias.findMany()
-     *
+     * 
      * // Get first 10 FoodAliases
      * const foodAliases = await prisma.foodAlias.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const foodAliasWithIdOnly = await prisma.foodAlias.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends FoodAliasFindManyArgs>(args?: SelectSubset<T, FoodAliasFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "findMany">>
 
@@ -8283,7 +8283,7 @@ export namespace Prisma {
      *     // ... data to create a FoodAlias
      *   }
      * })
-     *
+     * 
      */
     create<T extends FoodAliasCreateArgs>(args: SelectSubset<T, FoodAliasCreateArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -8297,7 +8297,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends FoodAliasCreateManyArgs>(args?: SelectSubset<T, FoodAliasCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -8311,9 +8311,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many FoodAliases and only return the `id`
-     * const foodAliasWithIdOnly = await prisma.foodAlias.createManyAndReturn({
+     * const foodAliasWithIdOnly = await prisma.foodAlias.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -8321,7 +8321,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends FoodAliasCreateManyAndReturnArgs>(args?: SelectSubset<T, FoodAliasCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -8335,7 +8335,7 @@ export namespace Prisma {
      *     // ... filter to delete one FoodAlias
      *   }
      * })
-     *
+     * 
      */
     delete<T extends FoodAliasDeleteArgs>(args: SelectSubset<T, FoodAliasDeleteArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -8352,7 +8352,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends FoodAliasUpdateArgs>(args: SelectSubset<T, FoodAliasUpdateArgs<ExtArgs>>): Prisma__FoodAliasClient<$Result.GetResult<Prisma.$FoodAliasPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -8366,7 +8366,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends FoodAliasDeleteManyArgs>(args?: SelectSubset<T, FoodAliasDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -8385,7 +8385,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends FoodAliasUpdateManyArgs>(args: SelectSubset<T, FoodAliasUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -8474,7 +8474,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends FoodAliasGroupByArgs,
@@ -8576,7 +8576,7 @@ export namespace Prisma {
 
   /**
    * Fields of the FoodAlias model
-   */
+   */ 
   interface FoodAliasFieldRefs {
     readonly id: FieldRef<"FoodAlias", 'String'>
     readonly foodId: FieldRef<"FoodAlias", 'String'>
@@ -8587,7 +8587,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"FoodAlias", 'DateTime'>
     readonly updatedAt: FieldRef<"FoodAlias", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -8644,31 +8644,31 @@ export namespace Prisma {
     where?: FoodAliasWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of FoodAliases to fetch.
      */
     orderBy?: FoodAliasOrderByWithRelationInput | FoodAliasOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for FoodAliases.
      */
     cursor?: FoodAliasWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` FoodAliases from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` FoodAliases.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of FoodAliases.
      */
     distinct?: FoodAliasScalarFieldEnum | FoodAliasScalarFieldEnum[]
@@ -8692,31 +8692,31 @@ export namespace Prisma {
     where?: FoodAliasWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of FoodAliases to fetch.
      */
     orderBy?: FoodAliasOrderByWithRelationInput | FoodAliasOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for FoodAliases.
      */
     cursor?: FoodAliasWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` FoodAliases from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` FoodAliases.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of FoodAliases.
      */
     distinct?: FoodAliasScalarFieldEnum | FoodAliasScalarFieldEnum[]
@@ -8740,25 +8740,25 @@ export namespace Prisma {
     where?: FoodAliasWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of FoodAliases to fetch.
      */
     orderBy?: FoodAliasOrderByWithRelationInput | FoodAliasOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing FoodAliases.
      */
     cursor?: FoodAliasWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` FoodAliases from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` FoodAliases.
      */
     skip?: number
@@ -9058,55 +9058,55 @@ export namespace Prisma {
     where?: NutritionLogWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionLogs to fetch.
      */
     orderBy?: NutritionLogOrderByWithRelationInput | NutritionLogOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: NutritionLogWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionLogs from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionLogs.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned NutritionLogs
     **/
     _count?: true | NutritionLogCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: NutritionLogAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: NutritionLogSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: NutritionLogMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: NutritionLogMaxAggregateInputType
@@ -9239,7 +9239,7 @@ export namespace Prisma {
 
   type NutritionLogGetPayload<S extends boolean | null | undefined | NutritionLogDefaultArgs> = $Result.GetResult<Prisma.$NutritionLogPayload, S>
 
-  type NutritionLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type NutritionLogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<NutritionLogFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: NutritionLogCountAggregateInputType | true
     }
@@ -9260,7 +9260,7 @@ export namespace Prisma {
     findUnique<T extends NutritionLogFindUniqueArgs>(args: SelectSubset<T, NutritionLogFindUniqueArgs<ExtArgs>>): Prisma__NutritionLogClient<$Result.GetResult<Prisma.$NutritionLogPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one NutritionLog that matches the filter or throw an error with `error.code='P2025'`
+     * Find one NutritionLog that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {NutritionLogFindUniqueOrThrowArgs} args - Arguments to find a NutritionLog
      * @example
@@ -9312,13 +9312,13 @@ export namespace Prisma {
      * @example
      * // Get all NutritionLogs
      * const nutritionLogs = await prisma.nutritionLog.findMany()
-     *
+     * 
      * // Get first 10 NutritionLogs
      * const nutritionLogs = await prisma.nutritionLog.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const nutritionLogWithIdOnly = await prisma.nutritionLog.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends NutritionLogFindManyArgs>(args?: SelectSubset<T, NutritionLogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionLogPayload<ExtArgs>, T, "findMany">>
 
@@ -9332,7 +9332,7 @@ export namespace Prisma {
      *     // ... data to create a NutritionLog
      *   }
      * })
-     *
+     * 
      */
     create<T extends NutritionLogCreateArgs>(args: SelectSubset<T, NutritionLogCreateArgs<ExtArgs>>): Prisma__NutritionLogClient<$Result.GetResult<Prisma.$NutritionLogPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -9346,7 +9346,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends NutritionLogCreateManyArgs>(args?: SelectSubset<T, NutritionLogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -9360,9 +9360,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many NutritionLogs and only return the `id`
-     * const nutritionLogWithIdOnly = await prisma.nutritionLog.createManyAndReturn({
+     * const nutritionLogWithIdOnly = await prisma.nutritionLog.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -9370,7 +9370,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends NutritionLogCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionLogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionLogPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -9384,7 +9384,7 @@ export namespace Prisma {
      *     // ... filter to delete one NutritionLog
      *   }
      * })
-     *
+     * 
      */
     delete<T extends NutritionLogDeleteArgs>(args: SelectSubset<T, NutritionLogDeleteArgs<ExtArgs>>): Prisma__NutritionLogClient<$Result.GetResult<Prisma.$NutritionLogPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -9401,7 +9401,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends NutritionLogUpdateArgs>(args: SelectSubset<T, NutritionLogUpdateArgs<ExtArgs>>): Prisma__NutritionLogClient<$Result.GetResult<Prisma.$NutritionLogPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -9415,7 +9415,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends NutritionLogDeleteManyArgs>(args?: SelectSubset<T, NutritionLogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -9434,7 +9434,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends NutritionLogUpdateManyArgs>(args: SelectSubset<T, NutritionLogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -9523,7 +9523,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends NutritionLogGroupByArgs,
@@ -9624,7 +9624,7 @@ export namespace Prisma {
 
   /**
    * Fields of the NutritionLog model
-   */
+   */ 
   interface NutritionLogFieldRefs {
     readonly id: FieldRef<"NutritionLog", 'String'>
     readonly userId: FieldRef<"NutritionLog", 'String'>
@@ -9639,7 +9639,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"NutritionLog", 'DateTime'>
     readonly updatedAt: FieldRef<"NutritionLog", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -9684,31 +9684,31 @@ export namespace Prisma {
     where?: NutritionLogWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionLogs to fetch.
      */
     orderBy?: NutritionLogOrderByWithRelationInput | NutritionLogOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionLogs.
      */
     cursor?: NutritionLogWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionLogs from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionLogs.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionLogs.
      */
     distinct?: NutritionLogScalarFieldEnum | NutritionLogScalarFieldEnum[]
@@ -9728,31 +9728,31 @@ export namespace Prisma {
     where?: NutritionLogWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionLogs to fetch.
      */
     orderBy?: NutritionLogOrderByWithRelationInput | NutritionLogOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionLogs.
      */
     cursor?: NutritionLogWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionLogs from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionLogs.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionLogs.
      */
     distinct?: NutritionLogScalarFieldEnum | NutritionLogScalarFieldEnum[]
@@ -9772,25 +9772,25 @@ export namespace Prisma {
     where?: NutritionLogWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionLogs to fetch.
      */
     orderBy?: NutritionLogOrderByWithRelationInput | NutritionLogOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing NutritionLogs.
      */
     cursor?: NutritionLogWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionLogs from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionLogs.
      */
     skip?: number
@@ -10052,55 +10052,55 @@ export namespace Prisma {
     where?: NutritionGoalWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionGoals to fetch.
      */
     orderBy?: NutritionGoalOrderByWithRelationInput | NutritionGoalOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: NutritionGoalWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionGoals from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionGoals.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned NutritionGoals
     **/
     _count?: true | NutritionGoalCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: NutritionGoalAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: NutritionGoalSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: NutritionGoalMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: NutritionGoalMaxAggregateInputType
@@ -10218,7 +10218,7 @@ export namespace Prisma {
 
   type NutritionGoalGetPayload<S extends boolean | null | undefined | NutritionGoalDefaultArgs> = $Result.GetResult<Prisma.$NutritionGoalPayload, S>
 
-  type NutritionGoalCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type NutritionGoalCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<NutritionGoalFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: NutritionGoalCountAggregateInputType | true
     }
@@ -10239,7 +10239,7 @@ export namespace Prisma {
     findUnique<T extends NutritionGoalFindUniqueArgs>(args: SelectSubset<T, NutritionGoalFindUniqueArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one NutritionGoal that matches the filter or throw an error with `error.code='P2025'`
+     * Find one NutritionGoal that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {NutritionGoalFindUniqueOrThrowArgs} args - Arguments to find a NutritionGoal
      * @example
@@ -10291,13 +10291,13 @@ export namespace Prisma {
      * @example
      * // Get all NutritionGoals
      * const nutritionGoals = await prisma.nutritionGoal.findMany()
-     *
+     * 
      * // Get first 10 NutritionGoals
      * const nutritionGoals = await prisma.nutritionGoal.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const nutritionGoalWithIdOnly = await prisma.nutritionGoal.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends NutritionGoalFindManyArgs>(args?: SelectSubset<T, NutritionGoalFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "findMany">>
 
@@ -10311,7 +10311,7 @@ export namespace Prisma {
      *     // ... data to create a NutritionGoal
      *   }
      * })
-     *
+     * 
      */
     create<T extends NutritionGoalCreateArgs>(args: SelectSubset<T, NutritionGoalCreateArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -10325,7 +10325,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends NutritionGoalCreateManyArgs>(args?: SelectSubset<T, NutritionGoalCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -10339,9 +10339,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many NutritionGoals and only return the `id`
-     * const nutritionGoalWithIdOnly = await prisma.nutritionGoal.createManyAndReturn({
+     * const nutritionGoalWithIdOnly = await prisma.nutritionGoal.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -10349,7 +10349,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends NutritionGoalCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionGoalCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -10363,7 +10363,7 @@ export namespace Prisma {
      *     // ... filter to delete one NutritionGoal
      *   }
      * })
-     *
+     * 
      */
     delete<T extends NutritionGoalDeleteArgs>(args: SelectSubset<T, NutritionGoalDeleteArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -10380,7 +10380,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends NutritionGoalUpdateArgs>(args: SelectSubset<T, NutritionGoalUpdateArgs<ExtArgs>>): Prisma__NutritionGoalClient<$Result.GetResult<Prisma.$NutritionGoalPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -10394,7 +10394,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends NutritionGoalDeleteManyArgs>(args?: SelectSubset<T, NutritionGoalDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -10413,7 +10413,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends NutritionGoalUpdateManyArgs>(args: SelectSubset<T, NutritionGoalUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -10502,7 +10502,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends NutritionGoalGroupByArgs,
@@ -10603,7 +10603,7 @@ export namespace Prisma {
 
   /**
    * Fields of the NutritionGoal model
-   */
+   */ 
   interface NutritionGoalFieldRefs {
     readonly id: FieldRef<"NutritionGoal", 'String'>
     readonly userId: FieldRef<"NutritionGoal", 'String'>
@@ -10615,7 +10615,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"NutritionGoal", 'DateTime'>
     readonly updatedAt: FieldRef<"NutritionGoal", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -10660,31 +10660,31 @@ export namespace Prisma {
     where?: NutritionGoalWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionGoals to fetch.
      */
     orderBy?: NutritionGoalOrderByWithRelationInput | NutritionGoalOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionGoals.
      */
     cursor?: NutritionGoalWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionGoals from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionGoals.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionGoals.
      */
     distinct?: NutritionGoalScalarFieldEnum | NutritionGoalScalarFieldEnum[]
@@ -10704,31 +10704,31 @@ export namespace Prisma {
     where?: NutritionGoalWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionGoals to fetch.
      */
     orderBy?: NutritionGoalOrderByWithRelationInput | NutritionGoalOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionGoals.
      */
     cursor?: NutritionGoalWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionGoals from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionGoals.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionGoals.
      */
     distinct?: NutritionGoalScalarFieldEnum | NutritionGoalScalarFieldEnum[]
@@ -10748,25 +10748,25 @@ export namespace Prisma {
     where?: NutritionGoalWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionGoals to fetch.
      */
     orderBy?: NutritionGoalOrderByWithRelationInput | NutritionGoalOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing NutritionGoals.
      */
     cursor?: NutritionGoalWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionGoals from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionGoals.
      */
     skip?: number
@@ -11030,55 +11030,55 @@ export namespace Prisma {
     where?: BodyMetricsWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of BodyMetrics to fetch.
      */
     orderBy?: BodyMetricsOrderByWithRelationInput | BodyMetricsOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: BodyMetricsWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` BodyMetrics from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` BodyMetrics.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned BodyMetrics
     **/
     _count?: true | BodyMetricsCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: BodyMetricsAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: BodyMetricsSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: BodyMetricsMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: BodyMetricsMaxAggregateInputType
@@ -11201,7 +11201,7 @@ export namespace Prisma {
 
   type BodyMetricsGetPayload<S extends boolean | null | undefined | BodyMetricsDefaultArgs> = $Result.GetResult<Prisma.$BodyMetricsPayload, S>
 
-  type BodyMetricsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type BodyMetricsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<BodyMetricsFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: BodyMetricsCountAggregateInputType | true
     }
@@ -11222,7 +11222,7 @@ export namespace Prisma {
     findUnique<T extends BodyMetricsFindUniqueArgs>(args: SelectSubset<T, BodyMetricsFindUniqueArgs<ExtArgs>>): Prisma__BodyMetricsClient<$Result.GetResult<Prisma.$BodyMetricsPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one BodyMetrics that matches the filter or throw an error with `error.code='P2025'`
+     * Find one BodyMetrics that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {BodyMetricsFindUniqueOrThrowArgs} args - Arguments to find a BodyMetrics
      * @example
@@ -11274,13 +11274,13 @@ export namespace Prisma {
      * @example
      * // Get all BodyMetrics
      * const bodyMetrics = await prisma.bodyMetrics.findMany()
-     *
+     * 
      * // Get first 10 BodyMetrics
      * const bodyMetrics = await prisma.bodyMetrics.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const bodyMetricsWithIdOnly = await prisma.bodyMetrics.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends BodyMetricsFindManyArgs>(args?: SelectSubset<T, BodyMetricsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BodyMetricsPayload<ExtArgs>, T, "findMany">>
 
@@ -11294,7 +11294,7 @@ export namespace Prisma {
      *     // ... data to create a BodyMetrics
      *   }
      * })
-     *
+     * 
      */
     create<T extends BodyMetricsCreateArgs>(args: SelectSubset<T, BodyMetricsCreateArgs<ExtArgs>>): Prisma__BodyMetricsClient<$Result.GetResult<Prisma.$BodyMetricsPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -11308,7 +11308,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends BodyMetricsCreateManyArgs>(args?: SelectSubset<T, BodyMetricsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -11322,9 +11322,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many BodyMetrics and only return the `id`
-     * const bodyMetricsWithIdOnly = await prisma.bodyMetrics.createManyAndReturn({
+     * const bodyMetricsWithIdOnly = await prisma.bodyMetrics.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -11332,7 +11332,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends BodyMetricsCreateManyAndReturnArgs>(args?: SelectSubset<T, BodyMetricsCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BodyMetricsPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -11346,7 +11346,7 @@ export namespace Prisma {
      *     // ... filter to delete one BodyMetrics
      *   }
      * })
-     *
+     * 
      */
     delete<T extends BodyMetricsDeleteArgs>(args: SelectSubset<T, BodyMetricsDeleteArgs<ExtArgs>>): Prisma__BodyMetricsClient<$Result.GetResult<Prisma.$BodyMetricsPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -11363,7 +11363,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends BodyMetricsUpdateArgs>(args: SelectSubset<T, BodyMetricsUpdateArgs<ExtArgs>>): Prisma__BodyMetricsClient<$Result.GetResult<Prisma.$BodyMetricsPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -11377,7 +11377,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends BodyMetricsDeleteManyArgs>(args?: SelectSubset<T, BodyMetricsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -11396,7 +11396,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends BodyMetricsUpdateManyArgs>(args: SelectSubset<T, BodyMetricsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -11485,7 +11485,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends BodyMetricsGroupByArgs,
@@ -11586,7 +11586,7 @@ export namespace Prisma {
 
   /**
    * Fields of the BodyMetrics model
-   */
+   */ 
   interface BodyMetricsFieldRefs {
     readonly id: FieldRef<"BodyMetrics", 'String'>
     readonly userId: FieldRef<"BodyMetrics", 'String'>
@@ -11599,7 +11599,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"BodyMetrics", 'DateTime'>
     readonly updatedAt: FieldRef<"BodyMetrics", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -11644,31 +11644,31 @@ export namespace Prisma {
     where?: BodyMetricsWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of BodyMetrics to fetch.
      */
     orderBy?: BodyMetricsOrderByWithRelationInput | BodyMetricsOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for BodyMetrics.
      */
     cursor?: BodyMetricsWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` BodyMetrics from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` BodyMetrics.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of BodyMetrics.
      */
     distinct?: BodyMetricsScalarFieldEnum | BodyMetricsScalarFieldEnum[]
@@ -11688,31 +11688,31 @@ export namespace Prisma {
     where?: BodyMetricsWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of BodyMetrics to fetch.
      */
     orderBy?: BodyMetricsOrderByWithRelationInput | BodyMetricsOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for BodyMetrics.
      */
     cursor?: BodyMetricsWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` BodyMetrics from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` BodyMetrics.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of BodyMetrics.
      */
     distinct?: BodyMetricsScalarFieldEnum | BodyMetricsScalarFieldEnum[]
@@ -11732,25 +11732,25 @@ export namespace Prisma {
     where?: BodyMetricsWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of BodyMetrics to fetch.
      */
     orderBy?: BodyMetricsOrderByWithRelationInput | BodyMetricsOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing BodyMetrics.
      */
     cursor?: BodyMetricsWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` BodyMetrics from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` BodyMetrics.
      */
     skip?: number
@@ -12044,55 +12044,55 @@ export namespace Prisma {
     where?: WorkoutProgramWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutPrograms to fetch.
      */
     orderBy?: WorkoutProgramOrderByWithRelationInput | WorkoutProgramOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: WorkoutProgramWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutPrograms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutPrograms.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned WorkoutPrograms
     **/
     _count?: true | WorkoutProgramCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: WorkoutProgramAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: WorkoutProgramSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: WorkoutProgramMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: WorkoutProgramMaxAggregateInputType
@@ -12249,7 +12249,7 @@ export namespace Prisma {
 
   type WorkoutProgramGetPayload<S extends boolean | null | undefined | WorkoutProgramDefaultArgs> = $Result.GetResult<Prisma.$WorkoutProgramPayload, S>
 
-  type WorkoutProgramCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type WorkoutProgramCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<WorkoutProgramFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: WorkoutProgramCountAggregateInputType | true
     }
@@ -12270,7 +12270,7 @@ export namespace Prisma {
     findUnique<T extends WorkoutProgramFindUniqueArgs>(args: SelectSubset<T, WorkoutProgramFindUniqueArgs<ExtArgs>>): Prisma__WorkoutProgramClient<$Result.GetResult<Prisma.$WorkoutProgramPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one WorkoutProgram that matches the filter or throw an error with `error.code='P2025'`
+     * Find one WorkoutProgram that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {WorkoutProgramFindUniqueOrThrowArgs} args - Arguments to find a WorkoutProgram
      * @example
@@ -12322,13 +12322,13 @@ export namespace Prisma {
      * @example
      * // Get all WorkoutPrograms
      * const workoutPrograms = await prisma.workoutProgram.findMany()
-     *
+     * 
      * // Get first 10 WorkoutPrograms
      * const workoutPrograms = await prisma.workoutProgram.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const workoutProgramWithIdOnly = await prisma.workoutProgram.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends WorkoutProgramFindManyArgs>(args?: SelectSubset<T, WorkoutProgramFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutProgramPayload<ExtArgs>, T, "findMany">>
 
@@ -12342,7 +12342,7 @@ export namespace Prisma {
      *     // ... data to create a WorkoutProgram
      *   }
      * })
-     *
+     * 
      */
     create<T extends WorkoutProgramCreateArgs>(args: SelectSubset<T, WorkoutProgramCreateArgs<ExtArgs>>): Prisma__WorkoutProgramClient<$Result.GetResult<Prisma.$WorkoutProgramPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -12356,7 +12356,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends WorkoutProgramCreateManyArgs>(args?: SelectSubset<T, WorkoutProgramCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -12370,9 +12370,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many WorkoutPrograms and only return the `id`
-     * const workoutProgramWithIdOnly = await prisma.workoutProgram.createManyAndReturn({
+     * const workoutProgramWithIdOnly = await prisma.workoutProgram.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -12380,7 +12380,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends WorkoutProgramCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkoutProgramCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutProgramPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -12394,7 +12394,7 @@ export namespace Prisma {
      *     // ... filter to delete one WorkoutProgram
      *   }
      * })
-     *
+     * 
      */
     delete<T extends WorkoutProgramDeleteArgs>(args: SelectSubset<T, WorkoutProgramDeleteArgs<ExtArgs>>): Prisma__WorkoutProgramClient<$Result.GetResult<Prisma.$WorkoutProgramPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -12411,7 +12411,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends WorkoutProgramUpdateArgs>(args: SelectSubset<T, WorkoutProgramUpdateArgs<ExtArgs>>): Prisma__WorkoutProgramClient<$Result.GetResult<Prisma.$WorkoutProgramPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -12425,7 +12425,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends WorkoutProgramDeleteManyArgs>(args?: SelectSubset<T, WorkoutProgramDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -12444,7 +12444,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends WorkoutProgramUpdateManyArgs>(args: SelectSubset<T, WorkoutProgramUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -12533,7 +12533,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends WorkoutProgramGroupByArgs,
@@ -12635,7 +12635,7 @@ export namespace Prisma {
 
   /**
    * Fields of the WorkoutProgram model
-   */
+   */ 
   interface WorkoutProgramFieldRefs {
     readonly id: FieldRef<"WorkoutProgram", 'String'>
     readonly userId: FieldRef<"WorkoutProgram", 'String'>
@@ -12653,7 +12653,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"WorkoutProgram", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkoutProgram", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -12710,31 +12710,31 @@ export namespace Prisma {
     where?: WorkoutProgramWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutPrograms to fetch.
      */
     orderBy?: WorkoutProgramOrderByWithRelationInput | WorkoutProgramOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutPrograms.
      */
     cursor?: WorkoutProgramWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutPrograms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutPrograms.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutPrograms.
      */
     distinct?: WorkoutProgramScalarFieldEnum | WorkoutProgramScalarFieldEnum[]
@@ -12758,31 +12758,31 @@ export namespace Prisma {
     where?: WorkoutProgramWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutPrograms to fetch.
      */
     orderBy?: WorkoutProgramOrderByWithRelationInput | WorkoutProgramOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutPrograms.
      */
     cursor?: WorkoutProgramWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutPrograms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutPrograms.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutPrograms.
      */
     distinct?: WorkoutProgramScalarFieldEnum | WorkoutProgramScalarFieldEnum[]
@@ -12806,25 +12806,25 @@ export namespace Prisma {
     where?: WorkoutProgramWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutPrograms to fetch.
      */
     orderBy?: WorkoutProgramOrderByWithRelationInput | WorkoutProgramOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing WorkoutPrograms.
      */
     cursor?: WorkoutProgramWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutPrograms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutPrograms.
      */
     skip?: number
@@ -13108,55 +13108,55 @@ export namespace Prisma {
     where?: WorkoutProgramDayWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutProgramDays to fetch.
      */
     orderBy?: WorkoutProgramDayOrderByWithRelationInput | WorkoutProgramDayOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: WorkoutProgramDayWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutProgramDays from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutProgramDays.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned WorkoutProgramDays
     **/
     _count?: true | WorkoutProgramDayCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: WorkoutProgramDayAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: WorkoutProgramDaySumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: WorkoutProgramDayMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: WorkoutProgramDayMaxAggregateInputType
@@ -13287,7 +13287,7 @@ export namespace Prisma {
 
   type WorkoutProgramDayGetPayload<S extends boolean | null | undefined | WorkoutProgramDayDefaultArgs> = $Result.GetResult<Prisma.$WorkoutProgramDayPayload, S>
 
-  type WorkoutProgramDayCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type WorkoutProgramDayCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<WorkoutProgramDayFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: WorkoutProgramDayCountAggregateInputType | true
     }
@@ -13308,7 +13308,7 @@ export namespace Prisma {
     findUnique<T extends WorkoutProgramDayFindUniqueArgs>(args: SelectSubset<T, WorkoutProgramDayFindUniqueArgs<ExtArgs>>): Prisma__WorkoutProgramDayClient<$Result.GetResult<Prisma.$WorkoutProgramDayPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one WorkoutProgramDay that matches the filter or throw an error with `error.code='P2025'`
+     * Find one WorkoutProgramDay that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {WorkoutProgramDayFindUniqueOrThrowArgs} args - Arguments to find a WorkoutProgramDay
      * @example
@@ -13360,13 +13360,13 @@ export namespace Prisma {
      * @example
      * // Get all WorkoutProgramDays
      * const workoutProgramDays = await prisma.workoutProgramDay.findMany()
-     *
+     * 
      * // Get first 10 WorkoutProgramDays
      * const workoutProgramDays = await prisma.workoutProgramDay.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const workoutProgramDayWithIdOnly = await prisma.workoutProgramDay.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends WorkoutProgramDayFindManyArgs>(args?: SelectSubset<T, WorkoutProgramDayFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutProgramDayPayload<ExtArgs>, T, "findMany">>
 
@@ -13380,7 +13380,7 @@ export namespace Prisma {
      *     // ... data to create a WorkoutProgramDay
      *   }
      * })
-     *
+     * 
      */
     create<T extends WorkoutProgramDayCreateArgs>(args: SelectSubset<T, WorkoutProgramDayCreateArgs<ExtArgs>>): Prisma__WorkoutProgramDayClient<$Result.GetResult<Prisma.$WorkoutProgramDayPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -13394,7 +13394,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends WorkoutProgramDayCreateManyArgs>(args?: SelectSubset<T, WorkoutProgramDayCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -13408,9 +13408,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many WorkoutProgramDays and only return the `id`
-     * const workoutProgramDayWithIdOnly = await prisma.workoutProgramDay.createManyAndReturn({
+     * const workoutProgramDayWithIdOnly = await prisma.workoutProgramDay.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -13418,7 +13418,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends WorkoutProgramDayCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkoutProgramDayCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutProgramDayPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -13432,7 +13432,7 @@ export namespace Prisma {
      *     // ... filter to delete one WorkoutProgramDay
      *   }
      * })
-     *
+     * 
      */
     delete<T extends WorkoutProgramDayDeleteArgs>(args: SelectSubset<T, WorkoutProgramDayDeleteArgs<ExtArgs>>): Prisma__WorkoutProgramDayClient<$Result.GetResult<Prisma.$WorkoutProgramDayPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -13449,7 +13449,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends WorkoutProgramDayUpdateArgs>(args: SelectSubset<T, WorkoutProgramDayUpdateArgs<ExtArgs>>): Prisma__WorkoutProgramDayClient<$Result.GetResult<Prisma.$WorkoutProgramDayPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -13463,7 +13463,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends WorkoutProgramDayDeleteManyArgs>(args?: SelectSubset<T, WorkoutProgramDayDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -13482,7 +13482,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends WorkoutProgramDayUpdateManyArgs>(args: SelectSubset<T, WorkoutProgramDayUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -13571,7 +13571,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends WorkoutProgramDayGroupByArgs,
@@ -13675,7 +13675,7 @@ export namespace Prisma {
 
   /**
    * Fields of the WorkoutProgramDay model
-   */
+   */ 
   interface WorkoutProgramDayFieldRefs {
     readonly id: FieldRef<"WorkoutProgramDay", 'String'>
     readonly programId: FieldRef<"WorkoutProgramDay", 'String'>
@@ -13686,7 +13686,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"WorkoutProgramDay", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkoutProgramDay", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -13743,31 +13743,31 @@ export namespace Prisma {
     where?: WorkoutProgramDayWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutProgramDays to fetch.
      */
     orderBy?: WorkoutProgramDayOrderByWithRelationInput | WorkoutProgramDayOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutProgramDays.
      */
     cursor?: WorkoutProgramDayWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutProgramDays from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutProgramDays.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutProgramDays.
      */
     distinct?: WorkoutProgramDayScalarFieldEnum | WorkoutProgramDayScalarFieldEnum[]
@@ -13791,31 +13791,31 @@ export namespace Prisma {
     where?: WorkoutProgramDayWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutProgramDays to fetch.
      */
     orderBy?: WorkoutProgramDayOrderByWithRelationInput | WorkoutProgramDayOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutProgramDays.
      */
     cursor?: WorkoutProgramDayWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutProgramDays from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutProgramDays.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutProgramDays.
      */
     distinct?: WorkoutProgramDayScalarFieldEnum | WorkoutProgramDayScalarFieldEnum[]
@@ -13839,25 +13839,25 @@ export namespace Prisma {
     where?: WorkoutProgramDayWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutProgramDays to fetch.
      */
     orderBy?: WorkoutProgramDayOrderByWithRelationInput | WorkoutProgramDayOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing WorkoutProgramDays.
      */
     cursor?: WorkoutProgramDayWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutProgramDays from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutProgramDays.
      */
     skip?: number
@@ -14199,55 +14199,55 @@ export namespace Prisma {
     where?: WorkoutProgramExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutProgramExercises to fetch.
      */
     orderBy?: WorkoutProgramExerciseOrderByWithRelationInput | WorkoutProgramExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: WorkoutProgramExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutProgramExercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutProgramExercises.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned WorkoutProgramExercises
     **/
     _count?: true | WorkoutProgramExerciseCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: WorkoutProgramExerciseAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: WorkoutProgramExerciseSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: WorkoutProgramExerciseMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: WorkoutProgramExerciseMaxAggregateInputType
@@ -14390,7 +14390,7 @@ export namespace Prisma {
 
   type WorkoutProgramExerciseGetPayload<S extends boolean | null | undefined | WorkoutProgramExerciseDefaultArgs> = $Result.GetResult<Prisma.$WorkoutProgramExercisePayload, S>
 
-  type WorkoutProgramExerciseCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type WorkoutProgramExerciseCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<WorkoutProgramExerciseFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: WorkoutProgramExerciseCountAggregateInputType | true
     }
@@ -14411,7 +14411,7 @@ export namespace Prisma {
     findUnique<T extends WorkoutProgramExerciseFindUniqueArgs>(args: SelectSubset<T, WorkoutProgramExerciseFindUniqueArgs<ExtArgs>>): Prisma__WorkoutProgramExerciseClient<$Result.GetResult<Prisma.$WorkoutProgramExercisePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one WorkoutProgramExercise that matches the filter or throw an error with `error.code='P2025'`
+     * Find one WorkoutProgramExercise that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {WorkoutProgramExerciseFindUniqueOrThrowArgs} args - Arguments to find a WorkoutProgramExercise
      * @example
@@ -14463,13 +14463,13 @@ export namespace Prisma {
      * @example
      * // Get all WorkoutProgramExercises
      * const workoutProgramExercises = await prisma.workoutProgramExercise.findMany()
-     *
+     * 
      * // Get first 10 WorkoutProgramExercises
      * const workoutProgramExercises = await prisma.workoutProgramExercise.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const workoutProgramExerciseWithIdOnly = await prisma.workoutProgramExercise.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends WorkoutProgramExerciseFindManyArgs>(args?: SelectSubset<T, WorkoutProgramExerciseFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutProgramExercisePayload<ExtArgs>, T, "findMany">>
 
@@ -14483,7 +14483,7 @@ export namespace Prisma {
      *     // ... data to create a WorkoutProgramExercise
      *   }
      * })
-     *
+     * 
      */
     create<T extends WorkoutProgramExerciseCreateArgs>(args: SelectSubset<T, WorkoutProgramExerciseCreateArgs<ExtArgs>>): Prisma__WorkoutProgramExerciseClient<$Result.GetResult<Prisma.$WorkoutProgramExercisePayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -14497,7 +14497,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends WorkoutProgramExerciseCreateManyArgs>(args?: SelectSubset<T, WorkoutProgramExerciseCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -14511,9 +14511,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many WorkoutProgramExercises and only return the `id`
-     * const workoutProgramExerciseWithIdOnly = await prisma.workoutProgramExercise.createManyAndReturn({
+     * const workoutProgramExerciseWithIdOnly = await prisma.workoutProgramExercise.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -14521,7 +14521,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends WorkoutProgramExerciseCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkoutProgramExerciseCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutProgramExercisePayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -14535,7 +14535,7 @@ export namespace Prisma {
      *     // ... filter to delete one WorkoutProgramExercise
      *   }
      * })
-     *
+     * 
      */
     delete<T extends WorkoutProgramExerciseDeleteArgs>(args: SelectSubset<T, WorkoutProgramExerciseDeleteArgs<ExtArgs>>): Prisma__WorkoutProgramExerciseClient<$Result.GetResult<Prisma.$WorkoutProgramExercisePayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -14552,7 +14552,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends WorkoutProgramExerciseUpdateArgs>(args: SelectSubset<T, WorkoutProgramExerciseUpdateArgs<ExtArgs>>): Prisma__WorkoutProgramExerciseClient<$Result.GetResult<Prisma.$WorkoutProgramExercisePayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -14566,7 +14566,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends WorkoutProgramExerciseDeleteManyArgs>(args?: SelectSubset<T, WorkoutProgramExerciseDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -14585,7 +14585,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends WorkoutProgramExerciseUpdateManyArgs>(args: SelectSubset<T, WorkoutProgramExerciseUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -14674,7 +14674,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends WorkoutProgramExerciseGroupByArgs,
@@ -14777,7 +14777,7 @@ export namespace Prisma {
 
   /**
    * Fields of the WorkoutProgramExercise model
-   */
+   */ 
   interface WorkoutProgramExerciseFieldRefs {
     readonly id: FieldRef<"WorkoutProgramExercise", 'String'>
     readonly programDayId: FieldRef<"WorkoutProgramExercise", 'String'>
@@ -14791,7 +14791,7 @@ export namespace Prisma {
     readonly notes: FieldRef<"WorkoutProgramExercise", 'String'>
     readonly createdAt: FieldRef<"WorkoutProgramExercise", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -14848,31 +14848,31 @@ export namespace Prisma {
     where?: WorkoutProgramExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutProgramExercises to fetch.
      */
     orderBy?: WorkoutProgramExerciseOrderByWithRelationInput | WorkoutProgramExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutProgramExercises.
      */
     cursor?: WorkoutProgramExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutProgramExercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutProgramExercises.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutProgramExercises.
      */
     distinct?: WorkoutProgramExerciseScalarFieldEnum | WorkoutProgramExerciseScalarFieldEnum[]
@@ -14896,31 +14896,31 @@ export namespace Prisma {
     where?: WorkoutProgramExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutProgramExercises to fetch.
      */
     orderBy?: WorkoutProgramExerciseOrderByWithRelationInput | WorkoutProgramExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutProgramExercises.
      */
     cursor?: WorkoutProgramExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutProgramExercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutProgramExercises.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutProgramExercises.
      */
     distinct?: WorkoutProgramExerciseScalarFieldEnum | WorkoutProgramExerciseScalarFieldEnum[]
@@ -14944,25 +14944,25 @@ export namespace Prisma {
     where?: WorkoutProgramExerciseWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutProgramExercises to fetch.
      */
     orderBy?: WorkoutProgramExerciseOrderByWithRelationInput | WorkoutProgramExerciseOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing WorkoutProgramExercises.
      */
     cursor?: WorkoutProgramExerciseWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutProgramExercises from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutProgramExercises.
      */
     skip?: number
@@ -15322,55 +15322,55 @@ export namespace Prisma {
     where?: WorkoutScheduleWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutSchedules to fetch.
      */
     orderBy?: WorkoutScheduleOrderByWithRelationInput | WorkoutScheduleOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: WorkoutScheduleWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutSchedules from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutSchedules.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned WorkoutSchedules
     **/
     _count?: true | WorkoutScheduleCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: WorkoutScheduleAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: WorkoutScheduleSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: WorkoutScheduleMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: WorkoutScheduleMaxAggregateInputType
@@ -15558,7 +15558,7 @@ export namespace Prisma {
 
   type WorkoutScheduleGetPayload<S extends boolean | null | undefined | WorkoutScheduleDefaultArgs> = $Result.GetResult<Prisma.$WorkoutSchedulePayload, S>
 
-  type WorkoutScheduleCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type WorkoutScheduleCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<WorkoutScheduleFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: WorkoutScheduleCountAggregateInputType | true
     }
@@ -15579,7 +15579,7 @@ export namespace Prisma {
     findUnique<T extends WorkoutScheduleFindUniqueArgs>(args: SelectSubset<T, WorkoutScheduleFindUniqueArgs<ExtArgs>>): Prisma__WorkoutScheduleClient<$Result.GetResult<Prisma.$WorkoutSchedulePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one WorkoutSchedule that matches the filter or throw an error with `error.code='P2025'`
+     * Find one WorkoutSchedule that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {WorkoutScheduleFindUniqueOrThrowArgs} args - Arguments to find a WorkoutSchedule
      * @example
@@ -15631,13 +15631,13 @@ export namespace Prisma {
      * @example
      * // Get all WorkoutSchedules
      * const workoutSchedules = await prisma.workoutSchedule.findMany()
-     *
+     * 
      * // Get first 10 WorkoutSchedules
      * const workoutSchedules = await prisma.workoutSchedule.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const workoutScheduleWithIdOnly = await prisma.workoutSchedule.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends WorkoutScheduleFindManyArgs>(args?: SelectSubset<T, WorkoutScheduleFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutSchedulePayload<ExtArgs>, T, "findMany">>
 
@@ -15651,7 +15651,7 @@ export namespace Prisma {
      *     // ... data to create a WorkoutSchedule
      *   }
      * })
-     *
+     * 
      */
     create<T extends WorkoutScheduleCreateArgs>(args: SelectSubset<T, WorkoutScheduleCreateArgs<ExtArgs>>): Prisma__WorkoutScheduleClient<$Result.GetResult<Prisma.$WorkoutSchedulePayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -15665,7 +15665,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends WorkoutScheduleCreateManyArgs>(args?: SelectSubset<T, WorkoutScheduleCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -15679,9 +15679,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many WorkoutSchedules and only return the `id`
-     * const workoutScheduleWithIdOnly = await prisma.workoutSchedule.createManyAndReturn({
+     * const workoutScheduleWithIdOnly = await prisma.workoutSchedule.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -15689,7 +15689,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends WorkoutScheduleCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkoutScheduleCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutSchedulePayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -15703,7 +15703,7 @@ export namespace Prisma {
      *     // ... filter to delete one WorkoutSchedule
      *   }
      * })
-     *
+     * 
      */
     delete<T extends WorkoutScheduleDeleteArgs>(args: SelectSubset<T, WorkoutScheduleDeleteArgs<ExtArgs>>): Prisma__WorkoutScheduleClient<$Result.GetResult<Prisma.$WorkoutSchedulePayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -15720,7 +15720,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends WorkoutScheduleUpdateArgs>(args: SelectSubset<T, WorkoutScheduleUpdateArgs<ExtArgs>>): Prisma__WorkoutScheduleClient<$Result.GetResult<Prisma.$WorkoutSchedulePayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -15734,7 +15734,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends WorkoutScheduleDeleteManyArgs>(args?: SelectSubset<T, WorkoutScheduleDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -15753,7 +15753,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends WorkoutScheduleUpdateManyArgs>(args: SelectSubset<T, WorkoutScheduleUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -15842,7 +15842,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends WorkoutScheduleGroupByArgs,
@@ -15945,7 +15945,7 @@ export namespace Prisma {
 
   /**
    * Fields of the WorkoutSchedule model
-   */
+   */ 
   interface WorkoutScheduleFieldRefs {
     readonly id: FieldRef<"WorkoutSchedule", 'String'>
     readonly userId: FieldRef<"WorkoutSchedule", 'String'>
@@ -15968,7 +15968,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"WorkoutSchedule", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkoutSchedule", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -16025,31 +16025,31 @@ export namespace Prisma {
     where?: WorkoutScheduleWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutSchedules to fetch.
      */
     orderBy?: WorkoutScheduleOrderByWithRelationInput | WorkoutScheduleOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutSchedules.
      */
     cursor?: WorkoutScheduleWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutSchedules from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutSchedules.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutSchedules.
      */
     distinct?: WorkoutScheduleScalarFieldEnum | WorkoutScheduleScalarFieldEnum[]
@@ -16073,31 +16073,31 @@ export namespace Prisma {
     where?: WorkoutScheduleWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutSchedules to fetch.
      */
     orderBy?: WorkoutScheduleOrderByWithRelationInput | WorkoutScheduleOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for WorkoutSchedules.
      */
     cursor?: WorkoutScheduleWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutSchedules from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutSchedules.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of WorkoutSchedules.
      */
     distinct?: WorkoutScheduleScalarFieldEnum | WorkoutScheduleScalarFieldEnum[]
@@ -16121,25 +16121,25 @@ export namespace Prisma {
     where?: WorkoutScheduleWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of WorkoutSchedules to fetch.
      */
     orderBy?: WorkoutScheduleOrderByWithRelationInput | WorkoutScheduleOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing WorkoutSchedules.
      */
     cursor?: WorkoutScheduleWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` WorkoutSchedules from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` WorkoutSchedules.
      */
     skip?: number
@@ -16525,55 +16525,55 @@ export namespace Prisma {
     where?: NutritionProgramWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionPrograms to fetch.
      */
     orderBy?: NutritionProgramOrderByWithRelationInput | NutritionProgramOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: NutritionProgramWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionPrograms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionPrograms.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned NutritionPrograms
     **/
     _count?: true | NutritionProgramCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: NutritionProgramAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: NutritionProgramSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: NutritionProgramMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: NutritionProgramMaxAggregateInputType
@@ -16755,7 +16755,7 @@ export namespace Prisma {
 
   type NutritionProgramGetPayload<S extends boolean | null | undefined | NutritionProgramDefaultArgs> = $Result.GetResult<Prisma.$NutritionProgramPayload, S>
 
-  type NutritionProgramCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type NutritionProgramCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<NutritionProgramFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: NutritionProgramCountAggregateInputType | true
     }
@@ -16776,7 +16776,7 @@ export namespace Prisma {
     findUnique<T extends NutritionProgramFindUniqueArgs>(args: SelectSubset<T, NutritionProgramFindUniqueArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one NutritionProgram that matches the filter or throw an error with `error.code='P2025'`
+     * Find one NutritionProgram that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {NutritionProgramFindUniqueOrThrowArgs} args - Arguments to find a NutritionProgram
      * @example
@@ -16828,13 +16828,13 @@ export namespace Prisma {
      * @example
      * // Get all NutritionPrograms
      * const nutritionPrograms = await prisma.nutritionProgram.findMany()
-     *
+     * 
      * // Get first 10 NutritionPrograms
      * const nutritionPrograms = await prisma.nutritionProgram.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const nutritionProgramWithIdOnly = await prisma.nutritionProgram.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends NutritionProgramFindManyArgs>(args?: SelectSubset<T, NutritionProgramFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "findMany">>
 
@@ -16848,7 +16848,7 @@ export namespace Prisma {
      *     // ... data to create a NutritionProgram
      *   }
      * })
-     *
+     * 
      */
     create<T extends NutritionProgramCreateArgs>(args: SelectSubset<T, NutritionProgramCreateArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -16862,7 +16862,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends NutritionProgramCreateManyArgs>(args?: SelectSubset<T, NutritionProgramCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -16876,9 +16876,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many NutritionPrograms and only return the `id`
-     * const nutritionProgramWithIdOnly = await prisma.nutritionProgram.createManyAndReturn({
+     * const nutritionProgramWithIdOnly = await prisma.nutritionProgram.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -16886,7 +16886,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends NutritionProgramCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionProgramCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -16900,7 +16900,7 @@ export namespace Prisma {
      *     // ... filter to delete one NutritionProgram
      *   }
      * })
-     *
+     * 
      */
     delete<T extends NutritionProgramDeleteArgs>(args: SelectSubset<T, NutritionProgramDeleteArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -16917,7 +16917,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends NutritionProgramUpdateArgs>(args: SelectSubset<T, NutritionProgramUpdateArgs<ExtArgs>>): Prisma__NutritionProgramClient<$Result.GetResult<Prisma.$NutritionProgramPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -16931,7 +16931,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends NutritionProgramDeleteManyArgs>(args?: SelectSubset<T, NutritionProgramDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -16950,7 +16950,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends NutritionProgramUpdateManyArgs>(args: SelectSubset<T, NutritionProgramUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -17039,7 +17039,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends NutritionProgramGroupByArgs,
@@ -17141,7 +17141,7 @@ export namespace Prisma {
 
   /**
    * Fields of the NutritionProgram model
-   */
+   */ 
   interface NutritionProgramFieldRefs {
     readonly id: FieldRef<"NutritionProgram", 'String'>
     readonly userId: FieldRef<"NutritionProgram", 'String'>
@@ -17164,7 +17164,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"NutritionProgram", 'DateTime'>
     readonly updatedAt: FieldRef<"NutritionProgram", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -17221,31 +17221,31 @@ export namespace Prisma {
     where?: NutritionProgramWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionPrograms to fetch.
      */
     orderBy?: NutritionProgramOrderByWithRelationInput | NutritionProgramOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionPrograms.
      */
     cursor?: NutritionProgramWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionPrograms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionPrograms.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionPrograms.
      */
     distinct?: NutritionProgramScalarFieldEnum | NutritionProgramScalarFieldEnum[]
@@ -17269,31 +17269,31 @@ export namespace Prisma {
     where?: NutritionProgramWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionPrograms to fetch.
      */
     orderBy?: NutritionProgramOrderByWithRelationInput | NutritionProgramOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionPrograms.
      */
     cursor?: NutritionProgramWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionPrograms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionPrograms.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionPrograms.
      */
     distinct?: NutritionProgramScalarFieldEnum | NutritionProgramScalarFieldEnum[]
@@ -17317,25 +17317,25 @@ export namespace Prisma {
     where?: NutritionProgramWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionPrograms to fetch.
      */
     orderBy?: NutritionProgramOrderByWithRelationInput | NutritionProgramOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing NutritionPrograms.
      */
     cursor?: NutritionProgramWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionPrograms from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionPrograms.
      */
     skip?: number
@@ -17643,55 +17643,55 @@ export namespace Prisma {
     where?: NutritionProgramDayWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramDays to fetch.
      */
     orderBy?: NutritionProgramDayOrderByWithRelationInput | NutritionProgramDayOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: NutritionProgramDayWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramDays from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramDays.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned NutritionProgramDays
     **/
     _count?: true | NutritionProgramDayCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: NutritionProgramDayAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: NutritionProgramDaySumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: NutritionProgramDayMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: NutritionProgramDayMaxAggregateInputType
@@ -17829,7 +17829,7 @@ export namespace Prisma {
 
   type NutritionProgramDayGetPayload<S extends boolean | null | undefined | NutritionProgramDayDefaultArgs> = $Result.GetResult<Prisma.$NutritionProgramDayPayload, S>
 
-  type NutritionProgramDayCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type NutritionProgramDayCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<NutritionProgramDayFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: NutritionProgramDayCountAggregateInputType | true
     }
@@ -17850,7 +17850,7 @@ export namespace Prisma {
     findUnique<T extends NutritionProgramDayFindUniqueArgs>(args: SelectSubset<T, NutritionProgramDayFindUniqueArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one NutritionProgramDay that matches the filter or throw an error with `error.code='P2025'`
+     * Find one NutritionProgramDay that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {NutritionProgramDayFindUniqueOrThrowArgs} args - Arguments to find a NutritionProgramDay
      * @example
@@ -17902,13 +17902,13 @@ export namespace Prisma {
      * @example
      * // Get all NutritionProgramDays
      * const nutritionProgramDays = await prisma.nutritionProgramDay.findMany()
-     *
+     * 
      * // Get first 10 NutritionProgramDays
      * const nutritionProgramDays = await prisma.nutritionProgramDay.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const nutritionProgramDayWithIdOnly = await prisma.nutritionProgramDay.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends NutritionProgramDayFindManyArgs>(args?: SelectSubset<T, NutritionProgramDayFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "findMany">>
 
@@ -17922,7 +17922,7 @@ export namespace Prisma {
      *     // ... data to create a NutritionProgramDay
      *   }
      * })
-     *
+     * 
      */
     create<T extends NutritionProgramDayCreateArgs>(args: SelectSubset<T, NutritionProgramDayCreateArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -17936,7 +17936,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends NutritionProgramDayCreateManyArgs>(args?: SelectSubset<T, NutritionProgramDayCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -17950,9 +17950,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many NutritionProgramDays and only return the `id`
-     * const nutritionProgramDayWithIdOnly = await prisma.nutritionProgramDay.createManyAndReturn({
+     * const nutritionProgramDayWithIdOnly = await prisma.nutritionProgramDay.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -17960,7 +17960,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends NutritionProgramDayCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionProgramDayCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -17974,7 +17974,7 @@ export namespace Prisma {
      *     // ... filter to delete one NutritionProgramDay
      *   }
      * })
-     *
+     * 
      */
     delete<T extends NutritionProgramDayDeleteArgs>(args: SelectSubset<T, NutritionProgramDayDeleteArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -17991,7 +17991,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends NutritionProgramDayUpdateArgs>(args: SelectSubset<T, NutritionProgramDayUpdateArgs<ExtArgs>>): Prisma__NutritionProgramDayClient<$Result.GetResult<Prisma.$NutritionProgramDayPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -18005,7 +18005,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends NutritionProgramDayDeleteManyArgs>(args?: SelectSubset<T, NutritionProgramDayDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -18024,7 +18024,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends NutritionProgramDayUpdateManyArgs>(args: SelectSubset<T, NutritionProgramDayUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -18113,7 +18113,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends NutritionProgramDayGroupByArgs,
@@ -18216,7 +18216,7 @@ export namespace Prisma {
 
   /**
    * Fields of the NutritionProgramDay model
-   */
+   */ 
   interface NutritionProgramDayFieldRefs {
     readonly id: FieldRef<"NutritionProgramDay", 'String'>
     readonly programId: FieldRef<"NutritionProgramDay", 'String'>
@@ -18229,7 +18229,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"NutritionProgramDay", 'DateTime'>
     readonly updatedAt: FieldRef<"NutritionProgramDay", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -18286,31 +18286,31 @@ export namespace Prisma {
     where?: NutritionProgramDayWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramDays to fetch.
      */
     orderBy?: NutritionProgramDayOrderByWithRelationInput | NutritionProgramDayOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionProgramDays.
      */
     cursor?: NutritionProgramDayWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramDays from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramDays.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionProgramDays.
      */
     distinct?: NutritionProgramDayScalarFieldEnum | NutritionProgramDayScalarFieldEnum[]
@@ -18334,31 +18334,31 @@ export namespace Prisma {
     where?: NutritionProgramDayWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramDays to fetch.
      */
     orderBy?: NutritionProgramDayOrderByWithRelationInput | NutritionProgramDayOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionProgramDays.
      */
     cursor?: NutritionProgramDayWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramDays from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramDays.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionProgramDays.
      */
     distinct?: NutritionProgramDayScalarFieldEnum | NutritionProgramDayScalarFieldEnum[]
@@ -18382,25 +18382,25 @@ export namespace Prisma {
     where?: NutritionProgramDayWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramDays to fetch.
      */
     orderBy?: NutritionProgramDayOrderByWithRelationInput | NutritionProgramDayOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing NutritionProgramDays.
      */
     cursor?: NutritionProgramDayWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramDays from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramDays.
      */
     skip?: number
@@ -18714,55 +18714,55 @@ export namespace Prisma {
     where?: NutritionProgramMealWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramMeals to fetch.
      */
     orderBy?: NutritionProgramMealOrderByWithRelationInput | NutritionProgramMealOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: NutritionProgramMealWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramMeals from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramMeals.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned NutritionProgramMeals
     **/
     _count?: true | NutritionProgramMealCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: NutritionProgramMealAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: NutritionProgramMealSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: NutritionProgramMealMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: NutritionProgramMealMaxAggregateInputType
@@ -18908,7 +18908,7 @@ export namespace Prisma {
 
   type NutritionProgramMealGetPayload<S extends boolean | null | undefined | NutritionProgramMealDefaultArgs> = $Result.GetResult<Prisma.$NutritionProgramMealPayload, S>
 
-  type NutritionProgramMealCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type NutritionProgramMealCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<NutritionProgramMealFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: NutritionProgramMealCountAggregateInputType | true
     }
@@ -18929,7 +18929,7 @@ export namespace Prisma {
     findUnique<T extends NutritionProgramMealFindUniqueArgs>(args: SelectSubset<T, NutritionProgramMealFindUniqueArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one NutritionProgramMeal that matches the filter or throw an error with `error.code='P2025'`
+     * Find one NutritionProgramMeal that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {NutritionProgramMealFindUniqueOrThrowArgs} args - Arguments to find a NutritionProgramMeal
      * @example
@@ -18981,13 +18981,13 @@ export namespace Prisma {
      * @example
      * // Get all NutritionProgramMeals
      * const nutritionProgramMeals = await prisma.nutritionProgramMeal.findMany()
-     *
+     * 
      * // Get first 10 NutritionProgramMeals
      * const nutritionProgramMeals = await prisma.nutritionProgramMeal.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const nutritionProgramMealWithIdOnly = await prisma.nutritionProgramMeal.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends NutritionProgramMealFindManyArgs>(args?: SelectSubset<T, NutritionProgramMealFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "findMany">>
 
@@ -19001,7 +19001,7 @@ export namespace Prisma {
      *     // ... data to create a NutritionProgramMeal
      *   }
      * })
-     *
+     * 
      */
     create<T extends NutritionProgramMealCreateArgs>(args: SelectSubset<T, NutritionProgramMealCreateArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -19015,7 +19015,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends NutritionProgramMealCreateManyArgs>(args?: SelectSubset<T, NutritionProgramMealCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -19029,9 +19029,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many NutritionProgramMeals and only return the `id`
-     * const nutritionProgramMealWithIdOnly = await prisma.nutritionProgramMeal.createManyAndReturn({
+     * const nutritionProgramMealWithIdOnly = await prisma.nutritionProgramMeal.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -19039,7 +19039,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends NutritionProgramMealCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionProgramMealCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -19053,7 +19053,7 @@ export namespace Prisma {
      *     // ... filter to delete one NutritionProgramMeal
      *   }
      * })
-     *
+     * 
      */
     delete<T extends NutritionProgramMealDeleteArgs>(args: SelectSubset<T, NutritionProgramMealDeleteArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -19070,7 +19070,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends NutritionProgramMealUpdateArgs>(args: SelectSubset<T, NutritionProgramMealUpdateArgs<ExtArgs>>): Prisma__NutritionProgramMealClient<$Result.GetResult<Prisma.$NutritionProgramMealPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -19084,7 +19084,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends NutritionProgramMealDeleteManyArgs>(args?: SelectSubset<T, NutritionProgramMealDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -19103,7 +19103,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends NutritionProgramMealUpdateManyArgs>(args: SelectSubset<T, NutritionProgramMealUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -19192,7 +19192,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends NutritionProgramMealGroupByArgs,
@@ -19296,7 +19296,7 @@ export namespace Prisma {
 
   /**
    * Fields of the NutritionProgramMeal model
-   */
+   */ 
   interface NutritionProgramMealFieldRefs {
     readonly id: FieldRef<"NutritionProgramMeal", 'String'>
     readonly dayId: FieldRef<"NutritionProgramMeal", 'String'>
@@ -19310,7 +19310,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"NutritionProgramMeal", 'DateTime'>
     readonly updatedAt: FieldRef<"NutritionProgramMeal", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -19367,31 +19367,31 @@ export namespace Prisma {
     where?: NutritionProgramMealWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramMeals to fetch.
      */
     orderBy?: NutritionProgramMealOrderByWithRelationInput | NutritionProgramMealOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionProgramMeals.
      */
     cursor?: NutritionProgramMealWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramMeals from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramMeals.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionProgramMeals.
      */
     distinct?: NutritionProgramMealScalarFieldEnum | NutritionProgramMealScalarFieldEnum[]
@@ -19415,31 +19415,31 @@ export namespace Prisma {
     where?: NutritionProgramMealWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramMeals to fetch.
      */
     orderBy?: NutritionProgramMealOrderByWithRelationInput | NutritionProgramMealOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionProgramMeals.
      */
     cursor?: NutritionProgramMealWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramMeals from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramMeals.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionProgramMeals.
      */
     distinct?: NutritionProgramMealScalarFieldEnum | NutritionProgramMealScalarFieldEnum[]
@@ -19463,25 +19463,25 @@ export namespace Prisma {
     where?: NutritionProgramMealWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramMeals to fetch.
      */
     orderBy?: NutritionProgramMealOrderByWithRelationInput | NutritionProgramMealOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing NutritionProgramMeals.
      */
     cursor?: NutritionProgramMealWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramMeals from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramMeals.
      */
     skip?: number
@@ -19831,55 +19831,55 @@ export namespace Prisma {
     where?: NutritionProgramMealItemWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramMealItems to fetch.
      */
     orderBy?: NutritionProgramMealItemOrderByWithRelationInput | NutritionProgramMealItemOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: NutritionProgramMealItemWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramMealItems from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramMealItems.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned NutritionProgramMealItems
     **/
     _count?: true | NutritionProgramMealItemCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: NutritionProgramMealItemAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: NutritionProgramMealItemSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: NutritionProgramMealItemMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: NutritionProgramMealItemMaxAggregateInputType
@@ -20032,7 +20032,7 @@ export namespace Prisma {
 
   type NutritionProgramMealItemGetPayload<S extends boolean | null | undefined | NutritionProgramMealItemDefaultArgs> = $Result.GetResult<Prisma.$NutritionProgramMealItemPayload, S>
 
-  type NutritionProgramMealItemCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type NutritionProgramMealItemCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<NutritionProgramMealItemFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: NutritionProgramMealItemCountAggregateInputType | true
     }
@@ -20053,7 +20053,7 @@ export namespace Prisma {
     findUnique<T extends NutritionProgramMealItemFindUniqueArgs>(args: SelectSubset<T, NutritionProgramMealItemFindUniqueArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one NutritionProgramMealItem that matches the filter or throw an error with `error.code='P2025'`
+     * Find one NutritionProgramMealItem that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {NutritionProgramMealItemFindUniqueOrThrowArgs} args - Arguments to find a NutritionProgramMealItem
      * @example
@@ -20105,13 +20105,13 @@ export namespace Prisma {
      * @example
      * // Get all NutritionProgramMealItems
      * const nutritionProgramMealItems = await prisma.nutritionProgramMealItem.findMany()
-     *
+     * 
      * // Get first 10 NutritionProgramMealItems
      * const nutritionProgramMealItems = await prisma.nutritionProgramMealItem.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const nutritionProgramMealItemWithIdOnly = await prisma.nutritionProgramMealItem.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends NutritionProgramMealItemFindManyArgs>(args?: SelectSubset<T, NutritionProgramMealItemFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "findMany">>
 
@@ -20125,7 +20125,7 @@ export namespace Prisma {
      *     // ... data to create a NutritionProgramMealItem
      *   }
      * })
-     *
+     * 
      */
     create<T extends NutritionProgramMealItemCreateArgs>(args: SelectSubset<T, NutritionProgramMealItemCreateArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -20139,7 +20139,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends NutritionProgramMealItemCreateManyArgs>(args?: SelectSubset<T, NutritionProgramMealItemCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -20153,9 +20153,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many NutritionProgramMealItems and only return the `id`
-     * const nutritionProgramMealItemWithIdOnly = await prisma.nutritionProgramMealItem.createManyAndReturn({
+     * const nutritionProgramMealItemWithIdOnly = await prisma.nutritionProgramMealItem.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -20163,7 +20163,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends NutritionProgramMealItemCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionProgramMealItemCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -20177,7 +20177,7 @@ export namespace Prisma {
      *     // ... filter to delete one NutritionProgramMealItem
      *   }
      * })
-     *
+     * 
      */
     delete<T extends NutritionProgramMealItemDeleteArgs>(args: SelectSubset<T, NutritionProgramMealItemDeleteArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -20194,7 +20194,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends NutritionProgramMealItemUpdateArgs>(args: SelectSubset<T, NutritionProgramMealItemUpdateArgs<ExtArgs>>): Prisma__NutritionProgramMealItemClient<$Result.GetResult<Prisma.$NutritionProgramMealItemPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -20208,7 +20208,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends NutritionProgramMealItemDeleteManyArgs>(args?: SelectSubset<T, NutritionProgramMealItemDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -20227,7 +20227,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends NutritionProgramMealItemUpdateManyArgs>(args: SelectSubset<T, NutritionProgramMealItemUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -20316,7 +20316,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends NutritionProgramMealItemGroupByArgs,
@@ -20419,7 +20419,7 @@ export namespace Prisma {
 
   /**
    * Fields of the NutritionProgramMealItem model
-   */
+   */ 
   interface NutritionProgramMealItemFieldRefs {
     readonly id: FieldRef<"NutritionProgramMealItem", 'String'>
     readonly mealId: FieldRef<"NutritionProgramMealItem", 'String'>
@@ -20435,7 +20435,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"NutritionProgramMealItem", 'DateTime'>
     readonly updatedAt: FieldRef<"NutritionProgramMealItem", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -20492,31 +20492,31 @@ export namespace Prisma {
     where?: NutritionProgramMealItemWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramMealItems to fetch.
      */
     orderBy?: NutritionProgramMealItemOrderByWithRelationInput | NutritionProgramMealItemOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionProgramMealItems.
      */
     cursor?: NutritionProgramMealItemWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramMealItems from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramMealItems.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionProgramMealItems.
      */
     distinct?: NutritionProgramMealItemScalarFieldEnum | NutritionProgramMealItemScalarFieldEnum[]
@@ -20540,31 +20540,31 @@ export namespace Prisma {
     where?: NutritionProgramMealItemWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramMealItems to fetch.
      */
     orderBy?: NutritionProgramMealItemOrderByWithRelationInput | NutritionProgramMealItemOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionProgramMealItems.
      */
     cursor?: NutritionProgramMealItemWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramMealItems from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramMealItems.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionProgramMealItems.
      */
     distinct?: NutritionProgramMealItemScalarFieldEnum | NutritionProgramMealItemScalarFieldEnum[]
@@ -20588,25 +20588,25 @@ export namespace Prisma {
     where?: NutritionProgramMealItemWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionProgramMealItems to fetch.
      */
     orderBy?: NutritionProgramMealItemOrderByWithRelationInput | NutritionProgramMealItemOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing NutritionProgramMealItems.
      */
     cursor?: NutritionProgramMealItemWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionProgramMealItems from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionProgramMealItems.
      */
     skip?: number
@@ -20931,55 +20931,55 @@ export namespace Prisma {
     where?: NutritionMealCompletionWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionMealCompletions to fetch.
      */
     orderBy?: NutritionMealCompletionOrderByWithRelationInput | NutritionMealCompletionOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the start position
      */
     cursor?: NutritionMealCompletionWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionMealCompletions from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionMealCompletions.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Count returned NutritionMealCompletions
     **/
     _count?: true | NutritionMealCompletionCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to average
     **/
     _avg?: NutritionMealCompletionAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to sum
     **/
     _sum?: NutritionMealCompletionSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: NutritionMealCompletionMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     *
+     * 
      * Select which fields to find the maximum value
     **/
     _max?: NutritionMealCompletionMaxAggregateInputType
@@ -21127,7 +21127,7 @@ export namespace Prisma {
 
   type NutritionMealCompletionGetPayload<S extends boolean | null | undefined | NutritionMealCompletionDefaultArgs> = $Result.GetResult<Prisma.$NutritionMealCompletionPayload, S>
 
-  type NutritionMealCompletionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+  type NutritionMealCompletionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
     Omit<NutritionMealCompletionFindManyArgs, 'select' | 'include' | 'distinct'> & {
       select?: NutritionMealCompletionCountAggregateInputType | true
     }
@@ -21148,7 +21148,7 @@ export namespace Prisma {
     findUnique<T extends NutritionMealCompletionFindUniqueArgs>(args: SelectSubset<T, NutritionMealCompletionFindUniqueArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one NutritionMealCompletion that matches the filter or throw an error with `error.code='P2025'`
+     * Find one NutritionMealCompletion that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
      * @param {NutritionMealCompletionFindUniqueOrThrowArgs} args - Arguments to find a NutritionMealCompletion
      * @example
@@ -21200,13 +21200,13 @@ export namespace Prisma {
      * @example
      * // Get all NutritionMealCompletions
      * const nutritionMealCompletions = await prisma.nutritionMealCompletion.findMany()
-     *
+     * 
      * // Get first 10 NutritionMealCompletions
      * const nutritionMealCompletions = await prisma.nutritionMealCompletion.findMany({ take: 10 })
-     *
+     * 
      * // Only select the `id`
      * const nutritionMealCompletionWithIdOnly = await prisma.nutritionMealCompletion.findMany({ select: { id: true } })
-     *
+     * 
      */
     findMany<T extends NutritionMealCompletionFindManyArgs>(args?: SelectSubset<T, NutritionMealCompletionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "findMany">>
 
@@ -21220,7 +21220,7 @@ export namespace Prisma {
      *     // ... data to create a NutritionMealCompletion
      *   }
      * })
-     *
+     * 
      */
     create<T extends NutritionMealCompletionCreateArgs>(args: SelectSubset<T, NutritionMealCompletionCreateArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
@@ -21234,7 +21234,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     *     
      */
     createMany<T extends NutritionMealCompletionCreateManyArgs>(args?: SelectSubset<T, NutritionMealCompletionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -21248,9 +21248,9 @@ export namespace Prisma {
      *     // ... provide data here
      *   ]
      * })
-     *
+     * 
      * // Create many NutritionMealCompletions and only return the `id`
-     * const nutritionMealCompletionWithIdOnly = await prisma.nutritionMealCompletion.createManyAndReturn({
+     * const nutritionMealCompletionWithIdOnly = await prisma.nutritionMealCompletion.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -21258,7 +21258,7 @@ export namespace Prisma {
      * })
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     *
+     * 
      */
     createManyAndReturn<T extends NutritionMealCompletionCreateManyAndReturnArgs>(args?: SelectSubset<T, NutritionMealCompletionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "createManyAndReturn">>
 
@@ -21272,7 +21272,7 @@ export namespace Prisma {
      *     // ... filter to delete one NutritionMealCompletion
      *   }
      * })
-     *
+     * 
      */
     delete<T extends NutritionMealCompletionDeleteArgs>(args: SelectSubset<T, NutritionMealCompletionDeleteArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
@@ -21289,7 +21289,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     update<T extends NutritionMealCompletionUpdateArgs>(args: SelectSubset<T, NutritionMealCompletionUpdateArgs<ExtArgs>>): Prisma__NutritionMealCompletionClient<$Result.GetResult<Prisma.$NutritionMealCompletionPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
@@ -21303,7 +21303,7 @@ export namespace Prisma {
      *     // ... provide filter here
      *   }
      * })
-     *
+     * 
      */
     deleteMany<T extends NutritionMealCompletionDeleteManyArgs>(args?: SelectSubset<T, NutritionMealCompletionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -21322,7 +21322,7 @@ export namespace Prisma {
      *     // ... provide data here
      *   }
      * })
-     *
+     * 
      */
     updateMany<T extends NutritionMealCompletionUpdateManyArgs>(args: SelectSubset<T, NutritionMealCompletionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
@@ -21411,7 +21411,7 @@ export namespace Prisma {
      *     _all: true
      *   },
      * })
-     *
+     * 
     **/
     groupBy<
       T extends NutritionMealCompletionGroupByArgs,
@@ -21513,7 +21513,7 @@ export namespace Prisma {
 
   /**
    * Fields of the NutritionMealCompletion model
-   */
+   */ 
   interface NutritionMealCompletionFieldRefs {
     readonly id: FieldRef<"NutritionMealCompletion", 'String'>
     readonly userId: FieldRef<"NutritionMealCompletion", 'String'>
@@ -21529,7 +21529,7 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"NutritionMealCompletion", 'DateTime'>
     readonly updatedAt: FieldRef<"NutritionMealCompletion", 'DateTime'>
   }
-
+    
 
   // Custom InputTypes
   /**
@@ -21586,31 +21586,31 @@ export namespace Prisma {
     where?: NutritionMealCompletionWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionMealCompletions to fetch.
      */
     orderBy?: NutritionMealCompletionOrderByWithRelationInput | NutritionMealCompletionOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionMealCompletions.
      */
     cursor?: NutritionMealCompletionWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionMealCompletions from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionMealCompletions.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionMealCompletions.
      */
     distinct?: NutritionMealCompletionScalarFieldEnum | NutritionMealCompletionScalarFieldEnum[]
@@ -21634,31 +21634,31 @@ export namespace Prisma {
     where?: NutritionMealCompletionWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionMealCompletions to fetch.
      */
     orderBy?: NutritionMealCompletionOrderByWithRelationInput | NutritionMealCompletionOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for searching for NutritionMealCompletions.
      */
     cursor?: NutritionMealCompletionWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionMealCompletions from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionMealCompletions.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     *
+     * 
      * Filter by unique combinations of NutritionMealCompletions.
      */
     distinct?: NutritionMealCompletionScalarFieldEnum | NutritionMealCompletionScalarFieldEnum[]
@@ -21682,25 +21682,25 @@ export namespace Prisma {
     where?: NutritionMealCompletionWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     *
+     * 
      * Determine the order of NutritionMealCompletions to fetch.
      */
     orderBy?: NutritionMealCompletionOrderByWithRelationInput | NutritionMealCompletionOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     *
+     * 
      * Sets the position for listing NutritionMealCompletions.
      */
     cursor?: NutritionMealCompletionWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Take `±n` NutritionMealCompletions from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     *
+     * 
      * Skip the first `n` NutritionMealCompletions.
      */
     skip?: number
@@ -22214,7 +22214,7 @@ export namespace Prisma {
 
 
   /**
-   * Field references
+   * Field references 
    */
 
 
@@ -22222,119 +22222,119 @@ export namespace Prisma {
    * Reference to a field of type 'String'
    */
   export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
-
+    
 
 
   /**
    * Reference to a field of type 'String[]'
    */
   export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'ExerciseType'
    */
   export type EnumExerciseTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ExerciseType'>
-
+    
 
 
   /**
    * Reference to a field of type 'ExerciseType[]'
    */
   export type ListEnumExerciseTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ExerciseType[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'EquipmentType'
    */
   export type EnumEquipmentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EquipmentType'>
-
+    
 
 
   /**
    * Reference to a field of type 'EquipmentType[]'
    */
   export type ListEnumEquipmentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EquipmentType[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'BodyPart'
    */
   export type EnumBodyPartFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BodyPart'>
-
+    
 
 
   /**
    * Reference to a field of type 'BodyPart[]'
    */
   export type ListEnumBodyPartFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BodyPart[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'MovementType'
    */
   export type EnumMovementTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MovementType'>
-
+    
 
 
   /**
    * Reference to a field of type 'MovementType[]'
    */
   export type ListEnumMovementTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MovementType[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'DateTime'
    */
   export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
-
+    
 
 
   /**
    * Reference to a field of type 'DateTime[]'
    */
   export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-
+    
 
 
   /**
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'Float'
    */
   export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
-
+    
 
 
   /**
    * Reference to a field of type 'Float[]'
    */
   export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
-
+    
 
 
   /**
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-
+    
   /**
    * Deep Input Types
    */

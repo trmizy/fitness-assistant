@@ -26,6 +26,7 @@ function formatSessionTime(iso: string) {
 const STATUS_CONFIG: Record<ContractStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
   PENDING_REVIEW:     { label: "Pending Review",  color: "text-amber-400",  bg: "bg-amber-500/10 border-amber-500/20",   icon: Clock },
   PENDING_SIGNATURE:  { label: "Pending Sign",    color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20", icon: FileText },
+  PENDING_PAYMENT:    { label: "Payment Due",     color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20", icon: Clock },
   ACTIVE:             { label: "Active",          color: "text-green-400",  bg: "bg-green-500/10 border-green-500/20",   icon: CheckCircle },
   COMPLETED:          { label: "Completed",       color: "text-blue-400",   bg: "bg-blue-500/10 border-blue-500/20",     icon: CheckCircle },
   EXPIRED:            { label: "Expired",         color: "text-zinc-400",   bg: "bg-zinc-700/50 border-zinc-700",        icon: AlertTriangle },

@@ -1297,6 +1297,104 @@ export const contractService = {
     return data;
   },
   getPdfUrl: (contractId: string) => `${API_URL}/contracts/${contractId}/pdf`,
+  // Phase 4 — pay a PENDING_PAYMENT contract via wallet
+  pay: async (contractId: string) => {
+    const { data } = await api.post(`/contracts/${contractId}/pay`);
+    return data;
+  },
+};
+
+// ── Wallet (Phase 4) ─────────────────────────────────────────────────
+export const walletService = {
+  // Always the CLIENT (buyer) wallet, regardless of the user's other roles.
+  getWallet: async () => {
+    const { data } = await api.get('/me/wallet');
+    return data?.data ?? data;
+  },
+  getTransactions: async () => {
+    const { data } = await api.get('/me/wallet/transactions');
+    return data?.data ?? data;
+  },
+  topup: async (amount: number, clientRequestId: string) => {
+    const { data } = await api.post('/me/wallet/topup', { amount, clientRequestId });
+    return data?.data ?? data;
+  },
+  // Always the PT earnings wallet.
+  getPtWallet: async () => {
+    const { data } = await api.get('/me/pt-wallet');
+    return data?.data ?? data;
+  },
+  getPtTransactions: async () => {
+    const { data } = await api.get('/me/pt-wallet/transactions');
+    return data?.data ?? data;
+  },
+};
+
+// ── Gym marketplace (Phase 4) ────────────────────────────────────────
+export const gymService = {
+  // Public
+  listGyms: async () => {
+    const { data } = await api.get('/gyms');
+    return data?.data ?? data;
+  },
+  getGym: async (gymId: string) => {
+    const { data } = await api.get(`/gyms/${gymId}`);
+    return data?.data ?? data;
+  },
+  listPlans: async (gymId: string) => {
+    const { data } = await api.get(`/gyms/${gymId}/plans`);
+    return data?.data ?? data;
+  },
+  listTrainers: async (gymId: string) => {
+    const { data } = await api.get(`/gyms/${gymId}/trainers`);
+    return data?.data ?? data;
+  },
+  // Client
+  buyMembership: async (gymId: string, planId: string) => {
+    const { data } = await api.post(`/gyms/${gymId}/memberships`, { planId });
+    return data;
+  },
+  payMembership: async (membershipId: string) => {
+    const { data } = await api.post(`/me/gym-memberships/${membershipId}/pay`);
+    return data?.data ?? data;
+  },
+  cancelMembership: async (membershipId: string) => {
+    const { data } = await api.post(`/me/gym-memberships/${membershipId}/cancel`);
+    return data?.data ?? data;
+  },
+  listMyMemberships: async () => {
+    const { data } = await api.get('/me/gym-memberships');
+    return data?.data ?? data;
+  },
+  // Gym owner
+  listOwnedGyms: async () => {
+    const { data } = await api.get('/owner/gyms');
+    return data?.data ?? data;
+  },
+  createGym: async (payload: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string }) => {
+    const { data } = await api.post('/owner/gyms', payload);
+    return data?.data ?? data;
+  },
+  getOwnedGym: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}`);
+    return data?.data ?? data;
+  },
+  getOwnedWallet: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/wallet`);
+    return data?.data ?? data;
+  },
+  createPlan: async (gymId: string, payload: { name: string; description?: string; price: number; durationDays: number; visitLimit?: number }) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/plans`, payload);
+    return data?.data ?? data;
+  },
+  listOwnedPlans: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/plans`);
+    return data?.data ?? data;
+  },
+  listOwnedMemberships: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/memberships`);
+    return data?.data ?? data;
+  },
 };
 
 export const sessionService = {

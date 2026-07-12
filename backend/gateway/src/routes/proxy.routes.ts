@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Request, Response, NextFunction, json } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { logger } from '@gym-coach/shared';
 import { authMiddleware, requireRoles } from '../middleware/auth.middleware';
@@ -17,6 +17,8 @@ const FITNESS_SERVICE_URL =
   process.env.FITNESS_SERVICE_URL || 'http://localhost:3002';
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:3003';
 const CHAT_SERVICE_URL = process.env.CHAT_SERVICE_URL || 'http://localhost:3005';
+const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:3007';
+const GYM_SERVICE_URL = process.env.GYM_SERVICE_URL || 'http://localhost:3006';
 const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || INTERNAL_SERVICE_SECRET_DEFAULT;
 
@@ -47,7 +49,7 @@ function normalizeSetCookiePath(headerValue: string | string[] | undefined): str
 }
 
 type ProbeService = {
-  key: 'api' | 'auth' | 'user' | 'fitness' | 'ai' | 'chat' | 'n8n';
+  key: 'api' | 'auth' | 'user' | 'fitness' | 'ai' | 'chat' | 'n8n' | 'payment' | 'gym';
   name: string;
   url: string;
   healthPath?: string; // override default '/health' path
@@ -71,7 +73,7 @@ type AuthUser = {
   email: string;
   firstName: string | null;
   lastName: string | null;
-  role: 'ADMIN' | 'CUSTOMER' | 'PT';
+  role: 'ADMIN' | 'CUSTOMER' | 'PT' | 'GYM_OWNER' | 'GYM_STAFF';
   createdAt: string;
   updatedAt: string;
 };
@@ -138,6 +140,8 @@ const MONITOR_SERVICES: ProbeService[] = [
   { key: 'fitness', name: 'Fitness Service', url: FITNESS_SERVICE_URL },
   { key: 'ai', name: 'AI Service', url: AI_SERVICE_URL },
   { key: 'chat', name: 'Chat Service', url: CHAT_SERVICE_URL },
+  { key: 'payment', name: 'Payment Service', url: PAYMENT_SERVICE_URL },
+  { key: 'gym', name: 'Gym Service', url: GYM_SERVICE_URL },
   // n8n is optional — its absence should not degrade core service health score
   { key: 'n8n', name: 'n8n Workflow', url: N8N_BASE_URL, healthPath: '/healthz', optional: true },
 ];
@@ -649,7 +653,7 @@ router.get('/admin/users', authMiddleware, requireRoles('ADMIN'), async (req, re
 });
 
 // ── Admin: Update user role ───────────────────────────────────────────────────
-router.patch('/admin/users/:userId/role', authMiddleware, requireRoles('ADMIN'), async (req, res) => {
+router.patch('/admin/users/:userId/role', authMiddleware, requireRoles('ADMIN'), json(), async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     const { userId } = req.params;
@@ -1470,6 +1474,7 @@ router.post(
 router.post(
   '/plans/nutrition/:planId/save-to-nutrition',
   authMiddleware,
+  json(),
   async (req: Request, res: Response) => {
     const userId = req.headers['x-user-id'];
     const userEmail = req.headers['x-user-email'];
@@ -1654,6 +1659,120 @@ router.use(
     changeOrigin: true,
     onError: serviceUnavailable('Chat service'),
   }),
+);
+
+// ── Payment Service proxy routes ─────────────────────────────────────────────
+
+// Payment: client history (auth required)
+router.use(
+  '/me/payments',
+  authMiddleware,
+  createProxyMiddleware({
+    target: PAYMENT_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('Payment service'),
+  }),
+);
+
+// Wallet: client wallet + top-up (auth required). payment-service serves these under /me
+// and enforces its own auth via the gateway-injected x-user-* headers.
+router.use(
+  '/me/wallet',
+  authMiddleware,
+  createProxyMiddleware({
+    target: PAYMENT_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('Payment service'),
+  }),
+);
+
+// PT earnings wallet (auth required). PT-role enforcement lives in payment-service
+// (returns 403 for non-PT), so no requireRoles here — match the existing route policy.
+router.use(
+  '/me/pt-wallet',
+  authMiddleware,
+  createProxyMiddleware({
+    target: PAYMENT_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('Payment service'),
+  }),
+);
+
+// Payment: provider webhook (no auth — signature verified in payment-service)
+router.post(
+  '/payments/webhook/:provider',
+  createProxyMiddleware({
+    target: PAYMENT_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('Payment service (webhook)'),
+  }),
+);
+
+// Payment: admin endpoints
+router.use(
+  '/admin/payments',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({
+    target: PAYMENT_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable('Payment service (admin)'),
+  }),
+);
+
+// ── Gym Service proxy routes ──────────────────────────────────────────────────
+// Method-split: public GET routes have no auth; writes are gated by role.
+// /internal/* is never proxied here — service-secret-only, reachable on the Docker
+// network only (see payment-service's equivalent boundary).
+
+// Public — browse gyms/plans/trainers (gym-service itself filters to APPROVED/ACTIVE/PUBLIC)
+router.get('/gyms', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+router.get('/gyms/:id', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+router.get('/gyms/:gymId/plans', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+router.get('/gyms/:gymId/trainers', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+
+// Client — first purchase + retry/cancel/list (CUSTOMER or PT acting as buyer)
+router.post(
+  '/gyms/:gymId/memberships',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.use(
+  '/me/gym-memberships',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+
+// PT — gym affiliation invitations
+router.use(
+  '/pt/gym-invitations',
+  authMiddleware,
+  requireRoles('PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.use(
+  '/pt/gym-affiliations',
+  authMiddleware,
+  requireRoles('PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+
+// Owner — gym/plan/membership/wallet management (gym-service verifies per-row ownership)
+router.use(
+  '/owner/gyms',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+
+// Admin — gym approval
+router.use(
+  '/admin/gyms',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
 );
 
 // Public — Dropbox Sign webhook passthrough (no auth, Dropbox Sign posts here directly)

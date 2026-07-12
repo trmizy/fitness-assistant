@@ -17,7 +17,7 @@
     "docker:down": "docker-compose -f infra/compose/docker-compose.dev.yml down",
     "docker:build": "docker-compose -f infra/compose/docker-compose.dev.yml build",
     "docker:reset-seeder": "docker-compose -f infra/compose/docker-compose.dev.yml rm -sf db-seeder && docker-compose -f infra/compose/docker-compose.dev.yml up -d db-seeder",
-    "db:migrate": "pnpm run --filter '@gym-coach/auth-service' db:migrate && pnpm run --filter '@gym-coach/user-service' db:migrate && pnpm run --filter '@gym-coach/fitness-service' db:migrate && pnpm run --filter '@gym-coach/ai-service' db:migrate && pnpm run --filter '@gym-coach/chat-service' db:migrate",
+    "db:migrate": "pnpm run --filter '@gym-coach/auth-service' db:migrate && pnpm run --filter '@gym-coach/user-service' db:migrate && pnpm run --filter '@gym-coach/fitness-service' db:migrate && pnpm run --filter '@gym-coach/ai-service' db:migrate && pnpm run --filter '@gym-coach/chat-service' db:migrate && pnpm run --filter '@gym-coach/payment-service' db:migrate && pnpm run --filter '@gym-coach/gym-service' db:migrate",
     "db:seed": "pnpm run --filter '@gym-coach/auth-service' db:seed && pnpm run --filter '@gym-coach/user-service' db:seed && pnpm run --filter '@gym-coach/fitness-service' db:seed",
     "test": "pnpm run --recursive test",
     "seed:cleanup": "docker exec -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_USER=gymcoach -e POSTGRES_PASSWORD=gymcoach_password gymcoach-auth-dev sh -c 'cd /app && node scripts/cleanup-test-users.mjs'"

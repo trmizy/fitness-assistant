@@ -1,0 +1,197 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProviderType {
+  MOCK
+  VNPAY
+  MOMO
+  STRIPE
+  MANUAL_BANK_TRANSFER
+}
+
+enum PartnerType {
+  GYM
+  PT
+}
+
+enum CommissionStatus {
+  PENDING
+  SETTLED
+  CANCELLED
+}
+
+enum PurposeType {
+  GYM_MEMBERSHIP
+  PT_CONTRACT
+  GYM_PT_COMBO
+  WALLET_TOPUP
+  REFUND
+}
+
+enum WalletOwnerType {
+  CLIENT
+  PT
+  GYM
+  PLATFORM
+}
+
+enum WalletStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum LedgerEntryType {
+  DEBIT
+  CREDIT
+}
+
+enum RelatedEntityType {
+  GYM_MEMBERSHIP
+  PT_CONTRACT
+  WALLET_TOPUP
+}
+
+enum ActivationStatus {
+  NOT_APPLICABLE
+  PENDING
+  ACTIVATED
+  ACTIVATION_FAILED
+}
+
+model Wallet {
+  id               String          @id @default(uuid())
+  ownerType        WalletOwnerType @map("owner_type")
+  ownerId          String          @map("owner_id")
+  availableBalance Decimal         @db.Decimal(14, 2) @default(0) @map("available_balance")
+  lockedBalance    Decimal         @db.Decimal(14, 2) @default(0) @map("locked_balance")
+  status           WalletStatus    @default(ACTIVE)
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  ledgerEntries WalletLedgerEntry[]
+
+  @@unique([ownerType, ownerId])
+  @@map("wallets")
+}
+
+model WalletLedgerEntry {
+  id            String          @id @default(uuid())
+  walletId      String          @map("wallet_id")
+  transactionId String          @map("transaction_id")
+  entryType     LedgerEntryType @map("entry_type")
+  amount        Decimal         @db.Decimal(14, 2)
+  balanceBefore Decimal         @db.Decimal(14, 2) @map("balance_before")
+  balanceAfter  Decimal         @db.Decimal(14, 2) @map("balance_after")
+  description   String?
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  wallet      Wallet             @relation(fields: [walletId], references: [id])
+  transaction PaymentTransaction @relation(fields: [transactionId], references: [id])
+
+  @@index([walletId, createdAt])
+  @@index([transactionId])
+  @@map("wallet_ledger_entries")
+}
+
+model PaymentTransaction {
+  id                    String              @id @default(uuid())
+  payerId               String              @map("payer_id")
+  purpose               PurposeType
+  gymId                 String?             @map("gym_id")
+  ptId                  String?             @map("pt_id")
+  membershipId          String?             @map("membership_id")
+  ptContractId          String?             @map("pt_contract_id")
+  amount                Decimal             @db.Decimal(12, 2)
+  currency              String              @default("VND")
+  status                PaymentStatus       @default(PENDING)
+  provider              PaymentProviderType @default(MOCK)
+  providerTransactionId String?             @map("provider_transaction_id")
+  paymentMethod         String?             @map("payment_method")
+  idempotencyKey        String              @unique @map("idempotency_key")
+  requestFingerprint    String?             @map("request_fingerprint")
+  extraData             String?             @map("extra_data")
+  paidAt                DateTime?           @map("paid_at")
+  failedAt              DateTime?           @map("failed_at")
+  refundedAt            DateTime?           @map("refunded_at")
+  metadata              Json?
+
+  payerWalletId       String?            @map("payer_wallet_id")
+  receiverWalletId    String?            @map("receiver_wallet_id")
+  relatedEntityType   RelatedEntityType? @map("related_entity_type")
+  relatedEntityId     String?            @map("related_entity_id")
+  activationStatus    ActivationStatus   @default(NOT_APPLICABLE) @map("activation_status")
+  // On REFUND-purpose rows, "activation" means "the downstream cancel-after-refund succeeded" —
+  // reusing this one status/retry pair for both flows avoids a near-duplicate set of columns.
+  activationRetryCount  Int              @default(0) @map("activation_retry_count")
+  lastActivationRetryAt DateTime?        @map("last_activation_retry_at")
+  initiatedBy           String?          @default("SYSTEM") @map("initiated_by")
+  sourceService         String?          @default("payment-service") @map("source_service")
+  refundOfTransactionId String?          @map("refund_of_transaction_id")
+
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  commissions   PlatformCommission[]
+  ledgerEntries WalletLedgerEntry[]
+
+  @@index([payerId, status])
+  @@index([status])
+  @@index([providerTransactionId])
+  @@index([purpose, status, activationStatus])
+  @@index([refundOfTransactionId])
+  @@map("payment_transactions")
+}
+
+model PlatformCommission {
+  id                   String           @id @default(uuid())
+  paymentTransactionId String           @map("payment_transaction_id")
+  partnerType          PartnerType      @map("partner_type")
+  partnerId            String           @map("partner_id")
+  grossAmount          Decimal          @db.Decimal(12, 2) @map("gross_amount")
+  platformFeeAmount    Decimal          @db.Decimal(12, 2) @map("platform_fee_amount")
+  partnerPayoutAmount  Decimal          @db.Decimal(12, 2) @map("partner_payout_amount")
+  commissionRate       Decimal          @db.Decimal(5, 4) @map("commission_rate")
+  status               CommissionStatus @default(PENDING)
+  settledAt            DateTime?        @map("settled_at")
+  createdAt            DateTime         @default(now()) @map("created_at")
+
+  transaction PaymentTransaction @relation(fields: [paymentTransactionId], references: [id])
+
+  @@index([partnerType, partnerId, status])
+  @@index([paymentTransactionId])
+  @@map("platform_commissions")
+}
+
+model PaymentWebhookEvent {
+  id                    String              @id @default(uuid())
+  provider              PaymentProviderType
+  providerEventId       String              @map("provider_event_id")
+  providerTransactionId String?             @map("provider_transaction_id")
+  payload               Json
+  processedAt           DateTime?           @map("processed_at")
+  retryCount            Int                 @default(0) @map("retry_count")
+  lastRetryAt           DateTime?           @map("last_retry_at")
+  createdAt             DateTime            @default(now()) @map("created_at")
+
+  @@unique([provider, providerEventId])
+  @@index([processedAt, retryCount])
+  @@map("payment_webhook_events")
+}

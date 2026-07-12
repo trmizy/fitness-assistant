@@ -28,6 +28,9 @@ router.post('/:id/esign/send', authMiddleware, contractController.sendESign as a
 router.get('/:id/esign', authMiddleware, contractController.getESignStatus as any);
 router.get('/:id/pdf', authMiddleware, contractController.getContractPdf as any);
 
+// ── Payment gate (Phase 4) ─────────────────────────────────────────
+router.post('/:id/pay', authMiddleware, contractController.pay as any);
+
 // ── Shared endpoints ──────────────────────────────────────────────
 router.get('/:id', authMiddleware, contractController.getById as any);
 router.patch('/:id/status', authMiddleware, contractController.updateStatus as any);

@@ -12,6 +12,8 @@ datasource db {
 enum Role {
   CUSTOMER
   PT
+  GYM_OWNER
+  GYM_STAFF
   ADMIN
 }
 
@@ -22,9 +24,9 @@ model User {
   firstName String?
   lastName  String?
   role      Role     @default(CUSTOMER)
-  // BUG-002: the live table currently stores this as isactive.
-  // Map the Prisma field to the existing column so login works without a data migration.
-  isActive  Boolean  @default(true) @map("isactive")
+  // BUG-002: the live column is "isActive" (camelCase, created by the
+  // 20260528000000_users_isactive migration). Map to the real column name.
+  isActive  Boolean  @default(true) @map("isActive")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

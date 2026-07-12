@@ -17,6 +17,10 @@ import { PTDiscoveryPage } from "./pages/client/PTDiscoveryPage";
 import { AICoachPage } from "./pages/client/AICoachPage";
 import { ProfilePage } from "./pages/client/ProfilePage";
 import { PTApplicationPage } from "./pages/client/PTApplicationPage";
+import { WalletPage } from "./pages/client/WalletPage";
+import { GymsPage } from "./pages/client/GymsPage";
+import { GymDetailPage } from "./pages/client/GymDetailPage";
+import { GymMembershipsPage } from "./pages/client/GymMembershipsPage";
 
 // PT pages
 import { PTDashboard } from "./pages/pt/PTDashboard";
@@ -26,6 +30,11 @@ import { PTContractsPage } from "./pages/pt/PTContractsPage";
 import { PlanReviewPage } from "./pages/pt/PlanReviewPage";
 import { PTSchedulePage } from "./pages/pt/PTSchedulePage";
 import { PTProfilePage } from "./pages/pt/PTProfilePage";
+import { PTWalletPage } from "./pages/pt/PTWalletPage";
+
+// Gym owner pages
+import { MyGymsPage } from "./pages/gym-owner/MyGymsPage";
+import { GymManagePage } from "./pages/gym-owner/GymManagePage";
 
 // Admin pages
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
@@ -100,6 +109,10 @@ export const router = createBrowserRouter([
           { path: "ai-coach",  Component: AICoachPage     },
           { path: "profile",   Component: ProfilePage     },
           { path: "pt-application", Component: PTApplicationPage  },
+          { path: "wallet",              Component: WalletPage           },
+          { path: "gyms",                Component: GymsPage             },
+          { path: "gyms/:id",             Component: GymDetailPage        },
+          { path: "gym-memberships",      Component: GymMembershipsPage   },
         ],
       },
 
@@ -117,6 +130,18 @@ export const router = createBrowserRouter([
           { path: "schedule",    Component: PTSchedulePage },
           { path: "profile",     Component: PTProfilePage  },
           { path: "chat",        Component: ChatPage       },
+          { path: "wallet",      Component: PTWalletPage   },
+        ],
+      },
+
+      // ── Gym owner workspace ──────────────────────────────────────────────
+      {
+        path: "gym-owner",
+        Component: AppShell,
+        children: [
+          { index: true, element: <Navigate to="/gym-owner/gyms" replace /> },
+          { path: "gyms",       Component: MyGymsPage    },
+          { path: "gyms/:id",   Component: GymManagePage },
         ],
       },
 

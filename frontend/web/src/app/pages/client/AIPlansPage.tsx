@@ -481,13 +481,9 @@ export function AIPlansPage() {
     if (appliedInitialFilter.current) return;
     if (!plans) return;
 
-    if (completedPlans.length > 0) {
-      setPlanFilter('completed');
-    } else if (failedPlans.length > 0) {
-      setPlanFilter('failed');
-    } else {
-      setPlanFilter('all');
-    }
+    const nextFilter: PlanFilter =
+      completedPlans.length > 0 ? 'completed' : failedPlans.length > 0 ? 'failed' : 'all';
+    setPlanFilter(nextFilter);
     appliedInitialFilter.current = true;
   }, [completedPlans.length, failedPlans.length, plans]);
 

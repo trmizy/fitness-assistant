@@ -34,6 +34,16 @@ scrape_configs:
       - targets: ['chat-service:3005']
     metrics_path: /metrics
 
+  - job_name: 'payment-service'
+    static_configs:
+      - targets: ['payment-service:3007']
+    metrics_path: /metrics
+
+  - job_name: 'gym-service'
+    static_configs:
+      - targets: ['gym-service:3006']
+    metrics_path: /metrics
+
   # ── Infrastructure Exporters ──────────────────────────────────────────────
   - job_name: 'postgres'
     static_configs:
