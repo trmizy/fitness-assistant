@@ -39,6 +39,7 @@ import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import { CallProvider } from "./context/CallContext";
+import { SocketProvider } from "./context/SocketContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,10 +63,12 @@ function Root() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppProvider>
-        <CallProvider>
-          <Toaster position="top-center" expand={false} richColors />
-          <Outlet />
-        </CallProvider>
+        <SocketProvider>
+          <CallProvider>
+            <Toaster position="top-center" expand={false} richColors />
+            <Outlet />
+          </CallProvider>
+        </SocketProvider>
       </AppProvider>
     </QueryClientProvider>
   );

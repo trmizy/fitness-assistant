@@ -68,6 +68,9 @@ importers:
       redis:
         specifier: ^4.6.12
         version: 4.7.1
+      socket.io:
+        specifier: ^4.7.4
+        version: 4.8.3
     devDependencies:
       "@types/cors":
         specifier: ^2.8.17

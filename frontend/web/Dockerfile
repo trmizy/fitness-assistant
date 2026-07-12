@@ -12,8 +12,10 @@ RUN pnpm install --filter @gym-coach/web --frozen-lockfile
 COPY frontend/web ./frontend/web
 
 ARG VITE_API_URL=http://localhost:3000
+ARG VITE_SOCKET_URL=http://localhost:3000
 ARG VITE_CHAT_WS_URL=http://localhost:3005
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_SOCKET_URL=$VITE_SOCKET_URL
 ENV VITE_CHAT_WS_URL=$VITE_CHAT_WS_URL
 
 RUN pnpm --filter @gym-coach/web build

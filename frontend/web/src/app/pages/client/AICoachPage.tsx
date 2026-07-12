@@ -14,6 +14,8 @@ import { useQuery } from "@tanstack/react-query";
 import { inbodyService } from "../../services/api";
 import { useApp } from "../../context/AppContext";
 import { useAiCoachSession } from "../../stores/pendingAiTasks";
+import { AutoText } from "../../components/i18n/AutoText";
+import { useAutoTranslate } from "../../hooks/useAutoTranslate";
 
 type ChatMessage = {
   id: number | string;
@@ -74,6 +76,10 @@ export function AICoachPage() {
   const suggestions = [inBodySuggestion, ...BASE_SUGGESTIONS];
 
   const [input, setInput] = useState("");
+  const { text: inputPlaceholder } = useAutoTranslate(
+    "Ask your AI coach anything...",
+    "en",
+  );
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messages = session.messages;
   const aiLoading = session.status === "processing";
@@ -343,7 +349,8 @@ export function AICoachPage() {
         </div>
         <div className="ml-auto">
           <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" /> Not medical advice
+            <AlertCircle className="w-3 h-3" />
+            <AutoText sourceLang="en">Not medical advice</AutoText>
           </span>
         </div>
       </div>
@@ -407,14 +414,22 @@ export function AICoachPage() {
         <div className="px-4 py-2 bg-zinc-900 border-t border-zinc-800/60 flex-shrink-0">
           <div className="flex items-center gap-1.5 mb-2">
             <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-            <span className="text-xs text-zinc-500">Gợi ý câu hỏi</span>
+            <AutoText className="text-xs text-zinc-500">
+              Gợi ý câu hỏi
+            </AutoText>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {suggestions.map((s) => (
               <button
                 key={s}
                 onClick={() => send(s)}
-                className="whitespace-nowrap px-3 py-1.5 bg-zinc-800 border border-zinc-700/60 rounded-full text-xs text-zinc-400 hover:border-green-500/50 hover:text-green-400 transition-all"
+                className="whitespace-nowrap px-3 py-1.5 rounded-full text-xs transition-all"
+                style={{
+                  backgroundColor: "var(--panel-bg)",
+                  borderColor: "var(--border-color)",
+                  color: "var(--muted-text-color)",
+                  borderWidth: 1,
+                }}
               >
                 {s}
               </button>
@@ -424,7 +439,13 @@ export function AICoachPage() {
       )}
 
       {/* Input */}
-      <div className="bg-zinc-900 border-t border-zinc-800/60 p-3 flex-shrink-0">
+      <div
+        className="border-t p-3 flex-shrink-0"
+        style={{
+          backgroundColor: "var(--card-bg)",
+          borderColor: "var(--border-color)",
+        }}
+      >
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -432,14 +453,18 @@ export function AICoachPage() {
             onChange={(e) => setInput(e.target.value)}
             onFocus={() => scrollToLatestMessage("smooth")}
             onKeyDown={(e) => e.key === "Enter" && !aiLoading && send(input)}
-            placeholder="Ask your AI coach anything…"
-            className="flex-1 px-4 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-zinc-200 placeholder-zinc-600 transition-all"
+            placeholder={inputPlaceholder}
+            className="flex-1 px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all"
             disabled={aiLoading}
           />
           <button
             onClick={() => send(input)}
             disabled={!input.trim() || aiLoading}
-            className="w-10 h-10 bg-green-500 hover:bg-green-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-black rounded-xl flex items-center justify-center transition-all flex-shrink-0 shadow-lg shadow-green-500/20"
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 shadow-lg shadow-green-500/20 disabled:opacity-50"
+            style={{
+              backgroundColor: "var(--button-bg)",
+              color: "var(--button-text)",
+            }}
           >
             {aiLoading ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -448,9 +473,13 @@ export function AICoachPage() {
             )}
           </button>
         </div>
-        <p className="text-center text-xs text-zinc-600 mt-2">
-          AI responses are based on your fitness data and are not medical
-          advice.
+        <p
+          className="text-center text-xs mt-2"
+          style={{ color: "var(--muted-text-color)" }}
+        >
+          <AutoText sourceLang="en">
+            AI responses are based on your fitness data and are not medical advice.
+          </AutoText>
         </p>
       </div>
     </div>

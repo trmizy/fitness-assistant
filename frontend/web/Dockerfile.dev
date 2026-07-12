@@ -25,6 +25,7 @@ EXPOSE 5173
 # directory is a bind-mounted volume on Windows (Docker Desktop / WSL2).
 ENV CHOKIDAR_USEPOLLING=true
 ENV VITE_API_URL=http://localhost:3000
+ENV VITE_SOCKET_URL=http://localhost:3000
 ENV VITE_CHAT_WS_URL=http://localhost:3005
 
 # --host 0.0.0.0 exposes Vite's dev server outside the container

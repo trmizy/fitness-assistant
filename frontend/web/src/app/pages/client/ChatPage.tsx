@@ -16,15 +16,14 @@ import {
   Plus,
   MessageSquare,
 } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { chatService } from "../../services/api";
-import { connectSocket, disconnectSocket } from "../../services/socket";
 import { useApp } from "../../context/AppContext";
 import { useCall } from "../../context/CallContext";
+import { useRealtimeChat } from "../../hooks/useRealtimeChat";
 
 export function ChatPage() {
   const [searchParams] = useSearchParams();
-  const queryClient = useQueryClient();
   const { user } = useApp();
   const userScopeId = user?.id ?? "guest";
   const { initiateCall } = useCall();
@@ -37,83 +36,16 @@ export function ChatPage() {
     searchParams.get("conversationId") ? "chat" : "list",
   );
   const bottomRef = useRef<HTMLDivElement>(null);
-  const prevConvRef = useRef<string | null>(null);
+  const realtimeChat = useRealtimeChat(activeConvId);
 
-  // ── Socket.IO connection ──────────────────────────────────────
-  useEffect(() => {
-    const socket = connectSocket();
-
-    // Real-time: new message arrives
-    socket.on("chat:new_message", (msg: any) => {
-      const mapped = {
-        id: msg.id,
-        authorId: msg.senderId,
-        content: msg.content,
-        createdAt: msg.createdAt,
-        conversationId: msg.conversationId,
-      };
-
-      // Append to current messages cache
-      queryClient.setQueryData(
-        ["messages", userScopeId, msg.conversationId],
-        (old: any[] | undefined) => {
-          if (!old) return [mapped];
-          // Avoid duplicates
-          if (old.some((m: any) => m.id === mapped.id)) return old;
-          return [...old, mapped];
-        },
-      );
-
-      // Refresh conversation list (for lastMessage preview)
-      queryClient.invalidateQueries({
-        queryKey: ["conversations", userScopeId],
-      });
-    });
-
-    // Real-time: conversation list updated (new message in any conversation)
-    socket.on("chat:conversation_updated", () => {
-      queryClient.invalidateQueries({
-        queryKey: ["conversations", userScopeId],
-      });
-    });
-
-    socket.on("chat:error", (err: any) => {
-      console.error("Socket chat error:", err.message);
-    });
-
-    return () => {
-      socket.off("chat:new_message");
-      socket.off("chat:conversation_updated");
-      socket.off("chat:error");
-      disconnectSocket();
-    };
-  }, [queryClient, userScopeId]);
-
-  // ── Join / leave conversation rooms ───────────────────────────
-  useEffect(() => {
-    const socket = connectSocket();
-
-    if (prevConvRef.current && prevConvRef.current !== activeConvId) {
-      socket.emit("chat:leave_conversation", {
-        conversationId: prevConvRef.current,
-      });
-    }
-
-    if (activeConvId) {
-      socket.emit("chat:join_conversation", { conversationId: activeConvId });
-    }
-
-    prevConvRef.current = activeConvId;
-  }, [activeConvId]);
-
-  // ── REST: initial conversation list ───────────────────────────
+  // REST: initial conversation list
   const { data: conversations = [], isLoading: convsLoading } = useQuery({
     queryKey: ["conversations", userScopeId],
     queryFn: chatService.listConversations,
     refetchInterval: 10000, // light polling as fallback
   });
 
-  // ── REST: initial messages for selected conversation ──────────
+  // REST: initial messages for selected conversation
   const { data: messages = [] } = useQuery({
     queryKey: ["messages", userScopeId, activeConvId],
     queryFn: () =>
@@ -128,27 +60,21 @@ export function ChatPage() {
     setMobileView(searchParams.get("conversationId") ? "chat" : "list");
   }, [userScopeId]);
 
-  // ── Auto-scroll on new messages ───────────────────────────────
+  // Auto-scroll on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const activeConv = conversations.find((c: any) => c.id === activeConvId);
 
-  // ── Send message via Socket.IO ────────────────────────────────
+  // Send message via Socket.IO. Backend persists messages before broadcasting.
   const sendMessage = useCallback(() => {
     if (!input.trim() || !activeConvId || sending) return;
-
-    const socket = connectSocket();
     setSending(true);
-    socket.emit("chat:send_message", {
-      conversationId: activeConvId,
-      content: input.trim(),
-    });
-    setInput("");
-    // The server will emit chat:new_message back to us via the room
+    const sent = realtimeChat.sendMessage(activeConvId, input.trim());
+    if (sent) setInput("");
     setSending(false);
-  }, [input, activeConvId, sending]);
+  }, [input, activeConvId, realtimeChat, sending]);
 
   if (convsLoading) {
     return (
@@ -170,7 +96,7 @@ export function ChatPage() {
             <Search className="w-4 h-4 text-zinc-500" />
             <input
               type="text"
-              placeholder="Search conversations…"
+              placeholder="Search conversations..."
               className="bg-transparent text-sm outline-none flex-1 text-zinc-300 placeholder-zinc-600"
             />
           </div>
@@ -341,7 +267,7 @@ export function ChatPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                  placeholder="Type a message…"
+                  placeholder="Type a message..."
                   className="flex-1 px-4 py-2 bg-zinc-800/60 border border-zinc-700/60 rounded-xl text-sm outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 text-zinc-200 placeholder-zinc-600 transition-all"
                 />
                 <button

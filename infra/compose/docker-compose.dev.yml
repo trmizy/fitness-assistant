@@ -47,6 +47,7 @@ services:
       - "5173:5173" # Vite dev server (not nginx)
     environment:
       VITE_API_URL: http://127.0.0.1:3000
+      VITE_SOCKET_URL: http://127.0.0.1:3000
       VITE_CHAT_WS_URL: http://127.0.0.1:3005
       CHOKIDAR_USEPOLLING: "true" # Required for Windows bind-mount file-watching
     volumes:
