@@ -117,6 +117,7 @@ export interface Conversation {
 export type ContractStatus =
   | "PENDING_REVIEW"
   | "PENDING_SIGNATURE"
+  | "PENDING_PAYMENT"
   | "ACTIVE"
   | "COMPLETED"
   | "EXPIRED"
@@ -285,4 +286,77 @@ export interface CallState {
   remoteMuted: boolean;
   remoteVideoOff: boolean;
   callDuration: number;
+}
+
+// ── Wallet types (Phase 4) ──────────────────────────────────────────
+export interface Wallet {
+  id: string;
+  ownerType: 'CLIENT' | 'PT' | 'GYM' | 'PLATFORM';
+  ownerId: string;
+  availableBalance: string;
+  lockedBalance: string;
+  status: 'ACTIVE' | 'FROZEN' | 'CLOSED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WalletLedgerEntry {
+  id: string;
+  walletId: string;
+  transactionId: string;
+  entryType: 'DEBIT' | 'CREDIT';
+  amount: string;
+  balanceBefore: string;
+  balanceAfter: string;
+  description?: string;
+  createdAt: string;
+}
+
+// ── Gym marketplace types (Phase 4) ─────────────────────────────────
+export type GymStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+export type GymMembershipPlanStatus = 'ACTIVE' | 'INACTIVE';
+export type GymMembershipContractStatus = 'PENDING_PAYMENT' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+
+export interface Gym {
+  id: string;
+  ownerId: string;
+  name: string;
+  description?: string;
+  address: string;
+  city?: string;
+  phone?: string;
+  email?: string;
+  status: GymStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GymMembershipPlan {
+  id: string;
+  gymId: string;
+  name: string;
+  description?: string;
+  price: string;
+  durationDays: number;
+  visitLimit?: number;
+  status: GymMembershipPlanStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GymMembershipContract {
+  id: string;
+  gymId: string;
+  planId: string;
+  clientId: string;
+  status: GymMembershipContractStatus;
+  paymentTxnId?: string;
+  startDate?: string;
+  endDate?: string;
+  priceAtPurchase: string;
+  durationDaysSnapshot: number;
+  totalVisits?: number;
+  usedVisits: number;
+  createdAt: string;
+  updatedAt: string;
 }

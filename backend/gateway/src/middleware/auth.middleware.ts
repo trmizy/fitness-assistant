@@ -5,7 +5,7 @@ import { logger } from "@gym-coach/shared";
 const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || "http://localhost:3001";
 
-type UserRole = "ADMIN" | "CUSTOMER" | "PT";
+type UserRole = "ADMIN" | "CUSTOMER" | "PT" | "GYM_OWNER" | "GYM_STAFF";
 
 interface JwtPayload {
   id: string;

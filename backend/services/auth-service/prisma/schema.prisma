@@ -13,6 +13,8 @@ enum Role {
   CUSTOMER
   PT
   ADMIN
+  GYM_OWNER
+  GYM_STAFF
 }
 
 model User {

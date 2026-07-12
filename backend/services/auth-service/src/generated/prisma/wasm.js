@@ -194,7 +194,9 @@ exports.Prisma.JsonNullValueFilter = {
 exports.Role = exports.$Enums.Role = {
   CUSTOMER: 'CUSTOMER',
   PT: 'PT',
-  ADMIN: 'ADMIN'
+  ADMIN: 'ADMIN',
+  GYM_OWNER: 'GYM_OWNER',
+  GYM_STAFF: 'GYM_STAFF'
 };
 
 exports.Prisma.ModelName = {
