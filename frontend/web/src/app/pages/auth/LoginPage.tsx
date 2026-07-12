@@ -38,19 +38,17 @@ export function LoginPage() {
       const success = await login(email, password);
       if (success) {
         const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-        const role =
-          storedUser.role === "ADMIN"
-            ? "admin"
-            : storedUser.isPT
-              ? "pt"
-              : "client";
+        // Normalize casing — role may be stored in different cases.
+        const rawRole = String(storedUser.role || "").toUpperCase();
 
         navigate(
-          role === "pt"
-            ? "/pt/dashboard"
-            : role === "admin"
-              ? "/admin/dashboard"
-              : "/client/dashboard",
+          rawRole === "ADMIN"
+            ? "/admin/dashboard"
+            : rawRole === "GYM_OWNER" || rawRole === "GYM_STAFF"
+              ? "/gym-owner/gyms"
+              : storedUser.isPT
+                ? "/pt/dashboard"
+                : "/client/dashboard",
         );
       } else {
         setError("Email hoặc mật khẩu không đúng");

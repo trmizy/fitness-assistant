@@ -182,4 +182,27 @@ export const contractRepository = {
       where: { id, status: expectedStatus },
       data: { ...data, status: newStatus },
     }),
+
+  /** Idempotent activation: only flips PENDING_PAYMENT -> ACTIVE; a repeat call is a no-op. */
+  async activateIfPending(id: string, paymentTransactionId: string) {
+    const contract = await prisma.contract.findUnique({ where: { id } });
+    if (!contract) return null;
+    if (contract.status === ContractStatus.ACTIVE) return contract; // already done — no-op
+    if (contract.status !== ContractStatus.PENDING_PAYMENT) return contract;
+    return prisma.contract.update({
+      where: { id },
+      data: { status: ContractStatus.ACTIVE, startDate: contract.startDate ?? new Date(), paymentTransactionId },
+    });
+  },
+
+  /** Idempotent: only cancels an ACTIVE contract (a repeat call after it's already CANCELLED is a no-op). */
+  async cancelAfterRefund(id: string) {
+    const contract = await prisma.contract.findUnique({ where: { id } });
+    if (!contract) return null;
+    if (contract.status === ContractStatus.CANCELLED) return contract; // already done — no-op
+    return prisma.contract.update({
+      where: { id },
+      data: { status: ContractStatus.CANCELLED, cancelledBy: 'payment-service-refund', cancellationReason: 'Refunded' },
+    });
+  },
 };

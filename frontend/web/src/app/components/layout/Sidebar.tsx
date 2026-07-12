@@ -21,6 +21,7 @@ import {
   ClipboardList,
   Zap,
   Workflow,
+  Wallet,
 } from "lucide-react";
 import { AutoText } from "../i18n/AutoText";
 import type { AppLanguage } from "../../context/SettingsContext";
@@ -64,7 +65,15 @@ const clientNavFull = [
     to: "/client/ai-coach",
     sourceLang: "en" as const,
   },
+  { label: "Tìm phòng gym", icon: Search, to: "/client/gyms" },
+  { label: "Hội viên gym", icon: Dumbbell, to: "/client/gym-memberships" },
+  { label: "Ví", icon: Wallet, to: "/client/wallet" },
   { label: "Hồ sơ", icon: User, to: "/client/profile" },
+];
+
+/** Gym owner / staff nav — wallet balance is shown per-gym inside GymManagePage */
+const gymOwnerNav = [
+  { label: "Phòng gym của tôi", icon: Dumbbell, to: "/gym-owner/gyms" },
 ];
 
 /** Client nav for PT users — no Find a Coach, no Chat (PT chats from Trainer workspace) */
@@ -90,6 +99,7 @@ const ptWorkspaceNav = [
     to: "/pt/chat",
     sourceLang: "en" as const,
   },
+  { label: "Ví thu nhập", icon: Wallet, to: "/pt/wallet" },
   { label: "Hồ sơ PT", icon: User, to: "/pt/profile" },
 ];
 
@@ -208,6 +218,8 @@ export function Sidebar() {
   let navItems: NavItem[];
   if (isAdmin) {
     navItems = adminNav;
+  } else if (role === "gym_owner" || role === "gym_staff") {
+    navItems = gymOwnerNav;
   } else if (isPT) {
     navItems = activeView === "pt" ? ptWorkspaceNav : ptClientNav;
   } else {
@@ -349,7 +361,11 @@ export function Sidebar() {
                   ? "Thành viên"
                   : role === "pt"
                     ? "Huấn luyện viên"
-                    : "Quản trị viên"}
+                    : role === "gym_owner"
+                      ? "Chủ phòng gym"
+                      : role === "gym_staff"
+                        ? "Nhân viên gym"
+                        : "Quản trị viên"}
               </AutoText>
             </div>
           </div>

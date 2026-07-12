@@ -26,11 +26,12 @@ export const dropboxSignWebhookService = {
         contract.status === ContractStatus.PENDING_SIGNATURE;
 
       if (allSigned) {
+        // Phase 4: signed contracts go to PENDING_PAYMENT (not ACTIVE) — payment is still
+        // required. startDate is set later, on actual activation after payment.
         const updates: Record<string, unknown> = {
           eSignStatus: "SIGNED",
-          status: ContractStatus.ACTIVE,
+          status: ContractStatus.PENDING_PAYMENT,
           fullySignedAt: new Date(),
-          ...(contract.startDate ? {} : { startDate: new Date() }),
         };
         for (const sig of signatures) {
           const signedAt = sig.signedAt
@@ -75,18 +76,21 @@ export const dropboxSignWebhookService = {
     }
 
     if (eventType === "signature_request_all_signed") {
-      // Idempotency: skip if already ACTIVE (webhook may fire more than once)
-      if (contract.status === ContractStatus.ACTIVE) return;
-      // Safety: only transition from PENDING_SIGNATURE → ACTIVE
+      // Idempotency: skip if already past signing (webhook may fire more than once).
+      // Phase 4: signed → PENDING_PAYMENT (payment still required before ACTIVE).
+      if (
+        contract.status === ContractStatus.PENDING_PAYMENT ||
+        contract.status === ContractStatus.ACTIVE
+      )
+        return;
+      // Safety: only transition from PENDING_SIGNATURE → PENDING_PAYMENT
       // TODO: add Dropbox Sign HMAC event hash verification for production hardening
       if (contract.status !== ContractStatus.PENDING_SIGNATURE) return;
 
       const updates: Record<string, unknown> = {
         eSignStatus: "SIGNED",
-        status: ContractStatus.ACTIVE,
+        status: ContractStatus.PENDING_PAYMENT,
         fullySignedAt: new Date(),
-        // Set startDate only if not already specified in contract terms
-        ...(contract.startDate ? {} : { startDate: new Date() }),
       };
 
       // Backfill individual signedAt if not already recorded

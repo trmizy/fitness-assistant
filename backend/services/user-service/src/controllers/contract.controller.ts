@@ -425,4 +425,44 @@ export const contractController = {
       res.status(500).json({ error: "Failed to fetch earnings" });
     }
   },
+
+  // Client pays a PENDING_PAYMENT contract via wallet-transfer
+  async pay(req: any, res: Response) {
+    try {
+      const clientUserId = req.headers['x-user-id'] as string;
+      const result = await contractService.pay(req.params.id, clientUserId);
+      res.json(result);
+    } catch (error: any) {
+      if (error.message === 'ALREADY_PAID') {
+        res.status(409).json({ error: error.message });
+        return;
+      }
+      logger.error(error, 'Contract pay error');
+      res.status(error.status || 500).json({ error: error.message || 'Failed to pay contract' });
+    }
+  },
+
+  // INTERNAL — payment-service calls this after a wallet-transfer PAID
+  async activateAfterPayment(req: any, res: Response) {
+    try {
+      const { transactionId } = req.body;
+      const contract = await contractService.activateAfterPayment(req.params.id, transactionId);
+      res.json({ success: true, data: contract });
+    } catch (error: any) {
+      logger.error(error, 'Internal activate-after-payment error');
+      res.status(error.status || 500).json({ success: false, error: { message: error.message } });
+    }
+  },
+
+  // INTERNAL — payment-service calls this after a successful refund reversal
+  async cancelAfterRefund(req: any, res: Response) {
+    try {
+      const { originalTransactionId, refundTransactionId } = req.body;
+      const contract = await contractService.cancelAfterRefund(req.params.id, originalTransactionId, refundTransactionId);
+      res.json({ success: true, data: contract });
+    } catch (error: any) {
+      logger.error(error, 'Internal cancel-after-refund error');
+      res.status(error.status || 500).json({ success: false, error: { message: error.message } });
+    }
+  },
 };

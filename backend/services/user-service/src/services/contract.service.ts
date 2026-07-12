@@ -1,6 +1,8 @@
+import { randomUUID } from "crypto";
 import { logger } from "@gym-coach/shared";
 import { ContractStatus, PackageType, SessionMode } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
+import { paymentClient } from "../clients/payment.client";
 import { profileRepository } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
 import { eSignService } from "./esign.service";
@@ -349,7 +351,8 @@ export const contractService = {
     }
     if (
       contract.status !== ContractStatus.ACTIVE &&
-      contract.status !== ContractStatus.PENDING_REVIEW
+      contract.status !== ContractStatus.PENDING_REVIEW &&
+      contract.status !== ContractStatus.PENDING_PAYMENT
     ) {
       throw err(`Cannot cancel contract in ${contract.status} status`, 400);
     }
@@ -475,9 +478,9 @@ export const contractService = {
       throw err("Not authorized", 403);
     }
 
-    // Admin fail-safe: force activate when e-sign hỏng (PENDING_SIGNATURE → ACTIVE).
-    // NOT a replacement for the real e-sign flow — emit audit log so this manual
-    // activation is traceable. Frontend should warn admin about manual override.
+    // Admin fail-safe: force past a broken e-sign (PENDING_SIGNATURE/PENDING_REVIEW →
+    // PENDING_PAYMENT, NOT ACTIVE — payment is still required; this bypass only skips the
+    // broken e-sign step). Emit audit log so the manual override is traceable.
     if (
       isAdmin &&
       newStatus === "ACTIVE" &&
@@ -486,16 +489,14 @@ export const contractService = {
     ) {
       logger.warn(
         {
-          event: "CONTRACT_FORCE_ACTIVATED",
+          event: "CONTRACT_FORCE_PENDING_PAYMENT",
           contractId: id,
           adminUserId: userId,
           prevStatus: contract.status,
         },
-        "Admin manually activated contract (e-sign bypass)",
+        "Admin manually bypassed e-sign (contract moved to PENDING_PAYMENT, still requires payment)",
       );
-      return contractRepository.updateStatus(id, ContractStatus.ACTIVE, {
-        startDate: contract.startDate || new Date(),
-      });
+      return contractRepository.updateStatus(id, ContractStatus.PENDING_PAYMENT, {});
     }
 
     // PT accepts a PENDING_REVIEW contract → ACTIVE
@@ -725,5 +726,70 @@ export const contractService = {
       totalEarned,
       activeRevenue,
     };
+  },
+
+  // ── Payment gate (Phase 4) ──────────────────────────────────────────
+
+  /** Client pays a PENDING_PAYMENT contract via wallet-transfer (client -> PT wallet). */
+  async pay(contractId: string, clientUserId: string) {
+    const contract = await contractRepository.findById(contractId);
+    if (!contract) throw err('Contract not found', 404);
+    if (contract.clientUserId !== clientUserId) throw err('Not authorized', 403);
+    if (contract.status === ContractStatus.ACTIVE || contract.paymentTransactionId) {
+      throw err('ALREADY_PAID', 409);
+    }
+    if (contract.status !== ContractStatus.PENDING_PAYMENT) {
+      throw err(`Cannot pay for contract in ${contract.status} status`, 400);
+    }
+    if (!contract.price) throw err('Contract has no price set', 400);
+
+    const attemptId = randomUUID();
+    const idempotencyKey = `pt-contract:${contract.id}:attempt:${attemptId}`;
+
+    const result = await paymentClient.walletTransfer({
+      payerOwnerId: clientUserId,
+      receiverPtId: contract.ptUserId,
+      amount: contract.price,
+      relatedEntityId: contract.id,
+      idempotencyKey,
+      initiatedBy: clientUserId,
+      ptId: contract.ptUserId,
+    });
+
+    if (result.status === 'PAID') {
+      const activated = await contractRepository.activateIfPending(contract.id, result.transactionId);
+      try {
+        await paymentClient.markActivated(result.transactionId);
+      } catch (e) {
+        logger.warn({ error: 'mark-activated callback failed, reconciliation will retry', contractId: contract.id, message: (e as Error).message });
+      }
+      return { contract: activated, payment: result };
+    }
+
+    return { contract: await contractRepository.findById(contract.id), payment: result };
+  },
+
+  /** Called by the internal /activate-after-payment endpoint — verifies the transaction first. */
+  async activateAfterPayment(contractId: string, transactionId: string) {
+    const txn = await paymentClient.getTransaction(transactionId);
+    if (!txn || txn.status !== 'PAID' || txn.relatedEntityType !== 'PT_CONTRACT' || txn.relatedEntityId !== contractId) {
+      throw err('Transaction verification failed', 400);
+    }
+    return contractRepository.activateIfPending(contractId, transactionId);
+  },
+
+  /** Called by the internal /cancel-after-refund endpoint — verifies both transactions first. */
+  async cancelAfterRefund(contractId: string, originalTransactionId: string, refundTransactionId: string) {
+    const [original, refund] = await Promise.all([
+      paymentClient.getTransaction(originalTransactionId),
+      paymentClient.getTransaction(refundTransactionId),
+    ]);
+    if (!original || original.status !== 'REFUNDED' || original.relatedEntityId !== contractId) {
+      throw err('Original transaction verification failed', 400);
+    }
+    if (!refund || refund.status !== 'PAID' || refund.refundOfTransactionId !== originalTransactionId) {
+      throw err('Refund transaction verification failed', 400);
+    }
+    return contractRepository.cancelAfterRefund(contractId);
   },
 };

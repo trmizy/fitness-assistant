@@ -31,6 +31,11 @@ const statusConfig: Record<
     color: "bg-purple-500/10 text-purple-400 border-purple-500/20",
     dot: "bg-purple-500",
   },
+  PENDING_PAYMENT: {
+    label: "Payment Due",
+    color: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    dot: "bg-orange-500",
+  },
   ACTIVE: {
     label: "Active",
     color: "bg-green-500/10 text-green-400 border-green-500/20",
@@ -103,6 +108,25 @@ export function ContractPage() {
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.error || "Failed to cancel");
+    },
+  });
+
+  // Phase 4 — pay a PENDING_PAYMENT contract via wallet
+  const payMutation = useMutation({
+    mutationFn: (id: string) => contractService.pay(id),
+    onSuccess: (result: any) => {
+      if (result?.payment?.status === "PAID") {
+        toast.success("Payment successful — contract is now active!");
+      } else {
+        toast.error(
+          result?.payment?.failureReason ||
+            "Payment failed — check your wallet balance",
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error || "Failed to pay");
     },
   });
 
@@ -325,6 +349,18 @@ export function ContractPage() {
 
               {/* Actions */}
               <div className="flex flex-wrap gap-2">
+                {selected.status === "PENDING_PAYMENT" && (
+                  <button
+                    onClick={() => payMutation.mutate(selected.id)}
+                    disabled={payMutation.isPending}
+                    className="flex items-center gap-2 bg-orange-500 hover:bg-orange-400 disabled:opacity-60 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-orange-500/20"
+                  >
+                    {payMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : null}
+                    Pay Now ({formatPrice(selected.price)})
+                  </button>
+                )}
                 {selected.status === "ACTIVE" && (
                   <button
                     onClick={() => navigate("/client/booking")}
@@ -334,7 +370,8 @@ export function ContractPage() {
                   </button>
                 )}
                 {(selected.status === "ACTIVE" ||
-                  selected.status === "PENDING_REVIEW") && (
+                  selected.status === "PENDING_REVIEW" ||
+                  selected.status === "PENDING_PAYMENT") && (
                   <button
                     onClick={() => setShowCancelDialog(true)}
                     className="flex items-center gap-2 border border-red-500/30 text-red-400 hover:bg-red-500/10 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"

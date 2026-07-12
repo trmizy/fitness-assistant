@@ -32,4 +32,15 @@ router.get("/inbody/:userId", async (req, res) => {
   res.json(history);
 });
 
+// Phase 4 — payment-service calls these after wallet-transfer PAID / refund reversal.
+// Both are idempotent and verify the transaction against payment-service before mutating.
+router.post(
+  "/contracts/:id/activate-after-payment",
+  contractController.activateAfterPayment as any,
+);
+router.post(
+  "/contracts/:id/cancel-after-refund",
+  contractController.cancelAfterRefund as any,
+);
+
 export default router;

@@ -78,4 +78,7 @@ router.post(
   contractController.logSession as any,
 );
 
+// Phase 4 — client pays a PENDING_PAYMENT contract via wallet
+router.post("/:id/pay", authMiddleware, contractController.pay as any);
+
 export default router;
