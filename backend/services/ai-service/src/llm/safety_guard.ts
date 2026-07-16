@@ -21,21 +21,6 @@ const MEDICAL_PATTERNS: RegExp[] = [
 ];
 
 // ── Off-topic detection ───────────────────────────────────────────────────────
-const FITNESS_SIGNALS: RegExp[] = [
-  /t[aậ]p|workout|exercise|train|gym|fitness|sport|th[eể]\s*h[iì]nh|the\s*hinh/i,
-  /dinh\s*d[uư][oơ]ng|nutrition|meal|protein|calori|carb|fat\b|macro|th[uự]c\s*[dđ][oơ]n|b[uữ]a\s*[aă]n|an\s*u[oố]ng/i,
-  /c[aâ]n\s*n[aặ]ng|weight\b|muscle|c[oơ]\s*b[aắ]p|body\s*fat|giam\s*can|tang\s*can|beo\s*phi|giam\s*mo/i,
-  /s[uứ]c\s*kh[oỏ]e|health|recovery|ngu\b|sleep\b|suc\s*khoe/i,
-  /bmi|bmr|tdee|inbody/i,
-  /ch[aâ]n\s*th[uươ][ươ]ng|injury\b|[dđ]au\b|pain\b|dau\s*lung|dau\s*goi/i,
-  /bench|squat|deadlift|plank|push.?up|pull.?up|curl\b|press\b|lunge|burpee|dips?\b/i,
-  /cardio|ch[aạ]y\b|run\b|swim\b|b[oơ]i\b|yoga|pilates|hiit/i,
-  /supplement|whey|creatine|bcaa|vitamin/i,
-  /l[iị]ch\s*t[aậ]p|plan\s*t[aậ]p|ch[uươ]ng\s*tr[iì]nh|buoi\s*tap|bai\s*tap/i,
-  /\bset[s]?\b|rep[s]?\b|hi[eệ]p\b|ngh[iỉ]\b|rest\s*time/i,
-  /\bkg\b|kcal\b|cu[oờ]ng\s*[dđ][oộ]/i,
-];
-
 const OFF_TOPIC_PATTERNS: RegExp[] = [
   /\b(javascript|typescript|python|react|nodejs|html|css|sql|docker|kubernetes|git\b|github|algorithm|frontend|backend|devops|api\s+key|deploy|server|database\s+(?!thể hình|fitness|exercise))\b/i,
   /\b(chinh tri|political|election|bau cu|president|government|war|chien tranh|tin tuc|stock market|crypto|bitcoin|invest|finance)\b/i,
@@ -44,13 +29,37 @@ const OFF_TOPIC_PATTERNS: RegExp[] = [
   /\b(tinh yeu|love\s+(?!of training)|dating|romantic|quan he\s+(?!tinh)|marriage|cuoi|divorce|ly hon|girlfriend|boyfriend)\b/i,
 ];
 
-function hasFitnessSignal(question: string): boolean {
-  return FITNESS_SIGNALS.some((p) => p.test(question));
+// Fitness anchors specific enough that their presence reliably means the
+// message is fitness-related even when it also contains
+// an off-topic-sounding word (e.g. "lịch tập" vs. a bare "kg" or "BMI",
+// which show up in plenty of non-fitness questions too, e.g.
+// "BMI của thuật toán này là gì" is not actually a fitness question).
+// Only STRONG anchors are allowed to override an off-topic match; weak/
+// ambiguous tokens are not — this is what keeps the bot "purely gym": a
+// message can't dodge the off-topic gate by sneaking in one vague word.
+const STRONG_FITNESS_SIGNALS: RegExp[] = [
+  /t[aậ]p\s*gym|\bgym\b|workout|exercise|train(ing)?\b|th[eể]\s*h[iì]nh|the\s*hinh/i,
+  /dinh\s*d[uư][oơ]ng|nutrition|protein|th[uự]c\s*[dđ][oơ]n|b[uữ]a\s*[aă]n|an\s*u[oố]ng/i,
+  /giam\s*can|tang\s*can|giam\s*mo|beo\s*phi|c[oơ]\s*b[aắ]p|muscle|body\s*fat/i,
+  /bench|squat|deadlift|plank|push.?up|pull.?up|curl\b|press\b|lunge|burpee|dips?\b/i,
+  /cardio|yoga|pilates|hiit/i,
+  /supplement|whey|creatine|bcaa/i,
+  /l[iị]ch\s*t[aậ]p|ch[uươ]ng\s*tr[iì]nh\s*t[aậ]p|buoi\s*tap|bai\s*tap/i,
+  /ch[aâ]n\s*th[uươ][ươ]ng|injury\b|dau\s*lung|dau\s*goi|dau\s*vai/i,
+];
+
+function hasStrongFitnessSignal(question: string): boolean {
+  return STRONG_FITNESS_SIGNALS.some((p) => p.test(question));
 }
 
 function isDefinitelyOffTopic(question: string): boolean {
-  if (hasFitnessSignal(question)) return false;
-  return OFF_TOPIC_PATTERNS.some((p) => p.test(question));
+  const matchesOffTopic = OFF_TOPIC_PATTERNS.some((p) => p.test(question));
+  if (!matchesOffTopic) return false;
+  // Mixed message (both an off-topic term and a fitness term). Only let it
+  // through if a STRONG, unambiguous fitness anchor is present — a weak
+  // signal alone (e.g. just "kg" or "BMI") must not be enough to bypass
+  // the off-topic gate.
+  return !hasStrongFitnessSignal(question);
 }
 
 function detectMedicalEmergency(question: string): boolean {

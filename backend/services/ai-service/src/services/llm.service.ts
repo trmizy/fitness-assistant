@@ -22,6 +22,13 @@ function readPositiveIntEnv(name: string, fallback: number): number {
 
 function sanitizeLlmError(err: unknown): Record<string, unknown> {
   if (err instanceof AxiosError) {
+    const data = err.response?.data;
+    const responseBody =
+      typeof data === "string"
+        ? data.slice(0, 500)
+        : data
+          ? JSON.stringify(data).slice(0, 500)
+          : undefined;
     return {
       name: err.name,
       message: err.message,
@@ -30,6 +37,7 @@ function sanitizeLlmError(err: unknown): Record<string, unknown> {
       method: err.config?.method,
       url: err.config?.url,
       timeout: err.config?.timeout,
+      responseBody,
     };
   }
 
@@ -55,6 +63,21 @@ function isAxiosTimeout(err: unknown): boolean {
   return (
     err instanceof AxiosError &&
     (err.code === "ECONNABORTED" || /timeout/i.test(err.message))
+  );
+}
+
+function normalizeModelName(value: unknown): string {
+  return String(value || "").trim();
+}
+
+function modelNameMatches(actual: unknown, expected: string): boolean {
+  const actualName = normalizeModelName(actual);
+  const expectedName = normalizeModelName(expected);
+  if (!actualName || !expectedName) return false;
+  return (
+    actualName === expectedName ||
+    actualName === `${expectedName}:latest` ||
+    `${actualName}:latest` === expectedName
   );
 }
 
@@ -153,15 +176,16 @@ export const llmService = {
         const models = Array.isArray(response.data?.models)
           ? response.data.models
           : [];
-        const hasChatModel = models.some(
-          (item: any) => item?.name === LLM_MODEL || item?.model === LLM_MODEL,
+        const hasChatModel = models.some((item: any) =>
+          [item?.name, item?.model].some((name) =>
+            modelNameMatches(name, LLM_MODEL),
+          ),
         );
-        const hasEmbeddingModel = models.some((item: any) => {
-          const name = String(item?.name || item?.model || "");
-          return (
-            name === EMBEDDING_MODEL || name === `${EMBEDDING_MODEL}:latest`
-          );
-        });
+        const hasEmbeddingModel = models.some((item: any) =>
+          [item?.name, item?.model].some((name) =>
+            modelNameMatches(name, EMBEDDING_MODEL),
+          ),
+        );
 
         return {
           llmAvailable: hasChatModel && hasEmbeddingModel,
@@ -291,8 +315,8 @@ export const llmService = {
           options: {
             num_ctx:
               opts?.responseFormat === "json"
-                ? readPositiveIntEnv("LLM_JSON_NUM_CTX", 4096)
-                : 4096,
+                ? readPositiveIntEnv("LLM_JSON_NUM_CTX", 8192)
+                : readPositiveIntEnv("LLM_NUM_CTX", 8192),
             num_predict:
               opts?.numPredict ??
               (opts?.responseFormat === "json" ? 2048 : 1024),
@@ -398,7 +422,10 @@ export const llmService = {
         messages: buildOllamaMessages(prompt),
         stream: true,
         options: {
-          num_ctx: opts.responseFormat === "json" ? 8192 : 4096,
+          num_ctx:
+            opts.responseFormat === "json"
+              ? readPositiveIntEnv("LLM_JSON_NUM_CTX", 8192)
+              : readPositiveIntEnv("LLM_NUM_CTX", 8192),
           num_predict:
             opts.numPredict ?? (opts.responseFormat === "json" ? 2048 : 1024),
         },

@@ -5,7 +5,13 @@
     "file": "espen-bia-1.jsonl",
     "category": "bia_validation",
     "evidence_level": "clinical_guideline",
-    "tags": ["BIA", "body composition", "impedance", "ESPEN", "clinical"]
+    "tags": [
+      "BIA",
+      "body composition",
+      "impedance",
+      "ESPEN",
+      "clinical"
+    ]
   },
   {
     "id": "espen-bia-2",
@@ -13,7 +19,13 @@
     "file": "espen-bia-2.jsonl",
     "category": "bia_validation",
     "evidence_level": "clinical_guideline",
-    "tags": ["BIA", "body composition", "disease", "sports", "ESPEN"]
+    "tags": [
+      "BIA",
+      "body composition",
+      "disease",
+      "sports",
+      "ESPEN"
+    ]
   },
   {
     "id": "hhs-pa-2018",
@@ -35,7 +47,12 @@
     "file": "who-pa-2020.jsonl",
     "category": "physical_activity",
     "evidence_level": "government_guideline",
-    "tags": ["physical activity", "WHO", "global", "sedentary"]
+    "tags": [
+      "physical activity",
+      "WHO",
+      "global",
+      "sedentary"
+    ]
   },
   {
     "id": "issn-protein-2017",
@@ -43,7 +60,13 @@
     "file": "issn-protein-2017.jsonl",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": ["protein", "muscle", "g/kg", "ISSN", "sports nutrition"]
+    "tags": [
+      "protein",
+      "muscle",
+      "g/kg",
+      "ISSN",
+      "sports nutrition"
+    ]
   },
   {
     "id": "issn-diets-2017",
@@ -51,7 +74,13 @@
     "file": "issn-diets-2017.jsonl",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": ["diet", "fat loss", "macros", "ISSN", "body composition"]
+    "tags": [
+      "diet",
+      "fat loss",
+      "macros",
+      "ISSN",
+      "body composition"
+    ]
   },
   {
     "id": "issn-performance-2017",
@@ -59,7 +88,13 @@
     "file": "issn-performance-2017.jsonl",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": ["performance", "creatine", "caffeine", "carbohydrate", "ISSN"]
+    "tags": [
+      "performance",
+      "creatine",
+      "caffeine",
+      "carbohydrate",
+      "ISSN"
+    ]
   },
   {
     "id": "issn-timing-2014",
@@ -73,6 +108,48 @@
       "post-workout",
       "anabolic window",
       "ISSN"
+    ]
+  },
+  {
+    "id": "asymmetry-thresholds-2021",
+    "title": "The Calculation, Thresholds and Reporting of Inter-Limb Strength Asymmetry: A Systematic Review (Parkinson et al. 2021)",
+    "file": "asymmetry-thresholds-2021.jsonl",
+    "category": "training",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "asymmetry",
+      "inter-limb",
+      "unilateral",
+      "measurement",
+      "threshold"
+    ]
+  },
+  {
+    "id": "unilateral-bilateral-training-2022",
+    "title": "Effects of Unilateral vs. Bilateral Resistance Training Interventions on Strength, Jump, Linear and Change-of-Direction Speed: A Systematic Review and Meta-Analysis (Liao et al. 2022)",
+    "file": "unilateral-bilateral-training-2022.jsonl",
+    "category": "training",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "unilateral",
+      "bilateral",
+      "resistance training",
+      "jump",
+      "speed"
+    ]
+  },
+  {
+    "id": "unilateral-plyometric-asymmetry-2025",
+    "title": "Unilateral Plyometric Training Effectively Reduces Lower Limb Asymmetry in Athletes: A Meta-Analysis (Sun et al. 2025)",
+    "file": "unilateral-plyometric-asymmetry-2025.jsonl",
+    "category": "training",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "unilateral",
+      "plyometric",
+      "asymmetry",
+      "lower limb",
+      "injury risk"
     ]
   }
 ]

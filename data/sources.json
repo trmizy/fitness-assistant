@@ -113,11 +113,17 @@
     "source_type": "guideline",
     "category": "bia_validation",
     "evidence_level": "clinical_guideline",
-    "tags": ["BIA", "body composition", "impedance", "ESPEN", "clinical"],
+    "tags": [
+      "BIA",
+      "body composition",
+      "impedance",
+      "ESPEN",
+      "clinical"
+    ],
     "localPath": "..\\..\\..\\data\\raw\\papers\\ESPEN_BIA_Part1_2019.pdf",
     "processedPath": "data\\processed\\evidence\\espen-bia-1.jsonl",
     "downloadedAt": null,
-    "processedAt": "2026-06-01T02:55:40.105Z",
+    "processedAt": "2026-07-15T10:13:29.800Z",
     "chunkCount": 4
   },
   "espen-bia-2": {
@@ -128,11 +134,17 @@
     "source_type": "guideline",
     "category": "bia_validation",
     "evidence_level": "clinical_guideline",
-    "tags": ["BIA", "body composition", "disease", "sports", "ESPEN"],
+    "tags": [
+      "BIA",
+      "body composition",
+      "disease",
+      "sports",
+      "ESPEN"
+    ],
     "localPath": "..\\..\\..\\data\\raw\\papers\\ESPEN_BIA_Part2_2019.pdf",
     "processedPath": "data\\processed\\evidence\\espen-bia-2.jsonl",
     "downloadedAt": null,
-    "processedAt": "2026-06-01T02:55:40.109Z",
+    "processedAt": "2026-07-15T10:13:29.806Z",
     "chunkCount": 3
   },
   "hhs-pa-2018": {
@@ -153,7 +165,7 @@
     "localPath": "..\\..\\..\\data\\raw\\papers\\HHS_Physical_Activity_Guidelines_2018.pdf",
     "processedPath": "data\\processed\\evidence\\hhs-pa-2018.jsonl",
     "downloadedAt": null,
-    "processedAt": "2026-06-01T02:55:40.112Z",
+    "processedAt": "2026-07-15T10:13:29.810Z",
     "chunkCount": 4
   },
   "who-pa-2020": {
@@ -164,11 +176,16 @@
     "source_type": "guideline",
     "category": "physical_activity",
     "evidence_level": "government_guideline",
-    "tags": ["physical activity", "WHO", "global", "sedentary"],
+    "tags": [
+      "physical activity",
+      "WHO",
+      "global",
+      "sedentary"
+    ],
     "localPath": "..\\..\\..\\data\\raw\\papers\\WHO_Physical_Activity_Guidelines_2020.pdf",
     "processedPath": "data\\processed\\evidence\\who-pa-2020.jsonl",
     "downloadedAt": null,
-    "processedAt": "2026-06-01T02:55:40.115Z",
+    "processedAt": "2026-07-15T10:13:29.816Z",
     "chunkCount": 3
   },
   "issn-protein-2017": {
@@ -179,11 +196,17 @@
     "source_type": "paper",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": ["protein", "muscle", "g/kg", "ISSN", "sports nutrition"],
+    "tags": [
+      "protein",
+      "muscle",
+      "g/kg",
+      "ISSN",
+      "sports nutrition"
+    ],
     "localPath": "..\\..\\..\\data\\raw\\papers\\ISSN_Protein_Exercise_2017.pdf",
     "processedPath": "data\\processed\\evidence\\issn-protein-2017.jsonl",
     "downloadedAt": null,
-    "processedAt": "2026-06-01T02:55:40.117Z",
+    "processedAt": "2026-07-15T10:13:29.821Z",
     "chunkCount": 3
   },
   "issn-diets-2017": {
@@ -194,11 +217,17 @@
     "source_type": "paper",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": ["diet", "fat loss", "macros", "ISSN", "body composition"],
+    "tags": [
+      "diet",
+      "fat loss",
+      "macros",
+      "ISSN",
+      "body composition"
+    ],
     "localPath": "..\\..\\..\\data\\raw\\papers\\ISSN_Diets_Body_Composition_2017.pdf",
     "processedPath": "data\\processed\\evidence\\issn-diets-2017.jsonl",
     "downloadedAt": null,
-    "processedAt": "2026-06-01T02:55:40.120Z",
+    "processedAt": "2026-07-15T10:13:29.826Z",
     "chunkCount": 3
   },
   "issn-performance-2017": {
@@ -209,11 +238,17 @@
     "source_type": "paper",
     "category": "nutrition",
     "evidence_level": "expert_consensus",
-    "tags": ["performance", "creatine", "caffeine", "carbohydrate", "ISSN"],
+    "tags": [
+      "performance",
+      "creatine",
+      "caffeine",
+      "carbohydrate",
+      "ISSN"
+    ],
     "localPath": "..\\..\\..\\data\\raw\\papers\\ISSN_Nutritional_Performance_2017.pdf",
     "processedPath": "data\\processed\\evidence\\issn-performance-2017.jsonl",
     "downloadedAt": null,
-    "processedAt": "2026-06-01T02:55:40.122Z",
+    "processedAt": "2026-07-15T10:13:29.831Z",
     "chunkCount": 3
   },
   "issn-timing-2014": {
@@ -234,7 +269,70 @@
     "localPath": "..\\..\\..\\data\\raw\\papers\\ISSN_Nutrient_Timing_2014.pdf",
     "processedPath": "data\\processed\\evidence\\issn-timing-2014.jsonl",
     "downloadedAt": null,
-    "processedAt": "2026-06-01T02:55:40.124Z",
+    "processedAt": "2026-07-15T10:13:29.835Z",
+    "chunkCount": 3
+  },
+  "asymmetry-thresholds-2021": {
+    "id": "asymmetry-thresholds-2021",
+    "title": "The Calculation, Thresholds and Reporting of Inter-Limb Strength Asymmetry: A Systematic Review (Parkinson et al. 2021)",
+    "file": "Parkinson_InterLimb_Asymmetry_2021.pdf",
+    "source_url": "https://doi.org/10.52082/jssm.2021.594",
+    "source_type": "paper",
+    "category": "training",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "asymmetry",
+      "inter-limb",
+      "unilateral",
+      "measurement",
+      "threshold"
+    ],
+    "localPath": "..\\..\\..\\data\\raw\\papers\\Parkinson_InterLimb_Asymmetry_2021.pdf",
+    "processedPath": "data\\processed\\evidence\\asymmetry-thresholds-2021.jsonl",
+    "downloadedAt": null,
+    "processedAt": "2026-07-15T10:13:29.840Z",
+    "chunkCount": 3
+  },
+  "unilateral-bilateral-training-2022": {
+    "id": "unilateral-bilateral-training-2022",
+    "title": "Effects of Unilateral vs. Bilateral Resistance Training Interventions on Strength, Jump, Linear and Change-of-Direction Speed: A Systematic Review and Meta-Analysis (Liao et al. 2022)",
+    "file": "Liao_Unilateral_Bilateral_Training_2022.pdf",
+    "source_url": "https://doi.org/10.5114/biolsport.2022.107024",
+    "source_type": "paper",
+    "category": "training",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "unilateral",
+      "bilateral",
+      "resistance training",
+      "jump",
+      "speed"
+    ],
+    "localPath": "..\\..\\..\\data\\raw\\papers\\Liao_Unilateral_Bilateral_Training_2022.pdf",
+    "processedPath": "data\\processed\\evidence\\unilateral-bilateral-training-2022.jsonl",
+    "downloadedAt": null,
+    "processedAt": "2026-07-15T10:13:29.845Z",
+    "chunkCount": 2
+  },
+  "unilateral-plyometric-asymmetry-2025": {
+    "id": "unilateral-plyometric-asymmetry-2025",
+    "title": "Unilateral Plyometric Training Effectively Reduces Lower Limb Asymmetry in Athletes: A Meta-Analysis (Sun et al. 2025)",
+    "file": "Sun_Unilateral_Plyometric_Asymmetry_2025.pdf",
+    "source_url": "https://doi.org/10.3389/fphys.2025.1551523",
+    "source_type": "paper",
+    "category": "training",
+    "evidence_level": "systematic_review",
+    "tags": [
+      "unilateral",
+      "plyometric",
+      "asymmetry",
+      "lower limb",
+      "injury risk"
+    ],
+    "localPath": "..\\..\\..\\data\\raw\\papers\\Sun_Unilateral_Plyometric_Asymmetry_2025.pdf",
+    "processedPath": "data\\processed\\evidence\\unilateral-plyometric-asymmetry-2025.jsonl",
+    "downloadedAt": null,
+    "processedAt": "2026-07-15T10:13:29.849Z",
     "chunkCount": 3
   }
 }

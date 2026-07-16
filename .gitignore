@@ -103,5 +103,9 @@ training/checkpoints/
 training/adapters/
 training/merged_models/
 training/reports/
+# Anonymized production exports feeding the optional fine-tuning dataset —
+# never committed, even scrubbed (see ai-service ai:export:finetune script).
+training/data/raw/
+backend/services/ai-service/src/scripts/.output/
 *.safetensors
 *.gguf

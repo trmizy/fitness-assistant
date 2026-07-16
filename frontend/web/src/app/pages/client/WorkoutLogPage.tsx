@@ -1623,6 +1623,15 @@ export function WorkoutLogPage() {
     }
   };
 
+  const handleSkipExercise = () => {
+    if (activeExIdx >= dayExercises.length - 1) return;
+    setTimerRunning(false);
+    setTimerSeconds(0);
+    setRestSeconds(90);
+    setRestTimerRunning(true);
+    setActiveExIdx((index) => Math.min(index + 1, dayExercises.length - 1));
+  };
+
   // Reset workout when leaving active view
   useEffect(() => {
     if (planView !== "activeExercise") {

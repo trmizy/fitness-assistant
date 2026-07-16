@@ -8,11 +8,14 @@ import {
   GenerateWorkoutRequestSchema,
   GetConversationsQuerySchema,
 } from "../schemas/ai.schemas";
+import sessionRoutes from "./session.routes";
 
 const router = Router();
 
 // All /ai/* routes require a verified user identity.
 router.use(requireAuth);
+
+router.use("/sessions", sessionRoutes);
 
 router.post("/ask", validateBody(AskRequestSchema), aiController.ask);
 

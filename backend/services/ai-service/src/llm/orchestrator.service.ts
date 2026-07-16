@@ -56,7 +56,9 @@ const RAG_TIMEOUT_MS = Number(process.env.AI_CHAT_RAG_TIMEOUT_MS || "8000");
 const EVIDENCE_TIMEOUT_MS = Number(
   process.env.AI_CHAT_EVIDENCE_TIMEOUT_MS || "8000",
 );
-const LLM_TIMEOUT_MS = Number(process.env.AI_CHAT_LLM_TIMEOUT_MS || "60000");
+const LLM_TIMEOUT_MS = Number(
+  process.env.AI_CHAT_LLM_TIMEOUT_MS || process.env.LLM_TIMEOUT_MS || "60000",
+);
 
 async function withTimeout<T>(
   promise: Promise<T>,
@@ -231,6 +233,7 @@ export const llmOrchestrator = {
     question: string,
     userId?: string,
     authHeader?: string,
+    sessionId?: string,
     onProgress?: ProgressCallback,
   ): Promise<FinalAnswerPayload> {
     const trace = traceLogger.start(question, userId);
@@ -322,7 +325,10 @@ export const llmOrchestrator = {
       }),
       timeAsync(timing, "chatHistoryMs", () =>
         userId
-          ? conversationRepository.findMany({ userId }, 5)
+          ? conversationRepository.findMany(
+              { userId, sessionId, usedFallback: false },
+              5,
+            )
           : Promise.resolve([]),
       ),
     ]);

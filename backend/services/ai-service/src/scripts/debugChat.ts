@@ -8,8 +8,12 @@ async function main(): Promise<void> {
     process.argv.slice(2).join(" ").trim() ||
     "Phan tich InBody moi nhat cua toi";
 
-  const result = await llmOrchestrator.run(question, undefined, undefined, (m) =>
-    console.error(`[status] ${m}`),
+  const result = await llmOrchestrator.run(
+    question,
+    undefined,
+    undefined,
+    undefined,
+    (m) => console.error(`[status] ${m}`),
   );
 
   console.log(

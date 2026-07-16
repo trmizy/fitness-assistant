@@ -19,6 +19,11 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
  */
 export type Conversation = $Result.DefaultSelection<Prisma.$ConversationPayload>
 /**
+ * Model ChatSession
+ * 
+ */
+export type ChatSession = $Result.DefaultSelection<Prisma.$ChatSessionPayload>
+/**
  * Model WorkoutPlan
  * 
  */
@@ -28,6 +33,31 @@ export type WorkoutPlan = $Result.DefaultSelection<Prisma.$WorkoutPlanPayload>
  * 
  */
 export type NutritionPlan = $Result.DefaultSelection<Prisma.$NutritionPlanPayload>
+/**
+ * Model KnowledgeSource
+ * 
+ */
+export type KnowledgeSource = $Result.DefaultSelection<Prisma.$KnowledgeSourcePayload>
+/**
+ * Model KnowledgeDocument
+ * 
+ */
+export type KnowledgeDocument = $Result.DefaultSelection<Prisma.$KnowledgeDocumentPayload>
+/**
+ * Model KnowledgeChunk
+ * 
+ */
+export type KnowledgeChunk = $Result.DefaultSelection<Prisma.$KnowledgeChunkPayload>
+/**
+ * Model KnowledgePipelineRun
+ * 
+ */
+export type KnowledgePipelineRun = $Result.DefaultSelection<Prisma.$KnowledgePipelineRunPayload>
+/**
+ * Model KnowledgeReviewItem
+ * 
+ */
+export type KnowledgeReviewItem = $Result.DefaultSelection<Prisma.$KnowledgeReviewItemPayload>
 
 /**
  * Enums
@@ -51,6 +81,58 @@ export const PtReviewStatus: {
 
 export type PtReviewStatus = (typeof PtReviewStatus)[keyof typeof PtReviewStatus]
 
+
+export const KnowledgeSourceType: {
+  RSS: 'RSS',
+  API: 'API',
+  WEB: 'WEB',
+  LOCAL: 'LOCAL'
+};
+
+export type KnowledgeSourceType = (typeof KnowledgeSourceType)[keyof typeof KnowledgeSourceType]
+
+
+export const KnowledgeDocumentTopic: {
+  TRAINING: 'TRAINING',
+  NUTRITION: 'NUTRITION',
+  RECOVERY: 'RECOVERY',
+  INJURY: 'INJURY',
+  BODY_COMPOSITION: 'BODY_COMPOSITION',
+  GENERAL: 'GENERAL'
+};
+
+export type KnowledgeDocumentTopic = (typeof KnowledgeDocumentTopic)[keyof typeof KnowledgeDocumentTopic]
+
+
+export const KnowledgeDocumentStatus: {
+  CRAWLED: 'CRAWLED',
+  CLEANED: 'CLEANED',
+  SCORED: 'SCORED',
+  EMBEDDED: 'EMBEDDED',
+  REJECTED: 'REJECTED',
+  REVIEW: 'REVIEW'
+};
+
+export type KnowledgeDocumentStatus = (typeof KnowledgeDocumentStatus)[keyof typeof KnowledgeDocumentStatus]
+
+
+export const KnowledgePipelineRunStatus: {
+  RUNNING: 'RUNNING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED'
+};
+
+export type KnowledgePipelineRunStatus = (typeof KnowledgePipelineRunStatus)[keyof typeof KnowledgePipelineRunStatus]
+
+
+export const KnowledgeReviewStatus: {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+export type KnowledgeReviewStatus = (typeof KnowledgeReviewStatus)[keyof typeof KnowledgeReviewStatus]
+
 }
 
 export type PlanStatus = $Enums.PlanStatus
@@ -60,6 +142,26 @@ export const PlanStatus: typeof $Enums.PlanStatus
 export type PtReviewStatus = $Enums.PtReviewStatus
 
 export const PtReviewStatus: typeof $Enums.PtReviewStatus
+
+export type KnowledgeSourceType = $Enums.KnowledgeSourceType
+
+export const KnowledgeSourceType: typeof $Enums.KnowledgeSourceType
+
+export type KnowledgeDocumentTopic = $Enums.KnowledgeDocumentTopic
+
+export const KnowledgeDocumentTopic: typeof $Enums.KnowledgeDocumentTopic
+
+export type KnowledgeDocumentStatus = $Enums.KnowledgeDocumentStatus
+
+export const KnowledgeDocumentStatus: typeof $Enums.KnowledgeDocumentStatus
+
+export type KnowledgePipelineRunStatus = $Enums.KnowledgePipelineRunStatus
+
+export const KnowledgePipelineRunStatus: typeof $Enums.KnowledgePipelineRunStatus
+
+export type KnowledgeReviewStatus = $Enums.KnowledgeReviewStatus
+
+export const KnowledgeReviewStatus: typeof $Enums.KnowledgeReviewStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -195,6 +297,16 @@ export class PrismaClient<
   get conversation(): Prisma.ConversationDelegate<ExtArgs>;
 
   /**
+   * `prisma.chatSession`: Exposes CRUD operations for the **ChatSession** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ChatSessions
+    * const chatSessions = await prisma.chatSession.findMany()
+    * ```
+    */
+  get chatSession(): Prisma.ChatSessionDelegate<ExtArgs>;
+
+  /**
    * `prisma.workoutPlan`: Exposes CRUD operations for the **WorkoutPlan** model.
     * Example usage:
     * ```ts
@@ -213,6 +325,56 @@ export class PrismaClient<
     * ```
     */
   get nutritionPlan(): Prisma.NutritionPlanDelegate<ExtArgs>;
+
+  /**
+   * `prisma.knowledgeSource`: Exposes CRUD operations for the **KnowledgeSource** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more KnowledgeSources
+    * const knowledgeSources = await prisma.knowledgeSource.findMany()
+    * ```
+    */
+  get knowledgeSource(): Prisma.KnowledgeSourceDelegate<ExtArgs>;
+
+  /**
+   * `prisma.knowledgeDocument`: Exposes CRUD operations for the **KnowledgeDocument** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more KnowledgeDocuments
+    * const knowledgeDocuments = await prisma.knowledgeDocument.findMany()
+    * ```
+    */
+  get knowledgeDocument(): Prisma.KnowledgeDocumentDelegate<ExtArgs>;
+
+  /**
+   * `prisma.knowledgeChunk`: Exposes CRUD operations for the **KnowledgeChunk** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more KnowledgeChunks
+    * const knowledgeChunks = await prisma.knowledgeChunk.findMany()
+    * ```
+    */
+  get knowledgeChunk(): Prisma.KnowledgeChunkDelegate<ExtArgs>;
+
+  /**
+   * `prisma.knowledgePipelineRun`: Exposes CRUD operations for the **KnowledgePipelineRun** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more KnowledgePipelineRuns
+    * const knowledgePipelineRuns = await prisma.knowledgePipelineRun.findMany()
+    * ```
+    */
+  get knowledgePipelineRun(): Prisma.KnowledgePipelineRunDelegate<ExtArgs>;
+
+  /**
+   * `prisma.knowledgeReviewItem`: Exposes CRUD operations for the **KnowledgeReviewItem** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more KnowledgeReviewItems
+    * const knowledgeReviewItems = await prisma.knowledgeReviewItem.findMany()
+    * ```
+    */
+  get knowledgeReviewItem(): Prisma.KnowledgeReviewItemDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -655,8 +817,14 @@ export namespace Prisma {
 
   export const ModelName: {
     Conversation: 'Conversation',
+    ChatSession: 'ChatSession',
     WorkoutPlan: 'WorkoutPlan',
-    NutritionPlan: 'NutritionPlan'
+    NutritionPlan: 'NutritionPlan',
+    KnowledgeSource: 'KnowledgeSource',
+    KnowledgeDocument: 'KnowledgeDocument',
+    KnowledgeChunk: 'KnowledgeChunk',
+    KnowledgePipelineRun: 'KnowledgePipelineRun',
+    KnowledgeReviewItem: 'KnowledgeReviewItem'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -672,7 +840,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "conversation" | "workoutPlan" | "nutritionPlan"
+      modelProps: "conversation" | "chatSession" | "workoutPlan" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -743,6 +911,76 @@ export namespace Prisma {
           count: {
             args: Prisma.ConversationCountArgs<ExtArgs>
             result: $Utils.Optional<ConversationCountAggregateOutputType> | number
+          }
+        }
+      }
+      ChatSession: {
+        payload: Prisma.$ChatSessionPayload<ExtArgs>
+        fields: Prisma.ChatSessionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ChatSessionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChatSessionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ChatSessionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChatSessionPayload>
+          }
+          findFirst: {
+            args: Prisma.ChatSessionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChatSessionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ChatSessionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChatSessionPayload>
+          }
+          findMany: {
+            args: Prisma.ChatSessionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChatSessionPayload>[]
+          }
+          create: {
+            args: Prisma.ChatSessionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChatSessionPayload>
+          }
+          createMany: {
+            args: Prisma.ChatSessionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ChatSessionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChatSessionPayload>[]
+          }
+          delete: {
+            args: Prisma.ChatSessionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChatSessionPayload>
+          }
+          update: {
+            args: Prisma.ChatSessionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChatSessionPayload>
+          }
+          deleteMany: {
+            args: Prisma.ChatSessionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ChatSessionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.ChatSessionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChatSessionPayload>
+          }
+          aggregate: {
+            args: Prisma.ChatSessionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateChatSession>
+          }
+          groupBy: {
+            args: Prisma.ChatSessionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ChatSessionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ChatSessionCountArgs<ExtArgs>
+            result: $Utils.Optional<ChatSessionCountAggregateOutputType> | number
           }
         }
       }
@@ -883,6 +1121,356 @@ export namespace Prisma {
           count: {
             args: Prisma.NutritionPlanCountArgs<ExtArgs>
             result: $Utils.Optional<NutritionPlanCountAggregateOutputType> | number
+          }
+        }
+      }
+      KnowledgeSource: {
+        payload: Prisma.$KnowledgeSourcePayload<ExtArgs>
+        fields: Prisma.KnowledgeSourceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.KnowledgeSourceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeSourcePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.KnowledgeSourceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeSourcePayload>
+          }
+          findFirst: {
+            args: Prisma.KnowledgeSourceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeSourcePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.KnowledgeSourceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeSourcePayload>
+          }
+          findMany: {
+            args: Prisma.KnowledgeSourceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeSourcePayload>[]
+          }
+          create: {
+            args: Prisma.KnowledgeSourceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeSourcePayload>
+          }
+          createMany: {
+            args: Prisma.KnowledgeSourceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.KnowledgeSourceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeSourcePayload>[]
+          }
+          delete: {
+            args: Prisma.KnowledgeSourceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeSourcePayload>
+          }
+          update: {
+            args: Prisma.KnowledgeSourceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeSourcePayload>
+          }
+          deleteMany: {
+            args: Prisma.KnowledgeSourceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.KnowledgeSourceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.KnowledgeSourceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeSourcePayload>
+          }
+          aggregate: {
+            args: Prisma.KnowledgeSourceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateKnowledgeSource>
+          }
+          groupBy: {
+            args: Prisma.KnowledgeSourceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<KnowledgeSourceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.KnowledgeSourceCountArgs<ExtArgs>
+            result: $Utils.Optional<KnowledgeSourceCountAggregateOutputType> | number
+          }
+        }
+      }
+      KnowledgeDocument: {
+        payload: Prisma.$KnowledgeDocumentPayload<ExtArgs>
+        fields: Prisma.KnowledgeDocumentFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.KnowledgeDocumentFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.KnowledgeDocumentFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+          }
+          findFirst: {
+            args: Prisma.KnowledgeDocumentFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.KnowledgeDocumentFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+          }
+          findMany: {
+            args: Prisma.KnowledgeDocumentFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>[]
+          }
+          create: {
+            args: Prisma.KnowledgeDocumentCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+          }
+          createMany: {
+            args: Prisma.KnowledgeDocumentCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.KnowledgeDocumentCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>[]
+          }
+          delete: {
+            args: Prisma.KnowledgeDocumentDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+          }
+          update: {
+            args: Prisma.KnowledgeDocumentUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+          }
+          deleteMany: {
+            args: Prisma.KnowledgeDocumentDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.KnowledgeDocumentUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.KnowledgeDocumentUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeDocumentPayload>
+          }
+          aggregate: {
+            args: Prisma.KnowledgeDocumentAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateKnowledgeDocument>
+          }
+          groupBy: {
+            args: Prisma.KnowledgeDocumentGroupByArgs<ExtArgs>
+            result: $Utils.Optional<KnowledgeDocumentGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.KnowledgeDocumentCountArgs<ExtArgs>
+            result: $Utils.Optional<KnowledgeDocumentCountAggregateOutputType> | number
+          }
+        }
+      }
+      KnowledgeChunk: {
+        payload: Prisma.$KnowledgeChunkPayload<ExtArgs>
+        fields: Prisma.KnowledgeChunkFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.KnowledgeChunkFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.KnowledgeChunkFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+          }
+          findFirst: {
+            args: Prisma.KnowledgeChunkFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.KnowledgeChunkFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+          }
+          findMany: {
+            args: Prisma.KnowledgeChunkFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>[]
+          }
+          create: {
+            args: Prisma.KnowledgeChunkCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+          }
+          createMany: {
+            args: Prisma.KnowledgeChunkCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.KnowledgeChunkCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>[]
+          }
+          delete: {
+            args: Prisma.KnowledgeChunkDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+          }
+          update: {
+            args: Prisma.KnowledgeChunkUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+          }
+          deleteMany: {
+            args: Prisma.KnowledgeChunkDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.KnowledgeChunkUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.KnowledgeChunkUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeChunkPayload>
+          }
+          aggregate: {
+            args: Prisma.KnowledgeChunkAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateKnowledgeChunk>
+          }
+          groupBy: {
+            args: Prisma.KnowledgeChunkGroupByArgs<ExtArgs>
+            result: $Utils.Optional<KnowledgeChunkGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.KnowledgeChunkCountArgs<ExtArgs>
+            result: $Utils.Optional<KnowledgeChunkCountAggregateOutputType> | number
+          }
+        }
+      }
+      KnowledgePipelineRun: {
+        payload: Prisma.$KnowledgePipelineRunPayload<ExtArgs>
+        fields: Prisma.KnowledgePipelineRunFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.KnowledgePipelineRunFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgePipelineRunPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.KnowledgePipelineRunFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgePipelineRunPayload>
+          }
+          findFirst: {
+            args: Prisma.KnowledgePipelineRunFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgePipelineRunPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.KnowledgePipelineRunFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgePipelineRunPayload>
+          }
+          findMany: {
+            args: Prisma.KnowledgePipelineRunFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgePipelineRunPayload>[]
+          }
+          create: {
+            args: Prisma.KnowledgePipelineRunCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgePipelineRunPayload>
+          }
+          createMany: {
+            args: Prisma.KnowledgePipelineRunCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.KnowledgePipelineRunCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgePipelineRunPayload>[]
+          }
+          delete: {
+            args: Prisma.KnowledgePipelineRunDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgePipelineRunPayload>
+          }
+          update: {
+            args: Prisma.KnowledgePipelineRunUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgePipelineRunPayload>
+          }
+          deleteMany: {
+            args: Prisma.KnowledgePipelineRunDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.KnowledgePipelineRunUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.KnowledgePipelineRunUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgePipelineRunPayload>
+          }
+          aggregate: {
+            args: Prisma.KnowledgePipelineRunAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateKnowledgePipelineRun>
+          }
+          groupBy: {
+            args: Prisma.KnowledgePipelineRunGroupByArgs<ExtArgs>
+            result: $Utils.Optional<KnowledgePipelineRunGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.KnowledgePipelineRunCountArgs<ExtArgs>
+            result: $Utils.Optional<KnowledgePipelineRunCountAggregateOutputType> | number
+          }
+        }
+      }
+      KnowledgeReviewItem: {
+        payload: Prisma.$KnowledgeReviewItemPayload<ExtArgs>
+        fields: Prisma.KnowledgeReviewItemFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.KnowledgeReviewItemFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeReviewItemPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.KnowledgeReviewItemFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeReviewItemPayload>
+          }
+          findFirst: {
+            args: Prisma.KnowledgeReviewItemFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeReviewItemPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.KnowledgeReviewItemFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeReviewItemPayload>
+          }
+          findMany: {
+            args: Prisma.KnowledgeReviewItemFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeReviewItemPayload>[]
+          }
+          create: {
+            args: Prisma.KnowledgeReviewItemCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeReviewItemPayload>
+          }
+          createMany: {
+            args: Prisma.KnowledgeReviewItemCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.KnowledgeReviewItemCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeReviewItemPayload>[]
+          }
+          delete: {
+            args: Prisma.KnowledgeReviewItemDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeReviewItemPayload>
+          }
+          update: {
+            args: Prisma.KnowledgeReviewItemUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeReviewItemPayload>
+          }
+          deleteMany: {
+            args: Prisma.KnowledgeReviewItemDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.KnowledgeReviewItemUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.KnowledgeReviewItemUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$KnowledgeReviewItemPayload>
+          }
+          aggregate: {
+            args: Prisma.KnowledgeReviewItemAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateKnowledgeReviewItem>
+          }
+          groupBy: {
+            args: Prisma.KnowledgeReviewItemGroupByArgs<ExtArgs>
+            result: $Utils.Optional<KnowledgeReviewItemGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.KnowledgeReviewItemCountArgs<ExtArgs>
+            result: $Utils.Optional<KnowledgeReviewItemCountAggregateOutputType> | number
           }
         }
       }
@@ -1042,6 +1630,76 @@ export namespace Prisma {
    */
 
 
+  /**
+   * Count Type KnowledgeSourceCountOutputType
+   */
+
+  export type KnowledgeSourceCountOutputType = {
+    documents: number
+  }
+
+  export type KnowledgeSourceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    documents?: boolean | KnowledgeSourceCountOutputTypeCountDocumentsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * KnowledgeSourceCountOutputType without action
+   */
+  export type KnowledgeSourceCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSourceCountOutputType
+     */
+    select?: KnowledgeSourceCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * KnowledgeSourceCountOutputType without action
+   */
+  export type KnowledgeSourceCountOutputTypeCountDocumentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: KnowledgeDocumentWhereInput
+  }
+
+
+  /**
+   * Count Type KnowledgeDocumentCountOutputType
+   */
+
+  export type KnowledgeDocumentCountOutputType = {
+    chunks: number
+    reviewItems: number
+  }
+
+  export type KnowledgeDocumentCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    chunks?: boolean | KnowledgeDocumentCountOutputTypeCountChunksArgs
+    reviewItems?: boolean | KnowledgeDocumentCountOutputTypeCountReviewItemsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * KnowledgeDocumentCountOutputType without action
+   */
+  export type KnowledgeDocumentCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocumentCountOutputType
+     */
+    select?: KnowledgeDocumentCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * KnowledgeDocumentCountOutputType without action
+   */
+  export type KnowledgeDocumentCountOutputTypeCountChunksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: KnowledgeChunkWhereInput
+  }
+
+  /**
+   * KnowledgeDocumentCountOutputType without action
+   */
+  export type KnowledgeDocumentCountOutputTypeCountReviewItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: KnowledgeReviewItemWhereInput
+  }
+
 
   /**
    * Models
@@ -1082,6 +1740,7 @@ export namespace Prisma {
   export type ConversationMinAggregateOutputType = {
     id: string | null
     userId: string | null
+    sessionId: string | null
     question: string | null
     answer: string | null
     modelUsed: string | null
@@ -1106,6 +1765,7 @@ export namespace Prisma {
   export type ConversationMaxAggregateOutputType = {
     id: string | null
     userId: string | null
+    sessionId: string | null
     question: string | null
     answer: string | null
     modelUsed: string | null
@@ -1130,6 +1790,7 @@ export namespace Prisma {
   export type ConversationCountAggregateOutputType = {
     id: number
     userId: number
+    sessionId: number
     question: number
     answer: number
     modelUsed: number
@@ -1176,6 +1837,7 @@ export namespace Prisma {
   export type ConversationMinAggregateInputType = {
     id?: true
     userId?: true
+    sessionId?: true
     question?: true
     answer?: true
     modelUsed?: true
@@ -1200,6 +1862,7 @@ export namespace Prisma {
   export type ConversationMaxAggregateInputType = {
     id?: true
     userId?: true
+    sessionId?: true
     question?: true
     answer?: true
     modelUsed?: true
@@ -1224,6 +1887,7 @@ export namespace Prisma {
   export type ConversationCountAggregateInputType = {
     id?: true
     userId?: true
+    sessionId?: true
     question?: true
     answer?: true
     modelUsed?: true
@@ -1335,6 +1999,7 @@ export namespace Prisma {
   export type ConversationGroupByOutputType = {
     id: string
     userId: string | null
+    sessionId: string | null
     question: string
     answer: string
     modelUsed: string
@@ -1378,6 +2043,7 @@ export namespace Prisma {
   export type ConversationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
+    sessionId?: boolean
     question?: boolean
     answer?: boolean
     modelUsed?: boolean
@@ -1402,6 +2068,7 @@ export namespace Prisma {
   export type ConversationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
+    sessionId?: boolean
     question?: boolean
     answer?: boolean
     modelUsed?: boolean
@@ -1426,6 +2093,7 @@ export namespace Prisma {
   export type ConversationSelectScalar = {
     id?: boolean
     userId?: boolean
+    sessionId?: boolean
     question?: boolean
     answer?: boolean
     modelUsed?: boolean
@@ -1454,6 +2122,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       userId: string | null
+      sessionId: string | null
       question: string
       answer: string
       modelUsed: string
@@ -1868,6 +2537,7 @@ export namespace Prisma {
   interface ConversationFieldRefs {
     readonly id: FieldRef<"Conversation", 'String'>
     readonly userId: FieldRef<"Conversation", 'String'>
+    readonly sessionId: FieldRef<"Conversation", 'String'>
     readonly question: FieldRef<"Conversation", 'String'>
     readonly answer: FieldRef<"Conversation", 'String'>
     readonly modelUsed: FieldRef<"Conversation", 'String'>
@@ -2172,6 +2842,908 @@ export namespace Prisma {
      * Select specific fields to fetch from the Conversation
      */
     select?: ConversationSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ChatSession
+   */
+
+  export type AggregateChatSession = {
+    _count: ChatSessionCountAggregateOutputType | null
+    _min: ChatSessionMinAggregateOutputType | null
+    _max: ChatSessionMaxAggregateOutputType | null
+  }
+
+  export type ChatSessionMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    title: string | null
+    lastMessageAt: Date | null
+    archivedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ChatSessionMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    title: string | null
+    lastMessageAt: Date | null
+    archivedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ChatSessionCountAggregateOutputType = {
+    id: number
+    userId: number
+    title: number
+    lastMessageAt: number
+    archivedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ChatSessionMinAggregateInputType = {
+    id?: true
+    userId?: true
+    title?: true
+    lastMessageAt?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ChatSessionMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    title?: true
+    lastMessageAt?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ChatSessionCountAggregateInputType = {
+    id?: true
+    userId?: true
+    title?: true
+    lastMessageAt?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ChatSessionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ChatSession to aggregate.
+     */
+    where?: ChatSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ChatSessions to fetch.
+     */
+    orderBy?: ChatSessionOrderByWithRelationInput | ChatSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ChatSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ChatSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ChatSessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ChatSessions
+    **/
+    _count?: true | ChatSessionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ChatSessionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ChatSessionMaxAggregateInputType
+  }
+
+  export type GetChatSessionAggregateType<T extends ChatSessionAggregateArgs> = {
+        [P in keyof T & keyof AggregateChatSession]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateChatSession[P]>
+      : GetScalarType<T[P], AggregateChatSession[P]>
+  }
+
+
+
+
+  export type ChatSessionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ChatSessionWhereInput
+    orderBy?: ChatSessionOrderByWithAggregationInput | ChatSessionOrderByWithAggregationInput[]
+    by: ChatSessionScalarFieldEnum[] | ChatSessionScalarFieldEnum
+    having?: ChatSessionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ChatSessionCountAggregateInputType | true
+    _min?: ChatSessionMinAggregateInputType
+    _max?: ChatSessionMaxAggregateInputType
+  }
+
+  export type ChatSessionGroupByOutputType = {
+    id: string
+    userId: string
+    title: string
+    lastMessageAt: Date
+    archivedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ChatSessionCountAggregateOutputType | null
+    _min: ChatSessionMinAggregateOutputType | null
+    _max: ChatSessionMaxAggregateOutputType | null
+  }
+
+  type GetChatSessionGroupByPayload<T extends ChatSessionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ChatSessionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ChatSessionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ChatSessionGroupByOutputType[P]>
+            : GetScalarType<T[P], ChatSessionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ChatSessionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    title?: boolean
+    lastMessageAt?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["chatSession"]>
+
+  export type ChatSessionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    title?: boolean
+    lastMessageAt?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["chatSession"]>
+
+  export type ChatSessionSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    title?: boolean
+    lastMessageAt?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $ChatSessionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ChatSession"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      title: string
+      lastMessageAt: Date
+      archivedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["chatSession"]>
+    composites: {}
+  }
+
+  type ChatSessionGetPayload<S extends boolean | null | undefined | ChatSessionDefaultArgs> = $Result.GetResult<Prisma.$ChatSessionPayload, S>
+
+  type ChatSessionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<ChatSessionFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: ChatSessionCountAggregateInputType | true
+    }
+
+  export interface ChatSessionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ChatSession'], meta: { name: 'ChatSession' } }
+    /**
+     * Find zero or one ChatSession that matches the filter.
+     * @param {ChatSessionFindUniqueArgs} args - Arguments to find a ChatSession
+     * @example
+     * // Get one ChatSession
+     * const chatSession = await prisma.chatSession.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ChatSessionFindUniqueArgs>(args: SelectSubset<T, ChatSessionFindUniqueArgs<ExtArgs>>): Prisma__ChatSessionClient<$Result.GetResult<Prisma.$ChatSessionPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one ChatSession that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {ChatSessionFindUniqueOrThrowArgs} args - Arguments to find a ChatSession
+     * @example
+     * // Get one ChatSession
+     * const chatSession = await prisma.chatSession.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ChatSessionFindUniqueOrThrowArgs>(args: SelectSubset<T, ChatSessionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ChatSessionClient<$Result.GetResult<Prisma.$ChatSessionPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first ChatSession that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChatSessionFindFirstArgs} args - Arguments to find a ChatSession
+     * @example
+     * // Get one ChatSession
+     * const chatSession = await prisma.chatSession.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ChatSessionFindFirstArgs>(args?: SelectSubset<T, ChatSessionFindFirstArgs<ExtArgs>>): Prisma__ChatSessionClient<$Result.GetResult<Prisma.$ChatSessionPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first ChatSession that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChatSessionFindFirstOrThrowArgs} args - Arguments to find a ChatSession
+     * @example
+     * // Get one ChatSession
+     * const chatSession = await prisma.chatSession.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ChatSessionFindFirstOrThrowArgs>(args?: SelectSubset<T, ChatSessionFindFirstOrThrowArgs<ExtArgs>>): Prisma__ChatSessionClient<$Result.GetResult<Prisma.$ChatSessionPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more ChatSessions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChatSessionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ChatSessions
+     * const chatSessions = await prisma.chatSession.findMany()
+     * 
+     * // Get first 10 ChatSessions
+     * const chatSessions = await prisma.chatSession.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const chatSessionWithIdOnly = await prisma.chatSession.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ChatSessionFindManyArgs>(args?: SelectSubset<T, ChatSessionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ChatSessionPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a ChatSession.
+     * @param {ChatSessionCreateArgs} args - Arguments to create a ChatSession.
+     * @example
+     * // Create one ChatSession
+     * const ChatSession = await prisma.chatSession.create({
+     *   data: {
+     *     // ... data to create a ChatSession
+     *   }
+     * })
+     * 
+     */
+    create<T extends ChatSessionCreateArgs>(args: SelectSubset<T, ChatSessionCreateArgs<ExtArgs>>): Prisma__ChatSessionClient<$Result.GetResult<Prisma.$ChatSessionPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many ChatSessions.
+     * @param {ChatSessionCreateManyArgs} args - Arguments to create many ChatSessions.
+     * @example
+     * // Create many ChatSessions
+     * const chatSession = await prisma.chatSession.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ChatSessionCreateManyArgs>(args?: SelectSubset<T, ChatSessionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ChatSessions and returns the data saved in the database.
+     * @param {ChatSessionCreateManyAndReturnArgs} args - Arguments to create many ChatSessions.
+     * @example
+     * // Create many ChatSessions
+     * const chatSession = await prisma.chatSession.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ChatSessions and only return the `id`
+     * const chatSessionWithIdOnly = await prisma.chatSession.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ChatSessionCreateManyAndReturnArgs>(args?: SelectSubset<T, ChatSessionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ChatSessionPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a ChatSession.
+     * @param {ChatSessionDeleteArgs} args - Arguments to delete one ChatSession.
+     * @example
+     * // Delete one ChatSession
+     * const ChatSession = await prisma.chatSession.delete({
+     *   where: {
+     *     // ... filter to delete one ChatSession
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ChatSessionDeleteArgs>(args: SelectSubset<T, ChatSessionDeleteArgs<ExtArgs>>): Prisma__ChatSessionClient<$Result.GetResult<Prisma.$ChatSessionPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one ChatSession.
+     * @param {ChatSessionUpdateArgs} args - Arguments to update one ChatSession.
+     * @example
+     * // Update one ChatSession
+     * const chatSession = await prisma.chatSession.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ChatSessionUpdateArgs>(args: SelectSubset<T, ChatSessionUpdateArgs<ExtArgs>>): Prisma__ChatSessionClient<$Result.GetResult<Prisma.$ChatSessionPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more ChatSessions.
+     * @param {ChatSessionDeleteManyArgs} args - Arguments to filter ChatSessions to delete.
+     * @example
+     * // Delete a few ChatSessions
+     * const { count } = await prisma.chatSession.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ChatSessionDeleteManyArgs>(args?: SelectSubset<T, ChatSessionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ChatSessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChatSessionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ChatSessions
+     * const chatSession = await prisma.chatSession.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ChatSessionUpdateManyArgs>(args: SelectSubset<T, ChatSessionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one ChatSession.
+     * @param {ChatSessionUpsertArgs} args - Arguments to update or create a ChatSession.
+     * @example
+     * // Update or create a ChatSession
+     * const chatSession = await prisma.chatSession.upsert({
+     *   create: {
+     *     // ... data to create a ChatSession
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ChatSession we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ChatSessionUpsertArgs>(args: SelectSubset<T, ChatSessionUpsertArgs<ExtArgs>>): Prisma__ChatSessionClient<$Result.GetResult<Prisma.$ChatSessionPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of ChatSessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChatSessionCountArgs} args - Arguments to filter ChatSessions to count.
+     * @example
+     * // Count the number of ChatSessions
+     * const count = await prisma.chatSession.count({
+     *   where: {
+     *     // ... the filter for the ChatSessions we want to count
+     *   }
+     * })
+    **/
+    count<T extends ChatSessionCountArgs>(
+      args?: Subset<T, ChatSessionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ChatSessionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ChatSession.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChatSessionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ChatSessionAggregateArgs>(args: Subset<T, ChatSessionAggregateArgs>): Prisma.PrismaPromise<GetChatSessionAggregateType<T>>
+
+    /**
+     * Group by ChatSession.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChatSessionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ChatSessionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ChatSessionGroupByArgs['orderBy'] }
+        : { orderBy?: ChatSessionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ChatSessionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetChatSessionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ChatSession model
+   */
+  readonly fields: ChatSessionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ChatSession.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ChatSessionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ChatSession model
+   */ 
+  interface ChatSessionFieldRefs {
+    readonly id: FieldRef<"ChatSession", 'String'>
+    readonly userId: FieldRef<"ChatSession", 'String'>
+    readonly title: FieldRef<"ChatSession", 'String'>
+    readonly lastMessageAt: FieldRef<"ChatSession", 'DateTime'>
+    readonly archivedAt: FieldRef<"ChatSession", 'DateTime'>
+    readonly createdAt: FieldRef<"ChatSession", 'DateTime'>
+    readonly updatedAt: FieldRef<"ChatSession", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ChatSession findUnique
+   */
+  export type ChatSessionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChatSession
+     */
+    select?: ChatSessionSelect<ExtArgs> | null
+    /**
+     * Filter, which ChatSession to fetch.
+     */
+    where: ChatSessionWhereUniqueInput
+  }
+
+  /**
+   * ChatSession findUniqueOrThrow
+   */
+  export type ChatSessionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChatSession
+     */
+    select?: ChatSessionSelect<ExtArgs> | null
+    /**
+     * Filter, which ChatSession to fetch.
+     */
+    where: ChatSessionWhereUniqueInput
+  }
+
+  /**
+   * ChatSession findFirst
+   */
+  export type ChatSessionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChatSession
+     */
+    select?: ChatSessionSelect<ExtArgs> | null
+    /**
+     * Filter, which ChatSession to fetch.
+     */
+    where?: ChatSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ChatSessions to fetch.
+     */
+    orderBy?: ChatSessionOrderByWithRelationInput | ChatSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ChatSessions.
+     */
+    cursor?: ChatSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ChatSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ChatSessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ChatSessions.
+     */
+    distinct?: ChatSessionScalarFieldEnum | ChatSessionScalarFieldEnum[]
+  }
+
+  /**
+   * ChatSession findFirstOrThrow
+   */
+  export type ChatSessionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChatSession
+     */
+    select?: ChatSessionSelect<ExtArgs> | null
+    /**
+     * Filter, which ChatSession to fetch.
+     */
+    where?: ChatSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ChatSessions to fetch.
+     */
+    orderBy?: ChatSessionOrderByWithRelationInput | ChatSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ChatSessions.
+     */
+    cursor?: ChatSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ChatSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ChatSessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ChatSessions.
+     */
+    distinct?: ChatSessionScalarFieldEnum | ChatSessionScalarFieldEnum[]
+  }
+
+  /**
+   * ChatSession findMany
+   */
+  export type ChatSessionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChatSession
+     */
+    select?: ChatSessionSelect<ExtArgs> | null
+    /**
+     * Filter, which ChatSessions to fetch.
+     */
+    where?: ChatSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ChatSessions to fetch.
+     */
+    orderBy?: ChatSessionOrderByWithRelationInput | ChatSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ChatSessions.
+     */
+    cursor?: ChatSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ChatSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ChatSessions.
+     */
+    skip?: number
+    distinct?: ChatSessionScalarFieldEnum | ChatSessionScalarFieldEnum[]
+  }
+
+  /**
+   * ChatSession create
+   */
+  export type ChatSessionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChatSession
+     */
+    select?: ChatSessionSelect<ExtArgs> | null
+    /**
+     * The data needed to create a ChatSession.
+     */
+    data: XOR<ChatSessionCreateInput, ChatSessionUncheckedCreateInput>
+  }
+
+  /**
+   * ChatSession createMany
+   */
+  export type ChatSessionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ChatSessions.
+     */
+    data: ChatSessionCreateManyInput | ChatSessionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ChatSession createManyAndReturn
+   */
+  export type ChatSessionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChatSession
+     */
+    select?: ChatSessionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many ChatSessions.
+     */
+    data: ChatSessionCreateManyInput | ChatSessionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ChatSession update
+   */
+  export type ChatSessionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChatSession
+     */
+    select?: ChatSessionSelect<ExtArgs> | null
+    /**
+     * The data needed to update a ChatSession.
+     */
+    data: XOR<ChatSessionUpdateInput, ChatSessionUncheckedUpdateInput>
+    /**
+     * Choose, which ChatSession to update.
+     */
+    where: ChatSessionWhereUniqueInput
+  }
+
+  /**
+   * ChatSession updateMany
+   */
+  export type ChatSessionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ChatSessions.
+     */
+    data: XOR<ChatSessionUpdateManyMutationInput, ChatSessionUncheckedUpdateManyInput>
+    /**
+     * Filter which ChatSessions to update
+     */
+    where?: ChatSessionWhereInput
+  }
+
+  /**
+   * ChatSession upsert
+   */
+  export type ChatSessionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChatSession
+     */
+    select?: ChatSessionSelect<ExtArgs> | null
+    /**
+     * The filter to search for the ChatSession to update in case it exists.
+     */
+    where: ChatSessionWhereUniqueInput
+    /**
+     * In case the ChatSession found by the `where` argument doesn't exist, create a new ChatSession with this data.
+     */
+    create: XOR<ChatSessionCreateInput, ChatSessionUncheckedCreateInput>
+    /**
+     * In case the ChatSession was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ChatSessionUpdateInput, ChatSessionUncheckedUpdateInput>
+  }
+
+  /**
+   * ChatSession delete
+   */
+  export type ChatSessionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChatSession
+     */
+    select?: ChatSessionSelect<ExtArgs> | null
+    /**
+     * Filter which ChatSession to delete.
+     */
+    where: ChatSessionWhereUniqueInput
+  }
+
+  /**
+   * ChatSession deleteMany
+   */
+  export type ChatSessionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ChatSessions to delete
+     */
+    where?: ChatSessionWhereInput
+  }
+
+  /**
+   * ChatSession without action
+   */
+  export type ChatSessionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChatSession
+     */
+    select?: ChatSessionSelect<ExtArgs> | null
   }
 
 
@@ -4301,6 +5873,5125 @@ export namespace Prisma {
 
 
   /**
+   * Model KnowledgeSource
+   */
+
+  export type AggregateKnowledgeSource = {
+    _count: KnowledgeSourceCountAggregateOutputType | null
+    _avg: KnowledgeSourceAvgAggregateOutputType | null
+    _sum: KnowledgeSourceSumAggregateOutputType | null
+    _min: KnowledgeSourceMinAggregateOutputType | null
+    _max: KnowledgeSourceMaxAggregateOutputType | null
+  }
+
+  export type KnowledgeSourceAvgAggregateOutputType = {
+    trustTier: number | null
+  }
+
+  export type KnowledgeSourceSumAggregateOutputType = {
+    trustTier: number | null
+  }
+
+  export type KnowledgeSourceMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    baseUrl: string | null
+    sourceType: $Enums.KnowledgeSourceType | null
+    trustTier: number | null
+    crawlCron: string | null
+    isActive: boolean | null
+    lastCrawledAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type KnowledgeSourceMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    baseUrl: string | null
+    sourceType: $Enums.KnowledgeSourceType | null
+    trustTier: number | null
+    crawlCron: string | null
+    isActive: boolean | null
+    lastCrawledAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type KnowledgeSourceCountAggregateOutputType = {
+    id: number
+    name: number
+    baseUrl: number
+    sourceType: number
+    trustTier: number
+    crawlCron: number
+    isActive: number
+    lastCrawledAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type KnowledgeSourceAvgAggregateInputType = {
+    trustTier?: true
+  }
+
+  export type KnowledgeSourceSumAggregateInputType = {
+    trustTier?: true
+  }
+
+  export type KnowledgeSourceMinAggregateInputType = {
+    id?: true
+    name?: true
+    baseUrl?: true
+    sourceType?: true
+    trustTier?: true
+    crawlCron?: true
+    isActive?: true
+    lastCrawledAt?: true
+    createdAt?: true
+  }
+
+  export type KnowledgeSourceMaxAggregateInputType = {
+    id?: true
+    name?: true
+    baseUrl?: true
+    sourceType?: true
+    trustTier?: true
+    crawlCron?: true
+    isActive?: true
+    lastCrawledAt?: true
+    createdAt?: true
+  }
+
+  export type KnowledgeSourceCountAggregateInputType = {
+    id?: true
+    name?: true
+    baseUrl?: true
+    sourceType?: true
+    trustTier?: true
+    crawlCron?: true
+    isActive?: true
+    lastCrawledAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type KnowledgeSourceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which KnowledgeSource to aggregate.
+     */
+    where?: KnowledgeSourceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeSources to fetch.
+     */
+    orderBy?: KnowledgeSourceOrderByWithRelationInput | KnowledgeSourceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: KnowledgeSourceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeSources from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeSources.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned KnowledgeSources
+    **/
+    _count?: true | KnowledgeSourceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: KnowledgeSourceAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: KnowledgeSourceSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: KnowledgeSourceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: KnowledgeSourceMaxAggregateInputType
+  }
+
+  export type GetKnowledgeSourceAggregateType<T extends KnowledgeSourceAggregateArgs> = {
+        [P in keyof T & keyof AggregateKnowledgeSource]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateKnowledgeSource[P]>
+      : GetScalarType<T[P], AggregateKnowledgeSource[P]>
+  }
+
+
+
+
+  export type KnowledgeSourceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: KnowledgeSourceWhereInput
+    orderBy?: KnowledgeSourceOrderByWithAggregationInput | KnowledgeSourceOrderByWithAggregationInput[]
+    by: KnowledgeSourceScalarFieldEnum[] | KnowledgeSourceScalarFieldEnum
+    having?: KnowledgeSourceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: KnowledgeSourceCountAggregateInputType | true
+    _avg?: KnowledgeSourceAvgAggregateInputType
+    _sum?: KnowledgeSourceSumAggregateInputType
+    _min?: KnowledgeSourceMinAggregateInputType
+    _max?: KnowledgeSourceMaxAggregateInputType
+  }
+
+  export type KnowledgeSourceGroupByOutputType = {
+    id: string
+    name: string
+    baseUrl: string
+    sourceType: $Enums.KnowledgeSourceType
+    trustTier: number
+    crawlCron: string
+    isActive: boolean
+    lastCrawledAt: Date | null
+    createdAt: Date
+    _count: KnowledgeSourceCountAggregateOutputType | null
+    _avg: KnowledgeSourceAvgAggregateOutputType | null
+    _sum: KnowledgeSourceSumAggregateOutputType | null
+    _min: KnowledgeSourceMinAggregateOutputType | null
+    _max: KnowledgeSourceMaxAggregateOutputType | null
+  }
+
+  type GetKnowledgeSourceGroupByPayload<T extends KnowledgeSourceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<KnowledgeSourceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof KnowledgeSourceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], KnowledgeSourceGroupByOutputType[P]>
+            : GetScalarType<T[P], KnowledgeSourceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type KnowledgeSourceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    baseUrl?: boolean
+    sourceType?: boolean
+    trustTier?: boolean
+    crawlCron?: boolean
+    isActive?: boolean
+    lastCrawledAt?: boolean
+    createdAt?: boolean
+    documents?: boolean | KnowledgeSource$documentsArgs<ExtArgs>
+    _count?: boolean | KnowledgeSourceCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["knowledgeSource"]>
+
+  export type KnowledgeSourceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    baseUrl?: boolean
+    sourceType?: boolean
+    trustTier?: boolean
+    crawlCron?: boolean
+    isActive?: boolean
+    lastCrawledAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["knowledgeSource"]>
+
+  export type KnowledgeSourceSelectScalar = {
+    id?: boolean
+    name?: boolean
+    baseUrl?: boolean
+    sourceType?: boolean
+    trustTier?: boolean
+    crawlCron?: boolean
+    isActive?: boolean
+    lastCrawledAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type KnowledgeSourceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    documents?: boolean | KnowledgeSource$documentsArgs<ExtArgs>
+    _count?: boolean | KnowledgeSourceCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type KnowledgeSourceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $KnowledgeSourcePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "KnowledgeSource"
+    objects: {
+      documents: Prisma.$KnowledgeDocumentPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      baseUrl: string
+      sourceType: $Enums.KnowledgeSourceType
+      trustTier: number
+      crawlCron: string
+      isActive: boolean
+      lastCrawledAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["knowledgeSource"]>
+    composites: {}
+  }
+
+  type KnowledgeSourceGetPayload<S extends boolean | null | undefined | KnowledgeSourceDefaultArgs> = $Result.GetResult<Prisma.$KnowledgeSourcePayload, S>
+
+  type KnowledgeSourceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<KnowledgeSourceFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: KnowledgeSourceCountAggregateInputType | true
+    }
+
+  export interface KnowledgeSourceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['KnowledgeSource'], meta: { name: 'KnowledgeSource' } }
+    /**
+     * Find zero or one KnowledgeSource that matches the filter.
+     * @param {KnowledgeSourceFindUniqueArgs} args - Arguments to find a KnowledgeSource
+     * @example
+     * // Get one KnowledgeSource
+     * const knowledgeSource = await prisma.knowledgeSource.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends KnowledgeSourceFindUniqueArgs>(args: SelectSubset<T, KnowledgeSourceFindUniqueArgs<ExtArgs>>): Prisma__KnowledgeSourceClient<$Result.GetResult<Prisma.$KnowledgeSourcePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one KnowledgeSource that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {KnowledgeSourceFindUniqueOrThrowArgs} args - Arguments to find a KnowledgeSource
+     * @example
+     * // Get one KnowledgeSource
+     * const knowledgeSource = await prisma.knowledgeSource.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends KnowledgeSourceFindUniqueOrThrowArgs>(args: SelectSubset<T, KnowledgeSourceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__KnowledgeSourceClient<$Result.GetResult<Prisma.$KnowledgeSourcePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first KnowledgeSource that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeSourceFindFirstArgs} args - Arguments to find a KnowledgeSource
+     * @example
+     * // Get one KnowledgeSource
+     * const knowledgeSource = await prisma.knowledgeSource.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends KnowledgeSourceFindFirstArgs>(args?: SelectSubset<T, KnowledgeSourceFindFirstArgs<ExtArgs>>): Prisma__KnowledgeSourceClient<$Result.GetResult<Prisma.$KnowledgeSourcePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first KnowledgeSource that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeSourceFindFirstOrThrowArgs} args - Arguments to find a KnowledgeSource
+     * @example
+     * // Get one KnowledgeSource
+     * const knowledgeSource = await prisma.knowledgeSource.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends KnowledgeSourceFindFirstOrThrowArgs>(args?: SelectSubset<T, KnowledgeSourceFindFirstOrThrowArgs<ExtArgs>>): Prisma__KnowledgeSourceClient<$Result.GetResult<Prisma.$KnowledgeSourcePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more KnowledgeSources that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeSourceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all KnowledgeSources
+     * const knowledgeSources = await prisma.knowledgeSource.findMany()
+     * 
+     * // Get first 10 KnowledgeSources
+     * const knowledgeSources = await prisma.knowledgeSource.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const knowledgeSourceWithIdOnly = await prisma.knowledgeSource.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends KnowledgeSourceFindManyArgs>(args?: SelectSubset<T, KnowledgeSourceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgeSourcePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a KnowledgeSource.
+     * @param {KnowledgeSourceCreateArgs} args - Arguments to create a KnowledgeSource.
+     * @example
+     * // Create one KnowledgeSource
+     * const KnowledgeSource = await prisma.knowledgeSource.create({
+     *   data: {
+     *     // ... data to create a KnowledgeSource
+     *   }
+     * })
+     * 
+     */
+    create<T extends KnowledgeSourceCreateArgs>(args: SelectSubset<T, KnowledgeSourceCreateArgs<ExtArgs>>): Prisma__KnowledgeSourceClient<$Result.GetResult<Prisma.$KnowledgeSourcePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many KnowledgeSources.
+     * @param {KnowledgeSourceCreateManyArgs} args - Arguments to create many KnowledgeSources.
+     * @example
+     * // Create many KnowledgeSources
+     * const knowledgeSource = await prisma.knowledgeSource.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends KnowledgeSourceCreateManyArgs>(args?: SelectSubset<T, KnowledgeSourceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many KnowledgeSources and returns the data saved in the database.
+     * @param {KnowledgeSourceCreateManyAndReturnArgs} args - Arguments to create many KnowledgeSources.
+     * @example
+     * // Create many KnowledgeSources
+     * const knowledgeSource = await prisma.knowledgeSource.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many KnowledgeSources and only return the `id`
+     * const knowledgeSourceWithIdOnly = await prisma.knowledgeSource.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends KnowledgeSourceCreateManyAndReturnArgs>(args?: SelectSubset<T, KnowledgeSourceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgeSourcePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a KnowledgeSource.
+     * @param {KnowledgeSourceDeleteArgs} args - Arguments to delete one KnowledgeSource.
+     * @example
+     * // Delete one KnowledgeSource
+     * const KnowledgeSource = await prisma.knowledgeSource.delete({
+     *   where: {
+     *     // ... filter to delete one KnowledgeSource
+     *   }
+     * })
+     * 
+     */
+    delete<T extends KnowledgeSourceDeleteArgs>(args: SelectSubset<T, KnowledgeSourceDeleteArgs<ExtArgs>>): Prisma__KnowledgeSourceClient<$Result.GetResult<Prisma.$KnowledgeSourcePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one KnowledgeSource.
+     * @param {KnowledgeSourceUpdateArgs} args - Arguments to update one KnowledgeSource.
+     * @example
+     * // Update one KnowledgeSource
+     * const knowledgeSource = await prisma.knowledgeSource.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends KnowledgeSourceUpdateArgs>(args: SelectSubset<T, KnowledgeSourceUpdateArgs<ExtArgs>>): Prisma__KnowledgeSourceClient<$Result.GetResult<Prisma.$KnowledgeSourcePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more KnowledgeSources.
+     * @param {KnowledgeSourceDeleteManyArgs} args - Arguments to filter KnowledgeSources to delete.
+     * @example
+     * // Delete a few KnowledgeSources
+     * const { count } = await prisma.knowledgeSource.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends KnowledgeSourceDeleteManyArgs>(args?: SelectSubset<T, KnowledgeSourceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more KnowledgeSources.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeSourceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many KnowledgeSources
+     * const knowledgeSource = await prisma.knowledgeSource.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends KnowledgeSourceUpdateManyArgs>(args: SelectSubset<T, KnowledgeSourceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one KnowledgeSource.
+     * @param {KnowledgeSourceUpsertArgs} args - Arguments to update or create a KnowledgeSource.
+     * @example
+     * // Update or create a KnowledgeSource
+     * const knowledgeSource = await prisma.knowledgeSource.upsert({
+     *   create: {
+     *     // ... data to create a KnowledgeSource
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the KnowledgeSource we want to update
+     *   }
+     * })
+     */
+    upsert<T extends KnowledgeSourceUpsertArgs>(args: SelectSubset<T, KnowledgeSourceUpsertArgs<ExtArgs>>): Prisma__KnowledgeSourceClient<$Result.GetResult<Prisma.$KnowledgeSourcePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of KnowledgeSources.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeSourceCountArgs} args - Arguments to filter KnowledgeSources to count.
+     * @example
+     * // Count the number of KnowledgeSources
+     * const count = await prisma.knowledgeSource.count({
+     *   where: {
+     *     // ... the filter for the KnowledgeSources we want to count
+     *   }
+     * })
+    **/
+    count<T extends KnowledgeSourceCountArgs>(
+      args?: Subset<T, KnowledgeSourceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], KnowledgeSourceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a KnowledgeSource.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeSourceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends KnowledgeSourceAggregateArgs>(args: Subset<T, KnowledgeSourceAggregateArgs>): Prisma.PrismaPromise<GetKnowledgeSourceAggregateType<T>>
+
+    /**
+     * Group by KnowledgeSource.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeSourceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends KnowledgeSourceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: KnowledgeSourceGroupByArgs['orderBy'] }
+        : { orderBy?: KnowledgeSourceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, KnowledgeSourceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetKnowledgeSourceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the KnowledgeSource model
+   */
+  readonly fields: KnowledgeSourceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for KnowledgeSource.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__KnowledgeSourceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    documents<T extends KnowledgeSource$documentsArgs<ExtArgs> = {}>(args?: Subset<T, KnowledgeSource$documentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the KnowledgeSource model
+   */ 
+  interface KnowledgeSourceFieldRefs {
+    readonly id: FieldRef<"KnowledgeSource", 'String'>
+    readonly name: FieldRef<"KnowledgeSource", 'String'>
+    readonly baseUrl: FieldRef<"KnowledgeSource", 'String'>
+    readonly sourceType: FieldRef<"KnowledgeSource", 'KnowledgeSourceType'>
+    readonly trustTier: FieldRef<"KnowledgeSource", 'Int'>
+    readonly crawlCron: FieldRef<"KnowledgeSource", 'String'>
+    readonly isActive: FieldRef<"KnowledgeSource", 'Boolean'>
+    readonly lastCrawledAt: FieldRef<"KnowledgeSource", 'DateTime'>
+    readonly createdAt: FieldRef<"KnowledgeSource", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * KnowledgeSource findUnique
+   */
+  export type KnowledgeSourceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSource
+     */
+    select?: KnowledgeSourceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeSourceInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeSource to fetch.
+     */
+    where: KnowledgeSourceWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeSource findUniqueOrThrow
+   */
+  export type KnowledgeSourceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSource
+     */
+    select?: KnowledgeSourceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeSourceInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeSource to fetch.
+     */
+    where: KnowledgeSourceWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeSource findFirst
+   */
+  export type KnowledgeSourceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSource
+     */
+    select?: KnowledgeSourceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeSourceInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeSource to fetch.
+     */
+    where?: KnowledgeSourceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeSources to fetch.
+     */
+    orderBy?: KnowledgeSourceOrderByWithRelationInput | KnowledgeSourceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for KnowledgeSources.
+     */
+    cursor?: KnowledgeSourceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeSources from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeSources.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of KnowledgeSources.
+     */
+    distinct?: KnowledgeSourceScalarFieldEnum | KnowledgeSourceScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeSource findFirstOrThrow
+   */
+  export type KnowledgeSourceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSource
+     */
+    select?: KnowledgeSourceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeSourceInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeSource to fetch.
+     */
+    where?: KnowledgeSourceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeSources to fetch.
+     */
+    orderBy?: KnowledgeSourceOrderByWithRelationInput | KnowledgeSourceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for KnowledgeSources.
+     */
+    cursor?: KnowledgeSourceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeSources from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeSources.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of KnowledgeSources.
+     */
+    distinct?: KnowledgeSourceScalarFieldEnum | KnowledgeSourceScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeSource findMany
+   */
+  export type KnowledgeSourceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSource
+     */
+    select?: KnowledgeSourceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeSourceInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeSources to fetch.
+     */
+    where?: KnowledgeSourceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeSources to fetch.
+     */
+    orderBy?: KnowledgeSourceOrderByWithRelationInput | KnowledgeSourceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing KnowledgeSources.
+     */
+    cursor?: KnowledgeSourceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeSources from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeSources.
+     */
+    skip?: number
+    distinct?: KnowledgeSourceScalarFieldEnum | KnowledgeSourceScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeSource create
+   */
+  export type KnowledgeSourceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSource
+     */
+    select?: KnowledgeSourceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeSourceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a KnowledgeSource.
+     */
+    data: XOR<KnowledgeSourceCreateInput, KnowledgeSourceUncheckedCreateInput>
+  }
+
+  /**
+   * KnowledgeSource createMany
+   */
+  export type KnowledgeSourceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many KnowledgeSources.
+     */
+    data: KnowledgeSourceCreateManyInput | KnowledgeSourceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * KnowledgeSource createManyAndReturn
+   */
+  export type KnowledgeSourceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSource
+     */
+    select?: KnowledgeSourceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many KnowledgeSources.
+     */
+    data: KnowledgeSourceCreateManyInput | KnowledgeSourceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * KnowledgeSource update
+   */
+  export type KnowledgeSourceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSource
+     */
+    select?: KnowledgeSourceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeSourceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a KnowledgeSource.
+     */
+    data: XOR<KnowledgeSourceUpdateInput, KnowledgeSourceUncheckedUpdateInput>
+    /**
+     * Choose, which KnowledgeSource to update.
+     */
+    where: KnowledgeSourceWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeSource updateMany
+   */
+  export type KnowledgeSourceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update KnowledgeSources.
+     */
+    data: XOR<KnowledgeSourceUpdateManyMutationInput, KnowledgeSourceUncheckedUpdateManyInput>
+    /**
+     * Filter which KnowledgeSources to update
+     */
+    where?: KnowledgeSourceWhereInput
+  }
+
+  /**
+   * KnowledgeSource upsert
+   */
+  export type KnowledgeSourceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSource
+     */
+    select?: KnowledgeSourceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeSourceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the KnowledgeSource to update in case it exists.
+     */
+    where: KnowledgeSourceWhereUniqueInput
+    /**
+     * In case the KnowledgeSource found by the `where` argument doesn't exist, create a new KnowledgeSource with this data.
+     */
+    create: XOR<KnowledgeSourceCreateInput, KnowledgeSourceUncheckedCreateInput>
+    /**
+     * In case the KnowledgeSource was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<KnowledgeSourceUpdateInput, KnowledgeSourceUncheckedUpdateInput>
+  }
+
+  /**
+   * KnowledgeSource delete
+   */
+  export type KnowledgeSourceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSource
+     */
+    select?: KnowledgeSourceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeSourceInclude<ExtArgs> | null
+    /**
+     * Filter which KnowledgeSource to delete.
+     */
+    where: KnowledgeSourceWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeSource deleteMany
+   */
+  export type KnowledgeSourceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which KnowledgeSources to delete
+     */
+    where?: KnowledgeSourceWhereInput
+  }
+
+  /**
+   * KnowledgeSource.documents
+   */
+  export type KnowledgeSource$documentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentInclude<ExtArgs> | null
+    where?: KnowledgeDocumentWhereInput
+    orderBy?: KnowledgeDocumentOrderByWithRelationInput | KnowledgeDocumentOrderByWithRelationInput[]
+    cursor?: KnowledgeDocumentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: KnowledgeDocumentScalarFieldEnum | KnowledgeDocumentScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeSource without action
+   */
+  export type KnowledgeSourceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeSource
+     */
+    select?: KnowledgeSourceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeSourceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model KnowledgeDocument
+   */
+
+  export type AggregateKnowledgeDocument = {
+    _count: KnowledgeDocumentCountAggregateOutputType | null
+    _avg: KnowledgeDocumentAvgAggregateOutputType | null
+    _sum: KnowledgeDocumentSumAggregateOutputType | null
+    _min: KnowledgeDocumentMinAggregateOutputType | null
+    _max: KnowledgeDocumentMaxAggregateOutputType | null
+  }
+
+  export type KnowledgeDocumentAvgAggregateOutputType = {
+    trustScore: Decimal | null
+    qualityScore: Decimal | null
+  }
+
+  export type KnowledgeDocumentSumAggregateOutputType = {
+    trustScore: Decimal | null
+    qualityScore: Decimal | null
+  }
+
+  export type KnowledgeDocumentMinAggregateOutputType = {
+    id: string | null
+    sourceId: string | null
+    url: string | null
+    title: string | null
+    author: string | null
+    language: string | null
+    contentHash: string | null
+    rawObjectKey: string | null
+    cleanText: string | null
+    topic: $Enums.KnowledgeDocumentTopic | null
+    trustScore: Decimal | null
+    qualityScore: Decimal | null
+    safetyFlag: boolean | null
+    status: $Enums.KnowledgeDocumentStatus | null
+    rejectionReason: string | null
+    publishedAt: Date | null
+    crawledAt: Date | null
+    processedAt: Date | null
+  }
+
+  export type KnowledgeDocumentMaxAggregateOutputType = {
+    id: string | null
+    sourceId: string | null
+    url: string | null
+    title: string | null
+    author: string | null
+    language: string | null
+    contentHash: string | null
+    rawObjectKey: string | null
+    cleanText: string | null
+    topic: $Enums.KnowledgeDocumentTopic | null
+    trustScore: Decimal | null
+    qualityScore: Decimal | null
+    safetyFlag: boolean | null
+    status: $Enums.KnowledgeDocumentStatus | null
+    rejectionReason: string | null
+    publishedAt: Date | null
+    crawledAt: Date | null
+    processedAt: Date | null
+  }
+
+  export type KnowledgeDocumentCountAggregateOutputType = {
+    id: number
+    sourceId: number
+    url: number
+    title: number
+    author: number
+    language: number
+    contentHash: number
+    rawObjectKey: number
+    cleanText: number
+    topic: number
+    trustScore: number
+    qualityScore: number
+    safetyFlag: number
+    status: number
+    rejectionReason: number
+    publishedAt: number
+    crawledAt: number
+    processedAt: number
+    _all: number
+  }
+
+
+  export type KnowledgeDocumentAvgAggregateInputType = {
+    trustScore?: true
+    qualityScore?: true
+  }
+
+  export type KnowledgeDocumentSumAggregateInputType = {
+    trustScore?: true
+    qualityScore?: true
+  }
+
+  export type KnowledgeDocumentMinAggregateInputType = {
+    id?: true
+    sourceId?: true
+    url?: true
+    title?: true
+    author?: true
+    language?: true
+    contentHash?: true
+    rawObjectKey?: true
+    cleanText?: true
+    topic?: true
+    trustScore?: true
+    qualityScore?: true
+    safetyFlag?: true
+    status?: true
+    rejectionReason?: true
+    publishedAt?: true
+    crawledAt?: true
+    processedAt?: true
+  }
+
+  export type KnowledgeDocumentMaxAggregateInputType = {
+    id?: true
+    sourceId?: true
+    url?: true
+    title?: true
+    author?: true
+    language?: true
+    contentHash?: true
+    rawObjectKey?: true
+    cleanText?: true
+    topic?: true
+    trustScore?: true
+    qualityScore?: true
+    safetyFlag?: true
+    status?: true
+    rejectionReason?: true
+    publishedAt?: true
+    crawledAt?: true
+    processedAt?: true
+  }
+
+  export type KnowledgeDocumentCountAggregateInputType = {
+    id?: true
+    sourceId?: true
+    url?: true
+    title?: true
+    author?: true
+    language?: true
+    contentHash?: true
+    rawObjectKey?: true
+    cleanText?: true
+    topic?: true
+    trustScore?: true
+    qualityScore?: true
+    safetyFlag?: true
+    status?: true
+    rejectionReason?: true
+    publishedAt?: true
+    crawledAt?: true
+    processedAt?: true
+    _all?: true
+  }
+
+  export type KnowledgeDocumentAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which KnowledgeDocument to aggregate.
+     */
+    where?: KnowledgeDocumentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeDocuments to fetch.
+     */
+    orderBy?: KnowledgeDocumentOrderByWithRelationInput | KnowledgeDocumentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: KnowledgeDocumentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeDocuments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeDocuments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned KnowledgeDocuments
+    **/
+    _count?: true | KnowledgeDocumentCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: KnowledgeDocumentAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: KnowledgeDocumentSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: KnowledgeDocumentMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: KnowledgeDocumentMaxAggregateInputType
+  }
+
+  export type GetKnowledgeDocumentAggregateType<T extends KnowledgeDocumentAggregateArgs> = {
+        [P in keyof T & keyof AggregateKnowledgeDocument]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateKnowledgeDocument[P]>
+      : GetScalarType<T[P], AggregateKnowledgeDocument[P]>
+  }
+
+
+
+
+  export type KnowledgeDocumentGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: KnowledgeDocumentWhereInput
+    orderBy?: KnowledgeDocumentOrderByWithAggregationInput | KnowledgeDocumentOrderByWithAggregationInput[]
+    by: KnowledgeDocumentScalarFieldEnum[] | KnowledgeDocumentScalarFieldEnum
+    having?: KnowledgeDocumentScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: KnowledgeDocumentCountAggregateInputType | true
+    _avg?: KnowledgeDocumentAvgAggregateInputType
+    _sum?: KnowledgeDocumentSumAggregateInputType
+    _min?: KnowledgeDocumentMinAggregateInputType
+    _max?: KnowledgeDocumentMaxAggregateInputType
+  }
+
+  export type KnowledgeDocumentGroupByOutputType = {
+    id: string
+    sourceId: string
+    url: string
+    title: string | null
+    author: string | null
+    language: string | null
+    contentHash: string
+    rawObjectKey: string | null
+    cleanText: string | null
+    topic: $Enums.KnowledgeDocumentTopic | null
+    trustScore: Decimal | null
+    qualityScore: Decimal | null
+    safetyFlag: boolean
+    status: $Enums.KnowledgeDocumentStatus
+    rejectionReason: string | null
+    publishedAt: Date | null
+    crawledAt: Date
+    processedAt: Date | null
+    _count: KnowledgeDocumentCountAggregateOutputType | null
+    _avg: KnowledgeDocumentAvgAggregateOutputType | null
+    _sum: KnowledgeDocumentSumAggregateOutputType | null
+    _min: KnowledgeDocumentMinAggregateOutputType | null
+    _max: KnowledgeDocumentMaxAggregateOutputType | null
+  }
+
+  type GetKnowledgeDocumentGroupByPayload<T extends KnowledgeDocumentGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<KnowledgeDocumentGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof KnowledgeDocumentGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], KnowledgeDocumentGroupByOutputType[P]>
+            : GetScalarType<T[P], KnowledgeDocumentGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type KnowledgeDocumentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sourceId?: boolean
+    url?: boolean
+    title?: boolean
+    author?: boolean
+    language?: boolean
+    contentHash?: boolean
+    rawObjectKey?: boolean
+    cleanText?: boolean
+    topic?: boolean
+    trustScore?: boolean
+    qualityScore?: boolean
+    safetyFlag?: boolean
+    status?: boolean
+    rejectionReason?: boolean
+    publishedAt?: boolean
+    crawledAt?: boolean
+    processedAt?: boolean
+    source?: boolean | KnowledgeSourceDefaultArgs<ExtArgs>
+    chunks?: boolean | KnowledgeDocument$chunksArgs<ExtArgs>
+    reviewItems?: boolean | KnowledgeDocument$reviewItemsArgs<ExtArgs>
+    _count?: boolean | KnowledgeDocumentCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["knowledgeDocument"]>
+
+  export type KnowledgeDocumentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sourceId?: boolean
+    url?: boolean
+    title?: boolean
+    author?: boolean
+    language?: boolean
+    contentHash?: boolean
+    rawObjectKey?: boolean
+    cleanText?: boolean
+    topic?: boolean
+    trustScore?: boolean
+    qualityScore?: boolean
+    safetyFlag?: boolean
+    status?: boolean
+    rejectionReason?: boolean
+    publishedAt?: boolean
+    crawledAt?: boolean
+    processedAt?: boolean
+    source?: boolean | KnowledgeSourceDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["knowledgeDocument"]>
+
+  export type KnowledgeDocumentSelectScalar = {
+    id?: boolean
+    sourceId?: boolean
+    url?: boolean
+    title?: boolean
+    author?: boolean
+    language?: boolean
+    contentHash?: boolean
+    rawObjectKey?: boolean
+    cleanText?: boolean
+    topic?: boolean
+    trustScore?: boolean
+    qualityScore?: boolean
+    safetyFlag?: boolean
+    status?: boolean
+    rejectionReason?: boolean
+    publishedAt?: boolean
+    crawledAt?: boolean
+    processedAt?: boolean
+  }
+
+  export type KnowledgeDocumentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    source?: boolean | KnowledgeSourceDefaultArgs<ExtArgs>
+    chunks?: boolean | KnowledgeDocument$chunksArgs<ExtArgs>
+    reviewItems?: boolean | KnowledgeDocument$reviewItemsArgs<ExtArgs>
+    _count?: boolean | KnowledgeDocumentCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type KnowledgeDocumentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    source?: boolean | KnowledgeSourceDefaultArgs<ExtArgs>
+  }
+
+  export type $KnowledgeDocumentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "KnowledgeDocument"
+    objects: {
+      source: Prisma.$KnowledgeSourcePayload<ExtArgs>
+      chunks: Prisma.$KnowledgeChunkPayload<ExtArgs>[]
+      reviewItems: Prisma.$KnowledgeReviewItemPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      sourceId: string
+      url: string
+      title: string | null
+      author: string | null
+      language: string | null
+      contentHash: string
+      rawObjectKey: string | null
+      cleanText: string | null
+      topic: $Enums.KnowledgeDocumentTopic | null
+      trustScore: Prisma.Decimal | null
+      qualityScore: Prisma.Decimal | null
+      safetyFlag: boolean
+      status: $Enums.KnowledgeDocumentStatus
+      rejectionReason: string | null
+      publishedAt: Date | null
+      crawledAt: Date
+      processedAt: Date | null
+    }, ExtArgs["result"]["knowledgeDocument"]>
+    composites: {}
+  }
+
+  type KnowledgeDocumentGetPayload<S extends boolean | null | undefined | KnowledgeDocumentDefaultArgs> = $Result.GetResult<Prisma.$KnowledgeDocumentPayload, S>
+
+  type KnowledgeDocumentCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<KnowledgeDocumentFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: KnowledgeDocumentCountAggregateInputType | true
+    }
+
+  export interface KnowledgeDocumentDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['KnowledgeDocument'], meta: { name: 'KnowledgeDocument' } }
+    /**
+     * Find zero or one KnowledgeDocument that matches the filter.
+     * @param {KnowledgeDocumentFindUniqueArgs} args - Arguments to find a KnowledgeDocument
+     * @example
+     * // Get one KnowledgeDocument
+     * const knowledgeDocument = await prisma.knowledgeDocument.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends KnowledgeDocumentFindUniqueArgs>(args: SelectSubset<T, KnowledgeDocumentFindUniqueArgs<ExtArgs>>): Prisma__KnowledgeDocumentClient<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one KnowledgeDocument that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {KnowledgeDocumentFindUniqueOrThrowArgs} args - Arguments to find a KnowledgeDocument
+     * @example
+     * // Get one KnowledgeDocument
+     * const knowledgeDocument = await prisma.knowledgeDocument.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends KnowledgeDocumentFindUniqueOrThrowArgs>(args: SelectSubset<T, KnowledgeDocumentFindUniqueOrThrowArgs<ExtArgs>>): Prisma__KnowledgeDocumentClient<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first KnowledgeDocument that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeDocumentFindFirstArgs} args - Arguments to find a KnowledgeDocument
+     * @example
+     * // Get one KnowledgeDocument
+     * const knowledgeDocument = await prisma.knowledgeDocument.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends KnowledgeDocumentFindFirstArgs>(args?: SelectSubset<T, KnowledgeDocumentFindFirstArgs<ExtArgs>>): Prisma__KnowledgeDocumentClient<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first KnowledgeDocument that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeDocumentFindFirstOrThrowArgs} args - Arguments to find a KnowledgeDocument
+     * @example
+     * // Get one KnowledgeDocument
+     * const knowledgeDocument = await prisma.knowledgeDocument.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends KnowledgeDocumentFindFirstOrThrowArgs>(args?: SelectSubset<T, KnowledgeDocumentFindFirstOrThrowArgs<ExtArgs>>): Prisma__KnowledgeDocumentClient<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more KnowledgeDocuments that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeDocumentFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all KnowledgeDocuments
+     * const knowledgeDocuments = await prisma.knowledgeDocument.findMany()
+     * 
+     * // Get first 10 KnowledgeDocuments
+     * const knowledgeDocuments = await prisma.knowledgeDocument.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const knowledgeDocumentWithIdOnly = await prisma.knowledgeDocument.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends KnowledgeDocumentFindManyArgs>(args?: SelectSubset<T, KnowledgeDocumentFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a KnowledgeDocument.
+     * @param {KnowledgeDocumentCreateArgs} args - Arguments to create a KnowledgeDocument.
+     * @example
+     * // Create one KnowledgeDocument
+     * const KnowledgeDocument = await prisma.knowledgeDocument.create({
+     *   data: {
+     *     // ... data to create a KnowledgeDocument
+     *   }
+     * })
+     * 
+     */
+    create<T extends KnowledgeDocumentCreateArgs>(args: SelectSubset<T, KnowledgeDocumentCreateArgs<ExtArgs>>): Prisma__KnowledgeDocumentClient<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many KnowledgeDocuments.
+     * @param {KnowledgeDocumentCreateManyArgs} args - Arguments to create many KnowledgeDocuments.
+     * @example
+     * // Create many KnowledgeDocuments
+     * const knowledgeDocument = await prisma.knowledgeDocument.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends KnowledgeDocumentCreateManyArgs>(args?: SelectSubset<T, KnowledgeDocumentCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many KnowledgeDocuments and returns the data saved in the database.
+     * @param {KnowledgeDocumentCreateManyAndReturnArgs} args - Arguments to create many KnowledgeDocuments.
+     * @example
+     * // Create many KnowledgeDocuments
+     * const knowledgeDocument = await prisma.knowledgeDocument.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many KnowledgeDocuments and only return the `id`
+     * const knowledgeDocumentWithIdOnly = await prisma.knowledgeDocument.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends KnowledgeDocumentCreateManyAndReturnArgs>(args?: SelectSubset<T, KnowledgeDocumentCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a KnowledgeDocument.
+     * @param {KnowledgeDocumentDeleteArgs} args - Arguments to delete one KnowledgeDocument.
+     * @example
+     * // Delete one KnowledgeDocument
+     * const KnowledgeDocument = await prisma.knowledgeDocument.delete({
+     *   where: {
+     *     // ... filter to delete one KnowledgeDocument
+     *   }
+     * })
+     * 
+     */
+    delete<T extends KnowledgeDocumentDeleteArgs>(args: SelectSubset<T, KnowledgeDocumentDeleteArgs<ExtArgs>>): Prisma__KnowledgeDocumentClient<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one KnowledgeDocument.
+     * @param {KnowledgeDocumentUpdateArgs} args - Arguments to update one KnowledgeDocument.
+     * @example
+     * // Update one KnowledgeDocument
+     * const knowledgeDocument = await prisma.knowledgeDocument.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends KnowledgeDocumentUpdateArgs>(args: SelectSubset<T, KnowledgeDocumentUpdateArgs<ExtArgs>>): Prisma__KnowledgeDocumentClient<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more KnowledgeDocuments.
+     * @param {KnowledgeDocumentDeleteManyArgs} args - Arguments to filter KnowledgeDocuments to delete.
+     * @example
+     * // Delete a few KnowledgeDocuments
+     * const { count } = await prisma.knowledgeDocument.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends KnowledgeDocumentDeleteManyArgs>(args?: SelectSubset<T, KnowledgeDocumentDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more KnowledgeDocuments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeDocumentUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many KnowledgeDocuments
+     * const knowledgeDocument = await prisma.knowledgeDocument.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends KnowledgeDocumentUpdateManyArgs>(args: SelectSubset<T, KnowledgeDocumentUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one KnowledgeDocument.
+     * @param {KnowledgeDocumentUpsertArgs} args - Arguments to update or create a KnowledgeDocument.
+     * @example
+     * // Update or create a KnowledgeDocument
+     * const knowledgeDocument = await prisma.knowledgeDocument.upsert({
+     *   create: {
+     *     // ... data to create a KnowledgeDocument
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the KnowledgeDocument we want to update
+     *   }
+     * })
+     */
+    upsert<T extends KnowledgeDocumentUpsertArgs>(args: SelectSubset<T, KnowledgeDocumentUpsertArgs<ExtArgs>>): Prisma__KnowledgeDocumentClient<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of KnowledgeDocuments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeDocumentCountArgs} args - Arguments to filter KnowledgeDocuments to count.
+     * @example
+     * // Count the number of KnowledgeDocuments
+     * const count = await prisma.knowledgeDocument.count({
+     *   where: {
+     *     // ... the filter for the KnowledgeDocuments we want to count
+     *   }
+     * })
+    **/
+    count<T extends KnowledgeDocumentCountArgs>(
+      args?: Subset<T, KnowledgeDocumentCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], KnowledgeDocumentCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a KnowledgeDocument.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeDocumentAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends KnowledgeDocumentAggregateArgs>(args: Subset<T, KnowledgeDocumentAggregateArgs>): Prisma.PrismaPromise<GetKnowledgeDocumentAggregateType<T>>
+
+    /**
+     * Group by KnowledgeDocument.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeDocumentGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends KnowledgeDocumentGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: KnowledgeDocumentGroupByArgs['orderBy'] }
+        : { orderBy?: KnowledgeDocumentGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, KnowledgeDocumentGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetKnowledgeDocumentGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the KnowledgeDocument model
+   */
+  readonly fields: KnowledgeDocumentFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for KnowledgeDocument.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__KnowledgeDocumentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    source<T extends KnowledgeSourceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, KnowledgeSourceDefaultArgs<ExtArgs>>): Prisma__KnowledgeSourceClient<$Result.GetResult<Prisma.$KnowledgeSourcePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    chunks<T extends KnowledgeDocument$chunksArgs<ExtArgs> = {}>(args?: Subset<T, KnowledgeDocument$chunksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "findMany"> | Null>
+    reviewItems<T extends KnowledgeDocument$reviewItemsArgs<ExtArgs> = {}>(args?: Subset<T, KnowledgeDocument$reviewItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgeReviewItemPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the KnowledgeDocument model
+   */ 
+  interface KnowledgeDocumentFieldRefs {
+    readonly id: FieldRef<"KnowledgeDocument", 'String'>
+    readonly sourceId: FieldRef<"KnowledgeDocument", 'String'>
+    readonly url: FieldRef<"KnowledgeDocument", 'String'>
+    readonly title: FieldRef<"KnowledgeDocument", 'String'>
+    readonly author: FieldRef<"KnowledgeDocument", 'String'>
+    readonly language: FieldRef<"KnowledgeDocument", 'String'>
+    readonly contentHash: FieldRef<"KnowledgeDocument", 'String'>
+    readonly rawObjectKey: FieldRef<"KnowledgeDocument", 'String'>
+    readonly cleanText: FieldRef<"KnowledgeDocument", 'String'>
+    readonly topic: FieldRef<"KnowledgeDocument", 'KnowledgeDocumentTopic'>
+    readonly trustScore: FieldRef<"KnowledgeDocument", 'Decimal'>
+    readonly qualityScore: FieldRef<"KnowledgeDocument", 'Decimal'>
+    readonly safetyFlag: FieldRef<"KnowledgeDocument", 'Boolean'>
+    readonly status: FieldRef<"KnowledgeDocument", 'KnowledgeDocumentStatus'>
+    readonly rejectionReason: FieldRef<"KnowledgeDocument", 'String'>
+    readonly publishedAt: FieldRef<"KnowledgeDocument", 'DateTime'>
+    readonly crawledAt: FieldRef<"KnowledgeDocument", 'DateTime'>
+    readonly processedAt: FieldRef<"KnowledgeDocument", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * KnowledgeDocument findUnique
+   */
+  export type KnowledgeDocumentFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeDocument to fetch.
+     */
+    where: KnowledgeDocumentWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeDocument findUniqueOrThrow
+   */
+  export type KnowledgeDocumentFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeDocument to fetch.
+     */
+    where: KnowledgeDocumentWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeDocument findFirst
+   */
+  export type KnowledgeDocumentFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeDocument to fetch.
+     */
+    where?: KnowledgeDocumentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeDocuments to fetch.
+     */
+    orderBy?: KnowledgeDocumentOrderByWithRelationInput | KnowledgeDocumentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for KnowledgeDocuments.
+     */
+    cursor?: KnowledgeDocumentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeDocuments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeDocuments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of KnowledgeDocuments.
+     */
+    distinct?: KnowledgeDocumentScalarFieldEnum | KnowledgeDocumentScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeDocument findFirstOrThrow
+   */
+  export type KnowledgeDocumentFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeDocument to fetch.
+     */
+    where?: KnowledgeDocumentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeDocuments to fetch.
+     */
+    orderBy?: KnowledgeDocumentOrderByWithRelationInput | KnowledgeDocumentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for KnowledgeDocuments.
+     */
+    cursor?: KnowledgeDocumentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeDocuments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeDocuments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of KnowledgeDocuments.
+     */
+    distinct?: KnowledgeDocumentScalarFieldEnum | KnowledgeDocumentScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeDocument findMany
+   */
+  export type KnowledgeDocumentFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeDocuments to fetch.
+     */
+    where?: KnowledgeDocumentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeDocuments to fetch.
+     */
+    orderBy?: KnowledgeDocumentOrderByWithRelationInput | KnowledgeDocumentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing KnowledgeDocuments.
+     */
+    cursor?: KnowledgeDocumentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeDocuments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeDocuments.
+     */
+    skip?: number
+    distinct?: KnowledgeDocumentScalarFieldEnum | KnowledgeDocumentScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeDocument create
+   */
+  export type KnowledgeDocumentCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentInclude<ExtArgs> | null
+    /**
+     * The data needed to create a KnowledgeDocument.
+     */
+    data: XOR<KnowledgeDocumentCreateInput, KnowledgeDocumentUncheckedCreateInput>
+  }
+
+  /**
+   * KnowledgeDocument createMany
+   */
+  export type KnowledgeDocumentCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many KnowledgeDocuments.
+     */
+    data: KnowledgeDocumentCreateManyInput | KnowledgeDocumentCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * KnowledgeDocument createManyAndReturn
+   */
+  export type KnowledgeDocumentCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many KnowledgeDocuments.
+     */
+    data: KnowledgeDocumentCreateManyInput | KnowledgeDocumentCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * KnowledgeDocument update
+   */
+  export type KnowledgeDocumentUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentInclude<ExtArgs> | null
+    /**
+     * The data needed to update a KnowledgeDocument.
+     */
+    data: XOR<KnowledgeDocumentUpdateInput, KnowledgeDocumentUncheckedUpdateInput>
+    /**
+     * Choose, which KnowledgeDocument to update.
+     */
+    where: KnowledgeDocumentWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeDocument updateMany
+   */
+  export type KnowledgeDocumentUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update KnowledgeDocuments.
+     */
+    data: XOR<KnowledgeDocumentUpdateManyMutationInput, KnowledgeDocumentUncheckedUpdateManyInput>
+    /**
+     * Filter which KnowledgeDocuments to update
+     */
+    where?: KnowledgeDocumentWhereInput
+  }
+
+  /**
+   * KnowledgeDocument upsert
+   */
+  export type KnowledgeDocumentUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentInclude<ExtArgs> | null
+    /**
+     * The filter to search for the KnowledgeDocument to update in case it exists.
+     */
+    where: KnowledgeDocumentWhereUniqueInput
+    /**
+     * In case the KnowledgeDocument found by the `where` argument doesn't exist, create a new KnowledgeDocument with this data.
+     */
+    create: XOR<KnowledgeDocumentCreateInput, KnowledgeDocumentUncheckedCreateInput>
+    /**
+     * In case the KnowledgeDocument was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<KnowledgeDocumentUpdateInput, KnowledgeDocumentUncheckedUpdateInput>
+  }
+
+  /**
+   * KnowledgeDocument delete
+   */
+  export type KnowledgeDocumentDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentInclude<ExtArgs> | null
+    /**
+     * Filter which KnowledgeDocument to delete.
+     */
+    where: KnowledgeDocumentWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeDocument deleteMany
+   */
+  export type KnowledgeDocumentDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which KnowledgeDocuments to delete
+     */
+    where?: KnowledgeDocumentWhereInput
+  }
+
+  /**
+   * KnowledgeDocument.chunks
+   */
+  export type KnowledgeDocument$chunksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkInclude<ExtArgs> | null
+    where?: KnowledgeChunkWhereInput
+    orderBy?: KnowledgeChunkOrderByWithRelationInput | KnowledgeChunkOrderByWithRelationInput[]
+    cursor?: KnowledgeChunkWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: KnowledgeChunkScalarFieldEnum | KnowledgeChunkScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeDocument.reviewItems
+   */
+  export type KnowledgeDocument$reviewItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemInclude<ExtArgs> | null
+    where?: KnowledgeReviewItemWhereInput
+    orderBy?: KnowledgeReviewItemOrderByWithRelationInput | KnowledgeReviewItemOrderByWithRelationInput[]
+    cursor?: KnowledgeReviewItemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: KnowledgeReviewItemScalarFieldEnum | KnowledgeReviewItemScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeDocument without action
+   */
+  export type KnowledgeDocumentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeDocument
+     */
+    select?: KnowledgeDocumentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeDocumentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model KnowledgeChunk
+   */
+
+  export type AggregateKnowledgeChunk = {
+    _count: KnowledgeChunkCountAggregateOutputType | null
+    _avg: KnowledgeChunkAvgAggregateOutputType | null
+    _sum: KnowledgeChunkSumAggregateOutputType | null
+    _min: KnowledgeChunkMinAggregateOutputType | null
+    _max: KnowledgeChunkMaxAggregateOutputType | null
+  }
+
+  export type KnowledgeChunkAvgAggregateOutputType = {
+    chunkIndex: number | null
+    tokenCount: number | null
+  }
+
+  export type KnowledgeChunkSumAggregateOutputType = {
+    chunkIndex: number | null
+    tokenCount: number | null
+  }
+
+  export type KnowledgeChunkMinAggregateOutputType = {
+    id: string | null
+    documentId: string | null
+    chunkIndex: number | null
+    text: string | null
+    tokenCount: number | null
+    vectorId: string | null
+    embeddedAt: Date | null
+  }
+
+  export type KnowledgeChunkMaxAggregateOutputType = {
+    id: string | null
+    documentId: string | null
+    chunkIndex: number | null
+    text: string | null
+    tokenCount: number | null
+    vectorId: string | null
+    embeddedAt: Date | null
+  }
+
+  export type KnowledgeChunkCountAggregateOutputType = {
+    id: number
+    documentId: number
+    chunkIndex: number
+    text: number
+    tokenCount: number
+    vectorId: number
+    embeddedAt: number
+    _all: number
+  }
+
+
+  export type KnowledgeChunkAvgAggregateInputType = {
+    chunkIndex?: true
+    tokenCount?: true
+  }
+
+  export type KnowledgeChunkSumAggregateInputType = {
+    chunkIndex?: true
+    tokenCount?: true
+  }
+
+  export type KnowledgeChunkMinAggregateInputType = {
+    id?: true
+    documentId?: true
+    chunkIndex?: true
+    text?: true
+    tokenCount?: true
+    vectorId?: true
+    embeddedAt?: true
+  }
+
+  export type KnowledgeChunkMaxAggregateInputType = {
+    id?: true
+    documentId?: true
+    chunkIndex?: true
+    text?: true
+    tokenCount?: true
+    vectorId?: true
+    embeddedAt?: true
+  }
+
+  export type KnowledgeChunkCountAggregateInputType = {
+    id?: true
+    documentId?: true
+    chunkIndex?: true
+    text?: true
+    tokenCount?: true
+    vectorId?: true
+    embeddedAt?: true
+    _all?: true
+  }
+
+  export type KnowledgeChunkAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which KnowledgeChunk to aggregate.
+     */
+    where?: KnowledgeChunkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeChunks to fetch.
+     */
+    orderBy?: KnowledgeChunkOrderByWithRelationInput | KnowledgeChunkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: KnowledgeChunkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeChunks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeChunks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned KnowledgeChunks
+    **/
+    _count?: true | KnowledgeChunkCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: KnowledgeChunkAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: KnowledgeChunkSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: KnowledgeChunkMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: KnowledgeChunkMaxAggregateInputType
+  }
+
+  export type GetKnowledgeChunkAggregateType<T extends KnowledgeChunkAggregateArgs> = {
+        [P in keyof T & keyof AggregateKnowledgeChunk]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateKnowledgeChunk[P]>
+      : GetScalarType<T[P], AggregateKnowledgeChunk[P]>
+  }
+
+
+
+
+  export type KnowledgeChunkGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: KnowledgeChunkWhereInput
+    orderBy?: KnowledgeChunkOrderByWithAggregationInput | KnowledgeChunkOrderByWithAggregationInput[]
+    by: KnowledgeChunkScalarFieldEnum[] | KnowledgeChunkScalarFieldEnum
+    having?: KnowledgeChunkScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: KnowledgeChunkCountAggregateInputType | true
+    _avg?: KnowledgeChunkAvgAggregateInputType
+    _sum?: KnowledgeChunkSumAggregateInputType
+    _min?: KnowledgeChunkMinAggregateInputType
+    _max?: KnowledgeChunkMaxAggregateInputType
+  }
+
+  export type KnowledgeChunkGroupByOutputType = {
+    id: string
+    documentId: string
+    chunkIndex: number
+    text: string
+    tokenCount: number | null
+    vectorId: string
+    embeddedAt: Date
+    _count: KnowledgeChunkCountAggregateOutputType | null
+    _avg: KnowledgeChunkAvgAggregateOutputType | null
+    _sum: KnowledgeChunkSumAggregateOutputType | null
+    _min: KnowledgeChunkMinAggregateOutputType | null
+    _max: KnowledgeChunkMaxAggregateOutputType | null
+  }
+
+  type GetKnowledgeChunkGroupByPayload<T extends KnowledgeChunkGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<KnowledgeChunkGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof KnowledgeChunkGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], KnowledgeChunkGroupByOutputType[P]>
+            : GetScalarType<T[P], KnowledgeChunkGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type KnowledgeChunkSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    documentId?: boolean
+    chunkIndex?: boolean
+    text?: boolean
+    tokenCount?: boolean
+    vectorId?: boolean
+    embeddedAt?: boolean
+    document?: boolean | KnowledgeDocumentDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["knowledgeChunk"]>
+
+  export type KnowledgeChunkSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    documentId?: boolean
+    chunkIndex?: boolean
+    text?: boolean
+    tokenCount?: boolean
+    vectorId?: boolean
+    embeddedAt?: boolean
+    document?: boolean | KnowledgeDocumentDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["knowledgeChunk"]>
+
+  export type KnowledgeChunkSelectScalar = {
+    id?: boolean
+    documentId?: boolean
+    chunkIndex?: boolean
+    text?: boolean
+    tokenCount?: boolean
+    vectorId?: boolean
+    embeddedAt?: boolean
+  }
+
+  export type KnowledgeChunkInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    document?: boolean | KnowledgeDocumentDefaultArgs<ExtArgs>
+  }
+  export type KnowledgeChunkIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    document?: boolean | KnowledgeDocumentDefaultArgs<ExtArgs>
+  }
+
+  export type $KnowledgeChunkPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "KnowledgeChunk"
+    objects: {
+      document: Prisma.$KnowledgeDocumentPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      documentId: string
+      chunkIndex: number
+      text: string
+      tokenCount: number | null
+      vectorId: string
+      embeddedAt: Date
+    }, ExtArgs["result"]["knowledgeChunk"]>
+    composites: {}
+  }
+
+  type KnowledgeChunkGetPayload<S extends boolean | null | undefined | KnowledgeChunkDefaultArgs> = $Result.GetResult<Prisma.$KnowledgeChunkPayload, S>
+
+  type KnowledgeChunkCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<KnowledgeChunkFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: KnowledgeChunkCountAggregateInputType | true
+    }
+
+  export interface KnowledgeChunkDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['KnowledgeChunk'], meta: { name: 'KnowledgeChunk' } }
+    /**
+     * Find zero or one KnowledgeChunk that matches the filter.
+     * @param {KnowledgeChunkFindUniqueArgs} args - Arguments to find a KnowledgeChunk
+     * @example
+     * // Get one KnowledgeChunk
+     * const knowledgeChunk = await prisma.knowledgeChunk.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends KnowledgeChunkFindUniqueArgs>(args: SelectSubset<T, KnowledgeChunkFindUniqueArgs<ExtArgs>>): Prisma__KnowledgeChunkClient<$Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one KnowledgeChunk that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {KnowledgeChunkFindUniqueOrThrowArgs} args - Arguments to find a KnowledgeChunk
+     * @example
+     * // Get one KnowledgeChunk
+     * const knowledgeChunk = await prisma.knowledgeChunk.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends KnowledgeChunkFindUniqueOrThrowArgs>(args: SelectSubset<T, KnowledgeChunkFindUniqueOrThrowArgs<ExtArgs>>): Prisma__KnowledgeChunkClient<$Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first KnowledgeChunk that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeChunkFindFirstArgs} args - Arguments to find a KnowledgeChunk
+     * @example
+     * // Get one KnowledgeChunk
+     * const knowledgeChunk = await prisma.knowledgeChunk.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends KnowledgeChunkFindFirstArgs>(args?: SelectSubset<T, KnowledgeChunkFindFirstArgs<ExtArgs>>): Prisma__KnowledgeChunkClient<$Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first KnowledgeChunk that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeChunkFindFirstOrThrowArgs} args - Arguments to find a KnowledgeChunk
+     * @example
+     * // Get one KnowledgeChunk
+     * const knowledgeChunk = await prisma.knowledgeChunk.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends KnowledgeChunkFindFirstOrThrowArgs>(args?: SelectSubset<T, KnowledgeChunkFindFirstOrThrowArgs<ExtArgs>>): Prisma__KnowledgeChunkClient<$Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more KnowledgeChunks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeChunkFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all KnowledgeChunks
+     * const knowledgeChunks = await prisma.knowledgeChunk.findMany()
+     * 
+     * // Get first 10 KnowledgeChunks
+     * const knowledgeChunks = await prisma.knowledgeChunk.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const knowledgeChunkWithIdOnly = await prisma.knowledgeChunk.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends KnowledgeChunkFindManyArgs>(args?: SelectSubset<T, KnowledgeChunkFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a KnowledgeChunk.
+     * @param {KnowledgeChunkCreateArgs} args - Arguments to create a KnowledgeChunk.
+     * @example
+     * // Create one KnowledgeChunk
+     * const KnowledgeChunk = await prisma.knowledgeChunk.create({
+     *   data: {
+     *     // ... data to create a KnowledgeChunk
+     *   }
+     * })
+     * 
+     */
+    create<T extends KnowledgeChunkCreateArgs>(args: SelectSubset<T, KnowledgeChunkCreateArgs<ExtArgs>>): Prisma__KnowledgeChunkClient<$Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many KnowledgeChunks.
+     * @param {KnowledgeChunkCreateManyArgs} args - Arguments to create many KnowledgeChunks.
+     * @example
+     * // Create many KnowledgeChunks
+     * const knowledgeChunk = await prisma.knowledgeChunk.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends KnowledgeChunkCreateManyArgs>(args?: SelectSubset<T, KnowledgeChunkCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many KnowledgeChunks and returns the data saved in the database.
+     * @param {KnowledgeChunkCreateManyAndReturnArgs} args - Arguments to create many KnowledgeChunks.
+     * @example
+     * // Create many KnowledgeChunks
+     * const knowledgeChunk = await prisma.knowledgeChunk.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many KnowledgeChunks and only return the `id`
+     * const knowledgeChunkWithIdOnly = await prisma.knowledgeChunk.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends KnowledgeChunkCreateManyAndReturnArgs>(args?: SelectSubset<T, KnowledgeChunkCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a KnowledgeChunk.
+     * @param {KnowledgeChunkDeleteArgs} args - Arguments to delete one KnowledgeChunk.
+     * @example
+     * // Delete one KnowledgeChunk
+     * const KnowledgeChunk = await prisma.knowledgeChunk.delete({
+     *   where: {
+     *     // ... filter to delete one KnowledgeChunk
+     *   }
+     * })
+     * 
+     */
+    delete<T extends KnowledgeChunkDeleteArgs>(args: SelectSubset<T, KnowledgeChunkDeleteArgs<ExtArgs>>): Prisma__KnowledgeChunkClient<$Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one KnowledgeChunk.
+     * @param {KnowledgeChunkUpdateArgs} args - Arguments to update one KnowledgeChunk.
+     * @example
+     * // Update one KnowledgeChunk
+     * const knowledgeChunk = await prisma.knowledgeChunk.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends KnowledgeChunkUpdateArgs>(args: SelectSubset<T, KnowledgeChunkUpdateArgs<ExtArgs>>): Prisma__KnowledgeChunkClient<$Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more KnowledgeChunks.
+     * @param {KnowledgeChunkDeleteManyArgs} args - Arguments to filter KnowledgeChunks to delete.
+     * @example
+     * // Delete a few KnowledgeChunks
+     * const { count } = await prisma.knowledgeChunk.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends KnowledgeChunkDeleteManyArgs>(args?: SelectSubset<T, KnowledgeChunkDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more KnowledgeChunks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeChunkUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many KnowledgeChunks
+     * const knowledgeChunk = await prisma.knowledgeChunk.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends KnowledgeChunkUpdateManyArgs>(args: SelectSubset<T, KnowledgeChunkUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one KnowledgeChunk.
+     * @param {KnowledgeChunkUpsertArgs} args - Arguments to update or create a KnowledgeChunk.
+     * @example
+     * // Update or create a KnowledgeChunk
+     * const knowledgeChunk = await prisma.knowledgeChunk.upsert({
+     *   create: {
+     *     // ... data to create a KnowledgeChunk
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the KnowledgeChunk we want to update
+     *   }
+     * })
+     */
+    upsert<T extends KnowledgeChunkUpsertArgs>(args: SelectSubset<T, KnowledgeChunkUpsertArgs<ExtArgs>>): Prisma__KnowledgeChunkClient<$Result.GetResult<Prisma.$KnowledgeChunkPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of KnowledgeChunks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeChunkCountArgs} args - Arguments to filter KnowledgeChunks to count.
+     * @example
+     * // Count the number of KnowledgeChunks
+     * const count = await prisma.knowledgeChunk.count({
+     *   where: {
+     *     // ... the filter for the KnowledgeChunks we want to count
+     *   }
+     * })
+    **/
+    count<T extends KnowledgeChunkCountArgs>(
+      args?: Subset<T, KnowledgeChunkCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], KnowledgeChunkCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a KnowledgeChunk.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeChunkAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends KnowledgeChunkAggregateArgs>(args: Subset<T, KnowledgeChunkAggregateArgs>): Prisma.PrismaPromise<GetKnowledgeChunkAggregateType<T>>
+
+    /**
+     * Group by KnowledgeChunk.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeChunkGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends KnowledgeChunkGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: KnowledgeChunkGroupByArgs['orderBy'] }
+        : { orderBy?: KnowledgeChunkGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, KnowledgeChunkGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetKnowledgeChunkGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the KnowledgeChunk model
+   */
+  readonly fields: KnowledgeChunkFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for KnowledgeChunk.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__KnowledgeChunkClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    document<T extends KnowledgeDocumentDefaultArgs<ExtArgs> = {}>(args?: Subset<T, KnowledgeDocumentDefaultArgs<ExtArgs>>): Prisma__KnowledgeDocumentClient<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the KnowledgeChunk model
+   */ 
+  interface KnowledgeChunkFieldRefs {
+    readonly id: FieldRef<"KnowledgeChunk", 'String'>
+    readonly documentId: FieldRef<"KnowledgeChunk", 'String'>
+    readonly chunkIndex: FieldRef<"KnowledgeChunk", 'Int'>
+    readonly text: FieldRef<"KnowledgeChunk", 'String'>
+    readonly tokenCount: FieldRef<"KnowledgeChunk", 'Int'>
+    readonly vectorId: FieldRef<"KnowledgeChunk", 'String'>
+    readonly embeddedAt: FieldRef<"KnowledgeChunk", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * KnowledgeChunk findUnique
+   */
+  export type KnowledgeChunkFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeChunk to fetch.
+     */
+    where: KnowledgeChunkWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeChunk findUniqueOrThrow
+   */
+  export type KnowledgeChunkFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeChunk to fetch.
+     */
+    where: KnowledgeChunkWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeChunk findFirst
+   */
+  export type KnowledgeChunkFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeChunk to fetch.
+     */
+    where?: KnowledgeChunkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeChunks to fetch.
+     */
+    orderBy?: KnowledgeChunkOrderByWithRelationInput | KnowledgeChunkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for KnowledgeChunks.
+     */
+    cursor?: KnowledgeChunkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeChunks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeChunks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of KnowledgeChunks.
+     */
+    distinct?: KnowledgeChunkScalarFieldEnum | KnowledgeChunkScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeChunk findFirstOrThrow
+   */
+  export type KnowledgeChunkFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeChunk to fetch.
+     */
+    where?: KnowledgeChunkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeChunks to fetch.
+     */
+    orderBy?: KnowledgeChunkOrderByWithRelationInput | KnowledgeChunkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for KnowledgeChunks.
+     */
+    cursor?: KnowledgeChunkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeChunks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeChunks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of KnowledgeChunks.
+     */
+    distinct?: KnowledgeChunkScalarFieldEnum | KnowledgeChunkScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeChunk findMany
+   */
+  export type KnowledgeChunkFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeChunks to fetch.
+     */
+    where?: KnowledgeChunkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeChunks to fetch.
+     */
+    orderBy?: KnowledgeChunkOrderByWithRelationInput | KnowledgeChunkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing KnowledgeChunks.
+     */
+    cursor?: KnowledgeChunkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeChunks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeChunks.
+     */
+    skip?: number
+    distinct?: KnowledgeChunkScalarFieldEnum | KnowledgeChunkScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeChunk create
+   */
+  export type KnowledgeChunkCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkInclude<ExtArgs> | null
+    /**
+     * The data needed to create a KnowledgeChunk.
+     */
+    data: XOR<KnowledgeChunkCreateInput, KnowledgeChunkUncheckedCreateInput>
+  }
+
+  /**
+   * KnowledgeChunk createMany
+   */
+  export type KnowledgeChunkCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many KnowledgeChunks.
+     */
+    data: KnowledgeChunkCreateManyInput | KnowledgeChunkCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * KnowledgeChunk createManyAndReturn
+   */
+  export type KnowledgeChunkCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many KnowledgeChunks.
+     */
+    data: KnowledgeChunkCreateManyInput | KnowledgeChunkCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * KnowledgeChunk update
+   */
+  export type KnowledgeChunkUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkInclude<ExtArgs> | null
+    /**
+     * The data needed to update a KnowledgeChunk.
+     */
+    data: XOR<KnowledgeChunkUpdateInput, KnowledgeChunkUncheckedUpdateInput>
+    /**
+     * Choose, which KnowledgeChunk to update.
+     */
+    where: KnowledgeChunkWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeChunk updateMany
+   */
+  export type KnowledgeChunkUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update KnowledgeChunks.
+     */
+    data: XOR<KnowledgeChunkUpdateManyMutationInput, KnowledgeChunkUncheckedUpdateManyInput>
+    /**
+     * Filter which KnowledgeChunks to update
+     */
+    where?: KnowledgeChunkWhereInput
+  }
+
+  /**
+   * KnowledgeChunk upsert
+   */
+  export type KnowledgeChunkUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkInclude<ExtArgs> | null
+    /**
+     * The filter to search for the KnowledgeChunk to update in case it exists.
+     */
+    where: KnowledgeChunkWhereUniqueInput
+    /**
+     * In case the KnowledgeChunk found by the `where` argument doesn't exist, create a new KnowledgeChunk with this data.
+     */
+    create: XOR<KnowledgeChunkCreateInput, KnowledgeChunkUncheckedCreateInput>
+    /**
+     * In case the KnowledgeChunk was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<KnowledgeChunkUpdateInput, KnowledgeChunkUncheckedUpdateInput>
+  }
+
+  /**
+   * KnowledgeChunk delete
+   */
+  export type KnowledgeChunkDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkInclude<ExtArgs> | null
+    /**
+     * Filter which KnowledgeChunk to delete.
+     */
+    where: KnowledgeChunkWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeChunk deleteMany
+   */
+  export type KnowledgeChunkDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which KnowledgeChunks to delete
+     */
+    where?: KnowledgeChunkWhereInput
+  }
+
+  /**
+   * KnowledgeChunk without action
+   */
+  export type KnowledgeChunkDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeChunk
+     */
+    select?: KnowledgeChunkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeChunkInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model KnowledgePipelineRun
+   */
+
+  export type AggregateKnowledgePipelineRun = {
+    _count: KnowledgePipelineRunCountAggregateOutputType | null
+    _avg: KnowledgePipelineRunAvgAggregateOutputType | null
+    _sum: KnowledgePipelineRunSumAggregateOutputType | null
+    _min: KnowledgePipelineRunMinAggregateOutputType | null
+    _max: KnowledgePipelineRunMaxAggregateOutputType | null
+  }
+
+  export type KnowledgePipelineRunAvgAggregateOutputType = {
+    docsCrawled: number | null
+    docsAccepted: number | null
+    docsRejected: number | null
+    docsReview: number | null
+  }
+
+  export type KnowledgePipelineRunSumAggregateOutputType = {
+    docsCrawled: number | null
+    docsAccepted: number | null
+    docsRejected: number | null
+    docsReview: number | null
+  }
+
+  export type KnowledgePipelineRunMinAggregateOutputType = {
+    id: string | null
+    runType: string | null
+    startedAt: Date | null
+    finishedAt: Date | null
+    docsCrawled: number | null
+    docsAccepted: number | null
+    docsRejected: number | null
+    docsReview: number | null
+    status: $Enums.KnowledgePipelineRunStatus | null
+  }
+
+  export type KnowledgePipelineRunMaxAggregateOutputType = {
+    id: string | null
+    runType: string | null
+    startedAt: Date | null
+    finishedAt: Date | null
+    docsCrawled: number | null
+    docsAccepted: number | null
+    docsRejected: number | null
+    docsReview: number | null
+    status: $Enums.KnowledgePipelineRunStatus | null
+  }
+
+  export type KnowledgePipelineRunCountAggregateOutputType = {
+    id: number
+    runType: number
+    startedAt: number
+    finishedAt: number
+    docsCrawled: number
+    docsAccepted: number
+    docsRejected: number
+    docsReview: number
+    status: number
+    _all: number
+  }
+
+
+  export type KnowledgePipelineRunAvgAggregateInputType = {
+    docsCrawled?: true
+    docsAccepted?: true
+    docsRejected?: true
+    docsReview?: true
+  }
+
+  export type KnowledgePipelineRunSumAggregateInputType = {
+    docsCrawled?: true
+    docsAccepted?: true
+    docsRejected?: true
+    docsReview?: true
+  }
+
+  export type KnowledgePipelineRunMinAggregateInputType = {
+    id?: true
+    runType?: true
+    startedAt?: true
+    finishedAt?: true
+    docsCrawled?: true
+    docsAccepted?: true
+    docsRejected?: true
+    docsReview?: true
+    status?: true
+  }
+
+  export type KnowledgePipelineRunMaxAggregateInputType = {
+    id?: true
+    runType?: true
+    startedAt?: true
+    finishedAt?: true
+    docsCrawled?: true
+    docsAccepted?: true
+    docsRejected?: true
+    docsReview?: true
+    status?: true
+  }
+
+  export type KnowledgePipelineRunCountAggregateInputType = {
+    id?: true
+    runType?: true
+    startedAt?: true
+    finishedAt?: true
+    docsCrawled?: true
+    docsAccepted?: true
+    docsRejected?: true
+    docsReview?: true
+    status?: true
+    _all?: true
+  }
+
+  export type KnowledgePipelineRunAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which KnowledgePipelineRun to aggregate.
+     */
+    where?: KnowledgePipelineRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgePipelineRuns to fetch.
+     */
+    orderBy?: KnowledgePipelineRunOrderByWithRelationInput | KnowledgePipelineRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: KnowledgePipelineRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgePipelineRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgePipelineRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned KnowledgePipelineRuns
+    **/
+    _count?: true | KnowledgePipelineRunCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: KnowledgePipelineRunAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: KnowledgePipelineRunSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: KnowledgePipelineRunMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: KnowledgePipelineRunMaxAggregateInputType
+  }
+
+  export type GetKnowledgePipelineRunAggregateType<T extends KnowledgePipelineRunAggregateArgs> = {
+        [P in keyof T & keyof AggregateKnowledgePipelineRun]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateKnowledgePipelineRun[P]>
+      : GetScalarType<T[P], AggregateKnowledgePipelineRun[P]>
+  }
+
+
+
+
+  export type KnowledgePipelineRunGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: KnowledgePipelineRunWhereInput
+    orderBy?: KnowledgePipelineRunOrderByWithAggregationInput | KnowledgePipelineRunOrderByWithAggregationInput[]
+    by: KnowledgePipelineRunScalarFieldEnum[] | KnowledgePipelineRunScalarFieldEnum
+    having?: KnowledgePipelineRunScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: KnowledgePipelineRunCountAggregateInputType | true
+    _avg?: KnowledgePipelineRunAvgAggregateInputType
+    _sum?: KnowledgePipelineRunSumAggregateInputType
+    _min?: KnowledgePipelineRunMinAggregateInputType
+    _max?: KnowledgePipelineRunMaxAggregateInputType
+  }
+
+  export type KnowledgePipelineRunGroupByOutputType = {
+    id: string
+    runType: string
+    startedAt: Date
+    finishedAt: Date | null
+    docsCrawled: number
+    docsAccepted: number
+    docsRejected: number
+    docsReview: number
+    status: $Enums.KnowledgePipelineRunStatus
+    _count: KnowledgePipelineRunCountAggregateOutputType | null
+    _avg: KnowledgePipelineRunAvgAggregateOutputType | null
+    _sum: KnowledgePipelineRunSumAggregateOutputType | null
+    _min: KnowledgePipelineRunMinAggregateOutputType | null
+    _max: KnowledgePipelineRunMaxAggregateOutputType | null
+  }
+
+  type GetKnowledgePipelineRunGroupByPayload<T extends KnowledgePipelineRunGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<KnowledgePipelineRunGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof KnowledgePipelineRunGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], KnowledgePipelineRunGroupByOutputType[P]>
+            : GetScalarType<T[P], KnowledgePipelineRunGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type KnowledgePipelineRunSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    runType?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    docsCrawled?: boolean
+    docsAccepted?: boolean
+    docsRejected?: boolean
+    docsReview?: boolean
+    status?: boolean
+  }, ExtArgs["result"]["knowledgePipelineRun"]>
+
+  export type KnowledgePipelineRunSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    runType?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    docsCrawled?: boolean
+    docsAccepted?: boolean
+    docsRejected?: boolean
+    docsReview?: boolean
+    status?: boolean
+  }, ExtArgs["result"]["knowledgePipelineRun"]>
+
+  export type KnowledgePipelineRunSelectScalar = {
+    id?: boolean
+    runType?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    docsCrawled?: boolean
+    docsAccepted?: boolean
+    docsRejected?: boolean
+    docsReview?: boolean
+    status?: boolean
+  }
+
+
+  export type $KnowledgePipelineRunPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "KnowledgePipelineRun"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      runType: string
+      startedAt: Date
+      finishedAt: Date | null
+      docsCrawled: number
+      docsAccepted: number
+      docsRejected: number
+      docsReview: number
+      status: $Enums.KnowledgePipelineRunStatus
+    }, ExtArgs["result"]["knowledgePipelineRun"]>
+    composites: {}
+  }
+
+  type KnowledgePipelineRunGetPayload<S extends boolean | null | undefined | KnowledgePipelineRunDefaultArgs> = $Result.GetResult<Prisma.$KnowledgePipelineRunPayload, S>
+
+  type KnowledgePipelineRunCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<KnowledgePipelineRunFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: KnowledgePipelineRunCountAggregateInputType | true
+    }
+
+  export interface KnowledgePipelineRunDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['KnowledgePipelineRun'], meta: { name: 'KnowledgePipelineRun' } }
+    /**
+     * Find zero or one KnowledgePipelineRun that matches the filter.
+     * @param {KnowledgePipelineRunFindUniqueArgs} args - Arguments to find a KnowledgePipelineRun
+     * @example
+     * // Get one KnowledgePipelineRun
+     * const knowledgePipelineRun = await prisma.knowledgePipelineRun.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends KnowledgePipelineRunFindUniqueArgs>(args: SelectSubset<T, KnowledgePipelineRunFindUniqueArgs<ExtArgs>>): Prisma__KnowledgePipelineRunClient<$Result.GetResult<Prisma.$KnowledgePipelineRunPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one KnowledgePipelineRun that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {KnowledgePipelineRunFindUniqueOrThrowArgs} args - Arguments to find a KnowledgePipelineRun
+     * @example
+     * // Get one KnowledgePipelineRun
+     * const knowledgePipelineRun = await prisma.knowledgePipelineRun.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends KnowledgePipelineRunFindUniqueOrThrowArgs>(args: SelectSubset<T, KnowledgePipelineRunFindUniqueOrThrowArgs<ExtArgs>>): Prisma__KnowledgePipelineRunClient<$Result.GetResult<Prisma.$KnowledgePipelineRunPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first KnowledgePipelineRun that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgePipelineRunFindFirstArgs} args - Arguments to find a KnowledgePipelineRun
+     * @example
+     * // Get one KnowledgePipelineRun
+     * const knowledgePipelineRun = await prisma.knowledgePipelineRun.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends KnowledgePipelineRunFindFirstArgs>(args?: SelectSubset<T, KnowledgePipelineRunFindFirstArgs<ExtArgs>>): Prisma__KnowledgePipelineRunClient<$Result.GetResult<Prisma.$KnowledgePipelineRunPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first KnowledgePipelineRun that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgePipelineRunFindFirstOrThrowArgs} args - Arguments to find a KnowledgePipelineRun
+     * @example
+     * // Get one KnowledgePipelineRun
+     * const knowledgePipelineRun = await prisma.knowledgePipelineRun.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends KnowledgePipelineRunFindFirstOrThrowArgs>(args?: SelectSubset<T, KnowledgePipelineRunFindFirstOrThrowArgs<ExtArgs>>): Prisma__KnowledgePipelineRunClient<$Result.GetResult<Prisma.$KnowledgePipelineRunPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more KnowledgePipelineRuns that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgePipelineRunFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all KnowledgePipelineRuns
+     * const knowledgePipelineRuns = await prisma.knowledgePipelineRun.findMany()
+     * 
+     * // Get first 10 KnowledgePipelineRuns
+     * const knowledgePipelineRuns = await prisma.knowledgePipelineRun.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const knowledgePipelineRunWithIdOnly = await prisma.knowledgePipelineRun.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends KnowledgePipelineRunFindManyArgs>(args?: SelectSubset<T, KnowledgePipelineRunFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgePipelineRunPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a KnowledgePipelineRun.
+     * @param {KnowledgePipelineRunCreateArgs} args - Arguments to create a KnowledgePipelineRun.
+     * @example
+     * // Create one KnowledgePipelineRun
+     * const KnowledgePipelineRun = await prisma.knowledgePipelineRun.create({
+     *   data: {
+     *     // ... data to create a KnowledgePipelineRun
+     *   }
+     * })
+     * 
+     */
+    create<T extends KnowledgePipelineRunCreateArgs>(args: SelectSubset<T, KnowledgePipelineRunCreateArgs<ExtArgs>>): Prisma__KnowledgePipelineRunClient<$Result.GetResult<Prisma.$KnowledgePipelineRunPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many KnowledgePipelineRuns.
+     * @param {KnowledgePipelineRunCreateManyArgs} args - Arguments to create many KnowledgePipelineRuns.
+     * @example
+     * // Create many KnowledgePipelineRuns
+     * const knowledgePipelineRun = await prisma.knowledgePipelineRun.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends KnowledgePipelineRunCreateManyArgs>(args?: SelectSubset<T, KnowledgePipelineRunCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many KnowledgePipelineRuns and returns the data saved in the database.
+     * @param {KnowledgePipelineRunCreateManyAndReturnArgs} args - Arguments to create many KnowledgePipelineRuns.
+     * @example
+     * // Create many KnowledgePipelineRuns
+     * const knowledgePipelineRun = await prisma.knowledgePipelineRun.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many KnowledgePipelineRuns and only return the `id`
+     * const knowledgePipelineRunWithIdOnly = await prisma.knowledgePipelineRun.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends KnowledgePipelineRunCreateManyAndReturnArgs>(args?: SelectSubset<T, KnowledgePipelineRunCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgePipelineRunPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a KnowledgePipelineRun.
+     * @param {KnowledgePipelineRunDeleteArgs} args - Arguments to delete one KnowledgePipelineRun.
+     * @example
+     * // Delete one KnowledgePipelineRun
+     * const KnowledgePipelineRun = await prisma.knowledgePipelineRun.delete({
+     *   where: {
+     *     // ... filter to delete one KnowledgePipelineRun
+     *   }
+     * })
+     * 
+     */
+    delete<T extends KnowledgePipelineRunDeleteArgs>(args: SelectSubset<T, KnowledgePipelineRunDeleteArgs<ExtArgs>>): Prisma__KnowledgePipelineRunClient<$Result.GetResult<Prisma.$KnowledgePipelineRunPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one KnowledgePipelineRun.
+     * @param {KnowledgePipelineRunUpdateArgs} args - Arguments to update one KnowledgePipelineRun.
+     * @example
+     * // Update one KnowledgePipelineRun
+     * const knowledgePipelineRun = await prisma.knowledgePipelineRun.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends KnowledgePipelineRunUpdateArgs>(args: SelectSubset<T, KnowledgePipelineRunUpdateArgs<ExtArgs>>): Prisma__KnowledgePipelineRunClient<$Result.GetResult<Prisma.$KnowledgePipelineRunPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more KnowledgePipelineRuns.
+     * @param {KnowledgePipelineRunDeleteManyArgs} args - Arguments to filter KnowledgePipelineRuns to delete.
+     * @example
+     * // Delete a few KnowledgePipelineRuns
+     * const { count } = await prisma.knowledgePipelineRun.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends KnowledgePipelineRunDeleteManyArgs>(args?: SelectSubset<T, KnowledgePipelineRunDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more KnowledgePipelineRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgePipelineRunUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many KnowledgePipelineRuns
+     * const knowledgePipelineRun = await prisma.knowledgePipelineRun.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends KnowledgePipelineRunUpdateManyArgs>(args: SelectSubset<T, KnowledgePipelineRunUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one KnowledgePipelineRun.
+     * @param {KnowledgePipelineRunUpsertArgs} args - Arguments to update or create a KnowledgePipelineRun.
+     * @example
+     * // Update or create a KnowledgePipelineRun
+     * const knowledgePipelineRun = await prisma.knowledgePipelineRun.upsert({
+     *   create: {
+     *     // ... data to create a KnowledgePipelineRun
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the KnowledgePipelineRun we want to update
+     *   }
+     * })
+     */
+    upsert<T extends KnowledgePipelineRunUpsertArgs>(args: SelectSubset<T, KnowledgePipelineRunUpsertArgs<ExtArgs>>): Prisma__KnowledgePipelineRunClient<$Result.GetResult<Prisma.$KnowledgePipelineRunPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of KnowledgePipelineRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgePipelineRunCountArgs} args - Arguments to filter KnowledgePipelineRuns to count.
+     * @example
+     * // Count the number of KnowledgePipelineRuns
+     * const count = await prisma.knowledgePipelineRun.count({
+     *   where: {
+     *     // ... the filter for the KnowledgePipelineRuns we want to count
+     *   }
+     * })
+    **/
+    count<T extends KnowledgePipelineRunCountArgs>(
+      args?: Subset<T, KnowledgePipelineRunCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], KnowledgePipelineRunCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a KnowledgePipelineRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgePipelineRunAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends KnowledgePipelineRunAggregateArgs>(args: Subset<T, KnowledgePipelineRunAggregateArgs>): Prisma.PrismaPromise<GetKnowledgePipelineRunAggregateType<T>>
+
+    /**
+     * Group by KnowledgePipelineRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgePipelineRunGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends KnowledgePipelineRunGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: KnowledgePipelineRunGroupByArgs['orderBy'] }
+        : { orderBy?: KnowledgePipelineRunGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, KnowledgePipelineRunGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetKnowledgePipelineRunGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the KnowledgePipelineRun model
+   */
+  readonly fields: KnowledgePipelineRunFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for KnowledgePipelineRun.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__KnowledgePipelineRunClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the KnowledgePipelineRun model
+   */ 
+  interface KnowledgePipelineRunFieldRefs {
+    readonly id: FieldRef<"KnowledgePipelineRun", 'String'>
+    readonly runType: FieldRef<"KnowledgePipelineRun", 'String'>
+    readonly startedAt: FieldRef<"KnowledgePipelineRun", 'DateTime'>
+    readonly finishedAt: FieldRef<"KnowledgePipelineRun", 'DateTime'>
+    readonly docsCrawled: FieldRef<"KnowledgePipelineRun", 'Int'>
+    readonly docsAccepted: FieldRef<"KnowledgePipelineRun", 'Int'>
+    readonly docsRejected: FieldRef<"KnowledgePipelineRun", 'Int'>
+    readonly docsReview: FieldRef<"KnowledgePipelineRun", 'Int'>
+    readonly status: FieldRef<"KnowledgePipelineRun", 'KnowledgePipelineRunStatus'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * KnowledgePipelineRun findUnique
+   */
+  export type KnowledgePipelineRunFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgePipelineRun
+     */
+    select?: KnowledgePipelineRunSelect<ExtArgs> | null
+    /**
+     * Filter, which KnowledgePipelineRun to fetch.
+     */
+    where: KnowledgePipelineRunWhereUniqueInput
+  }
+
+  /**
+   * KnowledgePipelineRun findUniqueOrThrow
+   */
+  export type KnowledgePipelineRunFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgePipelineRun
+     */
+    select?: KnowledgePipelineRunSelect<ExtArgs> | null
+    /**
+     * Filter, which KnowledgePipelineRun to fetch.
+     */
+    where: KnowledgePipelineRunWhereUniqueInput
+  }
+
+  /**
+   * KnowledgePipelineRun findFirst
+   */
+  export type KnowledgePipelineRunFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgePipelineRun
+     */
+    select?: KnowledgePipelineRunSelect<ExtArgs> | null
+    /**
+     * Filter, which KnowledgePipelineRun to fetch.
+     */
+    where?: KnowledgePipelineRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgePipelineRuns to fetch.
+     */
+    orderBy?: KnowledgePipelineRunOrderByWithRelationInput | KnowledgePipelineRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for KnowledgePipelineRuns.
+     */
+    cursor?: KnowledgePipelineRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgePipelineRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgePipelineRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of KnowledgePipelineRuns.
+     */
+    distinct?: KnowledgePipelineRunScalarFieldEnum | KnowledgePipelineRunScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgePipelineRun findFirstOrThrow
+   */
+  export type KnowledgePipelineRunFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgePipelineRun
+     */
+    select?: KnowledgePipelineRunSelect<ExtArgs> | null
+    /**
+     * Filter, which KnowledgePipelineRun to fetch.
+     */
+    where?: KnowledgePipelineRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgePipelineRuns to fetch.
+     */
+    orderBy?: KnowledgePipelineRunOrderByWithRelationInput | KnowledgePipelineRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for KnowledgePipelineRuns.
+     */
+    cursor?: KnowledgePipelineRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgePipelineRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgePipelineRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of KnowledgePipelineRuns.
+     */
+    distinct?: KnowledgePipelineRunScalarFieldEnum | KnowledgePipelineRunScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgePipelineRun findMany
+   */
+  export type KnowledgePipelineRunFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgePipelineRun
+     */
+    select?: KnowledgePipelineRunSelect<ExtArgs> | null
+    /**
+     * Filter, which KnowledgePipelineRuns to fetch.
+     */
+    where?: KnowledgePipelineRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgePipelineRuns to fetch.
+     */
+    orderBy?: KnowledgePipelineRunOrderByWithRelationInput | KnowledgePipelineRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing KnowledgePipelineRuns.
+     */
+    cursor?: KnowledgePipelineRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgePipelineRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgePipelineRuns.
+     */
+    skip?: number
+    distinct?: KnowledgePipelineRunScalarFieldEnum | KnowledgePipelineRunScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgePipelineRun create
+   */
+  export type KnowledgePipelineRunCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgePipelineRun
+     */
+    select?: KnowledgePipelineRunSelect<ExtArgs> | null
+    /**
+     * The data needed to create a KnowledgePipelineRun.
+     */
+    data?: XOR<KnowledgePipelineRunCreateInput, KnowledgePipelineRunUncheckedCreateInput>
+  }
+
+  /**
+   * KnowledgePipelineRun createMany
+   */
+  export type KnowledgePipelineRunCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many KnowledgePipelineRuns.
+     */
+    data: KnowledgePipelineRunCreateManyInput | KnowledgePipelineRunCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * KnowledgePipelineRun createManyAndReturn
+   */
+  export type KnowledgePipelineRunCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgePipelineRun
+     */
+    select?: KnowledgePipelineRunSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many KnowledgePipelineRuns.
+     */
+    data: KnowledgePipelineRunCreateManyInput | KnowledgePipelineRunCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * KnowledgePipelineRun update
+   */
+  export type KnowledgePipelineRunUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgePipelineRun
+     */
+    select?: KnowledgePipelineRunSelect<ExtArgs> | null
+    /**
+     * The data needed to update a KnowledgePipelineRun.
+     */
+    data: XOR<KnowledgePipelineRunUpdateInput, KnowledgePipelineRunUncheckedUpdateInput>
+    /**
+     * Choose, which KnowledgePipelineRun to update.
+     */
+    where: KnowledgePipelineRunWhereUniqueInput
+  }
+
+  /**
+   * KnowledgePipelineRun updateMany
+   */
+  export type KnowledgePipelineRunUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update KnowledgePipelineRuns.
+     */
+    data: XOR<KnowledgePipelineRunUpdateManyMutationInput, KnowledgePipelineRunUncheckedUpdateManyInput>
+    /**
+     * Filter which KnowledgePipelineRuns to update
+     */
+    where?: KnowledgePipelineRunWhereInput
+  }
+
+  /**
+   * KnowledgePipelineRun upsert
+   */
+  export type KnowledgePipelineRunUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgePipelineRun
+     */
+    select?: KnowledgePipelineRunSelect<ExtArgs> | null
+    /**
+     * The filter to search for the KnowledgePipelineRun to update in case it exists.
+     */
+    where: KnowledgePipelineRunWhereUniqueInput
+    /**
+     * In case the KnowledgePipelineRun found by the `where` argument doesn't exist, create a new KnowledgePipelineRun with this data.
+     */
+    create: XOR<KnowledgePipelineRunCreateInput, KnowledgePipelineRunUncheckedCreateInput>
+    /**
+     * In case the KnowledgePipelineRun was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<KnowledgePipelineRunUpdateInput, KnowledgePipelineRunUncheckedUpdateInput>
+  }
+
+  /**
+   * KnowledgePipelineRun delete
+   */
+  export type KnowledgePipelineRunDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgePipelineRun
+     */
+    select?: KnowledgePipelineRunSelect<ExtArgs> | null
+    /**
+     * Filter which KnowledgePipelineRun to delete.
+     */
+    where: KnowledgePipelineRunWhereUniqueInput
+  }
+
+  /**
+   * KnowledgePipelineRun deleteMany
+   */
+  export type KnowledgePipelineRunDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which KnowledgePipelineRuns to delete
+     */
+    where?: KnowledgePipelineRunWhereInput
+  }
+
+  /**
+   * KnowledgePipelineRun without action
+   */
+  export type KnowledgePipelineRunDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgePipelineRun
+     */
+    select?: KnowledgePipelineRunSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model KnowledgeReviewItem
+   */
+
+  export type AggregateKnowledgeReviewItem = {
+    _count: KnowledgeReviewItemCountAggregateOutputType | null
+    _min: KnowledgeReviewItemMinAggregateOutputType | null
+    _max: KnowledgeReviewItemMaxAggregateOutputType | null
+  }
+
+  export type KnowledgeReviewItemMinAggregateOutputType = {
+    id: string | null
+    documentId: string | null
+    reason: string | null
+    status: $Enums.KnowledgeReviewStatus | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+  }
+
+  export type KnowledgeReviewItemMaxAggregateOutputType = {
+    id: string | null
+    documentId: string | null
+    reason: string | null
+    status: $Enums.KnowledgeReviewStatus | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
+  }
+
+  export type KnowledgeReviewItemCountAggregateOutputType = {
+    id: number
+    documentId: number
+    reason: number
+    status: number
+    reviewedBy: number
+    reviewedAt: number
+    _all: number
+  }
+
+
+  export type KnowledgeReviewItemMinAggregateInputType = {
+    id?: true
+    documentId?: true
+    reason?: true
+    status?: true
+    reviewedBy?: true
+    reviewedAt?: true
+  }
+
+  export type KnowledgeReviewItemMaxAggregateInputType = {
+    id?: true
+    documentId?: true
+    reason?: true
+    status?: true
+    reviewedBy?: true
+    reviewedAt?: true
+  }
+
+  export type KnowledgeReviewItemCountAggregateInputType = {
+    id?: true
+    documentId?: true
+    reason?: true
+    status?: true
+    reviewedBy?: true
+    reviewedAt?: true
+    _all?: true
+  }
+
+  export type KnowledgeReviewItemAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which KnowledgeReviewItem to aggregate.
+     */
+    where?: KnowledgeReviewItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeReviewItems to fetch.
+     */
+    orderBy?: KnowledgeReviewItemOrderByWithRelationInput | KnowledgeReviewItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: KnowledgeReviewItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeReviewItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeReviewItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned KnowledgeReviewItems
+    **/
+    _count?: true | KnowledgeReviewItemCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: KnowledgeReviewItemMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: KnowledgeReviewItemMaxAggregateInputType
+  }
+
+  export type GetKnowledgeReviewItemAggregateType<T extends KnowledgeReviewItemAggregateArgs> = {
+        [P in keyof T & keyof AggregateKnowledgeReviewItem]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateKnowledgeReviewItem[P]>
+      : GetScalarType<T[P], AggregateKnowledgeReviewItem[P]>
+  }
+
+
+
+
+  export type KnowledgeReviewItemGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: KnowledgeReviewItemWhereInput
+    orderBy?: KnowledgeReviewItemOrderByWithAggregationInput | KnowledgeReviewItemOrderByWithAggregationInput[]
+    by: KnowledgeReviewItemScalarFieldEnum[] | KnowledgeReviewItemScalarFieldEnum
+    having?: KnowledgeReviewItemScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: KnowledgeReviewItemCountAggregateInputType | true
+    _min?: KnowledgeReviewItemMinAggregateInputType
+    _max?: KnowledgeReviewItemMaxAggregateInputType
+  }
+
+  export type KnowledgeReviewItemGroupByOutputType = {
+    id: string
+    documentId: string
+    reason: string | null
+    status: $Enums.KnowledgeReviewStatus
+    reviewedBy: string | null
+    reviewedAt: Date | null
+    _count: KnowledgeReviewItemCountAggregateOutputType | null
+    _min: KnowledgeReviewItemMinAggregateOutputType | null
+    _max: KnowledgeReviewItemMaxAggregateOutputType | null
+  }
+
+  type GetKnowledgeReviewItemGroupByPayload<T extends KnowledgeReviewItemGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<KnowledgeReviewItemGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof KnowledgeReviewItemGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], KnowledgeReviewItemGroupByOutputType[P]>
+            : GetScalarType<T[P], KnowledgeReviewItemGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type KnowledgeReviewItemSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    documentId?: boolean
+    reason?: boolean
+    status?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    document?: boolean | KnowledgeDocumentDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["knowledgeReviewItem"]>
+
+  export type KnowledgeReviewItemSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    documentId?: boolean
+    reason?: boolean
+    status?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+    document?: boolean | KnowledgeDocumentDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["knowledgeReviewItem"]>
+
+  export type KnowledgeReviewItemSelectScalar = {
+    id?: boolean
+    documentId?: boolean
+    reason?: boolean
+    status?: boolean
+    reviewedBy?: boolean
+    reviewedAt?: boolean
+  }
+
+  export type KnowledgeReviewItemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    document?: boolean | KnowledgeDocumentDefaultArgs<ExtArgs>
+  }
+  export type KnowledgeReviewItemIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    document?: boolean | KnowledgeDocumentDefaultArgs<ExtArgs>
+  }
+
+  export type $KnowledgeReviewItemPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "KnowledgeReviewItem"
+    objects: {
+      document: Prisma.$KnowledgeDocumentPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      documentId: string
+      reason: string | null
+      status: $Enums.KnowledgeReviewStatus
+      reviewedBy: string | null
+      reviewedAt: Date | null
+    }, ExtArgs["result"]["knowledgeReviewItem"]>
+    composites: {}
+  }
+
+  type KnowledgeReviewItemGetPayload<S extends boolean | null | undefined | KnowledgeReviewItemDefaultArgs> = $Result.GetResult<Prisma.$KnowledgeReviewItemPayload, S>
+
+  type KnowledgeReviewItemCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<KnowledgeReviewItemFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: KnowledgeReviewItemCountAggregateInputType | true
+    }
+
+  export interface KnowledgeReviewItemDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['KnowledgeReviewItem'], meta: { name: 'KnowledgeReviewItem' } }
+    /**
+     * Find zero or one KnowledgeReviewItem that matches the filter.
+     * @param {KnowledgeReviewItemFindUniqueArgs} args - Arguments to find a KnowledgeReviewItem
+     * @example
+     * // Get one KnowledgeReviewItem
+     * const knowledgeReviewItem = await prisma.knowledgeReviewItem.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends KnowledgeReviewItemFindUniqueArgs>(args: SelectSubset<T, KnowledgeReviewItemFindUniqueArgs<ExtArgs>>): Prisma__KnowledgeReviewItemClient<$Result.GetResult<Prisma.$KnowledgeReviewItemPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one KnowledgeReviewItem that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {KnowledgeReviewItemFindUniqueOrThrowArgs} args - Arguments to find a KnowledgeReviewItem
+     * @example
+     * // Get one KnowledgeReviewItem
+     * const knowledgeReviewItem = await prisma.knowledgeReviewItem.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends KnowledgeReviewItemFindUniqueOrThrowArgs>(args: SelectSubset<T, KnowledgeReviewItemFindUniqueOrThrowArgs<ExtArgs>>): Prisma__KnowledgeReviewItemClient<$Result.GetResult<Prisma.$KnowledgeReviewItemPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first KnowledgeReviewItem that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeReviewItemFindFirstArgs} args - Arguments to find a KnowledgeReviewItem
+     * @example
+     * // Get one KnowledgeReviewItem
+     * const knowledgeReviewItem = await prisma.knowledgeReviewItem.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends KnowledgeReviewItemFindFirstArgs>(args?: SelectSubset<T, KnowledgeReviewItemFindFirstArgs<ExtArgs>>): Prisma__KnowledgeReviewItemClient<$Result.GetResult<Prisma.$KnowledgeReviewItemPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first KnowledgeReviewItem that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeReviewItemFindFirstOrThrowArgs} args - Arguments to find a KnowledgeReviewItem
+     * @example
+     * // Get one KnowledgeReviewItem
+     * const knowledgeReviewItem = await prisma.knowledgeReviewItem.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends KnowledgeReviewItemFindFirstOrThrowArgs>(args?: SelectSubset<T, KnowledgeReviewItemFindFirstOrThrowArgs<ExtArgs>>): Prisma__KnowledgeReviewItemClient<$Result.GetResult<Prisma.$KnowledgeReviewItemPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more KnowledgeReviewItems that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeReviewItemFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all KnowledgeReviewItems
+     * const knowledgeReviewItems = await prisma.knowledgeReviewItem.findMany()
+     * 
+     * // Get first 10 KnowledgeReviewItems
+     * const knowledgeReviewItems = await prisma.knowledgeReviewItem.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const knowledgeReviewItemWithIdOnly = await prisma.knowledgeReviewItem.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends KnowledgeReviewItemFindManyArgs>(args?: SelectSubset<T, KnowledgeReviewItemFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgeReviewItemPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a KnowledgeReviewItem.
+     * @param {KnowledgeReviewItemCreateArgs} args - Arguments to create a KnowledgeReviewItem.
+     * @example
+     * // Create one KnowledgeReviewItem
+     * const KnowledgeReviewItem = await prisma.knowledgeReviewItem.create({
+     *   data: {
+     *     // ... data to create a KnowledgeReviewItem
+     *   }
+     * })
+     * 
+     */
+    create<T extends KnowledgeReviewItemCreateArgs>(args: SelectSubset<T, KnowledgeReviewItemCreateArgs<ExtArgs>>): Prisma__KnowledgeReviewItemClient<$Result.GetResult<Prisma.$KnowledgeReviewItemPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many KnowledgeReviewItems.
+     * @param {KnowledgeReviewItemCreateManyArgs} args - Arguments to create many KnowledgeReviewItems.
+     * @example
+     * // Create many KnowledgeReviewItems
+     * const knowledgeReviewItem = await prisma.knowledgeReviewItem.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends KnowledgeReviewItemCreateManyArgs>(args?: SelectSubset<T, KnowledgeReviewItemCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many KnowledgeReviewItems and returns the data saved in the database.
+     * @param {KnowledgeReviewItemCreateManyAndReturnArgs} args - Arguments to create many KnowledgeReviewItems.
+     * @example
+     * // Create many KnowledgeReviewItems
+     * const knowledgeReviewItem = await prisma.knowledgeReviewItem.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many KnowledgeReviewItems and only return the `id`
+     * const knowledgeReviewItemWithIdOnly = await prisma.knowledgeReviewItem.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends KnowledgeReviewItemCreateManyAndReturnArgs>(args?: SelectSubset<T, KnowledgeReviewItemCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KnowledgeReviewItemPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a KnowledgeReviewItem.
+     * @param {KnowledgeReviewItemDeleteArgs} args - Arguments to delete one KnowledgeReviewItem.
+     * @example
+     * // Delete one KnowledgeReviewItem
+     * const KnowledgeReviewItem = await prisma.knowledgeReviewItem.delete({
+     *   where: {
+     *     // ... filter to delete one KnowledgeReviewItem
+     *   }
+     * })
+     * 
+     */
+    delete<T extends KnowledgeReviewItemDeleteArgs>(args: SelectSubset<T, KnowledgeReviewItemDeleteArgs<ExtArgs>>): Prisma__KnowledgeReviewItemClient<$Result.GetResult<Prisma.$KnowledgeReviewItemPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one KnowledgeReviewItem.
+     * @param {KnowledgeReviewItemUpdateArgs} args - Arguments to update one KnowledgeReviewItem.
+     * @example
+     * // Update one KnowledgeReviewItem
+     * const knowledgeReviewItem = await prisma.knowledgeReviewItem.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends KnowledgeReviewItemUpdateArgs>(args: SelectSubset<T, KnowledgeReviewItemUpdateArgs<ExtArgs>>): Prisma__KnowledgeReviewItemClient<$Result.GetResult<Prisma.$KnowledgeReviewItemPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more KnowledgeReviewItems.
+     * @param {KnowledgeReviewItemDeleteManyArgs} args - Arguments to filter KnowledgeReviewItems to delete.
+     * @example
+     * // Delete a few KnowledgeReviewItems
+     * const { count } = await prisma.knowledgeReviewItem.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends KnowledgeReviewItemDeleteManyArgs>(args?: SelectSubset<T, KnowledgeReviewItemDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more KnowledgeReviewItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeReviewItemUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many KnowledgeReviewItems
+     * const knowledgeReviewItem = await prisma.knowledgeReviewItem.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends KnowledgeReviewItemUpdateManyArgs>(args: SelectSubset<T, KnowledgeReviewItemUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one KnowledgeReviewItem.
+     * @param {KnowledgeReviewItemUpsertArgs} args - Arguments to update or create a KnowledgeReviewItem.
+     * @example
+     * // Update or create a KnowledgeReviewItem
+     * const knowledgeReviewItem = await prisma.knowledgeReviewItem.upsert({
+     *   create: {
+     *     // ... data to create a KnowledgeReviewItem
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the KnowledgeReviewItem we want to update
+     *   }
+     * })
+     */
+    upsert<T extends KnowledgeReviewItemUpsertArgs>(args: SelectSubset<T, KnowledgeReviewItemUpsertArgs<ExtArgs>>): Prisma__KnowledgeReviewItemClient<$Result.GetResult<Prisma.$KnowledgeReviewItemPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of KnowledgeReviewItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeReviewItemCountArgs} args - Arguments to filter KnowledgeReviewItems to count.
+     * @example
+     * // Count the number of KnowledgeReviewItems
+     * const count = await prisma.knowledgeReviewItem.count({
+     *   where: {
+     *     // ... the filter for the KnowledgeReviewItems we want to count
+     *   }
+     * })
+    **/
+    count<T extends KnowledgeReviewItemCountArgs>(
+      args?: Subset<T, KnowledgeReviewItemCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], KnowledgeReviewItemCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a KnowledgeReviewItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeReviewItemAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends KnowledgeReviewItemAggregateArgs>(args: Subset<T, KnowledgeReviewItemAggregateArgs>): Prisma.PrismaPromise<GetKnowledgeReviewItemAggregateType<T>>
+
+    /**
+     * Group by KnowledgeReviewItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {KnowledgeReviewItemGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends KnowledgeReviewItemGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: KnowledgeReviewItemGroupByArgs['orderBy'] }
+        : { orderBy?: KnowledgeReviewItemGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, KnowledgeReviewItemGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetKnowledgeReviewItemGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the KnowledgeReviewItem model
+   */
+  readonly fields: KnowledgeReviewItemFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for KnowledgeReviewItem.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__KnowledgeReviewItemClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    document<T extends KnowledgeDocumentDefaultArgs<ExtArgs> = {}>(args?: Subset<T, KnowledgeDocumentDefaultArgs<ExtArgs>>): Prisma__KnowledgeDocumentClient<$Result.GetResult<Prisma.$KnowledgeDocumentPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the KnowledgeReviewItem model
+   */ 
+  interface KnowledgeReviewItemFieldRefs {
+    readonly id: FieldRef<"KnowledgeReviewItem", 'String'>
+    readonly documentId: FieldRef<"KnowledgeReviewItem", 'String'>
+    readonly reason: FieldRef<"KnowledgeReviewItem", 'String'>
+    readonly status: FieldRef<"KnowledgeReviewItem", 'KnowledgeReviewStatus'>
+    readonly reviewedBy: FieldRef<"KnowledgeReviewItem", 'String'>
+    readonly reviewedAt: FieldRef<"KnowledgeReviewItem", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * KnowledgeReviewItem findUnique
+   */
+  export type KnowledgeReviewItemFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeReviewItem to fetch.
+     */
+    where: KnowledgeReviewItemWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeReviewItem findUniqueOrThrow
+   */
+  export type KnowledgeReviewItemFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeReviewItem to fetch.
+     */
+    where: KnowledgeReviewItemWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeReviewItem findFirst
+   */
+  export type KnowledgeReviewItemFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeReviewItem to fetch.
+     */
+    where?: KnowledgeReviewItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeReviewItems to fetch.
+     */
+    orderBy?: KnowledgeReviewItemOrderByWithRelationInput | KnowledgeReviewItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for KnowledgeReviewItems.
+     */
+    cursor?: KnowledgeReviewItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeReviewItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeReviewItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of KnowledgeReviewItems.
+     */
+    distinct?: KnowledgeReviewItemScalarFieldEnum | KnowledgeReviewItemScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeReviewItem findFirstOrThrow
+   */
+  export type KnowledgeReviewItemFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeReviewItem to fetch.
+     */
+    where?: KnowledgeReviewItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeReviewItems to fetch.
+     */
+    orderBy?: KnowledgeReviewItemOrderByWithRelationInput | KnowledgeReviewItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for KnowledgeReviewItems.
+     */
+    cursor?: KnowledgeReviewItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeReviewItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeReviewItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of KnowledgeReviewItems.
+     */
+    distinct?: KnowledgeReviewItemScalarFieldEnum | KnowledgeReviewItemScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeReviewItem findMany
+   */
+  export type KnowledgeReviewItemFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemInclude<ExtArgs> | null
+    /**
+     * Filter, which KnowledgeReviewItems to fetch.
+     */
+    where?: KnowledgeReviewItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of KnowledgeReviewItems to fetch.
+     */
+    orderBy?: KnowledgeReviewItemOrderByWithRelationInput | KnowledgeReviewItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing KnowledgeReviewItems.
+     */
+    cursor?: KnowledgeReviewItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` KnowledgeReviewItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` KnowledgeReviewItems.
+     */
+    skip?: number
+    distinct?: KnowledgeReviewItemScalarFieldEnum | KnowledgeReviewItemScalarFieldEnum[]
+  }
+
+  /**
+   * KnowledgeReviewItem create
+   */
+  export type KnowledgeReviewItemCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemInclude<ExtArgs> | null
+    /**
+     * The data needed to create a KnowledgeReviewItem.
+     */
+    data: XOR<KnowledgeReviewItemCreateInput, KnowledgeReviewItemUncheckedCreateInput>
+  }
+
+  /**
+   * KnowledgeReviewItem createMany
+   */
+  export type KnowledgeReviewItemCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many KnowledgeReviewItems.
+     */
+    data: KnowledgeReviewItemCreateManyInput | KnowledgeReviewItemCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * KnowledgeReviewItem createManyAndReturn
+   */
+  export type KnowledgeReviewItemCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many KnowledgeReviewItems.
+     */
+    data: KnowledgeReviewItemCreateManyInput | KnowledgeReviewItemCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * KnowledgeReviewItem update
+   */
+  export type KnowledgeReviewItemUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemInclude<ExtArgs> | null
+    /**
+     * The data needed to update a KnowledgeReviewItem.
+     */
+    data: XOR<KnowledgeReviewItemUpdateInput, KnowledgeReviewItemUncheckedUpdateInput>
+    /**
+     * Choose, which KnowledgeReviewItem to update.
+     */
+    where: KnowledgeReviewItemWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeReviewItem updateMany
+   */
+  export type KnowledgeReviewItemUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update KnowledgeReviewItems.
+     */
+    data: XOR<KnowledgeReviewItemUpdateManyMutationInput, KnowledgeReviewItemUncheckedUpdateManyInput>
+    /**
+     * Filter which KnowledgeReviewItems to update
+     */
+    where?: KnowledgeReviewItemWhereInput
+  }
+
+  /**
+   * KnowledgeReviewItem upsert
+   */
+  export type KnowledgeReviewItemUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemInclude<ExtArgs> | null
+    /**
+     * The filter to search for the KnowledgeReviewItem to update in case it exists.
+     */
+    where: KnowledgeReviewItemWhereUniqueInput
+    /**
+     * In case the KnowledgeReviewItem found by the `where` argument doesn't exist, create a new KnowledgeReviewItem with this data.
+     */
+    create: XOR<KnowledgeReviewItemCreateInput, KnowledgeReviewItemUncheckedCreateInput>
+    /**
+     * In case the KnowledgeReviewItem was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<KnowledgeReviewItemUpdateInput, KnowledgeReviewItemUncheckedUpdateInput>
+  }
+
+  /**
+   * KnowledgeReviewItem delete
+   */
+  export type KnowledgeReviewItemDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemInclude<ExtArgs> | null
+    /**
+     * Filter which KnowledgeReviewItem to delete.
+     */
+    where: KnowledgeReviewItemWhereUniqueInput
+  }
+
+  /**
+   * KnowledgeReviewItem deleteMany
+   */
+  export type KnowledgeReviewItemDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which KnowledgeReviewItems to delete
+     */
+    where?: KnowledgeReviewItemWhereInput
+  }
+
+  /**
+   * KnowledgeReviewItem without action
+   */
+  export type KnowledgeReviewItemDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the KnowledgeReviewItem
+     */
+    select?: KnowledgeReviewItemSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: KnowledgeReviewItemInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -4317,6 +11008,7 @@ export namespace Prisma {
   export const ConversationScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
+    sessionId: 'sessionId',
     question: 'question',
     answer: 'answer',
     modelUsed: 'modelUsed',
@@ -4339,6 +11031,19 @@ export namespace Prisma {
   };
 
   export type ConversationScalarFieldEnum = (typeof ConversationScalarFieldEnum)[keyof typeof ConversationScalarFieldEnum]
+
+
+  export const ChatSessionScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    title: 'title',
+    lastMessageAt: 'lastMessageAt',
+    archivedAt: 'archivedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ChatSessionScalarFieldEnum = (typeof ChatSessionScalarFieldEnum)[keyof typeof ChatSessionScalarFieldEnum]
 
 
   export const WorkoutPlanScalarFieldEnum: {
@@ -4385,6 +11090,85 @@ export namespace Prisma {
   };
 
   export type NutritionPlanScalarFieldEnum = (typeof NutritionPlanScalarFieldEnum)[keyof typeof NutritionPlanScalarFieldEnum]
+
+
+  export const KnowledgeSourceScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    baseUrl: 'baseUrl',
+    sourceType: 'sourceType',
+    trustTier: 'trustTier',
+    crawlCron: 'crawlCron',
+    isActive: 'isActive',
+    lastCrawledAt: 'lastCrawledAt',
+    createdAt: 'createdAt'
+  };
+
+  export type KnowledgeSourceScalarFieldEnum = (typeof KnowledgeSourceScalarFieldEnum)[keyof typeof KnowledgeSourceScalarFieldEnum]
+
+
+  export const KnowledgeDocumentScalarFieldEnum: {
+    id: 'id',
+    sourceId: 'sourceId',
+    url: 'url',
+    title: 'title',
+    author: 'author',
+    language: 'language',
+    contentHash: 'contentHash',
+    rawObjectKey: 'rawObjectKey',
+    cleanText: 'cleanText',
+    topic: 'topic',
+    trustScore: 'trustScore',
+    qualityScore: 'qualityScore',
+    safetyFlag: 'safetyFlag',
+    status: 'status',
+    rejectionReason: 'rejectionReason',
+    publishedAt: 'publishedAt',
+    crawledAt: 'crawledAt',
+    processedAt: 'processedAt'
+  };
+
+  export type KnowledgeDocumentScalarFieldEnum = (typeof KnowledgeDocumentScalarFieldEnum)[keyof typeof KnowledgeDocumentScalarFieldEnum]
+
+
+  export const KnowledgeChunkScalarFieldEnum: {
+    id: 'id',
+    documentId: 'documentId',
+    chunkIndex: 'chunkIndex',
+    text: 'text',
+    tokenCount: 'tokenCount',
+    vectorId: 'vectorId',
+    embeddedAt: 'embeddedAt'
+  };
+
+  export type KnowledgeChunkScalarFieldEnum = (typeof KnowledgeChunkScalarFieldEnum)[keyof typeof KnowledgeChunkScalarFieldEnum]
+
+
+  export const KnowledgePipelineRunScalarFieldEnum: {
+    id: 'id',
+    runType: 'runType',
+    startedAt: 'startedAt',
+    finishedAt: 'finishedAt',
+    docsCrawled: 'docsCrawled',
+    docsAccepted: 'docsAccepted',
+    docsRejected: 'docsRejected',
+    docsReview: 'docsReview',
+    status: 'status'
+  };
+
+  export type KnowledgePipelineRunScalarFieldEnum = (typeof KnowledgePipelineRunScalarFieldEnum)[keyof typeof KnowledgePipelineRunScalarFieldEnum]
+
+
+  export const KnowledgeReviewItemScalarFieldEnum: {
+    id: 'id',
+    documentId: 'documentId',
+    reason: 'reason',
+    status: 'status',
+    reviewedBy: 'reviewedBy',
+    reviewedAt: 'reviewedAt'
+  };
+
+  export type KnowledgeReviewItemScalarFieldEnum = (typeof KnowledgeReviewItemScalarFieldEnum)[keyof typeof KnowledgeReviewItemScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -4528,6 +11312,90 @@ export namespace Prisma {
    */
   export type ListEnumPtReviewStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtReviewStatus[]'>
     
+
+
+  /**
+   * Reference to a field of type 'KnowledgeSourceType'
+   */
+  export type EnumKnowledgeSourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KnowledgeSourceType'>
+    
+
+
+  /**
+   * Reference to a field of type 'KnowledgeSourceType[]'
+   */
+  export type ListEnumKnowledgeSourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KnowledgeSourceType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'KnowledgeDocumentTopic'
+   */
+  export type EnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KnowledgeDocumentTopic'>
+    
+
+
+  /**
+   * Reference to a field of type 'KnowledgeDocumentTopic[]'
+   */
+  export type ListEnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KnowledgeDocumentTopic[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Decimal'
+   */
+  export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
+    
+
+
+  /**
+   * Reference to a field of type 'Decimal[]'
+   */
+  export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'KnowledgeDocumentStatus'
+   */
+  export type EnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KnowledgeDocumentStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'KnowledgeDocumentStatus[]'
+   */
+  export type ListEnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KnowledgeDocumentStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'KnowledgePipelineRunStatus'
+   */
+  export type EnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KnowledgePipelineRunStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'KnowledgePipelineRunStatus[]'
+   */
+  export type ListEnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KnowledgePipelineRunStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'KnowledgeReviewStatus'
+   */
+  export type EnumKnowledgeReviewStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KnowledgeReviewStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'KnowledgeReviewStatus[]'
+   */
+  export type ListEnumKnowledgeReviewStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KnowledgeReviewStatus[]'>
+    
   /**
    * Deep Input Types
    */
@@ -4539,6 +11407,7 @@ export namespace Prisma {
     NOT?: ConversationWhereInput | ConversationWhereInput[]
     id?: StringFilter<"Conversation"> | string
     userId?: StringNullableFilter<"Conversation"> | string | null
+    sessionId?: StringNullableFilter<"Conversation"> | string | null
     question?: StringFilter<"Conversation"> | string
     answer?: StringFilter<"Conversation"> | string
     modelUsed?: StringFilter<"Conversation"> | string
@@ -4563,6 +11432,7 @@ export namespace Prisma {
   export type ConversationOrderByWithRelationInput = {
     id?: SortOrder
     userId?: SortOrderInput | SortOrder
+    sessionId?: SortOrderInput | SortOrder
     question?: SortOrder
     answer?: SortOrder
     modelUsed?: SortOrder
@@ -4590,6 +11460,7 @@ export namespace Prisma {
     OR?: ConversationWhereInput[]
     NOT?: ConversationWhereInput | ConversationWhereInput[]
     userId?: StringNullableFilter<"Conversation"> | string | null
+    sessionId?: StringNullableFilter<"Conversation"> | string | null
     question?: StringFilter<"Conversation"> | string
     answer?: StringFilter<"Conversation"> | string
     modelUsed?: StringFilter<"Conversation"> | string
@@ -4614,6 +11485,7 @@ export namespace Prisma {
   export type ConversationOrderByWithAggregationInput = {
     id?: SortOrder
     userId?: SortOrderInput | SortOrder
+    sessionId?: SortOrderInput | SortOrder
     question?: SortOrder
     answer?: SortOrder
     modelUsed?: SortOrder
@@ -4646,6 +11518,7 @@ export namespace Prisma {
     NOT?: ConversationScalarWhereWithAggregatesInput | ConversationScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Conversation"> | string
     userId?: StringNullableWithAggregatesFilter<"Conversation"> | string | null
+    sessionId?: StringNullableWithAggregatesFilter<"Conversation"> | string | null
     question?: StringWithAggregatesFilter<"Conversation"> | string
     answer?: StringWithAggregatesFilter<"Conversation"> | string
     modelUsed?: StringWithAggregatesFilter<"Conversation"> | string
@@ -4665,6 +11538,68 @@ export namespace Prisma {
     routeIntent?: StringNullableWithAggregatesFilter<"Conversation"> | string | null
     warningCount?: IntWithAggregatesFilter<"Conversation"> | number
     createdAt?: DateTimeWithAggregatesFilter<"Conversation"> | Date | string
+  }
+
+  export type ChatSessionWhereInput = {
+    AND?: ChatSessionWhereInput | ChatSessionWhereInput[]
+    OR?: ChatSessionWhereInput[]
+    NOT?: ChatSessionWhereInput | ChatSessionWhereInput[]
+    id?: StringFilter<"ChatSession"> | string
+    userId?: StringFilter<"ChatSession"> | string
+    title?: StringFilter<"ChatSession"> | string
+    lastMessageAt?: DateTimeFilter<"ChatSession"> | Date | string
+    archivedAt?: DateTimeNullableFilter<"ChatSession"> | Date | string | null
+    createdAt?: DateTimeFilter<"ChatSession"> | Date | string
+    updatedAt?: DateTimeFilter<"ChatSession"> | Date | string
+  }
+
+  export type ChatSessionOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    title?: SortOrder
+    lastMessageAt?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ChatSessionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ChatSessionWhereInput | ChatSessionWhereInput[]
+    OR?: ChatSessionWhereInput[]
+    NOT?: ChatSessionWhereInput | ChatSessionWhereInput[]
+    userId?: StringFilter<"ChatSession"> | string
+    title?: StringFilter<"ChatSession"> | string
+    lastMessageAt?: DateTimeFilter<"ChatSession"> | Date | string
+    archivedAt?: DateTimeNullableFilter<"ChatSession"> | Date | string | null
+    createdAt?: DateTimeFilter<"ChatSession"> | Date | string
+    updatedAt?: DateTimeFilter<"ChatSession"> | Date | string
+  }, "id">
+
+  export type ChatSessionOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    title?: SortOrder
+    lastMessageAt?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ChatSessionCountOrderByAggregateInput
+    _max?: ChatSessionMaxOrderByAggregateInput
+    _min?: ChatSessionMinOrderByAggregateInput
+  }
+
+  export type ChatSessionScalarWhereWithAggregatesInput = {
+    AND?: ChatSessionScalarWhereWithAggregatesInput | ChatSessionScalarWhereWithAggregatesInput[]
+    OR?: ChatSessionScalarWhereWithAggregatesInput[]
+    NOT?: ChatSessionScalarWhereWithAggregatesInput | ChatSessionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ChatSession"> | string
+    userId?: StringWithAggregatesFilter<"ChatSession"> | string
+    title?: StringWithAggregatesFilter<"ChatSession"> | string
+    lastMessageAt?: DateTimeWithAggregatesFilter<"ChatSession"> | Date | string
+    archivedAt?: DateTimeNullableWithAggregatesFilter<"ChatSession"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ChatSession"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ChatSession"> | Date | string
   }
 
   export type WorkoutPlanWhereInput = {
@@ -4895,9 +11830,417 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"NutritionPlan"> | Date | string
   }
 
+  export type KnowledgeSourceWhereInput = {
+    AND?: KnowledgeSourceWhereInput | KnowledgeSourceWhereInput[]
+    OR?: KnowledgeSourceWhereInput[]
+    NOT?: KnowledgeSourceWhereInput | KnowledgeSourceWhereInput[]
+    id?: StringFilter<"KnowledgeSource"> | string
+    name?: StringFilter<"KnowledgeSource"> | string
+    baseUrl?: StringFilter<"KnowledgeSource"> | string
+    sourceType?: EnumKnowledgeSourceTypeFilter<"KnowledgeSource"> | $Enums.KnowledgeSourceType
+    trustTier?: IntFilter<"KnowledgeSource"> | number
+    crawlCron?: StringFilter<"KnowledgeSource"> | string
+    isActive?: BoolFilter<"KnowledgeSource"> | boolean
+    lastCrawledAt?: DateTimeNullableFilter<"KnowledgeSource"> | Date | string | null
+    createdAt?: DateTimeFilter<"KnowledgeSource"> | Date | string
+    documents?: KnowledgeDocumentListRelationFilter
+  }
+
+  export type KnowledgeSourceOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    baseUrl?: SortOrder
+    sourceType?: SortOrder
+    trustTier?: SortOrder
+    crawlCron?: SortOrder
+    isActive?: SortOrder
+    lastCrawledAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    documents?: KnowledgeDocumentOrderByRelationAggregateInput
+  }
+
+  export type KnowledgeSourceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    baseUrl?: string
+    AND?: KnowledgeSourceWhereInput | KnowledgeSourceWhereInput[]
+    OR?: KnowledgeSourceWhereInput[]
+    NOT?: KnowledgeSourceWhereInput | KnowledgeSourceWhereInput[]
+    name?: StringFilter<"KnowledgeSource"> | string
+    sourceType?: EnumKnowledgeSourceTypeFilter<"KnowledgeSource"> | $Enums.KnowledgeSourceType
+    trustTier?: IntFilter<"KnowledgeSource"> | number
+    crawlCron?: StringFilter<"KnowledgeSource"> | string
+    isActive?: BoolFilter<"KnowledgeSource"> | boolean
+    lastCrawledAt?: DateTimeNullableFilter<"KnowledgeSource"> | Date | string | null
+    createdAt?: DateTimeFilter<"KnowledgeSource"> | Date | string
+    documents?: KnowledgeDocumentListRelationFilter
+  }, "id" | "baseUrl">
+
+  export type KnowledgeSourceOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    baseUrl?: SortOrder
+    sourceType?: SortOrder
+    trustTier?: SortOrder
+    crawlCron?: SortOrder
+    isActive?: SortOrder
+    lastCrawledAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: KnowledgeSourceCountOrderByAggregateInput
+    _avg?: KnowledgeSourceAvgOrderByAggregateInput
+    _max?: KnowledgeSourceMaxOrderByAggregateInput
+    _min?: KnowledgeSourceMinOrderByAggregateInput
+    _sum?: KnowledgeSourceSumOrderByAggregateInput
+  }
+
+  export type KnowledgeSourceScalarWhereWithAggregatesInput = {
+    AND?: KnowledgeSourceScalarWhereWithAggregatesInput | KnowledgeSourceScalarWhereWithAggregatesInput[]
+    OR?: KnowledgeSourceScalarWhereWithAggregatesInput[]
+    NOT?: KnowledgeSourceScalarWhereWithAggregatesInput | KnowledgeSourceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"KnowledgeSource"> | string
+    name?: StringWithAggregatesFilter<"KnowledgeSource"> | string
+    baseUrl?: StringWithAggregatesFilter<"KnowledgeSource"> | string
+    sourceType?: EnumKnowledgeSourceTypeWithAggregatesFilter<"KnowledgeSource"> | $Enums.KnowledgeSourceType
+    trustTier?: IntWithAggregatesFilter<"KnowledgeSource"> | number
+    crawlCron?: StringWithAggregatesFilter<"KnowledgeSource"> | string
+    isActive?: BoolWithAggregatesFilter<"KnowledgeSource"> | boolean
+    lastCrawledAt?: DateTimeNullableWithAggregatesFilter<"KnowledgeSource"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"KnowledgeSource"> | Date | string
+  }
+
+  export type KnowledgeDocumentWhereInput = {
+    AND?: KnowledgeDocumentWhereInput | KnowledgeDocumentWhereInput[]
+    OR?: KnowledgeDocumentWhereInput[]
+    NOT?: KnowledgeDocumentWhereInput | KnowledgeDocumentWhereInput[]
+    id?: StringFilter<"KnowledgeDocument"> | string
+    sourceId?: StringFilter<"KnowledgeDocument"> | string
+    url?: StringFilter<"KnowledgeDocument"> | string
+    title?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    author?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    language?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    contentHash?: StringFilter<"KnowledgeDocument"> | string
+    rawObjectKey?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    cleanText?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    topic?: EnumKnowledgeDocumentTopicNullableFilter<"KnowledgeDocument"> | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: DecimalNullableFilter<"KnowledgeDocument"> | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: DecimalNullableFilter<"KnowledgeDocument"> | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFilter<"KnowledgeDocument"> | boolean
+    status?: EnumKnowledgeDocumentStatusFilter<"KnowledgeDocument"> | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    publishedAt?: DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
+    crawledAt?: DateTimeFilter<"KnowledgeDocument"> | Date | string
+    processedAt?: DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
+    source?: XOR<KnowledgeSourceRelationFilter, KnowledgeSourceWhereInput>
+    chunks?: KnowledgeChunkListRelationFilter
+    reviewItems?: KnowledgeReviewItemListRelationFilter
+  }
+
+  export type KnowledgeDocumentOrderByWithRelationInput = {
+    id?: SortOrder
+    sourceId?: SortOrder
+    url?: SortOrder
+    title?: SortOrderInput | SortOrder
+    author?: SortOrderInput | SortOrder
+    language?: SortOrderInput | SortOrder
+    contentHash?: SortOrder
+    rawObjectKey?: SortOrderInput | SortOrder
+    cleanText?: SortOrderInput | SortOrder
+    topic?: SortOrderInput | SortOrder
+    trustScore?: SortOrderInput | SortOrder
+    qualityScore?: SortOrderInput | SortOrder
+    safetyFlag?: SortOrder
+    status?: SortOrder
+    rejectionReason?: SortOrderInput | SortOrder
+    publishedAt?: SortOrderInput | SortOrder
+    crawledAt?: SortOrder
+    processedAt?: SortOrderInput | SortOrder
+    source?: KnowledgeSourceOrderByWithRelationInput
+    chunks?: KnowledgeChunkOrderByRelationAggregateInput
+    reviewItems?: KnowledgeReviewItemOrderByRelationAggregateInput
+  }
+
+  export type KnowledgeDocumentWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    contentHash?: string
+    AND?: KnowledgeDocumentWhereInput | KnowledgeDocumentWhereInput[]
+    OR?: KnowledgeDocumentWhereInput[]
+    NOT?: KnowledgeDocumentWhereInput | KnowledgeDocumentWhereInput[]
+    sourceId?: StringFilter<"KnowledgeDocument"> | string
+    url?: StringFilter<"KnowledgeDocument"> | string
+    title?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    author?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    language?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    rawObjectKey?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    cleanText?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    topic?: EnumKnowledgeDocumentTopicNullableFilter<"KnowledgeDocument"> | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: DecimalNullableFilter<"KnowledgeDocument"> | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: DecimalNullableFilter<"KnowledgeDocument"> | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFilter<"KnowledgeDocument"> | boolean
+    status?: EnumKnowledgeDocumentStatusFilter<"KnowledgeDocument"> | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    publishedAt?: DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
+    crawledAt?: DateTimeFilter<"KnowledgeDocument"> | Date | string
+    processedAt?: DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
+    source?: XOR<KnowledgeSourceRelationFilter, KnowledgeSourceWhereInput>
+    chunks?: KnowledgeChunkListRelationFilter
+    reviewItems?: KnowledgeReviewItemListRelationFilter
+  }, "id" | "contentHash">
+
+  export type KnowledgeDocumentOrderByWithAggregationInput = {
+    id?: SortOrder
+    sourceId?: SortOrder
+    url?: SortOrder
+    title?: SortOrderInput | SortOrder
+    author?: SortOrderInput | SortOrder
+    language?: SortOrderInput | SortOrder
+    contentHash?: SortOrder
+    rawObjectKey?: SortOrderInput | SortOrder
+    cleanText?: SortOrderInput | SortOrder
+    topic?: SortOrderInput | SortOrder
+    trustScore?: SortOrderInput | SortOrder
+    qualityScore?: SortOrderInput | SortOrder
+    safetyFlag?: SortOrder
+    status?: SortOrder
+    rejectionReason?: SortOrderInput | SortOrder
+    publishedAt?: SortOrderInput | SortOrder
+    crawledAt?: SortOrder
+    processedAt?: SortOrderInput | SortOrder
+    _count?: KnowledgeDocumentCountOrderByAggregateInput
+    _avg?: KnowledgeDocumentAvgOrderByAggregateInput
+    _max?: KnowledgeDocumentMaxOrderByAggregateInput
+    _min?: KnowledgeDocumentMinOrderByAggregateInput
+    _sum?: KnowledgeDocumentSumOrderByAggregateInput
+  }
+
+  export type KnowledgeDocumentScalarWhereWithAggregatesInput = {
+    AND?: KnowledgeDocumentScalarWhereWithAggregatesInput | KnowledgeDocumentScalarWhereWithAggregatesInput[]
+    OR?: KnowledgeDocumentScalarWhereWithAggregatesInput[]
+    NOT?: KnowledgeDocumentScalarWhereWithAggregatesInput | KnowledgeDocumentScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"KnowledgeDocument"> | string
+    sourceId?: StringWithAggregatesFilter<"KnowledgeDocument"> | string
+    url?: StringWithAggregatesFilter<"KnowledgeDocument"> | string
+    title?: StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
+    author?: StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
+    language?: StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
+    contentHash?: StringWithAggregatesFilter<"KnowledgeDocument"> | string
+    rawObjectKey?: StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
+    cleanText?: StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
+    topic?: EnumKnowledgeDocumentTopicNullableWithAggregatesFilter<"KnowledgeDocument"> | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: DecimalNullableWithAggregatesFilter<"KnowledgeDocument"> | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: DecimalNullableWithAggregatesFilter<"KnowledgeDocument"> | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolWithAggregatesFilter<"KnowledgeDocument"> | boolean
+    status?: EnumKnowledgeDocumentStatusWithAggregatesFilter<"KnowledgeDocument"> | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: StringNullableWithAggregatesFilter<"KnowledgeDocument"> | string | null
+    publishedAt?: DateTimeNullableWithAggregatesFilter<"KnowledgeDocument"> | Date | string | null
+    crawledAt?: DateTimeWithAggregatesFilter<"KnowledgeDocument"> | Date | string
+    processedAt?: DateTimeNullableWithAggregatesFilter<"KnowledgeDocument"> | Date | string | null
+  }
+
+  export type KnowledgeChunkWhereInput = {
+    AND?: KnowledgeChunkWhereInput | KnowledgeChunkWhereInput[]
+    OR?: KnowledgeChunkWhereInput[]
+    NOT?: KnowledgeChunkWhereInput | KnowledgeChunkWhereInput[]
+    id?: StringFilter<"KnowledgeChunk"> | string
+    documentId?: StringFilter<"KnowledgeChunk"> | string
+    chunkIndex?: IntFilter<"KnowledgeChunk"> | number
+    text?: StringFilter<"KnowledgeChunk"> | string
+    tokenCount?: IntNullableFilter<"KnowledgeChunk"> | number | null
+    vectorId?: StringFilter<"KnowledgeChunk"> | string
+    embeddedAt?: DateTimeFilter<"KnowledgeChunk"> | Date | string
+    document?: XOR<KnowledgeDocumentRelationFilter, KnowledgeDocumentWhereInput>
+  }
+
+  export type KnowledgeChunkOrderByWithRelationInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    chunkIndex?: SortOrder
+    text?: SortOrder
+    tokenCount?: SortOrderInput | SortOrder
+    vectorId?: SortOrder
+    embeddedAt?: SortOrder
+    document?: KnowledgeDocumentOrderByWithRelationInput
+  }
+
+  export type KnowledgeChunkWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    documentId_chunkIndex?: KnowledgeChunkDocumentIdChunkIndexCompoundUniqueInput
+    AND?: KnowledgeChunkWhereInput | KnowledgeChunkWhereInput[]
+    OR?: KnowledgeChunkWhereInput[]
+    NOT?: KnowledgeChunkWhereInput | KnowledgeChunkWhereInput[]
+    documentId?: StringFilter<"KnowledgeChunk"> | string
+    chunkIndex?: IntFilter<"KnowledgeChunk"> | number
+    text?: StringFilter<"KnowledgeChunk"> | string
+    tokenCount?: IntNullableFilter<"KnowledgeChunk"> | number | null
+    vectorId?: StringFilter<"KnowledgeChunk"> | string
+    embeddedAt?: DateTimeFilter<"KnowledgeChunk"> | Date | string
+    document?: XOR<KnowledgeDocumentRelationFilter, KnowledgeDocumentWhereInput>
+  }, "id" | "documentId_chunkIndex">
+
+  export type KnowledgeChunkOrderByWithAggregationInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    chunkIndex?: SortOrder
+    text?: SortOrder
+    tokenCount?: SortOrderInput | SortOrder
+    vectorId?: SortOrder
+    embeddedAt?: SortOrder
+    _count?: KnowledgeChunkCountOrderByAggregateInput
+    _avg?: KnowledgeChunkAvgOrderByAggregateInput
+    _max?: KnowledgeChunkMaxOrderByAggregateInput
+    _min?: KnowledgeChunkMinOrderByAggregateInput
+    _sum?: KnowledgeChunkSumOrderByAggregateInput
+  }
+
+  export type KnowledgeChunkScalarWhereWithAggregatesInput = {
+    AND?: KnowledgeChunkScalarWhereWithAggregatesInput | KnowledgeChunkScalarWhereWithAggregatesInput[]
+    OR?: KnowledgeChunkScalarWhereWithAggregatesInput[]
+    NOT?: KnowledgeChunkScalarWhereWithAggregatesInput | KnowledgeChunkScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"KnowledgeChunk"> | string
+    documentId?: StringWithAggregatesFilter<"KnowledgeChunk"> | string
+    chunkIndex?: IntWithAggregatesFilter<"KnowledgeChunk"> | number
+    text?: StringWithAggregatesFilter<"KnowledgeChunk"> | string
+    tokenCount?: IntNullableWithAggregatesFilter<"KnowledgeChunk"> | number | null
+    vectorId?: StringWithAggregatesFilter<"KnowledgeChunk"> | string
+    embeddedAt?: DateTimeWithAggregatesFilter<"KnowledgeChunk"> | Date | string
+  }
+
+  export type KnowledgePipelineRunWhereInput = {
+    AND?: KnowledgePipelineRunWhereInput | KnowledgePipelineRunWhereInput[]
+    OR?: KnowledgePipelineRunWhereInput[]
+    NOT?: KnowledgePipelineRunWhereInput | KnowledgePipelineRunWhereInput[]
+    id?: StringFilter<"KnowledgePipelineRun"> | string
+    runType?: StringFilter<"KnowledgePipelineRun"> | string
+    startedAt?: DateTimeFilter<"KnowledgePipelineRun"> | Date | string
+    finishedAt?: DateTimeNullableFilter<"KnowledgePipelineRun"> | Date | string | null
+    docsCrawled?: IntFilter<"KnowledgePipelineRun"> | number
+    docsAccepted?: IntFilter<"KnowledgePipelineRun"> | number
+    docsRejected?: IntFilter<"KnowledgePipelineRun"> | number
+    docsReview?: IntFilter<"KnowledgePipelineRun"> | number
+    status?: EnumKnowledgePipelineRunStatusFilter<"KnowledgePipelineRun"> | $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type KnowledgePipelineRunOrderByWithRelationInput = {
+    id?: SortOrder
+    runType?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrderInput | SortOrder
+    docsCrawled?: SortOrder
+    docsAccepted?: SortOrder
+    docsRejected?: SortOrder
+    docsReview?: SortOrder
+    status?: SortOrder
+  }
+
+  export type KnowledgePipelineRunWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: KnowledgePipelineRunWhereInput | KnowledgePipelineRunWhereInput[]
+    OR?: KnowledgePipelineRunWhereInput[]
+    NOT?: KnowledgePipelineRunWhereInput | KnowledgePipelineRunWhereInput[]
+    runType?: StringFilter<"KnowledgePipelineRun"> | string
+    startedAt?: DateTimeFilter<"KnowledgePipelineRun"> | Date | string
+    finishedAt?: DateTimeNullableFilter<"KnowledgePipelineRun"> | Date | string | null
+    docsCrawled?: IntFilter<"KnowledgePipelineRun"> | number
+    docsAccepted?: IntFilter<"KnowledgePipelineRun"> | number
+    docsRejected?: IntFilter<"KnowledgePipelineRun"> | number
+    docsReview?: IntFilter<"KnowledgePipelineRun"> | number
+    status?: EnumKnowledgePipelineRunStatusFilter<"KnowledgePipelineRun"> | $Enums.KnowledgePipelineRunStatus
+  }, "id">
+
+  export type KnowledgePipelineRunOrderByWithAggregationInput = {
+    id?: SortOrder
+    runType?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrderInput | SortOrder
+    docsCrawled?: SortOrder
+    docsAccepted?: SortOrder
+    docsRejected?: SortOrder
+    docsReview?: SortOrder
+    status?: SortOrder
+    _count?: KnowledgePipelineRunCountOrderByAggregateInput
+    _avg?: KnowledgePipelineRunAvgOrderByAggregateInput
+    _max?: KnowledgePipelineRunMaxOrderByAggregateInput
+    _min?: KnowledgePipelineRunMinOrderByAggregateInput
+    _sum?: KnowledgePipelineRunSumOrderByAggregateInput
+  }
+
+  export type KnowledgePipelineRunScalarWhereWithAggregatesInput = {
+    AND?: KnowledgePipelineRunScalarWhereWithAggregatesInput | KnowledgePipelineRunScalarWhereWithAggregatesInput[]
+    OR?: KnowledgePipelineRunScalarWhereWithAggregatesInput[]
+    NOT?: KnowledgePipelineRunScalarWhereWithAggregatesInput | KnowledgePipelineRunScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"KnowledgePipelineRun"> | string
+    runType?: StringWithAggregatesFilter<"KnowledgePipelineRun"> | string
+    startedAt?: DateTimeWithAggregatesFilter<"KnowledgePipelineRun"> | Date | string
+    finishedAt?: DateTimeNullableWithAggregatesFilter<"KnowledgePipelineRun"> | Date | string | null
+    docsCrawled?: IntWithAggregatesFilter<"KnowledgePipelineRun"> | number
+    docsAccepted?: IntWithAggregatesFilter<"KnowledgePipelineRun"> | number
+    docsRejected?: IntWithAggregatesFilter<"KnowledgePipelineRun"> | number
+    docsReview?: IntWithAggregatesFilter<"KnowledgePipelineRun"> | number
+    status?: EnumKnowledgePipelineRunStatusWithAggregatesFilter<"KnowledgePipelineRun"> | $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type KnowledgeReviewItemWhereInput = {
+    AND?: KnowledgeReviewItemWhereInput | KnowledgeReviewItemWhereInput[]
+    OR?: KnowledgeReviewItemWhereInput[]
+    NOT?: KnowledgeReviewItemWhereInput | KnowledgeReviewItemWhereInput[]
+    id?: StringFilter<"KnowledgeReviewItem"> | string
+    documentId?: StringFilter<"KnowledgeReviewItem"> | string
+    reason?: StringNullableFilter<"KnowledgeReviewItem"> | string | null
+    status?: EnumKnowledgeReviewStatusFilter<"KnowledgeReviewItem"> | $Enums.KnowledgeReviewStatus
+    reviewedBy?: StringNullableFilter<"KnowledgeReviewItem"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"KnowledgeReviewItem"> | Date | string | null
+    document?: XOR<KnowledgeDocumentRelationFilter, KnowledgeDocumentWhereInput>
+  }
+
+  export type KnowledgeReviewItemOrderByWithRelationInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    status?: SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    document?: KnowledgeDocumentOrderByWithRelationInput
+  }
+
+  export type KnowledgeReviewItemWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: KnowledgeReviewItemWhereInput | KnowledgeReviewItemWhereInput[]
+    OR?: KnowledgeReviewItemWhereInput[]
+    NOT?: KnowledgeReviewItemWhereInput | KnowledgeReviewItemWhereInput[]
+    documentId?: StringFilter<"KnowledgeReviewItem"> | string
+    reason?: StringNullableFilter<"KnowledgeReviewItem"> | string | null
+    status?: EnumKnowledgeReviewStatusFilter<"KnowledgeReviewItem"> | $Enums.KnowledgeReviewStatus
+    reviewedBy?: StringNullableFilter<"KnowledgeReviewItem"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"KnowledgeReviewItem"> | Date | string | null
+    document?: XOR<KnowledgeDocumentRelationFilter, KnowledgeDocumentWhereInput>
+  }, "id">
+
+  export type KnowledgeReviewItemOrderByWithAggregationInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    status?: SortOrder
+    reviewedBy?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    _count?: KnowledgeReviewItemCountOrderByAggregateInput
+    _max?: KnowledgeReviewItemMaxOrderByAggregateInput
+    _min?: KnowledgeReviewItemMinOrderByAggregateInput
+  }
+
+  export type KnowledgeReviewItemScalarWhereWithAggregatesInput = {
+    AND?: KnowledgeReviewItemScalarWhereWithAggregatesInput | KnowledgeReviewItemScalarWhereWithAggregatesInput[]
+    OR?: KnowledgeReviewItemScalarWhereWithAggregatesInput[]
+    NOT?: KnowledgeReviewItemScalarWhereWithAggregatesInput | KnowledgeReviewItemScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"KnowledgeReviewItem"> | string
+    documentId?: StringWithAggregatesFilter<"KnowledgeReviewItem"> | string
+    reason?: StringNullableWithAggregatesFilter<"KnowledgeReviewItem"> | string | null
+    status?: EnumKnowledgeReviewStatusWithAggregatesFilter<"KnowledgeReviewItem"> | $Enums.KnowledgeReviewStatus
+    reviewedBy?: StringNullableWithAggregatesFilter<"KnowledgeReviewItem"> | string | null
+    reviewedAt?: DateTimeNullableWithAggregatesFilter<"KnowledgeReviewItem"> | Date | string | null
+  }
+
   export type ConversationCreateInput = {
     id?: string
     userId?: string | null
+    sessionId?: string | null
     question: string
     answer: string
     modelUsed: string
@@ -4922,6 +12265,7 @@ export namespace Prisma {
   export type ConversationUncheckedCreateInput = {
     id?: string
     userId?: string | null
+    sessionId?: string | null
     question: string
     answer: string
     modelUsed: string
@@ -4946,6 +12290,7 @@ export namespace Prisma {
   export type ConversationUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
     question?: StringFieldUpdateOperationsInput | string
     answer?: StringFieldUpdateOperationsInput | string
     modelUsed?: StringFieldUpdateOperationsInput | string
@@ -4970,6 +12315,7 @@ export namespace Prisma {
   export type ConversationUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
     question?: StringFieldUpdateOperationsInput | string
     answer?: StringFieldUpdateOperationsInput | string
     modelUsed?: StringFieldUpdateOperationsInput | string
@@ -4994,6 +12340,7 @@ export namespace Prisma {
   export type ConversationCreateManyInput = {
     id?: string
     userId?: string | null
+    sessionId?: string | null
     question: string
     answer: string
     modelUsed: string
@@ -5018,6 +12365,7 @@ export namespace Prisma {
   export type ConversationUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
     question?: StringFieldUpdateOperationsInput | string
     answer?: StringFieldUpdateOperationsInput | string
     modelUsed?: StringFieldUpdateOperationsInput | string
@@ -5042,6 +12390,7 @@ export namespace Prisma {
   export type ConversationUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
+    sessionId?: NullableStringFieldUpdateOperationsInput | string | null
     question?: StringFieldUpdateOperationsInput | string
     answer?: StringFieldUpdateOperationsInput | string
     modelUsed?: StringFieldUpdateOperationsInput | string
@@ -5061,6 +12410,76 @@ export namespace Prisma {
     routeIntent?: NullableStringFieldUpdateOperationsInput | string | null
     warningCount?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ChatSessionCreateInput = {
+    id?: string
+    userId: string
+    title: string
+    lastMessageAt?: Date | string
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ChatSessionUncheckedCreateInput = {
+    id?: string
+    userId: string
+    title: string
+    lastMessageAt?: Date | string
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ChatSessionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    lastMessageAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ChatSessionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    lastMessageAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ChatSessionCreateManyInput = {
+    id?: string
+    userId: string
+    title: string
+    lastMessageAt?: Date | string
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ChatSessionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    lastMessageAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ChatSessionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    lastMessageAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type WorkoutPlanCreateInput = {
@@ -5343,6 +12762,463 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type KnowledgeSourceCreateInput = {
+    id?: string
+    name: string
+    baseUrl: string
+    sourceType: $Enums.KnowledgeSourceType
+    trustTier?: number
+    crawlCron?: string
+    isActive?: boolean
+    lastCrawledAt?: Date | string | null
+    createdAt?: Date | string
+    documents?: KnowledgeDocumentCreateNestedManyWithoutSourceInput
+  }
+
+  export type KnowledgeSourceUncheckedCreateInput = {
+    id?: string
+    name: string
+    baseUrl: string
+    sourceType: $Enums.KnowledgeSourceType
+    trustTier?: number
+    crawlCron?: string
+    isActive?: boolean
+    lastCrawledAt?: Date | string | null
+    createdAt?: Date | string
+    documents?: KnowledgeDocumentUncheckedCreateNestedManyWithoutSourceInput
+  }
+
+  export type KnowledgeSourceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    baseUrl?: StringFieldUpdateOperationsInput | string
+    sourceType?: EnumKnowledgeSourceTypeFieldUpdateOperationsInput | $Enums.KnowledgeSourceType
+    trustTier?: IntFieldUpdateOperationsInput | number
+    crawlCron?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    lastCrawledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    documents?: KnowledgeDocumentUpdateManyWithoutSourceNestedInput
+  }
+
+  export type KnowledgeSourceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    baseUrl?: StringFieldUpdateOperationsInput | string
+    sourceType?: EnumKnowledgeSourceTypeFieldUpdateOperationsInput | $Enums.KnowledgeSourceType
+    trustTier?: IntFieldUpdateOperationsInput | number
+    crawlCron?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    lastCrawledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    documents?: KnowledgeDocumentUncheckedUpdateManyWithoutSourceNestedInput
+  }
+
+  export type KnowledgeSourceCreateManyInput = {
+    id?: string
+    name: string
+    baseUrl: string
+    sourceType: $Enums.KnowledgeSourceType
+    trustTier?: number
+    crawlCron?: string
+    isActive?: boolean
+    lastCrawledAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type KnowledgeSourceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    baseUrl?: StringFieldUpdateOperationsInput | string
+    sourceType?: EnumKnowledgeSourceTypeFieldUpdateOperationsInput | $Enums.KnowledgeSourceType
+    trustTier?: IntFieldUpdateOperationsInput | number
+    crawlCron?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    lastCrawledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type KnowledgeSourceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    baseUrl?: StringFieldUpdateOperationsInput | string
+    sourceType?: EnumKnowledgeSourceTypeFieldUpdateOperationsInput | $Enums.KnowledgeSourceType
+    trustTier?: IntFieldUpdateOperationsInput | number
+    crawlCron?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    lastCrawledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type KnowledgeDocumentCreateInput = {
+    id?: string
+    url: string
+    title?: string | null
+    author?: string | null
+    language?: string | null
+    contentHash: string
+    rawObjectKey?: string | null
+    cleanText?: string | null
+    topic?: $Enums.KnowledgeDocumentTopic | null
+    trustScore?: Decimal | DecimalJsLike | number | string | null
+    qualityScore?: Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: boolean
+    status?: $Enums.KnowledgeDocumentStatus
+    rejectionReason?: string | null
+    publishedAt?: Date | string | null
+    crawledAt?: Date | string
+    processedAt?: Date | string | null
+    source: KnowledgeSourceCreateNestedOneWithoutDocumentsInput
+    chunks?: KnowledgeChunkCreateNestedManyWithoutDocumentInput
+    reviewItems?: KnowledgeReviewItemCreateNestedManyWithoutDocumentInput
+  }
+
+  export type KnowledgeDocumentUncheckedCreateInput = {
+    id?: string
+    sourceId: string
+    url: string
+    title?: string | null
+    author?: string | null
+    language?: string | null
+    contentHash: string
+    rawObjectKey?: string | null
+    cleanText?: string | null
+    topic?: $Enums.KnowledgeDocumentTopic | null
+    trustScore?: Decimal | DecimalJsLike | number | string | null
+    qualityScore?: Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: boolean
+    status?: $Enums.KnowledgeDocumentStatus
+    rejectionReason?: string | null
+    publishedAt?: Date | string | null
+    crawledAt?: Date | string
+    processedAt?: Date | string | null
+    chunks?: KnowledgeChunkUncheckedCreateNestedManyWithoutDocumentInput
+    reviewItems?: KnowledgeReviewItemUncheckedCreateNestedManyWithoutDocumentInput
+  }
+
+  export type KnowledgeDocumentUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    rawObjectKey?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanText?: NullableStringFieldUpdateOperationsInput | string | null
+    topic?: NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumKnowledgeDocumentStatusFieldUpdateOperationsInput | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crawledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    source?: KnowledgeSourceUpdateOneRequiredWithoutDocumentsNestedInput
+    chunks?: KnowledgeChunkUpdateManyWithoutDocumentNestedInput
+    reviewItems?: KnowledgeReviewItemUpdateManyWithoutDocumentNestedInput
+  }
+
+  export type KnowledgeDocumentUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceId?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    rawObjectKey?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanText?: NullableStringFieldUpdateOperationsInput | string | null
+    topic?: NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumKnowledgeDocumentStatusFieldUpdateOperationsInput | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crawledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    chunks?: KnowledgeChunkUncheckedUpdateManyWithoutDocumentNestedInput
+    reviewItems?: KnowledgeReviewItemUncheckedUpdateManyWithoutDocumentNestedInput
+  }
+
+  export type KnowledgeDocumentCreateManyInput = {
+    id?: string
+    sourceId: string
+    url: string
+    title?: string | null
+    author?: string | null
+    language?: string | null
+    contentHash: string
+    rawObjectKey?: string | null
+    cleanText?: string | null
+    topic?: $Enums.KnowledgeDocumentTopic | null
+    trustScore?: Decimal | DecimalJsLike | number | string | null
+    qualityScore?: Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: boolean
+    status?: $Enums.KnowledgeDocumentStatus
+    rejectionReason?: string | null
+    publishedAt?: Date | string | null
+    crawledAt?: Date | string
+    processedAt?: Date | string | null
+  }
+
+  export type KnowledgeDocumentUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    rawObjectKey?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanText?: NullableStringFieldUpdateOperationsInput | string | null
+    topic?: NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumKnowledgeDocumentStatusFieldUpdateOperationsInput | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crawledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type KnowledgeDocumentUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceId?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    rawObjectKey?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanText?: NullableStringFieldUpdateOperationsInput | string | null
+    topic?: NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumKnowledgeDocumentStatusFieldUpdateOperationsInput | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crawledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type KnowledgeChunkCreateInput = {
+    id?: string
+    chunkIndex: number
+    text: string
+    tokenCount?: number | null
+    vectorId: string
+    embeddedAt?: Date | string
+    document: KnowledgeDocumentCreateNestedOneWithoutChunksInput
+  }
+
+  export type KnowledgeChunkUncheckedCreateInput = {
+    id?: string
+    documentId: string
+    chunkIndex: number
+    text: string
+    tokenCount?: number | null
+    vectorId: string
+    embeddedAt?: Date | string
+  }
+
+  export type KnowledgeChunkUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chunkIndex?: IntFieldUpdateOperationsInput | number
+    text?: StringFieldUpdateOperationsInput | string
+    tokenCount?: NullableIntFieldUpdateOperationsInput | number | null
+    vectorId?: StringFieldUpdateOperationsInput | string
+    embeddedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    document?: KnowledgeDocumentUpdateOneRequiredWithoutChunksNestedInput
+  }
+
+  export type KnowledgeChunkUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    chunkIndex?: IntFieldUpdateOperationsInput | number
+    text?: StringFieldUpdateOperationsInput | string
+    tokenCount?: NullableIntFieldUpdateOperationsInput | number | null
+    vectorId?: StringFieldUpdateOperationsInput | string
+    embeddedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type KnowledgeChunkCreateManyInput = {
+    id?: string
+    documentId: string
+    chunkIndex: number
+    text: string
+    tokenCount?: number | null
+    vectorId: string
+    embeddedAt?: Date | string
+  }
+
+  export type KnowledgeChunkUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chunkIndex?: IntFieldUpdateOperationsInput | number
+    text?: StringFieldUpdateOperationsInput | string
+    tokenCount?: NullableIntFieldUpdateOperationsInput | number | null
+    vectorId?: StringFieldUpdateOperationsInput | string
+    embeddedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type KnowledgeChunkUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    chunkIndex?: IntFieldUpdateOperationsInput | number
+    text?: StringFieldUpdateOperationsInput | string
+    tokenCount?: NullableIntFieldUpdateOperationsInput | number | null
+    vectorId?: StringFieldUpdateOperationsInput | string
+    embeddedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type KnowledgePipelineRunCreateInput = {
+    id?: string
+    runType?: string
+    startedAt?: Date | string
+    finishedAt?: Date | string | null
+    docsCrawled?: number
+    docsAccepted?: number
+    docsRejected?: number
+    docsReview?: number
+    status?: $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type KnowledgePipelineRunUncheckedCreateInput = {
+    id?: string
+    runType?: string
+    startedAt?: Date | string
+    finishedAt?: Date | string | null
+    docsCrawled?: number
+    docsAccepted?: number
+    docsRejected?: number
+    docsReview?: number
+    status?: $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type KnowledgePipelineRunUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    runType?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    docsCrawled?: IntFieldUpdateOperationsInput | number
+    docsAccepted?: IntFieldUpdateOperationsInput | number
+    docsRejected?: IntFieldUpdateOperationsInput | number
+    docsReview?: IntFieldUpdateOperationsInput | number
+    status?: EnumKnowledgePipelineRunStatusFieldUpdateOperationsInput | $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type KnowledgePipelineRunUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    runType?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    docsCrawled?: IntFieldUpdateOperationsInput | number
+    docsAccepted?: IntFieldUpdateOperationsInput | number
+    docsRejected?: IntFieldUpdateOperationsInput | number
+    docsReview?: IntFieldUpdateOperationsInput | number
+    status?: EnumKnowledgePipelineRunStatusFieldUpdateOperationsInput | $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type KnowledgePipelineRunCreateManyInput = {
+    id?: string
+    runType?: string
+    startedAt?: Date | string
+    finishedAt?: Date | string | null
+    docsCrawled?: number
+    docsAccepted?: number
+    docsRejected?: number
+    docsReview?: number
+    status?: $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type KnowledgePipelineRunUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    runType?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    docsCrawled?: IntFieldUpdateOperationsInput | number
+    docsAccepted?: IntFieldUpdateOperationsInput | number
+    docsRejected?: IntFieldUpdateOperationsInput | number
+    docsReview?: IntFieldUpdateOperationsInput | number
+    status?: EnumKnowledgePipelineRunStatusFieldUpdateOperationsInput | $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type KnowledgePipelineRunUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    runType?: StringFieldUpdateOperationsInput | string
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    docsCrawled?: IntFieldUpdateOperationsInput | number
+    docsAccepted?: IntFieldUpdateOperationsInput | number
+    docsRejected?: IntFieldUpdateOperationsInput | number
+    docsReview?: IntFieldUpdateOperationsInput | number
+    status?: EnumKnowledgePipelineRunStatusFieldUpdateOperationsInput | $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type KnowledgeReviewItemCreateInput = {
+    id?: string
+    reason?: string | null
+    status?: $Enums.KnowledgeReviewStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+    document: KnowledgeDocumentCreateNestedOneWithoutReviewItemsInput
+  }
+
+  export type KnowledgeReviewItemUncheckedCreateInput = {
+    id?: string
+    documentId: string
+    reason?: string | null
+    status?: $Enums.KnowledgeReviewStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+  }
+
+  export type KnowledgeReviewItemUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumKnowledgeReviewStatusFieldUpdateOperationsInput | $Enums.KnowledgeReviewStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    document?: KnowledgeDocumentUpdateOneRequiredWithoutReviewItemsNestedInput
+  }
+
+  export type KnowledgeReviewItemUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumKnowledgeReviewStatusFieldUpdateOperationsInput | $Enums.KnowledgeReviewStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type KnowledgeReviewItemCreateManyInput = {
+    id?: string
+    documentId: string
+    reason?: string | null
+    status?: $Enums.KnowledgeReviewStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+  }
+
+  export type KnowledgeReviewItemUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumKnowledgeReviewStatusFieldUpdateOperationsInput | $Enums.KnowledgeReviewStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type KnowledgeReviewItemUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    documentId?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumKnowledgeReviewStatusFieldUpdateOperationsInput | $Enums.KnowledgeReviewStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -5441,6 +13317,7 @@ export namespace Prisma {
   export type ConversationCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    sessionId?: SortOrder
     question?: SortOrder
     answer?: SortOrder
     modelUsed?: SortOrder
@@ -5475,6 +13352,7 @@ export namespace Prisma {
   export type ConversationMaxOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    sessionId?: SortOrder
     question?: SortOrder
     answer?: SortOrder
     modelUsed?: SortOrder
@@ -5499,6 +13377,7 @@ export namespace Prisma {
   export type ConversationMinOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
+    sessionId?: SortOrder
     question?: SortOrder
     answer?: SortOrder
     modelUsed?: SortOrder
@@ -5648,6 +13527,36 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
+  }
+
+  export type ChatSessionCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    title?: SortOrder
+    lastMessageAt?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ChatSessionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    title?: SortOrder
+    lastMessageAt?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ChatSessionMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    title?: SortOrder
+    lastMessageAt?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
   export type JsonFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -5869,6 +13778,397 @@ export namespace Prisma {
     mealsPerDay?: SortOrder
   }
 
+  export type EnumKnowledgeSourceTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeSourceType | EnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeSourceType[] | ListEnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeSourceType[] | ListEnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeSourceTypeFilter<$PrismaModel> | $Enums.KnowledgeSourceType
+  }
+
+  export type KnowledgeDocumentListRelationFilter = {
+    every?: KnowledgeDocumentWhereInput
+    some?: KnowledgeDocumentWhereInput
+    none?: KnowledgeDocumentWhereInput
+  }
+
+  export type KnowledgeDocumentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type KnowledgeSourceCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    baseUrl?: SortOrder
+    sourceType?: SortOrder
+    trustTier?: SortOrder
+    crawlCron?: SortOrder
+    isActive?: SortOrder
+    lastCrawledAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type KnowledgeSourceAvgOrderByAggregateInput = {
+    trustTier?: SortOrder
+  }
+
+  export type KnowledgeSourceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    baseUrl?: SortOrder
+    sourceType?: SortOrder
+    trustTier?: SortOrder
+    crawlCron?: SortOrder
+    isActive?: SortOrder
+    lastCrawledAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type KnowledgeSourceMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    baseUrl?: SortOrder
+    sourceType?: SortOrder
+    trustTier?: SortOrder
+    crawlCron?: SortOrder
+    isActive?: SortOrder
+    lastCrawledAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type KnowledgeSourceSumOrderByAggregateInput = {
+    trustTier?: SortOrder
+  }
+
+  export type EnumKnowledgeSourceTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeSourceType | EnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeSourceType[] | ListEnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeSourceType[] | ListEnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeSourceTypeWithAggregatesFilter<$PrismaModel> | $Enums.KnowledgeSourceType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumKnowledgeSourceTypeFilter<$PrismaModel>
+    _max?: NestedEnumKnowledgeSourceTypeFilter<$PrismaModel>
+  }
+
+  export type EnumKnowledgeDocumentTopicNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeDocumentTopic | EnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    in?: $Enums.KnowledgeDocumentTopic[] | ListEnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.KnowledgeDocumentTopic[] | ListEnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumKnowledgeDocumentTopicNullableFilter<$PrismaModel> | $Enums.KnowledgeDocumentTopic | null
+  }
+
+  export type DecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type EnumKnowledgeDocumentStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeDocumentStatus | EnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeDocumentStatus[] | ListEnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeDocumentStatus[] | ListEnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeDocumentStatusFilter<$PrismaModel> | $Enums.KnowledgeDocumentStatus
+  }
+
+  export type KnowledgeSourceRelationFilter = {
+    is?: KnowledgeSourceWhereInput
+    isNot?: KnowledgeSourceWhereInput
+  }
+
+  export type KnowledgeChunkListRelationFilter = {
+    every?: KnowledgeChunkWhereInput
+    some?: KnowledgeChunkWhereInput
+    none?: KnowledgeChunkWhereInput
+  }
+
+  export type KnowledgeReviewItemListRelationFilter = {
+    every?: KnowledgeReviewItemWhereInput
+    some?: KnowledgeReviewItemWhereInput
+    none?: KnowledgeReviewItemWhereInput
+  }
+
+  export type KnowledgeChunkOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type KnowledgeReviewItemOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type KnowledgeDocumentCountOrderByAggregateInput = {
+    id?: SortOrder
+    sourceId?: SortOrder
+    url?: SortOrder
+    title?: SortOrder
+    author?: SortOrder
+    language?: SortOrder
+    contentHash?: SortOrder
+    rawObjectKey?: SortOrder
+    cleanText?: SortOrder
+    topic?: SortOrder
+    trustScore?: SortOrder
+    qualityScore?: SortOrder
+    safetyFlag?: SortOrder
+    status?: SortOrder
+    rejectionReason?: SortOrder
+    publishedAt?: SortOrder
+    crawledAt?: SortOrder
+    processedAt?: SortOrder
+  }
+
+  export type KnowledgeDocumentAvgOrderByAggregateInput = {
+    trustScore?: SortOrder
+    qualityScore?: SortOrder
+  }
+
+  export type KnowledgeDocumentMaxOrderByAggregateInput = {
+    id?: SortOrder
+    sourceId?: SortOrder
+    url?: SortOrder
+    title?: SortOrder
+    author?: SortOrder
+    language?: SortOrder
+    contentHash?: SortOrder
+    rawObjectKey?: SortOrder
+    cleanText?: SortOrder
+    topic?: SortOrder
+    trustScore?: SortOrder
+    qualityScore?: SortOrder
+    safetyFlag?: SortOrder
+    status?: SortOrder
+    rejectionReason?: SortOrder
+    publishedAt?: SortOrder
+    crawledAt?: SortOrder
+    processedAt?: SortOrder
+  }
+
+  export type KnowledgeDocumentMinOrderByAggregateInput = {
+    id?: SortOrder
+    sourceId?: SortOrder
+    url?: SortOrder
+    title?: SortOrder
+    author?: SortOrder
+    language?: SortOrder
+    contentHash?: SortOrder
+    rawObjectKey?: SortOrder
+    cleanText?: SortOrder
+    topic?: SortOrder
+    trustScore?: SortOrder
+    qualityScore?: SortOrder
+    safetyFlag?: SortOrder
+    status?: SortOrder
+    rejectionReason?: SortOrder
+    publishedAt?: SortOrder
+    crawledAt?: SortOrder
+    processedAt?: SortOrder
+  }
+
+  export type KnowledgeDocumentSumOrderByAggregateInput = {
+    trustScore?: SortOrder
+    qualityScore?: SortOrder
+  }
+
+  export type EnumKnowledgeDocumentTopicNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeDocumentTopic | EnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    in?: $Enums.KnowledgeDocumentTopic[] | ListEnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.KnowledgeDocumentTopic[] | ListEnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumKnowledgeDocumentTopicNullableWithAggregatesFilter<$PrismaModel> | $Enums.KnowledgeDocumentTopic | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumKnowledgeDocumentTopicNullableFilter<$PrismaModel>
+    _max?: NestedEnumKnowledgeDocumentTopicNullableFilter<$PrismaModel>
+  }
+
+  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
+  export type EnumKnowledgeDocumentStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeDocumentStatus | EnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeDocumentStatus[] | ListEnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeDocumentStatus[] | ListEnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeDocumentStatusWithAggregatesFilter<$PrismaModel> | $Enums.KnowledgeDocumentStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumKnowledgeDocumentStatusFilter<$PrismaModel>
+    _max?: NestedEnumKnowledgeDocumentStatusFilter<$PrismaModel>
+  }
+
+  export type KnowledgeDocumentRelationFilter = {
+    is?: KnowledgeDocumentWhereInput
+    isNot?: KnowledgeDocumentWhereInput
+  }
+
+  export type KnowledgeChunkDocumentIdChunkIndexCompoundUniqueInput = {
+    documentId: string
+    chunkIndex: number
+  }
+
+  export type KnowledgeChunkCountOrderByAggregateInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    chunkIndex?: SortOrder
+    text?: SortOrder
+    tokenCount?: SortOrder
+    vectorId?: SortOrder
+    embeddedAt?: SortOrder
+  }
+
+  export type KnowledgeChunkAvgOrderByAggregateInput = {
+    chunkIndex?: SortOrder
+    tokenCount?: SortOrder
+  }
+
+  export type KnowledgeChunkMaxOrderByAggregateInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    chunkIndex?: SortOrder
+    text?: SortOrder
+    tokenCount?: SortOrder
+    vectorId?: SortOrder
+    embeddedAt?: SortOrder
+  }
+
+  export type KnowledgeChunkMinOrderByAggregateInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    chunkIndex?: SortOrder
+    text?: SortOrder
+    tokenCount?: SortOrder
+    vectorId?: SortOrder
+    embeddedAt?: SortOrder
+  }
+
+  export type KnowledgeChunkSumOrderByAggregateInput = {
+    chunkIndex?: SortOrder
+    tokenCount?: SortOrder
+  }
+
+  export type EnumKnowledgePipelineRunStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgePipelineRunStatus | EnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgePipelineRunStatus[] | ListEnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgePipelineRunStatus[] | ListEnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgePipelineRunStatusFilter<$PrismaModel> | $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type KnowledgePipelineRunCountOrderByAggregateInput = {
+    id?: SortOrder
+    runType?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    docsCrawled?: SortOrder
+    docsAccepted?: SortOrder
+    docsRejected?: SortOrder
+    docsReview?: SortOrder
+    status?: SortOrder
+  }
+
+  export type KnowledgePipelineRunAvgOrderByAggregateInput = {
+    docsCrawled?: SortOrder
+    docsAccepted?: SortOrder
+    docsRejected?: SortOrder
+    docsReview?: SortOrder
+  }
+
+  export type KnowledgePipelineRunMaxOrderByAggregateInput = {
+    id?: SortOrder
+    runType?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    docsCrawled?: SortOrder
+    docsAccepted?: SortOrder
+    docsRejected?: SortOrder
+    docsReview?: SortOrder
+    status?: SortOrder
+  }
+
+  export type KnowledgePipelineRunMinOrderByAggregateInput = {
+    id?: SortOrder
+    runType?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    docsCrawled?: SortOrder
+    docsAccepted?: SortOrder
+    docsRejected?: SortOrder
+    docsReview?: SortOrder
+    status?: SortOrder
+  }
+
+  export type KnowledgePipelineRunSumOrderByAggregateInput = {
+    docsCrawled?: SortOrder
+    docsAccepted?: SortOrder
+    docsRejected?: SortOrder
+    docsReview?: SortOrder
+  }
+
+  export type EnumKnowledgePipelineRunStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgePipelineRunStatus | EnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgePipelineRunStatus[] | ListEnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgePipelineRunStatus[] | ListEnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgePipelineRunStatusWithAggregatesFilter<$PrismaModel> | $Enums.KnowledgePipelineRunStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumKnowledgePipelineRunStatusFilter<$PrismaModel>
+    _max?: NestedEnumKnowledgePipelineRunStatusFilter<$PrismaModel>
+  }
+
+  export type EnumKnowledgeReviewStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeReviewStatus | EnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeReviewStatus[] | ListEnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeReviewStatus[] | ListEnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeReviewStatusFilter<$PrismaModel> | $Enums.KnowledgeReviewStatus
+  }
+
+  export type KnowledgeReviewItemCountOrderByAggregateInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+  }
+
+  export type KnowledgeReviewItemMaxOrderByAggregateInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+  }
+
+  export type KnowledgeReviewItemMinOrderByAggregateInput = {
+    id?: SortOrder
+    documentId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    reviewedBy?: SortOrder
+    reviewedAt?: SortOrder
+  }
+
+  export type EnumKnowledgeReviewStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeReviewStatus | EnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeReviewStatus[] | ListEnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeReviewStatus[] | ListEnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeReviewStatusWithAggregatesFilter<$PrismaModel> | $Enums.KnowledgeReviewStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumKnowledgeReviewStatusFilter<$PrismaModel>
+    _max?: NestedEnumKnowledgeReviewStatusFilter<$PrismaModel>
+  }
+
   export type StringFieldUpdateOperationsInput = {
     set?: string
   }
@@ -5919,6 +14219,202 @@ export namespace Prisma {
 
   export type NullableEnumPtReviewStatusFieldUpdateOperationsInput = {
     set?: $Enums.PtReviewStatus | null
+  }
+
+  export type KnowledgeDocumentCreateNestedManyWithoutSourceInput = {
+    create?: XOR<KnowledgeDocumentCreateWithoutSourceInput, KnowledgeDocumentUncheckedCreateWithoutSourceInput> | KnowledgeDocumentCreateWithoutSourceInput[] | KnowledgeDocumentUncheckedCreateWithoutSourceInput[]
+    connectOrCreate?: KnowledgeDocumentCreateOrConnectWithoutSourceInput | KnowledgeDocumentCreateOrConnectWithoutSourceInput[]
+    createMany?: KnowledgeDocumentCreateManySourceInputEnvelope
+    connect?: KnowledgeDocumentWhereUniqueInput | KnowledgeDocumentWhereUniqueInput[]
+  }
+
+  export type KnowledgeDocumentUncheckedCreateNestedManyWithoutSourceInput = {
+    create?: XOR<KnowledgeDocumentCreateWithoutSourceInput, KnowledgeDocumentUncheckedCreateWithoutSourceInput> | KnowledgeDocumentCreateWithoutSourceInput[] | KnowledgeDocumentUncheckedCreateWithoutSourceInput[]
+    connectOrCreate?: KnowledgeDocumentCreateOrConnectWithoutSourceInput | KnowledgeDocumentCreateOrConnectWithoutSourceInput[]
+    createMany?: KnowledgeDocumentCreateManySourceInputEnvelope
+    connect?: KnowledgeDocumentWhereUniqueInput | KnowledgeDocumentWhereUniqueInput[]
+  }
+
+  export type EnumKnowledgeSourceTypeFieldUpdateOperationsInput = {
+    set?: $Enums.KnowledgeSourceType
+  }
+
+  export type KnowledgeDocumentUpdateManyWithoutSourceNestedInput = {
+    create?: XOR<KnowledgeDocumentCreateWithoutSourceInput, KnowledgeDocumentUncheckedCreateWithoutSourceInput> | KnowledgeDocumentCreateWithoutSourceInput[] | KnowledgeDocumentUncheckedCreateWithoutSourceInput[]
+    connectOrCreate?: KnowledgeDocumentCreateOrConnectWithoutSourceInput | KnowledgeDocumentCreateOrConnectWithoutSourceInput[]
+    upsert?: KnowledgeDocumentUpsertWithWhereUniqueWithoutSourceInput | KnowledgeDocumentUpsertWithWhereUniqueWithoutSourceInput[]
+    createMany?: KnowledgeDocumentCreateManySourceInputEnvelope
+    set?: KnowledgeDocumentWhereUniqueInput | KnowledgeDocumentWhereUniqueInput[]
+    disconnect?: KnowledgeDocumentWhereUniqueInput | KnowledgeDocumentWhereUniqueInput[]
+    delete?: KnowledgeDocumentWhereUniqueInput | KnowledgeDocumentWhereUniqueInput[]
+    connect?: KnowledgeDocumentWhereUniqueInput | KnowledgeDocumentWhereUniqueInput[]
+    update?: KnowledgeDocumentUpdateWithWhereUniqueWithoutSourceInput | KnowledgeDocumentUpdateWithWhereUniqueWithoutSourceInput[]
+    updateMany?: KnowledgeDocumentUpdateManyWithWhereWithoutSourceInput | KnowledgeDocumentUpdateManyWithWhereWithoutSourceInput[]
+    deleteMany?: KnowledgeDocumentScalarWhereInput | KnowledgeDocumentScalarWhereInput[]
+  }
+
+  export type KnowledgeDocumentUncheckedUpdateManyWithoutSourceNestedInput = {
+    create?: XOR<KnowledgeDocumentCreateWithoutSourceInput, KnowledgeDocumentUncheckedCreateWithoutSourceInput> | KnowledgeDocumentCreateWithoutSourceInput[] | KnowledgeDocumentUncheckedCreateWithoutSourceInput[]
+    connectOrCreate?: KnowledgeDocumentCreateOrConnectWithoutSourceInput | KnowledgeDocumentCreateOrConnectWithoutSourceInput[]
+    upsert?: KnowledgeDocumentUpsertWithWhereUniqueWithoutSourceInput | KnowledgeDocumentUpsertWithWhereUniqueWithoutSourceInput[]
+    createMany?: KnowledgeDocumentCreateManySourceInputEnvelope
+    set?: KnowledgeDocumentWhereUniqueInput | KnowledgeDocumentWhereUniqueInput[]
+    disconnect?: KnowledgeDocumentWhereUniqueInput | KnowledgeDocumentWhereUniqueInput[]
+    delete?: KnowledgeDocumentWhereUniqueInput | KnowledgeDocumentWhereUniqueInput[]
+    connect?: KnowledgeDocumentWhereUniqueInput | KnowledgeDocumentWhereUniqueInput[]
+    update?: KnowledgeDocumentUpdateWithWhereUniqueWithoutSourceInput | KnowledgeDocumentUpdateWithWhereUniqueWithoutSourceInput[]
+    updateMany?: KnowledgeDocumentUpdateManyWithWhereWithoutSourceInput | KnowledgeDocumentUpdateManyWithWhereWithoutSourceInput[]
+    deleteMany?: KnowledgeDocumentScalarWhereInput | KnowledgeDocumentScalarWhereInput[]
+  }
+
+  export type KnowledgeSourceCreateNestedOneWithoutDocumentsInput = {
+    create?: XOR<KnowledgeSourceCreateWithoutDocumentsInput, KnowledgeSourceUncheckedCreateWithoutDocumentsInput>
+    connectOrCreate?: KnowledgeSourceCreateOrConnectWithoutDocumentsInput
+    connect?: KnowledgeSourceWhereUniqueInput
+  }
+
+  export type KnowledgeChunkCreateNestedManyWithoutDocumentInput = {
+    create?: XOR<KnowledgeChunkCreateWithoutDocumentInput, KnowledgeChunkUncheckedCreateWithoutDocumentInput> | KnowledgeChunkCreateWithoutDocumentInput[] | KnowledgeChunkUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: KnowledgeChunkCreateOrConnectWithoutDocumentInput | KnowledgeChunkCreateOrConnectWithoutDocumentInput[]
+    createMany?: KnowledgeChunkCreateManyDocumentInputEnvelope
+    connect?: KnowledgeChunkWhereUniqueInput | KnowledgeChunkWhereUniqueInput[]
+  }
+
+  export type KnowledgeReviewItemCreateNestedManyWithoutDocumentInput = {
+    create?: XOR<KnowledgeReviewItemCreateWithoutDocumentInput, KnowledgeReviewItemUncheckedCreateWithoutDocumentInput> | KnowledgeReviewItemCreateWithoutDocumentInput[] | KnowledgeReviewItemUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: KnowledgeReviewItemCreateOrConnectWithoutDocumentInput | KnowledgeReviewItemCreateOrConnectWithoutDocumentInput[]
+    createMany?: KnowledgeReviewItemCreateManyDocumentInputEnvelope
+    connect?: KnowledgeReviewItemWhereUniqueInput | KnowledgeReviewItemWhereUniqueInput[]
+  }
+
+  export type KnowledgeChunkUncheckedCreateNestedManyWithoutDocumentInput = {
+    create?: XOR<KnowledgeChunkCreateWithoutDocumentInput, KnowledgeChunkUncheckedCreateWithoutDocumentInput> | KnowledgeChunkCreateWithoutDocumentInput[] | KnowledgeChunkUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: KnowledgeChunkCreateOrConnectWithoutDocumentInput | KnowledgeChunkCreateOrConnectWithoutDocumentInput[]
+    createMany?: KnowledgeChunkCreateManyDocumentInputEnvelope
+    connect?: KnowledgeChunkWhereUniqueInput | KnowledgeChunkWhereUniqueInput[]
+  }
+
+  export type KnowledgeReviewItemUncheckedCreateNestedManyWithoutDocumentInput = {
+    create?: XOR<KnowledgeReviewItemCreateWithoutDocumentInput, KnowledgeReviewItemUncheckedCreateWithoutDocumentInput> | KnowledgeReviewItemCreateWithoutDocumentInput[] | KnowledgeReviewItemUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: KnowledgeReviewItemCreateOrConnectWithoutDocumentInput | KnowledgeReviewItemCreateOrConnectWithoutDocumentInput[]
+    createMany?: KnowledgeReviewItemCreateManyDocumentInputEnvelope
+    connect?: KnowledgeReviewItemWhereUniqueInput | KnowledgeReviewItemWhereUniqueInput[]
+  }
+
+  export type NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput = {
+    set?: $Enums.KnowledgeDocumentTopic | null
+  }
+
+  export type NullableDecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string | null
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
+  export type EnumKnowledgeDocumentStatusFieldUpdateOperationsInput = {
+    set?: $Enums.KnowledgeDocumentStatus
+  }
+
+  export type KnowledgeSourceUpdateOneRequiredWithoutDocumentsNestedInput = {
+    create?: XOR<KnowledgeSourceCreateWithoutDocumentsInput, KnowledgeSourceUncheckedCreateWithoutDocumentsInput>
+    connectOrCreate?: KnowledgeSourceCreateOrConnectWithoutDocumentsInput
+    upsert?: KnowledgeSourceUpsertWithoutDocumentsInput
+    connect?: KnowledgeSourceWhereUniqueInput
+    update?: XOR<XOR<KnowledgeSourceUpdateToOneWithWhereWithoutDocumentsInput, KnowledgeSourceUpdateWithoutDocumentsInput>, KnowledgeSourceUncheckedUpdateWithoutDocumentsInput>
+  }
+
+  export type KnowledgeChunkUpdateManyWithoutDocumentNestedInput = {
+    create?: XOR<KnowledgeChunkCreateWithoutDocumentInput, KnowledgeChunkUncheckedCreateWithoutDocumentInput> | KnowledgeChunkCreateWithoutDocumentInput[] | KnowledgeChunkUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: KnowledgeChunkCreateOrConnectWithoutDocumentInput | KnowledgeChunkCreateOrConnectWithoutDocumentInput[]
+    upsert?: KnowledgeChunkUpsertWithWhereUniqueWithoutDocumentInput | KnowledgeChunkUpsertWithWhereUniqueWithoutDocumentInput[]
+    createMany?: KnowledgeChunkCreateManyDocumentInputEnvelope
+    set?: KnowledgeChunkWhereUniqueInput | KnowledgeChunkWhereUniqueInput[]
+    disconnect?: KnowledgeChunkWhereUniqueInput | KnowledgeChunkWhereUniqueInput[]
+    delete?: KnowledgeChunkWhereUniqueInput | KnowledgeChunkWhereUniqueInput[]
+    connect?: KnowledgeChunkWhereUniqueInput | KnowledgeChunkWhereUniqueInput[]
+    update?: KnowledgeChunkUpdateWithWhereUniqueWithoutDocumentInput | KnowledgeChunkUpdateWithWhereUniqueWithoutDocumentInput[]
+    updateMany?: KnowledgeChunkUpdateManyWithWhereWithoutDocumentInput | KnowledgeChunkUpdateManyWithWhereWithoutDocumentInput[]
+    deleteMany?: KnowledgeChunkScalarWhereInput | KnowledgeChunkScalarWhereInput[]
+  }
+
+  export type KnowledgeReviewItemUpdateManyWithoutDocumentNestedInput = {
+    create?: XOR<KnowledgeReviewItemCreateWithoutDocumentInput, KnowledgeReviewItemUncheckedCreateWithoutDocumentInput> | KnowledgeReviewItemCreateWithoutDocumentInput[] | KnowledgeReviewItemUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: KnowledgeReviewItemCreateOrConnectWithoutDocumentInput | KnowledgeReviewItemCreateOrConnectWithoutDocumentInput[]
+    upsert?: KnowledgeReviewItemUpsertWithWhereUniqueWithoutDocumentInput | KnowledgeReviewItemUpsertWithWhereUniqueWithoutDocumentInput[]
+    createMany?: KnowledgeReviewItemCreateManyDocumentInputEnvelope
+    set?: KnowledgeReviewItemWhereUniqueInput | KnowledgeReviewItemWhereUniqueInput[]
+    disconnect?: KnowledgeReviewItemWhereUniqueInput | KnowledgeReviewItemWhereUniqueInput[]
+    delete?: KnowledgeReviewItemWhereUniqueInput | KnowledgeReviewItemWhereUniqueInput[]
+    connect?: KnowledgeReviewItemWhereUniqueInput | KnowledgeReviewItemWhereUniqueInput[]
+    update?: KnowledgeReviewItemUpdateWithWhereUniqueWithoutDocumentInput | KnowledgeReviewItemUpdateWithWhereUniqueWithoutDocumentInput[]
+    updateMany?: KnowledgeReviewItemUpdateManyWithWhereWithoutDocumentInput | KnowledgeReviewItemUpdateManyWithWhereWithoutDocumentInput[]
+    deleteMany?: KnowledgeReviewItemScalarWhereInput | KnowledgeReviewItemScalarWhereInput[]
+  }
+
+  export type KnowledgeChunkUncheckedUpdateManyWithoutDocumentNestedInput = {
+    create?: XOR<KnowledgeChunkCreateWithoutDocumentInput, KnowledgeChunkUncheckedCreateWithoutDocumentInput> | KnowledgeChunkCreateWithoutDocumentInput[] | KnowledgeChunkUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: KnowledgeChunkCreateOrConnectWithoutDocumentInput | KnowledgeChunkCreateOrConnectWithoutDocumentInput[]
+    upsert?: KnowledgeChunkUpsertWithWhereUniqueWithoutDocumentInput | KnowledgeChunkUpsertWithWhereUniqueWithoutDocumentInput[]
+    createMany?: KnowledgeChunkCreateManyDocumentInputEnvelope
+    set?: KnowledgeChunkWhereUniqueInput | KnowledgeChunkWhereUniqueInput[]
+    disconnect?: KnowledgeChunkWhereUniqueInput | KnowledgeChunkWhereUniqueInput[]
+    delete?: KnowledgeChunkWhereUniqueInput | KnowledgeChunkWhereUniqueInput[]
+    connect?: KnowledgeChunkWhereUniqueInput | KnowledgeChunkWhereUniqueInput[]
+    update?: KnowledgeChunkUpdateWithWhereUniqueWithoutDocumentInput | KnowledgeChunkUpdateWithWhereUniqueWithoutDocumentInput[]
+    updateMany?: KnowledgeChunkUpdateManyWithWhereWithoutDocumentInput | KnowledgeChunkUpdateManyWithWhereWithoutDocumentInput[]
+    deleteMany?: KnowledgeChunkScalarWhereInput | KnowledgeChunkScalarWhereInput[]
+  }
+
+  export type KnowledgeReviewItemUncheckedUpdateManyWithoutDocumentNestedInput = {
+    create?: XOR<KnowledgeReviewItemCreateWithoutDocumentInput, KnowledgeReviewItemUncheckedCreateWithoutDocumentInput> | KnowledgeReviewItemCreateWithoutDocumentInput[] | KnowledgeReviewItemUncheckedCreateWithoutDocumentInput[]
+    connectOrCreate?: KnowledgeReviewItemCreateOrConnectWithoutDocumentInput | KnowledgeReviewItemCreateOrConnectWithoutDocumentInput[]
+    upsert?: KnowledgeReviewItemUpsertWithWhereUniqueWithoutDocumentInput | KnowledgeReviewItemUpsertWithWhereUniqueWithoutDocumentInput[]
+    createMany?: KnowledgeReviewItemCreateManyDocumentInputEnvelope
+    set?: KnowledgeReviewItemWhereUniqueInput | KnowledgeReviewItemWhereUniqueInput[]
+    disconnect?: KnowledgeReviewItemWhereUniqueInput | KnowledgeReviewItemWhereUniqueInput[]
+    delete?: KnowledgeReviewItemWhereUniqueInput | KnowledgeReviewItemWhereUniqueInput[]
+    connect?: KnowledgeReviewItemWhereUniqueInput | KnowledgeReviewItemWhereUniqueInput[]
+    update?: KnowledgeReviewItemUpdateWithWhereUniqueWithoutDocumentInput | KnowledgeReviewItemUpdateWithWhereUniqueWithoutDocumentInput[]
+    updateMany?: KnowledgeReviewItemUpdateManyWithWhereWithoutDocumentInput | KnowledgeReviewItemUpdateManyWithWhereWithoutDocumentInput[]
+    deleteMany?: KnowledgeReviewItemScalarWhereInput | KnowledgeReviewItemScalarWhereInput[]
+  }
+
+  export type KnowledgeDocumentCreateNestedOneWithoutChunksInput = {
+    create?: XOR<KnowledgeDocumentCreateWithoutChunksInput, KnowledgeDocumentUncheckedCreateWithoutChunksInput>
+    connectOrCreate?: KnowledgeDocumentCreateOrConnectWithoutChunksInput
+    connect?: KnowledgeDocumentWhereUniqueInput
+  }
+
+  export type KnowledgeDocumentUpdateOneRequiredWithoutChunksNestedInput = {
+    create?: XOR<KnowledgeDocumentCreateWithoutChunksInput, KnowledgeDocumentUncheckedCreateWithoutChunksInput>
+    connectOrCreate?: KnowledgeDocumentCreateOrConnectWithoutChunksInput
+    upsert?: KnowledgeDocumentUpsertWithoutChunksInput
+    connect?: KnowledgeDocumentWhereUniqueInput
+    update?: XOR<XOR<KnowledgeDocumentUpdateToOneWithWhereWithoutChunksInput, KnowledgeDocumentUpdateWithoutChunksInput>, KnowledgeDocumentUncheckedUpdateWithoutChunksInput>
+  }
+
+  export type EnumKnowledgePipelineRunStatusFieldUpdateOperationsInput = {
+    set?: $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type KnowledgeDocumentCreateNestedOneWithoutReviewItemsInput = {
+    create?: XOR<KnowledgeDocumentCreateWithoutReviewItemsInput, KnowledgeDocumentUncheckedCreateWithoutReviewItemsInput>
+    connectOrCreate?: KnowledgeDocumentCreateOrConnectWithoutReviewItemsInput
+    connect?: KnowledgeDocumentWhereUniqueInput
+  }
+
+  export type EnumKnowledgeReviewStatusFieldUpdateOperationsInput = {
+    set?: $Enums.KnowledgeReviewStatus
+  }
+
+  export type KnowledgeDocumentUpdateOneRequiredWithoutReviewItemsNestedInput = {
+    create?: XOR<KnowledgeDocumentCreateWithoutReviewItemsInput, KnowledgeDocumentUncheckedCreateWithoutReviewItemsInput>
+    connectOrCreate?: KnowledgeDocumentCreateOrConnectWithoutReviewItemsInput
+    upsert?: KnowledgeDocumentUpsertWithoutReviewItemsInput
+    connect?: KnowledgeDocumentWhereUniqueInput
+    update?: XOR<XOR<KnowledgeDocumentUpdateToOneWithWhereWithoutReviewItemsInput, KnowledgeDocumentUpdateWithoutReviewItemsInput>, KnowledgeDocumentUncheckedUpdateWithoutReviewItemsInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -6194,15 +14690,768 @@ export namespace Prisma {
     _max?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel>
   }
 
+  export type NestedEnumKnowledgeSourceTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeSourceType | EnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeSourceType[] | ListEnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeSourceType[] | ListEnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeSourceTypeFilter<$PrismaModel> | $Enums.KnowledgeSourceType
+  }
+
+  export type NestedEnumKnowledgeSourceTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeSourceType | EnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeSourceType[] | ListEnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeSourceType[] | ListEnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeSourceTypeWithAggregatesFilter<$PrismaModel> | $Enums.KnowledgeSourceType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumKnowledgeSourceTypeFilter<$PrismaModel>
+    _max?: NestedEnumKnowledgeSourceTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumKnowledgeDocumentTopicNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeDocumentTopic | EnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    in?: $Enums.KnowledgeDocumentTopic[] | ListEnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.KnowledgeDocumentTopic[] | ListEnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumKnowledgeDocumentTopicNullableFilter<$PrismaModel> | $Enums.KnowledgeDocumentTopic | null
+  }
+
+  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type NestedEnumKnowledgeDocumentStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeDocumentStatus | EnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeDocumentStatus[] | ListEnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeDocumentStatus[] | ListEnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeDocumentStatusFilter<$PrismaModel> | $Enums.KnowledgeDocumentStatus
+  }
+
+  export type NestedEnumKnowledgeDocumentTopicNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeDocumentTopic | EnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    in?: $Enums.KnowledgeDocumentTopic[] | ListEnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.KnowledgeDocumentTopic[] | ListEnumKnowledgeDocumentTopicFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumKnowledgeDocumentTopicNullableWithAggregatesFilter<$PrismaModel> | $Enums.KnowledgeDocumentTopic | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumKnowledgeDocumentTopicNullableFilter<$PrismaModel>
+    _max?: NestedEnumKnowledgeDocumentTopicNullableFilter<$PrismaModel>
+  }
+
+  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumKnowledgeDocumentStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeDocumentStatus | EnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeDocumentStatus[] | ListEnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeDocumentStatus[] | ListEnumKnowledgeDocumentStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeDocumentStatusWithAggregatesFilter<$PrismaModel> | $Enums.KnowledgeDocumentStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumKnowledgeDocumentStatusFilter<$PrismaModel>
+    _max?: NestedEnumKnowledgeDocumentStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumKnowledgePipelineRunStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgePipelineRunStatus | EnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgePipelineRunStatus[] | ListEnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgePipelineRunStatus[] | ListEnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgePipelineRunStatusFilter<$PrismaModel> | $Enums.KnowledgePipelineRunStatus
+  }
+
+  export type NestedEnumKnowledgePipelineRunStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgePipelineRunStatus | EnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgePipelineRunStatus[] | ListEnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgePipelineRunStatus[] | ListEnumKnowledgePipelineRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgePipelineRunStatusWithAggregatesFilter<$PrismaModel> | $Enums.KnowledgePipelineRunStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumKnowledgePipelineRunStatusFilter<$PrismaModel>
+    _max?: NestedEnumKnowledgePipelineRunStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumKnowledgeReviewStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeReviewStatus | EnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeReviewStatus[] | ListEnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeReviewStatus[] | ListEnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeReviewStatusFilter<$PrismaModel> | $Enums.KnowledgeReviewStatus
+  }
+
+  export type NestedEnumKnowledgeReviewStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.KnowledgeReviewStatus | EnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.KnowledgeReviewStatus[] | ListEnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.KnowledgeReviewStatus[] | ListEnumKnowledgeReviewStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumKnowledgeReviewStatusWithAggregatesFilter<$PrismaModel> | $Enums.KnowledgeReviewStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumKnowledgeReviewStatusFilter<$PrismaModel>
+    _max?: NestedEnumKnowledgeReviewStatusFilter<$PrismaModel>
+  }
+
+  export type KnowledgeDocumentCreateWithoutSourceInput = {
+    id?: string
+    url: string
+    title?: string | null
+    author?: string | null
+    language?: string | null
+    contentHash: string
+    rawObjectKey?: string | null
+    cleanText?: string | null
+    topic?: $Enums.KnowledgeDocumentTopic | null
+    trustScore?: Decimal | DecimalJsLike | number | string | null
+    qualityScore?: Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: boolean
+    status?: $Enums.KnowledgeDocumentStatus
+    rejectionReason?: string | null
+    publishedAt?: Date | string | null
+    crawledAt?: Date | string
+    processedAt?: Date | string | null
+    chunks?: KnowledgeChunkCreateNestedManyWithoutDocumentInput
+    reviewItems?: KnowledgeReviewItemCreateNestedManyWithoutDocumentInput
+  }
+
+  export type KnowledgeDocumentUncheckedCreateWithoutSourceInput = {
+    id?: string
+    url: string
+    title?: string | null
+    author?: string | null
+    language?: string | null
+    contentHash: string
+    rawObjectKey?: string | null
+    cleanText?: string | null
+    topic?: $Enums.KnowledgeDocumentTopic | null
+    trustScore?: Decimal | DecimalJsLike | number | string | null
+    qualityScore?: Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: boolean
+    status?: $Enums.KnowledgeDocumentStatus
+    rejectionReason?: string | null
+    publishedAt?: Date | string | null
+    crawledAt?: Date | string
+    processedAt?: Date | string | null
+    chunks?: KnowledgeChunkUncheckedCreateNestedManyWithoutDocumentInput
+    reviewItems?: KnowledgeReviewItemUncheckedCreateNestedManyWithoutDocumentInput
+  }
+
+  export type KnowledgeDocumentCreateOrConnectWithoutSourceInput = {
+    where: KnowledgeDocumentWhereUniqueInput
+    create: XOR<KnowledgeDocumentCreateWithoutSourceInput, KnowledgeDocumentUncheckedCreateWithoutSourceInput>
+  }
+
+  export type KnowledgeDocumentCreateManySourceInputEnvelope = {
+    data: KnowledgeDocumentCreateManySourceInput | KnowledgeDocumentCreateManySourceInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type KnowledgeDocumentUpsertWithWhereUniqueWithoutSourceInput = {
+    where: KnowledgeDocumentWhereUniqueInput
+    update: XOR<KnowledgeDocumentUpdateWithoutSourceInput, KnowledgeDocumentUncheckedUpdateWithoutSourceInput>
+    create: XOR<KnowledgeDocumentCreateWithoutSourceInput, KnowledgeDocumentUncheckedCreateWithoutSourceInput>
+  }
+
+  export type KnowledgeDocumentUpdateWithWhereUniqueWithoutSourceInput = {
+    where: KnowledgeDocumentWhereUniqueInput
+    data: XOR<KnowledgeDocumentUpdateWithoutSourceInput, KnowledgeDocumentUncheckedUpdateWithoutSourceInput>
+  }
+
+  export type KnowledgeDocumentUpdateManyWithWhereWithoutSourceInput = {
+    where: KnowledgeDocumentScalarWhereInput
+    data: XOR<KnowledgeDocumentUpdateManyMutationInput, KnowledgeDocumentUncheckedUpdateManyWithoutSourceInput>
+  }
+
+  export type KnowledgeDocumentScalarWhereInput = {
+    AND?: KnowledgeDocumentScalarWhereInput | KnowledgeDocumentScalarWhereInput[]
+    OR?: KnowledgeDocumentScalarWhereInput[]
+    NOT?: KnowledgeDocumentScalarWhereInput | KnowledgeDocumentScalarWhereInput[]
+    id?: StringFilter<"KnowledgeDocument"> | string
+    sourceId?: StringFilter<"KnowledgeDocument"> | string
+    url?: StringFilter<"KnowledgeDocument"> | string
+    title?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    author?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    language?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    contentHash?: StringFilter<"KnowledgeDocument"> | string
+    rawObjectKey?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    cleanText?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    topic?: EnumKnowledgeDocumentTopicNullableFilter<"KnowledgeDocument"> | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: DecimalNullableFilter<"KnowledgeDocument"> | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: DecimalNullableFilter<"KnowledgeDocument"> | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFilter<"KnowledgeDocument"> | boolean
+    status?: EnumKnowledgeDocumentStatusFilter<"KnowledgeDocument"> | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: StringNullableFilter<"KnowledgeDocument"> | string | null
+    publishedAt?: DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
+    crawledAt?: DateTimeFilter<"KnowledgeDocument"> | Date | string
+    processedAt?: DateTimeNullableFilter<"KnowledgeDocument"> | Date | string | null
+  }
+
+  export type KnowledgeSourceCreateWithoutDocumentsInput = {
+    id?: string
+    name: string
+    baseUrl: string
+    sourceType: $Enums.KnowledgeSourceType
+    trustTier?: number
+    crawlCron?: string
+    isActive?: boolean
+    lastCrawledAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type KnowledgeSourceUncheckedCreateWithoutDocumentsInput = {
+    id?: string
+    name: string
+    baseUrl: string
+    sourceType: $Enums.KnowledgeSourceType
+    trustTier?: number
+    crawlCron?: string
+    isActive?: boolean
+    lastCrawledAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type KnowledgeSourceCreateOrConnectWithoutDocumentsInput = {
+    where: KnowledgeSourceWhereUniqueInput
+    create: XOR<KnowledgeSourceCreateWithoutDocumentsInput, KnowledgeSourceUncheckedCreateWithoutDocumentsInput>
+  }
+
+  export type KnowledgeChunkCreateWithoutDocumentInput = {
+    id?: string
+    chunkIndex: number
+    text: string
+    tokenCount?: number | null
+    vectorId: string
+    embeddedAt?: Date | string
+  }
+
+  export type KnowledgeChunkUncheckedCreateWithoutDocumentInput = {
+    id?: string
+    chunkIndex: number
+    text: string
+    tokenCount?: number | null
+    vectorId: string
+    embeddedAt?: Date | string
+  }
+
+  export type KnowledgeChunkCreateOrConnectWithoutDocumentInput = {
+    where: KnowledgeChunkWhereUniqueInput
+    create: XOR<KnowledgeChunkCreateWithoutDocumentInput, KnowledgeChunkUncheckedCreateWithoutDocumentInput>
+  }
+
+  export type KnowledgeChunkCreateManyDocumentInputEnvelope = {
+    data: KnowledgeChunkCreateManyDocumentInput | KnowledgeChunkCreateManyDocumentInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type KnowledgeReviewItemCreateWithoutDocumentInput = {
+    id?: string
+    reason?: string | null
+    status?: $Enums.KnowledgeReviewStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+  }
+
+  export type KnowledgeReviewItemUncheckedCreateWithoutDocumentInput = {
+    id?: string
+    reason?: string | null
+    status?: $Enums.KnowledgeReviewStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+  }
+
+  export type KnowledgeReviewItemCreateOrConnectWithoutDocumentInput = {
+    where: KnowledgeReviewItemWhereUniqueInput
+    create: XOR<KnowledgeReviewItemCreateWithoutDocumentInput, KnowledgeReviewItemUncheckedCreateWithoutDocumentInput>
+  }
+
+  export type KnowledgeReviewItemCreateManyDocumentInputEnvelope = {
+    data: KnowledgeReviewItemCreateManyDocumentInput | KnowledgeReviewItemCreateManyDocumentInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type KnowledgeSourceUpsertWithoutDocumentsInput = {
+    update: XOR<KnowledgeSourceUpdateWithoutDocumentsInput, KnowledgeSourceUncheckedUpdateWithoutDocumentsInput>
+    create: XOR<KnowledgeSourceCreateWithoutDocumentsInput, KnowledgeSourceUncheckedCreateWithoutDocumentsInput>
+    where?: KnowledgeSourceWhereInput
+  }
+
+  export type KnowledgeSourceUpdateToOneWithWhereWithoutDocumentsInput = {
+    where?: KnowledgeSourceWhereInput
+    data: XOR<KnowledgeSourceUpdateWithoutDocumentsInput, KnowledgeSourceUncheckedUpdateWithoutDocumentsInput>
+  }
+
+  export type KnowledgeSourceUpdateWithoutDocumentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    baseUrl?: StringFieldUpdateOperationsInput | string
+    sourceType?: EnumKnowledgeSourceTypeFieldUpdateOperationsInput | $Enums.KnowledgeSourceType
+    trustTier?: IntFieldUpdateOperationsInput | number
+    crawlCron?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    lastCrawledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type KnowledgeSourceUncheckedUpdateWithoutDocumentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    baseUrl?: StringFieldUpdateOperationsInput | string
+    sourceType?: EnumKnowledgeSourceTypeFieldUpdateOperationsInput | $Enums.KnowledgeSourceType
+    trustTier?: IntFieldUpdateOperationsInput | number
+    crawlCron?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    lastCrawledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type KnowledgeChunkUpsertWithWhereUniqueWithoutDocumentInput = {
+    where: KnowledgeChunkWhereUniqueInput
+    update: XOR<KnowledgeChunkUpdateWithoutDocumentInput, KnowledgeChunkUncheckedUpdateWithoutDocumentInput>
+    create: XOR<KnowledgeChunkCreateWithoutDocumentInput, KnowledgeChunkUncheckedCreateWithoutDocumentInput>
+  }
+
+  export type KnowledgeChunkUpdateWithWhereUniqueWithoutDocumentInput = {
+    where: KnowledgeChunkWhereUniqueInput
+    data: XOR<KnowledgeChunkUpdateWithoutDocumentInput, KnowledgeChunkUncheckedUpdateWithoutDocumentInput>
+  }
+
+  export type KnowledgeChunkUpdateManyWithWhereWithoutDocumentInput = {
+    where: KnowledgeChunkScalarWhereInput
+    data: XOR<KnowledgeChunkUpdateManyMutationInput, KnowledgeChunkUncheckedUpdateManyWithoutDocumentInput>
+  }
+
+  export type KnowledgeChunkScalarWhereInput = {
+    AND?: KnowledgeChunkScalarWhereInput | KnowledgeChunkScalarWhereInput[]
+    OR?: KnowledgeChunkScalarWhereInput[]
+    NOT?: KnowledgeChunkScalarWhereInput | KnowledgeChunkScalarWhereInput[]
+    id?: StringFilter<"KnowledgeChunk"> | string
+    documentId?: StringFilter<"KnowledgeChunk"> | string
+    chunkIndex?: IntFilter<"KnowledgeChunk"> | number
+    text?: StringFilter<"KnowledgeChunk"> | string
+    tokenCount?: IntNullableFilter<"KnowledgeChunk"> | number | null
+    vectorId?: StringFilter<"KnowledgeChunk"> | string
+    embeddedAt?: DateTimeFilter<"KnowledgeChunk"> | Date | string
+  }
+
+  export type KnowledgeReviewItemUpsertWithWhereUniqueWithoutDocumentInput = {
+    where: KnowledgeReviewItemWhereUniqueInput
+    update: XOR<KnowledgeReviewItemUpdateWithoutDocumentInput, KnowledgeReviewItemUncheckedUpdateWithoutDocumentInput>
+    create: XOR<KnowledgeReviewItemCreateWithoutDocumentInput, KnowledgeReviewItemUncheckedCreateWithoutDocumentInput>
+  }
+
+  export type KnowledgeReviewItemUpdateWithWhereUniqueWithoutDocumentInput = {
+    where: KnowledgeReviewItemWhereUniqueInput
+    data: XOR<KnowledgeReviewItemUpdateWithoutDocumentInput, KnowledgeReviewItemUncheckedUpdateWithoutDocumentInput>
+  }
+
+  export type KnowledgeReviewItemUpdateManyWithWhereWithoutDocumentInput = {
+    where: KnowledgeReviewItemScalarWhereInput
+    data: XOR<KnowledgeReviewItemUpdateManyMutationInput, KnowledgeReviewItemUncheckedUpdateManyWithoutDocumentInput>
+  }
+
+  export type KnowledgeReviewItemScalarWhereInput = {
+    AND?: KnowledgeReviewItemScalarWhereInput | KnowledgeReviewItemScalarWhereInput[]
+    OR?: KnowledgeReviewItemScalarWhereInput[]
+    NOT?: KnowledgeReviewItemScalarWhereInput | KnowledgeReviewItemScalarWhereInput[]
+    id?: StringFilter<"KnowledgeReviewItem"> | string
+    documentId?: StringFilter<"KnowledgeReviewItem"> | string
+    reason?: StringNullableFilter<"KnowledgeReviewItem"> | string | null
+    status?: EnumKnowledgeReviewStatusFilter<"KnowledgeReviewItem"> | $Enums.KnowledgeReviewStatus
+    reviewedBy?: StringNullableFilter<"KnowledgeReviewItem"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"KnowledgeReviewItem"> | Date | string | null
+  }
+
+  export type KnowledgeDocumentCreateWithoutChunksInput = {
+    id?: string
+    url: string
+    title?: string | null
+    author?: string | null
+    language?: string | null
+    contentHash: string
+    rawObjectKey?: string | null
+    cleanText?: string | null
+    topic?: $Enums.KnowledgeDocumentTopic | null
+    trustScore?: Decimal | DecimalJsLike | number | string | null
+    qualityScore?: Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: boolean
+    status?: $Enums.KnowledgeDocumentStatus
+    rejectionReason?: string | null
+    publishedAt?: Date | string | null
+    crawledAt?: Date | string
+    processedAt?: Date | string | null
+    source: KnowledgeSourceCreateNestedOneWithoutDocumentsInput
+    reviewItems?: KnowledgeReviewItemCreateNestedManyWithoutDocumentInput
+  }
+
+  export type KnowledgeDocumentUncheckedCreateWithoutChunksInput = {
+    id?: string
+    sourceId: string
+    url: string
+    title?: string | null
+    author?: string | null
+    language?: string | null
+    contentHash: string
+    rawObjectKey?: string | null
+    cleanText?: string | null
+    topic?: $Enums.KnowledgeDocumentTopic | null
+    trustScore?: Decimal | DecimalJsLike | number | string | null
+    qualityScore?: Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: boolean
+    status?: $Enums.KnowledgeDocumentStatus
+    rejectionReason?: string | null
+    publishedAt?: Date | string | null
+    crawledAt?: Date | string
+    processedAt?: Date | string | null
+    reviewItems?: KnowledgeReviewItemUncheckedCreateNestedManyWithoutDocumentInput
+  }
+
+  export type KnowledgeDocumentCreateOrConnectWithoutChunksInput = {
+    where: KnowledgeDocumentWhereUniqueInput
+    create: XOR<KnowledgeDocumentCreateWithoutChunksInput, KnowledgeDocumentUncheckedCreateWithoutChunksInput>
+  }
+
+  export type KnowledgeDocumentUpsertWithoutChunksInput = {
+    update: XOR<KnowledgeDocumentUpdateWithoutChunksInput, KnowledgeDocumentUncheckedUpdateWithoutChunksInput>
+    create: XOR<KnowledgeDocumentCreateWithoutChunksInput, KnowledgeDocumentUncheckedCreateWithoutChunksInput>
+    where?: KnowledgeDocumentWhereInput
+  }
+
+  export type KnowledgeDocumentUpdateToOneWithWhereWithoutChunksInput = {
+    where?: KnowledgeDocumentWhereInput
+    data: XOR<KnowledgeDocumentUpdateWithoutChunksInput, KnowledgeDocumentUncheckedUpdateWithoutChunksInput>
+  }
+
+  export type KnowledgeDocumentUpdateWithoutChunksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    rawObjectKey?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanText?: NullableStringFieldUpdateOperationsInput | string | null
+    topic?: NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumKnowledgeDocumentStatusFieldUpdateOperationsInput | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crawledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    source?: KnowledgeSourceUpdateOneRequiredWithoutDocumentsNestedInput
+    reviewItems?: KnowledgeReviewItemUpdateManyWithoutDocumentNestedInput
+  }
+
+  export type KnowledgeDocumentUncheckedUpdateWithoutChunksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceId?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    rawObjectKey?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanText?: NullableStringFieldUpdateOperationsInput | string | null
+    topic?: NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumKnowledgeDocumentStatusFieldUpdateOperationsInput | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crawledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reviewItems?: KnowledgeReviewItemUncheckedUpdateManyWithoutDocumentNestedInput
+  }
+
+  export type KnowledgeDocumentCreateWithoutReviewItemsInput = {
+    id?: string
+    url: string
+    title?: string | null
+    author?: string | null
+    language?: string | null
+    contentHash: string
+    rawObjectKey?: string | null
+    cleanText?: string | null
+    topic?: $Enums.KnowledgeDocumentTopic | null
+    trustScore?: Decimal | DecimalJsLike | number | string | null
+    qualityScore?: Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: boolean
+    status?: $Enums.KnowledgeDocumentStatus
+    rejectionReason?: string | null
+    publishedAt?: Date | string | null
+    crawledAt?: Date | string
+    processedAt?: Date | string | null
+    source: KnowledgeSourceCreateNestedOneWithoutDocumentsInput
+    chunks?: KnowledgeChunkCreateNestedManyWithoutDocumentInput
+  }
+
+  export type KnowledgeDocumentUncheckedCreateWithoutReviewItemsInput = {
+    id?: string
+    sourceId: string
+    url: string
+    title?: string | null
+    author?: string | null
+    language?: string | null
+    contentHash: string
+    rawObjectKey?: string | null
+    cleanText?: string | null
+    topic?: $Enums.KnowledgeDocumentTopic | null
+    trustScore?: Decimal | DecimalJsLike | number | string | null
+    qualityScore?: Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: boolean
+    status?: $Enums.KnowledgeDocumentStatus
+    rejectionReason?: string | null
+    publishedAt?: Date | string | null
+    crawledAt?: Date | string
+    processedAt?: Date | string | null
+    chunks?: KnowledgeChunkUncheckedCreateNestedManyWithoutDocumentInput
+  }
+
+  export type KnowledgeDocumentCreateOrConnectWithoutReviewItemsInput = {
+    where: KnowledgeDocumentWhereUniqueInput
+    create: XOR<KnowledgeDocumentCreateWithoutReviewItemsInput, KnowledgeDocumentUncheckedCreateWithoutReviewItemsInput>
+  }
+
+  export type KnowledgeDocumentUpsertWithoutReviewItemsInput = {
+    update: XOR<KnowledgeDocumentUpdateWithoutReviewItemsInput, KnowledgeDocumentUncheckedUpdateWithoutReviewItemsInput>
+    create: XOR<KnowledgeDocumentCreateWithoutReviewItemsInput, KnowledgeDocumentUncheckedCreateWithoutReviewItemsInput>
+    where?: KnowledgeDocumentWhereInput
+  }
+
+  export type KnowledgeDocumentUpdateToOneWithWhereWithoutReviewItemsInput = {
+    where?: KnowledgeDocumentWhereInput
+    data: XOR<KnowledgeDocumentUpdateWithoutReviewItemsInput, KnowledgeDocumentUncheckedUpdateWithoutReviewItemsInput>
+  }
+
+  export type KnowledgeDocumentUpdateWithoutReviewItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    rawObjectKey?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanText?: NullableStringFieldUpdateOperationsInput | string | null
+    topic?: NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumKnowledgeDocumentStatusFieldUpdateOperationsInput | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crawledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    source?: KnowledgeSourceUpdateOneRequiredWithoutDocumentsNestedInput
+    chunks?: KnowledgeChunkUpdateManyWithoutDocumentNestedInput
+  }
+
+  export type KnowledgeDocumentUncheckedUpdateWithoutReviewItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceId?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    rawObjectKey?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanText?: NullableStringFieldUpdateOperationsInput | string | null
+    topic?: NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumKnowledgeDocumentStatusFieldUpdateOperationsInput | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crawledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    chunks?: KnowledgeChunkUncheckedUpdateManyWithoutDocumentNestedInput
+  }
+
+  export type KnowledgeDocumentCreateManySourceInput = {
+    id?: string
+    url: string
+    title?: string | null
+    author?: string | null
+    language?: string | null
+    contentHash: string
+    rawObjectKey?: string | null
+    cleanText?: string | null
+    topic?: $Enums.KnowledgeDocumentTopic | null
+    trustScore?: Decimal | DecimalJsLike | number | string | null
+    qualityScore?: Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: boolean
+    status?: $Enums.KnowledgeDocumentStatus
+    rejectionReason?: string | null
+    publishedAt?: Date | string | null
+    crawledAt?: Date | string
+    processedAt?: Date | string | null
+  }
+
+  export type KnowledgeDocumentUpdateWithoutSourceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    rawObjectKey?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanText?: NullableStringFieldUpdateOperationsInput | string | null
+    topic?: NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumKnowledgeDocumentStatusFieldUpdateOperationsInput | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crawledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    chunks?: KnowledgeChunkUpdateManyWithoutDocumentNestedInput
+    reviewItems?: KnowledgeReviewItemUpdateManyWithoutDocumentNestedInput
+  }
+
+  export type KnowledgeDocumentUncheckedUpdateWithoutSourceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    rawObjectKey?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanText?: NullableStringFieldUpdateOperationsInput | string | null
+    topic?: NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumKnowledgeDocumentStatusFieldUpdateOperationsInput | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crawledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    chunks?: KnowledgeChunkUncheckedUpdateManyWithoutDocumentNestedInput
+    reviewItems?: KnowledgeReviewItemUncheckedUpdateManyWithoutDocumentNestedInput
+  }
+
+  export type KnowledgeDocumentUncheckedUpdateManyWithoutSourceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    url?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    contentHash?: StringFieldUpdateOperationsInput | string
+    rawObjectKey?: NullableStringFieldUpdateOperationsInput | string | null
+    cleanText?: NullableStringFieldUpdateOperationsInput | string | null
+    topic?: NullableEnumKnowledgeDocumentTopicFieldUpdateOperationsInput | $Enums.KnowledgeDocumentTopic | null
+    trustScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    qualityScore?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    safetyFlag?: BoolFieldUpdateOperationsInput | boolean
+    status?: EnumKnowledgeDocumentStatusFieldUpdateOperationsInput | $Enums.KnowledgeDocumentStatus
+    rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    crawledAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    processedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type KnowledgeChunkCreateManyDocumentInput = {
+    id?: string
+    chunkIndex: number
+    text: string
+    tokenCount?: number | null
+    vectorId: string
+    embeddedAt?: Date | string
+  }
+
+  export type KnowledgeReviewItemCreateManyDocumentInput = {
+    id?: string
+    reason?: string | null
+    status?: $Enums.KnowledgeReviewStatus
+    reviewedBy?: string | null
+    reviewedAt?: Date | string | null
+  }
+
+  export type KnowledgeChunkUpdateWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chunkIndex?: IntFieldUpdateOperationsInput | number
+    text?: StringFieldUpdateOperationsInput | string
+    tokenCount?: NullableIntFieldUpdateOperationsInput | number | null
+    vectorId?: StringFieldUpdateOperationsInput | string
+    embeddedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type KnowledgeChunkUncheckedUpdateWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chunkIndex?: IntFieldUpdateOperationsInput | number
+    text?: StringFieldUpdateOperationsInput | string
+    tokenCount?: NullableIntFieldUpdateOperationsInput | number | null
+    vectorId?: StringFieldUpdateOperationsInput | string
+    embeddedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type KnowledgeChunkUncheckedUpdateManyWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chunkIndex?: IntFieldUpdateOperationsInput | number
+    text?: StringFieldUpdateOperationsInput | string
+    tokenCount?: NullableIntFieldUpdateOperationsInput | number | null
+    vectorId?: StringFieldUpdateOperationsInput | string
+    embeddedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type KnowledgeReviewItemUpdateWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumKnowledgeReviewStatusFieldUpdateOperationsInput | $Enums.KnowledgeReviewStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type KnowledgeReviewItemUncheckedUpdateWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumKnowledgeReviewStatusFieldUpdateOperationsInput | $Enums.KnowledgeReviewStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type KnowledgeReviewItemUncheckedUpdateManyWithoutDocumentInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumKnowledgeReviewStatusFieldUpdateOperationsInput | $Enums.KnowledgeReviewStatus
+    reviewedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
 
 
   /**
    * Aliases for legacy arg types
    */
     /**
+     * @deprecated Use KnowledgeSourceCountOutputTypeDefaultArgs instead
+     */
+    export type KnowledgeSourceCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KnowledgeSourceCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use KnowledgeDocumentCountOutputTypeDefaultArgs instead
+     */
+    export type KnowledgeDocumentCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KnowledgeDocumentCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use ConversationDefaultArgs instead
      */
     export type ConversationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ConversationDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use ChatSessionDefaultArgs instead
+     */
+    export type ChatSessionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ChatSessionDefaultArgs<ExtArgs>
     /**
      * @deprecated Use WorkoutPlanDefaultArgs instead
      */
@@ -6211,6 +15460,26 @@ export namespace Prisma {
      * @deprecated Use NutritionPlanDefaultArgs instead
      */
     export type NutritionPlanArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionPlanDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use KnowledgeSourceDefaultArgs instead
+     */
+    export type KnowledgeSourceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KnowledgeSourceDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use KnowledgeDocumentDefaultArgs instead
+     */
+    export type KnowledgeDocumentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KnowledgeDocumentDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use KnowledgeChunkDefaultArgs instead
+     */
+    export type KnowledgeChunkArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KnowledgeChunkDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use KnowledgePipelineRunDefaultArgs instead
+     */
+    export type KnowledgePipelineRunArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KnowledgePipelineRunDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use KnowledgeReviewItemDefaultArgs instead
+     */
+    export type KnowledgeReviewItemArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KnowledgeReviewItemDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

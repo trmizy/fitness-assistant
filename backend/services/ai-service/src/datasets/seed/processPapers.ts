@@ -75,6 +75,20 @@ const KNOWLEDGE_CHUNKS: Record<string, string[]> = {
     "ISSN Nutrient Timing 2014 — Evidence-based timing protocols: For resistance training: Pre-workout meal (2-3h before): moderate protein (20-30g) + moderate-high carb (40-60g) + low fat. Intra-workout (sessions > 45 min): BCAAs 5-10g or whey 15-20g + fast carbs 30-60g. Post-workout (within 2h): whey 20-40g + carbs 30-60g. Pre-sleep (30 min before): casein 30-40g to stimulate overnight MPS. For endurance: carbohydrate loading 3-7 days pre-event for >90 min events. During: 30-90 g/hour carbohydrate. Recovery: high-GI carbs + protein immediately post-exercise.",
     'ISSN Nutrient Timing 2014 — Practical summary: Protein distribution is more important than strict timing. Spreading 1.6-2.4 g/kg/day protein across 4+ meals of 25-40g each maximizes 24-hour MPS. The "anabolic window" extends beyond the old 1-hour myth to approximately 2 hours post-exercise for optimal recovery. However, having protein and carbs available during and around workouts consistently outperforms waiting hours post-training. Meal frequency (4-6 meals/day) with adequate protein per meal (~30-40g) is optimal for body composition vs. 2-3 meals.',
   ],
+  "asymmetry-thresholds-2021": [
+    "Parkinson et al. (2021), Journal of Sports Science & Medicine — Inter-limb strength asymmetry, measurement: This systematic review identified twelve distinct methods used in the literature to calculate inter-limb asymmetry, most commonly the Limb Symmetry Index. Only a minority of these indices produce equivalent asymmetry magnitudes regardless of which limb happens to score higher — the authors note that arbitrarily picking a 'reference' limb can bias the result, and recommend normalized indices for consistent reporting.",
+    "Parkinson et al. (2021) — Asymmetry thresholds: A 10-15% difference between limbs is the threshold most commonly cited in the sports-science literature as 'meaningful' asymmetry (used in 27 of 30 reviewed articles that applied a threshold). However, the review found this specific cutoff has weak evidentiary support — only about a third of studies using it cited strong direct evidence for that number. Healthy, high-performing athletes with no functional deficit can still show asymmetries as high as 13-15%, so a fixed universal threshold does not by itself indicate a problem.",
+    "Parkinson et al. (2021) — Practical takeaway: The review recommends an individualized approach rather than treating any single asymmetry percentage as a hard rule: use consistent test batteries, consider the person's own typical variability, and interpret a bilateral gap alongside actual performance, pain, or injury history rather than in isolation. Chasing 'perfect' left-right symmetry is not itself a well-supported training goal — some natural asymmetry (e.g. from handedness) is normal.",
+  ],
+  "unilateral-bilateral-training-2022": [
+    "Liao, Nassis, Bishop, Yang, Bian & Li (2022), Biology of Sport — Unilateral vs. bilateral resistance training, meta-analysis: Pooling 14 studies (392 participants, ages 16-26), unilateral resistance training produced a large effect on improving unilateral (single-limb) jump performance compared with bilateral training (effect size 0.89). Bilateral training showed a small advantage for improving bilateral strength compared with unilateral training (effect size -0.43 favoring bilateral). No significant difference was found between the two approaches for unilateral strength, bilateral jump performance, change-of-direction speed, or linear sprint speed.",
+    "Liao et al. (2022) — Practical application: The authors recommend applying the training-specificity principle — choose unilateral exercises (single-leg press, split squat, single-arm row, etc.) when the goal is improving single-limb/unilateral performance (e.g. sprinting, change of direction, single-leg jumping), and choose bilateral exercises (back squat, deadlift, bench press) when the goal is maximizing two-limb strength. This study measured performance outcomes, not inter-limb asymmetry directly — pair it with asymmetry-specific evidence when the goal is correcting a left/right imbalance rather than general performance.",
+  ],
+  "unilateral-plyometric-asymmetry-2025": [
+    "Sun, Li, Qu, Zhou, Cao, Wang & Li (2025), Frontiers in Physiology — Unilateral plyometric training and lower-limb asymmetry, meta-analysis: Across 8 randomized controlled trials (157 athletes), unilateral plyometric training (single-leg jump-based work) produced a medium overall effect in reducing lower-limb asymmetry (SMD = 0.71, p < 0.01). Complex training (mixing bilateral and unilateral work) and purely bilateral approaches showed little to no meaningful reduction in asymmetry by comparison.",
+    "Sun et al. (2025) — Effect sizes by test: single-leg lateral jump showed the largest improvement (SMD = 1.24), followed by single-leg broad jump (SMD = 0.56) and single-leg countermovement jump (SMD = 0.51); single-leg horizontal triple jump did not reach significance (SMD = 0.24). Effective intervention protocols in the pooled studies typically ran 6-10 weeks at 1-2 sessions per week, focusing explosive unilateral jump work on the weaker limb.",
+    "Sun et al. (2025) — Practical takeaway: When the goal is specifically to reduce a measured left/right leg imbalance (not just general lower-body strength), a dedicated block of unilateral (single-leg) explosive/plyometric work — 1-2 sessions/week for at least 6 weeks, biased toward the weaker leg — is better supported than simply continuing bilateral squat/leg-press work. The authors note this may also help reduce injury risk linked to asymmetry, though the causal link to injury reduction needs more direct research.",
+  ],
 };
 
 // ── Paper metadata ────────────────────────────────────────────────────────────
@@ -189,6 +203,45 @@ const PAPERS: PaperMeta[] = [
       "anabolic window",
       "ISSN",
     ],
+  },
+  {
+    id: "asymmetry-thresholds-2021",
+    title:
+      "The Calculation, Thresholds and Reporting of Inter-Limb Strength Asymmetry: A Systematic Review (Parkinson et al. 2021)",
+    file: "Parkinson_InterLimb_Asymmetry_2021.pdf",
+    source_url: "https://doi.org/10.52082/jssm.2021.594",
+    source_type: "paper",
+    category: "training",
+    evidence_level: "systematic_review",
+    tags: [
+      "asymmetry",
+      "inter-limb",
+      "unilateral",
+      "measurement",
+      "threshold",
+    ],
+  },
+  {
+    id: "unilateral-bilateral-training-2022",
+    title:
+      "Effects of Unilateral vs. Bilateral Resistance Training Interventions on Strength, Jump, Linear and Change-of-Direction Speed: A Systematic Review and Meta-Analysis (Liao et al. 2022)",
+    file: "Liao_Unilateral_Bilateral_Training_2022.pdf",
+    source_url: "https://doi.org/10.5114/biolsport.2022.107024",
+    source_type: "paper",
+    category: "training",
+    evidence_level: "systematic_review",
+    tags: ["unilateral", "bilateral", "resistance training", "jump", "speed"],
+  },
+  {
+    id: "unilateral-plyometric-asymmetry-2025",
+    title:
+      "Unilateral Plyometric Training Effectively Reduces Lower Limb Asymmetry in Athletes: A Meta-Analysis (Sun et al. 2025)",
+    file: "Sun_Unilateral_Plyometric_Asymmetry_2025.pdf",
+    source_url: "https://doi.org/10.3389/fphys.2025.1551523",
+    source_type: "paper",
+    category: "training",
+    evidence_level: "systematic_review",
+    tags: ["unilateral", "plyometric", "asymmetry", "lower limb", "injury risk"],
   },
 ];
 

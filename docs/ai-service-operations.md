@@ -66,23 +66,27 @@ QDRANT_PORT=6333
 USER_SERVICE_URL=http://user-service:3004
 FITNESS_SERVICE_URL=http://fitness-service:3002
 LLM_PROVIDER=ollama
-LLM_BASE_URL=http://ollama:11434
-OLLAMA_BASE_URL=http://ollama:11434
-LLM_MODEL=llama3.2:3b
+LLM_BASE_URL=http://host.docker.internal:11435
+OLLAMA_BASE_URL=http://host.docker.internal:11435
+LLM_MODEL=qwen3:30b-a3b-instruct-2507-q4_K_M
 EMBEDDING_MODEL=nomic-embed-text
-LLM_JSON_NUM_CTX=4096
+EMBEDDING_DIMENSIONS=768
+LLM_TIMEOUT_MS=300000
+EMBEDDING_TIMEOUT_MS=120000
+LLM_JSON_NUM_CTX=8192
 AI_PLAN_NUM_PREDICT=650
 AI_PLAN_RETRY_NUM_PREDICT=450
-AI_PLAN_TIMEOUT_MS=60000
-AI_PLAN_RETRY_TIMEOUT_MS=35000
+AI_PLAN_TIMEOUT_MS=300000
+AI_PLAN_RETRY_TIMEOUT_MS=120000
 INTERNAL_SERVICE_SECRET=...
 ```
 
 Services lien quan:
 
 - `ai-service`: API + BullMQ worker trong cung process
-- `ollama`: LLM local, port `11434`
-- `ollama-model-puller`: pull model luc compose start
+- RunPod Ollama qua SSH tunnel: Windows `http://127.0.0.1:11435`, Docker `http://host.docker.internal:11435`
+- `ollama`: LLM local, port `11434`, chi chay khi dung profile `local-ollama`
+- `ollama-model-puller`: pull model luc compose start, chi chay khi dung profile `local-ollama`
 - `qdrant`: vector database, port `6333`
 - `redis`: BullMQ backend
 - `postgres`: database, host port `5433`
@@ -125,31 +129,32 @@ curl.exe http://localhost:3000/plans/llm-health -H "Authorization: Bearer $env:A
 
 ## 4. Ollama Va Model
 
-Model dang cau hinh:
+Model dang cau hinh mac dinh khi dung RunPod tunnel:
 
-- Chat model: `llama3.2:3b`
+- Chat model: `qwen3:30b-a3b-instruct-2507-q4_K_M`
 - Embedding model: `nomic-embed-text`
 
 Lenh kiem tra:
 
 ```powershell
-docker compose -f infra/compose/docker-compose.dev.yml logs ollama --tail=200
-docker compose -f infra/compose/docker-compose.dev.yml exec ollama ollama list
-docker compose -f infra/compose/docker-compose.dev.yml exec ai-service sh -lc "wget -qO- http://ollama:11434/api/tags || curl -s http://ollama:11434/api/tags"
+curl.exe http://127.0.0.1:11435/api/tags
+docker run --rm curlimages/curl:latest http://host.docker.internal:11435/api/tags
+docker compose -f infra/compose/docker-compose.dev.yml exec ai-service sh -lc "wget -qO- http://host.docker.internal:11435/api/tags || curl -s http://host.docker.internal:11435/api/tags"
 ```
 
-Pull model neu thieu:
+Neu muon dung Docker-local Ollama thay RunPod:
 
 ```powershell
+docker compose -f infra/compose/docker-compose.dev.yml --profile local-ollama up -d ollama ollama-model-puller
 docker compose -f infra/compose/docker-compose.dev.yml exec ollama ollama pull llama3.2:3b
 docker compose -f infra/compose/docker-compose.dev.yml exec ollama ollama pull nomic-embed-text
 ```
 
 Loi thuong gap:
 
-- `LLM provider unreachable`: `ai-service` khong ket noi duoc `ollama:11434`
+- `LLM provider unreachable`: `ai-service` khong ket noi duoc endpoint trong `LLM_BASE_URL`
 - `Missing model(s)`: Ollama chay nhung thieu model
-- `LLM provider timed out`: model qua tai, prompt dai, CPU/RAM cham, hoac Ollama dang xu ly request khac
+- `LLM provider timed out`: model qua tai, prompt dai, tunnel cham, GPU/VRAM dang ban, hoac Ollama dang xu ly request khac
 
 ## 5. Qdrant Va RAG
 

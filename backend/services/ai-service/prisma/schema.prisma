@@ -12,6 +12,7 @@ datasource db {
 model Conversation {
   id                        String    @id @default(uuid())
   userId                    String?   @map("user_id")
+  sessionId                 String?   @map("session_id")
   question                  String
   answer                    String
   modelUsed                 String    @map("model_used")
@@ -34,10 +35,27 @@ model Conversation {
   createdAt                 DateTime  @default(now()) @map("created_at")
 
   @@index([userId, createdAt])
+  @@index([userId, sessionId, createdAt])
   @@index([createdAt])
   @@index([routeIntent])
   @@index([usedFallback])
   @@map("conversations")
+}
+
+model ChatSession {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  title         String
+  // Bumped explicitly whenever a new turn is appended to this session (not on
+  // every touch) — the sidebar sorts by this, so a title rename alone never
+  // reorders the list.
+  lastMessageAt DateTime  @default(now()) @map("last_message_at")
+  archivedAt    DateTime? @map("archived_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, archivedAt, lastMessageAt])
+  @@map("chat_sessions")
 }
 
 enum PlanStatus {

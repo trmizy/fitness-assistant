@@ -64,6 +64,109 @@ def require_training_dependencies() -> None:
         raise SystemExit("CUDA GPU is required for QLoRA training. Use a cloud GPU host such as A40.")
 
 
+def format_example(row: dict[str, Any]) -> str:
+    """Alpaca-style instruction template — must match what evaluate_coach_model.py
+    and the eventual inference-time prompt expect (instruction + optional input
+    context, then the model continues with output)."""
+    instruction = row["instruction"]
+    input_text = row.get("input") or ""
+    output_text = row["output"]
+    if input_text and input_text != "{}":
+        return (
+            f"### Instruction:\n{instruction}\n\n### Context:\n{input_text}\n\n"
+            f"### Response:\n{output_text}"
+        )
+    return f"### Instruction:\n{instruction}\n\n### Response:\n{output_text}"
+
+
+def run_training(
+    config: dict[str, Any],
+    dataset_path: Path,
+    eval_path: Path | None,
+    base_model: str,
+    output_dir: Path,
+    max_steps: int | None,
+    num_epochs: float | None,
+) -> None:
+    """Actual QLoRA SFT training loop. Only reached after require_training_dependencies()
+    has confirmed torch/transformers/datasets/peft/trl/bitsandbytes + CUDA are present —
+    safe to import them unconditionally here."""
+    import torch  # type: ignore
+    from datasets import load_dataset  # type: ignore
+    from peft import LoraConfig, prepare_model_for_kbit_training  # type: ignore
+    from transformers import (  # type: ignore
+        AutoModelForCausalLM,
+        AutoTokenizer,
+        BitsAndBytesConfig,
+        TrainingArguments,
+    )
+    from trl import SFTTrainer  # type: ignore
+
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=bool(config.get("load_in_4bit", True)),
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16 if config.get("bf16", True) else torch.float16,
+        bnb_4bit_use_double_quant=True,
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(base_model)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    model = AutoModelForCausalLM.from_pretrained(
+        base_model,
+        quantization_config=bnb_config,
+        device_map="auto",
+    )
+    model = prepare_model_for_kbit_training(model)
+
+    lora_config = LoraConfig(
+        r=int(config.get("lora_r", 16)),
+        lora_alpha=int(config.get("lora_alpha", 32)),
+        lora_dropout=float(config.get("lora_dropout", 0.05)),
+        target_modules=list(config.get("target_modules") or []) or None,
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
+
+    data_files: dict[str, str] = {"train": str(dataset_path)}
+    if eval_path and eval_path.exists():
+        data_files["validation"] = str(eval_path)
+    dataset = load_dataset("json", data_files=data_files)
+    dataset = dataset.map(lambda row: {"text": format_example(row)})
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    training_args = TrainingArguments(
+        output_dir=str(output_dir),
+        per_device_train_batch_size=int(config.get("per_device_train_batch_size", 2)),
+        gradient_accumulation_steps=int(config.get("gradient_accumulation_steps", 8)),
+        learning_rate=float(config.get("learning_rate", 2e-4)),
+        num_train_epochs=num_epochs if num_epochs is not None else float(config.get("num_train_epochs", 2)),
+        max_steps=max_steps if max_steps is not None else int(config.get("max_steps") or -1),
+        bf16=bool(config.get("bf16", True)),
+        logging_steps=int(config.get("logging_steps", 10)),
+        save_steps=int(config.get("save_steps", 100)),
+        eval_strategy="steps" if "validation" in data_files else "no",
+        eval_steps=int(config.get("eval_steps", 100)) if "validation" in data_files else None,
+        report_to=[],
+    )
+
+    trainer = SFTTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=dataset["train"],
+        eval_dataset=dataset.get("validation"),
+        peft_config=lora_config,
+        dataset_text_field="text",
+        max_seq_length=int(config.get("max_seq_length", 2048)),
+    )
+
+    trainer.train()
+    trainer.save_model(str(output_dir))
+    tokenizer.save_pretrained(str(output_dir))
+    print(json.dumps({"status": "OK", "adapter_saved_to": str(output_dir)}, indent=2))
+
+
 def validate_dataset(path: Path) -> int:
     if not path.exists():
         raise SystemExit(f"Dataset not found: {path}")
@@ -115,9 +218,17 @@ def main() -> int:
 
     require_training_dependencies()
 
-    raise SystemExit(
-        "Training scaffold validated. Wire this script to SFTTrainer on the GPU host, "
-        "or use the generated Axolotl-compatible config with your internal training runner."
+    eval_file = config.get("eval_file")
+    eval_path = REPO_ROOT / str(eval_file) if eval_file else None
+
+    run_training(
+        config=config,
+        dataset_path=dataset,
+        eval_path=eval_path,
+        base_model=base_model,
+        output_dir=output_dir,
+        max_steps=args.max_steps,
+        num_epochs=args.num_epochs,
     )
 
 

@@ -8,8 +8,8 @@ an API gateway, microservices, PostgreSQL, Redis, Qdrant, and Ollama.
 This repo currently runs an AI Fitness Assistant with Ollama + Qdrant + RAG.
 It does not train or fine-tune model weights.
 
-- LLM runtime: Ollama
-- Base model: `LLM_MODEL`, default `llama3.2:3b`
+- LLM runtime: Ollama, defaulting in Docker dev to a Windows SSH tunnel at `host.docker.internal:11435`
+- Base model: `LLM_MODEL`, default `qwen3:30b-a3b-instruct-2507-q4_K_M`
 - Embedding model: `EMBEDDING_MODEL`, default `nomic-embed-text`
 - Vector DB: Qdrant
 - Main collections: `exercises`, `fitness_knowledge`, `fitness_faq`, `fitness_evidence`
@@ -22,6 +22,13 @@ pipeline.
 
 See `docs/ai-rag-architecture.md` for the full AI architecture and evaluation
 commands.
+
+For the default Docker dev setup, start the RunPod SSH tunnel before starting
+the stack. From Windows the tunnel should answer at
+`http://127.0.0.1:11435/api/tags`; from containers it is reached as
+`http://host.docker.internal:11435`. To use Docker-local Ollama instead, run
+Compose with `--profile local-ollama` and set `LLM_BASE_URL=http://ollama:11434`
+and `OLLAMA_BASE_URL=http://ollama:11434`.
 
 ## Services
 

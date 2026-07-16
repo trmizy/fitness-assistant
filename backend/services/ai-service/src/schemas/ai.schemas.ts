@@ -5,6 +5,7 @@ export const AskRequestSchema = z.object({
     .string({ required_error: "question is required" })
     .min(1, "question must not be empty")
     .max(2000, "question must be at most 2000 characters"),
+  sessionId: z.string().uuid("sessionId must be a valid UUID").optional(),
 });
 export type AskRequest = z.infer<typeof AskRequestSchema>;
 

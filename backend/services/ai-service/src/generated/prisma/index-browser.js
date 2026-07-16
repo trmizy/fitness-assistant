@@ -125,6 +125,7 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.ConversationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  sessionId: 'sessionId',
   question: 'question',
   answer: 'answer',
   modelUsed: 'modelUsed',
@@ -144,6 +145,16 @@ exports.Prisma.ConversationScalarFieldEnum = {
   routeIntent: 'routeIntent',
   warningCount: 'warningCount',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.ChatSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  title: 'title',
+  lastMessageAt: 'lastMessageAt',
+  archivedAt: 'archivedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.WorkoutPlanScalarFieldEnum = {
@@ -186,6 +197,70 @@ exports.Prisma.NutritionPlanScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.KnowledgeSourceScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  baseUrl: 'baseUrl',
+  sourceType: 'sourceType',
+  trustTier: 'trustTier',
+  crawlCron: 'crawlCron',
+  isActive: 'isActive',
+  lastCrawledAt: 'lastCrawledAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.KnowledgeDocumentScalarFieldEnum = {
+  id: 'id',
+  sourceId: 'sourceId',
+  url: 'url',
+  title: 'title',
+  author: 'author',
+  language: 'language',
+  contentHash: 'contentHash',
+  rawObjectKey: 'rawObjectKey',
+  cleanText: 'cleanText',
+  topic: 'topic',
+  trustScore: 'trustScore',
+  qualityScore: 'qualityScore',
+  safetyFlag: 'safetyFlag',
+  status: 'status',
+  rejectionReason: 'rejectionReason',
+  publishedAt: 'publishedAt',
+  crawledAt: 'crawledAt',
+  processedAt: 'processedAt'
+};
+
+exports.Prisma.KnowledgeChunkScalarFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  chunkIndex: 'chunkIndex',
+  text: 'text',
+  tokenCount: 'tokenCount',
+  vectorId: 'vectorId',
+  embeddedAt: 'embeddedAt'
+};
+
+exports.Prisma.KnowledgePipelineRunScalarFieldEnum = {
+  id: 'id',
+  runType: 'runType',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  docsCrawled: 'docsCrawled',
+  docsAccepted: 'docsAccepted',
+  docsRejected: 'docsRejected',
+  docsReview: 'docsReview',
+  status: 'status'
+};
+
+exports.Prisma.KnowledgeReviewItemScalarFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  reason: 'reason',
+  status: 'status',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -223,10 +298,53 @@ exports.PtReviewStatus = exports.$Enums.PtReviewStatus = {
   PT_REJECTED: 'PT_REJECTED'
 };
 
+exports.KnowledgeSourceType = exports.$Enums.KnowledgeSourceType = {
+  RSS: 'RSS',
+  API: 'API',
+  WEB: 'WEB',
+  LOCAL: 'LOCAL'
+};
+
+exports.KnowledgeDocumentTopic = exports.$Enums.KnowledgeDocumentTopic = {
+  TRAINING: 'TRAINING',
+  NUTRITION: 'NUTRITION',
+  RECOVERY: 'RECOVERY',
+  INJURY: 'INJURY',
+  BODY_COMPOSITION: 'BODY_COMPOSITION',
+  GENERAL: 'GENERAL'
+};
+
+exports.KnowledgeDocumentStatus = exports.$Enums.KnowledgeDocumentStatus = {
+  CRAWLED: 'CRAWLED',
+  CLEANED: 'CLEANED',
+  SCORED: 'SCORED',
+  EMBEDDED: 'EMBEDDED',
+  REJECTED: 'REJECTED',
+  REVIEW: 'REVIEW'
+};
+
+exports.KnowledgePipelineRunStatus = exports.$Enums.KnowledgePipelineRunStatus = {
+  RUNNING: 'RUNNING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED'
+};
+
+exports.KnowledgeReviewStatus = exports.$Enums.KnowledgeReviewStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
 exports.Prisma.ModelName = {
   Conversation: 'Conversation',
+  ChatSession: 'ChatSession',
   WorkoutPlan: 'WorkoutPlan',
-  NutritionPlan: 'NutritionPlan'
+  NutritionPlan: 'NutritionPlan',
+  KnowledgeSource: 'KnowledgeSource',
+  KnowledgeDocument: 'KnowledgeDocument',
+  KnowledgeChunk: 'KnowledgeChunk',
+  KnowledgePipelineRun: 'KnowledgePipelineRun',
+  KnowledgeReviewItem: 'KnowledgeReviewItem'
 };
 
 /**

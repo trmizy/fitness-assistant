@@ -4,7 +4,7 @@ import type { RelevanceEval } from "../models/ai.models";
 import { llmOrchestrator } from "../llm/orchestrator.service";
 import type { ProgressCallback } from "../llm/orchestrator.service";
 import { logger } from "@gym-coach/shared";
-import { LlmError } from "../errors/api-error";
+import { ApiError, LlmError } from "../errors/api-error";
 
 /**
  * LLM self-evaluation is DISABLED by default.
@@ -62,15 +62,41 @@ export const ragService = {
     question: string,
     userId?: string,
     authHeader?: string,
+    sessionId?: string,
     onProgress?: ProgressCallback,
   ) {
     const startTime = Date.now();
+
+    // Resolve the session BEFORE running the orchestrator so its chat-history
+    // fetch always has a real sessionId to scope against — a brand-new session
+    // then naturally returns zero prior rows (nothing written against it yet)
+    // instead of needing special-case branching for "no session".
+    let effectiveSessionId: string | undefined;
+    if (sessionId) {
+      const session = await conversationRepository.findSessionById(sessionId);
+      if (!session || session.userId !== userId || session.archivedAt) {
+        throw new ApiError(
+          "SESSION_NOT_FOUND",
+          `Session ${sessionId} not found`,
+          404,
+        );
+      }
+      effectiveSessionId = session.id;
+    } else if (userId) {
+      const title = question.trim().slice(0, 60);
+      const created = await conversationRepository.createSession({
+        userId,
+        title,
+      });
+      effectiveSessionId = created.id;
+    }
 
     // May throw LlmError if the LLM provider is down — propagates to controller.
     const orchestrated = await llmOrchestrator.run(
       question,
       userId,
       authHeader,
+      effectiveSessionId,
       onProgress,
     );
     const responseTime = (Date.now() - startTime) / 1000;
@@ -88,6 +114,7 @@ export const ragService = {
     // If answer is a LlmError message it would have already thrown above.
     const conversation = await conversationRepository.create({
       userId,
+      sessionId: effectiveSessionId,
       question,
       answer: orchestrated.answer,
       modelUsed: LLM_MODEL,
@@ -110,8 +137,20 @@ export const ragService = {
       warningCount: orchestrated.warningCount,
     });
 
+    if (effectiveSessionId) {
+      conversationRepository
+        .touchSessionLastMessage(effectiveSessionId)
+        .catch((err) =>
+          logger.warn(
+            { err, sessionId: effectiveSessionId },
+            "Failed to touch chat session lastMessageAt",
+          ),
+        );
+    }
+
     return {
       conversationId: conversation.id,
+      sessionId: effectiveSessionId,
       question,
       answer: orchestrated.answer,
       modelUsed: LLM_MODEL,

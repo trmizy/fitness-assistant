@@ -8,6 +8,7 @@ export const prisma = new PrismaClient();
 
 export type CreateConversationInput = {
   userId?: string;
+  sessionId?: string;
   question: string;
   answer: string;
   modelUsed: string;
@@ -48,7 +49,10 @@ export const conversationRepository = {
     return prisma.conversation.create({ data });
   },
 
-  findMany(where: { userId?: string }, limit = 10) {
+  findMany(
+    where: { userId?: string; sessionId?: string; usedFallback?: boolean },
+    limit = 10,
+  ) {
     return prisma.conversation.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -65,6 +69,55 @@ export const conversationRepository = {
 
   count(where?: { feedback?: number }) {
     return prisma.conversation.count({ where });
+  },
+
+  // ── Chat sessions ──────────────────────────────────────────────────────────
+
+  createSession(data: { userId: string; title: string }) {
+    return prisma.chatSession.create({
+      data: { ...data, lastMessageAt: new Date() },
+    });
+  },
+
+  findSessionById(sessionId: string) {
+    return prisma.chatSession.findUnique({ where: { id: sessionId } });
+  },
+
+  findSessionsByUser(userId: string, limit = 50) {
+    return prisma.chatSession.findMany({
+      where: { userId, archivedAt: null },
+      orderBy: { lastMessageAt: "desc" },
+      take: limit,
+    });
+  },
+
+  renameSession(sessionId: string, title: string) {
+    return prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { title },
+    });
+  },
+
+  archiveSession(sessionId: string) {
+    return prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { archivedAt: new Date() },
+    });
+  },
+
+  touchSessionLastMessage(sessionId: string) {
+    return prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { lastMessageAt: new Date() },
+    });
+  },
+
+  findSessionMessages(userId: string, sessionId: string, limit = 200) {
+    return prisma.conversation.findMany({
+      where: { userId, sessionId },
+      orderBy: { createdAt: "asc" },
+      take: limit,
+    });
   },
 
   // ── Admin observability queries ───────────────────────────────────────────
@@ -247,9 +300,11 @@ export const conversationRepository = {
     });
   },
 
-  /** BR-34B: Delete all conversations for a user (cascade on account deletion) */
-  deleteByUserId: (userId: string) =>
-    prisma.conversation.deleteMany({ where: { userId } }),
+  /** BR-34B: Delete all conversations + chat sessions for a user (cascade on account deletion) */
+  deleteByUserId: async (userId: string) => {
+    await prisma.chatSession.deleteMany({ where: { userId } });
+    return prisma.conversation.deleteMany({ where: { userId } });
+  },
 
   /**
    * Recent workout plans for the queue panel.

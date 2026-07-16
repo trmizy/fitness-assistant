@@ -810,17 +810,26 @@ function estimatePlanNumPredict(
   exercisesPerDay: number,
 ): number {
   const override = readPositiveIntEnv("AI_PLAN_NUM_PREDICT");
-  if (override) return clampInt(override, 400, 2200);
+  if (override) return clampInt(override, 400, 4500);
 
   const exerciseObjects = daysPerWeek * exercisesPerDay;
-  return clampInt(430 + exerciseObjects * 30, 650, 1250);
+  // Each exercise is a full object (exerciseId, order, name, sets, reps,
+  // restSeconds, note) — observed ~75-85 tokens/exercise in practice on
+  // qwen3, not the ~30 an earlier estimate assumed. That undercount was
+  // silently truncating every plan above ~7 exercise objects, forcing a
+  // fallback catalog repair that discards the LLM's actual exercise
+  // selection. num_ctx=8192 leaves enough headroom (typical prompts run
+  // ~3500 tokens) for the higher budget.
+  return clampInt(430 + exerciseObjects * 80, 650, 4500);
 }
 
 function estimatePlanRetryNumPredict(planNumPredict: number): number {
   const override = readPositiveIntEnv("AI_PLAN_RETRY_NUM_PREDICT");
-  if (override) return clampInt(override, 300, 1600);
+  if (override) return clampInt(override, 300, 4000);
 
-  return Math.min(planNumPredict, 700);
+  // The retry uses a shorter prompt but the same rich per-exercise schema, so
+  // it needs nearly as much completion budget as the primary attempt.
+  return Math.min(planNumPredict, 3500);
 }
 
 function estimatePlanTimeoutMs(
@@ -828,7 +837,7 @@ function estimatePlanTimeoutMs(
   exercisesPerDay: number,
 ): number {
   const override = readPositiveIntEnv("AI_PLAN_TIMEOUT_MS");
-  if (override) return clampInt(override, 30000, 240000);
+  if (override) return clampInt(override, 30000, 300000);
 
   const exerciseObjects = daysPerWeek * exercisesPerDay;
   return clampInt(45000 + exerciseObjects * 1500, 65000, 120000);
@@ -836,7 +845,7 @@ function estimatePlanTimeoutMs(
 
 function estimatePlanRetryTimeoutMs(planTimeoutMs: number): number {
   const override = readPositiveIntEnv("AI_PLAN_RETRY_TIMEOUT_MS");
-  if (override) return clampInt(override, 20000, 180000);
+  if (override) return clampInt(override, 20000, 300000);
 
   return Math.min(planTimeoutMs, 60000);
 }
@@ -890,6 +899,7 @@ function buildFastPlanPrompt(args: {
     `- weeklySchedule length exactly ${args.daysPerWeek}.`,
     `- each day exactly ${args.exercisesPerDay} exercises.`,
     "- each exercise object must contain only: exerciseId, order, name, sets, reps, restSeconds, note.",
+    "- The catalog is listed alphabetically — that is NOT a training order. Choose and order (field `order`) exercises by actual training sequence: compound/multi-joint lifts first (e.g. squat, deadlift, bench/overhead press, row, pull-up), isolation/accessory exercises last (e.g. curl, extension, raise, fly). Within similar exercises, put the higher-skill/heavier-load one earlier while the trainee is fresh.",
     "- notes must be short, max 12 Vietnamese words.",
     "- day goal, notes, cardio, progressionNotes, recoveryNotes, nutritionSummary must be Vietnamese.",
     "- do not diagnose disease; do not invent citations/source_url; server attaches evidence metadata.",
@@ -1345,9 +1355,12 @@ export const aiWorker = new Worker(
     // If no JSON found at all, ask the LLM one quick format-only retry.
     if (!parseResult.ok && !looseCandidate) {
       try {
+        const repairSampleExercise = perDayCatalogs[0]?.exercises?.[0];
+        const repairSampleId = repairSampleExercise?.id ?? "use-an-allowed-exercise-id";
+        const repairSampleName = repairSampleExercise?.exerciseName ?? "Bench Press";
         const minimalRepairPrompt = [
           "Your previous response was invalid because it was not a JSON object.",
-          `Return ONLY one valid JSON object that matches the requested plan schema. Do NOT add any explanation, markdown, or code fences.`,
+          `Return ONLY one valid JSON object that matches the schema below. Do NOT add any explanation, markdown, or code fences.`,
           `Goal: ${goal}`,
           `DurationWeeks: ${durationWeeks}`,
           `DaysPerWeek: ${daysPerWeek}`,
@@ -1358,6 +1371,9 @@ export const aiWorker = new Worker(
               .slice(0, PLAN_EXERCISES_PER_DAY_CATALOG_LIMIT)
               .map((e) => `${e.id} -> ${e.exerciseName}`),
           ]),
+          `Required JSON shape (use this exact key structure, "weeklySchedule" with exactly ${daysPerWeek} day objects, each exercise as its own object — not a bare id):`,
+          `{"goal":"${goal}","durationWeeks":${durationWeeks},"daysPerWeek":${daysPerWeek},"weeklySchedule":[{"day":"Day 1","goal":"Ten nhom co","exercises":[{"exerciseId":"${repairSampleId}","order":1,"name":"${repairSampleName}","sets":3,"reps":"8-12","restSeconds":75,"note":"Ghi chu ngan"}],"cardio":"Khoi dong nhe neu can"}],"progressionNotes":["Ghi chu ngan"],"recoveryNotes":["Ghi chu ngan"],"nutritionSummary":"Tom tat ngan"}`,
+          "The allowed-exercises list above is alphabetical — that is NOT a training order. Order exercises (field `order`) by training sequence: compound/multi-joint lifts first, isolation/accessory exercises last.",
         ].join("\n");
 
         const retryStartedAt = Date.now();

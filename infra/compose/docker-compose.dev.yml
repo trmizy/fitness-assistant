@@ -238,15 +238,30 @@ services:
       USER_SERVICE_URL: http://user-service:3004
       FITNESS_SERVICE_URL: http://fitness-service:3002
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
-      LLM_BASE_URL: http://ollama:11434
-      OLLAMA_BASE_URL: http://ollama:11434
-      LLM_MODEL: llama3.2:3b
+      # Default dev mode uses a Windows SSH tunnel to remote RunPod Ollama.
+      # Start the tunnel before starting this service. For Docker-local Ollama,
+      # run with --profile local-ollama and set LLM_BASE_URL=http://ollama:11434.
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11435}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11435}
+      LLM_MODEL: ${LLM_MODEL:-qwen3:30b-a3b-instruct-2507-q4_K_M}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
-      LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-4096}
-      AI_PLAN_NUM_PREDICT: ${AI_PLAN_NUM_PREDICT:-650}
-      AI_PLAN_RETRY_NUM_PREDICT: ${AI_PLAN_RETRY_NUM_PREDICT:-450}
-      AI_PLAN_TIMEOUT_MS: ${AI_PLAN_TIMEOUT_MS:-60000}
-      AI_PLAN_RETRY_TIMEOUT_MS: ${AI_PLAN_RETRY_TIMEOUT_MS:-35000}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
+      EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
+      LLM_NUM_CTX: ${LLM_NUM_CTX:-8192}
+      LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-8192}
+      # Leave AI_PLAN_NUM_PREDICT / AI_PLAN_RETRY_NUM_PREDICT unset by default so
+      # ai.worker.ts's own size-adaptive formula (scales with daysPerWeek x
+      # exercisesPerDay, clamped 650-1250) picks the token budget. A fixed
+      # override here previously forced every plan to 650 regardless of size,
+      # truncating anything bigger than a tiny plan and producing sparse,
+      # under-optimized schedules — especially with the larger qwen3 model's
+      # more verbose JSON output. Set AI_PLAN_NUM_PREDICT in .env only if you
+      # need to force a specific value.
+      AI_PLAN_NUM_PREDICT: ${AI_PLAN_NUM_PREDICT:-}
+      AI_PLAN_RETRY_NUM_PREDICT: ${AI_PLAN_RETRY_NUM_PREDICT:-}
+      AI_PLAN_TIMEOUT_MS: ${AI_PLAN_TIMEOUT_MS:-300000}
+      AI_PLAN_RETRY_TIMEOUT_MS: ${AI_PLAN_RETRY_TIMEOUT_MS:-120000}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       CHOKIDAR_USEPOLLING: "true"
     env_file:
@@ -262,10 +277,6 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
-      ollama:
-        condition: service_healthy
-      ollama-model-puller:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
       interval: 20s
@@ -274,6 +285,12 @@ services:
       start_period: 10m
     dns:
       - 8.8.8.8
+    extra_hosts:
+      # host.docker.internal is not reliably injected by the embedded DNS once
+      # `dns:` is overridden above (it forwards unknown names straight to
+      # 8.8.8.8, which has no route to it). Map it explicitly so the RunPod
+      # SSH tunnel on the Windows host is reachable from this container.
+      - "host.docker.internal:host-gateway"
 
   # ── Chat Service ─────────────────────────────────────────────────────────────
   knowledge-worker:
@@ -292,10 +309,18 @@ services:
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
-      LLM_BASE_URL: http://ollama:11434
-      OLLAMA_BASE_URL: http://ollama:11434
-      LLM_MODEL: llama3.2:3b
+      # Uses the same Ollama endpoint as ai-service. Default is a Windows
+      # SSH tunnel to RunPod; use --profile local-ollama plus env overrides
+      # to run against Docker-local Ollama.
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11435}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11435}
+      LLM_MODEL: ${LLM_MODEL:-qwen3:30b-a3b-instruct-2507-q4_K_M}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
+      EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
+      LLM_NUM_CTX: ${LLM_NUM_CTX:-8192}
+      LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-8192}
       KNOWLEDGE_ENABLE_LLM_SAFETY_JUDGE: ${KNOWLEDGE_ENABLE_LLM_SAFETY_JUDGE:-false}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       CHOKIDAR_USEPOLLING: "true"
@@ -312,11 +337,11 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
-      ollama:
-        condition: service_healthy
     restart: "no"
     dns:
       - 8.8.8.8
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   chat-service:
     build:
@@ -403,6 +428,8 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: gymcoach-ollama
+    profiles:
+      - local-ollama
     ports:
       - "11434:11434"
     volumes:
@@ -424,13 +451,15 @@ services:
   ollama-model-puller:
     image: curlimages/curl:latest
     container_name: gymcoach-ollama-puller
+    profiles:
+      - local-ollama
     depends_on:
       - ollama
     entrypoint:
       [
         "sh",
         "-c",
-        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "llama3.2:3b"}''; curl http://ollama:11434/api/pull -d ''{"name": "nomic-embed-text"}''',
+        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "${LOCAL_OLLAMA_CHAT_MODEL:-llama3.2:3b}"}''; curl http://ollama:11434/api/pull -d ''{"name": "${EMBEDDING_MODEL:-nomic-embed-text}"}''',
       ]
     networks:
       - default

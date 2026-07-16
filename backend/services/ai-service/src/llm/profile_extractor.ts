@@ -176,9 +176,14 @@ interface CacheEntry {
   expiresAt: number;
 }
 const profileCache = new Map<string, CacheEntry>();
+// Nothing currently calls invalidateCache() cross-service when InBody/profile
+// data changes (ai-service has no inbound webhook from user-service for this),
+// so the TTL alone bounds staleness. Kept short so "just updated my InBody,
+// immediately asked the AI" never sees pre-update data in practice.
+const PROFILE_CACHE_TTL_MS = 15000;
 
 export const profileExtractor = {
-  /** Call this when user updates InBody / profile so the 60s cache is immediately invalidated */
+  /** Call this when user updates InBody / profile so the cache is immediately invalidated */
   invalidateCache(userId: string) {
     profileCache.delete(userId);
   },
@@ -397,8 +402,8 @@ export const profileExtractor = {
 
     profileCache.set(userId, {
       data: finalContext,
-      expiresAt: Date.now() + 60000,
-    }); // cache for 60s
+      expiresAt: Date.now() + PROFILE_CACHE_TTL_MS,
+    });
 
     return finalContext;
   },

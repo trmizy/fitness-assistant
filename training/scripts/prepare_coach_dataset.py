@@ -44,10 +44,34 @@ def parse_json_string(value: str) -> Any | None:
 
 
 def normalize_example(raw: dict[str, Any], source: str) -> dict[str, Any] | None:
-    instruction = str(raw.get("instruction") or raw.get("prompt") or raw.get("question") or "").strip()
-    output = raw.get("output") or raw.get("response") or raw.get("answer")
-    input_value = raw.get("input") or raw.get("context") or "{}"
+    # Field names vary by source: hand-written JSONL uses instruction/output,
+    # while the curated gym_instruction_tuning_pairs.csv (25k+ rows) uses the
+    # user_query_vi/expected_response_vi/system_hint column names instead.
+    instruction = str(
+        raw.get("instruction")
+        or raw.get("prompt")
+        or raw.get("question")
+        or raw.get("user_query_vi")
+        or ""
+    ).strip()
+    output = (
+        raw.get("output")
+        or raw.get("response")
+        or raw.get("answer")
+        or raw.get("expected_response_vi")
+    )
+    input_value = (
+        raw.get("input")
+        or raw.get("context")
+        or raw.get("system_hint")
+        or "{}"
+    )
     tags = raw.get("tags") or []
+    if isinstance(tags, str):
+        # Split BEFORE any `list(tags) + [...]` below — list() on a raw string
+        # decomposes it into individual characters, not tags.
+        delimiter = "|" if "|" in tags else ","
+        tags = [item.strip() for item in tags.split(delimiter) if item.strip()]
 
     if isinstance(input_value, dict):
         input_text = json.dumps(input_value, ensure_ascii=False, separators=(",", ":"))
@@ -70,8 +94,6 @@ def normalize_example(raw: dict[str, Any], source: str) -> dict[str, Any] | None
         # They remain useful for style/reasoning research but should be tagged.
         tags = list(tags) + ["unstructured_output"]
 
-    if isinstance(tags, str):
-        tags = [item.strip() for item in tags.split(",") if item.strip()]
     tags = sorted(set([str(item) for item in tags] + ["fitness", "coach", f"source:{source}"]))
 
     return {
@@ -90,7 +112,9 @@ def read_csv_examples(path: Path) -> Iterable[dict[str, Any]]:
 
 
 def read_jsonl_examples(path: Path) -> Iterable[dict[str, Any]]:
-    with path.open("r", encoding="utf-8") as handle:
+    # utf-8-sig transparently strips a leading BOM when present and behaves
+    # exactly like utf-8 otherwise, so it is safe for both BOM and non-BOM files.
+    with path.open("r", encoding="utf-8-sig") as handle:
         for line_number, line in enumerate(handle, start=1):
             line = line.strip()
             if not line:

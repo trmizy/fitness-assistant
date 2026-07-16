@@ -32,11 +32,30 @@ export interface CoachEvidenceItem {
 
 export interface CoachStreamDonePayload {
   conversationId?: string;
+  sessionId?: string;
   evidenceUsed?: CoachEvidenceItem[];
   adjustmentReasons?: unknown[];
   safetyNotes?: string[];
   timing?: unknown;
   fallbackReason?: string;
+}
+
+export interface AiChatSessionSummary {
+  id: string;
+  userId: string;
+  title: string;
+  lastMessageAt: string;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AiSessionMessage {
+  id: string;
+  question: string;
+  answer: string;
+  createdAt: string;
+  evidenceUsed?: CoachEvidenceItem[];
 }
 
 export type TranslationLanguage = "en" | "vi";
@@ -1090,10 +1109,10 @@ export const planService = {
 };
 
 export const coachService = {
-  chat: async (message: string) => {
+  chat: async (message: string, sessionId?: string) => {
     const { data } = await api.post(
       "/ai/ask",
-      { question: message },
+      { question: message, ...(sessionId ? { sessionId } : {}) },
       {
         // AI generation can take longer than standard API calls.
         timeout: 120000,
@@ -1108,6 +1127,28 @@ export const coachService = {
     return data?.data ?? data;
   },
 
+  listSessions: async (): Promise<AiChatSessionSummary[]> => {
+    const { data } = await api.get("/ai/sessions");
+    return data?.data?.sessions ?? [];
+  },
+
+  getSessionMessages: async (
+    sessionId: string,
+  ): Promise<AiSessionMessage[]> => {
+    const { data } = await api.get(`/ai/sessions/${sessionId}/messages`);
+    return data?.data?.messages ?? [];
+  },
+
+  renameSession: async (sessionId: string, title: string) => {
+    const { data } = await api.patch(`/ai/sessions/${sessionId}`, { title });
+    return data?.data ?? data;
+  },
+
+  archiveSession: async (sessionId: string) => {
+    const { data } = await api.delete(`/ai/sessions/${sessionId}`);
+    return data?.data ?? data;
+  },
+
   chatStream(
     message: string,
     callbacks: {
@@ -1116,6 +1157,7 @@ export const coachService = {
       onDone: (payload: CoachStreamDonePayload) => void;
       onError: (message: string) => void;
     },
+    sessionId?: string,
   ): () => void {
     const controller = new AbortController();
     const slowNoticeTimer = window.setTimeout(() => {
@@ -1138,7 +1180,10 @@ export const coachService = {
                 ? { Authorization: `Bearer ${token}` }
                 : {}),
             },
-            body: JSON.stringify({ question: message }),
+            body: JSON.stringify({
+              question: message,
+              ...(sessionId ? { sessionId } : {}),
+            }),
             signal: controller.signal,
           });
 

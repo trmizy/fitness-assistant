@@ -45,6 +45,7 @@
     "ai:warmup": "tsx src/scripts/warmupOllama.ts",
     "ai:check:rag": "tsx src/scripts/checkRag.ts",
     "ai:debug:chat": "tsx src/scripts/debugChat.ts",
+    "ai:export:finetune": "tsx src/scripts/exportFineTuneDataset.ts",
     "ai:test:evidence": "tsx src/datasets/seed/testEvidenceIntegration.ts",
     "ai:test:plan-evidence": "tsx src/datasets/seed/testPlanEvidence.ts",
     "ai:test:workout-schedule-chat": "tsx src/scripts/testWorkoutScheduleChat.ts",
