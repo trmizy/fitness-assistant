@@ -250,6 +250,11 @@ services:
       EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
       LLM_NUM_CTX: ${LLM_NUM_CTX:-8192}
       LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-8192}
+      # Opt-in real Ollama tool-calling for the LLM-bound chat intents
+      # (search_exercise_library / get_user_fitness_data). Off by default —
+      # the existing regex-routed deterministic paths already score well on
+      # the retrieval eval, so this is additive, not a replacement.
+      ENABLE_TOOL_CALLING: ${ENABLE_TOOL_CALLING:-false}
       # Leave AI_PLAN_NUM_PREDICT / AI_PLAN_RETRY_NUM_PREDICT unset by default so
       # ai.worker.ts's own size-adaptive formula (scales with daysPerWeek x
       # exercisesPerDay, clamped 650-1250) picks the token budget. A fixed

@@ -436,4 +436,34 @@ export const retriever = {
   async retrieve(question: string): Promise<RetrievalResult> {
     return this.retrieveForChat(question);
   },
+
+  /**
+   * Narrow, single-collection exercise search for the `search_exercise_library`
+   * tool call — the LLM supplies `equipment` explicitly (from the user's
+   * stated constraint), instead of `retrieveForChat`'s regex-based
+   * `detectHomeOnlyConstraint`.
+   */
+  async searchExercises(
+    query: string,
+    equipment?: string,
+  ): Promise<RetrievalDocument[]> {
+    try {
+      const vector = await llmService.generateEmbedding(query, {
+        timeoutMs: RAG_EMBEDDING_TIMEOUT_MS,
+      });
+      const filter =
+        equipment === "none"
+          ? {
+              must_not: [
+                { key: "typeOfEquipment", match: { any: GYM_ONLY_EQUIPMENT } },
+              ],
+            }
+          : undefined;
+      const docs = await searchCollection("exercises", vector, filter);
+      return dedupeAndSort(docs).slice(0, 3);
+    } catch (err) {
+      logger.warn({ err, query }, "Tool searchExercises failed");
+      return [];
+    }
+  },
 };

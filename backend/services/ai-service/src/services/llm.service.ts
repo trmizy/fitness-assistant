@@ -81,7 +81,7 @@ function modelNameMatches(actual: unknown, expected: string): boolean {
   );
 }
 
-function buildOllamaMessages(
+export function buildOllamaMessages(
   prompt: string,
 ): Array<{ role: string; content: string }> {
   const systemEnd = prompt.indexOf("Câu hỏi của user:");
@@ -150,6 +150,33 @@ export type LlmHealthStatus = {
   embeddingModel: string;
   checkedAt: string;
   error?: string;
+};
+
+export type ChatToolCall = {
+  id?: string;
+  function: { name: string; arguments: Record<string, unknown> };
+};
+
+export type ChatMessage = {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+  tool_calls?: ChatToolCall[];
+};
+
+export type ChatToolDefinition = {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+};
+
+export type ChatCompletionResult = {
+  message: ChatMessage;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
 };
 
 export const llmService = {
@@ -391,6 +418,73 @@ export const llmService = {
     }
   },
 
+  /**
+   * Lower-level chat call for tool-calling round trips: sends an explicit
+   * `messages` array (instead of splitting a single prompt string) and
+   * optionally advertises `tools`. Returns the raw assistant message, which
+   * may carry `tool_calls` with empty `content` instead of a text answer.
+   * Ollama-only; not wired to the mock/OpenAI-compatible providers since
+   * tool-calling is opt-in and only exercised against the real model.
+   */
+  async callLLMChat(
+    messages: ChatMessage[],
+    opts?: {
+      tools?: ChatToolDefinition[];
+      timeoutMs?: number;
+      temperature?: number;
+      numPredict?: number;
+    },
+  ): Promise<ChatCompletionResult> {
+    if (LLM_PROVIDER !== "ollama") {
+      throw new LlmError(
+        `callLLMChat (tool-calling) is only supported for LLM_PROVIDER=ollama, got "${LLM_PROVIDER}"`,
+      );
+    }
+
+    try {
+      const payload: any = {
+        model: LLM_MODEL,
+        messages,
+        stream: false,
+        options: {
+          num_ctx: readPositiveIntEnv("LLM_NUM_CTX", 8192),
+          num_predict: opts?.numPredict ?? 1024,
+        },
+      };
+      if (opts?.tools?.length) payload.tools = opts.tools;
+      if (typeof opts?.temperature === "number") {
+        payload.options.temperature = opts.temperature;
+      }
+
+      const response = await axios.post(`${LLM_BASE_URL}/api/chat`, payload, {
+        timeout: opts?.timeoutMs ?? DEFAULT_LLM_TIMEOUT_MS,
+      });
+      const msg = response.data.message || {};
+      return {
+        message: {
+          role: "assistant",
+          content: typeof msg.content === "string" ? msg.content : "",
+          tool_calls: Array.isArray(msg.tool_calls)
+            ? msg.tool_calls
+            : undefined,
+        },
+        promptTokens: (response.data.prompt_eval_count as number) || 0,
+        completionTokens: (response.data.eval_count as number) || 0,
+        totalTokens:
+          ((response.data.prompt_eval_count as number) || 0) +
+          ((response.data.eval_count as number) || 0),
+      };
+    } catch (err) {
+      const cause = err instanceof Error ? err : undefined;
+      const detail = err instanceof AxiosError ? err.message : String(err);
+      logger.error(
+        { err: sanitizeLlmError(err), llmProvider: LLM_PROVIDER },
+        "LLM tool-call chat failed",
+      );
+      throw new LlmError(`LLM tool-call chat failed: ${detail}`, cause);
+    }
+  },
+
   async callLLMStream(
     prompt: string,
     opts: {
@@ -398,9 +492,11 @@ export const llmService = {
       timeoutMs?: number;
       temperature?: number;
       numPredict?: number;
+      messages?: ChatMessage[];
+      tools?: ChatToolDefinition[];
       onToken: (token: string) => void | Promise<void>;
     },
-  ): Promise<LLMResponse> {
+  ): Promise<LLMResponse & { toolCalls?: ChatToolCall[] }> {
     if (LLM_PROVIDER !== "ollama") {
       const response = await this.callLLM(prompt, opts);
       await emitTextInChunks(response.answer, opts.onToken);
@@ -415,11 +511,12 @@ export const llmService = {
     let answer = "";
     let promptTokens = 0;
     let completionTokens = 0;
+    let toolCalls: ChatToolCall[] | undefined;
 
     try {
       const payload: any = {
         model: LLM_MODEL,
-        messages: buildOllamaMessages(prompt),
+        messages: opts.messages ?? buildOllamaMessages(prompt),
         stream: true,
         options: {
           num_ctx:
@@ -430,6 +527,7 @@ export const llmService = {
             opts.numPredict ?? (opts.responseFormat === "json" ? 2048 : 1024),
         },
       };
+      if (opts.tools?.length) payload.tools = opts.tools;
       if (typeof opts.temperature === "number") {
         payload.options.temperature = opts.temperature;
       }
@@ -486,6 +584,8 @@ export const llmService = {
             promptTokens = event.prompt_eval_count;
           if (typeof event?.eval_count === "number")
             completionTokens = event.eval_count;
+          if (Array.isArray(event?.message?.tool_calls))
+            toolCalls = event.message.tool_calls;
         }
       }
 
@@ -507,6 +607,8 @@ export const llmService = {
             promptTokens = event.prompt_eval_count;
           if (typeof event?.eval_count === "number")
             completionTokens = event.eval_count;
+          if (Array.isArray(event?.message?.tool_calls))
+            toolCalls = event.message.tool_calls;
         } catch {
           // Ignore malformed trailing chunks.
         }
@@ -517,6 +619,7 @@ export const llmService = {
         promptTokens,
         completionTokens,
         totalTokens: promptTokens + completionTokens,
+        toolCalls,
       };
     } catch (err) {
       const cause = err instanceof Error ? err : undefined;

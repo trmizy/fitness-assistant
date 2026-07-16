@@ -1,4 +1,5 @@
 import { llmService } from "../services/llm.service";
+import { runToolCallingTurn } from "./tools";
 import { conversationRepository } from "../repositories/conversation.repository";
 import { logger } from "@gym-coach/shared";
 import { inputParser } from "./input_parser";
@@ -59,6 +60,11 @@ const EVIDENCE_TIMEOUT_MS = Number(
 const LLM_TIMEOUT_MS = Number(
   process.env.AI_CHAT_LLM_TIMEOUT_MS || process.env.LLM_TIMEOUT_MS || "60000",
 );
+// Opt-in real tool-calling for the LLM-bound intents (Phase 2 of the AI
+// readiness roadmap). Defaults off: the regex/deterministic routing this
+// gates around already scores hitAtK=0.98 on the retrieval eval, so this is
+// additive, not a replacement, and must be explicitly enabled per environment.
+const ENABLE_TOOL_CALLING = process.env.ENABLE_TOOL_CALLING === "true";
 
 async function withTimeout<T>(
   promise: Promise<T>,
@@ -614,16 +620,19 @@ export const llmOrchestrator = {
         ),
       );
       try {
+        const llmCallOpts = {
+          timeoutMs: LLM_TIMEOUT_MS,
+          temperature: routedIntent.intent === "general_fitness_knowledge" ? 0.2 : undefined,
+          numPredict: bodyCompositionQuestion
+            ? 650
+            : routedIntent.intent === "general_fitness_knowledge"
+              ? 420
+              : undefined,
+        };
         const llmResponse = await timeAsync(timing, "llmGenerateMs", () =>
-          llmService.callLLM(prompt, {
-            timeoutMs: LLM_TIMEOUT_MS,
-            temperature: routedIntent.intent === "general_fitness_knowledge" ? 0.2 : undefined,
-            numPredict: bodyCompositionQuestion
-              ? 650
-              : routedIntent.intent === "general_fitness_knowledge"
-                ? 420
-                : undefined,
-          }),
+          ENABLE_TOOL_CALLING
+            ? runToolCallingTurn(prompt, context, llmCallOpts)
+            : llmService.callLLM(prompt, llmCallOpts),
         );
         llmAnswer = labelLocalizer.localize(
           llmResponse.answer,
