@@ -6,9 +6,10 @@ import { extractUser, requireAuth } from '../middleware/auth.middleware';
 import { walletService } from '../services/wallet.service';
 import { walletRepository } from '../repositories/wallet.repository';
 import { transactionRepository } from '../repositories/transaction.repository';
-import { getProvider } from '../services/payment.service';
+import { getProvider, providerConfigStatus } from '../services/payment.service';
+import { handleEvent } from '../services/webhook.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
-import { PaymentProviderType } from '../generated/prisma';
+import { PaymentProviderType, Prisma } from '../generated/prisma';
 
 const router = Router();
 router.use(extractUser, requireAuth);
@@ -28,8 +29,13 @@ router.get('/wallet/transactions', async (req: Request, res: Response) => {
 });
 
 const topupSchema = z.object({
-  amount: z.number().positive(),
+  // VND has no minor unit; integer keeps ×100 math exact for gateway providers.
+  amount: z.number().int().positive(),
   clientRequestId: z.string().min(1),
+  // Per-request gateway choice; omitted → PAYMENT_PROVIDER env (default MOCK).
+  // ZALOPAY/PAYOS are accepted so the request reaches the config guard and returns a
+  // clear 400 PROVIDER_NOT_CONFIGURED (skeletons), not a zod validation error.
+  provider: z.enum(['MOCK', 'VNPAY', 'MOMO', 'ZALOPAY', 'PAYOS']).optional(),
 });
 
 // POST /me/wallet/topup — clientRequestId is required (not optional): the frontend
@@ -45,6 +51,20 @@ router.post('/wallet/topup', async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const idempotencyKey = `wallet-topup:${clientRequestId}`;
 
+  // Resolve + validate the gateway BEFORE any DB work: a missing credential must be a
+  // clear 400 (PROVIDER_NOT_CONFIGURED), never a mid-request 500.
+  const providerName = (parsed.data.provider ?? process.env.PAYMENT_PROVIDER ?? 'MOCK').toUpperCase();
+  const providerConfig = providerConfigStatus(providerName);
+  if (!providerConfig.configured) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'PROVIDER_NOT_CONFIGURED',
+        message: `Payment provider ${providerName} is not configured — missing env: ${providerConfig.missing.join(', ')}`,
+      },
+    });
+  }
+
   const wallet = await walletService.getOrCreateWallet('CLIENT', userId);
   const fingerprint = computeFingerprint({ amount, currency: 'VND', purpose: 'WALLET_TOPUP', payerId: userId });
 
@@ -57,7 +77,6 @@ router.post('/wallet/topup', async (req: Request, res: Response) => {
   }
 
   try {
-    const providerName = (process.env.PAYMENT_PROVIDER ?? 'MOCK').toUpperCase();
     const provider = getProvider(providerName);
 
     const txnId = randomUUID();
@@ -83,6 +102,8 @@ router.post('/wallet/topup', async (req: Request, res: Response) => {
       activationStatus: 'NOT_APPLICABLE',
       initiatedBy: userId,
       sourceService: 'payment-service',
+      // Provider-required reconciliation values (e.g. VNPay vnp_CreateDate for querydr).
+      ...(intent.metadata ? { metadata: intent.metadata as Prisma.InputJsonValue } : {}),
     });
 
     return res.status(201).json({
@@ -92,6 +113,57 @@ router.post('/wallet/topup', async (req: Request, res: Response) => {
   } catch (err) {
     logger.error({ error: 'Failed to create top-up transaction', message: (err as Error).message });
     return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR' } });
+  }
+});
+
+// POST /me/wallet/topup/:transactionId/sync — actively asks the gateway for the
+// transaction's status (VNPay querydr, ...). This is the confirmation path for local/dev
+// where the provider's IPN cannot reach us; a PAID answer funnels into the SAME
+// idempotent handleEvent used by webhooks, so it can never double-credit.
+router.post('/wallet/topup/:transactionId/sync', async (req: Request, res: Response) => {
+  const txn = await transactionRepository.findById(req.params.transactionId);
+  if (!txn || txn.payerId !== req.user!.userId || txn.purpose !== 'WALLET_TOPUP') {
+    return res.status(404).json({ success: false, error: { code: 'TRANSACTION_NOT_FOUND' } });
+  }
+
+  if (txn.status === 'PAID' || txn.status === 'REFUNDED') {
+    return res.json({ success: true, data: { id: txn.id, status: txn.status, provider: txn.provider } });
+  }
+
+  try {
+    const provider = getProvider(txn.provider);
+    if (!provider.queryTransactionStatus) {
+      return res.json({
+        success: true,
+        data: { id: txn.id, status: txn.status, provider: txn.provider, note: 'provider does not support status query' },
+      });
+    }
+
+    const gatewayStatus = await provider.queryTransactionStatus({
+      id: txn.id,
+      providerTransactionId: txn.providerTransactionId,
+      amount: Number(txn.amount),
+      createdAt: txn.createdAt,
+      metadata: txn.metadata,
+    });
+
+    if (gatewayStatus === 'PAID') {
+      await handleEvent({
+        provider: txn.provider,
+        providerEventId: `sync_${txn.id}`,
+        providerTransactionId: txn.providerTransactionId ?? txn.id,
+        payload: { source: 'manual-sync', transactionId: txn.id },
+        status: 'PAID',
+      });
+    } else if (gatewayStatus === 'FAILED' && txn.status !== 'FAILED') {
+      await transactionRepository.markFailed(txn.id);
+    }
+
+    const fresh = await transactionRepository.findById(txn.id);
+    return res.json({ success: true, data: { id: fresh!.id, status: fresh!.status, provider: fresh!.provider } });
+  } catch (err) {
+    logger.error({ error: 'Top-up sync failed', txnId: txn.id, message: (err as Error).message });
+    return res.status(502).json({ success: false, error: { code: 'PROVIDER_QUERY_FAILED', message: (err as Error).message } });
   }
 });
 

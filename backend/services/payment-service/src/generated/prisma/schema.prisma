@@ -22,6 +22,8 @@ enum PaymentProviderType {
   MOCK
   VNPAY
   MOMO
+  ZALOPAY
+  PAYOS
   STRIPE
   MANUAL_BANK_TRANSFER
 }

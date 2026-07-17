@@ -5,25 +5,74 @@ import { handleEvent } from '../services/webhook.service';
 
 const router = Router();
 
-// POST /payments/webhook/:provider
-// Mounted with express.raw() in app.ts — rawBody available as Buffer
-router.post('/:provider', (req: Request, res: Response) => {
-  const providerName = req.params.provider.toUpperCase();
-
-  // MoMo requires exactly HTTP 204 within 15s; respond immediately, process async
-  res.status(204).send();
-
-  void processWebhook(providerName, req.body as Buffer);
+// GET /payments/webhook/vnpay — VNPay's IPN is a GET whose query string is the payload.
+// Verified synchronously so we can answer VNPay's expected {RspCode} contract.
+router.get('/vnpay', async (req: Request, res: Response) => {
+  try {
+    const rawQuery = req.originalUrl.split('?')[1] ?? '';
+    const { valid, normalized } = getProvider('VNPAY').verifyWebhookSignature(Buffer.from(rawQuery, 'utf-8'));
+    if (!valid || !normalized) {
+      return res.json({ RspCode: '97', Message: 'Invalid signature' });
+    }
+    await handleEvent({
+      provider: 'VNPAY',
+      providerEventId: `vnpay_ipn_${normalized.providerTransactionId}`,
+      providerTransactionId: normalized.providerTransactionId,
+      payload: normalized.raw ?? {},
+      status: normalized.status,
+    });
+    return res.json({ RspCode: '00', Message: 'Confirm Success' });
+  } catch (err) {
+    logger.error({ error: '[Webhook] VNPay IPN processing failed', message: (err as Error).message });
+    return res.json({ RspCode: '99', Message: 'Unknown error' });
+  }
 });
 
-async function processWebhook(providerName: string, rawBody: Buffer): Promise<void> {
+// POST /payments/webhook/:provider
+// Mounted with express.raw() in app.ts — rawBody available as Buffer
+router.post('/:provider', async (req: Request, res: Response) => {
+  const providerName = req.params.provider.toUpperCase();
+  const rawBody = req.body as Buffer;
+
+  // MoMo/Mock: fire-and-forget with the immediate 204 MoMo requires.
+  if (providerName === 'MOMO' || providerName === 'MOCK') {
+    res.status(204).send();
+    void processWebhook(providerName, rawBody);
+    return;
+  }
+
+  // ZaloPay / PayOS expect a specific acknowledgement body → process synchronously.
+  const ok = await processWebhook(providerName, rawBody);
+  if (providerName === 'ZALOPAY') {
+    return res.json(ok ? { return_code: 1, return_message: 'success' } : { return_code: -1, return_message: 'mac not equal' });
+  }
+  if (providerName === 'PAYOS') {
+    return res.json({ success: ok });
+  }
+  return res.status(ok ? 200 : 400).send();
+});
+
+/** Returns true when the webhook was valid and processed (credit is idempotent downstream). */
+async function processWebhook(providerName: string, rawBody: Buffer): Promise<boolean> {
   try {
     const provider = getProvider(providerName);
-    const { valid, payload } = provider.verifyWebhookSignature(rawBody);
+    const { valid, payload, normalized } = provider.verifyWebhookSignature(rawBody);
 
     if (!valid) {
       logger.warn(`[Webhook] Invalid signature from provider ${providerName}`);
-      return;
+      return false;
+    }
+
+    // Providers implementing the provider-agnostic contract (VNPay, ZaloPay, PayOS, ...)
+    if (normalized) {
+      await handleEvent({
+        provider: providerName,
+        providerEventId: normalized.providerEventId,
+        providerTransactionId: normalized.providerTransactionId,
+        payload: normalized.raw ?? {},
+        status: normalized.status,
+      });
+      return true;
     }
 
     if (!payload) {
@@ -36,13 +85,13 @@ async function processWebhook(providerName: string, rawBody: Buffer): Promise<vo
         payload: parsed,
         status: parsed.status === 'PAID' ? 'PAID' : 'FAILED',
       });
-      return;
+      return true;
     }
 
     // MoMo IPN: resultCode=0 = PAID, resultCode=9000 = authorized (pending capture) — skip
     if (payload.resultCode === 9000) {
       logger.info(`[Webhook] MoMo resultCode=9000 (authorized, not captured) — waiting for next IPN`);
-      return;
+      return true;
     }
 
     await handleEvent({
@@ -52,8 +101,10 @@ async function processWebhook(providerName: string, rawBody: Buffer): Promise<vo
       payload: payload as unknown as Record<string, unknown>,
       status: payload.resultCode === 0 ? 'PAID' : 'FAILED',
     });
+    return true;
   } catch (err) {
     logger.error({ error: `[Webhook] Processing failed for ${providerName}`, message: (err as Error).message });
+    return false;
   }
 }
 

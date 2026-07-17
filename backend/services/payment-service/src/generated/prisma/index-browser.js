@@ -274,6 +274,8 @@ exports.PaymentProviderType = exports.$Enums.PaymentProviderType = {
   MOCK: 'MOCK',
   VNPAY: 'VNPAY',
   MOMO: 'MOMO',
+  ZALOPAY: 'ZALOPAY',
+  PAYOS: 'PAYOS',
   STRIPE: 'STRIPE',
   MANUAL_BANK_TRANSFER: 'MANUAL_BANK_TRANSFER'
 };
