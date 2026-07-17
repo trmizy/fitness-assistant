@@ -1,0 +1,20 @@
+# Training-only dependencies for train_qlora.py / export_adapter_to_ollama.py.
+# NOT part of the product's runtime dependency graph (ai-service is Node/TS) —
+# install this in a separate Python venv on the GPU training host, per
+# training/RUNPOD_RUNBOOK.md.
+#
+# Minimum versions only (not exact pins) — this repo has no GPU host to
+# actually test-install and resolve a full pinned set, so exact `==` pins
+# risked shipping a combination that silently fails to install. The
+# transformers floor below is a verified, checkable fact (Qwen3 text-model
+# support requires transformers>=4.51.0 — confirmed 2026-07 via Qwen's own
+# HF docs); the rest are unpinned on purpose. Run `pip freeze` after your
+# first successful install and commit the exact versions here if you want
+# byte-for-byte reproducibility across runs.
+torch
+transformers>=4.51.0
+datasets
+peft
+trl
+bitsandbytes
+accelerate
