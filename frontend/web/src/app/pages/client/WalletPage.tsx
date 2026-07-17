@@ -14,6 +14,7 @@ export function WalletPage() {
   const queryClient = useQueryClient();
   const [showTopup, setShowTopup] = useState(false);
   const [amount, setAmount] = useState("");
+  const [provider, setProvider] = useState("MOCK");
 
   const { data: wallet, isLoading: walletLoading } = useQuery<Wallet>({
     queryKey: ["client-wallet"],
@@ -29,8 +30,15 @@ export function WalletPage() {
     // clientRequestId generated once per submission — reused on any retry of *this*
     // submission so a double-click dedupes to one top-up (see payment-service plan §1.3).
     mutationFn: ({ value, clientRequestId }: { value: number; clientRequestId: string }) =>
-      walletService.topup(value, clientRequestId),
-    onSuccess: () => {
+      walletService.topup(value, clientRequestId, provider),
+    onSuccess: (result: any) => {
+      // External gateways (VNPay, ...) return a redirectUrl — send the browser to the
+      // hosted checkout. The wallet is only credited after the gateway confirms
+      // (return/IPN/sync), so we do NOT optimistically refetch here.
+      if (result?.redirectUrl) {
+        window.location.href = result.redirectUrl;
+        return;
+      }
       toast.success("Top-up submitted — balance will update shortly");
       setShowTopup(false);
       setAmount("");
@@ -39,7 +47,8 @@ export function WalletPage() {
         queryClient.invalidateQueries({ queryKey: ["client-wallet-transactions"] });
       }, 800);
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.code || "Top-up failed"),
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error?.message || err?.response?.data?.error?.code || "Top-up failed"),
   });
 
   const handleTopup = () => {
@@ -126,6 +135,20 @@ export function WalletPage() {
               </button>
             </div>
             <div className="p-5 space-y-3">
+              <label htmlFor="topup-provider" className="text-xs font-semibold text-zinc-400 block">Phương thức</label>
+              <select
+                id="topup-provider"
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
+              >
+                <option value="MOCK">Mô phỏng (Mock)</option>
+                <option value="VNPAY">VNPay</option>
+                <option value="ZALOPAY">ZaloPay</option>
+                {/* PayOS ẩn tạm khỏi UI (VietQR — cần tiền thật, không có sandbox tiền giả).
+                    Backend vẫn giữ nguyên PayOSProvider + factory + guard; thêm lại option này
+                    là bật lại được khi có PAYOS_CLIENT_ID/API_KEY/CHECKSUM_KEY trong .env. */}
+              </select>
               <label htmlFor="topup-amount" className="text-xs font-semibold text-zinc-400 block">Amount (VND)</label>
               <input
                 id="topup-amount"

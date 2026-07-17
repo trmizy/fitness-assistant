@@ -18,6 +18,7 @@ import { AICoachPage } from "./pages/client/AICoachPage";
 import { ProfilePage } from "./pages/client/ProfilePage";
 import { PTApplicationPage } from "./pages/client/PTApplicationPage";
 import { WalletPage } from "./pages/client/WalletPage";
+import { PaymentResultPage } from "./pages/client/PaymentResultPage";
 import { GymsPage } from "./pages/client/GymsPage";
 import { GymDetailPage } from "./pages/client/GymDetailPage";
 import { GymMembershipsPage } from "./pages/client/GymMembershipsPage";
@@ -113,6 +114,7 @@ export const router = createBrowserRouter([
           { path: "profile", Component: ProfilePage },
           { path: "pt-application", Component: PTApplicationPage },
           { path: "wallet", Component: WalletPage },
+          { path: "payments/result", Component: PaymentResultPage },
           { path: "gyms", Component: GymsPage },
           { path: "gyms/:id", Component: GymDetailPage },
           { path: "gym-memberships", Component: GymMembershipsPage },

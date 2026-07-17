@@ -113,8 +113,23 @@ export const walletService = {
       const locked = await lockWallets(tx, [walletId]);
       const wallet = locked.get(walletId)!;
       if (wallet.status !== 'ACTIVE') throw new WalletNotActiveError(walletId);
+
+      // Compare-and-swap on the transaction status BEFORE crediting: only the caller that
+      // actually flips PENDING/PROCESSING → PAID is allowed to credit. Two concurrent
+      // deliveries for the same top-up (e.g. VNPay return + IPN arriving together) both
+      // pass handleEvent's status pre-check, but here they serialize on the wallet's
+      // FOR UPDATE lock and the second sees status already PAID → flipped.count === 0 →
+      // skips the credit. This is the single source of truth against double-credit.
+      const flipped = await tx.paymentTransaction.updateMany({
+        where: { id: transactionId, status: { not: 'PAID' } },
+        data: { status: 'PAID', paidAt: new Date() },
+      });
+      if (flipped.count === 0) {
+        logger.info(`[WalletService] Transaction ${transactionId} already PAID — skipping duplicate credit`);
+        return;
+      }
+
       await applyCredit(tx, wallet, amount, transactionId, description);
-      await tx.paymentTransaction.update({ where: { id: transactionId }, data: { status: 'PAID', paidAt: new Date() } });
     });
   },
 

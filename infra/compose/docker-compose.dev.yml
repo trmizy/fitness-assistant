@@ -160,6 +160,10 @@ services:
       PORT: 3004
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_user
       AUTH_SERVICE_URL: http://auth-service:3001
+      # Phase 4: user-service calls payment-service for PT-contract wallet payments.
+      # Without this the client falls back to localhost:3007 → ECONNREFUSED inside Docker
+      # → "Pay Now" on a PENDING_PAYMENT contract fails with 500 (BUG-USERSVC-PAYMENT-URL).
+      PAYMENT_SERVICE_URL: http://payment-service:3007
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
       CHAT_SERVICE_URL: http://chat-service:3005
@@ -598,6 +602,17 @@ services:
       MOMO_ENDPOINT: ${MOMO_ENDPOINT:-https://test-payment.momo.vn/v2/gateway/api/create}
       MOMO_IPN_URL: ${MOMO_IPN_URL:-}
       MOMO_REDIRECT_URL: ${MOMO_REDIRECT_URL:-http://localhost:5173/client/payments/result}
+      # VNPay sandbox — VNPAY_TMN_CODE + VNPAY_HASH_SECRET are injected from the untracked
+      # ../../.env via env_file below (NOT declared here: an empty ${VAR:-} in this block
+      # would override the env_file value). This file carries only non-sensitive defaults.
+      VNPAY_URL: ${VNPAY_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY_API_URL: ${VNPAY_API_URL:-https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL:-http://localhost:3007/payments/vnpay/return}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      # ZaloPay + PayOS creds come from the untracked ../../.env via env_file (declaring
+      # them here as empty ${VAR:-} would override that). Only non-sensitive defaults here.
+      ZALOPAY_ENDPOINT: ${ZALOPAY_ENDPOINT:-https://sb-openapi.zalopay.vn}
+      PAYOS_BASE_URL: ${PAYOS_BASE_URL:-https://api-merchant.payos.vn}
     env_file:
       - ../../.env
     volumes:

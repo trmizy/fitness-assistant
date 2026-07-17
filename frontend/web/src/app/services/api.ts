@@ -1944,8 +1944,18 @@ export const walletService = {
     const { data } = await api.get('/me/wallet/transactions');
     return data?.data ?? data;
   },
-  topup: async (amount: number, clientRequestId: string) => {
-    const { data } = await api.post('/me/wallet/topup', { amount, clientRequestId });
+  topup: async (amount: number, clientRequestId: string, provider?: string) => {
+    const { data } = await api.post('/me/wallet/topup', {
+      amount,
+      clientRequestId,
+      ...(provider && provider !== 'MOCK' ? { provider } : {}),
+    });
+    return data?.data ?? data;
+  },
+  // Actively asks the gateway (VNPay querydr, ...) for the transaction status — the
+  // ONLY signal the UI may trust for "payment succeeded" (never the return-URL query).
+  syncTopup: async (transactionId: string) => {
+    const { data } = await api.post(`/me/wallet/topup/${transactionId}/sync`);
     return data?.data ?? data;
   },
   // Always the PT earnings wallet.
