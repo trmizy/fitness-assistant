@@ -23,5 +23,9 @@ jobs:
         run: pnpm run build
       - name: Unit tests
         run: pnpm test
+      - name: AI evaluation tests (structural/policy regressions)
+        run: pnpm --filter @gym-coach/ai-service run test:evaluation
+      - name: AI policy behavior tests (routing/safety regressions)
+        run: pnpm --filter @gym-coach/ai-service run test:policy
       - name: Fast Docker test
         run: pnpm docker:test:fast

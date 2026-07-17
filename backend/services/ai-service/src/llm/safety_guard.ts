@@ -20,6 +20,59 @@ const MEDICAL_PATTERNS: RegExp[] = [
   /\btự làm hại\b|tu lam hai|self.?harm|hurt\s+(my)?self|tự tổn thương/i,
 ];
 
+// ── Performance-enhancing drugs (steroids/SARMs/growth hormone) ─────────────
+// Narrow to actual PED substances + dosing/cycle language, so it doesn't
+// collide with legitimate supplement questions (creatine/whey/BCAA are
+// already treated as safe fitness anchors elsewhere in this file).
+function detectPedRequest(question: string): boolean {
+  const q = question.toLowerCase();
+  // Deliberately no bare "tren" alias for trenbolone — that's also the common
+  // Vietnamese word for "above/on" (e.g. "quy tắc ở trên") and would false-fire
+  // on completely unrelated sentences. Require the full substance name instead.
+  const substancePattern =
+    /\b(steroid|anabolic|sarms?|trenbolone|dianabol|anadrol|winstrol|deca.?durabolin|clenbuterol|hgh|growth hormone|testosterone\s*(injection|cycle|enanthate|cypionate)|hormone\s*tang\s*truong|steroid\s*(dong hoa|tang co))\b/i;
+  const requestPattern =
+    /(lieu dung|liều dùng|dosage|dose|cycle|pct\b|post cycle|stack|mua o dau|where to buy|nen dung|should i (take|use)|cach su dung|how to (use|take))/i;
+  return substancePattern.test(q) && (requestPattern.test(q) || substancePattern.test(q));
+}
+
+// ── Extreme/dangerously-low-calorie diet requests ────────────────────────────
+// Deliberately narrow to REQUEST phrasing with a concrete very-low number, to
+// avoid false-blocking legitimate discussion ("tại sao 800 calo nguy hiểm?").
+function detectExtremeCalorieRequest(question: string): boolean {
+  const q = question.toLowerCase();
+  // \b before the digit group is required — without it, `\d{2,3}` can match a
+  // trailing substring of a larger number (e.g. "500" out of "1500"),
+  // wrongly flagging a normal 1500 kcal request as extreme.
+  const lowCalorieNumber = /\b(\d{1,4})\s*(kcal|calo|calories?)\b/i.exec(q);
+  if (!lowCalorieNumber) return false;
+  const amount = Number(lowCalorieNumber[1]);
+  if (!Number.isFinite(amount) || amount >= 800) return false;
+  const requestPattern =
+    /(thuc don|thực đơn|meal plan|an|ăn|eat|nhin an|nhịn ăn|diet|khau phan|khẩu phần|cho toi|give me|toi muon|i want|nen an|should i eat)/i;
+  return requestPattern.test(q);
+}
+
+// ── Jailbreak / prompt-injection attempts ─────────────────────────────────────
+function detectPromptInjection(question: string): boolean {
+  const q = question.toLowerCase();
+  const patterns: RegExp[] = [
+    // `*` (not `?`) on the qualifier group — real jailbreak phrasing often
+    // stacks multiple qualifiers ("ignore all previous instructions"), and a
+    // single-optional-word group only matches one of them, missing the rest.
+    /ignore\s+(?:all\s+|previous\s+|above\s+|prior\s+|these\s+)*instructions?/i,
+    /bo qua\s+(?:moi\s+|tat ca\s+|cac\s+)*(quy tac|huong dan|rule|instruction)/i,
+    /you are now\b|from now on you (are|will)/i,
+    /act as\s+(dan\b|an? unrestricted|a different ai|jailbreak)/i,
+    /reveal\s+your\s+(system\s+)?prompt/i,
+    /(cho toi xem|show me|what is)\s+.{0,15}(system prompt|prompt goc|instructions? goc)/i,
+    /pretend\s+(you have no|there are no)\s+(restrictions|rules|limits|guidelines)/i,
+    /bypass\s+(your\s+|all\s+)?(safety|restrictions|rules|filters?)/i,
+    /gia vo\s+(khong co|ban khong co)\s+(gioi han|quy tac|rule)/i,
+  ];
+  return patterns.some((p) => p.test(q));
+}
+
 // ── Off-topic detection ───────────────────────────────────────────────────────
 const OFF_TOPIC_PATTERNS: RegExp[] = [
   /\b(javascript|typescript|python|react|nodejs|html|css|sql|docker|kubernetes|git\b|github|algorithm|frontend|backend|devops|api\s+key|deploy|server|database\s+(?!thể hình|fitness|exercise))\b/i,
@@ -71,7 +124,14 @@ export type SafetyResult =
   | { type: "safe" }
   | { type: "unsafe_weight_loss"; guidance: UnsafeGuidance }
   | { type: "medical_emergency"; messageVi: string; messageEn: string }
-  | { type: "off_topic"; messageVi: string; messageEn: string };
+  | { type: "off_topic"; messageVi: string; messageEn: string }
+  | { type: "unsafe_ped_request"; messageVi: string; messageEn: string }
+  | {
+      type: "unsafe_extreme_calorie_request";
+      messageVi: string;
+      messageEn: string;
+    }
+  | { type: "prompt_injection_attempt"; messageVi: string; messageEn: string };
 
 // ── Public API ────────────────────────────────────────────────────────────────
 export const safetyGuard = {
@@ -124,6 +184,62 @@ export const safetyGuard = {
           "- For less urgent symptoms, schedule a doctor appointment before resuming exercise.",
           "",
           "Once you have medical clearance, I'm here to help you build a safe and effective training program! 💪",
+        ].join("\n"),
+      };
+    }
+
+    if (detectPedRequest(question)) {
+      return {
+        type: "unsafe_ped_request",
+        messageVi: [
+          "## ⚠️ Mình không thể tư vấn về steroid/PED",
+          "",
+          "Mình là **AI Fitness Coach** và không thể hướng dẫn liều dùng, chu kỳ, hoặc nguồn mua các chất tăng cường hiệu suất (steroid, SARMs, hormone tăng trưởng...) — những chất này có rủi ro sức khỏe nghiêm trọng và cần được bác sĩ nội tiết giám sát nếu cân nhắc sử dụng.",
+          "",
+          "💪 Mình rất sẵn lòng giúp bạn xây dựng chương trình tập và dinh dưỡng để tăng cơ **tự nhiên, an toàn và bền vững**.",
+        ].join("\n"),
+        messageEn: [
+          "## ⚠️ I can't advise on steroids/PEDs",
+          "",
+          "I'm an **AI Fitness Coach** and cannot provide dosing, cycle, or sourcing guidance for performance-enhancing substances (steroids, SARMs, growth hormone, etc.) — these carry serious health risks and require supervision from an endocrinologist if being considered.",
+          "",
+          "💪 I'm happy to help you build a program for **safe, sustainable, natural** muscle growth instead.",
+        ].join("\n"),
+      };
+    }
+
+    if (detectExtremeCalorieRequest(question)) {
+      return {
+        type: "unsafe_extreme_calorie_request",
+        messageVi: [
+          "## ⚠️ Mức calo bạn đề cập quá thấp để an toàn",
+          "",
+          "Mình không thể lên thực đơn ở mức calo cực thấp (dưới 800 kcal/ngày) vì nguy cơ mất cơ, rối loạn điện giải và ảnh hưởng tim mạch — mức này thường chỉ dùng dưới giám sát y tế chặt chẽ.",
+          "",
+          "💪 Mình có thể giúp bạn xây dựng mức thâm hụt calo **an toàn và bền vững** (thường không dưới 1200-1500 kcal/ngày tùy thể trạng) để giảm mỡ hiệu quả mà vẫn giữ cơ.",
+        ].join("\n"),
+        messageEn: [
+          "## ⚠️ That calorie target is too low to be safe",
+          "",
+          "I can't build a meal plan at an extremely low calorie level (under 800 kcal/day) — this carries real risks of muscle loss, electrolyte imbalance, and cardiac strain, and is normally only used under close medical supervision.",
+          "",
+          "💪 I can help you set a **safe, sustainable** calorie deficit (typically not below 1200-1500 kcal/day depending on your stats) for effective, muscle-preserving fat loss.",
+        ].join("\n"),
+      };
+    }
+
+    if (detectPromptInjection(question)) {
+      return {
+        type: "prompt_injection_attempt",
+        messageVi: [
+          "Mình là **AI Fitness Coach** và luôn tuân theo phạm vi tư vấn tập luyện, dinh dưỡng và sức khỏe thể chất — mình không thể bỏ qua hướng dẫn nội bộ hoặc đóng vai trò khác.",
+          "",
+          "💪 Nếu bạn có câu hỏi về **tập gym, dinh dưỡng, giảm mỡ, tăng cơ, hoặc lịch tập** — mình luôn sẵn sàng!",
+        ].join("\n"),
+        messageEn: [
+          "I'm your **AI Fitness Coach** and I stay within the scope of training, nutrition, and physical-health advice — I can't ignore my internal guidelines or roleplay as something else.",
+          "",
+          "💪 If you have questions about **workouts, nutrition, fat loss, muscle gain, or training plans** — I am here to help!",
         ].join("\n"),
       };
     }

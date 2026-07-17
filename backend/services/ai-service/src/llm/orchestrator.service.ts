@@ -259,7 +259,10 @@ export const llmOrchestrator = {
 
     if (
       safetyCheck.type === "off_topic" ||
-      safetyCheck.type === "medical_emergency"
+      safetyCheck.type === "medical_emergency" ||
+      safetyCheck.type === "unsafe_ped_request" ||
+      safetyCheck.type === "unsafe_extreme_calorie_request" ||
+      safetyCheck.type === "prompt_injection_attempt"
     ) {
       const answer =
         language.responseLanguage === "vi"
