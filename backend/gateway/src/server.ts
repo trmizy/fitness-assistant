@@ -9,7 +9,7 @@ import { initializeSocketServer } from "./socket";
 const PORT = process.env.PORT || 3000;
 const server = createServer(app);
 
-initializeSocketServer(server);
+const io = initializeSocketServer(server);
 
 server.listen(PORT, () => {
   logger.info(`API Gateway listening on port ${PORT}`);
@@ -22,4 +22,20 @@ server.listen(PORT, () => {
   logger.info(
     `AI Service: ${process.env.AI_SERVICE_URL || "http://localhost:3003"}`,
   );
+});
+
+process.on("SIGTERM", () => {
+  logger.info("SIGTERM received, shutting down gracefully");
+  io.close();
+  // Stop accepting new connections and let in-flight proxied requests
+  // (including long-lived SSE streams) finish before exiting.
+  server.close(() => {
+    logger.info("Gateway HTTP server closed");
+    process.exit(0);
+  });
+  // Force-exit if something (e.g. a stuck SSE stream) never lets close() finish.
+  setTimeout(() => {
+    logger.warn("Forceful shutdown after 10s drain timeout");
+    process.exit(1);
+  }, 10000).unref();
 });

@@ -5,22 +5,22 @@ FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY backend/shared/package.json ./backend/shared/
-COPY backend/services/auth-service/package.json ./backend/services/auth-service/
-RUN pnpm install --filter @gym-coach/auth-service --frozen-lockfile
+COPY backend/services/payment-service/package.json ./backend/services/payment-service/
+RUN pnpm install --filter @gym-coach/payment-service --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
 RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/backend/shared/node_modules ./backend/shared/node_modules
-COPY --from=deps /app/backend/services/auth-service/node_modules ./backend/services/auth-service/node_modules
+COPY --from=deps /app/backend/services/payment-service/node_modules ./backend/services/payment-service/node_modules
 COPY backend/shared ./backend/shared
-COPY backend/services/auth-service ./backend/services/auth-service
+COPY backend/services/payment-service ./backend/services/payment-service
 COPY tsconfig.base.json ./
 RUN pnpm --filter @gym-coach/shared build
-RUN pnpm --filter @gym-coach/auth-service db:generate
-RUN pnpm --filter @gym-coach/auth-service build
-RUN cp -R backend/services/auth-service/src/generated backend/services/auth-service/dist/
+RUN pnpm --filter @gym-coach/payment-service db:generate
+RUN pnpm --filter @gym-coach/payment-service build
+RUN cp -R backend/services/payment-service/src/generated backend/services/payment-service/dist/
 
 FROM base AS runner
 WORKDIR /app
@@ -31,13 +31,13 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/backend/shared/node_modules ./backend/shared/node_modules
 COPY --from=builder /app/backend/shared/dist ./backend/shared/dist
 COPY --from=builder /app/backend/shared/package.json ./backend/shared/package.json
-COPY --from=builder /app/backend/services/auth-service/node_modules ./backend/services/auth-service/node_modules
-COPY --from=builder /app/backend/services/auth-service/dist ./backend/services/auth-service/dist
-COPY --from=builder /app/backend/services/auth-service/src/generated ./backend/services/auth-service/dist/generated
-COPY --from=builder /app/backend/services/auth-service/package.json ./backend/services/auth-service/package.json
-COPY --from=builder /app/backend/services/auth-service/prisma ./backend/services/auth-service/prisma
-WORKDIR /app/backend/services/auth-service
-EXPOSE 3001
+COPY --from=builder /app/backend/services/payment-service/node_modules ./backend/services/payment-service/node_modules
+COPY --from=builder /app/backend/services/payment-service/dist ./backend/services/payment-service/dist
+COPY --from=builder /app/backend/services/payment-service/src/generated ./backend/services/payment-service/dist/generated
+COPY --from=builder /app/backend/services/payment-service/package.json ./backend/services/payment-service/package.json
+COPY --from=builder /app/backend/services/payment-service/prisma ./backend/services/payment-service/prisma
+WORKDIR /app/backend/services/payment-service
+EXPOSE 3007
 # `exec` replaces the shell with the node process instead of forking it as a
 # child — without it, Docker's SIGTERM (sent to the shell, PID 1) never
 # reaches node, so the app's own process.on("SIGTERM") handler never runs

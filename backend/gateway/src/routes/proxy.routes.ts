@@ -9,6 +9,7 @@ import {
   validateInternalSecret,
   INTERNAL_SERVICE_SECRET_DEFAULT,
 } from "../utils/internal-secret";
+import { authRateLimiter, aiAskRateLimiter } from "../middleware/rateLimit.middleware";
 
 export { validateInternalSecret };
 
@@ -1566,6 +1567,7 @@ router.use(
 // Public — Auth Service
 router.use(
   "/auth",
+  authRateLimiter,
   createProxyMiddleware({
     target: AUTH_SERVICE_URL,
     changeOrigin: true,
@@ -1815,6 +1817,13 @@ router.use(
     onError: serviceUnavailable("AI service"),
   }),
 );
+
+// Cost-aware limiter for real LLM calls — matches both /ai/ask and
+// /ai/ask/stream (Express `use()` does prefix matching), registered before
+// both so it applies regardless of which route below actually handles the
+// request. Every other /ai/* endpoint (sessions, memories, feedback) stays
+// on the flat global limiter — those are cheap CRUD, not LLM calls.
+router.use("/ai/ask", aiAskRateLimiter);
 
 // Dedicated SSE streaming route for /ai/ask/stream.
 // http-proxy-middleware v2 buffers chunked responses, which breaks SSE.
