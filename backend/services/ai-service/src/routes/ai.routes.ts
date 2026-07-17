@@ -9,6 +9,7 @@ import {
   GetConversationsQuerySchema,
 } from "../schemas/ai.schemas";
 import sessionRoutes from "./session.routes";
+import memoryRoutes from "./memory.routes";
 
 const router = Router();
 
@@ -16,6 +17,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.use("/sessions", sessionRoutes);
+router.use("/memories", memoryRoutes);
 
 router.post("/ask", validateBody(AskRequestSchema), aiController.ask);
 

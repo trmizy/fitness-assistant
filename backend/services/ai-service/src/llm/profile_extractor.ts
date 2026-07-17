@@ -109,6 +109,14 @@ export interface PersonalizationContext {
   currentWorkoutProgram?: Record<string, unknown> | null;
   /** Current active nutrition program (name, goal, dailyCaloriesTarget, macro targets) */
   currentNutritionProgram?: Record<string, unknown> | null;
+  /**
+   * Durable facts saved across sessions via the `remember_user_fact` tool
+   * (Phase 3 memory). Not fetched by `profileExtractor.extract()` itself —
+   * the orchestrator fetches these separately (ai-service's own DB, not
+   * user-service/fitness-service) and attaches them here so prompt_builder
+   * can read them off the same context object.
+   */
+  memories?: Array<{ content: string; category?: string | null }>;
 }
 
 function mapTraining(

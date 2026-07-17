@@ -288,7 +288,7 @@ export const llmOrchestrator = {
     const preliminaryScheduleIntent = preliminaryNutritionIntent.enabled
       ? { enabled: false }
       : detectWorkoutScheduleIntent(question);
-    const [context, retrieval, chatHistory] = await Promise.all([
+    const [context, retrieval, chatHistory, memories] = await Promise.all([
       timeAsync(timing, "profileContextMs", () =>
         withTimeout(
           profileExtractor.extract(userId, authHeader),
@@ -332,12 +332,24 @@ export const llmOrchestrator = {
       timeAsync(timing, "chatHistoryMs", () =>
         userId
           ? conversationRepository.findMany(
-              { userId, sessionId, usedFallback: false },
+              { userId, sessionId, usedFallback: false, excludeThumbsDown: true },
               5,
             )
           : Promise.resolve([]),
       ),
+      timeAsync(timing, "memoriesMs", () =>
+        userId
+          ? conversationRepository.findMemoriesByUser(userId, 20)
+          : Promise.resolve([]),
+      ).catch((err) => {
+        logger.warn(
+          { error: safeErrorMessage(err), request_id: trace.traceId },
+          "AI chat memory fetch failed; continuing without saved memories",
+        );
+        return [];
+      }),
     ]);
+    context.memories = memories;
 
     const nutritionIntent = detectNutritionLookupIntent(question, chatHistory);
     if (nutritionIntent.enabled) {

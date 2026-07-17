@@ -50,11 +50,27 @@ export const conversationRepository = {
   },
 
   findMany(
-    where: { userId?: string; sessionId?: string; usedFallback?: boolean },
+    where: {
+      userId?: string;
+      sessionId?: string;
+      usedFallback?: boolean;
+      /** Excludes thumbs-downed turns (feedback === -1) so a rejected answer
+       * isn't fed back into future context identically to an accepted one. */
+      excludeThumbsDown?: boolean;
+    },
     limit = 10,
   ) {
+    const { excludeThumbsDown, ...rest } = where;
     return prisma.conversation.findMany({
-      where,
+      where: {
+        ...rest,
+        // `feedback: { not: -1 }` alone also excludes never-rated (NULL) rows
+        // under Postgres NULL-comparison semantics — only unrated or
+        // thumbs-up turns should stay in the history window.
+        ...(excludeThumbsDown
+          ? { OR: [{ feedback: null }, { feedback: { not: -1 } }] }
+          : {}),
+      },
       orderBy: { createdAt: "desc" },
       take: limit,
     });
@@ -117,6 +133,42 @@ export const conversationRepository = {
       where: { userId, sessionId },
       orderBy: { createdAt: "asc" },
       take: limit,
+    });
+  },
+
+  // ── User memory (Phase 3: cross-session personalization) ───────────────────
+
+  createUserMemory(data: { userId: string; content: string; category?: string }) {
+    return prisma.userMemory.create({ data });
+  },
+
+  findMemoriesByUser(userId: string, limit = 20) {
+    return prisma.userMemory.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+  },
+
+  findMemoryById(memoryId: string) {
+    return prisma.userMemory.findUnique({ where: { id: memoryId } });
+  },
+
+  deleteUserMemory(memoryId: string) {
+    return prisma.userMemory.delete({ where: { id: memoryId } });
+  },
+
+  /** Keeps only the newest `keepCount` memories for a user so the prompt block stays bounded. */
+  async pruneOldestMemories(userId: string, keepCount = 20) {
+    const excess = await prisma.userMemory.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      skip: keepCount,
+      select: { id: true },
+    });
+    if (excess.length === 0) return;
+    await prisma.userMemory.deleteMany({
+      where: { id: { in: excess.map((m) => m.id) } },
     });
   },
 
@@ -300,9 +352,10 @@ export const conversationRepository = {
     });
   },
 
-  /** BR-34B: Delete all conversations + chat sessions for a user (cascade on account deletion) */
+  /** BR-34B: Delete all conversations + chat sessions + memories for a user (cascade on account deletion) */
   deleteByUserId: async (userId: string) => {
     await prisma.chatSession.deleteMany({ where: { userId } });
+    await prisma.userMemory.deleteMany({ where: { userId } });
     return prisma.conversation.deleteMany({ where: { userId } });
   },
 

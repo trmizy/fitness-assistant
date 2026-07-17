@@ -76,6 +76,12 @@ function compactProfile(profile: UserProfile): string {
   return lines.join("\n");
 }
 
+function compactMemories(context: PersonalizationContext): string {
+  const memories = context.memories || [];
+  if (memories.length === 0) return "";
+  return memories.map((m) => `- ${m.content}`).join("\n");
+}
+
 function compactCurrentPrograms(context: PersonalizationContext): string {
   const parts: string[] = [];
 
@@ -510,6 +516,13 @@ export const promptBuilder = {
       "Hồ sơ user:",
       compactProfile(profile),
       "",
+      // Facts saved across previous sessions via remember_user_fact (Phase 3 memory)
+      ...(() => {
+        const memoriesText = compactMemories(context);
+        return memoriesText
+          ? ["Thông tin đã ghi nhớ về user (từ các lần trò chuyện trước):", memoriesText, ""]
+          : [];
+      })(),
       // Inject active workout & nutrition programs if available
       ...(() => {
         const programsText = compactCurrentPrograms(context);

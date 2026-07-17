@@ -157,6 +157,14 @@ exports.Prisma.ChatSessionScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.UserMemoryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  content: 'content',
+  category: 'category',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.WorkoutPlanScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -338,6 +346,7 @@ exports.KnowledgeReviewStatus = exports.$Enums.KnowledgeReviewStatus = {
 exports.Prisma.ModelName = {
   Conversation: 'Conversation',
   ChatSession: 'ChatSession',
+  UserMemory: 'UserMemory',
   WorkoutPlan: 'WorkoutPlan',
   NutritionPlan: 'NutritionPlan',
   KnowledgeSource: 'KnowledgeSource',

@@ -299,6 +299,7 @@ export interface AiChatTiming {
   profileContextMs?: number;
   ragTotalMs?: number;
   chatHistoryMs?: number;
+  memoriesMs?: number;
   scheduleContextMs?: number;
   nutritionContextMs?: number;
   evidenceMs?: number;

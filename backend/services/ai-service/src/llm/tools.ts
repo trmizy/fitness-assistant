@@ -3,8 +3,11 @@ import { llmService, buildOllamaMessages } from "../services/llm.service";
 import type { ChatToolDefinition, ChatMessage } from "../services/llm.service";
 import { retriever } from "./retriever";
 import type { PersonalizationContext } from "./profile_extractor";
+import { conversationRepository } from "../repositories/conversation.repository";
 
 const MAX_TOOL_CALLS_PER_TURN = 2;
+const MAX_MEMORIES_PER_USER = 20;
+const MAX_MEMORY_FACT_CHARS = 300;
 
 // Feasibility spike (2026-07-16, scratchpad/tool_calling_spike.mjs) confirmed
 // qwen3:30b-a3b-instruct-2507-q4_K_M reliably emits well-formed Ollama
@@ -53,11 +56,34 @@ export const AVAILABLE_TOOLS: ChatToolDefinition[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "remember_user_fact",
+      description:
+        "Save a durable fact or preference about the user for future conversations (e.g. dietary preference, preferred training time, disliked exercises). Only for facts that should persist across sessions — not one-off details relevant to just this message.",
+      parameters: {
+        type: "object",
+        properties: {
+          fact: {
+            type: "string",
+            description: "A short, self-contained statement, e.g. 'Prefers training in the morning'",
+          },
+          category: {
+            type: "string",
+            enum: ["dietary", "schedule", "exercise_preference", "other"],
+          },
+        },
+        required: ["fact"],
+      },
+    },
+  },
 ];
 
 const VALID_TOOL_NAMES = new Set(AVAILABLE_TOOLS.map((t) => t.function.name));
 const VALID_EQUIPMENT = new Set(["none", "dumbbell", "barbell", "machine", "any"]);
 const VALID_DATA_TYPES = new Set(["workout_history", "inbody", "nutrition_logs"]);
+const VALID_MEMORY_CATEGORIES = new Set(["dietary", "schedule", "exercise_preference", "other"]);
 
 export type ToolExecutionContext = {
   personalization: PersonalizationContext;
@@ -79,6 +105,16 @@ function validateArgs(name: string, args: unknown): string | null {
   if (name === "get_user_fitness_data") {
     if (!VALID_DATA_TYPES.has(a.dataType as string))
       return `invalid/missing enum 'dataType': ${a.dataType}`;
+    return null;
+  }
+
+  if (name === "remember_user_fact") {
+    if (typeof a.fact !== "string" || !a.fact.trim())
+      return "missing/invalid 'fact'";
+    if (a.fact.length > MAX_MEMORY_FACT_CHARS)
+      return `'fact' too long (max ${MAX_MEMORY_FACT_CHARS} chars)`;
+    if (a.category !== undefined && !VALID_MEMORY_CATEGORIES.has(a.category as string))
+      return `invalid enum 'category': ${a.category}`;
     return null;
   }
 
@@ -157,6 +193,20 @@ export async function executeTool(
         return JSON.stringify({ inBodyHistory: summarizeInBodyHistory(ctx.personalization) });
       }
       return JSON.stringify({ nutritionLogs: summarizeNutritionLogs(ctx.personalization) });
+    }
+
+    if (name === "remember_user_fact") {
+      const userId = ctx.personalization.profile.userId;
+      if (!userId) {
+        return JSON.stringify({ error: "no authenticated user" });
+      }
+      await conversationRepository.createUserMemory({
+        userId,
+        content: (args.fact as string).trim(),
+        category: args.category as string | undefined,
+      });
+      await conversationRepository.pruneOldestMemories(userId, MAX_MEMORIES_PER_USER);
+      return JSON.stringify({ saved: true });
     }
 
     return JSON.stringify({ error: `unknown tool name: ${name}` });

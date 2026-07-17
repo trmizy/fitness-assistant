@@ -3,14 +3,19 @@ import assert from "node:assert/strict";
 import { executeTool, runToolCallingTurn, AVAILABLE_TOOLS } from "../llm/tools";
 import { retriever } from "../llm/retriever";
 import { llmService } from "../services/llm.service";
+import { conversationRepository } from "../repositories/conversation.repository";
 import type { PersonalizationContext } from "../llm/profile_extractor";
 
 const originalSearchExercises = retriever.searchExercises;
 const originalCallLLMChat = llmService.callLLMChat;
+const originalCreateUserMemory = conversationRepository.createUserMemory;
+const originalPruneOldestMemories = conversationRepository.pruneOldestMemories;
 
 afterEach(() => {
   retriever.searchExercises = originalSearchExercises;
   llmService.callLLMChat = originalCallLLMChat;
+  conversationRepository.createUserMemory = originalCreateUserMemory;
+  conversationRepository.pruneOldestMemories = originalPruneOldestMemories;
 });
 
 function emptyPersonalization(
@@ -121,6 +126,82 @@ describe("executeTool — get_user_fitness_data", () => {
   });
 });
 
+describe("executeTool — remember_user_fact", () => {
+  it("saves a memory and prunes when a userId is present", async () => {
+    let created: any;
+    let pruned: [string, number] | undefined;
+    conversationRepository.createUserMemory = (async (data: any) => {
+      created = data;
+      return { id: "m1", ...data, createdAt: new Date() };
+    }) as any;
+    conversationRepository.pruneOldestMemories = (async (userId: string, keep: number) => {
+      pruned = [userId, keep];
+    }) as any;
+
+    const result = JSON.parse(
+      await executeTool(
+        "remember_user_fact",
+        { fact: "Prefers training in the morning", category: "schedule" },
+        { personalization: emptyPersonalization({ profile: { userId: "u42", training: { availableEquipment: [], injuries: [], preferredTrainingDays: [] } } }) },
+      ),
+    );
+
+    assert.equal(result.saved, true);
+    assert.equal(created.userId, "u42");
+    assert.equal(created.content, "Prefers training in the morning");
+    assert.equal(created.category, "schedule");
+    assert.deepEqual(pruned, ["u42", 20]);
+  });
+
+  it("rejects a missing 'fact'", async () => {
+    const result = JSON.parse(
+      await executeTool("remember_user_fact", {}, { personalization: emptyPersonalization() }),
+    );
+    assert.ok(result.error);
+  });
+
+  it("rejects an invalid 'category' enum", async () => {
+    const result = JSON.parse(
+      await executeTool(
+        "remember_user_fact",
+        { fact: "Vegetarian", category: "spaceship" },
+        { personalization: emptyPersonalization() },
+      ),
+    );
+    assert.ok(result.error);
+  });
+
+  it("rejects a fact over the length cap", async () => {
+    const result = JSON.parse(
+      await executeTool(
+        "remember_user_fact",
+        { fact: "x".repeat(301) },
+        { personalization: emptyPersonalization() },
+      ),
+    );
+    assert.ok(result.error);
+  });
+
+  it("returns an error instead of writing when there is no authenticated user", async () => {
+    let wasCalled = false;
+    conversationRepository.createUserMemory = (async () => {
+      wasCalled = true;
+      return {} as any;
+    }) as any;
+
+    const result = JSON.parse(
+      await executeTool(
+        "remember_user_fact",
+        { fact: "Vegetarian" },
+        { personalization: emptyPersonalization({ profile: { training: { availableEquipment: [], injuries: [], preferredTrainingDays: [] } } }) },
+      ),
+    );
+
+    assert.ok(result.error);
+    assert.equal(wasCalled, false);
+  });
+});
+
 describe("executeTool — unknown tool", () => {
   it("returns an error instead of throwing", async () => {
     const result = JSON.parse(
@@ -131,9 +212,13 @@ describe("executeTool — unknown tool", () => {
 });
 
 describe("AVAILABLE_TOOLS schema", () => {
-  it("declares exactly the two spike-verified tools", () => {
+  it("declares the spike-verified tools plus remember_user_fact", () => {
     const names = AVAILABLE_TOOLS.map((t) => t.function.name).sort();
-    assert.deepEqual(names, ["get_user_fitness_data", "search_exercise_library"]);
+    assert.deepEqual(names, [
+      "get_user_fitness_data",
+      "remember_user_fact",
+      "search_exercise_library",
+    ]);
   });
 });
 

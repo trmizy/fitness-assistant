@@ -24,6 +24,11 @@ export type Conversation = $Result.DefaultSelection<Prisma.$ConversationPayload>
  */
 export type ChatSession = $Result.DefaultSelection<Prisma.$ChatSessionPayload>
 /**
+ * Model UserMemory
+ * 
+ */
+export type UserMemory = $Result.DefaultSelection<Prisma.$UserMemoryPayload>
+/**
  * Model WorkoutPlan
  * 
  */
@@ -305,6 +310,16 @@ export class PrismaClient<
     * ```
     */
   get chatSession(): Prisma.ChatSessionDelegate<ExtArgs>;
+
+  /**
+   * `prisma.userMemory`: Exposes CRUD operations for the **UserMemory** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more UserMemories
+    * const userMemories = await prisma.userMemory.findMany()
+    * ```
+    */
+  get userMemory(): Prisma.UserMemoryDelegate<ExtArgs>;
 
   /**
    * `prisma.workoutPlan`: Exposes CRUD operations for the **WorkoutPlan** model.
@@ -818,6 +833,7 @@ export namespace Prisma {
   export const ModelName: {
     Conversation: 'Conversation',
     ChatSession: 'ChatSession',
+    UserMemory: 'UserMemory',
     WorkoutPlan: 'WorkoutPlan',
     NutritionPlan: 'NutritionPlan',
     KnowledgeSource: 'KnowledgeSource',
@@ -840,7 +856,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "conversation" | "chatSession" | "workoutPlan" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem"
+      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -981,6 +997,76 @@ export namespace Prisma {
           count: {
             args: Prisma.ChatSessionCountArgs<ExtArgs>
             result: $Utils.Optional<ChatSessionCountAggregateOutputType> | number
+          }
+        }
+      }
+      UserMemory: {
+        payload: Prisma.$UserMemoryPayload<ExtArgs>
+        fields: Prisma.UserMemoryFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.UserMemoryFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserMemoryPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.UserMemoryFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+          }
+          findFirst: {
+            args: Prisma.UserMemoryFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserMemoryPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.UserMemoryFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+          }
+          findMany: {
+            args: Prisma.UserMemoryFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserMemoryPayload>[]
+          }
+          create: {
+            args: Prisma.UserMemoryCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+          }
+          createMany: {
+            args: Prisma.UserMemoryCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.UserMemoryCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserMemoryPayload>[]
+          }
+          delete: {
+            args: Prisma.UserMemoryDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+          }
+          update: {
+            args: Prisma.UserMemoryUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+          }
+          deleteMany: {
+            args: Prisma.UserMemoryDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.UserMemoryUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.UserMemoryUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserMemoryPayload>
+          }
+          aggregate: {
+            args: Prisma.UserMemoryAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUserMemory>
+          }
+          groupBy: {
+            args: Prisma.UserMemoryGroupByArgs<ExtArgs>
+            result: $Utils.Optional<UserMemoryGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.UserMemoryCountArgs<ExtArgs>
+            result: $Utils.Optional<UserMemoryCountAggregateOutputType> | number
           }
         }
       }
@@ -3744,6 +3830,884 @@ export namespace Prisma {
      * Select specific fields to fetch from the ChatSession
      */
     select?: ChatSessionSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model UserMemory
+   */
+
+  export type AggregateUserMemory = {
+    _count: UserMemoryCountAggregateOutputType | null
+    _min: UserMemoryMinAggregateOutputType | null
+    _max: UserMemoryMaxAggregateOutputType | null
+  }
+
+  export type UserMemoryMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    content: string | null
+    category: string | null
+    createdAt: Date | null
+  }
+
+  export type UserMemoryMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    content: string | null
+    category: string | null
+    createdAt: Date | null
+  }
+
+  export type UserMemoryCountAggregateOutputType = {
+    id: number
+    userId: number
+    content: number
+    category: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type UserMemoryMinAggregateInputType = {
+    id?: true
+    userId?: true
+    content?: true
+    category?: true
+    createdAt?: true
+  }
+
+  export type UserMemoryMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    content?: true
+    category?: true
+    createdAt?: true
+  }
+
+  export type UserMemoryCountAggregateInputType = {
+    id?: true
+    userId?: true
+    content?: true
+    category?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type UserMemoryAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserMemory to aggregate.
+     */
+    where?: UserMemoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserMemories to fetch.
+     */
+    orderBy?: UserMemoryOrderByWithRelationInput | UserMemoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: UserMemoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserMemories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserMemories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned UserMemories
+    **/
+    _count?: true | UserMemoryCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: UserMemoryMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: UserMemoryMaxAggregateInputType
+  }
+
+  export type GetUserMemoryAggregateType<T extends UserMemoryAggregateArgs> = {
+        [P in keyof T & keyof AggregateUserMemory]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUserMemory[P]>
+      : GetScalarType<T[P], AggregateUserMemory[P]>
+  }
+
+
+
+
+  export type UserMemoryGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserMemoryWhereInput
+    orderBy?: UserMemoryOrderByWithAggregationInput | UserMemoryOrderByWithAggregationInput[]
+    by: UserMemoryScalarFieldEnum[] | UserMemoryScalarFieldEnum
+    having?: UserMemoryScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: UserMemoryCountAggregateInputType | true
+    _min?: UserMemoryMinAggregateInputType
+    _max?: UserMemoryMaxAggregateInputType
+  }
+
+  export type UserMemoryGroupByOutputType = {
+    id: string
+    userId: string
+    content: string
+    category: string | null
+    createdAt: Date
+    _count: UserMemoryCountAggregateOutputType | null
+    _min: UserMemoryMinAggregateOutputType | null
+    _max: UserMemoryMaxAggregateOutputType | null
+  }
+
+  type GetUserMemoryGroupByPayload<T extends UserMemoryGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<UserMemoryGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof UserMemoryGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], UserMemoryGroupByOutputType[P]>
+            : GetScalarType<T[P], UserMemoryGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type UserMemorySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    content?: boolean
+    category?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["userMemory"]>
+
+  export type UserMemorySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    content?: boolean
+    category?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["userMemory"]>
+
+  export type UserMemorySelectScalar = {
+    id?: boolean
+    userId?: boolean
+    content?: boolean
+    category?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $UserMemoryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "UserMemory"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      content: string
+      category: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["userMemory"]>
+    composites: {}
+  }
+
+  type UserMemoryGetPayload<S extends boolean | null | undefined | UserMemoryDefaultArgs> = $Result.GetResult<Prisma.$UserMemoryPayload, S>
+
+  type UserMemoryCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<UserMemoryFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: UserMemoryCountAggregateInputType | true
+    }
+
+  export interface UserMemoryDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['UserMemory'], meta: { name: 'UserMemory' } }
+    /**
+     * Find zero or one UserMemory that matches the filter.
+     * @param {UserMemoryFindUniqueArgs} args - Arguments to find a UserMemory
+     * @example
+     * // Get one UserMemory
+     * const userMemory = await prisma.userMemory.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends UserMemoryFindUniqueArgs>(args: SelectSubset<T, UserMemoryFindUniqueArgs<ExtArgs>>): Prisma__UserMemoryClient<$Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one UserMemory that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {UserMemoryFindUniqueOrThrowArgs} args - Arguments to find a UserMemory
+     * @example
+     * // Get one UserMemory
+     * const userMemory = await prisma.userMemory.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends UserMemoryFindUniqueOrThrowArgs>(args: SelectSubset<T, UserMemoryFindUniqueOrThrowArgs<ExtArgs>>): Prisma__UserMemoryClient<$Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first UserMemory that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserMemoryFindFirstArgs} args - Arguments to find a UserMemory
+     * @example
+     * // Get one UserMemory
+     * const userMemory = await prisma.userMemory.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends UserMemoryFindFirstArgs>(args?: SelectSubset<T, UserMemoryFindFirstArgs<ExtArgs>>): Prisma__UserMemoryClient<$Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first UserMemory that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserMemoryFindFirstOrThrowArgs} args - Arguments to find a UserMemory
+     * @example
+     * // Get one UserMemory
+     * const userMemory = await prisma.userMemory.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends UserMemoryFindFirstOrThrowArgs>(args?: SelectSubset<T, UserMemoryFindFirstOrThrowArgs<ExtArgs>>): Prisma__UserMemoryClient<$Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more UserMemories that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserMemoryFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all UserMemories
+     * const userMemories = await prisma.userMemory.findMany()
+     * 
+     * // Get first 10 UserMemories
+     * const userMemories = await prisma.userMemory.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const userMemoryWithIdOnly = await prisma.userMemory.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends UserMemoryFindManyArgs>(args?: SelectSubset<T, UserMemoryFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a UserMemory.
+     * @param {UserMemoryCreateArgs} args - Arguments to create a UserMemory.
+     * @example
+     * // Create one UserMemory
+     * const UserMemory = await prisma.userMemory.create({
+     *   data: {
+     *     // ... data to create a UserMemory
+     *   }
+     * })
+     * 
+     */
+    create<T extends UserMemoryCreateArgs>(args: SelectSubset<T, UserMemoryCreateArgs<ExtArgs>>): Prisma__UserMemoryClient<$Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many UserMemories.
+     * @param {UserMemoryCreateManyArgs} args - Arguments to create many UserMemories.
+     * @example
+     * // Create many UserMemories
+     * const userMemory = await prisma.userMemory.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends UserMemoryCreateManyArgs>(args?: SelectSubset<T, UserMemoryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many UserMemories and returns the data saved in the database.
+     * @param {UserMemoryCreateManyAndReturnArgs} args - Arguments to create many UserMemories.
+     * @example
+     * // Create many UserMemories
+     * const userMemory = await prisma.userMemory.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many UserMemories and only return the `id`
+     * const userMemoryWithIdOnly = await prisma.userMemory.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends UserMemoryCreateManyAndReturnArgs>(args?: SelectSubset<T, UserMemoryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a UserMemory.
+     * @param {UserMemoryDeleteArgs} args - Arguments to delete one UserMemory.
+     * @example
+     * // Delete one UserMemory
+     * const UserMemory = await prisma.userMemory.delete({
+     *   where: {
+     *     // ... filter to delete one UserMemory
+     *   }
+     * })
+     * 
+     */
+    delete<T extends UserMemoryDeleteArgs>(args: SelectSubset<T, UserMemoryDeleteArgs<ExtArgs>>): Prisma__UserMemoryClient<$Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one UserMemory.
+     * @param {UserMemoryUpdateArgs} args - Arguments to update one UserMemory.
+     * @example
+     * // Update one UserMemory
+     * const userMemory = await prisma.userMemory.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends UserMemoryUpdateArgs>(args: SelectSubset<T, UserMemoryUpdateArgs<ExtArgs>>): Prisma__UserMemoryClient<$Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more UserMemories.
+     * @param {UserMemoryDeleteManyArgs} args - Arguments to filter UserMemories to delete.
+     * @example
+     * // Delete a few UserMemories
+     * const { count } = await prisma.userMemory.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends UserMemoryDeleteManyArgs>(args?: SelectSubset<T, UserMemoryDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UserMemories.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserMemoryUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many UserMemories
+     * const userMemory = await prisma.userMemory.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends UserMemoryUpdateManyArgs>(args: SelectSubset<T, UserMemoryUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one UserMemory.
+     * @param {UserMemoryUpsertArgs} args - Arguments to update or create a UserMemory.
+     * @example
+     * // Update or create a UserMemory
+     * const userMemory = await prisma.userMemory.upsert({
+     *   create: {
+     *     // ... data to create a UserMemory
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the UserMemory we want to update
+     *   }
+     * })
+     */
+    upsert<T extends UserMemoryUpsertArgs>(args: SelectSubset<T, UserMemoryUpsertArgs<ExtArgs>>): Prisma__UserMemoryClient<$Result.GetResult<Prisma.$UserMemoryPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of UserMemories.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserMemoryCountArgs} args - Arguments to filter UserMemories to count.
+     * @example
+     * // Count the number of UserMemories
+     * const count = await prisma.userMemory.count({
+     *   where: {
+     *     // ... the filter for the UserMemories we want to count
+     *   }
+     * })
+    **/
+    count<T extends UserMemoryCountArgs>(
+      args?: Subset<T, UserMemoryCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], UserMemoryCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a UserMemory.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserMemoryAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends UserMemoryAggregateArgs>(args: Subset<T, UserMemoryAggregateArgs>): Prisma.PrismaPromise<GetUserMemoryAggregateType<T>>
+
+    /**
+     * Group by UserMemory.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserMemoryGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends UserMemoryGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: UserMemoryGroupByArgs['orderBy'] }
+        : { orderBy?: UserMemoryGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, UserMemoryGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUserMemoryGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the UserMemory model
+   */
+  readonly fields: UserMemoryFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for UserMemory.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__UserMemoryClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the UserMemory model
+   */ 
+  interface UserMemoryFieldRefs {
+    readonly id: FieldRef<"UserMemory", 'String'>
+    readonly userId: FieldRef<"UserMemory", 'String'>
+    readonly content: FieldRef<"UserMemory", 'String'>
+    readonly category: FieldRef<"UserMemory", 'String'>
+    readonly createdAt: FieldRef<"UserMemory", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * UserMemory findUnique
+   */
+  export type UserMemoryFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserMemory
+     */
+    select?: UserMemorySelect<ExtArgs> | null
+    /**
+     * Filter, which UserMemory to fetch.
+     */
+    where: UserMemoryWhereUniqueInput
+  }
+
+  /**
+   * UserMemory findUniqueOrThrow
+   */
+  export type UserMemoryFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserMemory
+     */
+    select?: UserMemorySelect<ExtArgs> | null
+    /**
+     * Filter, which UserMemory to fetch.
+     */
+    where: UserMemoryWhereUniqueInput
+  }
+
+  /**
+   * UserMemory findFirst
+   */
+  export type UserMemoryFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserMemory
+     */
+    select?: UserMemorySelect<ExtArgs> | null
+    /**
+     * Filter, which UserMemory to fetch.
+     */
+    where?: UserMemoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserMemories to fetch.
+     */
+    orderBy?: UserMemoryOrderByWithRelationInput | UserMemoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserMemories.
+     */
+    cursor?: UserMemoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserMemories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserMemories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserMemories.
+     */
+    distinct?: UserMemoryScalarFieldEnum | UserMemoryScalarFieldEnum[]
+  }
+
+  /**
+   * UserMemory findFirstOrThrow
+   */
+  export type UserMemoryFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserMemory
+     */
+    select?: UserMemorySelect<ExtArgs> | null
+    /**
+     * Filter, which UserMemory to fetch.
+     */
+    where?: UserMemoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserMemories to fetch.
+     */
+    orderBy?: UserMemoryOrderByWithRelationInput | UserMemoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserMemories.
+     */
+    cursor?: UserMemoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserMemories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserMemories.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserMemories.
+     */
+    distinct?: UserMemoryScalarFieldEnum | UserMemoryScalarFieldEnum[]
+  }
+
+  /**
+   * UserMemory findMany
+   */
+  export type UserMemoryFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserMemory
+     */
+    select?: UserMemorySelect<ExtArgs> | null
+    /**
+     * Filter, which UserMemories to fetch.
+     */
+    where?: UserMemoryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserMemories to fetch.
+     */
+    orderBy?: UserMemoryOrderByWithRelationInput | UserMemoryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing UserMemories.
+     */
+    cursor?: UserMemoryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserMemories from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserMemories.
+     */
+    skip?: number
+    distinct?: UserMemoryScalarFieldEnum | UserMemoryScalarFieldEnum[]
+  }
+
+  /**
+   * UserMemory create
+   */
+  export type UserMemoryCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserMemory
+     */
+    select?: UserMemorySelect<ExtArgs> | null
+    /**
+     * The data needed to create a UserMemory.
+     */
+    data: XOR<UserMemoryCreateInput, UserMemoryUncheckedCreateInput>
+  }
+
+  /**
+   * UserMemory createMany
+   */
+  export type UserMemoryCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many UserMemories.
+     */
+    data: UserMemoryCreateManyInput | UserMemoryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UserMemory createManyAndReturn
+   */
+  export type UserMemoryCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserMemory
+     */
+    select?: UserMemorySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many UserMemories.
+     */
+    data: UserMemoryCreateManyInput | UserMemoryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UserMemory update
+   */
+  export type UserMemoryUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserMemory
+     */
+    select?: UserMemorySelect<ExtArgs> | null
+    /**
+     * The data needed to update a UserMemory.
+     */
+    data: XOR<UserMemoryUpdateInput, UserMemoryUncheckedUpdateInput>
+    /**
+     * Choose, which UserMemory to update.
+     */
+    where: UserMemoryWhereUniqueInput
+  }
+
+  /**
+   * UserMemory updateMany
+   */
+  export type UserMemoryUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update UserMemories.
+     */
+    data: XOR<UserMemoryUpdateManyMutationInput, UserMemoryUncheckedUpdateManyInput>
+    /**
+     * Filter which UserMemories to update
+     */
+    where?: UserMemoryWhereInput
+  }
+
+  /**
+   * UserMemory upsert
+   */
+  export type UserMemoryUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserMemory
+     */
+    select?: UserMemorySelect<ExtArgs> | null
+    /**
+     * The filter to search for the UserMemory to update in case it exists.
+     */
+    where: UserMemoryWhereUniqueInput
+    /**
+     * In case the UserMemory found by the `where` argument doesn't exist, create a new UserMemory with this data.
+     */
+    create: XOR<UserMemoryCreateInput, UserMemoryUncheckedCreateInput>
+    /**
+     * In case the UserMemory was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<UserMemoryUpdateInput, UserMemoryUncheckedUpdateInput>
+  }
+
+  /**
+   * UserMemory delete
+   */
+  export type UserMemoryDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserMemory
+     */
+    select?: UserMemorySelect<ExtArgs> | null
+    /**
+     * Filter which UserMemory to delete.
+     */
+    where: UserMemoryWhereUniqueInput
+  }
+
+  /**
+   * UserMemory deleteMany
+   */
+  export type UserMemoryDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserMemories to delete
+     */
+    where?: UserMemoryWhereInput
+  }
+
+  /**
+   * UserMemory without action
+   */
+  export type UserMemoryDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserMemory
+     */
+    select?: UserMemorySelect<ExtArgs> | null
   }
 
 
@@ -11046,6 +12010,17 @@ export namespace Prisma {
   export type ChatSessionScalarFieldEnum = (typeof ChatSessionScalarFieldEnum)[keyof typeof ChatSessionScalarFieldEnum]
 
 
+  export const UserMemoryScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    content: 'content',
+    category: 'category',
+    createdAt: 'createdAt'
+  };
+
+  export type UserMemoryScalarFieldEnum = (typeof UserMemoryScalarFieldEnum)[keyof typeof UserMemoryScalarFieldEnum]
+
+
   export const WorkoutPlanScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -11600,6 +12575,58 @@ export namespace Prisma {
     archivedAt?: DateTimeNullableWithAggregatesFilter<"ChatSession"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ChatSession"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ChatSession"> | Date | string
+  }
+
+  export type UserMemoryWhereInput = {
+    AND?: UserMemoryWhereInput | UserMemoryWhereInput[]
+    OR?: UserMemoryWhereInput[]
+    NOT?: UserMemoryWhereInput | UserMemoryWhereInput[]
+    id?: StringFilter<"UserMemory"> | string
+    userId?: StringFilter<"UserMemory"> | string
+    content?: StringFilter<"UserMemory"> | string
+    category?: StringNullableFilter<"UserMemory"> | string | null
+    createdAt?: DateTimeFilter<"UserMemory"> | Date | string
+  }
+
+  export type UserMemoryOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    content?: SortOrder
+    category?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type UserMemoryWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: UserMemoryWhereInput | UserMemoryWhereInput[]
+    OR?: UserMemoryWhereInput[]
+    NOT?: UserMemoryWhereInput | UserMemoryWhereInput[]
+    userId?: StringFilter<"UserMemory"> | string
+    content?: StringFilter<"UserMemory"> | string
+    category?: StringNullableFilter<"UserMemory"> | string | null
+    createdAt?: DateTimeFilter<"UserMemory"> | Date | string
+  }, "id">
+
+  export type UserMemoryOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    content?: SortOrder
+    category?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: UserMemoryCountOrderByAggregateInput
+    _max?: UserMemoryMaxOrderByAggregateInput
+    _min?: UserMemoryMinOrderByAggregateInput
+  }
+
+  export type UserMemoryScalarWhereWithAggregatesInput = {
+    AND?: UserMemoryScalarWhereWithAggregatesInput | UserMemoryScalarWhereWithAggregatesInput[]
+    OR?: UserMemoryScalarWhereWithAggregatesInput[]
+    NOT?: UserMemoryScalarWhereWithAggregatesInput | UserMemoryScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"UserMemory"> | string
+    userId?: StringWithAggregatesFilter<"UserMemory"> | string
+    content?: StringWithAggregatesFilter<"UserMemory"> | string
+    category?: StringNullableWithAggregatesFilter<"UserMemory"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"UserMemory"> | Date | string
   }
 
   export type WorkoutPlanWhereInput = {
@@ -12480,6 +13507,62 @@ export namespace Prisma {
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserMemoryCreateInput = {
+    id?: string
+    userId: string
+    content: string
+    category?: string | null
+    createdAt?: Date | string
+  }
+
+  export type UserMemoryUncheckedCreateInput = {
+    id?: string
+    userId: string
+    content: string
+    category?: string | null
+    createdAt?: Date | string
+  }
+
+  export type UserMemoryUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    category?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserMemoryUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    category?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserMemoryCreateManyInput = {
+    id?: string
+    userId: string
+    content: string
+    category?: string | null
+    createdAt?: Date | string
+  }
+
+  export type UserMemoryUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    category?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserMemoryUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    category?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type WorkoutPlanCreateInput = {
@@ -13557,6 +14640,30 @@ export namespace Prisma {
     archivedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type UserMemoryCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    content?: SortOrder
+    category?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type UserMemoryMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    content?: SortOrder
+    category?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type UserMemoryMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    content?: SortOrder
+    category?: SortOrder
+    createdAt?: SortOrder
   }
   export type JsonFilter<$PrismaModel = never> = 
     | PatchUndefined<
@@ -15452,6 +16559,10 @@ export namespace Prisma {
      * @deprecated Use ChatSessionDefaultArgs instead
      */
     export type ChatSessionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ChatSessionDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use UserMemoryDefaultArgs instead
+     */
+    export type UserMemoryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = UserMemoryDefaultArgs<ExtArgs>
     /**
      * @deprecated Use WorkoutPlanDefaultArgs instead
      */

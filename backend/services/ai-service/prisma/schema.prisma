@@ -58,6 +58,20 @@ model ChatSession {
   @@map("chat_sessions")
 }
 
+model UserMemory {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  content   String
+  // Free-text label ("dietary" | "schedule" | "exercise_preference" | "other"),
+  // not an enum — keeps the remember_user_fact tool schema simple and lets the
+  // model choose without a migration if new categories come up.
+  category  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("user_memories")
+}
+
 enum PlanStatus {
   QUEUED
   PROCESSING
