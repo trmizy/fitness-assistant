@@ -187,7 +187,7 @@ def validate_dataset(path: Path) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Train optional Coach QLoRA adapter")
-    parser.add_argument("--config", type=Path, default=REPO_ROOT / "training" / "configs" / "qlora_coach_3b.yaml")
+    parser.add_argument("--config", type=Path, default=REPO_ROOT / "training" / "configs" / "qlora_coach_qwen3_30b_a3b.yaml")
     parser.add_argument("--dataset", type=Path)
     parser.add_argument("--base-model")
     parser.add_argument("--output-dir", type=Path)
@@ -199,7 +199,7 @@ def main() -> int:
     config = parse_simple_yaml(args.config)
     dataset = args.dataset or REPO_ROOT / str(config.get("train_file", "training/data/processed/train.jsonl"))
     output_dir = args.output_dir or REPO_ROOT / str(config.get("output_dir", "training/outputs/fitness-coach-qlora"))
-    base_model = args.base_model or str(config.get("base_model", "llama3.2:3b"))
+    base_model = args.base_model or str(config.get("base_model", "Qwen/Qwen3-30B-A3B-Instruct-2507"))
     row_count = validate_dataset(dataset)
 
     summary = {
