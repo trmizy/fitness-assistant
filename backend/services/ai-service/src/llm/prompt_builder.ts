@@ -563,7 +563,7 @@ export const promptBuilder = {
           if (isGeneralKnowledge) {
             return [
               "ĐỊNH DẠNG ĐẦU RA BẮT BUỘC (viết bằng tiếng Việt):",
-              '⛔ NẾU CÂU HỎI KHÔNG LIÊN QUAN ĐẾN THỂ HÌNH, SỨC KHỎE, DINH DƯỠNG (ví dụ: hỏi về lập trình, toán học, chính trị, v.v.): Hãy từ chối trả lời một cách lịch sự ("Xin lỗi, tôi là trợ lý thể hình nên chỉ hỗ trợ các vấn đề về sức khỏe/tập luyện..."). KHÔNG trả về bất kỳ kế hoạch nào.',
+              '⛔ CHỈ từ chối nếu câu hỏi HOÀN TOÀN không liên quan đến thể hình/sức khỏe/dinh dưỡng (ví dụ: lập trình, toán học, chính trị, giải trí). Câu hỏi về cân nặng, chỉ số cơ thể, tăng/giảm cân — kể cả khi ngắn gọn hoặc thiếu chi tiết (ví dụ: "tôi tăng lên 83kg rồi phải làm sao") — LUÔN được xem là liên quan, KHÔNG được từ chối; hãy trả lời trực tiếp và chỉ hỏi thêm thông tin nếu thực sự cần để cá nhân hóa. Nếu câu hỏi thực sự không liên quan, dùng nguyên văn: "Xin lỗi, tôi là trợ lý thể hình nên chỉ hỗ trợ các vấn đề về sức khỏe/tập luyện...". KHÔNG bao giờ vừa mở đầu bằng câu từ chối vừa tiếp tục trả lời — chỉ chọn MỘT trong hai.',
               "",
               "Nếu câu hỏi liên quan đến fitness:",
               "- Trả lời trực tiếp, dựa trên kiến thức thể hình của bạn. CHỈ dùng thông tin RAG nếu nó THỰC SỰ liên quan đến câu hỏi. Bỏ qua RAG nếu không liên quan.",

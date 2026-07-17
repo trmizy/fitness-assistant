@@ -20,7 +20,7 @@ import { responseFormatter } from "../response_formatter";
 import { labelLocalizer } from "../label_localizer";
 import { inputParser } from "../input_parser";
 import { intentRouter } from "../intent_router";
-import { extractSessionContext } from "../prompt_builder";
+import { extractSessionContext, promptBuilder } from "../prompt_builder";
 import type { InputIntent, RecommendationResult, UserProfile } from "../types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -1260,5 +1260,48 @@ describe("M. intentRouter — supplement/recovery/deload/progress → general kn
       "Tại sao sau 3 tháng tập tôi vẫn không tăng cơ?",
     );
     assert.equal(intent, "general_fitness_knowledge");
+  });
+});
+
+// ─── N. prompt_builder — off-topic refusal instruction scope ──────────────────
+// Regression: a terse weight-only question ("tôi tăng lên 83kg rồi phải làm
+// sao") got routed to general_fitness_knowledge (correctly — it's on-topic),
+// but the old unqualified refusal instruction in this branch caused the LLM
+// to open answers with "Xin lỗi, tôi là trợ lý thể hình..." before still
+// answering anyway — a confusing half-refusal. Caught via live testing
+// against the real model, not a unit test; this guards the prompt text
+// itself so the loose wording can't silently come back.
+describe("N. prompt_builder — general_fitness_knowledge refusal instruction is scoped correctly", () => {
+  it("qualifies the refusal to fully-unrelated topics and explicitly allows terse weight questions", () => {
+    const prompt = promptBuilder.build(
+      "toi tang len 83kg roi phai lam sao",
+      minimalIntent("general_fitness_knowledge"),
+      {
+        profile: minimalProfile(),
+        inBodyHistory: [],
+        workoutHistory: [],
+        nutritionHistory: [],
+      },
+      { documents: [], isEmpty: true, reason: "test" },
+      minimalRecommendation(),
+      "vi",
+      [],
+    );
+
+    assert.match(
+      prompt,
+      /HOÀN TOÀN không liên quan/,
+      "refusal instruction must be qualified to fully-unrelated topics, not applied broadly",
+    );
+    assert.match(
+      prompt,
+      /83kg.*phải làm sao/,
+      "instruction must explicitly carve out terse weight questions as in-scope",
+    );
+    assert.match(
+      prompt,
+      /KHÔNG bao giờ vừa mở đầu bằng câu từ chối vừa tiếp tục trả lời/,
+      "instruction must forbid the half-refusal/half-answer pattern that caused the original bug",
+    );
   });
 });
