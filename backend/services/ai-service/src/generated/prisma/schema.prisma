@@ -145,8 +145,9 @@ model PublishedPlan {
   createdAt        DateTime                @default(now()) @map("created_at")
   updatedAt        DateTime                @updatedAt @map("updated_at")
 
-  sourcePlan WorkoutPlan  @relation(fields: [sourcePlanId], references: [id], onDelete: Cascade)
+  sourcePlan WorkoutPlan       @relation(fields: [sourcePlanId], references: [id], onDelete: Cascade)
   reviews    PlanReview[]
+  packages   TrainingPackage[]
 
   @@index([publisherId])
   @@index([moderationStatus])
@@ -166,6 +167,61 @@ model PlanReview {
   @@unique([publishedPlanId, reviewerId])
   @@index([publishedPlanId])
   @@map("plan_reviews")
+}
+
+enum TrainingPackageStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum TrainingPackagePurchaseStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+// A priced, sellable listing wrapping an APPROVED PublishedPlan. sellerId is
+// always the PublishedPlan's publisher (enforced in the service layer, not by
+// FK) — this is a distinct entity so a publisher can price/name multiple
+// sellable variants of the same underlying plan later without re-publishing.
+model TrainingPackage {
+  id              String                @id @default(uuid())
+  sellerId        String                @map("seller_id")
+  publishedPlanId String                @map("published_plan_id")
+  name            String
+  description     String?
+  price           Float
+  durationWeeks   Int?                  @map("duration_weeks")
+  status          TrainingPackageStatus @default(ACTIVE)
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  publishedPlan PublishedPlan             @relation(fields: [publishedPlanId], references: [id], onDelete: Cascade)
+  purchases     TrainingPackagePurchase[]
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([publishedPlanId])
+  @@map("training_packages")
+}
+
+model TrainingPackagePurchase {
+  id                   String                        @id @default(uuid())
+  packageId            String                        @map("package_id")
+  buyerId              String                        @map("buyer_id")
+  priceAtPurchase      Float                         @map("price_at_purchase")
+  paymentTransactionId String?                       @map("payment_transaction_id")
+  status               TrainingPackagePurchaseStatus @default(PENDING)
+  purchasedAt          DateTime?                     @map("purchased_at")
+  createdAt            DateTime                      @default(now()) @map("created_at")
+  updatedAt            DateTime                      @updatedAt @map("updated_at")
+
+  package TrainingPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, buyerId])
+  @@index([buyerId])
+  @@index([packageId])
+  @@map("training_package_purchases")
 }
 
 model NutritionPlan {

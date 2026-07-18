@@ -31,6 +31,7 @@ enum PaymentProviderType {
 enum PartnerType {
   GYM
   PT
+  CLIENT
 }
 
 enum CommissionStatus {
@@ -45,6 +46,7 @@ enum PurposeType {
   GYM_PT_COMBO
   WALLET_TOPUP
   REFUND
+  TRAINING_PACKAGE_PURCHASE
 }
 
 enum WalletOwnerType {
@@ -69,6 +71,7 @@ enum RelatedEntityType {
   GYM_MEMBERSHIP
   PT_CONTRACT
   WALLET_TOPUP
+  TRAINING_PACKAGE_PURCHASE
 }
 
 enum ActivationStatus {

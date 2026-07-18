@@ -44,6 +44,16 @@ export type PublishedPlan = $Result.DefaultSelection<Prisma.$PublishedPlanPayloa
  */
 export type PlanReview = $Result.DefaultSelection<Prisma.$PlanReviewPayload>
 /**
+ * Model TrainingPackage
+ * 
+ */
+export type TrainingPackage = $Result.DefaultSelection<Prisma.$TrainingPackagePayload>
+/**
+ * Model TrainingPackagePurchase
+ * 
+ */
+export type TrainingPackagePurchase = $Result.DefaultSelection<Prisma.$TrainingPackagePurchasePayload>
+/**
  * Model NutritionPlan
  * 
  */
@@ -105,6 +115,23 @@ export const PublishModerationStatus: {
 };
 
 export type PublishModerationStatus = (typeof PublishModerationStatus)[keyof typeof PublishModerationStatus]
+
+
+export const TrainingPackageStatus: {
+  ACTIVE: 'ACTIVE',
+  ARCHIVED: 'ARCHIVED'
+};
+
+export type TrainingPackageStatus = (typeof TrainingPackageStatus)[keyof typeof TrainingPackageStatus]
+
+
+export const TrainingPackagePurchaseStatus: {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  FAILED: 'FAILED'
+};
+
+export type TrainingPackagePurchaseStatus = (typeof TrainingPackagePurchaseStatus)[keyof typeof TrainingPackagePurchaseStatus]
 
 
 export const KnowledgeSourceType: {
@@ -171,6 +198,14 @@ export const PtReviewStatus: typeof $Enums.PtReviewStatus
 export type PublishModerationStatus = $Enums.PublishModerationStatus
 
 export const PublishModerationStatus: typeof $Enums.PublishModerationStatus
+
+export type TrainingPackageStatus = $Enums.TrainingPackageStatus
+
+export const TrainingPackageStatus: typeof $Enums.TrainingPackageStatus
+
+export type TrainingPackagePurchaseStatus = $Enums.TrainingPackagePurchaseStatus
+
+export const TrainingPackagePurchaseStatus: typeof $Enums.TrainingPackagePurchaseStatus
 
 export type KnowledgeSourceType = $Enums.KnowledgeSourceType
 
@@ -374,6 +409,26 @@ export class PrismaClient<
     * ```
     */
   get planReview(): Prisma.PlanReviewDelegate<ExtArgs>;
+
+  /**
+   * `prisma.trainingPackage`: Exposes CRUD operations for the **TrainingPackage** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more TrainingPackages
+    * const trainingPackages = await prisma.trainingPackage.findMany()
+    * ```
+    */
+  get trainingPackage(): Prisma.TrainingPackageDelegate<ExtArgs>;
+
+  /**
+   * `prisma.trainingPackagePurchase`: Exposes CRUD operations for the **TrainingPackagePurchase** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more TrainingPackagePurchases
+    * const trainingPackagePurchases = await prisma.trainingPackagePurchase.findMany()
+    * ```
+    */
+  get trainingPackagePurchase(): Prisma.TrainingPackagePurchaseDelegate<ExtArgs>;
 
   /**
    * `prisma.nutritionPlan`: Exposes CRUD operations for the **NutritionPlan** model.
@@ -881,6 +936,8 @@ export namespace Prisma {
     WorkoutPlan: 'WorkoutPlan',
     PublishedPlan: 'PublishedPlan',
     PlanReview: 'PlanReview',
+    TrainingPackage: 'TrainingPackage',
+    TrainingPackagePurchase: 'TrainingPackagePurchase',
     NutritionPlan: 'NutritionPlan',
     KnowledgeSource: 'KnowledgeSource',
     KnowledgeDocument: 'KnowledgeDocument',
@@ -902,7 +959,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planReview" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem"
+      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planReview" | "trainingPackage" | "trainingPackagePurchase" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1323,6 +1380,146 @@ export namespace Prisma {
           count: {
             args: Prisma.PlanReviewCountArgs<ExtArgs>
             result: $Utils.Optional<PlanReviewCountAggregateOutputType> | number
+          }
+        }
+      }
+      TrainingPackage: {
+        payload: Prisma.$TrainingPackagePayload<ExtArgs>
+        fields: Prisma.TrainingPackageFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.TrainingPackageFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.TrainingPackageFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePayload>
+          }
+          findFirst: {
+            args: Prisma.TrainingPackageFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.TrainingPackageFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePayload>
+          }
+          findMany: {
+            args: Prisma.TrainingPackageFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePayload>[]
+          }
+          create: {
+            args: Prisma.TrainingPackageCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePayload>
+          }
+          createMany: {
+            args: Prisma.TrainingPackageCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.TrainingPackageCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePayload>[]
+          }
+          delete: {
+            args: Prisma.TrainingPackageDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePayload>
+          }
+          update: {
+            args: Prisma.TrainingPackageUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePayload>
+          }
+          deleteMany: {
+            args: Prisma.TrainingPackageDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.TrainingPackageUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.TrainingPackageUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePayload>
+          }
+          aggregate: {
+            args: Prisma.TrainingPackageAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateTrainingPackage>
+          }
+          groupBy: {
+            args: Prisma.TrainingPackageGroupByArgs<ExtArgs>
+            result: $Utils.Optional<TrainingPackageGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.TrainingPackageCountArgs<ExtArgs>
+            result: $Utils.Optional<TrainingPackageCountAggregateOutputType> | number
+          }
+        }
+      }
+      TrainingPackagePurchase: {
+        payload: Prisma.$TrainingPackagePurchasePayload<ExtArgs>
+        fields: Prisma.TrainingPackagePurchaseFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.TrainingPackagePurchaseFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePurchasePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.TrainingPackagePurchaseFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePurchasePayload>
+          }
+          findFirst: {
+            args: Prisma.TrainingPackagePurchaseFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePurchasePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.TrainingPackagePurchaseFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePurchasePayload>
+          }
+          findMany: {
+            args: Prisma.TrainingPackagePurchaseFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePurchasePayload>[]
+          }
+          create: {
+            args: Prisma.TrainingPackagePurchaseCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePurchasePayload>
+          }
+          createMany: {
+            args: Prisma.TrainingPackagePurchaseCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.TrainingPackagePurchaseCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePurchasePayload>[]
+          }
+          delete: {
+            args: Prisma.TrainingPackagePurchaseDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePurchasePayload>
+          }
+          update: {
+            args: Prisma.TrainingPackagePurchaseUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePurchasePayload>
+          }
+          deleteMany: {
+            args: Prisma.TrainingPackagePurchaseDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.TrainingPackagePurchaseUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.TrainingPackagePurchaseUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingPackagePurchasePayload>
+          }
+          aggregate: {
+            args: Prisma.TrainingPackagePurchaseAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateTrainingPackagePurchase>
+          }
+          groupBy: {
+            args: Prisma.TrainingPackagePurchaseGroupByArgs<ExtArgs>
+            result: $Utils.Optional<TrainingPackagePurchaseGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.TrainingPackagePurchaseCountArgs<ExtArgs>
+            result: $Utils.Optional<TrainingPackagePurchaseCountAggregateOutputType> | number
           }
         }
       }
@@ -1939,10 +2136,12 @@ export namespace Prisma {
 
   export type PublishedPlanCountOutputType = {
     reviews: number
+    packages: number
   }
 
   export type PublishedPlanCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     reviews?: boolean | PublishedPlanCountOutputTypeCountReviewsArgs
+    packages?: boolean | PublishedPlanCountOutputTypeCountPackagesArgs
   }
 
   // Custom InputTypes
@@ -1961,6 +2160,44 @@ export namespace Prisma {
    */
   export type PublishedPlanCountOutputTypeCountReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PlanReviewWhereInput
+  }
+
+  /**
+   * PublishedPlanCountOutputType without action
+   */
+  export type PublishedPlanCountOutputTypeCountPackagesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TrainingPackageWhereInput
+  }
+
+
+  /**
+   * Count Type TrainingPackageCountOutputType
+   */
+
+  export type TrainingPackageCountOutputType = {
+    purchases: number
+  }
+
+  export type TrainingPackageCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    purchases?: boolean | TrainingPackageCountOutputTypeCountPurchasesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * TrainingPackageCountOutputType without action
+   */
+  export type TrainingPackageCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackageCountOutputType
+     */
+    select?: TrainingPackageCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * TrainingPackageCountOutputType without action
+   */
+  export type TrainingPackageCountOutputTypeCountPurchasesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TrainingPackagePurchaseWhereInput
   }
 
 
@@ -6411,6 +6648,7 @@ export namespace Prisma {
     updatedAt?: boolean
     sourcePlan?: boolean | WorkoutPlanDefaultArgs<ExtArgs>
     reviews?: boolean | PublishedPlan$reviewsArgs<ExtArgs>
+    packages?: boolean | PublishedPlan$packagesArgs<ExtArgs>
     _count?: boolean | PublishedPlanCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["publishedPlan"]>
 
@@ -6450,6 +6688,7 @@ export namespace Prisma {
   export type PublishedPlanInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sourcePlan?: boolean | WorkoutPlanDefaultArgs<ExtArgs>
     reviews?: boolean | PublishedPlan$reviewsArgs<ExtArgs>
+    packages?: boolean | PublishedPlan$packagesArgs<ExtArgs>
     _count?: boolean | PublishedPlanCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type PublishedPlanIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6461,6 +6700,7 @@ export namespace Prisma {
     objects: {
       sourcePlan: Prisma.$WorkoutPlanPayload<ExtArgs>
       reviews: Prisma.$PlanReviewPayload<ExtArgs>[]
+      packages: Prisma.$TrainingPackagePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -6842,6 +7082,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     sourcePlan<T extends WorkoutPlanDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WorkoutPlanDefaultArgs<ExtArgs>>): Prisma__WorkoutPlanClient<$Result.GetResult<Prisma.$WorkoutPlanPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     reviews<T extends PublishedPlan$reviewsArgs<ExtArgs> = {}>(args?: Subset<T, PublishedPlan$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "findMany"> | Null>
+    packages<T extends PublishedPlan$packagesArgs<ExtArgs> = {}>(args?: Subset<T, PublishedPlan$packagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7219,6 +7460,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: PlanReviewScalarFieldEnum | PlanReviewScalarFieldEnum[]
+  }
+
+  /**
+   * PublishedPlan.packages
+   */
+  export type PublishedPlan$packagesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageInclude<ExtArgs> | null
+    where?: TrainingPackageWhereInput
+    orderBy?: TrainingPackageOrderByWithRelationInput | TrainingPackageOrderByWithRelationInput[]
+    cursor?: TrainingPackageWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TrainingPackageScalarFieldEnum | TrainingPackageScalarFieldEnum[]
   }
 
   /**
@@ -8212,6 +8473,2078 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: PlanReviewInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model TrainingPackage
+   */
+
+  export type AggregateTrainingPackage = {
+    _count: TrainingPackageCountAggregateOutputType | null
+    _avg: TrainingPackageAvgAggregateOutputType | null
+    _sum: TrainingPackageSumAggregateOutputType | null
+    _min: TrainingPackageMinAggregateOutputType | null
+    _max: TrainingPackageMaxAggregateOutputType | null
+  }
+
+  export type TrainingPackageAvgAggregateOutputType = {
+    price: number | null
+    durationWeeks: number | null
+  }
+
+  export type TrainingPackageSumAggregateOutputType = {
+    price: number | null
+    durationWeeks: number | null
+  }
+
+  export type TrainingPackageMinAggregateOutputType = {
+    id: string | null
+    sellerId: string | null
+    publishedPlanId: string | null
+    name: string | null
+    description: string | null
+    price: number | null
+    durationWeeks: number | null
+    status: $Enums.TrainingPackageStatus | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type TrainingPackageMaxAggregateOutputType = {
+    id: string | null
+    sellerId: string | null
+    publishedPlanId: string | null
+    name: string | null
+    description: string | null
+    price: number | null
+    durationWeeks: number | null
+    status: $Enums.TrainingPackageStatus | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type TrainingPackageCountAggregateOutputType = {
+    id: number
+    sellerId: number
+    publishedPlanId: number
+    name: number
+    description: number
+    price: number
+    durationWeeks: number
+    status: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type TrainingPackageAvgAggregateInputType = {
+    price?: true
+    durationWeeks?: true
+  }
+
+  export type TrainingPackageSumAggregateInputType = {
+    price?: true
+    durationWeeks?: true
+  }
+
+  export type TrainingPackageMinAggregateInputType = {
+    id?: true
+    sellerId?: true
+    publishedPlanId?: true
+    name?: true
+    description?: true
+    price?: true
+    durationWeeks?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type TrainingPackageMaxAggregateInputType = {
+    id?: true
+    sellerId?: true
+    publishedPlanId?: true
+    name?: true
+    description?: true
+    price?: true
+    durationWeeks?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type TrainingPackageCountAggregateInputType = {
+    id?: true
+    sellerId?: true
+    publishedPlanId?: true
+    name?: true
+    description?: true
+    price?: true
+    durationWeeks?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type TrainingPackageAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TrainingPackage to aggregate.
+     */
+    where?: TrainingPackageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingPackages to fetch.
+     */
+    orderBy?: TrainingPackageOrderByWithRelationInput | TrainingPackageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: TrainingPackageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingPackages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingPackages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned TrainingPackages
+    **/
+    _count?: true | TrainingPackageCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: TrainingPackageAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: TrainingPackageSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: TrainingPackageMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: TrainingPackageMaxAggregateInputType
+  }
+
+  export type GetTrainingPackageAggregateType<T extends TrainingPackageAggregateArgs> = {
+        [P in keyof T & keyof AggregateTrainingPackage]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateTrainingPackage[P]>
+      : GetScalarType<T[P], AggregateTrainingPackage[P]>
+  }
+
+
+
+
+  export type TrainingPackageGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TrainingPackageWhereInput
+    orderBy?: TrainingPackageOrderByWithAggregationInput | TrainingPackageOrderByWithAggregationInput[]
+    by: TrainingPackageScalarFieldEnum[] | TrainingPackageScalarFieldEnum
+    having?: TrainingPackageScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: TrainingPackageCountAggregateInputType | true
+    _avg?: TrainingPackageAvgAggregateInputType
+    _sum?: TrainingPackageSumAggregateInputType
+    _min?: TrainingPackageMinAggregateInputType
+    _max?: TrainingPackageMaxAggregateInputType
+  }
+
+  export type TrainingPackageGroupByOutputType = {
+    id: string
+    sellerId: string
+    publishedPlanId: string
+    name: string
+    description: string | null
+    price: number
+    durationWeeks: number | null
+    status: $Enums.TrainingPackageStatus
+    createdAt: Date
+    updatedAt: Date
+    _count: TrainingPackageCountAggregateOutputType | null
+    _avg: TrainingPackageAvgAggregateOutputType | null
+    _sum: TrainingPackageSumAggregateOutputType | null
+    _min: TrainingPackageMinAggregateOutputType | null
+    _max: TrainingPackageMaxAggregateOutputType | null
+  }
+
+  type GetTrainingPackageGroupByPayload<T extends TrainingPackageGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<TrainingPackageGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof TrainingPackageGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], TrainingPackageGroupByOutputType[P]>
+            : GetScalarType<T[P], TrainingPackageGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type TrainingPackageSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sellerId?: boolean
+    publishedPlanId?: boolean
+    name?: boolean
+    description?: boolean
+    price?: boolean
+    durationWeeks?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+    purchases?: boolean | TrainingPackage$purchasesArgs<ExtArgs>
+    _count?: boolean | TrainingPackageCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["trainingPackage"]>
+
+  export type TrainingPackageSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sellerId?: boolean
+    publishedPlanId?: boolean
+    name?: boolean
+    description?: boolean
+    price?: boolean
+    durationWeeks?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["trainingPackage"]>
+
+  export type TrainingPackageSelectScalar = {
+    id?: boolean
+    sellerId?: boolean
+    publishedPlanId?: boolean
+    name?: boolean
+    description?: boolean
+    price?: boolean
+    durationWeeks?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type TrainingPackageInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+    purchases?: boolean | TrainingPackage$purchasesArgs<ExtArgs>
+    _count?: boolean | TrainingPackageCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type TrainingPackageIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }
+
+  export type $TrainingPackagePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "TrainingPackage"
+    objects: {
+      publishedPlan: Prisma.$PublishedPlanPayload<ExtArgs>
+      purchases: Prisma.$TrainingPackagePurchasePayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      sellerId: string
+      publishedPlanId: string
+      name: string
+      description: string | null
+      price: number
+      durationWeeks: number | null
+      status: $Enums.TrainingPackageStatus
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["trainingPackage"]>
+    composites: {}
+  }
+
+  type TrainingPackageGetPayload<S extends boolean | null | undefined | TrainingPackageDefaultArgs> = $Result.GetResult<Prisma.$TrainingPackagePayload, S>
+
+  type TrainingPackageCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<TrainingPackageFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: TrainingPackageCountAggregateInputType | true
+    }
+
+  export interface TrainingPackageDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['TrainingPackage'], meta: { name: 'TrainingPackage' } }
+    /**
+     * Find zero or one TrainingPackage that matches the filter.
+     * @param {TrainingPackageFindUniqueArgs} args - Arguments to find a TrainingPackage
+     * @example
+     * // Get one TrainingPackage
+     * const trainingPackage = await prisma.trainingPackage.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends TrainingPackageFindUniqueArgs>(args: SelectSubset<T, TrainingPackageFindUniqueArgs<ExtArgs>>): Prisma__TrainingPackageClient<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one TrainingPackage that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {TrainingPackageFindUniqueOrThrowArgs} args - Arguments to find a TrainingPackage
+     * @example
+     * // Get one TrainingPackage
+     * const trainingPackage = await prisma.trainingPackage.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends TrainingPackageFindUniqueOrThrowArgs>(args: SelectSubset<T, TrainingPackageFindUniqueOrThrowArgs<ExtArgs>>): Prisma__TrainingPackageClient<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first TrainingPackage that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackageFindFirstArgs} args - Arguments to find a TrainingPackage
+     * @example
+     * // Get one TrainingPackage
+     * const trainingPackage = await prisma.trainingPackage.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends TrainingPackageFindFirstArgs>(args?: SelectSubset<T, TrainingPackageFindFirstArgs<ExtArgs>>): Prisma__TrainingPackageClient<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first TrainingPackage that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackageFindFirstOrThrowArgs} args - Arguments to find a TrainingPackage
+     * @example
+     * // Get one TrainingPackage
+     * const trainingPackage = await prisma.trainingPackage.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends TrainingPackageFindFirstOrThrowArgs>(args?: SelectSubset<T, TrainingPackageFindFirstOrThrowArgs<ExtArgs>>): Prisma__TrainingPackageClient<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more TrainingPackages that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackageFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all TrainingPackages
+     * const trainingPackages = await prisma.trainingPackage.findMany()
+     * 
+     * // Get first 10 TrainingPackages
+     * const trainingPackages = await prisma.trainingPackage.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const trainingPackageWithIdOnly = await prisma.trainingPackage.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends TrainingPackageFindManyArgs>(args?: SelectSubset<T, TrainingPackageFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a TrainingPackage.
+     * @param {TrainingPackageCreateArgs} args - Arguments to create a TrainingPackage.
+     * @example
+     * // Create one TrainingPackage
+     * const TrainingPackage = await prisma.trainingPackage.create({
+     *   data: {
+     *     // ... data to create a TrainingPackage
+     *   }
+     * })
+     * 
+     */
+    create<T extends TrainingPackageCreateArgs>(args: SelectSubset<T, TrainingPackageCreateArgs<ExtArgs>>): Prisma__TrainingPackageClient<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many TrainingPackages.
+     * @param {TrainingPackageCreateManyArgs} args - Arguments to create many TrainingPackages.
+     * @example
+     * // Create many TrainingPackages
+     * const trainingPackage = await prisma.trainingPackage.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends TrainingPackageCreateManyArgs>(args?: SelectSubset<T, TrainingPackageCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many TrainingPackages and returns the data saved in the database.
+     * @param {TrainingPackageCreateManyAndReturnArgs} args - Arguments to create many TrainingPackages.
+     * @example
+     * // Create many TrainingPackages
+     * const trainingPackage = await prisma.trainingPackage.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many TrainingPackages and only return the `id`
+     * const trainingPackageWithIdOnly = await prisma.trainingPackage.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends TrainingPackageCreateManyAndReturnArgs>(args?: SelectSubset<T, TrainingPackageCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a TrainingPackage.
+     * @param {TrainingPackageDeleteArgs} args - Arguments to delete one TrainingPackage.
+     * @example
+     * // Delete one TrainingPackage
+     * const TrainingPackage = await prisma.trainingPackage.delete({
+     *   where: {
+     *     // ... filter to delete one TrainingPackage
+     *   }
+     * })
+     * 
+     */
+    delete<T extends TrainingPackageDeleteArgs>(args: SelectSubset<T, TrainingPackageDeleteArgs<ExtArgs>>): Prisma__TrainingPackageClient<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one TrainingPackage.
+     * @param {TrainingPackageUpdateArgs} args - Arguments to update one TrainingPackage.
+     * @example
+     * // Update one TrainingPackage
+     * const trainingPackage = await prisma.trainingPackage.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends TrainingPackageUpdateArgs>(args: SelectSubset<T, TrainingPackageUpdateArgs<ExtArgs>>): Prisma__TrainingPackageClient<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more TrainingPackages.
+     * @param {TrainingPackageDeleteManyArgs} args - Arguments to filter TrainingPackages to delete.
+     * @example
+     * // Delete a few TrainingPackages
+     * const { count } = await prisma.trainingPackage.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends TrainingPackageDeleteManyArgs>(args?: SelectSubset<T, TrainingPackageDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TrainingPackages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackageUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many TrainingPackages
+     * const trainingPackage = await prisma.trainingPackage.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends TrainingPackageUpdateManyArgs>(args: SelectSubset<T, TrainingPackageUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one TrainingPackage.
+     * @param {TrainingPackageUpsertArgs} args - Arguments to update or create a TrainingPackage.
+     * @example
+     * // Update or create a TrainingPackage
+     * const trainingPackage = await prisma.trainingPackage.upsert({
+     *   create: {
+     *     // ... data to create a TrainingPackage
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the TrainingPackage we want to update
+     *   }
+     * })
+     */
+    upsert<T extends TrainingPackageUpsertArgs>(args: SelectSubset<T, TrainingPackageUpsertArgs<ExtArgs>>): Prisma__TrainingPackageClient<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of TrainingPackages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackageCountArgs} args - Arguments to filter TrainingPackages to count.
+     * @example
+     * // Count the number of TrainingPackages
+     * const count = await prisma.trainingPackage.count({
+     *   where: {
+     *     // ... the filter for the TrainingPackages we want to count
+     *   }
+     * })
+    **/
+    count<T extends TrainingPackageCountArgs>(
+      args?: Subset<T, TrainingPackageCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], TrainingPackageCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a TrainingPackage.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackageAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends TrainingPackageAggregateArgs>(args: Subset<T, TrainingPackageAggregateArgs>): Prisma.PrismaPromise<GetTrainingPackageAggregateType<T>>
+
+    /**
+     * Group by TrainingPackage.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackageGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends TrainingPackageGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: TrainingPackageGroupByArgs['orderBy'] }
+        : { orderBy?: TrainingPackageGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, TrainingPackageGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetTrainingPackageGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the TrainingPackage model
+   */
+  readonly fields: TrainingPackageFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for TrainingPackage.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__TrainingPackageClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    publishedPlan<T extends PublishedPlanDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PublishedPlanDefaultArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    purchases<T extends TrainingPackage$purchasesArgs<ExtArgs> = {}>(args?: Subset<T, TrainingPackage$purchasesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrainingPackagePurchasePayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the TrainingPackage model
+   */ 
+  interface TrainingPackageFieldRefs {
+    readonly id: FieldRef<"TrainingPackage", 'String'>
+    readonly sellerId: FieldRef<"TrainingPackage", 'String'>
+    readonly publishedPlanId: FieldRef<"TrainingPackage", 'String'>
+    readonly name: FieldRef<"TrainingPackage", 'String'>
+    readonly description: FieldRef<"TrainingPackage", 'String'>
+    readonly price: FieldRef<"TrainingPackage", 'Float'>
+    readonly durationWeeks: FieldRef<"TrainingPackage", 'Int'>
+    readonly status: FieldRef<"TrainingPackage", 'TrainingPackageStatus'>
+    readonly createdAt: FieldRef<"TrainingPackage", 'DateTime'>
+    readonly updatedAt: FieldRef<"TrainingPackage", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * TrainingPackage findUnique
+   */
+  export type TrainingPackageFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageInclude<ExtArgs> | null
+    /**
+     * Filter, which TrainingPackage to fetch.
+     */
+    where: TrainingPackageWhereUniqueInput
+  }
+
+  /**
+   * TrainingPackage findUniqueOrThrow
+   */
+  export type TrainingPackageFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageInclude<ExtArgs> | null
+    /**
+     * Filter, which TrainingPackage to fetch.
+     */
+    where: TrainingPackageWhereUniqueInput
+  }
+
+  /**
+   * TrainingPackage findFirst
+   */
+  export type TrainingPackageFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageInclude<ExtArgs> | null
+    /**
+     * Filter, which TrainingPackage to fetch.
+     */
+    where?: TrainingPackageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingPackages to fetch.
+     */
+    orderBy?: TrainingPackageOrderByWithRelationInput | TrainingPackageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TrainingPackages.
+     */
+    cursor?: TrainingPackageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingPackages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingPackages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TrainingPackages.
+     */
+    distinct?: TrainingPackageScalarFieldEnum | TrainingPackageScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingPackage findFirstOrThrow
+   */
+  export type TrainingPackageFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageInclude<ExtArgs> | null
+    /**
+     * Filter, which TrainingPackage to fetch.
+     */
+    where?: TrainingPackageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingPackages to fetch.
+     */
+    orderBy?: TrainingPackageOrderByWithRelationInput | TrainingPackageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TrainingPackages.
+     */
+    cursor?: TrainingPackageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingPackages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingPackages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TrainingPackages.
+     */
+    distinct?: TrainingPackageScalarFieldEnum | TrainingPackageScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingPackage findMany
+   */
+  export type TrainingPackageFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageInclude<ExtArgs> | null
+    /**
+     * Filter, which TrainingPackages to fetch.
+     */
+    where?: TrainingPackageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingPackages to fetch.
+     */
+    orderBy?: TrainingPackageOrderByWithRelationInput | TrainingPackageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing TrainingPackages.
+     */
+    cursor?: TrainingPackageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingPackages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingPackages.
+     */
+    skip?: number
+    distinct?: TrainingPackageScalarFieldEnum | TrainingPackageScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingPackage create
+   */
+  export type TrainingPackageCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageInclude<ExtArgs> | null
+    /**
+     * The data needed to create a TrainingPackage.
+     */
+    data: XOR<TrainingPackageCreateInput, TrainingPackageUncheckedCreateInput>
+  }
+
+  /**
+   * TrainingPackage createMany
+   */
+  export type TrainingPackageCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many TrainingPackages.
+     */
+    data: TrainingPackageCreateManyInput | TrainingPackageCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * TrainingPackage createManyAndReturn
+   */
+  export type TrainingPackageCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many TrainingPackages.
+     */
+    data: TrainingPackageCreateManyInput | TrainingPackageCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * TrainingPackage update
+   */
+  export type TrainingPackageUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageInclude<ExtArgs> | null
+    /**
+     * The data needed to update a TrainingPackage.
+     */
+    data: XOR<TrainingPackageUpdateInput, TrainingPackageUncheckedUpdateInput>
+    /**
+     * Choose, which TrainingPackage to update.
+     */
+    where: TrainingPackageWhereUniqueInput
+  }
+
+  /**
+   * TrainingPackage updateMany
+   */
+  export type TrainingPackageUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update TrainingPackages.
+     */
+    data: XOR<TrainingPackageUpdateManyMutationInput, TrainingPackageUncheckedUpdateManyInput>
+    /**
+     * Filter which TrainingPackages to update
+     */
+    where?: TrainingPackageWhereInput
+  }
+
+  /**
+   * TrainingPackage upsert
+   */
+  export type TrainingPackageUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageInclude<ExtArgs> | null
+    /**
+     * The filter to search for the TrainingPackage to update in case it exists.
+     */
+    where: TrainingPackageWhereUniqueInput
+    /**
+     * In case the TrainingPackage found by the `where` argument doesn't exist, create a new TrainingPackage with this data.
+     */
+    create: XOR<TrainingPackageCreateInput, TrainingPackageUncheckedCreateInput>
+    /**
+     * In case the TrainingPackage was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<TrainingPackageUpdateInput, TrainingPackageUncheckedUpdateInput>
+  }
+
+  /**
+   * TrainingPackage delete
+   */
+  export type TrainingPackageDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageInclude<ExtArgs> | null
+    /**
+     * Filter which TrainingPackage to delete.
+     */
+    where: TrainingPackageWhereUniqueInput
+  }
+
+  /**
+   * TrainingPackage deleteMany
+   */
+  export type TrainingPackageDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TrainingPackages to delete
+     */
+    where?: TrainingPackageWhereInput
+  }
+
+  /**
+   * TrainingPackage.purchases
+   */
+  export type TrainingPackage$purchasesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseInclude<ExtArgs> | null
+    where?: TrainingPackagePurchaseWhereInput
+    orderBy?: TrainingPackagePurchaseOrderByWithRelationInput | TrainingPackagePurchaseOrderByWithRelationInput[]
+    cursor?: TrainingPackagePurchaseWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TrainingPackagePurchaseScalarFieldEnum | TrainingPackagePurchaseScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingPackage without action
+   */
+  export type TrainingPackageDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackage
+     */
+    select?: TrainingPackageSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackageInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model TrainingPackagePurchase
+   */
+
+  export type AggregateTrainingPackagePurchase = {
+    _count: TrainingPackagePurchaseCountAggregateOutputType | null
+    _avg: TrainingPackagePurchaseAvgAggregateOutputType | null
+    _sum: TrainingPackagePurchaseSumAggregateOutputType | null
+    _min: TrainingPackagePurchaseMinAggregateOutputType | null
+    _max: TrainingPackagePurchaseMaxAggregateOutputType | null
+  }
+
+  export type TrainingPackagePurchaseAvgAggregateOutputType = {
+    priceAtPurchase: number | null
+  }
+
+  export type TrainingPackagePurchaseSumAggregateOutputType = {
+    priceAtPurchase: number | null
+  }
+
+  export type TrainingPackagePurchaseMinAggregateOutputType = {
+    id: string | null
+    packageId: string | null
+    buyerId: string | null
+    priceAtPurchase: number | null
+    paymentTransactionId: string | null
+    status: $Enums.TrainingPackagePurchaseStatus | null
+    purchasedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type TrainingPackagePurchaseMaxAggregateOutputType = {
+    id: string | null
+    packageId: string | null
+    buyerId: string | null
+    priceAtPurchase: number | null
+    paymentTransactionId: string | null
+    status: $Enums.TrainingPackagePurchaseStatus | null
+    purchasedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type TrainingPackagePurchaseCountAggregateOutputType = {
+    id: number
+    packageId: number
+    buyerId: number
+    priceAtPurchase: number
+    paymentTransactionId: number
+    status: number
+    purchasedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type TrainingPackagePurchaseAvgAggregateInputType = {
+    priceAtPurchase?: true
+  }
+
+  export type TrainingPackagePurchaseSumAggregateInputType = {
+    priceAtPurchase?: true
+  }
+
+  export type TrainingPackagePurchaseMinAggregateInputType = {
+    id?: true
+    packageId?: true
+    buyerId?: true
+    priceAtPurchase?: true
+    paymentTransactionId?: true
+    status?: true
+    purchasedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type TrainingPackagePurchaseMaxAggregateInputType = {
+    id?: true
+    packageId?: true
+    buyerId?: true
+    priceAtPurchase?: true
+    paymentTransactionId?: true
+    status?: true
+    purchasedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type TrainingPackagePurchaseCountAggregateInputType = {
+    id?: true
+    packageId?: true
+    buyerId?: true
+    priceAtPurchase?: true
+    paymentTransactionId?: true
+    status?: true
+    purchasedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type TrainingPackagePurchaseAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TrainingPackagePurchase to aggregate.
+     */
+    where?: TrainingPackagePurchaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingPackagePurchases to fetch.
+     */
+    orderBy?: TrainingPackagePurchaseOrderByWithRelationInput | TrainingPackagePurchaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: TrainingPackagePurchaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingPackagePurchases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingPackagePurchases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned TrainingPackagePurchases
+    **/
+    _count?: true | TrainingPackagePurchaseCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: TrainingPackagePurchaseAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: TrainingPackagePurchaseSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: TrainingPackagePurchaseMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: TrainingPackagePurchaseMaxAggregateInputType
+  }
+
+  export type GetTrainingPackagePurchaseAggregateType<T extends TrainingPackagePurchaseAggregateArgs> = {
+        [P in keyof T & keyof AggregateTrainingPackagePurchase]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateTrainingPackagePurchase[P]>
+      : GetScalarType<T[P], AggregateTrainingPackagePurchase[P]>
+  }
+
+
+
+
+  export type TrainingPackagePurchaseGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TrainingPackagePurchaseWhereInput
+    orderBy?: TrainingPackagePurchaseOrderByWithAggregationInput | TrainingPackagePurchaseOrderByWithAggregationInput[]
+    by: TrainingPackagePurchaseScalarFieldEnum[] | TrainingPackagePurchaseScalarFieldEnum
+    having?: TrainingPackagePurchaseScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: TrainingPackagePurchaseCountAggregateInputType | true
+    _avg?: TrainingPackagePurchaseAvgAggregateInputType
+    _sum?: TrainingPackagePurchaseSumAggregateInputType
+    _min?: TrainingPackagePurchaseMinAggregateInputType
+    _max?: TrainingPackagePurchaseMaxAggregateInputType
+  }
+
+  export type TrainingPackagePurchaseGroupByOutputType = {
+    id: string
+    packageId: string
+    buyerId: string
+    priceAtPurchase: number
+    paymentTransactionId: string | null
+    status: $Enums.TrainingPackagePurchaseStatus
+    purchasedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: TrainingPackagePurchaseCountAggregateOutputType | null
+    _avg: TrainingPackagePurchaseAvgAggregateOutputType | null
+    _sum: TrainingPackagePurchaseSumAggregateOutputType | null
+    _min: TrainingPackagePurchaseMinAggregateOutputType | null
+    _max: TrainingPackagePurchaseMaxAggregateOutputType | null
+  }
+
+  type GetTrainingPackagePurchaseGroupByPayload<T extends TrainingPackagePurchaseGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<TrainingPackagePurchaseGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof TrainingPackagePurchaseGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], TrainingPackagePurchaseGroupByOutputType[P]>
+            : GetScalarType<T[P], TrainingPackagePurchaseGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type TrainingPackagePurchaseSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    packageId?: boolean
+    buyerId?: boolean
+    priceAtPurchase?: boolean
+    paymentTransactionId?: boolean
+    status?: boolean
+    purchasedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    package?: boolean | TrainingPackageDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["trainingPackagePurchase"]>
+
+  export type TrainingPackagePurchaseSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    packageId?: boolean
+    buyerId?: boolean
+    priceAtPurchase?: boolean
+    paymentTransactionId?: boolean
+    status?: boolean
+    purchasedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    package?: boolean | TrainingPackageDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["trainingPackagePurchase"]>
+
+  export type TrainingPackagePurchaseSelectScalar = {
+    id?: boolean
+    packageId?: boolean
+    buyerId?: boolean
+    priceAtPurchase?: boolean
+    paymentTransactionId?: boolean
+    status?: boolean
+    purchasedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type TrainingPackagePurchaseInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    package?: boolean | TrainingPackageDefaultArgs<ExtArgs>
+  }
+  export type TrainingPackagePurchaseIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    package?: boolean | TrainingPackageDefaultArgs<ExtArgs>
+  }
+
+  export type $TrainingPackagePurchasePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "TrainingPackagePurchase"
+    objects: {
+      package: Prisma.$TrainingPackagePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      packageId: string
+      buyerId: string
+      priceAtPurchase: number
+      paymentTransactionId: string | null
+      status: $Enums.TrainingPackagePurchaseStatus
+      purchasedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["trainingPackagePurchase"]>
+    composites: {}
+  }
+
+  type TrainingPackagePurchaseGetPayload<S extends boolean | null | undefined | TrainingPackagePurchaseDefaultArgs> = $Result.GetResult<Prisma.$TrainingPackagePurchasePayload, S>
+
+  type TrainingPackagePurchaseCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<TrainingPackagePurchaseFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: TrainingPackagePurchaseCountAggregateInputType | true
+    }
+
+  export interface TrainingPackagePurchaseDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['TrainingPackagePurchase'], meta: { name: 'TrainingPackagePurchase' } }
+    /**
+     * Find zero or one TrainingPackagePurchase that matches the filter.
+     * @param {TrainingPackagePurchaseFindUniqueArgs} args - Arguments to find a TrainingPackagePurchase
+     * @example
+     * // Get one TrainingPackagePurchase
+     * const trainingPackagePurchase = await prisma.trainingPackagePurchase.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends TrainingPackagePurchaseFindUniqueArgs>(args: SelectSubset<T, TrainingPackagePurchaseFindUniqueArgs<ExtArgs>>): Prisma__TrainingPackagePurchaseClient<$Result.GetResult<Prisma.$TrainingPackagePurchasePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one TrainingPackagePurchase that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {TrainingPackagePurchaseFindUniqueOrThrowArgs} args - Arguments to find a TrainingPackagePurchase
+     * @example
+     * // Get one TrainingPackagePurchase
+     * const trainingPackagePurchase = await prisma.trainingPackagePurchase.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends TrainingPackagePurchaseFindUniqueOrThrowArgs>(args: SelectSubset<T, TrainingPackagePurchaseFindUniqueOrThrowArgs<ExtArgs>>): Prisma__TrainingPackagePurchaseClient<$Result.GetResult<Prisma.$TrainingPackagePurchasePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first TrainingPackagePurchase that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackagePurchaseFindFirstArgs} args - Arguments to find a TrainingPackagePurchase
+     * @example
+     * // Get one TrainingPackagePurchase
+     * const trainingPackagePurchase = await prisma.trainingPackagePurchase.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends TrainingPackagePurchaseFindFirstArgs>(args?: SelectSubset<T, TrainingPackagePurchaseFindFirstArgs<ExtArgs>>): Prisma__TrainingPackagePurchaseClient<$Result.GetResult<Prisma.$TrainingPackagePurchasePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first TrainingPackagePurchase that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackagePurchaseFindFirstOrThrowArgs} args - Arguments to find a TrainingPackagePurchase
+     * @example
+     * // Get one TrainingPackagePurchase
+     * const trainingPackagePurchase = await prisma.trainingPackagePurchase.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends TrainingPackagePurchaseFindFirstOrThrowArgs>(args?: SelectSubset<T, TrainingPackagePurchaseFindFirstOrThrowArgs<ExtArgs>>): Prisma__TrainingPackagePurchaseClient<$Result.GetResult<Prisma.$TrainingPackagePurchasePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more TrainingPackagePurchases that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackagePurchaseFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all TrainingPackagePurchases
+     * const trainingPackagePurchases = await prisma.trainingPackagePurchase.findMany()
+     * 
+     * // Get first 10 TrainingPackagePurchases
+     * const trainingPackagePurchases = await prisma.trainingPackagePurchase.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const trainingPackagePurchaseWithIdOnly = await prisma.trainingPackagePurchase.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends TrainingPackagePurchaseFindManyArgs>(args?: SelectSubset<T, TrainingPackagePurchaseFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrainingPackagePurchasePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a TrainingPackagePurchase.
+     * @param {TrainingPackagePurchaseCreateArgs} args - Arguments to create a TrainingPackagePurchase.
+     * @example
+     * // Create one TrainingPackagePurchase
+     * const TrainingPackagePurchase = await prisma.trainingPackagePurchase.create({
+     *   data: {
+     *     // ... data to create a TrainingPackagePurchase
+     *   }
+     * })
+     * 
+     */
+    create<T extends TrainingPackagePurchaseCreateArgs>(args: SelectSubset<T, TrainingPackagePurchaseCreateArgs<ExtArgs>>): Prisma__TrainingPackagePurchaseClient<$Result.GetResult<Prisma.$TrainingPackagePurchasePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many TrainingPackagePurchases.
+     * @param {TrainingPackagePurchaseCreateManyArgs} args - Arguments to create many TrainingPackagePurchases.
+     * @example
+     * // Create many TrainingPackagePurchases
+     * const trainingPackagePurchase = await prisma.trainingPackagePurchase.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends TrainingPackagePurchaseCreateManyArgs>(args?: SelectSubset<T, TrainingPackagePurchaseCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many TrainingPackagePurchases and returns the data saved in the database.
+     * @param {TrainingPackagePurchaseCreateManyAndReturnArgs} args - Arguments to create many TrainingPackagePurchases.
+     * @example
+     * // Create many TrainingPackagePurchases
+     * const trainingPackagePurchase = await prisma.trainingPackagePurchase.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many TrainingPackagePurchases and only return the `id`
+     * const trainingPackagePurchaseWithIdOnly = await prisma.trainingPackagePurchase.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends TrainingPackagePurchaseCreateManyAndReturnArgs>(args?: SelectSubset<T, TrainingPackagePurchaseCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrainingPackagePurchasePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a TrainingPackagePurchase.
+     * @param {TrainingPackagePurchaseDeleteArgs} args - Arguments to delete one TrainingPackagePurchase.
+     * @example
+     * // Delete one TrainingPackagePurchase
+     * const TrainingPackagePurchase = await prisma.trainingPackagePurchase.delete({
+     *   where: {
+     *     // ... filter to delete one TrainingPackagePurchase
+     *   }
+     * })
+     * 
+     */
+    delete<T extends TrainingPackagePurchaseDeleteArgs>(args: SelectSubset<T, TrainingPackagePurchaseDeleteArgs<ExtArgs>>): Prisma__TrainingPackagePurchaseClient<$Result.GetResult<Prisma.$TrainingPackagePurchasePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one TrainingPackagePurchase.
+     * @param {TrainingPackagePurchaseUpdateArgs} args - Arguments to update one TrainingPackagePurchase.
+     * @example
+     * // Update one TrainingPackagePurchase
+     * const trainingPackagePurchase = await prisma.trainingPackagePurchase.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends TrainingPackagePurchaseUpdateArgs>(args: SelectSubset<T, TrainingPackagePurchaseUpdateArgs<ExtArgs>>): Prisma__TrainingPackagePurchaseClient<$Result.GetResult<Prisma.$TrainingPackagePurchasePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more TrainingPackagePurchases.
+     * @param {TrainingPackagePurchaseDeleteManyArgs} args - Arguments to filter TrainingPackagePurchases to delete.
+     * @example
+     * // Delete a few TrainingPackagePurchases
+     * const { count } = await prisma.trainingPackagePurchase.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends TrainingPackagePurchaseDeleteManyArgs>(args?: SelectSubset<T, TrainingPackagePurchaseDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TrainingPackagePurchases.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackagePurchaseUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many TrainingPackagePurchases
+     * const trainingPackagePurchase = await prisma.trainingPackagePurchase.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends TrainingPackagePurchaseUpdateManyArgs>(args: SelectSubset<T, TrainingPackagePurchaseUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one TrainingPackagePurchase.
+     * @param {TrainingPackagePurchaseUpsertArgs} args - Arguments to update or create a TrainingPackagePurchase.
+     * @example
+     * // Update or create a TrainingPackagePurchase
+     * const trainingPackagePurchase = await prisma.trainingPackagePurchase.upsert({
+     *   create: {
+     *     // ... data to create a TrainingPackagePurchase
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the TrainingPackagePurchase we want to update
+     *   }
+     * })
+     */
+    upsert<T extends TrainingPackagePurchaseUpsertArgs>(args: SelectSubset<T, TrainingPackagePurchaseUpsertArgs<ExtArgs>>): Prisma__TrainingPackagePurchaseClient<$Result.GetResult<Prisma.$TrainingPackagePurchasePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of TrainingPackagePurchases.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackagePurchaseCountArgs} args - Arguments to filter TrainingPackagePurchases to count.
+     * @example
+     * // Count the number of TrainingPackagePurchases
+     * const count = await prisma.trainingPackagePurchase.count({
+     *   where: {
+     *     // ... the filter for the TrainingPackagePurchases we want to count
+     *   }
+     * })
+    **/
+    count<T extends TrainingPackagePurchaseCountArgs>(
+      args?: Subset<T, TrainingPackagePurchaseCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], TrainingPackagePurchaseCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a TrainingPackagePurchase.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackagePurchaseAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends TrainingPackagePurchaseAggregateArgs>(args: Subset<T, TrainingPackagePurchaseAggregateArgs>): Prisma.PrismaPromise<GetTrainingPackagePurchaseAggregateType<T>>
+
+    /**
+     * Group by TrainingPackagePurchase.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingPackagePurchaseGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends TrainingPackagePurchaseGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: TrainingPackagePurchaseGroupByArgs['orderBy'] }
+        : { orderBy?: TrainingPackagePurchaseGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, TrainingPackagePurchaseGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetTrainingPackagePurchaseGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the TrainingPackagePurchase model
+   */
+  readonly fields: TrainingPackagePurchaseFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for TrainingPackagePurchase.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__TrainingPackagePurchaseClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    package<T extends TrainingPackageDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TrainingPackageDefaultArgs<ExtArgs>>): Prisma__TrainingPackageClient<$Result.GetResult<Prisma.$TrainingPackagePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the TrainingPackagePurchase model
+   */ 
+  interface TrainingPackagePurchaseFieldRefs {
+    readonly id: FieldRef<"TrainingPackagePurchase", 'String'>
+    readonly packageId: FieldRef<"TrainingPackagePurchase", 'String'>
+    readonly buyerId: FieldRef<"TrainingPackagePurchase", 'String'>
+    readonly priceAtPurchase: FieldRef<"TrainingPackagePurchase", 'Float'>
+    readonly paymentTransactionId: FieldRef<"TrainingPackagePurchase", 'String'>
+    readonly status: FieldRef<"TrainingPackagePurchase", 'TrainingPackagePurchaseStatus'>
+    readonly purchasedAt: FieldRef<"TrainingPackagePurchase", 'DateTime'>
+    readonly createdAt: FieldRef<"TrainingPackagePurchase", 'DateTime'>
+    readonly updatedAt: FieldRef<"TrainingPackagePurchase", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * TrainingPackagePurchase findUnique
+   */
+  export type TrainingPackagePurchaseFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseInclude<ExtArgs> | null
+    /**
+     * Filter, which TrainingPackagePurchase to fetch.
+     */
+    where: TrainingPackagePurchaseWhereUniqueInput
+  }
+
+  /**
+   * TrainingPackagePurchase findUniqueOrThrow
+   */
+  export type TrainingPackagePurchaseFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseInclude<ExtArgs> | null
+    /**
+     * Filter, which TrainingPackagePurchase to fetch.
+     */
+    where: TrainingPackagePurchaseWhereUniqueInput
+  }
+
+  /**
+   * TrainingPackagePurchase findFirst
+   */
+  export type TrainingPackagePurchaseFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseInclude<ExtArgs> | null
+    /**
+     * Filter, which TrainingPackagePurchase to fetch.
+     */
+    where?: TrainingPackagePurchaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingPackagePurchases to fetch.
+     */
+    orderBy?: TrainingPackagePurchaseOrderByWithRelationInput | TrainingPackagePurchaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TrainingPackagePurchases.
+     */
+    cursor?: TrainingPackagePurchaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingPackagePurchases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingPackagePurchases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TrainingPackagePurchases.
+     */
+    distinct?: TrainingPackagePurchaseScalarFieldEnum | TrainingPackagePurchaseScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingPackagePurchase findFirstOrThrow
+   */
+  export type TrainingPackagePurchaseFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseInclude<ExtArgs> | null
+    /**
+     * Filter, which TrainingPackagePurchase to fetch.
+     */
+    where?: TrainingPackagePurchaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingPackagePurchases to fetch.
+     */
+    orderBy?: TrainingPackagePurchaseOrderByWithRelationInput | TrainingPackagePurchaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TrainingPackagePurchases.
+     */
+    cursor?: TrainingPackagePurchaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingPackagePurchases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingPackagePurchases.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TrainingPackagePurchases.
+     */
+    distinct?: TrainingPackagePurchaseScalarFieldEnum | TrainingPackagePurchaseScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingPackagePurchase findMany
+   */
+  export type TrainingPackagePurchaseFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseInclude<ExtArgs> | null
+    /**
+     * Filter, which TrainingPackagePurchases to fetch.
+     */
+    where?: TrainingPackagePurchaseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingPackagePurchases to fetch.
+     */
+    orderBy?: TrainingPackagePurchaseOrderByWithRelationInput | TrainingPackagePurchaseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing TrainingPackagePurchases.
+     */
+    cursor?: TrainingPackagePurchaseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingPackagePurchases from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingPackagePurchases.
+     */
+    skip?: number
+    distinct?: TrainingPackagePurchaseScalarFieldEnum | TrainingPackagePurchaseScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingPackagePurchase create
+   */
+  export type TrainingPackagePurchaseCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseInclude<ExtArgs> | null
+    /**
+     * The data needed to create a TrainingPackagePurchase.
+     */
+    data: XOR<TrainingPackagePurchaseCreateInput, TrainingPackagePurchaseUncheckedCreateInput>
+  }
+
+  /**
+   * TrainingPackagePurchase createMany
+   */
+  export type TrainingPackagePurchaseCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many TrainingPackagePurchases.
+     */
+    data: TrainingPackagePurchaseCreateManyInput | TrainingPackagePurchaseCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * TrainingPackagePurchase createManyAndReturn
+   */
+  export type TrainingPackagePurchaseCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many TrainingPackagePurchases.
+     */
+    data: TrainingPackagePurchaseCreateManyInput | TrainingPackagePurchaseCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * TrainingPackagePurchase update
+   */
+  export type TrainingPackagePurchaseUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseInclude<ExtArgs> | null
+    /**
+     * The data needed to update a TrainingPackagePurchase.
+     */
+    data: XOR<TrainingPackagePurchaseUpdateInput, TrainingPackagePurchaseUncheckedUpdateInput>
+    /**
+     * Choose, which TrainingPackagePurchase to update.
+     */
+    where: TrainingPackagePurchaseWhereUniqueInput
+  }
+
+  /**
+   * TrainingPackagePurchase updateMany
+   */
+  export type TrainingPackagePurchaseUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update TrainingPackagePurchases.
+     */
+    data: XOR<TrainingPackagePurchaseUpdateManyMutationInput, TrainingPackagePurchaseUncheckedUpdateManyInput>
+    /**
+     * Filter which TrainingPackagePurchases to update
+     */
+    where?: TrainingPackagePurchaseWhereInput
+  }
+
+  /**
+   * TrainingPackagePurchase upsert
+   */
+  export type TrainingPackagePurchaseUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseInclude<ExtArgs> | null
+    /**
+     * The filter to search for the TrainingPackagePurchase to update in case it exists.
+     */
+    where: TrainingPackagePurchaseWhereUniqueInput
+    /**
+     * In case the TrainingPackagePurchase found by the `where` argument doesn't exist, create a new TrainingPackagePurchase with this data.
+     */
+    create: XOR<TrainingPackagePurchaseCreateInput, TrainingPackagePurchaseUncheckedCreateInput>
+    /**
+     * In case the TrainingPackagePurchase was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<TrainingPackagePurchaseUpdateInput, TrainingPackagePurchaseUncheckedUpdateInput>
+  }
+
+  /**
+   * TrainingPackagePurchase delete
+   */
+  export type TrainingPackagePurchaseDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseInclude<ExtArgs> | null
+    /**
+     * Filter which TrainingPackagePurchase to delete.
+     */
+    where: TrainingPackagePurchaseWhereUniqueInput
+  }
+
+  /**
+   * TrainingPackagePurchase deleteMany
+   */
+  export type TrainingPackagePurchaseDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TrainingPackagePurchases to delete
+     */
+    where?: TrainingPackagePurchaseWhereInput
+  }
+
+  /**
+   * TrainingPackagePurchase without action
+   */
+  export type TrainingPackagePurchaseDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingPackagePurchase
+     */
+    select?: TrainingPackagePurchaseSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingPackagePurchaseInclude<ExtArgs> | null
   }
 
 
@@ -14469,6 +16802,37 @@ export namespace Prisma {
   export type PlanReviewScalarFieldEnum = (typeof PlanReviewScalarFieldEnum)[keyof typeof PlanReviewScalarFieldEnum]
 
 
+  export const TrainingPackageScalarFieldEnum: {
+    id: 'id',
+    sellerId: 'sellerId',
+    publishedPlanId: 'publishedPlanId',
+    name: 'name',
+    description: 'description',
+    price: 'price',
+    durationWeeks: 'durationWeeks',
+    status: 'status',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type TrainingPackageScalarFieldEnum = (typeof TrainingPackageScalarFieldEnum)[keyof typeof TrainingPackageScalarFieldEnum]
+
+
+  export const TrainingPackagePurchaseScalarFieldEnum: {
+    id: 'id',
+    packageId: 'packageId',
+    buyerId: 'buyerId',
+    priceAtPurchase: 'priceAtPurchase',
+    paymentTransactionId: 'paymentTransactionId',
+    status: 'status',
+    purchasedAt: 'purchasedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type TrainingPackagePurchaseScalarFieldEnum = (typeof TrainingPackagePurchaseScalarFieldEnum)[keyof typeof TrainingPackagePurchaseScalarFieldEnum]
+
+
   export const NutritionPlanScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -14721,6 +17085,34 @@ export namespace Prisma {
    * Reference to a field of type 'PublishModerationStatus[]'
    */
   export type ListEnumPublishModerationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PublishModerationStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'TrainingPackageStatus'
+   */
+  export type EnumTrainingPackageStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TrainingPackageStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'TrainingPackageStatus[]'
+   */
+  export type ListEnumTrainingPackageStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TrainingPackageStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'TrainingPackagePurchaseStatus'
+   */
+  export type EnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TrainingPackagePurchaseStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'TrainingPackagePurchaseStatus[]'
+   */
+  export type ListEnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TrainingPackagePurchaseStatus[]'>
     
 
 
@@ -15220,6 +17612,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"PublishedPlan"> | Date | string
     sourcePlan?: XOR<WorkoutPlanRelationFilter, WorkoutPlanWhereInput>
     reviews?: PlanReviewListRelationFilter
+    packages?: TrainingPackageListRelationFilter
   }
 
   export type PublishedPlanOrderByWithRelationInput = {
@@ -15238,6 +17631,7 @@ export namespace Prisma {
     updatedAt?: SortOrder
     sourcePlan?: WorkoutPlanOrderByWithRelationInput
     reviews?: PlanReviewOrderByRelationAggregateInput
+    packages?: TrainingPackageOrderByRelationAggregateInput
   }
 
   export type PublishedPlanWhereUniqueInput = Prisma.AtLeast<{
@@ -15259,6 +17653,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"PublishedPlan"> | Date | string
     sourcePlan?: XOR<WorkoutPlanRelationFilter, WorkoutPlanWhereInput>
     reviews?: PlanReviewListRelationFilter
+    packages?: TrainingPackageListRelationFilter
   }, "id">
 
   export type PublishedPlanOrderByWithAggregationInput = {
@@ -15362,6 +17757,169 @@ export namespace Prisma {
     rating?: IntWithAggregatesFilter<"PlanReview"> | number
     comment?: StringNullableWithAggregatesFilter<"PlanReview"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"PlanReview"> | Date | string
+  }
+
+  export type TrainingPackageWhereInput = {
+    AND?: TrainingPackageWhereInput | TrainingPackageWhereInput[]
+    OR?: TrainingPackageWhereInput[]
+    NOT?: TrainingPackageWhereInput | TrainingPackageWhereInput[]
+    id?: StringFilter<"TrainingPackage"> | string
+    sellerId?: StringFilter<"TrainingPackage"> | string
+    publishedPlanId?: StringFilter<"TrainingPackage"> | string
+    name?: StringFilter<"TrainingPackage"> | string
+    description?: StringNullableFilter<"TrainingPackage"> | string | null
+    price?: FloatFilter<"TrainingPackage"> | number
+    durationWeeks?: IntNullableFilter<"TrainingPackage"> | number | null
+    status?: EnumTrainingPackageStatusFilter<"TrainingPackage"> | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeFilter<"TrainingPackage"> | Date | string
+    updatedAt?: DateTimeFilter<"TrainingPackage"> | Date | string
+    publishedPlan?: XOR<PublishedPlanRelationFilter, PublishedPlanWhereInput>
+    purchases?: TrainingPackagePurchaseListRelationFilter
+  }
+
+  export type TrainingPackageOrderByWithRelationInput = {
+    id?: SortOrder
+    sellerId?: SortOrder
+    publishedPlanId?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    price?: SortOrder
+    durationWeeks?: SortOrderInput | SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    publishedPlan?: PublishedPlanOrderByWithRelationInput
+    purchases?: TrainingPackagePurchaseOrderByRelationAggregateInput
+  }
+
+  export type TrainingPackageWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: TrainingPackageWhereInput | TrainingPackageWhereInput[]
+    OR?: TrainingPackageWhereInput[]
+    NOT?: TrainingPackageWhereInput | TrainingPackageWhereInput[]
+    sellerId?: StringFilter<"TrainingPackage"> | string
+    publishedPlanId?: StringFilter<"TrainingPackage"> | string
+    name?: StringFilter<"TrainingPackage"> | string
+    description?: StringNullableFilter<"TrainingPackage"> | string | null
+    price?: FloatFilter<"TrainingPackage"> | number
+    durationWeeks?: IntNullableFilter<"TrainingPackage"> | number | null
+    status?: EnumTrainingPackageStatusFilter<"TrainingPackage"> | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeFilter<"TrainingPackage"> | Date | string
+    updatedAt?: DateTimeFilter<"TrainingPackage"> | Date | string
+    publishedPlan?: XOR<PublishedPlanRelationFilter, PublishedPlanWhereInput>
+    purchases?: TrainingPackagePurchaseListRelationFilter
+  }, "id">
+
+  export type TrainingPackageOrderByWithAggregationInput = {
+    id?: SortOrder
+    sellerId?: SortOrder
+    publishedPlanId?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    price?: SortOrder
+    durationWeeks?: SortOrderInput | SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: TrainingPackageCountOrderByAggregateInput
+    _avg?: TrainingPackageAvgOrderByAggregateInput
+    _max?: TrainingPackageMaxOrderByAggregateInput
+    _min?: TrainingPackageMinOrderByAggregateInput
+    _sum?: TrainingPackageSumOrderByAggregateInput
+  }
+
+  export type TrainingPackageScalarWhereWithAggregatesInput = {
+    AND?: TrainingPackageScalarWhereWithAggregatesInput | TrainingPackageScalarWhereWithAggregatesInput[]
+    OR?: TrainingPackageScalarWhereWithAggregatesInput[]
+    NOT?: TrainingPackageScalarWhereWithAggregatesInput | TrainingPackageScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"TrainingPackage"> | string
+    sellerId?: StringWithAggregatesFilter<"TrainingPackage"> | string
+    publishedPlanId?: StringWithAggregatesFilter<"TrainingPackage"> | string
+    name?: StringWithAggregatesFilter<"TrainingPackage"> | string
+    description?: StringNullableWithAggregatesFilter<"TrainingPackage"> | string | null
+    price?: FloatWithAggregatesFilter<"TrainingPackage"> | number
+    durationWeeks?: IntNullableWithAggregatesFilter<"TrainingPackage"> | number | null
+    status?: EnumTrainingPackageStatusWithAggregatesFilter<"TrainingPackage"> | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeWithAggregatesFilter<"TrainingPackage"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"TrainingPackage"> | Date | string
+  }
+
+  export type TrainingPackagePurchaseWhereInput = {
+    AND?: TrainingPackagePurchaseWhereInput | TrainingPackagePurchaseWhereInput[]
+    OR?: TrainingPackagePurchaseWhereInput[]
+    NOT?: TrainingPackagePurchaseWhereInput | TrainingPackagePurchaseWhereInput[]
+    id?: StringFilter<"TrainingPackagePurchase"> | string
+    packageId?: StringFilter<"TrainingPackagePurchase"> | string
+    buyerId?: StringFilter<"TrainingPackagePurchase"> | string
+    priceAtPurchase?: FloatFilter<"TrainingPackagePurchase"> | number
+    paymentTransactionId?: StringNullableFilter<"TrainingPackagePurchase"> | string | null
+    status?: EnumTrainingPackagePurchaseStatusFilter<"TrainingPackagePurchase"> | $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: DateTimeNullableFilter<"TrainingPackagePurchase"> | Date | string | null
+    createdAt?: DateTimeFilter<"TrainingPackagePurchase"> | Date | string
+    updatedAt?: DateTimeFilter<"TrainingPackagePurchase"> | Date | string
+    package?: XOR<TrainingPackageRelationFilter, TrainingPackageWhereInput>
+  }
+
+  export type TrainingPackagePurchaseOrderByWithRelationInput = {
+    id?: SortOrder
+    packageId?: SortOrder
+    buyerId?: SortOrder
+    priceAtPurchase?: SortOrder
+    paymentTransactionId?: SortOrderInput | SortOrder
+    status?: SortOrder
+    purchasedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    package?: TrainingPackageOrderByWithRelationInput
+  }
+
+  export type TrainingPackagePurchaseWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    packageId_buyerId?: TrainingPackagePurchasePackageIdBuyerIdCompoundUniqueInput
+    AND?: TrainingPackagePurchaseWhereInput | TrainingPackagePurchaseWhereInput[]
+    OR?: TrainingPackagePurchaseWhereInput[]
+    NOT?: TrainingPackagePurchaseWhereInput | TrainingPackagePurchaseWhereInput[]
+    packageId?: StringFilter<"TrainingPackagePurchase"> | string
+    buyerId?: StringFilter<"TrainingPackagePurchase"> | string
+    priceAtPurchase?: FloatFilter<"TrainingPackagePurchase"> | number
+    paymentTransactionId?: StringNullableFilter<"TrainingPackagePurchase"> | string | null
+    status?: EnumTrainingPackagePurchaseStatusFilter<"TrainingPackagePurchase"> | $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: DateTimeNullableFilter<"TrainingPackagePurchase"> | Date | string | null
+    createdAt?: DateTimeFilter<"TrainingPackagePurchase"> | Date | string
+    updatedAt?: DateTimeFilter<"TrainingPackagePurchase"> | Date | string
+    package?: XOR<TrainingPackageRelationFilter, TrainingPackageWhereInput>
+  }, "id" | "packageId_buyerId">
+
+  export type TrainingPackagePurchaseOrderByWithAggregationInput = {
+    id?: SortOrder
+    packageId?: SortOrder
+    buyerId?: SortOrder
+    priceAtPurchase?: SortOrder
+    paymentTransactionId?: SortOrderInput | SortOrder
+    status?: SortOrder
+    purchasedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: TrainingPackagePurchaseCountOrderByAggregateInput
+    _avg?: TrainingPackagePurchaseAvgOrderByAggregateInput
+    _max?: TrainingPackagePurchaseMaxOrderByAggregateInput
+    _min?: TrainingPackagePurchaseMinOrderByAggregateInput
+    _sum?: TrainingPackagePurchaseSumOrderByAggregateInput
+  }
+
+  export type TrainingPackagePurchaseScalarWhereWithAggregatesInput = {
+    AND?: TrainingPackagePurchaseScalarWhereWithAggregatesInput | TrainingPackagePurchaseScalarWhereWithAggregatesInput[]
+    OR?: TrainingPackagePurchaseScalarWhereWithAggregatesInput[]
+    NOT?: TrainingPackagePurchaseScalarWhereWithAggregatesInput | TrainingPackagePurchaseScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"TrainingPackagePurchase"> | string
+    packageId?: StringWithAggregatesFilter<"TrainingPackagePurchase"> | string
+    buyerId?: StringWithAggregatesFilter<"TrainingPackagePurchase"> | string
+    priceAtPurchase?: FloatWithAggregatesFilter<"TrainingPackagePurchase"> | number
+    paymentTransactionId?: StringNullableWithAggregatesFilter<"TrainingPackagePurchase"> | string | null
+    status?: EnumTrainingPackagePurchaseStatusWithAggregatesFilter<"TrainingPackagePurchase"> | $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: DateTimeNullableWithAggregatesFilter<"TrainingPackagePurchase"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"TrainingPackagePurchase"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"TrainingPackagePurchase"> | Date | string
   }
 
   export type NutritionPlanWhereInput = {
@@ -16353,6 +18911,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     sourcePlan: WorkoutPlanCreateNestedOneWithoutPublishedListingsInput
     reviews?: PlanReviewCreateNestedManyWithoutPublishedPlanInput
+    packages?: TrainingPackageCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanUncheckedCreateInput = {
@@ -16370,6 +18929,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput
+    packages?: TrainingPackageUncheckedCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanUpdateInput = {
@@ -16387,6 +18947,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sourcePlan?: WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput
     reviews?: PlanReviewUpdateManyWithoutPublishedPlanNestedInput
+    packages?: TrainingPackageUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanUncheckedUpdateInput = {
@@ -16404,6 +18965,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    packages?: TrainingPackageUncheckedUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanCreateManyInput = {
@@ -16513,6 +19075,183 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingPackageCreateInput = {
+    id?: string
+    sellerId: string
+    name: string
+    description?: string | null
+    price: number
+    durationWeeks?: number | null
+    status?: $Enums.TrainingPackageStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    publishedPlan: PublishedPlanCreateNestedOneWithoutPackagesInput
+    purchases?: TrainingPackagePurchaseCreateNestedManyWithoutPackageInput
+  }
+
+  export type TrainingPackageUncheckedCreateInput = {
+    id?: string
+    sellerId: string
+    publishedPlanId: string
+    name: string
+    description?: string | null
+    price: number
+    durationWeeks?: number | null
+    status?: $Enums.TrainingPackageStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    purchases?: TrainingPackagePurchaseUncheckedCreateNestedManyWithoutPackageInput
+  }
+
+  export type TrainingPackageUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumTrainingPackageStatusFieldUpdateOperationsInput | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    publishedPlan?: PublishedPlanUpdateOneRequiredWithoutPackagesNestedInput
+    purchases?: TrainingPackagePurchaseUpdateManyWithoutPackageNestedInput
+  }
+
+  export type TrainingPackageUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumTrainingPackageStatusFieldUpdateOperationsInput | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    purchases?: TrainingPackagePurchaseUncheckedUpdateManyWithoutPackageNestedInput
+  }
+
+  export type TrainingPackageCreateManyInput = {
+    id?: string
+    sellerId: string
+    publishedPlanId: string
+    name: string
+    description?: string | null
+    price: number
+    durationWeeks?: number | null
+    status?: $Enums.TrainingPackageStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TrainingPackageUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumTrainingPackageStatusFieldUpdateOperationsInput | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingPackageUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumTrainingPackageStatusFieldUpdateOperationsInput | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingPackagePurchaseCreateInput = {
+    id?: string
+    buyerId: string
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    status?: $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    package: TrainingPackageCreateNestedOneWithoutPurchasesInput
+  }
+
+  export type TrainingPackagePurchaseUncheckedCreateInput = {
+    id?: string
+    packageId: string
+    buyerId: string
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    status?: $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TrainingPackagePurchaseUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumTrainingPackagePurchaseStatusFieldUpdateOperationsInput | $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    package?: TrainingPackageUpdateOneRequiredWithoutPurchasesNestedInput
+  }
+
+  export type TrainingPackagePurchaseUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    packageId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumTrainingPackagePurchaseStatusFieldUpdateOperationsInput | $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingPackagePurchaseCreateManyInput = {
+    id?: string
+    packageId: string
+    buyerId: string
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    status?: $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TrainingPackagePurchaseUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumTrainingPackagePurchaseStatusFieldUpdateOperationsInput | $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingPackagePurchaseUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    packageId?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumTrainingPackagePurchaseStatusFieldUpdateOperationsInput | $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type NutritionPlanCreateInput = {
@@ -17639,7 +20378,17 @@ export namespace Prisma {
     none?: PlanReviewWhereInput
   }
 
+  export type TrainingPackageListRelationFilter = {
+    every?: TrainingPackageWhereInput
+    some?: TrainingPackageWhereInput
+    none?: TrainingPackageWhereInput
+  }
+
   export type PlanReviewOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type TrainingPackageOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -17754,6 +20503,153 @@ export namespace Prisma {
 
   export type PlanReviewSumOrderByAggregateInput = {
     rating?: SortOrder
+  }
+
+  export type EnumTrainingPackageStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrainingPackageStatus | EnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TrainingPackageStatus[] | ListEnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TrainingPackageStatus[] | ListEnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTrainingPackageStatusFilter<$PrismaModel> | $Enums.TrainingPackageStatus
+  }
+
+  export type TrainingPackagePurchaseListRelationFilter = {
+    every?: TrainingPackagePurchaseWhereInput
+    some?: TrainingPackagePurchaseWhereInput
+    none?: TrainingPackagePurchaseWhereInput
+  }
+
+  export type TrainingPackagePurchaseOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type TrainingPackageCountOrderByAggregateInput = {
+    id?: SortOrder
+    sellerId?: SortOrder
+    publishedPlanId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    price?: SortOrder
+    durationWeeks?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TrainingPackageAvgOrderByAggregateInput = {
+    price?: SortOrder
+    durationWeeks?: SortOrder
+  }
+
+  export type TrainingPackageMaxOrderByAggregateInput = {
+    id?: SortOrder
+    sellerId?: SortOrder
+    publishedPlanId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    price?: SortOrder
+    durationWeeks?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TrainingPackageMinOrderByAggregateInput = {
+    id?: SortOrder
+    sellerId?: SortOrder
+    publishedPlanId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    price?: SortOrder
+    durationWeeks?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TrainingPackageSumOrderByAggregateInput = {
+    price?: SortOrder
+    durationWeeks?: SortOrder
+  }
+
+  export type EnumTrainingPackageStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrainingPackageStatus | EnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TrainingPackageStatus[] | ListEnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TrainingPackageStatus[] | ListEnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTrainingPackageStatusWithAggregatesFilter<$PrismaModel> | $Enums.TrainingPackageStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumTrainingPackageStatusFilter<$PrismaModel>
+    _max?: NestedEnumTrainingPackageStatusFilter<$PrismaModel>
+  }
+
+  export type EnumTrainingPackagePurchaseStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrainingPackagePurchaseStatus | EnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TrainingPackagePurchaseStatus[] | ListEnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TrainingPackagePurchaseStatus[] | ListEnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTrainingPackagePurchaseStatusFilter<$PrismaModel> | $Enums.TrainingPackagePurchaseStatus
+  }
+
+  export type TrainingPackageRelationFilter = {
+    is?: TrainingPackageWhereInput
+    isNot?: TrainingPackageWhereInput
+  }
+
+  export type TrainingPackagePurchasePackageIdBuyerIdCompoundUniqueInput = {
+    packageId: string
+    buyerId: string
+  }
+
+  export type TrainingPackagePurchaseCountOrderByAggregateInput = {
+    id?: SortOrder
+    packageId?: SortOrder
+    buyerId?: SortOrder
+    priceAtPurchase?: SortOrder
+    paymentTransactionId?: SortOrder
+    status?: SortOrder
+    purchasedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TrainingPackagePurchaseAvgOrderByAggregateInput = {
+    priceAtPurchase?: SortOrder
+  }
+
+  export type TrainingPackagePurchaseMaxOrderByAggregateInput = {
+    id?: SortOrder
+    packageId?: SortOrder
+    buyerId?: SortOrder
+    priceAtPurchase?: SortOrder
+    paymentTransactionId?: SortOrder
+    status?: SortOrder
+    purchasedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TrainingPackagePurchaseMinOrderByAggregateInput = {
+    id?: SortOrder
+    packageId?: SortOrder
+    buyerId?: SortOrder
+    priceAtPurchase?: SortOrder
+    paymentTransactionId?: SortOrder
+    status?: SortOrder
+    purchasedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TrainingPackagePurchaseSumOrderByAggregateInput = {
+    priceAtPurchase?: SortOrder
+  }
+
+  export type EnumTrainingPackagePurchaseStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrainingPackagePurchaseStatus | EnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TrainingPackagePurchaseStatus[] | ListEnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TrainingPackagePurchaseStatus[] | ListEnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTrainingPackagePurchaseStatusWithAggregatesFilter<$PrismaModel> | $Enums.TrainingPackagePurchaseStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumTrainingPackagePurchaseStatusFilter<$PrismaModel>
+    _max?: NestedEnumTrainingPackagePurchaseStatusFilter<$PrismaModel>
   }
 
   export type NutritionPlanCountOrderByAggregateInput = {
@@ -18310,11 +21206,25 @@ export namespace Prisma {
     connect?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
   }
 
+  export type TrainingPackageCreateNestedManyWithoutPublishedPlanInput = {
+    create?: XOR<TrainingPackageCreateWithoutPublishedPlanInput, TrainingPackageUncheckedCreateWithoutPublishedPlanInput> | TrainingPackageCreateWithoutPublishedPlanInput[] | TrainingPackageUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: TrainingPackageCreateOrConnectWithoutPublishedPlanInput | TrainingPackageCreateOrConnectWithoutPublishedPlanInput[]
+    createMany?: TrainingPackageCreateManyPublishedPlanInputEnvelope
+    connect?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
+  }
+
   export type PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput = {
     create?: XOR<PlanReviewCreateWithoutPublishedPlanInput, PlanReviewUncheckedCreateWithoutPublishedPlanInput> | PlanReviewCreateWithoutPublishedPlanInput[] | PlanReviewUncheckedCreateWithoutPublishedPlanInput[]
     connectOrCreate?: PlanReviewCreateOrConnectWithoutPublishedPlanInput | PlanReviewCreateOrConnectWithoutPublishedPlanInput[]
     createMany?: PlanReviewCreateManyPublishedPlanInputEnvelope
     connect?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
+  }
+
+  export type TrainingPackageUncheckedCreateNestedManyWithoutPublishedPlanInput = {
+    create?: XOR<TrainingPackageCreateWithoutPublishedPlanInput, TrainingPackageUncheckedCreateWithoutPublishedPlanInput> | TrainingPackageCreateWithoutPublishedPlanInput[] | TrainingPackageUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: TrainingPackageCreateOrConnectWithoutPublishedPlanInput | TrainingPackageCreateOrConnectWithoutPublishedPlanInput[]
+    createMany?: TrainingPackageCreateManyPublishedPlanInputEnvelope
+    connect?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
   }
 
   export type EnumPublishModerationStatusFieldUpdateOperationsInput = {
@@ -18343,6 +21253,20 @@ export namespace Prisma {
     deleteMany?: PlanReviewScalarWhereInput | PlanReviewScalarWhereInput[]
   }
 
+  export type TrainingPackageUpdateManyWithoutPublishedPlanNestedInput = {
+    create?: XOR<TrainingPackageCreateWithoutPublishedPlanInput, TrainingPackageUncheckedCreateWithoutPublishedPlanInput> | TrainingPackageCreateWithoutPublishedPlanInput[] | TrainingPackageUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: TrainingPackageCreateOrConnectWithoutPublishedPlanInput | TrainingPackageCreateOrConnectWithoutPublishedPlanInput[]
+    upsert?: TrainingPackageUpsertWithWhereUniqueWithoutPublishedPlanInput | TrainingPackageUpsertWithWhereUniqueWithoutPublishedPlanInput[]
+    createMany?: TrainingPackageCreateManyPublishedPlanInputEnvelope
+    set?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
+    disconnect?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
+    delete?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
+    connect?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
+    update?: TrainingPackageUpdateWithWhereUniqueWithoutPublishedPlanInput | TrainingPackageUpdateWithWhereUniqueWithoutPublishedPlanInput[]
+    updateMany?: TrainingPackageUpdateManyWithWhereWithoutPublishedPlanInput | TrainingPackageUpdateManyWithWhereWithoutPublishedPlanInput[]
+    deleteMany?: TrainingPackageScalarWhereInput | TrainingPackageScalarWhereInput[]
+  }
+
   export type PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput = {
     create?: XOR<PlanReviewCreateWithoutPublishedPlanInput, PlanReviewUncheckedCreateWithoutPublishedPlanInput> | PlanReviewCreateWithoutPublishedPlanInput[] | PlanReviewUncheckedCreateWithoutPublishedPlanInput[]
     connectOrCreate?: PlanReviewCreateOrConnectWithoutPublishedPlanInput | PlanReviewCreateOrConnectWithoutPublishedPlanInput[]
@@ -18357,6 +21281,20 @@ export namespace Prisma {
     deleteMany?: PlanReviewScalarWhereInput | PlanReviewScalarWhereInput[]
   }
 
+  export type TrainingPackageUncheckedUpdateManyWithoutPublishedPlanNestedInput = {
+    create?: XOR<TrainingPackageCreateWithoutPublishedPlanInput, TrainingPackageUncheckedCreateWithoutPublishedPlanInput> | TrainingPackageCreateWithoutPublishedPlanInput[] | TrainingPackageUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: TrainingPackageCreateOrConnectWithoutPublishedPlanInput | TrainingPackageCreateOrConnectWithoutPublishedPlanInput[]
+    upsert?: TrainingPackageUpsertWithWhereUniqueWithoutPublishedPlanInput | TrainingPackageUpsertWithWhereUniqueWithoutPublishedPlanInput[]
+    createMany?: TrainingPackageCreateManyPublishedPlanInputEnvelope
+    set?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
+    disconnect?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
+    delete?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
+    connect?: TrainingPackageWhereUniqueInput | TrainingPackageWhereUniqueInput[]
+    update?: TrainingPackageUpdateWithWhereUniqueWithoutPublishedPlanInput | TrainingPackageUpdateWithWhereUniqueWithoutPublishedPlanInput[]
+    updateMany?: TrainingPackageUpdateManyWithWhereWithoutPublishedPlanInput | TrainingPackageUpdateManyWithWhereWithoutPublishedPlanInput[]
+    deleteMany?: TrainingPackageScalarWhereInput | TrainingPackageScalarWhereInput[]
+  }
+
   export type PublishedPlanCreateNestedOneWithoutReviewsInput = {
     create?: XOR<PublishedPlanCreateWithoutReviewsInput, PublishedPlanUncheckedCreateWithoutReviewsInput>
     connectOrCreate?: PublishedPlanCreateOrConnectWithoutReviewsInput
@@ -18369,6 +21307,84 @@ export namespace Prisma {
     upsert?: PublishedPlanUpsertWithoutReviewsInput
     connect?: PublishedPlanWhereUniqueInput
     update?: XOR<XOR<PublishedPlanUpdateToOneWithWhereWithoutReviewsInput, PublishedPlanUpdateWithoutReviewsInput>, PublishedPlanUncheckedUpdateWithoutReviewsInput>
+  }
+
+  export type PublishedPlanCreateNestedOneWithoutPackagesInput = {
+    create?: XOR<PublishedPlanCreateWithoutPackagesInput, PublishedPlanUncheckedCreateWithoutPackagesInput>
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutPackagesInput
+    connect?: PublishedPlanWhereUniqueInput
+  }
+
+  export type TrainingPackagePurchaseCreateNestedManyWithoutPackageInput = {
+    create?: XOR<TrainingPackagePurchaseCreateWithoutPackageInput, TrainingPackagePurchaseUncheckedCreateWithoutPackageInput> | TrainingPackagePurchaseCreateWithoutPackageInput[] | TrainingPackagePurchaseUncheckedCreateWithoutPackageInput[]
+    connectOrCreate?: TrainingPackagePurchaseCreateOrConnectWithoutPackageInput | TrainingPackagePurchaseCreateOrConnectWithoutPackageInput[]
+    createMany?: TrainingPackagePurchaseCreateManyPackageInputEnvelope
+    connect?: TrainingPackagePurchaseWhereUniqueInput | TrainingPackagePurchaseWhereUniqueInput[]
+  }
+
+  export type TrainingPackagePurchaseUncheckedCreateNestedManyWithoutPackageInput = {
+    create?: XOR<TrainingPackagePurchaseCreateWithoutPackageInput, TrainingPackagePurchaseUncheckedCreateWithoutPackageInput> | TrainingPackagePurchaseCreateWithoutPackageInput[] | TrainingPackagePurchaseUncheckedCreateWithoutPackageInput[]
+    connectOrCreate?: TrainingPackagePurchaseCreateOrConnectWithoutPackageInput | TrainingPackagePurchaseCreateOrConnectWithoutPackageInput[]
+    createMany?: TrainingPackagePurchaseCreateManyPackageInputEnvelope
+    connect?: TrainingPackagePurchaseWhereUniqueInput | TrainingPackagePurchaseWhereUniqueInput[]
+  }
+
+  export type EnumTrainingPackageStatusFieldUpdateOperationsInput = {
+    set?: $Enums.TrainingPackageStatus
+  }
+
+  export type PublishedPlanUpdateOneRequiredWithoutPackagesNestedInput = {
+    create?: XOR<PublishedPlanCreateWithoutPackagesInput, PublishedPlanUncheckedCreateWithoutPackagesInput>
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutPackagesInput
+    upsert?: PublishedPlanUpsertWithoutPackagesInput
+    connect?: PublishedPlanWhereUniqueInput
+    update?: XOR<XOR<PublishedPlanUpdateToOneWithWhereWithoutPackagesInput, PublishedPlanUpdateWithoutPackagesInput>, PublishedPlanUncheckedUpdateWithoutPackagesInput>
+  }
+
+  export type TrainingPackagePurchaseUpdateManyWithoutPackageNestedInput = {
+    create?: XOR<TrainingPackagePurchaseCreateWithoutPackageInput, TrainingPackagePurchaseUncheckedCreateWithoutPackageInput> | TrainingPackagePurchaseCreateWithoutPackageInput[] | TrainingPackagePurchaseUncheckedCreateWithoutPackageInput[]
+    connectOrCreate?: TrainingPackagePurchaseCreateOrConnectWithoutPackageInput | TrainingPackagePurchaseCreateOrConnectWithoutPackageInput[]
+    upsert?: TrainingPackagePurchaseUpsertWithWhereUniqueWithoutPackageInput | TrainingPackagePurchaseUpsertWithWhereUniqueWithoutPackageInput[]
+    createMany?: TrainingPackagePurchaseCreateManyPackageInputEnvelope
+    set?: TrainingPackagePurchaseWhereUniqueInput | TrainingPackagePurchaseWhereUniqueInput[]
+    disconnect?: TrainingPackagePurchaseWhereUniqueInput | TrainingPackagePurchaseWhereUniqueInput[]
+    delete?: TrainingPackagePurchaseWhereUniqueInput | TrainingPackagePurchaseWhereUniqueInput[]
+    connect?: TrainingPackagePurchaseWhereUniqueInput | TrainingPackagePurchaseWhereUniqueInput[]
+    update?: TrainingPackagePurchaseUpdateWithWhereUniqueWithoutPackageInput | TrainingPackagePurchaseUpdateWithWhereUniqueWithoutPackageInput[]
+    updateMany?: TrainingPackagePurchaseUpdateManyWithWhereWithoutPackageInput | TrainingPackagePurchaseUpdateManyWithWhereWithoutPackageInput[]
+    deleteMany?: TrainingPackagePurchaseScalarWhereInput | TrainingPackagePurchaseScalarWhereInput[]
+  }
+
+  export type TrainingPackagePurchaseUncheckedUpdateManyWithoutPackageNestedInput = {
+    create?: XOR<TrainingPackagePurchaseCreateWithoutPackageInput, TrainingPackagePurchaseUncheckedCreateWithoutPackageInput> | TrainingPackagePurchaseCreateWithoutPackageInput[] | TrainingPackagePurchaseUncheckedCreateWithoutPackageInput[]
+    connectOrCreate?: TrainingPackagePurchaseCreateOrConnectWithoutPackageInput | TrainingPackagePurchaseCreateOrConnectWithoutPackageInput[]
+    upsert?: TrainingPackagePurchaseUpsertWithWhereUniqueWithoutPackageInput | TrainingPackagePurchaseUpsertWithWhereUniqueWithoutPackageInput[]
+    createMany?: TrainingPackagePurchaseCreateManyPackageInputEnvelope
+    set?: TrainingPackagePurchaseWhereUniqueInput | TrainingPackagePurchaseWhereUniqueInput[]
+    disconnect?: TrainingPackagePurchaseWhereUniqueInput | TrainingPackagePurchaseWhereUniqueInput[]
+    delete?: TrainingPackagePurchaseWhereUniqueInput | TrainingPackagePurchaseWhereUniqueInput[]
+    connect?: TrainingPackagePurchaseWhereUniqueInput | TrainingPackagePurchaseWhereUniqueInput[]
+    update?: TrainingPackagePurchaseUpdateWithWhereUniqueWithoutPackageInput | TrainingPackagePurchaseUpdateWithWhereUniqueWithoutPackageInput[]
+    updateMany?: TrainingPackagePurchaseUpdateManyWithWhereWithoutPackageInput | TrainingPackagePurchaseUpdateManyWithWhereWithoutPackageInput[]
+    deleteMany?: TrainingPackagePurchaseScalarWhereInput | TrainingPackagePurchaseScalarWhereInput[]
+  }
+
+  export type TrainingPackageCreateNestedOneWithoutPurchasesInput = {
+    create?: XOR<TrainingPackageCreateWithoutPurchasesInput, TrainingPackageUncheckedCreateWithoutPurchasesInput>
+    connectOrCreate?: TrainingPackageCreateOrConnectWithoutPurchasesInput
+    connect?: TrainingPackageWhereUniqueInput
+  }
+
+  export type EnumTrainingPackagePurchaseStatusFieldUpdateOperationsInput = {
+    set?: $Enums.TrainingPackagePurchaseStatus
+  }
+
+  export type TrainingPackageUpdateOneRequiredWithoutPurchasesNestedInput = {
+    create?: XOR<TrainingPackageCreateWithoutPurchasesInput, TrainingPackageUncheckedCreateWithoutPurchasesInput>
+    connectOrCreate?: TrainingPackageCreateOrConnectWithoutPurchasesInput
+    upsert?: TrainingPackageUpsertWithoutPurchasesInput
+    connect?: TrainingPackageWhereUniqueInput
+    update?: XOR<XOR<TrainingPackageUpdateToOneWithWhereWithoutPurchasesInput, TrainingPackageUpdateWithoutPurchasesInput>, TrainingPackageUncheckedUpdateWithoutPurchasesInput>
   }
 
   export type KnowledgeDocumentCreateNestedManyWithoutSourceInput = {
@@ -18857,6 +21873,40 @@ export namespace Prisma {
     _max?: NestedEnumPublishModerationStatusFilter<$PrismaModel>
   }
 
+  export type NestedEnumTrainingPackageStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrainingPackageStatus | EnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TrainingPackageStatus[] | ListEnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TrainingPackageStatus[] | ListEnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTrainingPackageStatusFilter<$PrismaModel> | $Enums.TrainingPackageStatus
+  }
+
+  export type NestedEnumTrainingPackageStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrainingPackageStatus | EnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TrainingPackageStatus[] | ListEnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TrainingPackageStatus[] | ListEnumTrainingPackageStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTrainingPackageStatusWithAggregatesFilter<$PrismaModel> | $Enums.TrainingPackageStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumTrainingPackageStatusFilter<$PrismaModel>
+    _max?: NestedEnumTrainingPackageStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumTrainingPackagePurchaseStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrainingPackagePurchaseStatus | EnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TrainingPackagePurchaseStatus[] | ListEnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TrainingPackagePurchaseStatus[] | ListEnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTrainingPackagePurchaseStatusFilter<$PrismaModel> | $Enums.TrainingPackagePurchaseStatus
+  }
+
+  export type NestedEnumTrainingPackagePurchaseStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TrainingPackagePurchaseStatus | EnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.TrainingPackagePurchaseStatus[] | ListEnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TrainingPackagePurchaseStatus[] | ListEnumTrainingPackagePurchaseStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumTrainingPackagePurchaseStatusWithAggregatesFilter<$PrismaModel> | $Enums.TrainingPackagePurchaseStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumTrainingPackagePurchaseStatusFilter<$PrismaModel>
+    _max?: NestedEnumTrainingPackagePurchaseStatusFilter<$PrismaModel>
+  }
+
   export type NestedEnumKnowledgeSourceTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.KnowledgeSourceType | EnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
     in?: $Enums.KnowledgeSourceType[] | ListEnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
@@ -18983,6 +22033,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: PlanReviewCreateNestedManyWithoutPublishedPlanInput
+    packages?: TrainingPackageCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanUncheckedCreateWithoutSourcePlanInput = {
@@ -18999,6 +22050,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput
+    packages?: TrainingPackageUncheckedCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanCreateOrConnectWithoutSourcePlanInput = {
@@ -19125,6 +22177,42 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type TrainingPackageCreateWithoutPublishedPlanInput = {
+    id?: string
+    sellerId: string
+    name: string
+    description?: string | null
+    price: number
+    durationWeeks?: number | null
+    status?: $Enums.TrainingPackageStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    purchases?: TrainingPackagePurchaseCreateNestedManyWithoutPackageInput
+  }
+
+  export type TrainingPackageUncheckedCreateWithoutPublishedPlanInput = {
+    id?: string
+    sellerId: string
+    name: string
+    description?: string | null
+    price: number
+    durationWeeks?: number | null
+    status?: $Enums.TrainingPackageStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    purchases?: TrainingPackagePurchaseUncheckedCreateNestedManyWithoutPackageInput
+  }
+
+  export type TrainingPackageCreateOrConnectWithoutPublishedPlanInput = {
+    where: TrainingPackageWhereUniqueInput
+    create: XOR<TrainingPackageCreateWithoutPublishedPlanInput, TrainingPackageUncheckedCreateWithoutPublishedPlanInput>
+  }
+
+  export type TrainingPackageCreateManyPublishedPlanInputEnvelope = {
+    data: TrainingPackageCreateManyPublishedPlanInput | TrainingPackageCreateManyPublishedPlanInput[]
+    skipDuplicates?: boolean
+  }
+
   export type WorkoutPlanUpsertWithoutPublishedListingsInput = {
     update: XOR<WorkoutPlanUpdateWithoutPublishedListingsInput, WorkoutPlanUncheckedUpdateWithoutPublishedListingsInput>
     create: XOR<WorkoutPlanCreateWithoutPublishedListingsInput, WorkoutPlanUncheckedCreateWithoutPublishedListingsInput>
@@ -19212,6 +22300,38 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"PlanReview"> | Date | string
   }
 
+  export type TrainingPackageUpsertWithWhereUniqueWithoutPublishedPlanInput = {
+    where: TrainingPackageWhereUniqueInput
+    update: XOR<TrainingPackageUpdateWithoutPublishedPlanInput, TrainingPackageUncheckedUpdateWithoutPublishedPlanInput>
+    create: XOR<TrainingPackageCreateWithoutPublishedPlanInput, TrainingPackageUncheckedCreateWithoutPublishedPlanInput>
+  }
+
+  export type TrainingPackageUpdateWithWhereUniqueWithoutPublishedPlanInput = {
+    where: TrainingPackageWhereUniqueInput
+    data: XOR<TrainingPackageUpdateWithoutPublishedPlanInput, TrainingPackageUncheckedUpdateWithoutPublishedPlanInput>
+  }
+
+  export type TrainingPackageUpdateManyWithWhereWithoutPublishedPlanInput = {
+    where: TrainingPackageScalarWhereInput
+    data: XOR<TrainingPackageUpdateManyMutationInput, TrainingPackageUncheckedUpdateManyWithoutPublishedPlanInput>
+  }
+
+  export type TrainingPackageScalarWhereInput = {
+    AND?: TrainingPackageScalarWhereInput | TrainingPackageScalarWhereInput[]
+    OR?: TrainingPackageScalarWhereInput[]
+    NOT?: TrainingPackageScalarWhereInput | TrainingPackageScalarWhereInput[]
+    id?: StringFilter<"TrainingPackage"> | string
+    sellerId?: StringFilter<"TrainingPackage"> | string
+    publishedPlanId?: StringFilter<"TrainingPackage"> | string
+    name?: StringFilter<"TrainingPackage"> | string
+    description?: StringNullableFilter<"TrainingPackage"> | string | null
+    price?: FloatFilter<"TrainingPackage"> | number
+    durationWeeks?: IntNullableFilter<"TrainingPackage"> | number | null
+    status?: EnumTrainingPackageStatusFilter<"TrainingPackage"> | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeFilter<"TrainingPackage"> | Date | string
+    updatedAt?: DateTimeFilter<"TrainingPackage"> | Date | string
+  }
+
   export type PublishedPlanCreateWithoutReviewsInput = {
     id?: string
     publisherId: string
@@ -19226,6 +22346,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     sourcePlan: WorkoutPlanCreateNestedOneWithoutPublishedListingsInput
+    packages?: TrainingPackageCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanUncheckedCreateWithoutReviewsInput = {
@@ -19242,6 +22363,7 @@ export namespace Prisma {
     publishedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    packages?: TrainingPackageUncheckedCreateNestedManyWithoutPublishedPlanInput
   }
 
   export type PublishedPlanCreateOrConnectWithoutReviewsInput = {
@@ -19274,6 +22396,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sourcePlan?: WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput
+    packages?: TrainingPackageUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanUncheckedUpdateWithoutReviewsInput = {
@@ -19288,6 +22411,222 @@ export namespace Prisma {
     avgRating?: FloatFieldUpdateOperationsInput | number
     ratingCount?: IntFieldUpdateOperationsInput | number
     publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    packages?: TrainingPackageUncheckedUpdateManyWithoutPublishedPlanNestedInput
+  }
+
+  export type PublishedPlanCreateWithoutPackagesInput = {
+    id?: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sourcePlan: WorkoutPlanCreateNestedOneWithoutPublishedListingsInput
+    reviews?: PlanReviewCreateNestedManyWithoutPublishedPlanInput
+  }
+
+  export type PublishedPlanUncheckedCreateWithoutPackagesInput = {
+    id?: string
+    sourcePlanId: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    reviews?: PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput
+  }
+
+  export type PublishedPlanCreateOrConnectWithoutPackagesInput = {
+    where: PublishedPlanWhereUniqueInput
+    create: XOR<PublishedPlanCreateWithoutPackagesInput, PublishedPlanUncheckedCreateWithoutPackagesInput>
+  }
+
+  export type TrainingPackagePurchaseCreateWithoutPackageInput = {
+    id?: string
+    buyerId: string
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    status?: $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TrainingPackagePurchaseUncheckedCreateWithoutPackageInput = {
+    id?: string
+    buyerId: string
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    status?: $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TrainingPackagePurchaseCreateOrConnectWithoutPackageInput = {
+    where: TrainingPackagePurchaseWhereUniqueInput
+    create: XOR<TrainingPackagePurchaseCreateWithoutPackageInput, TrainingPackagePurchaseUncheckedCreateWithoutPackageInput>
+  }
+
+  export type TrainingPackagePurchaseCreateManyPackageInputEnvelope = {
+    data: TrainingPackagePurchaseCreateManyPackageInput | TrainingPackagePurchaseCreateManyPackageInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PublishedPlanUpsertWithoutPackagesInput = {
+    update: XOR<PublishedPlanUpdateWithoutPackagesInput, PublishedPlanUncheckedUpdateWithoutPackagesInput>
+    create: XOR<PublishedPlanCreateWithoutPackagesInput, PublishedPlanUncheckedCreateWithoutPackagesInput>
+    where?: PublishedPlanWhereInput
+  }
+
+  export type PublishedPlanUpdateToOneWithWhereWithoutPackagesInput = {
+    where?: PublishedPlanWhereInput
+    data: XOR<PublishedPlanUpdateWithoutPackagesInput, PublishedPlanUncheckedUpdateWithoutPackagesInput>
+  }
+
+  export type PublishedPlanUpdateWithoutPackagesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourcePlan?: WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput
+    reviews?: PlanReviewUpdateManyWithoutPublishedPlanNestedInput
+  }
+
+  export type PublishedPlanUncheckedUpdateWithoutPackagesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourcePlanId?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reviews?: PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput
+  }
+
+  export type TrainingPackagePurchaseUpsertWithWhereUniqueWithoutPackageInput = {
+    where: TrainingPackagePurchaseWhereUniqueInput
+    update: XOR<TrainingPackagePurchaseUpdateWithoutPackageInput, TrainingPackagePurchaseUncheckedUpdateWithoutPackageInput>
+    create: XOR<TrainingPackagePurchaseCreateWithoutPackageInput, TrainingPackagePurchaseUncheckedCreateWithoutPackageInput>
+  }
+
+  export type TrainingPackagePurchaseUpdateWithWhereUniqueWithoutPackageInput = {
+    where: TrainingPackagePurchaseWhereUniqueInput
+    data: XOR<TrainingPackagePurchaseUpdateWithoutPackageInput, TrainingPackagePurchaseUncheckedUpdateWithoutPackageInput>
+  }
+
+  export type TrainingPackagePurchaseUpdateManyWithWhereWithoutPackageInput = {
+    where: TrainingPackagePurchaseScalarWhereInput
+    data: XOR<TrainingPackagePurchaseUpdateManyMutationInput, TrainingPackagePurchaseUncheckedUpdateManyWithoutPackageInput>
+  }
+
+  export type TrainingPackagePurchaseScalarWhereInput = {
+    AND?: TrainingPackagePurchaseScalarWhereInput | TrainingPackagePurchaseScalarWhereInput[]
+    OR?: TrainingPackagePurchaseScalarWhereInput[]
+    NOT?: TrainingPackagePurchaseScalarWhereInput | TrainingPackagePurchaseScalarWhereInput[]
+    id?: StringFilter<"TrainingPackagePurchase"> | string
+    packageId?: StringFilter<"TrainingPackagePurchase"> | string
+    buyerId?: StringFilter<"TrainingPackagePurchase"> | string
+    priceAtPurchase?: FloatFilter<"TrainingPackagePurchase"> | number
+    paymentTransactionId?: StringNullableFilter<"TrainingPackagePurchase"> | string | null
+    status?: EnumTrainingPackagePurchaseStatusFilter<"TrainingPackagePurchase"> | $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: DateTimeNullableFilter<"TrainingPackagePurchase"> | Date | string | null
+    createdAt?: DateTimeFilter<"TrainingPackagePurchase"> | Date | string
+    updatedAt?: DateTimeFilter<"TrainingPackagePurchase"> | Date | string
+  }
+
+  export type TrainingPackageCreateWithoutPurchasesInput = {
+    id?: string
+    sellerId: string
+    name: string
+    description?: string | null
+    price: number
+    durationWeeks?: number | null
+    status?: $Enums.TrainingPackageStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    publishedPlan: PublishedPlanCreateNestedOneWithoutPackagesInput
+  }
+
+  export type TrainingPackageUncheckedCreateWithoutPurchasesInput = {
+    id?: string
+    sellerId: string
+    publishedPlanId: string
+    name: string
+    description?: string | null
+    price: number
+    durationWeeks?: number | null
+    status?: $Enums.TrainingPackageStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TrainingPackageCreateOrConnectWithoutPurchasesInput = {
+    where: TrainingPackageWhereUniqueInput
+    create: XOR<TrainingPackageCreateWithoutPurchasesInput, TrainingPackageUncheckedCreateWithoutPurchasesInput>
+  }
+
+  export type TrainingPackageUpsertWithoutPurchasesInput = {
+    update: XOR<TrainingPackageUpdateWithoutPurchasesInput, TrainingPackageUncheckedUpdateWithoutPurchasesInput>
+    create: XOR<TrainingPackageCreateWithoutPurchasesInput, TrainingPackageUncheckedCreateWithoutPurchasesInput>
+    where?: TrainingPackageWhereInput
+  }
+
+  export type TrainingPackageUpdateToOneWithWhereWithoutPurchasesInput = {
+    where?: TrainingPackageWhereInput
+    data: XOR<TrainingPackageUpdateWithoutPurchasesInput, TrainingPackageUncheckedUpdateWithoutPurchasesInput>
+  }
+
+  export type TrainingPackageUpdateWithoutPurchasesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumTrainingPackageStatusFieldUpdateOperationsInput | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    publishedPlan?: PublishedPlanUpdateOneRequiredWithoutPackagesNestedInput
+  }
+
+  export type TrainingPackageUncheckedUpdateWithoutPurchasesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumTrainingPackageStatusFieldUpdateOperationsInput | $Enums.TrainingPackageStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -19798,6 +23137,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: PlanReviewUpdateManyWithoutPublishedPlanNestedInput
+    packages?: TrainingPackageUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanUncheckedUpdateWithoutSourcePlanInput = {
@@ -19814,6 +23154,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput
+    packages?: TrainingPackageUncheckedUpdateManyWithoutPublishedPlanNestedInput
   }
 
   export type PublishedPlanUncheckedUpdateManyWithoutSourcePlanInput = {
@@ -19839,6 +23180,18 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type TrainingPackageCreateManyPublishedPlanInput = {
+    id?: string
+    sellerId: string
+    name: string
+    description?: string | null
+    price: number
+    durationWeeks?: number | null
+    status?: $Enums.TrainingPackageStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type PlanReviewUpdateWithoutPublishedPlanInput = {
     id?: StringFieldUpdateOperationsInput | string
     reviewerId?: StringFieldUpdateOperationsInput | string
@@ -19861,6 +23214,88 @@ export namespace Prisma {
     rating?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingPackageUpdateWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumTrainingPackageStatusFieldUpdateOperationsInput | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    purchases?: TrainingPackagePurchaseUpdateManyWithoutPackageNestedInput
+  }
+
+  export type TrainingPackageUncheckedUpdateWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumTrainingPackageStatusFieldUpdateOperationsInput | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    purchases?: TrainingPackagePurchaseUncheckedUpdateManyWithoutPackageNestedInput
+  }
+
+  export type TrainingPackageUncheckedUpdateManyWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sellerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    durationWeeks?: NullableIntFieldUpdateOperationsInput | number | null
+    status?: EnumTrainingPackageStatusFieldUpdateOperationsInput | $Enums.TrainingPackageStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingPackagePurchaseCreateManyPackageInput = {
+    id?: string
+    buyerId: string
+    priceAtPurchase: number
+    paymentTransactionId?: string | null
+    status?: $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TrainingPackagePurchaseUpdateWithoutPackageInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumTrainingPackagePurchaseStatusFieldUpdateOperationsInput | $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingPackagePurchaseUncheckedUpdateWithoutPackageInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumTrainingPackagePurchaseStatusFieldUpdateOperationsInput | $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingPackagePurchaseUncheckedUpdateManyWithoutPackageInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    buyerId?: StringFieldUpdateOperationsInput | string
+    priceAtPurchase?: FloatFieldUpdateOperationsInput | number
+    paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumTrainingPackagePurchaseStatusFieldUpdateOperationsInput | $Enums.TrainingPackagePurchaseStatus
+    purchasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type KnowledgeDocumentCreateManySourceInput = {
@@ -20029,6 +23464,10 @@ export namespace Prisma {
      */
     export type PublishedPlanCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PublishedPlanCountOutputTypeDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use TrainingPackageCountOutputTypeDefaultArgs instead
+     */
+    export type TrainingPackageCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = TrainingPackageCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use KnowledgeSourceCountOutputTypeDefaultArgs instead
      */
     export type KnowledgeSourceCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KnowledgeSourceCountOutputTypeDefaultArgs<ExtArgs>
@@ -20060,6 +23499,14 @@ export namespace Prisma {
      * @deprecated Use PlanReviewDefaultArgs instead
      */
     export type PlanReviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlanReviewDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use TrainingPackageDefaultArgs instead
+     */
+    export type TrainingPackageArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = TrainingPackageDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use TrainingPackagePurchaseDefaultArgs instead
+     */
+    export type TrainingPackagePurchaseArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = TrainingPackagePurchaseDefaultArgs<ExtArgs>
     /**
      * @deprecated Use NutritionPlanDefaultArgs instead
      */

@@ -19,8 +19,8 @@ const walletTransferSchema = z.object({
   receiverOwnerId: z.string().min(1),
   amount: z.number().positive(),
   commissionRate: z.number().min(0).max(1).optional(),
-  purpose: z.enum(['GYM_MEMBERSHIP', 'PT_CONTRACT']),
-  relatedEntityType: z.enum(['GYM_MEMBERSHIP', 'PT_CONTRACT']),
+  purpose: z.enum(['GYM_MEMBERSHIP', 'PT_CONTRACT', 'TRAINING_PACKAGE_PURCHASE']),
+  relatedEntityType: z.enum(['GYM_MEMBERSHIP', 'PT_CONTRACT', 'TRAINING_PACKAGE_PURCHASE']),
   relatedEntityId: z.string().min(1),
   idempotencyKey: z.string().min(1),
   initiatedBy: z.string().min(1),
@@ -69,7 +69,8 @@ router.post('/payments/wallet-transfer', async (req: Request, res: Response) => 
   const payerWallet = await walletService.getOrCreateWallet(data.payerOwnerType, data.payerOwnerId);
   const receiverWallet = await walletService.getOrCreateWallet(data.receiverOwnerType, data.receiverOwnerId);
   const commissionRate = new Prisma.Decimal(data.commissionRate ?? DEFAULT_COMMISSION_RATE);
-  const partnerType: PartnerType = data.receiverOwnerType === 'GYM' ? 'GYM' : 'PT';
+  const partnerType: PartnerType =
+    data.receiverOwnerType === 'GYM' ? 'GYM' : data.receiverOwnerType === 'PT' ? 'PT' : 'CLIENT';
 
   const txn = await transactionRepository.create({
     payerId: data.payerOwnerId,

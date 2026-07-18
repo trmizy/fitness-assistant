@@ -75,7 +75,8 @@ export const PurposeType: {
   PT_CONTRACT: 'PT_CONTRACT',
   GYM_PT_COMBO: 'GYM_PT_COMBO',
   WALLET_TOPUP: 'WALLET_TOPUP',
-  REFUND: 'REFUND'
+  REFUND: 'REFUND',
+  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE'
 };
 
 export type PurposeType = (typeof PurposeType)[keyof typeof PurposeType]
@@ -109,7 +110,8 @@ export type PaymentProviderType = (typeof PaymentProviderType)[keyof typeof Paym
 export const RelatedEntityType: {
   GYM_MEMBERSHIP: 'GYM_MEMBERSHIP',
   PT_CONTRACT: 'PT_CONTRACT',
-  WALLET_TOPUP: 'WALLET_TOPUP'
+  WALLET_TOPUP: 'WALLET_TOPUP',
+  TRAINING_PACKAGE_PURCHASE: 'TRAINING_PACKAGE_PURCHASE'
 };
 
 export type RelatedEntityType = (typeof RelatedEntityType)[keyof typeof RelatedEntityType]
@@ -127,7 +129,8 @@ export type ActivationStatus = (typeof ActivationStatus)[keyof typeof Activation
 
 export const PartnerType: {
   GYM: 'GYM',
-  PT: 'PT'
+  PT: 'PT',
+  CLIENT: 'CLIENT'
 };
 
 export type PartnerType = (typeof PartnerType)[keyof typeof PartnerType]

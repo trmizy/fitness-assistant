@@ -214,6 +214,31 @@ exports.Prisma.PlanReviewScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.TrainingPackageScalarFieldEnum = {
+  id: 'id',
+  sellerId: 'sellerId',
+  publishedPlanId: 'publishedPlanId',
+  name: 'name',
+  description: 'description',
+  price: 'price',
+  durationWeeks: 'durationWeeks',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.TrainingPackagePurchaseScalarFieldEnum = {
+  id: 'id',
+  packageId: 'packageId',
+  buyerId: 'buyerId',
+  priceAtPurchase: 'priceAtPurchase',
+  paymentTransactionId: 'paymentTransactionId',
+  status: 'status',
+  purchasedAt: 'purchasedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.NutritionPlanScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -338,6 +363,17 @@ exports.PublishModerationStatus = exports.$Enums.PublishModerationStatus = {
   REJECTED: 'REJECTED'
 };
 
+exports.TrainingPackageStatus = exports.$Enums.TrainingPackageStatus = {
+  ACTIVE: 'ACTIVE',
+  ARCHIVED: 'ARCHIVED'
+};
+
+exports.TrainingPackagePurchaseStatus = exports.$Enums.TrainingPackagePurchaseStatus = {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  FAILED: 'FAILED'
+};
+
 exports.KnowledgeSourceType = exports.$Enums.KnowledgeSourceType = {
   RSS: 'RSS',
   API: 'API',
@@ -382,6 +418,8 @@ exports.Prisma.ModelName = {
   WorkoutPlan: 'WorkoutPlan',
   PublishedPlan: 'PublishedPlan',
   PlanReview: 'PlanReview',
+  TrainingPackage: 'TrainingPackage',
+  TrainingPackagePurchase: 'TrainingPackagePurchase',
   NutritionPlan: 'NutritionPlan',
   KnowledgeSource: 'KnowledgeSource',
   KnowledgeDocument: 'KnowledgeDocument',
