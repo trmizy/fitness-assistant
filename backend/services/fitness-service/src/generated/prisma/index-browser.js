@@ -302,6 +302,30 @@ exports.Prisma.WorkoutScheduleScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.TrainingCycleScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  sourcePlanId: 'sourcePlanId',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  status: 'status',
+  goalAtStart: 'goalAtStart',
+  targetWeightAtStart: 'targetWeightAtStart',
+  startWeightKg: 'startWeightKg',
+  startBodyFatPct: 'startBodyFatPct',
+  startMuscleMassKg: 'startMuscleMassKg',
+  startInBodyDate: 'startInBodyDate',
+  endWeightKg: 'endWeightKg',
+  endBodyFatPct: 'endBodyFatPct',
+  endMuscleMassKg: 'endMuscleMassKg',
+  endInBodyDate: 'endInBodyDate',
+  adherencePercent: 'adherencePercent',
+  outcome: 'outcome',
+  outcomeReason: 'outcomeReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.NutritionProgramScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -446,6 +470,7 @@ exports.Prisma.ModelName = {
   WorkoutProgramDay: 'WorkoutProgramDay',
   WorkoutProgramExercise: 'WorkoutProgramExercise',
   WorkoutSchedule: 'WorkoutSchedule',
+  TrainingCycle: 'TrainingCycle',
   NutritionProgram: 'NutritionProgram',
   NutritionProgramDay: 'NutritionProgramDay',
   NutritionProgramMeal: 'NutritionProgramMeal',

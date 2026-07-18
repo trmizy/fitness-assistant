@@ -22,6 +22,7 @@ import {
   Zap,
   Workflow,
   Wallet,
+  CalendarClock,
 } from "lucide-react";
 import { AutoText } from "../i18n/AutoText";
 import type { AppLanguage } from "../../context/SettingsContext";
@@ -49,6 +50,11 @@ const clientNavFull = [
     sourceLang: "en" as const,
   },
   { label: "Nhật ký tập", icon: Dumbbell, to: "/client/workout" },
+  {
+    label: "Chu kỳ tập luyện",
+    icon: CalendarClock,
+    to: "/client/training-cycle",
+  },
   { label: "Dinh dưỡng", icon: Utensils, to: "/client/nutrition" },
   { label: "Tìm PT", icon: Search, to: "/client/coaches" },
   { label: "Hợp đồng", icon: FileText, to: "/client/contracts" },

@@ -1610,6 +1610,16 @@ router.use(
   }),
 );
 
+// Protected — Fitness Service (training cycles)
+router.use(
+  "/training-cycles",
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
 // Protected — Fitness Service (nutrition)
 router.use(
   "/nutrition",

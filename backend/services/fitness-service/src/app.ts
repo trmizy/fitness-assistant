@@ -6,6 +6,7 @@ import nutritionRoutes from "./routes/nutrition.routes";
 import statsRoutes from "./routes/stats.routes";
 import foodRoutes from "./routes/food.routes";
 import internalRoutes from "./routes/internal.routes";
+import trainingCycleRoutes from "./routes/training-cycle.routes";
 
 const app = express();
 
@@ -27,5 +28,6 @@ app.use("/nutrition", nutritionRoutes);
 app.use("/stats", statsRoutes);
 app.use("/food", foodRoutes);
 app.use("/internal", internalRoutes);
+app.use("/training-cycles", trainingCycleRoutes);
 
 export default app;

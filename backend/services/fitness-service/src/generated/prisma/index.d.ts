@@ -79,6 +79,11 @@ export type WorkoutProgramExercise = $Result.DefaultSelection<Prisma.$WorkoutPro
  */
 export type WorkoutSchedule = $Result.DefaultSelection<Prisma.$WorkoutSchedulePayload>
 /**
+ * Model TrainingCycle
+ * 
+ */
+export type TrainingCycle = $Result.DefaultSelection<Prisma.$TrainingCyclePayload>
+/**
  * Model NutritionProgram
  * 
  */
@@ -423,6 +428,16 @@ export class PrismaClient<
     * ```
     */
   get workoutSchedule(): Prisma.WorkoutScheduleDelegate<ExtArgs>;
+
+  /**
+   * `prisma.trainingCycle`: Exposes CRUD operations for the **TrainingCycle** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more TrainingCycles
+    * const trainingCycles = await prisma.trainingCycle.findMany()
+    * ```
+    */
+  get trainingCycle(): Prisma.TrainingCycleDelegate<ExtArgs>;
 
   /**
    * `prisma.nutritionProgram`: Exposes CRUD operations for the **NutritionProgram** model.
@@ -927,6 +942,7 @@ export namespace Prisma {
     WorkoutProgramDay: 'WorkoutProgramDay',
     WorkoutProgramExercise: 'WorkoutProgramExercise',
     WorkoutSchedule: 'WorkoutSchedule',
+    TrainingCycle: 'TrainingCycle',
     NutritionProgram: 'NutritionProgram',
     NutritionProgramDay: 'NutritionProgramDay',
     NutritionProgramMeal: 'NutritionProgramMeal',
@@ -947,7 +963,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion"
+      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule" | "trainingCycle" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1858,6 +1874,76 @@ export namespace Prisma {
           count: {
             args: Prisma.WorkoutScheduleCountArgs<ExtArgs>
             result: $Utils.Optional<WorkoutScheduleCountAggregateOutputType> | number
+          }
+        }
+      }
+      TrainingCycle: {
+        payload: Prisma.$TrainingCyclePayload<ExtArgs>
+        fields: Prisma.TrainingCycleFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.TrainingCycleFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingCyclePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.TrainingCycleFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingCyclePayload>
+          }
+          findFirst: {
+            args: Prisma.TrainingCycleFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingCyclePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.TrainingCycleFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingCyclePayload>
+          }
+          findMany: {
+            args: Prisma.TrainingCycleFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingCyclePayload>[]
+          }
+          create: {
+            args: Prisma.TrainingCycleCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingCyclePayload>
+          }
+          createMany: {
+            args: Prisma.TrainingCycleCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.TrainingCycleCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingCyclePayload>[]
+          }
+          delete: {
+            args: Prisma.TrainingCycleDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingCyclePayload>
+          }
+          update: {
+            args: Prisma.TrainingCycleUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingCyclePayload>
+          }
+          deleteMany: {
+            args: Prisma.TrainingCycleDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.TrainingCycleUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.TrainingCycleUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TrainingCyclePayload>
+          }
+          aggregate: {
+            args: Prisma.TrainingCycleAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateTrainingCycle>
+          }
+          groupBy: {
+            args: Prisma.TrainingCycleGroupByArgs<ExtArgs>
+            result: $Utils.Optional<TrainingCycleGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.TrainingCycleCountArgs<ExtArgs>
+            result: $Utils.Optional<TrainingCycleCountAggregateOutputType> | number
           }
         }
       }
@@ -16342,6 +16428,1138 @@ export namespace Prisma {
 
 
   /**
+   * Model TrainingCycle
+   */
+
+  export type AggregateTrainingCycle = {
+    _count: TrainingCycleCountAggregateOutputType | null
+    _avg: TrainingCycleAvgAggregateOutputType | null
+    _sum: TrainingCycleSumAggregateOutputType | null
+    _min: TrainingCycleMinAggregateOutputType | null
+    _max: TrainingCycleMaxAggregateOutputType | null
+  }
+
+  export type TrainingCycleAvgAggregateOutputType = {
+    targetWeightAtStart: number | null
+    startWeightKg: number | null
+    startBodyFatPct: number | null
+    startMuscleMassKg: number | null
+    endWeightKg: number | null
+    endBodyFatPct: number | null
+    endMuscleMassKg: number | null
+    adherencePercent: number | null
+  }
+
+  export type TrainingCycleSumAggregateOutputType = {
+    targetWeightAtStart: number | null
+    startWeightKg: number | null
+    startBodyFatPct: number | null
+    startMuscleMassKg: number | null
+    endWeightKg: number | null
+    endBodyFatPct: number | null
+    endMuscleMassKg: number | null
+    adherencePercent: number | null
+  }
+
+  export type TrainingCycleMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    sourcePlanId: string | null
+    startDate: Date | null
+    endDate: Date | null
+    status: string | null
+    goalAtStart: string | null
+    targetWeightAtStart: number | null
+    startWeightKg: number | null
+    startBodyFatPct: number | null
+    startMuscleMassKg: number | null
+    startInBodyDate: Date | null
+    endWeightKg: number | null
+    endBodyFatPct: number | null
+    endMuscleMassKg: number | null
+    endInBodyDate: Date | null
+    adherencePercent: number | null
+    outcome: string | null
+    outcomeReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type TrainingCycleMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    sourcePlanId: string | null
+    startDate: Date | null
+    endDate: Date | null
+    status: string | null
+    goalAtStart: string | null
+    targetWeightAtStart: number | null
+    startWeightKg: number | null
+    startBodyFatPct: number | null
+    startMuscleMassKg: number | null
+    startInBodyDate: Date | null
+    endWeightKg: number | null
+    endBodyFatPct: number | null
+    endMuscleMassKg: number | null
+    endInBodyDate: Date | null
+    adherencePercent: number | null
+    outcome: string | null
+    outcomeReason: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type TrainingCycleCountAggregateOutputType = {
+    id: number
+    userId: number
+    sourcePlanId: number
+    startDate: number
+    endDate: number
+    status: number
+    goalAtStart: number
+    targetWeightAtStart: number
+    startWeightKg: number
+    startBodyFatPct: number
+    startMuscleMassKg: number
+    startInBodyDate: number
+    endWeightKg: number
+    endBodyFatPct: number
+    endMuscleMassKg: number
+    endInBodyDate: number
+    adherencePercent: number
+    outcome: number
+    outcomeReason: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type TrainingCycleAvgAggregateInputType = {
+    targetWeightAtStart?: true
+    startWeightKg?: true
+    startBodyFatPct?: true
+    startMuscleMassKg?: true
+    endWeightKg?: true
+    endBodyFatPct?: true
+    endMuscleMassKg?: true
+    adherencePercent?: true
+  }
+
+  export type TrainingCycleSumAggregateInputType = {
+    targetWeightAtStart?: true
+    startWeightKg?: true
+    startBodyFatPct?: true
+    startMuscleMassKg?: true
+    endWeightKg?: true
+    endBodyFatPct?: true
+    endMuscleMassKg?: true
+    adherencePercent?: true
+  }
+
+  export type TrainingCycleMinAggregateInputType = {
+    id?: true
+    userId?: true
+    sourcePlanId?: true
+    startDate?: true
+    endDate?: true
+    status?: true
+    goalAtStart?: true
+    targetWeightAtStart?: true
+    startWeightKg?: true
+    startBodyFatPct?: true
+    startMuscleMassKg?: true
+    startInBodyDate?: true
+    endWeightKg?: true
+    endBodyFatPct?: true
+    endMuscleMassKg?: true
+    endInBodyDate?: true
+    adherencePercent?: true
+    outcome?: true
+    outcomeReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type TrainingCycleMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    sourcePlanId?: true
+    startDate?: true
+    endDate?: true
+    status?: true
+    goalAtStart?: true
+    targetWeightAtStart?: true
+    startWeightKg?: true
+    startBodyFatPct?: true
+    startMuscleMassKg?: true
+    startInBodyDate?: true
+    endWeightKg?: true
+    endBodyFatPct?: true
+    endMuscleMassKg?: true
+    endInBodyDate?: true
+    adherencePercent?: true
+    outcome?: true
+    outcomeReason?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type TrainingCycleCountAggregateInputType = {
+    id?: true
+    userId?: true
+    sourcePlanId?: true
+    startDate?: true
+    endDate?: true
+    status?: true
+    goalAtStart?: true
+    targetWeightAtStart?: true
+    startWeightKg?: true
+    startBodyFatPct?: true
+    startMuscleMassKg?: true
+    startInBodyDate?: true
+    endWeightKg?: true
+    endBodyFatPct?: true
+    endMuscleMassKg?: true
+    endInBodyDate?: true
+    adherencePercent?: true
+    outcome?: true
+    outcomeReason?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type TrainingCycleAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TrainingCycle to aggregate.
+     */
+    where?: TrainingCycleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingCycles to fetch.
+     */
+    orderBy?: TrainingCycleOrderByWithRelationInput | TrainingCycleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: TrainingCycleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingCycles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingCycles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned TrainingCycles
+    **/
+    _count?: true | TrainingCycleCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: TrainingCycleAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: TrainingCycleSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: TrainingCycleMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: TrainingCycleMaxAggregateInputType
+  }
+
+  export type GetTrainingCycleAggregateType<T extends TrainingCycleAggregateArgs> = {
+        [P in keyof T & keyof AggregateTrainingCycle]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateTrainingCycle[P]>
+      : GetScalarType<T[P], AggregateTrainingCycle[P]>
+  }
+
+
+
+
+  export type TrainingCycleGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TrainingCycleWhereInput
+    orderBy?: TrainingCycleOrderByWithAggregationInput | TrainingCycleOrderByWithAggregationInput[]
+    by: TrainingCycleScalarFieldEnum[] | TrainingCycleScalarFieldEnum
+    having?: TrainingCycleScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: TrainingCycleCountAggregateInputType | true
+    _avg?: TrainingCycleAvgAggregateInputType
+    _sum?: TrainingCycleSumAggregateInputType
+    _min?: TrainingCycleMinAggregateInputType
+    _max?: TrainingCycleMaxAggregateInputType
+  }
+
+  export type TrainingCycleGroupByOutputType = {
+    id: string
+    userId: string
+    sourcePlanId: string | null
+    startDate: Date
+    endDate: Date | null
+    status: string
+    goalAtStart: string | null
+    targetWeightAtStart: number | null
+    startWeightKg: number | null
+    startBodyFatPct: number | null
+    startMuscleMassKg: number | null
+    startInBodyDate: Date | null
+    endWeightKg: number | null
+    endBodyFatPct: number | null
+    endMuscleMassKg: number | null
+    endInBodyDate: Date | null
+    adherencePercent: number | null
+    outcome: string | null
+    outcomeReason: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: TrainingCycleCountAggregateOutputType | null
+    _avg: TrainingCycleAvgAggregateOutputType | null
+    _sum: TrainingCycleSumAggregateOutputType | null
+    _min: TrainingCycleMinAggregateOutputType | null
+    _max: TrainingCycleMaxAggregateOutputType | null
+  }
+
+  type GetTrainingCycleGroupByPayload<T extends TrainingCycleGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<TrainingCycleGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof TrainingCycleGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], TrainingCycleGroupByOutputType[P]>
+            : GetScalarType<T[P], TrainingCycleGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type TrainingCycleSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    sourcePlanId?: boolean
+    startDate?: boolean
+    endDate?: boolean
+    status?: boolean
+    goalAtStart?: boolean
+    targetWeightAtStart?: boolean
+    startWeightKg?: boolean
+    startBodyFatPct?: boolean
+    startMuscleMassKg?: boolean
+    startInBodyDate?: boolean
+    endWeightKg?: boolean
+    endBodyFatPct?: boolean
+    endMuscleMassKg?: boolean
+    endInBodyDate?: boolean
+    adherencePercent?: boolean
+    outcome?: boolean
+    outcomeReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["trainingCycle"]>
+
+  export type TrainingCycleSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    sourcePlanId?: boolean
+    startDate?: boolean
+    endDate?: boolean
+    status?: boolean
+    goalAtStart?: boolean
+    targetWeightAtStart?: boolean
+    startWeightKg?: boolean
+    startBodyFatPct?: boolean
+    startMuscleMassKg?: boolean
+    startInBodyDate?: boolean
+    endWeightKg?: boolean
+    endBodyFatPct?: boolean
+    endMuscleMassKg?: boolean
+    endInBodyDate?: boolean
+    adherencePercent?: boolean
+    outcome?: boolean
+    outcomeReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["trainingCycle"]>
+
+  export type TrainingCycleSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    sourcePlanId?: boolean
+    startDate?: boolean
+    endDate?: boolean
+    status?: boolean
+    goalAtStart?: boolean
+    targetWeightAtStart?: boolean
+    startWeightKg?: boolean
+    startBodyFatPct?: boolean
+    startMuscleMassKg?: boolean
+    startInBodyDate?: boolean
+    endWeightKg?: boolean
+    endBodyFatPct?: boolean
+    endMuscleMassKg?: boolean
+    endInBodyDate?: boolean
+    adherencePercent?: boolean
+    outcome?: boolean
+    outcomeReason?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+
+  export type $TrainingCyclePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "TrainingCycle"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      sourcePlanId: string | null
+      startDate: Date
+      endDate: Date | null
+      status: string
+      goalAtStart: string | null
+      targetWeightAtStart: number | null
+      startWeightKg: number | null
+      startBodyFatPct: number | null
+      startMuscleMassKg: number | null
+      startInBodyDate: Date | null
+      endWeightKg: number | null
+      endBodyFatPct: number | null
+      endMuscleMassKg: number | null
+      endInBodyDate: Date | null
+      adherencePercent: number | null
+      outcome: string | null
+      outcomeReason: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["trainingCycle"]>
+    composites: {}
+  }
+
+  type TrainingCycleGetPayload<S extends boolean | null | undefined | TrainingCycleDefaultArgs> = $Result.GetResult<Prisma.$TrainingCyclePayload, S>
+
+  type TrainingCycleCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<TrainingCycleFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: TrainingCycleCountAggregateInputType | true
+    }
+
+  export interface TrainingCycleDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['TrainingCycle'], meta: { name: 'TrainingCycle' } }
+    /**
+     * Find zero or one TrainingCycle that matches the filter.
+     * @param {TrainingCycleFindUniqueArgs} args - Arguments to find a TrainingCycle
+     * @example
+     * // Get one TrainingCycle
+     * const trainingCycle = await prisma.trainingCycle.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends TrainingCycleFindUniqueArgs>(args: SelectSubset<T, TrainingCycleFindUniqueArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one TrainingCycle that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {TrainingCycleFindUniqueOrThrowArgs} args - Arguments to find a TrainingCycle
+     * @example
+     * // Get one TrainingCycle
+     * const trainingCycle = await prisma.trainingCycle.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends TrainingCycleFindUniqueOrThrowArgs>(args: SelectSubset<T, TrainingCycleFindUniqueOrThrowArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first TrainingCycle that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingCycleFindFirstArgs} args - Arguments to find a TrainingCycle
+     * @example
+     * // Get one TrainingCycle
+     * const trainingCycle = await prisma.trainingCycle.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends TrainingCycleFindFirstArgs>(args?: SelectSubset<T, TrainingCycleFindFirstArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first TrainingCycle that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingCycleFindFirstOrThrowArgs} args - Arguments to find a TrainingCycle
+     * @example
+     * // Get one TrainingCycle
+     * const trainingCycle = await prisma.trainingCycle.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends TrainingCycleFindFirstOrThrowArgs>(args?: SelectSubset<T, TrainingCycleFindFirstOrThrowArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more TrainingCycles that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingCycleFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all TrainingCycles
+     * const trainingCycles = await prisma.trainingCycle.findMany()
+     * 
+     * // Get first 10 TrainingCycles
+     * const trainingCycles = await prisma.trainingCycle.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const trainingCycleWithIdOnly = await prisma.trainingCycle.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends TrainingCycleFindManyArgs>(args?: SelectSubset<T, TrainingCycleFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a TrainingCycle.
+     * @param {TrainingCycleCreateArgs} args - Arguments to create a TrainingCycle.
+     * @example
+     * // Create one TrainingCycle
+     * const TrainingCycle = await prisma.trainingCycle.create({
+     *   data: {
+     *     // ... data to create a TrainingCycle
+     *   }
+     * })
+     * 
+     */
+    create<T extends TrainingCycleCreateArgs>(args: SelectSubset<T, TrainingCycleCreateArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many TrainingCycles.
+     * @param {TrainingCycleCreateManyArgs} args - Arguments to create many TrainingCycles.
+     * @example
+     * // Create many TrainingCycles
+     * const trainingCycle = await prisma.trainingCycle.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends TrainingCycleCreateManyArgs>(args?: SelectSubset<T, TrainingCycleCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many TrainingCycles and returns the data saved in the database.
+     * @param {TrainingCycleCreateManyAndReturnArgs} args - Arguments to create many TrainingCycles.
+     * @example
+     * // Create many TrainingCycles
+     * const trainingCycle = await prisma.trainingCycle.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many TrainingCycles and only return the `id`
+     * const trainingCycleWithIdOnly = await prisma.trainingCycle.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends TrainingCycleCreateManyAndReturnArgs>(args?: SelectSubset<T, TrainingCycleCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a TrainingCycle.
+     * @param {TrainingCycleDeleteArgs} args - Arguments to delete one TrainingCycle.
+     * @example
+     * // Delete one TrainingCycle
+     * const TrainingCycle = await prisma.trainingCycle.delete({
+     *   where: {
+     *     // ... filter to delete one TrainingCycle
+     *   }
+     * })
+     * 
+     */
+    delete<T extends TrainingCycleDeleteArgs>(args: SelectSubset<T, TrainingCycleDeleteArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one TrainingCycle.
+     * @param {TrainingCycleUpdateArgs} args - Arguments to update one TrainingCycle.
+     * @example
+     * // Update one TrainingCycle
+     * const trainingCycle = await prisma.trainingCycle.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends TrainingCycleUpdateArgs>(args: SelectSubset<T, TrainingCycleUpdateArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more TrainingCycles.
+     * @param {TrainingCycleDeleteManyArgs} args - Arguments to filter TrainingCycles to delete.
+     * @example
+     * // Delete a few TrainingCycles
+     * const { count } = await prisma.trainingCycle.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends TrainingCycleDeleteManyArgs>(args?: SelectSubset<T, TrainingCycleDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TrainingCycles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingCycleUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many TrainingCycles
+     * const trainingCycle = await prisma.trainingCycle.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends TrainingCycleUpdateManyArgs>(args: SelectSubset<T, TrainingCycleUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one TrainingCycle.
+     * @param {TrainingCycleUpsertArgs} args - Arguments to update or create a TrainingCycle.
+     * @example
+     * // Update or create a TrainingCycle
+     * const trainingCycle = await prisma.trainingCycle.upsert({
+     *   create: {
+     *     // ... data to create a TrainingCycle
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the TrainingCycle we want to update
+     *   }
+     * })
+     */
+    upsert<T extends TrainingCycleUpsertArgs>(args: SelectSubset<T, TrainingCycleUpsertArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of TrainingCycles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingCycleCountArgs} args - Arguments to filter TrainingCycles to count.
+     * @example
+     * // Count the number of TrainingCycles
+     * const count = await prisma.trainingCycle.count({
+     *   where: {
+     *     // ... the filter for the TrainingCycles we want to count
+     *   }
+     * })
+    **/
+    count<T extends TrainingCycleCountArgs>(
+      args?: Subset<T, TrainingCycleCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], TrainingCycleCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a TrainingCycle.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingCycleAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends TrainingCycleAggregateArgs>(args: Subset<T, TrainingCycleAggregateArgs>): Prisma.PrismaPromise<GetTrainingCycleAggregateType<T>>
+
+    /**
+     * Group by TrainingCycle.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TrainingCycleGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends TrainingCycleGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: TrainingCycleGroupByArgs['orderBy'] }
+        : { orderBy?: TrainingCycleGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, TrainingCycleGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetTrainingCycleGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the TrainingCycle model
+   */
+  readonly fields: TrainingCycleFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for TrainingCycle.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__TrainingCycleClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the TrainingCycle model
+   */ 
+  interface TrainingCycleFieldRefs {
+    readonly id: FieldRef<"TrainingCycle", 'String'>
+    readonly userId: FieldRef<"TrainingCycle", 'String'>
+    readonly sourcePlanId: FieldRef<"TrainingCycle", 'String'>
+    readonly startDate: FieldRef<"TrainingCycle", 'DateTime'>
+    readonly endDate: FieldRef<"TrainingCycle", 'DateTime'>
+    readonly status: FieldRef<"TrainingCycle", 'String'>
+    readonly goalAtStart: FieldRef<"TrainingCycle", 'String'>
+    readonly targetWeightAtStart: FieldRef<"TrainingCycle", 'Float'>
+    readonly startWeightKg: FieldRef<"TrainingCycle", 'Float'>
+    readonly startBodyFatPct: FieldRef<"TrainingCycle", 'Float'>
+    readonly startMuscleMassKg: FieldRef<"TrainingCycle", 'Float'>
+    readonly startInBodyDate: FieldRef<"TrainingCycle", 'DateTime'>
+    readonly endWeightKg: FieldRef<"TrainingCycle", 'Float'>
+    readonly endBodyFatPct: FieldRef<"TrainingCycle", 'Float'>
+    readonly endMuscleMassKg: FieldRef<"TrainingCycle", 'Float'>
+    readonly endInBodyDate: FieldRef<"TrainingCycle", 'DateTime'>
+    readonly adherencePercent: FieldRef<"TrainingCycle", 'Int'>
+    readonly outcome: FieldRef<"TrainingCycle", 'String'>
+    readonly outcomeReason: FieldRef<"TrainingCycle", 'String'>
+    readonly createdAt: FieldRef<"TrainingCycle", 'DateTime'>
+    readonly updatedAt: FieldRef<"TrainingCycle", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * TrainingCycle findUnique
+   */
+  export type TrainingCycleFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * Filter, which TrainingCycle to fetch.
+     */
+    where: TrainingCycleWhereUniqueInput
+  }
+
+  /**
+   * TrainingCycle findUniqueOrThrow
+   */
+  export type TrainingCycleFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * Filter, which TrainingCycle to fetch.
+     */
+    where: TrainingCycleWhereUniqueInput
+  }
+
+  /**
+   * TrainingCycle findFirst
+   */
+  export type TrainingCycleFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * Filter, which TrainingCycle to fetch.
+     */
+    where?: TrainingCycleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingCycles to fetch.
+     */
+    orderBy?: TrainingCycleOrderByWithRelationInput | TrainingCycleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TrainingCycles.
+     */
+    cursor?: TrainingCycleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingCycles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingCycles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TrainingCycles.
+     */
+    distinct?: TrainingCycleScalarFieldEnum | TrainingCycleScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingCycle findFirstOrThrow
+   */
+  export type TrainingCycleFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * Filter, which TrainingCycle to fetch.
+     */
+    where?: TrainingCycleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingCycles to fetch.
+     */
+    orderBy?: TrainingCycleOrderByWithRelationInput | TrainingCycleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TrainingCycles.
+     */
+    cursor?: TrainingCycleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingCycles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingCycles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TrainingCycles.
+     */
+    distinct?: TrainingCycleScalarFieldEnum | TrainingCycleScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingCycle findMany
+   */
+  export type TrainingCycleFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * Filter, which TrainingCycles to fetch.
+     */
+    where?: TrainingCycleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TrainingCycles to fetch.
+     */
+    orderBy?: TrainingCycleOrderByWithRelationInput | TrainingCycleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing TrainingCycles.
+     */
+    cursor?: TrainingCycleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TrainingCycles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TrainingCycles.
+     */
+    skip?: number
+    distinct?: TrainingCycleScalarFieldEnum | TrainingCycleScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingCycle create
+   */
+  export type TrainingCycleCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * The data needed to create a TrainingCycle.
+     */
+    data: XOR<TrainingCycleCreateInput, TrainingCycleUncheckedCreateInput>
+  }
+
+  /**
+   * TrainingCycle createMany
+   */
+  export type TrainingCycleCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many TrainingCycles.
+     */
+    data: TrainingCycleCreateManyInput | TrainingCycleCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * TrainingCycle createManyAndReturn
+   */
+  export type TrainingCycleCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many TrainingCycles.
+     */
+    data: TrainingCycleCreateManyInput | TrainingCycleCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * TrainingCycle update
+   */
+  export type TrainingCycleUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * The data needed to update a TrainingCycle.
+     */
+    data: XOR<TrainingCycleUpdateInput, TrainingCycleUncheckedUpdateInput>
+    /**
+     * Choose, which TrainingCycle to update.
+     */
+    where: TrainingCycleWhereUniqueInput
+  }
+
+  /**
+   * TrainingCycle updateMany
+   */
+  export type TrainingCycleUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update TrainingCycles.
+     */
+    data: XOR<TrainingCycleUpdateManyMutationInput, TrainingCycleUncheckedUpdateManyInput>
+    /**
+     * Filter which TrainingCycles to update
+     */
+    where?: TrainingCycleWhereInput
+  }
+
+  /**
+   * TrainingCycle upsert
+   */
+  export type TrainingCycleUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * The filter to search for the TrainingCycle to update in case it exists.
+     */
+    where: TrainingCycleWhereUniqueInput
+    /**
+     * In case the TrainingCycle found by the `where` argument doesn't exist, create a new TrainingCycle with this data.
+     */
+    create: XOR<TrainingCycleCreateInput, TrainingCycleUncheckedCreateInput>
+    /**
+     * In case the TrainingCycle was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<TrainingCycleUpdateInput, TrainingCycleUncheckedUpdateInput>
+  }
+
+  /**
+   * TrainingCycle delete
+   */
+  export type TrainingCycleDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * Filter which TrainingCycle to delete.
+     */
+    where: TrainingCycleWhereUniqueInput
+  }
+
+  /**
+   * TrainingCycle deleteMany
+   */
+  export type TrainingCycleDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TrainingCycles to delete
+     */
+    where?: TrainingCycleWhereInput
+  }
+
+  /**
+   * TrainingCycle without action
+   */
+  export type TrainingCycleDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Model NutritionProgram
    */
 
@@ -22105,6 +23323,33 @@ export namespace Prisma {
   export type WorkoutScheduleScalarFieldEnum = (typeof WorkoutScheduleScalarFieldEnum)[keyof typeof WorkoutScheduleScalarFieldEnum]
 
 
+  export const TrainingCycleScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    sourcePlanId: 'sourcePlanId',
+    startDate: 'startDate',
+    endDate: 'endDate',
+    status: 'status',
+    goalAtStart: 'goalAtStart',
+    targetWeightAtStart: 'targetWeightAtStart',
+    startWeightKg: 'startWeightKg',
+    startBodyFatPct: 'startBodyFatPct',
+    startMuscleMassKg: 'startMuscleMassKg',
+    startInBodyDate: 'startInBodyDate',
+    endWeightKg: 'endWeightKg',
+    endBodyFatPct: 'endBodyFatPct',
+    endMuscleMassKg: 'endMuscleMassKg',
+    endInBodyDate: 'endInBodyDate',
+    adherencePercent: 'adherencePercent',
+    outcome: 'outcome',
+    outcomeReason: 'outcomeReason',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type TrainingCycleScalarFieldEnum = (typeof TrainingCycleScalarFieldEnum)[keyof typeof TrainingCycleScalarFieldEnum]
+
+
   export const NutritionProgramScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -23492,6 +24737,140 @@ export namespace Prisma {
     notes?: StringNullableWithAggregatesFilter<"WorkoutSchedule"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WorkoutSchedule"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"WorkoutSchedule"> | Date | string
+  }
+
+  export type TrainingCycleWhereInput = {
+    AND?: TrainingCycleWhereInput | TrainingCycleWhereInput[]
+    OR?: TrainingCycleWhereInput[]
+    NOT?: TrainingCycleWhereInput | TrainingCycleWhereInput[]
+    id?: StringFilter<"TrainingCycle"> | string
+    userId?: StringFilter<"TrainingCycle"> | string
+    sourcePlanId?: StringNullableFilter<"TrainingCycle"> | string | null
+    startDate?: DateTimeFilter<"TrainingCycle"> | Date | string
+    endDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    status?: StringFilter<"TrainingCycle"> | string
+    goalAtStart?: StringNullableFilter<"TrainingCycle"> | string | null
+    targetWeightAtStart?: FloatNullableFilter<"TrainingCycle"> | number | null
+    startWeightKg?: FloatNullableFilter<"TrainingCycle"> | number | null
+    startBodyFatPct?: FloatNullableFilter<"TrainingCycle"> | number | null
+    startMuscleMassKg?: FloatNullableFilter<"TrainingCycle"> | number | null
+    startInBodyDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    endWeightKg?: FloatNullableFilter<"TrainingCycle"> | number | null
+    endBodyFatPct?: FloatNullableFilter<"TrainingCycle"> | number | null
+    endMuscleMassKg?: FloatNullableFilter<"TrainingCycle"> | number | null
+    endInBodyDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    adherencePercent?: IntNullableFilter<"TrainingCycle"> | number | null
+    outcome?: StringNullableFilter<"TrainingCycle"> | string | null
+    outcomeReason?: StringNullableFilter<"TrainingCycle"> | string | null
+    createdAt?: DateTimeFilter<"TrainingCycle"> | Date | string
+    updatedAt?: DateTimeFilter<"TrainingCycle"> | Date | string
+  }
+
+  export type TrainingCycleOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sourcePlanId?: SortOrderInput | SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrderInput | SortOrder
+    status?: SortOrder
+    goalAtStart?: SortOrderInput | SortOrder
+    targetWeightAtStart?: SortOrderInput | SortOrder
+    startWeightKg?: SortOrderInput | SortOrder
+    startBodyFatPct?: SortOrderInput | SortOrder
+    startMuscleMassKg?: SortOrderInput | SortOrder
+    startInBodyDate?: SortOrderInput | SortOrder
+    endWeightKg?: SortOrderInput | SortOrder
+    endBodyFatPct?: SortOrderInput | SortOrder
+    endMuscleMassKg?: SortOrderInput | SortOrder
+    endInBodyDate?: SortOrderInput | SortOrder
+    adherencePercent?: SortOrderInput | SortOrder
+    outcome?: SortOrderInput | SortOrder
+    outcomeReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TrainingCycleWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: TrainingCycleWhereInput | TrainingCycleWhereInput[]
+    OR?: TrainingCycleWhereInput[]
+    NOT?: TrainingCycleWhereInput | TrainingCycleWhereInput[]
+    userId?: StringFilter<"TrainingCycle"> | string
+    sourcePlanId?: StringNullableFilter<"TrainingCycle"> | string | null
+    startDate?: DateTimeFilter<"TrainingCycle"> | Date | string
+    endDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    status?: StringFilter<"TrainingCycle"> | string
+    goalAtStart?: StringNullableFilter<"TrainingCycle"> | string | null
+    targetWeightAtStart?: FloatNullableFilter<"TrainingCycle"> | number | null
+    startWeightKg?: FloatNullableFilter<"TrainingCycle"> | number | null
+    startBodyFatPct?: FloatNullableFilter<"TrainingCycle"> | number | null
+    startMuscleMassKg?: FloatNullableFilter<"TrainingCycle"> | number | null
+    startInBodyDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    endWeightKg?: FloatNullableFilter<"TrainingCycle"> | number | null
+    endBodyFatPct?: FloatNullableFilter<"TrainingCycle"> | number | null
+    endMuscleMassKg?: FloatNullableFilter<"TrainingCycle"> | number | null
+    endInBodyDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    adherencePercent?: IntNullableFilter<"TrainingCycle"> | number | null
+    outcome?: StringNullableFilter<"TrainingCycle"> | string | null
+    outcomeReason?: StringNullableFilter<"TrainingCycle"> | string | null
+    createdAt?: DateTimeFilter<"TrainingCycle"> | Date | string
+    updatedAt?: DateTimeFilter<"TrainingCycle"> | Date | string
+  }, "id">
+
+  export type TrainingCycleOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sourcePlanId?: SortOrderInput | SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrderInput | SortOrder
+    status?: SortOrder
+    goalAtStart?: SortOrderInput | SortOrder
+    targetWeightAtStart?: SortOrderInput | SortOrder
+    startWeightKg?: SortOrderInput | SortOrder
+    startBodyFatPct?: SortOrderInput | SortOrder
+    startMuscleMassKg?: SortOrderInput | SortOrder
+    startInBodyDate?: SortOrderInput | SortOrder
+    endWeightKg?: SortOrderInput | SortOrder
+    endBodyFatPct?: SortOrderInput | SortOrder
+    endMuscleMassKg?: SortOrderInput | SortOrder
+    endInBodyDate?: SortOrderInput | SortOrder
+    adherencePercent?: SortOrderInput | SortOrder
+    outcome?: SortOrderInput | SortOrder
+    outcomeReason?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: TrainingCycleCountOrderByAggregateInput
+    _avg?: TrainingCycleAvgOrderByAggregateInput
+    _max?: TrainingCycleMaxOrderByAggregateInput
+    _min?: TrainingCycleMinOrderByAggregateInput
+    _sum?: TrainingCycleSumOrderByAggregateInput
+  }
+
+  export type TrainingCycleScalarWhereWithAggregatesInput = {
+    AND?: TrainingCycleScalarWhereWithAggregatesInput | TrainingCycleScalarWhereWithAggregatesInput[]
+    OR?: TrainingCycleScalarWhereWithAggregatesInput[]
+    NOT?: TrainingCycleScalarWhereWithAggregatesInput | TrainingCycleScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"TrainingCycle"> | string
+    userId?: StringWithAggregatesFilter<"TrainingCycle"> | string
+    sourcePlanId?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    startDate?: DateTimeWithAggregatesFilter<"TrainingCycle"> | Date | string
+    endDate?: DateTimeNullableWithAggregatesFilter<"TrainingCycle"> | Date | string | null
+    status?: StringWithAggregatesFilter<"TrainingCycle"> | string
+    goalAtStart?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    targetWeightAtStart?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
+    startWeightKg?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
+    startBodyFatPct?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
+    startMuscleMassKg?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
+    startInBodyDate?: DateTimeNullableWithAggregatesFilter<"TrainingCycle"> | Date | string | null
+    endWeightKg?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
+    endBodyFatPct?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
+    endMuscleMassKg?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
+    endInBodyDate?: DateTimeNullableWithAggregatesFilter<"TrainingCycle"> | Date | string | null
+    adherencePercent?: IntNullableWithAggregatesFilter<"TrainingCycle"> | number | null
+    outcome?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    outcomeReason?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"TrainingCycle"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"TrainingCycle"> | Date | string
   }
 
   export type NutritionProgramWhereInput = {
@@ -25295,6 +26674,174 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type TrainingCycleCreateInput = {
+    id?: string
+    userId: string
+    sourcePlanId?: string | null
+    startDate: Date | string
+    endDate?: Date | string | null
+    status?: string
+    goalAtStart?: string | null
+    targetWeightAtStart?: number | null
+    startWeightKg?: number | null
+    startBodyFatPct?: number | null
+    startMuscleMassKg?: number | null
+    startInBodyDate?: Date | string | null
+    endWeightKg?: number | null
+    endBodyFatPct?: number | null
+    endMuscleMassKg?: number | null
+    endInBodyDate?: Date | string | null
+    adherencePercent?: number | null
+    outcome?: string | null
+    outcomeReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TrainingCycleUncheckedCreateInput = {
+    id?: string
+    userId: string
+    sourcePlanId?: string | null
+    startDate: Date | string
+    endDate?: Date | string | null
+    status?: string
+    goalAtStart?: string | null
+    targetWeightAtStart?: number | null
+    startWeightKg?: number | null
+    startBodyFatPct?: number | null
+    startMuscleMassKg?: number | null
+    startInBodyDate?: Date | string | null
+    endWeightKg?: number | null
+    endBodyFatPct?: number | null
+    endMuscleMassKg?: number | null
+    endInBodyDate?: Date | string | null
+    adherencePercent?: number | null
+    outcome?: string | null
+    outcomeReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TrainingCycleUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    goalAtStart?: NullableStringFieldUpdateOperationsInput | string | null
+    targetWeightAtStart?: NullableFloatFieldUpdateOperationsInput | number | null
+    startWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    startBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    startMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    startInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    endBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    endMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    endInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    adherencePercent?: NullableIntFieldUpdateOperationsInput | number | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingCycleUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    goalAtStart?: NullableStringFieldUpdateOperationsInput | string | null
+    targetWeightAtStart?: NullableFloatFieldUpdateOperationsInput | number | null
+    startWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    startBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    startMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    startInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    endBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    endMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    endInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    adherencePercent?: NullableIntFieldUpdateOperationsInput | number | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingCycleCreateManyInput = {
+    id?: string
+    userId: string
+    sourcePlanId?: string | null
+    startDate: Date | string
+    endDate?: Date | string | null
+    status?: string
+    goalAtStart?: string | null
+    targetWeightAtStart?: number | null
+    startWeightKg?: number | null
+    startBodyFatPct?: number | null
+    startMuscleMassKg?: number | null
+    startInBodyDate?: Date | string | null
+    endWeightKg?: number | null
+    endBodyFatPct?: number | null
+    endMuscleMassKg?: number | null
+    endInBodyDate?: Date | string | null
+    adherencePercent?: number | null
+    outcome?: string | null
+    outcomeReason?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TrainingCycleUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    goalAtStart?: NullableStringFieldUpdateOperationsInput | string | null
+    targetWeightAtStart?: NullableFloatFieldUpdateOperationsInput | number | null
+    startWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    startBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    startMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    startInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    endBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    endMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    endInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    adherencePercent?: NullableIntFieldUpdateOperationsInput | number | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingCycleUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    goalAtStart?: NullableStringFieldUpdateOperationsInput | string | null
+    targetWeightAtStart?: NullableFloatFieldUpdateOperationsInput | number | null
+    startWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    startBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    startMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    startInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    endBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
+    endMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
+    endInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    adherencePercent?: NullableIntFieldUpdateOperationsInput | number | null
+    outcome?: NullableStringFieldUpdateOperationsInput | string | null
+    outcomeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type NutritionProgramCreateInput = {
     id?: string
     userId: string
@@ -27036,6 +28583,100 @@ export namespace Prisma {
     completedSets?: SortOrder
     durationSeconds?: SortOrder
     caloriesEstimate?: SortOrder
+  }
+
+  export type TrainingCycleCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sourcePlanId?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
+    status?: SortOrder
+    goalAtStart?: SortOrder
+    targetWeightAtStart?: SortOrder
+    startWeightKg?: SortOrder
+    startBodyFatPct?: SortOrder
+    startMuscleMassKg?: SortOrder
+    startInBodyDate?: SortOrder
+    endWeightKg?: SortOrder
+    endBodyFatPct?: SortOrder
+    endMuscleMassKg?: SortOrder
+    endInBodyDate?: SortOrder
+    adherencePercent?: SortOrder
+    outcome?: SortOrder
+    outcomeReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TrainingCycleAvgOrderByAggregateInput = {
+    targetWeightAtStart?: SortOrder
+    startWeightKg?: SortOrder
+    startBodyFatPct?: SortOrder
+    startMuscleMassKg?: SortOrder
+    endWeightKg?: SortOrder
+    endBodyFatPct?: SortOrder
+    endMuscleMassKg?: SortOrder
+    adherencePercent?: SortOrder
+  }
+
+  export type TrainingCycleMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sourcePlanId?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
+    status?: SortOrder
+    goalAtStart?: SortOrder
+    targetWeightAtStart?: SortOrder
+    startWeightKg?: SortOrder
+    startBodyFatPct?: SortOrder
+    startMuscleMassKg?: SortOrder
+    startInBodyDate?: SortOrder
+    endWeightKg?: SortOrder
+    endBodyFatPct?: SortOrder
+    endMuscleMassKg?: SortOrder
+    endInBodyDate?: SortOrder
+    adherencePercent?: SortOrder
+    outcome?: SortOrder
+    outcomeReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TrainingCycleMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    sourcePlanId?: SortOrder
+    startDate?: SortOrder
+    endDate?: SortOrder
+    status?: SortOrder
+    goalAtStart?: SortOrder
+    targetWeightAtStart?: SortOrder
+    startWeightKg?: SortOrder
+    startBodyFatPct?: SortOrder
+    startMuscleMassKg?: SortOrder
+    startInBodyDate?: SortOrder
+    endWeightKg?: SortOrder
+    endBodyFatPct?: SortOrder
+    endMuscleMassKg?: SortOrder
+    endInBodyDate?: SortOrder
+    adherencePercent?: SortOrder
+    outcome?: SortOrder
+    outcomeReason?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TrainingCycleSumOrderByAggregateInput = {
+    targetWeightAtStart?: SortOrder
+    startWeightKg?: SortOrder
+    startBodyFatPct?: SortOrder
+    startMuscleMassKg?: SortOrder
+    endWeightKg?: SortOrder
+    endBodyFatPct?: SortOrder
+    endMuscleMassKg?: SortOrder
+    adherencePercent?: SortOrder
   }
 
   export type NutritionProgramDayListRelationFilter = {
@@ -31472,6 +33113,10 @@ export namespace Prisma {
      * @deprecated Use WorkoutScheduleDefaultArgs instead
      */
     export type WorkoutScheduleArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutScheduleDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use TrainingCycleDefaultArgs instead
+     */
+    export type TrainingCycleArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = TrainingCycleDefaultArgs<ExtArgs>
     /**
      * @deprecated Use NutritionProgramDefaultArgs instead
      */

@@ -511,6 +511,68 @@ export const workoutService = {
   },
 };
 
+export interface TrainingCycle {
+  id: string;
+  userId: string;
+  sourcePlanId: string | null;
+  startDate: string;
+  endDate: string | null;
+  status: "ACTIVE" | "CLOSED";
+  goalAtStart: string | null;
+  targetWeightAtStart: number | null;
+  startWeightKg: number | null;
+  startBodyFatPct: number | null;
+  startMuscleMassKg: number | null;
+  startInBodyDate: string | null;
+  endWeightKg: number | null;
+  endBodyFatPct: number | null;
+  endMuscleMassKg: number | null;
+  endInBodyDate: string | null;
+  adherencePercent: number | null;
+  outcome: "ACHIEVED" | "PARTIAL" | "NOT_ACHIEVED" | null;
+  outcomeReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TrainingCycleAdherencePreview {
+  total: number;
+  completed: number;
+  percent: number;
+}
+
+export const trainingCycleService = {
+  start: async (params?: { sourcePlanId?: string; startDate?: string }) => {
+    const { data } = await api.post<TrainingCycle>(
+      "/training-cycles",
+      params ?? {},
+    );
+    return data;
+  },
+
+  getCurrent: async () => {
+    const { data } = await api.get<{
+      cycle: TrainingCycle;
+      adherencePreview: TrainingCycleAdherencePreview;
+    }>("/training-cycles/current");
+    return data;
+  },
+
+  close: async (id: string) => {
+    const { data } = await api.post<TrainingCycle>(
+      `/training-cycles/${id}/close`,
+    );
+    return data;
+  },
+
+  list: async (limit = 20) => {
+    const { data } = await api.get<{ cycles: TrainingCycle[] }>(
+      `/training-cycles?limit=${limit}`,
+    );
+    return data.cycles;
+  },
+};
+
 export type PlanStatusBackend =
   | "QUEUED"
   | "PROCESSING"

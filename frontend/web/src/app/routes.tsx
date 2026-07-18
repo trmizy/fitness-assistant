@@ -22,6 +22,7 @@ import { PaymentResultPage } from "./pages/client/PaymentResultPage";
 import { GymsPage } from "./pages/client/GymsPage";
 import { GymDetailPage } from "./pages/client/GymDetailPage";
 import { GymMembershipsPage } from "./pages/client/GymMembershipsPage";
+import { TrainingCyclePage } from "./pages/client/TrainingCyclePage";
 
 // PT pages
 import { PTDashboard } from "./pages/pt/PTDashboard";
@@ -118,6 +119,7 @@ export const router = createBrowserRouter([
           { path: "gyms", Component: GymsPage },
           { path: "gyms/:id", Component: GymDetailPage },
           { path: "gym-memberships", Component: GymMembershipsPage },
+          { path: "training-cycle", Component: TrainingCyclePage },
         ],
       },
 
