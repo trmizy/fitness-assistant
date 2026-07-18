@@ -680,6 +680,91 @@ export const marketplaceService = {
   },
 };
 
+export interface TrainingPackage {
+  id: string;
+  sellerId: string;
+  publishedPlanId: string;
+  name: string;
+  description: string | null;
+  price: number;
+  durationWeeks: number | null;
+  status: "ACTIVE" | "ARCHIVED";
+  createdAt: string;
+  updatedAt: string;
+  publishedPlan?: {
+    title: string;
+    goal: string;
+    avgRating?: number;
+    ratingCount?: number;
+    sourcePlanId?: string;
+  };
+}
+
+export interface TrainingPackagePurchase {
+  id: string;
+  packageId: string;
+  buyerId: string;
+  priceAtPurchase: number;
+  status: "PENDING" | "PAID" | "FAILED";
+  purchasedAt: string | null;
+  createdAt: string;
+  package?: TrainingPackage;
+}
+
+export const trainingPackageService = {
+  create: async (params: {
+    publishedPlanId: string;
+    name: string;
+    description?: string;
+    price: number;
+    durationWeeks?: number;
+  }) => {
+    const { data } = await api.post<{ success: boolean; data: TrainingPackage }>(
+      "/marketplace/packages",
+      params,
+    );
+    return data.data;
+  },
+
+  listMine: async () => {
+    const { data } = await api.get<{ success: boolean; data: TrainingPackage[] }>(
+      "/marketplace/packages/mine",
+    );
+    return data.data;
+  },
+
+  archive: async (id: string) => {
+    const { data } = await api.post<{ success: boolean; data: TrainingPackage }>(
+      `/marketplace/packages/${id}/archive`,
+    );
+    return data.data;
+  },
+
+  browse: async (page = 1, limit = 20) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: { items: TrainingPackage[]; total: number; page: number; limit: number };
+    }>(`/marketplace/packages?page=${page}&limit=${limit}`);
+    return data.data;
+  },
+
+  purchase: async (id: string) => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: TrainingPackagePurchase;
+    }>(`/marketplace/packages/${id}/purchase`);
+    return data.data;
+  },
+
+  listMyPurchases: async () => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: TrainingPackagePurchase[];
+    }>("/marketplace/packages/purchases/mine");
+    return data.data;
+  },
+};
+
 export type PlanStatusBackend =
   | "QUEUED"
   | "PROCESSING"

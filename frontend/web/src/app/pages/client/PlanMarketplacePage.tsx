@@ -4,7 +4,9 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   Loader2,
+  Package,
   Send,
+  ShoppingCart,
   Store,
   TrendingUp,
   Trash2,
@@ -14,7 +16,9 @@ import { StarRating } from "../../components/StarRating";
 import {
   marketplaceService,
   planService,
+  trainingPackageService,
   type PublishedPlanListing,
+  type TrainingPackage,
 } from "../../services/api";
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
@@ -397,8 +401,299 @@ function BrowseTab({ onSelect }: { onSelect: (id: string) => void }) {
   );
 }
 
+function CreatePackageForm({
+  publishedPlanId,
+  onDone,
+}: {
+  publishedPlanId: string;
+  onDone: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [durationWeeks, setDurationWeeks] = useState("");
+  const [description, setDescription] = useState("");
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      trainingPackageService.create({
+        publishedPlanId,
+        name,
+        price: Number(price),
+        durationWeeks: durationWeeks ? Number(durationWeeks) : undefined,
+        description: description || undefined,
+      }),
+    onSuccess: () => {
+      toast.success("Đã tạo gói bán");
+      queryClient.invalidateQueries({ queryKey: ["packages"] });
+      onDone();
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.error?.message ?? "Không thể tạo gói bán",
+      );
+    },
+  });
+
+  return (
+    <div className="mt-2 space-y-2 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Tên gói bán"
+        className="w-full rounded-lg border border-zinc-800 bg-zinc-900 p-2 text-sm text-zinc-200 placeholder:text-zinc-600"
+      />
+      <div className="flex gap-2">
+        <input
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          type="number"
+          placeholder="Giá (VND)"
+          className="w-full rounded-lg border border-zinc-800 bg-zinc-900 p-2 text-sm text-zinc-200 placeholder:text-zinc-600"
+        />
+        <input
+          value={durationWeeks}
+          onChange={(e) => setDurationWeeks(e.target.value)}
+          type="number"
+          placeholder="Số tuần"
+          className="w-full rounded-lg border border-zinc-800 bg-zinc-900 p-2 text-sm text-zinc-200 placeholder:text-zinc-600"
+        />
+      </div>
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="Mô tả (không bắt buộc)"
+        rows={2}
+        className="w-full rounded-lg border border-zinc-800 bg-zinc-900 p-2 text-sm text-zinc-200 placeholder:text-zinc-600"
+      />
+      <button
+        type="button"
+        onClick={() => createMutation.mutate()}
+        disabled={!name || !price || createMutation.isPending}
+        className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+      >
+        {createMutation.isPending ? "Đang tạo..." : "Tạo gói bán"}
+      </button>
+    </div>
+  );
+}
+
+function SellPackagesTab() {
+  const queryClient = useQueryClient();
+  const [creatingFor, setCreatingFor] = useState<string | null>(null);
+
+  const myPlansQuery = useQuery({
+    queryKey: ["marketplace", "mine"],
+    queryFn: marketplaceService.listMine,
+  });
+  const myPackagesQuery = useQuery({
+    queryKey: ["packages", "mine"],
+    queryFn: trainingPackageService.listMine,
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => trainingPackageService.archive(id),
+    onSuccess: () => {
+      toast.success("Đã gỡ gói bán");
+      queryClient.invalidateQueries({ queryKey: ["packages"] });
+    },
+  });
+
+  const approvedPlans = (myPlansQuery.data ?? []).filter(
+    (p) => p.moderationStatus === "APPROVED",
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+        <h3 className="mb-3 text-sm font-medium text-zinc-300">
+          Tạo gói bán từ kế hoạch đã duyệt
+        </h3>
+        {approvedPlans.length === 0 ? (
+          <p className="text-sm text-zinc-600">
+            Bạn cần có ít nhất một kế hoạch đã được duyệt (tab Khám phá) trước
+            khi tạo gói bán.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {approvedPlans.map((plan) => (
+              <div
+                key={plan.id}
+                className="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-zinc-200">{plan.title}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCreatingFor(creatingFor === plan.id ? null : plan.id)
+                    }
+                    className="text-xs text-blue-400 hover:text-blue-300"
+                  >
+                    {creatingFor === plan.id ? "Đóng" : "+ Tạo gói bán"}
+                  </button>
+                </div>
+                {creatingFor === plan.id && (
+                  <CreatePackageForm
+                    publishedPlanId={plan.id}
+                    onDone={() => setCreatingFor(null)}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-zinc-300">Gói bán của tôi</h3>
+        {myPackagesQuery.isLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+        ) : myPackagesQuery.data && myPackagesQuery.data.length > 0 ? (
+          myPackagesQuery.data.map((pkg) => (
+            <div
+              key={pkg.id}
+              className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4"
+            >
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm text-zinc-200">{pkg.name}</h4>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-xs ${pkg.status === "ACTIVE" ? "border-green-500/30 text-green-400" : "border-zinc-700 text-zinc-500"}`}
+                  >
+                    {pkg.status === "ACTIVE" ? "Đang bán" : "Đã gỡ"}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {pkg.price.toLocaleString("vi-VN")}đ
+                  {pkg.durationWeeks ? ` · ${pkg.durationWeeks} tuần` : ""}
+                </p>
+              </div>
+              {pkg.status === "ACTIVE" && (
+                <button
+                  type="button"
+                  onClick={() => archiveMutation.mutate(pkg.id)}
+                  className="rounded-lg border border-zinc-700 p-2 text-zinc-500 transition-colors hover:border-red-500/40 hover:text-red-400"
+                  aria-label="Gỡ gói bán"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-zinc-600">Bạn chưa có gói bán nào.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PackageCard({ pkg }: { pkg: TrainingPackage }) {
+  const queryClient = useQueryClient();
+  const purchaseMutation = useMutation({
+    mutationFn: () => trainingPackageService.purchase(pkg.id),
+    onSuccess: () => {
+      toast.success("Mua gói thành công!");
+      queryClient.invalidateQueries({ queryKey: ["packages"] });
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.error?.message ?? "Không thể mua gói này",
+      );
+    },
+  });
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 p-4">
+      <h3 className="text-sm font-medium text-zinc-100">{pkg.name}</h3>
+      {pkg.publishedPlan && (
+        <p className="mt-1 text-xs text-zinc-500">
+          {pkg.publishedPlan.title} · {pkg.publishedPlan.goal}
+        </p>
+      )}
+      {pkg.description && (
+        <p className="mt-2 text-xs text-zinc-500">{pkg.description}</p>
+      )}
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-sm font-semibold text-zinc-100">
+          {pkg.price.toLocaleString("vi-VN")}đ
+        </span>
+        <button
+          type="button"
+          onClick={() => purchaseMutation.mutate()}
+          disabled={purchaseMutation.isPending}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+        >
+          <ShoppingCart className="h-3.5 w-3.5" />
+          {purchaseMutation.isPending ? "Đang mua..." : "Mua"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BuyPackagesTab() {
+  const browseQuery = useQuery({
+    queryKey: ["packages", "browse"],
+    queryFn: () => trainingPackageService.browse(),
+  });
+  const purchasesQuery = useQuery({
+    queryKey: ["packages", "purchases", "mine"],
+    queryFn: trainingPackageService.listMyPurchases,
+  });
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="mb-2 text-sm font-medium text-zinc-300">
+          Gói tập đang bán
+        </h3>
+        {browseQuery.isLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+        ) : browseQuery.data && browseQuery.data.items.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {browseQuery.data.items.map((pkg) => (
+              <PackageCard key={pkg.id} pkg={pkg} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-600">Chưa có gói tập nào được bán.</p>
+        )}
+      </div>
+
+      <div>
+        <h3 className="mb-2 text-sm font-medium text-zinc-300">
+          Gói đã mua
+        </h3>
+        {purchasesQuery.data && purchasesQuery.data.length > 0 ? (
+          <div className="space-y-2">
+            {purchasesQuery.data.map((purchase) => (
+              <div
+                key={purchase.id}
+                className="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3"
+              >
+                <p className="text-sm text-zinc-200">
+                  {purchase.package?.name ?? "Gói tập"}
+                </p>
+                <p className="text-xs text-zinc-500">
+                  {purchase.priceAtPurchase.toLocaleString("vi-VN")}đ
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-600">Bạn chưa mua gói tập nào.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function PlanMarketplacePage() {
-  const [tab, setTab] = useState<"browse" | "mine">("browse");
+  const [tab, setTab] = useState<"browse" | "mine" | "buy-packages" | "sell-packages">(
+    "browse",
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   return (
@@ -431,13 +726,26 @@ export function PlanMarketplacePage() {
             >
               Của tôi
             </button>
+            <button
+              type="button"
+              onClick={() => setTab("buy-packages")}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${tab === "buy-packages" ? "border-b-2 border-blue-500 text-blue-400" : "text-zinc-500"}`}
+            >
+              <ShoppingCart className="h-3.5 w-3.5" /> Mua gói tập
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("sell-packages")}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${tab === "sell-packages" ? "border-b-2 border-blue-500 text-blue-400" : "text-zinc-500"}`}
+            >
+              <Package className="h-3.5 w-3.5" /> Bán gói tập
+            </button>
           </div>
 
-          {tab === "browse" ? (
-            <BrowseTab onSelect={setSelectedId} />
-          ) : (
-            <MineTab />
-          )}
+          {tab === "browse" && <BrowseTab onSelect={setSelectedId} />}
+          {tab === "mine" && <MineTab />}
+          {tab === "buy-packages" && <BuyPackagesTab />}
+          {tab === "sell-packages" && <SellPackagesTab />}
         </>
       )}
     </div>
