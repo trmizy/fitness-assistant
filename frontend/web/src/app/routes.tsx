@@ -23,6 +23,7 @@ import { GymsPage } from "./pages/client/GymsPage";
 import { GymDetailPage } from "./pages/client/GymDetailPage";
 import { GymMembershipsPage } from "./pages/client/GymMembershipsPage";
 import { TrainingCyclePage } from "./pages/client/TrainingCyclePage";
+import { PlanMarketplacePage } from "./pages/client/PlanMarketplacePage";
 
 // PT pages
 import { PTDashboard } from "./pages/pt/PTDashboard";
@@ -42,6 +43,7 @@ import { GymManagePage } from "./pages/gym-owner/GymManagePage";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { UserManagement } from "./pages/admin/UserManagement";
 import { PTManagement } from "./pages/admin/PTManagement";
+import { MarketplaceModeration } from "./pages/admin/MarketplaceModeration";
 import { SystemMonitoring } from "./pages/admin/SystemMonitoring";
 import { AdminWorkflowStudio } from "./pages/admin/AdminWorkflowStudio";
 import { AdminAIObservability } from "./pages/admin/AdminAIObservability";
@@ -120,6 +122,7 @@ export const router = createBrowserRouter([
           { path: "gyms/:id", Component: GymDetailPage },
           { path: "gym-memberships", Component: GymMembershipsPage },
           { path: "training-cycle", Component: TrainingCyclePage },
+          { path: "marketplace", Component: PlanMarketplacePage },
         ],
       },
 
@@ -161,6 +164,7 @@ export const router = createBrowserRouter([
           { path: "dashboard", Component: AdminDashboard },
           { path: "users", Component: UserManagement },
           { path: "pts", Component: PTManagement },
+          { path: "marketplace", Component: MarketplaceModeration },
           { path: "system", Component: SystemMonitoring },
           { path: "workflows", Component: AdminWorkflowStudio },
           { path: "ai-observability", Component: AdminAIObservability },

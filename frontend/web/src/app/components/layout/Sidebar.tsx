@@ -23,6 +23,7 @@ import {
   Workflow,
   Wallet,
   CalendarClock,
+  Store,
 } from "lucide-react";
 import { AutoText } from "../i18n/AutoText";
 import type { AppLanguage } from "../../context/SettingsContext";
@@ -55,6 +56,7 @@ const clientNavFull = [
     icon: CalendarClock,
     to: "/client/training-cycle",
   },
+  { label: "Chợ kế hoạch", icon: Store, to: "/client/marketplace" },
   { label: "Dinh dưỡng", icon: Utensils, to: "/client/nutrition" },
   { label: "Tìm PT", icon: Search, to: "/client/coaches" },
   { label: "Hợp đồng", icon: FileText, to: "/client/contracts" },
@@ -119,6 +121,7 @@ const adminNav = [
   },
   { label: "Người dùng", icon: Users, to: "/admin/users" },
   { label: "Quản lý PT", icon: UserCheck, to: "/admin/pts" },
+  { label: "Chợ kế hoạch", icon: Store, to: "/admin/marketplace" },
   { label: "Giám sát hệ thống", icon: Monitor, to: "/admin/system" },
   {
     label: "Workflows",

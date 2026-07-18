@@ -573,6 +573,113 @@ export const trainingCycleService = {
   },
 };
 
+export interface PublishedPlanListing {
+  id: string;
+  sourcePlanId: string;
+  publisherId: string;
+  title: string;
+  description: string | null;
+  goal: string;
+  moderationStatus: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
+  moderationNote: string | null;
+  avgRating: number;
+  ratingCount: number;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlanReview {
+  id: string;
+  publishedPlanId: string;
+  reviewerId: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+}
+
+export const marketplaceService = {
+  browse: async (params?: {
+    goal?: string;
+    sort?: "rating" | "recent";
+    page?: number;
+    limit?: number;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.goal) qs.set("goal", params.goal);
+    if (params?.sort) qs.set("sort", params.sort);
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const { data } = await api.get<{
+      success: boolean;
+      data: {
+        items: PublishedPlanListing[];
+        total: number;
+        page: number;
+        limit: number;
+      };
+    }>(`/marketplace/plans${qs.toString() ? `?${qs.toString()}` : ""}`);
+    return data.data;
+  },
+
+  getDetail: async (id: string) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: PublishedPlanListing & { reviews: PlanReview[] };
+    }>(`/marketplace/plans/${id}`);
+    return data.data;
+  },
+
+  submitReview: async (id: string, rating: number, comment?: string) => {
+    const { data } = await api.post<{ success: boolean; data: PlanReview }>(
+      `/marketplace/plans/${id}/reviews`,
+      { rating, comment },
+    );
+    return data.data;
+  },
+
+  publish: async (sourcePlanId: string, title: string, description?: string) => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: PublishedPlanListing;
+    }>("/marketplace/plans", { sourcePlanId, title, description });
+    return data.data;
+  },
+
+  listMine: async () => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: PublishedPlanListing[];
+    }>("/marketplace/plans/mine");
+    return data.data;
+  },
+
+  withdraw: async (id: string) => {
+    await api.delete(`/marketplace/plans/${id}`);
+  },
+
+  // ── Admin ──────────────────────────────────────────────────────────────
+  adminListForModeration: async (status?: string) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: PublishedPlanListing[];
+    }>(`/admin/ai/marketplace/plans${status ? `?status=${status}` : ""}`);
+    return data.data;
+  },
+
+  adminReviewAction: async (
+    id: string,
+    action: "APPROVE" | "REJECT",
+    note?: string,
+  ) => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: PublishedPlanListing;
+    }>(`/admin/ai/marketplace/plans/${id}/review/${action}`, { note });
+    return data.data;
+  },
+};
+
 export type PlanStatusBackend =
   | "QUEUED"
   | "PROCESSING"
