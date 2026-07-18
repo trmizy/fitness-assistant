@@ -110,12 +110,62 @@ model WorkoutPlan {
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
 
+  publishedListings PublishedPlan[]
+
   @@index([userId])
   @@index([jobId])
   @@index([userId, status])
   @@index([ptUserId, ptReviewStatus])
   @@index([userId, archivedAt])
   @@map("workout_plans")
+}
+
+enum PublishModerationStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+// A user-published, community-visible listing wrapping one of their WorkoutPlan
+// rows. Title/description/goal are snapshotted at publish time so edits to the
+// underlying WorkoutPlan don't silently change an already-approved listing.
+model PublishedPlan {
+  id               String                  @id @default(uuid())
+  sourcePlanId     String                  @map("source_plan_id")
+  publisherId      String                  @map("publisher_id")
+  title            String
+  description      String?
+  goal             String
+  moderationStatus PublishModerationStatus @default(DRAFT) @map("moderation_status")
+  moderationNote   String?                 @map("moderation_note")
+  avgRating        Float                   @default(0) @map("avg_rating")
+  ratingCount      Int                     @default(0) @map("rating_count")
+  publishedAt      DateTime?               @map("published_at")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  sourcePlan WorkoutPlan  @relation(fields: [sourcePlanId], references: [id], onDelete: Cascade)
+  reviews    PlanReview[]
+
+  @@index([publisherId])
+  @@index([moderationStatus])
+  @@map("published_plans")
+}
+
+model PlanReview {
+  id              String   @id @default(uuid())
+  publishedPlanId String   @map("published_plan_id")
+  reviewerId      String   @map("reviewer_id")
+  rating          Int // 1-5
+  comment         String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  publishedPlan PublishedPlan @relation(fields: [publishedPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([publishedPlanId, reviewerId])
+  @@index([publishedPlanId])
+  @@map("plan_reviews")
 }
 
 model NutritionPlan {

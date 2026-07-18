@@ -34,6 +34,16 @@ export type UserMemory = $Result.DefaultSelection<Prisma.$UserMemoryPayload>
  */
 export type WorkoutPlan = $Result.DefaultSelection<Prisma.$WorkoutPlanPayload>
 /**
+ * Model PublishedPlan
+ * 
+ */
+export type PublishedPlan = $Result.DefaultSelection<Prisma.$PublishedPlanPayload>
+/**
+ * Model PlanReview
+ * 
+ */
+export type PlanReview = $Result.DefaultSelection<Prisma.$PlanReviewPayload>
+/**
  * Model NutritionPlan
  * 
  */
@@ -85,6 +95,16 @@ export const PtReviewStatus: {
 };
 
 export type PtReviewStatus = (typeof PtReviewStatus)[keyof typeof PtReviewStatus]
+
+
+export const PublishModerationStatus: {
+  DRAFT: 'DRAFT',
+  SUBMITTED: 'SUBMITTED',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+export type PublishModerationStatus = (typeof PublishModerationStatus)[keyof typeof PublishModerationStatus]
 
 
 export const KnowledgeSourceType: {
@@ -147,6 +167,10 @@ export const PlanStatus: typeof $Enums.PlanStatus
 export type PtReviewStatus = $Enums.PtReviewStatus
 
 export const PtReviewStatus: typeof $Enums.PtReviewStatus
+
+export type PublishModerationStatus = $Enums.PublishModerationStatus
+
+export const PublishModerationStatus: typeof $Enums.PublishModerationStatus
 
 export type KnowledgeSourceType = $Enums.KnowledgeSourceType
 
@@ -330,6 +354,26 @@ export class PrismaClient<
     * ```
     */
   get workoutPlan(): Prisma.WorkoutPlanDelegate<ExtArgs>;
+
+  /**
+   * `prisma.publishedPlan`: Exposes CRUD operations for the **PublishedPlan** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PublishedPlans
+    * const publishedPlans = await prisma.publishedPlan.findMany()
+    * ```
+    */
+  get publishedPlan(): Prisma.PublishedPlanDelegate<ExtArgs>;
+
+  /**
+   * `prisma.planReview`: Exposes CRUD operations for the **PlanReview** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PlanReviews
+    * const planReviews = await prisma.planReview.findMany()
+    * ```
+    */
+  get planReview(): Prisma.PlanReviewDelegate<ExtArgs>;
 
   /**
    * `prisma.nutritionPlan`: Exposes CRUD operations for the **NutritionPlan** model.
@@ -835,6 +879,8 @@ export namespace Prisma {
     ChatSession: 'ChatSession',
     UserMemory: 'UserMemory',
     WorkoutPlan: 'WorkoutPlan',
+    PublishedPlan: 'PublishedPlan',
+    PlanReview: 'PlanReview',
     NutritionPlan: 'NutritionPlan',
     KnowledgeSource: 'KnowledgeSource',
     KnowledgeDocument: 'KnowledgeDocument',
@@ -856,7 +902,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem"
+      modelProps: "conversation" | "chatSession" | "userMemory" | "workoutPlan" | "publishedPlan" | "planReview" | "nutritionPlan" | "knowledgeSource" | "knowledgeDocument" | "knowledgeChunk" | "knowledgePipelineRun" | "knowledgeReviewItem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1137,6 +1183,146 @@ export namespace Prisma {
           count: {
             args: Prisma.WorkoutPlanCountArgs<ExtArgs>
             result: $Utils.Optional<WorkoutPlanCountAggregateOutputType> | number
+          }
+        }
+      }
+      PublishedPlan: {
+        payload: Prisma.$PublishedPlanPayload<ExtArgs>
+        fields: Prisma.PublishedPlanFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PublishedPlanFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PublishedPlanPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PublishedPlanFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PublishedPlanPayload>
+          }
+          findFirst: {
+            args: Prisma.PublishedPlanFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PublishedPlanPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PublishedPlanFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PublishedPlanPayload>
+          }
+          findMany: {
+            args: Prisma.PublishedPlanFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PublishedPlanPayload>[]
+          }
+          create: {
+            args: Prisma.PublishedPlanCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PublishedPlanPayload>
+          }
+          createMany: {
+            args: Prisma.PublishedPlanCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PublishedPlanCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PublishedPlanPayload>[]
+          }
+          delete: {
+            args: Prisma.PublishedPlanDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PublishedPlanPayload>
+          }
+          update: {
+            args: Prisma.PublishedPlanUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PublishedPlanPayload>
+          }
+          deleteMany: {
+            args: Prisma.PublishedPlanDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PublishedPlanUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PublishedPlanUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PublishedPlanPayload>
+          }
+          aggregate: {
+            args: Prisma.PublishedPlanAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePublishedPlan>
+          }
+          groupBy: {
+            args: Prisma.PublishedPlanGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PublishedPlanGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PublishedPlanCountArgs<ExtArgs>
+            result: $Utils.Optional<PublishedPlanCountAggregateOutputType> | number
+          }
+        }
+      }
+      PlanReview: {
+        payload: Prisma.$PlanReviewPayload<ExtArgs>
+        fields: Prisma.PlanReviewFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PlanReviewFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanReviewPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PlanReviewFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanReviewPayload>
+          }
+          findFirst: {
+            args: Prisma.PlanReviewFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanReviewPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PlanReviewFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanReviewPayload>
+          }
+          findMany: {
+            args: Prisma.PlanReviewFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanReviewPayload>[]
+          }
+          create: {
+            args: Prisma.PlanReviewCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanReviewPayload>
+          }
+          createMany: {
+            args: Prisma.PlanReviewCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PlanReviewCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanReviewPayload>[]
+          }
+          delete: {
+            args: Prisma.PlanReviewDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanReviewPayload>
+          }
+          update: {
+            args: Prisma.PlanReviewUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanReviewPayload>
+          }
+          deleteMany: {
+            args: Prisma.PlanReviewDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PlanReviewUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PlanReviewUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlanReviewPayload>
+          }
+          aggregate: {
+            args: Prisma.PlanReviewAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePlanReview>
+          }
+          groupBy: {
+            args: Prisma.PlanReviewGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PlanReviewGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PlanReviewCountArgs<ExtArgs>
+            result: $Utils.Optional<PlanReviewCountAggregateOutputType> | number
           }
         }
       }
@@ -1714,6 +1900,68 @@ export namespace Prisma {
   /**
    * Count Types
    */
+
+
+  /**
+   * Count Type WorkoutPlanCountOutputType
+   */
+
+  export type WorkoutPlanCountOutputType = {
+    publishedListings: number
+  }
+
+  export type WorkoutPlanCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    publishedListings?: boolean | WorkoutPlanCountOutputTypeCountPublishedListingsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * WorkoutPlanCountOutputType without action
+   */
+  export type WorkoutPlanCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutPlanCountOutputType
+     */
+    select?: WorkoutPlanCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * WorkoutPlanCountOutputType without action
+   */
+  export type WorkoutPlanCountOutputTypeCountPublishedListingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PublishedPlanWhereInput
+  }
+
+
+  /**
+   * Count Type PublishedPlanCountOutputType
+   */
+
+  export type PublishedPlanCountOutputType = {
+    reviews: number
+  }
+
+  export type PublishedPlanCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    reviews?: boolean | PublishedPlanCountOutputTypeCountReviewsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PublishedPlanCountOutputType without action
+   */
+  export type PublishedPlanCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlanCountOutputType
+     */
+    select?: PublishedPlanCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PublishedPlanCountOutputType without action
+   */
+  export type PublishedPlanCountOutputTypeCountReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlanReviewWhereInput
+  }
 
 
   /**
@@ -5041,6 +5289,8 @@ export namespace Prisma {
     archivedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    publishedListings?: boolean | WorkoutPlan$publishedListingsArgs<ExtArgs>
+    _count?: boolean | WorkoutPlanCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["workoutPlan"]>
 
   export type WorkoutPlanSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -5091,10 +5341,17 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
+  export type WorkoutPlanInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    publishedListings?: boolean | WorkoutPlan$publishedListingsArgs<ExtArgs>
+    _count?: boolean | WorkoutPlanCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type WorkoutPlanIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $WorkoutPlanPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "WorkoutPlan"
-    objects: {}
+    objects: {
+      publishedListings: Prisma.$PublishedPlanPayload<ExtArgs>[]
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       userId: string
@@ -5487,6 +5744,7 @@ export namespace Prisma {
    */
   export interface Prisma__WorkoutPlanClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    publishedListings<T extends WorkoutPlan$publishedListingsArgs<ExtArgs> = {}>(args?: Subset<T, WorkoutPlan$publishedListingsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5550,6 +5808,10 @@ export namespace Prisma {
      */
     select?: WorkoutPlanSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkoutPlanInclude<ExtArgs> | null
+    /**
      * Filter, which WorkoutPlan to fetch.
      */
     where: WorkoutPlanWhereUniqueInput
@@ -5564,6 +5826,10 @@ export namespace Prisma {
      */
     select?: WorkoutPlanSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkoutPlanInclude<ExtArgs> | null
+    /**
      * Filter, which WorkoutPlan to fetch.
      */
     where: WorkoutPlanWhereUniqueInput
@@ -5577,6 +5843,10 @@ export namespace Prisma {
      * Select specific fields to fetch from the WorkoutPlan
      */
     select?: WorkoutPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkoutPlanInclude<ExtArgs> | null
     /**
      * Filter, which WorkoutPlan to fetch.
      */
@@ -5622,6 +5892,10 @@ export namespace Prisma {
      */
     select?: WorkoutPlanSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkoutPlanInclude<ExtArgs> | null
+    /**
      * Filter, which WorkoutPlan to fetch.
      */
     where?: WorkoutPlanWhereInput
@@ -5666,6 +5940,10 @@ export namespace Prisma {
      */
     select?: WorkoutPlanSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkoutPlanInclude<ExtArgs> | null
+    /**
      * Filter, which WorkoutPlans to fetch.
      */
     where?: WorkoutPlanWhereInput
@@ -5704,6 +5982,10 @@ export namespace Prisma {
      * Select specific fields to fetch from the WorkoutPlan
      */
     select?: WorkoutPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkoutPlanInclude<ExtArgs> | null
     /**
      * The data needed to create a WorkoutPlan.
      */
@@ -5745,6 +6027,10 @@ export namespace Prisma {
      */
     select?: WorkoutPlanSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkoutPlanInclude<ExtArgs> | null
+    /**
      * The data needed to update a WorkoutPlan.
      */
     data: XOR<WorkoutPlanUpdateInput, WorkoutPlanUncheckedUpdateInput>
@@ -5777,6 +6063,10 @@ export namespace Prisma {
      */
     select?: WorkoutPlanSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkoutPlanInclude<ExtArgs> | null
+    /**
      * The filter to search for the WorkoutPlan to update in case it exists.
      */
     where: WorkoutPlanWhereUniqueInput
@@ -5799,6 +6089,10 @@ export namespace Prisma {
      */
     select?: WorkoutPlanSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkoutPlanInclude<ExtArgs> | null
+    /**
      * Filter which WorkoutPlan to delete.
      */
     where: WorkoutPlanWhereUniqueInput
@@ -5815,6 +6109,26 @@ export namespace Prisma {
   }
 
   /**
+   * WorkoutPlan.publishedListings
+   */
+  export type WorkoutPlan$publishedListingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanInclude<ExtArgs> | null
+    where?: PublishedPlanWhereInput
+    orderBy?: PublishedPlanOrderByWithRelationInput | PublishedPlanOrderByWithRelationInput[]
+    cursor?: PublishedPlanWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PublishedPlanScalarFieldEnum | PublishedPlanScalarFieldEnum[]
+  }
+
+  /**
    * WorkoutPlan without action
    */
   export type WorkoutPlanDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -5822,6 +6136,2082 @@ export namespace Prisma {
      * Select specific fields to fetch from the WorkoutPlan
      */
     select?: WorkoutPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkoutPlanInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PublishedPlan
+   */
+
+  export type AggregatePublishedPlan = {
+    _count: PublishedPlanCountAggregateOutputType | null
+    _avg: PublishedPlanAvgAggregateOutputType | null
+    _sum: PublishedPlanSumAggregateOutputType | null
+    _min: PublishedPlanMinAggregateOutputType | null
+    _max: PublishedPlanMaxAggregateOutputType | null
+  }
+
+  export type PublishedPlanAvgAggregateOutputType = {
+    avgRating: number | null
+    ratingCount: number | null
+  }
+
+  export type PublishedPlanSumAggregateOutputType = {
+    avgRating: number | null
+    ratingCount: number | null
+  }
+
+  export type PublishedPlanMinAggregateOutputType = {
+    id: string | null
+    sourcePlanId: string | null
+    publisherId: string | null
+    title: string | null
+    description: string | null
+    goal: string | null
+    moderationStatus: $Enums.PublishModerationStatus | null
+    moderationNote: string | null
+    avgRating: number | null
+    ratingCount: number | null
+    publishedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PublishedPlanMaxAggregateOutputType = {
+    id: string | null
+    sourcePlanId: string | null
+    publisherId: string | null
+    title: string | null
+    description: string | null
+    goal: string | null
+    moderationStatus: $Enums.PublishModerationStatus | null
+    moderationNote: string | null
+    avgRating: number | null
+    ratingCount: number | null
+    publishedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PublishedPlanCountAggregateOutputType = {
+    id: number
+    sourcePlanId: number
+    publisherId: number
+    title: number
+    description: number
+    goal: number
+    moderationStatus: number
+    moderationNote: number
+    avgRating: number
+    ratingCount: number
+    publishedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PublishedPlanAvgAggregateInputType = {
+    avgRating?: true
+    ratingCount?: true
+  }
+
+  export type PublishedPlanSumAggregateInputType = {
+    avgRating?: true
+    ratingCount?: true
+  }
+
+  export type PublishedPlanMinAggregateInputType = {
+    id?: true
+    sourcePlanId?: true
+    publisherId?: true
+    title?: true
+    description?: true
+    goal?: true
+    moderationStatus?: true
+    moderationNote?: true
+    avgRating?: true
+    ratingCount?: true
+    publishedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PublishedPlanMaxAggregateInputType = {
+    id?: true
+    sourcePlanId?: true
+    publisherId?: true
+    title?: true
+    description?: true
+    goal?: true
+    moderationStatus?: true
+    moderationNote?: true
+    avgRating?: true
+    ratingCount?: true
+    publishedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PublishedPlanCountAggregateInputType = {
+    id?: true
+    sourcePlanId?: true
+    publisherId?: true
+    title?: true
+    description?: true
+    goal?: true
+    moderationStatus?: true
+    moderationNote?: true
+    avgRating?: true
+    ratingCount?: true
+    publishedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PublishedPlanAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PublishedPlan to aggregate.
+     */
+    where?: PublishedPlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PublishedPlans to fetch.
+     */
+    orderBy?: PublishedPlanOrderByWithRelationInput | PublishedPlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PublishedPlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PublishedPlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PublishedPlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PublishedPlans
+    **/
+    _count?: true | PublishedPlanCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PublishedPlanAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PublishedPlanSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PublishedPlanMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PublishedPlanMaxAggregateInputType
+  }
+
+  export type GetPublishedPlanAggregateType<T extends PublishedPlanAggregateArgs> = {
+        [P in keyof T & keyof AggregatePublishedPlan]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePublishedPlan[P]>
+      : GetScalarType<T[P], AggregatePublishedPlan[P]>
+  }
+
+
+
+
+  export type PublishedPlanGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PublishedPlanWhereInput
+    orderBy?: PublishedPlanOrderByWithAggregationInput | PublishedPlanOrderByWithAggregationInput[]
+    by: PublishedPlanScalarFieldEnum[] | PublishedPlanScalarFieldEnum
+    having?: PublishedPlanScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PublishedPlanCountAggregateInputType | true
+    _avg?: PublishedPlanAvgAggregateInputType
+    _sum?: PublishedPlanSumAggregateInputType
+    _min?: PublishedPlanMinAggregateInputType
+    _max?: PublishedPlanMaxAggregateInputType
+  }
+
+  export type PublishedPlanGroupByOutputType = {
+    id: string
+    sourcePlanId: string
+    publisherId: string
+    title: string
+    description: string | null
+    goal: string
+    moderationStatus: $Enums.PublishModerationStatus
+    moderationNote: string | null
+    avgRating: number
+    ratingCount: number
+    publishedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PublishedPlanCountAggregateOutputType | null
+    _avg: PublishedPlanAvgAggregateOutputType | null
+    _sum: PublishedPlanSumAggregateOutputType | null
+    _min: PublishedPlanMinAggregateOutputType | null
+    _max: PublishedPlanMaxAggregateOutputType | null
+  }
+
+  type GetPublishedPlanGroupByPayload<T extends PublishedPlanGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PublishedPlanGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PublishedPlanGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PublishedPlanGroupByOutputType[P]>
+            : GetScalarType<T[P], PublishedPlanGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PublishedPlanSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sourcePlanId?: boolean
+    publisherId?: boolean
+    title?: boolean
+    description?: boolean
+    goal?: boolean
+    moderationStatus?: boolean
+    moderationNote?: boolean
+    avgRating?: boolean
+    ratingCount?: boolean
+    publishedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    sourcePlan?: boolean | WorkoutPlanDefaultArgs<ExtArgs>
+    reviews?: boolean | PublishedPlan$reviewsArgs<ExtArgs>
+    _count?: boolean | PublishedPlanCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["publishedPlan"]>
+
+  export type PublishedPlanSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sourcePlanId?: boolean
+    publisherId?: boolean
+    title?: boolean
+    description?: boolean
+    goal?: boolean
+    moderationStatus?: boolean
+    moderationNote?: boolean
+    avgRating?: boolean
+    ratingCount?: boolean
+    publishedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    sourcePlan?: boolean | WorkoutPlanDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["publishedPlan"]>
+
+  export type PublishedPlanSelectScalar = {
+    id?: boolean
+    sourcePlanId?: boolean
+    publisherId?: boolean
+    title?: boolean
+    description?: boolean
+    goal?: boolean
+    moderationStatus?: boolean
+    moderationNote?: boolean
+    avgRating?: boolean
+    ratingCount?: boolean
+    publishedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PublishedPlanInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sourcePlan?: boolean | WorkoutPlanDefaultArgs<ExtArgs>
+    reviews?: boolean | PublishedPlan$reviewsArgs<ExtArgs>
+    _count?: boolean | PublishedPlanCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type PublishedPlanIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sourcePlan?: boolean | WorkoutPlanDefaultArgs<ExtArgs>
+  }
+
+  export type $PublishedPlanPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PublishedPlan"
+    objects: {
+      sourcePlan: Prisma.$WorkoutPlanPayload<ExtArgs>
+      reviews: Prisma.$PlanReviewPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      sourcePlanId: string
+      publisherId: string
+      title: string
+      description: string | null
+      goal: string
+      moderationStatus: $Enums.PublishModerationStatus
+      moderationNote: string | null
+      avgRating: number
+      ratingCount: number
+      publishedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["publishedPlan"]>
+    composites: {}
+  }
+
+  type PublishedPlanGetPayload<S extends boolean | null | undefined | PublishedPlanDefaultArgs> = $Result.GetResult<Prisma.$PublishedPlanPayload, S>
+
+  type PublishedPlanCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PublishedPlanFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PublishedPlanCountAggregateInputType | true
+    }
+
+  export interface PublishedPlanDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PublishedPlan'], meta: { name: 'PublishedPlan' } }
+    /**
+     * Find zero or one PublishedPlan that matches the filter.
+     * @param {PublishedPlanFindUniqueArgs} args - Arguments to find a PublishedPlan
+     * @example
+     * // Get one PublishedPlan
+     * const publishedPlan = await prisma.publishedPlan.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PublishedPlanFindUniqueArgs>(args: SelectSubset<T, PublishedPlanFindUniqueArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PublishedPlan that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PublishedPlanFindUniqueOrThrowArgs} args - Arguments to find a PublishedPlan
+     * @example
+     * // Get one PublishedPlan
+     * const publishedPlan = await prisma.publishedPlan.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PublishedPlanFindUniqueOrThrowArgs>(args: SelectSubset<T, PublishedPlanFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PublishedPlan that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PublishedPlanFindFirstArgs} args - Arguments to find a PublishedPlan
+     * @example
+     * // Get one PublishedPlan
+     * const publishedPlan = await prisma.publishedPlan.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PublishedPlanFindFirstArgs>(args?: SelectSubset<T, PublishedPlanFindFirstArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PublishedPlan that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PublishedPlanFindFirstOrThrowArgs} args - Arguments to find a PublishedPlan
+     * @example
+     * // Get one PublishedPlan
+     * const publishedPlan = await prisma.publishedPlan.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PublishedPlanFindFirstOrThrowArgs>(args?: SelectSubset<T, PublishedPlanFindFirstOrThrowArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PublishedPlans that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PublishedPlanFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PublishedPlans
+     * const publishedPlans = await prisma.publishedPlan.findMany()
+     * 
+     * // Get first 10 PublishedPlans
+     * const publishedPlans = await prisma.publishedPlan.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const publishedPlanWithIdOnly = await prisma.publishedPlan.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PublishedPlanFindManyArgs>(args?: SelectSubset<T, PublishedPlanFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PublishedPlan.
+     * @param {PublishedPlanCreateArgs} args - Arguments to create a PublishedPlan.
+     * @example
+     * // Create one PublishedPlan
+     * const PublishedPlan = await prisma.publishedPlan.create({
+     *   data: {
+     *     // ... data to create a PublishedPlan
+     *   }
+     * })
+     * 
+     */
+    create<T extends PublishedPlanCreateArgs>(args: SelectSubset<T, PublishedPlanCreateArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PublishedPlans.
+     * @param {PublishedPlanCreateManyArgs} args - Arguments to create many PublishedPlans.
+     * @example
+     * // Create many PublishedPlans
+     * const publishedPlan = await prisma.publishedPlan.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PublishedPlanCreateManyArgs>(args?: SelectSubset<T, PublishedPlanCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PublishedPlans and returns the data saved in the database.
+     * @param {PublishedPlanCreateManyAndReturnArgs} args - Arguments to create many PublishedPlans.
+     * @example
+     * // Create many PublishedPlans
+     * const publishedPlan = await prisma.publishedPlan.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PublishedPlans and only return the `id`
+     * const publishedPlanWithIdOnly = await prisma.publishedPlan.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PublishedPlanCreateManyAndReturnArgs>(args?: SelectSubset<T, PublishedPlanCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PublishedPlan.
+     * @param {PublishedPlanDeleteArgs} args - Arguments to delete one PublishedPlan.
+     * @example
+     * // Delete one PublishedPlan
+     * const PublishedPlan = await prisma.publishedPlan.delete({
+     *   where: {
+     *     // ... filter to delete one PublishedPlan
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PublishedPlanDeleteArgs>(args: SelectSubset<T, PublishedPlanDeleteArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PublishedPlan.
+     * @param {PublishedPlanUpdateArgs} args - Arguments to update one PublishedPlan.
+     * @example
+     * // Update one PublishedPlan
+     * const publishedPlan = await prisma.publishedPlan.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PublishedPlanUpdateArgs>(args: SelectSubset<T, PublishedPlanUpdateArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PublishedPlans.
+     * @param {PublishedPlanDeleteManyArgs} args - Arguments to filter PublishedPlans to delete.
+     * @example
+     * // Delete a few PublishedPlans
+     * const { count } = await prisma.publishedPlan.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PublishedPlanDeleteManyArgs>(args?: SelectSubset<T, PublishedPlanDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PublishedPlans.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PublishedPlanUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PublishedPlans
+     * const publishedPlan = await prisma.publishedPlan.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PublishedPlanUpdateManyArgs>(args: SelectSubset<T, PublishedPlanUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PublishedPlan.
+     * @param {PublishedPlanUpsertArgs} args - Arguments to update or create a PublishedPlan.
+     * @example
+     * // Update or create a PublishedPlan
+     * const publishedPlan = await prisma.publishedPlan.upsert({
+     *   create: {
+     *     // ... data to create a PublishedPlan
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PublishedPlan we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PublishedPlanUpsertArgs>(args: SelectSubset<T, PublishedPlanUpsertArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PublishedPlans.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PublishedPlanCountArgs} args - Arguments to filter PublishedPlans to count.
+     * @example
+     * // Count the number of PublishedPlans
+     * const count = await prisma.publishedPlan.count({
+     *   where: {
+     *     // ... the filter for the PublishedPlans we want to count
+     *   }
+     * })
+    **/
+    count<T extends PublishedPlanCountArgs>(
+      args?: Subset<T, PublishedPlanCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PublishedPlanCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PublishedPlan.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PublishedPlanAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PublishedPlanAggregateArgs>(args: Subset<T, PublishedPlanAggregateArgs>): Prisma.PrismaPromise<GetPublishedPlanAggregateType<T>>
+
+    /**
+     * Group by PublishedPlan.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PublishedPlanGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PublishedPlanGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PublishedPlanGroupByArgs['orderBy'] }
+        : { orderBy?: PublishedPlanGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PublishedPlanGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPublishedPlanGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PublishedPlan model
+   */
+  readonly fields: PublishedPlanFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PublishedPlan.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PublishedPlanClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    sourcePlan<T extends WorkoutPlanDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WorkoutPlanDefaultArgs<ExtArgs>>): Prisma__WorkoutPlanClient<$Result.GetResult<Prisma.$WorkoutPlanPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    reviews<T extends PublishedPlan$reviewsArgs<ExtArgs> = {}>(args?: Subset<T, PublishedPlan$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PublishedPlan model
+   */ 
+  interface PublishedPlanFieldRefs {
+    readonly id: FieldRef<"PublishedPlan", 'String'>
+    readonly sourcePlanId: FieldRef<"PublishedPlan", 'String'>
+    readonly publisherId: FieldRef<"PublishedPlan", 'String'>
+    readonly title: FieldRef<"PublishedPlan", 'String'>
+    readonly description: FieldRef<"PublishedPlan", 'String'>
+    readonly goal: FieldRef<"PublishedPlan", 'String'>
+    readonly moderationStatus: FieldRef<"PublishedPlan", 'PublishModerationStatus'>
+    readonly moderationNote: FieldRef<"PublishedPlan", 'String'>
+    readonly avgRating: FieldRef<"PublishedPlan", 'Float'>
+    readonly ratingCount: FieldRef<"PublishedPlan", 'Int'>
+    readonly publishedAt: FieldRef<"PublishedPlan", 'DateTime'>
+    readonly createdAt: FieldRef<"PublishedPlan", 'DateTime'>
+    readonly updatedAt: FieldRef<"PublishedPlan", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PublishedPlan findUnique
+   */
+  export type PublishedPlanFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanInclude<ExtArgs> | null
+    /**
+     * Filter, which PublishedPlan to fetch.
+     */
+    where: PublishedPlanWhereUniqueInput
+  }
+
+  /**
+   * PublishedPlan findUniqueOrThrow
+   */
+  export type PublishedPlanFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanInclude<ExtArgs> | null
+    /**
+     * Filter, which PublishedPlan to fetch.
+     */
+    where: PublishedPlanWhereUniqueInput
+  }
+
+  /**
+   * PublishedPlan findFirst
+   */
+  export type PublishedPlanFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanInclude<ExtArgs> | null
+    /**
+     * Filter, which PublishedPlan to fetch.
+     */
+    where?: PublishedPlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PublishedPlans to fetch.
+     */
+    orderBy?: PublishedPlanOrderByWithRelationInput | PublishedPlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PublishedPlans.
+     */
+    cursor?: PublishedPlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PublishedPlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PublishedPlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PublishedPlans.
+     */
+    distinct?: PublishedPlanScalarFieldEnum | PublishedPlanScalarFieldEnum[]
+  }
+
+  /**
+   * PublishedPlan findFirstOrThrow
+   */
+  export type PublishedPlanFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanInclude<ExtArgs> | null
+    /**
+     * Filter, which PublishedPlan to fetch.
+     */
+    where?: PublishedPlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PublishedPlans to fetch.
+     */
+    orderBy?: PublishedPlanOrderByWithRelationInput | PublishedPlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PublishedPlans.
+     */
+    cursor?: PublishedPlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PublishedPlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PublishedPlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PublishedPlans.
+     */
+    distinct?: PublishedPlanScalarFieldEnum | PublishedPlanScalarFieldEnum[]
+  }
+
+  /**
+   * PublishedPlan findMany
+   */
+  export type PublishedPlanFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanInclude<ExtArgs> | null
+    /**
+     * Filter, which PublishedPlans to fetch.
+     */
+    where?: PublishedPlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PublishedPlans to fetch.
+     */
+    orderBy?: PublishedPlanOrderByWithRelationInput | PublishedPlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PublishedPlans.
+     */
+    cursor?: PublishedPlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PublishedPlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PublishedPlans.
+     */
+    skip?: number
+    distinct?: PublishedPlanScalarFieldEnum | PublishedPlanScalarFieldEnum[]
+  }
+
+  /**
+   * PublishedPlan create
+   */
+  export type PublishedPlanCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PublishedPlan.
+     */
+    data: XOR<PublishedPlanCreateInput, PublishedPlanUncheckedCreateInput>
+  }
+
+  /**
+   * PublishedPlan createMany
+   */
+  export type PublishedPlanCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PublishedPlans.
+     */
+    data: PublishedPlanCreateManyInput | PublishedPlanCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PublishedPlan createManyAndReturn
+   */
+  export type PublishedPlanCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PublishedPlans.
+     */
+    data: PublishedPlanCreateManyInput | PublishedPlanCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PublishedPlan update
+   */
+  export type PublishedPlanUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PublishedPlan.
+     */
+    data: XOR<PublishedPlanUpdateInput, PublishedPlanUncheckedUpdateInput>
+    /**
+     * Choose, which PublishedPlan to update.
+     */
+    where: PublishedPlanWhereUniqueInput
+  }
+
+  /**
+   * PublishedPlan updateMany
+   */
+  export type PublishedPlanUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PublishedPlans.
+     */
+    data: XOR<PublishedPlanUpdateManyMutationInput, PublishedPlanUncheckedUpdateManyInput>
+    /**
+     * Filter which PublishedPlans to update
+     */
+    where?: PublishedPlanWhereInput
+  }
+
+  /**
+   * PublishedPlan upsert
+   */
+  export type PublishedPlanUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PublishedPlan to update in case it exists.
+     */
+    where: PublishedPlanWhereUniqueInput
+    /**
+     * In case the PublishedPlan found by the `where` argument doesn't exist, create a new PublishedPlan with this data.
+     */
+    create: XOR<PublishedPlanCreateInput, PublishedPlanUncheckedCreateInput>
+    /**
+     * In case the PublishedPlan was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PublishedPlanUpdateInput, PublishedPlanUncheckedUpdateInput>
+  }
+
+  /**
+   * PublishedPlan delete
+   */
+  export type PublishedPlanDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanInclude<ExtArgs> | null
+    /**
+     * Filter which PublishedPlan to delete.
+     */
+    where: PublishedPlanWhereUniqueInput
+  }
+
+  /**
+   * PublishedPlan deleteMany
+   */
+  export type PublishedPlanDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PublishedPlans to delete
+     */
+    where?: PublishedPlanWhereInput
+  }
+
+  /**
+   * PublishedPlan.reviews
+   */
+  export type PublishedPlan$reviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewInclude<ExtArgs> | null
+    where?: PlanReviewWhereInput
+    orderBy?: PlanReviewOrderByWithRelationInput | PlanReviewOrderByWithRelationInput[]
+    cursor?: PlanReviewWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PlanReviewScalarFieldEnum | PlanReviewScalarFieldEnum[]
+  }
+
+  /**
+   * PublishedPlan without action
+   */
+  export type PublishedPlanDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PublishedPlan
+     */
+    select?: PublishedPlanSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PublishedPlanInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PlanReview
+   */
+
+  export type AggregatePlanReview = {
+    _count: PlanReviewCountAggregateOutputType | null
+    _avg: PlanReviewAvgAggregateOutputType | null
+    _sum: PlanReviewSumAggregateOutputType | null
+    _min: PlanReviewMinAggregateOutputType | null
+    _max: PlanReviewMaxAggregateOutputType | null
+  }
+
+  export type PlanReviewAvgAggregateOutputType = {
+    rating: number | null
+  }
+
+  export type PlanReviewSumAggregateOutputType = {
+    rating: number | null
+  }
+
+  export type PlanReviewMinAggregateOutputType = {
+    id: string | null
+    publishedPlanId: string | null
+    reviewerId: string | null
+    rating: number | null
+    comment: string | null
+    createdAt: Date | null
+  }
+
+  export type PlanReviewMaxAggregateOutputType = {
+    id: string | null
+    publishedPlanId: string | null
+    reviewerId: string | null
+    rating: number | null
+    comment: string | null
+    createdAt: Date | null
+  }
+
+  export type PlanReviewCountAggregateOutputType = {
+    id: number
+    publishedPlanId: number
+    reviewerId: number
+    rating: number
+    comment: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PlanReviewAvgAggregateInputType = {
+    rating?: true
+  }
+
+  export type PlanReviewSumAggregateInputType = {
+    rating?: true
+  }
+
+  export type PlanReviewMinAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    reviewerId?: true
+    rating?: true
+    comment?: true
+    createdAt?: true
+  }
+
+  export type PlanReviewMaxAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    reviewerId?: true
+    rating?: true
+    comment?: true
+    createdAt?: true
+  }
+
+  export type PlanReviewCountAggregateInputType = {
+    id?: true
+    publishedPlanId?: true
+    reviewerId?: true
+    rating?: true
+    comment?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PlanReviewAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlanReview to aggregate.
+     */
+    where?: PlanReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanReviews to fetch.
+     */
+    orderBy?: PlanReviewOrderByWithRelationInput | PlanReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PlanReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PlanReviews
+    **/
+    _count?: true | PlanReviewCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PlanReviewAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PlanReviewSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PlanReviewMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PlanReviewMaxAggregateInputType
+  }
+
+  export type GetPlanReviewAggregateType<T extends PlanReviewAggregateArgs> = {
+        [P in keyof T & keyof AggregatePlanReview]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePlanReview[P]>
+      : GetScalarType<T[P], AggregatePlanReview[P]>
+  }
+
+
+
+
+  export type PlanReviewGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlanReviewWhereInput
+    orderBy?: PlanReviewOrderByWithAggregationInput | PlanReviewOrderByWithAggregationInput[]
+    by: PlanReviewScalarFieldEnum[] | PlanReviewScalarFieldEnum
+    having?: PlanReviewScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PlanReviewCountAggregateInputType | true
+    _avg?: PlanReviewAvgAggregateInputType
+    _sum?: PlanReviewSumAggregateInputType
+    _min?: PlanReviewMinAggregateInputType
+    _max?: PlanReviewMaxAggregateInputType
+  }
+
+  export type PlanReviewGroupByOutputType = {
+    id: string
+    publishedPlanId: string
+    reviewerId: string
+    rating: number
+    comment: string | null
+    createdAt: Date
+    _count: PlanReviewCountAggregateOutputType | null
+    _avg: PlanReviewAvgAggregateOutputType | null
+    _sum: PlanReviewSumAggregateOutputType | null
+    _min: PlanReviewMinAggregateOutputType | null
+    _max: PlanReviewMaxAggregateOutputType | null
+  }
+
+  type GetPlanReviewGroupByPayload<T extends PlanReviewGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PlanReviewGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PlanReviewGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PlanReviewGroupByOutputType[P]>
+            : GetScalarType<T[P], PlanReviewGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PlanReviewSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    publishedPlanId?: boolean
+    reviewerId?: boolean
+    rating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["planReview"]>
+
+  export type PlanReviewSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    publishedPlanId?: boolean
+    reviewerId?: boolean
+    rating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["planReview"]>
+
+  export type PlanReviewSelectScalar = {
+    id?: boolean
+    publishedPlanId?: boolean
+    reviewerId?: boolean
+    rating?: boolean
+    comment?: boolean
+    createdAt?: boolean
+  }
+
+  export type PlanReviewInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }
+  export type PlanReviewIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    publishedPlan?: boolean | PublishedPlanDefaultArgs<ExtArgs>
+  }
+
+  export type $PlanReviewPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PlanReview"
+    objects: {
+      publishedPlan: Prisma.$PublishedPlanPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      publishedPlanId: string
+      reviewerId: string
+      rating: number
+      comment: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["planReview"]>
+    composites: {}
+  }
+
+  type PlanReviewGetPayload<S extends boolean | null | undefined | PlanReviewDefaultArgs> = $Result.GetResult<Prisma.$PlanReviewPayload, S>
+
+  type PlanReviewCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PlanReviewFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PlanReviewCountAggregateInputType | true
+    }
+
+  export interface PlanReviewDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PlanReview'], meta: { name: 'PlanReview' } }
+    /**
+     * Find zero or one PlanReview that matches the filter.
+     * @param {PlanReviewFindUniqueArgs} args - Arguments to find a PlanReview
+     * @example
+     * // Get one PlanReview
+     * const planReview = await prisma.planReview.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PlanReviewFindUniqueArgs>(args: SelectSubset<T, PlanReviewFindUniqueArgs<ExtArgs>>): Prisma__PlanReviewClient<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PlanReview that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PlanReviewFindUniqueOrThrowArgs} args - Arguments to find a PlanReview
+     * @example
+     * // Get one PlanReview
+     * const planReview = await prisma.planReview.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PlanReviewFindUniqueOrThrowArgs>(args: SelectSubset<T, PlanReviewFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PlanReviewClient<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PlanReview that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanReviewFindFirstArgs} args - Arguments to find a PlanReview
+     * @example
+     * // Get one PlanReview
+     * const planReview = await prisma.planReview.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PlanReviewFindFirstArgs>(args?: SelectSubset<T, PlanReviewFindFirstArgs<ExtArgs>>): Prisma__PlanReviewClient<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PlanReview that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanReviewFindFirstOrThrowArgs} args - Arguments to find a PlanReview
+     * @example
+     * // Get one PlanReview
+     * const planReview = await prisma.planReview.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PlanReviewFindFirstOrThrowArgs>(args?: SelectSubset<T, PlanReviewFindFirstOrThrowArgs<ExtArgs>>): Prisma__PlanReviewClient<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PlanReviews that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanReviewFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PlanReviews
+     * const planReviews = await prisma.planReview.findMany()
+     * 
+     * // Get first 10 PlanReviews
+     * const planReviews = await prisma.planReview.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const planReviewWithIdOnly = await prisma.planReview.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PlanReviewFindManyArgs>(args?: SelectSubset<T, PlanReviewFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PlanReview.
+     * @param {PlanReviewCreateArgs} args - Arguments to create a PlanReview.
+     * @example
+     * // Create one PlanReview
+     * const PlanReview = await prisma.planReview.create({
+     *   data: {
+     *     // ... data to create a PlanReview
+     *   }
+     * })
+     * 
+     */
+    create<T extends PlanReviewCreateArgs>(args: SelectSubset<T, PlanReviewCreateArgs<ExtArgs>>): Prisma__PlanReviewClient<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PlanReviews.
+     * @param {PlanReviewCreateManyArgs} args - Arguments to create many PlanReviews.
+     * @example
+     * // Create many PlanReviews
+     * const planReview = await prisma.planReview.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PlanReviewCreateManyArgs>(args?: SelectSubset<T, PlanReviewCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PlanReviews and returns the data saved in the database.
+     * @param {PlanReviewCreateManyAndReturnArgs} args - Arguments to create many PlanReviews.
+     * @example
+     * // Create many PlanReviews
+     * const planReview = await prisma.planReview.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PlanReviews and only return the `id`
+     * const planReviewWithIdOnly = await prisma.planReview.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PlanReviewCreateManyAndReturnArgs>(args?: SelectSubset<T, PlanReviewCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PlanReview.
+     * @param {PlanReviewDeleteArgs} args - Arguments to delete one PlanReview.
+     * @example
+     * // Delete one PlanReview
+     * const PlanReview = await prisma.planReview.delete({
+     *   where: {
+     *     // ... filter to delete one PlanReview
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PlanReviewDeleteArgs>(args: SelectSubset<T, PlanReviewDeleteArgs<ExtArgs>>): Prisma__PlanReviewClient<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PlanReview.
+     * @param {PlanReviewUpdateArgs} args - Arguments to update one PlanReview.
+     * @example
+     * // Update one PlanReview
+     * const planReview = await prisma.planReview.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PlanReviewUpdateArgs>(args: SelectSubset<T, PlanReviewUpdateArgs<ExtArgs>>): Prisma__PlanReviewClient<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PlanReviews.
+     * @param {PlanReviewDeleteManyArgs} args - Arguments to filter PlanReviews to delete.
+     * @example
+     * // Delete a few PlanReviews
+     * const { count } = await prisma.planReview.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PlanReviewDeleteManyArgs>(args?: SelectSubset<T, PlanReviewDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PlanReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanReviewUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PlanReviews
+     * const planReview = await prisma.planReview.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PlanReviewUpdateManyArgs>(args: SelectSubset<T, PlanReviewUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PlanReview.
+     * @param {PlanReviewUpsertArgs} args - Arguments to update or create a PlanReview.
+     * @example
+     * // Update or create a PlanReview
+     * const planReview = await prisma.planReview.upsert({
+     *   create: {
+     *     // ... data to create a PlanReview
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PlanReview we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PlanReviewUpsertArgs>(args: SelectSubset<T, PlanReviewUpsertArgs<ExtArgs>>): Prisma__PlanReviewClient<$Result.GetResult<Prisma.$PlanReviewPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PlanReviews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanReviewCountArgs} args - Arguments to filter PlanReviews to count.
+     * @example
+     * // Count the number of PlanReviews
+     * const count = await prisma.planReview.count({
+     *   where: {
+     *     // ... the filter for the PlanReviews we want to count
+     *   }
+     * })
+    **/
+    count<T extends PlanReviewCountArgs>(
+      args?: Subset<T, PlanReviewCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PlanReviewCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PlanReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanReviewAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PlanReviewAggregateArgs>(args: Subset<T, PlanReviewAggregateArgs>): Prisma.PrismaPromise<GetPlanReviewAggregateType<T>>
+
+    /**
+     * Group by PlanReview.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlanReviewGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PlanReviewGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PlanReviewGroupByArgs['orderBy'] }
+        : { orderBy?: PlanReviewGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PlanReviewGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPlanReviewGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PlanReview model
+   */
+  readonly fields: PlanReviewFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PlanReview.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PlanReviewClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    publishedPlan<T extends PublishedPlanDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PublishedPlanDefaultArgs<ExtArgs>>): Prisma__PublishedPlanClient<$Result.GetResult<Prisma.$PublishedPlanPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PlanReview model
+   */ 
+  interface PlanReviewFieldRefs {
+    readonly id: FieldRef<"PlanReview", 'String'>
+    readonly publishedPlanId: FieldRef<"PlanReview", 'String'>
+    readonly reviewerId: FieldRef<"PlanReview", 'String'>
+    readonly rating: FieldRef<"PlanReview", 'Int'>
+    readonly comment: FieldRef<"PlanReview", 'String'>
+    readonly createdAt: FieldRef<"PlanReview", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PlanReview findUnique
+   */
+  export type PlanReviewFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanReview to fetch.
+     */
+    where: PlanReviewWhereUniqueInput
+  }
+
+  /**
+   * PlanReview findUniqueOrThrow
+   */
+  export type PlanReviewFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanReview to fetch.
+     */
+    where: PlanReviewWhereUniqueInput
+  }
+
+  /**
+   * PlanReview findFirst
+   */
+  export type PlanReviewFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanReview to fetch.
+     */
+    where?: PlanReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanReviews to fetch.
+     */
+    orderBy?: PlanReviewOrderByWithRelationInput | PlanReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlanReviews.
+     */
+    cursor?: PlanReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlanReviews.
+     */
+    distinct?: PlanReviewScalarFieldEnum | PlanReviewScalarFieldEnum[]
+  }
+
+  /**
+   * PlanReview findFirstOrThrow
+   */
+  export type PlanReviewFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanReview to fetch.
+     */
+    where?: PlanReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanReviews to fetch.
+     */
+    orderBy?: PlanReviewOrderByWithRelationInput | PlanReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlanReviews.
+     */
+    cursor?: PlanReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanReviews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlanReviews.
+     */
+    distinct?: PlanReviewScalarFieldEnum | PlanReviewScalarFieldEnum[]
+  }
+
+  /**
+   * PlanReview findMany
+   */
+  export type PlanReviewFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewInclude<ExtArgs> | null
+    /**
+     * Filter, which PlanReviews to fetch.
+     */
+    where?: PlanReviewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlanReviews to fetch.
+     */
+    orderBy?: PlanReviewOrderByWithRelationInput | PlanReviewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PlanReviews.
+     */
+    cursor?: PlanReviewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlanReviews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlanReviews.
+     */
+    skip?: number
+    distinct?: PlanReviewScalarFieldEnum | PlanReviewScalarFieldEnum[]
+  }
+
+  /**
+   * PlanReview create
+   */
+  export type PlanReviewCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PlanReview.
+     */
+    data: XOR<PlanReviewCreateInput, PlanReviewUncheckedCreateInput>
+  }
+
+  /**
+   * PlanReview createMany
+   */
+  export type PlanReviewCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PlanReviews.
+     */
+    data: PlanReviewCreateManyInput | PlanReviewCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PlanReview createManyAndReturn
+   */
+  export type PlanReviewCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PlanReviews.
+     */
+    data: PlanReviewCreateManyInput | PlanReviewCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PlanReview update
+   */
+  export type PlanReviewUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PlanReview.
+     */
+    data: XOR<PlanReviewUpdateInput, PlanReviewUncheckedUpdateInput>
+    /**
+     * Choose, which PlanReview to update.
+     */
+    where: PlanReviewWhereUniqueInput
+  }
+
+  /**
+   * PlanReview updateMany
+   */
+  export type PlanReviewUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PlanReviews.
+     */
+    data: XOR<PlanReviewUpdateManyMutationInput, PlanReviewUncheckedUpdateManyInput>
+    /**
+     * Filter which PlanReviews to update
+     */
+    where?: PlanReviewWhereInput
+  }
+
+  /**
+   * PlanReview upsert
+   */
+  export type PlanReviewUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PlanReview to update in case it exists.
+     */
+    where: PlanReviewWhereUniqueInput
+    /**
+     * In case the PlanReview found by the `where` argument doesn't exist, create a new PlanReview with this data.
+     */
+    create: XOR<PlanReviewCreateInput, PlanReviewUncheckedCreateInput>
+    /**
+     * In case the PlanReview was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PlanReviewUpdateInput, PlanReviewUncheckedUpdateInput>
+  }
+
+  /**
+   * PlanReview delete
+   */
+  export type PlanReviewDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewInclude<ExtArgs> | null
+    /**
+     * Filter which PlanReview to delete.
+     */
+    where: PlanReviewWhereUniqueInput
+  }
+
+  /**
+   * PlanReview deleteMany
+   */
+  export type PlanReviewDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlanReviews to delete
+     */
+    where?: PlanReviewWhereInput
+  }
+
+  /**
+   * PlanReview without action
+   */
+  export type PlanReviewDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlanReview
+     */
+    select?: PlanReviewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlanReviewInclude<ExtArgs> | null
   }
 
 
@@ -12048,6 +14438,37 @@ export namespace Prisma {
   export type WorkoutPlanScalarFieldEnum = (typeof WorkoutPlanScalarFieldEnum)[keyof typeof WorkoutPlanScalarFieldEnum]
 
 
+  export const PublishedPlanScalarFieldEnum: {
+    id: 'id',
+    sourcePlanId: 'sourcePlanId',
+    publisherId: 'publisherId',
+    title: 'title',
+    description: 'description',
+    goal: 'goal',
+    moderationStatus: 'moderationStatus',
+    moderationNote: 'moderationNote',
+    avgRating: 'avgRating',
+    ratingCount: 'ratingCount',
+    publishedAt: 'publishedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PublishedPlanScalarFieldEnum = (typeof PublishedPlanScalarFieldEnum)[keyof typeof PublishedPlanScalarFieldEnum]
+
+
+  export const PlanReviewScalarFieldEnum: {
+    id: 'id',
+    publishedPlanId: 'publishedPlanId',
+    reviewerId: 'reviewerId',
+    rating: 'rating',
+    comment: 'comment',
+    createdAt: 'createdAt'
+  };
+
+  export type PlanReviewScalarFieldEnum = (typeof PlanReviewScalarFieldEnum)[keyof typeof PlanReviewScalarFieldEnum]
+
+
   export const NutritionPlanScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -12286,6 +14707,20 @@ export namespace Prisma {
    * Reference to a field of type 'PtReviewStatus[]'
    */
   export type ListEnumPtReviewStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PtReviewStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'PublishModerationStatus'
+   */
+  export type EnumPublishModerationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PublishModerationStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'PublishModerationStatus[]'
+   */
+  export type ListEnumPublishModerationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PublishModerationStatus[]'>
     
 
 
@@ -12654,6 +15089,7 @@ export namespace Prisma {
     archivedAt?: DateTimeNullableFilter<"WorkoutPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
+    publishedListings?: PublishedPlanListRelationFilter
   }
 
   export type WorkoutPlanOrderByWithRelationInput = {
@@ -12678,6 +15114,7 @@ export namespace Prisma {
     archivedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    publishedListings?: PublishedPlanOrderByRelationAggregateInput
   }
 
   export type WorkoutPlanWhereUniqueInput = Prisma.AtLeast<{
@@ -12705,6 +15142,7 @@ export namespace Prisma {
     archivedAt?: DateTimeNullableFilter<"WorkoutPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutPlan"> | Date | string
+    publishedListings?: PublishedPlanListRelationFilter
   }, "id">
 
   export type WorkoutPlanOrderByWithAggregationInput = {
@@ -12761,6 +15199,169 @@ export namespace Prisma {
     archivedAt?: DateTimeNullableWithAggregatesFilter<"WorkoutPlan"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WorkoutPlan"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"WorkoutPlan"> | Date | string
+  }
+
+  export type PublishedPlanWhereInput = {
+    AND?: PublishedPlanWhereInput | PublishedPlanWhereInput[]
+    OR?: PublishedPlanWhereInput[]
+    NOT?: PublishedPlanWhereInput | PublishedPlanWhereInput[]
+    id?: StringFilter<"PublishedPlan"> | string
+    sourcePlanId?: StringFilter<"PublishedPlan"> | string
+    publisherId?: StringFilter<"PublishedPlan"> | string
+    title?: StringFilter<"PublishedPlan"> | string
+    description?: StringNullableFilter<"PublishedPlan"> | string | null
+    goal?: StringFilter<"PublishedPlan"> | string
+    moderationStatus?: EnumPublishModerationStatusFilter<"PublishedPlan"> | $Enums.PublishModerationStatus
+    moderationNote?: StringNullableFilter<"PublishedPlan"> | string | null
+    avgRating?: FloatFilter<"PublishedPlan"> | number
+    ratingCount?: IntFilter<"PublishedPlan"> | number
+    publishedAt?: DateTimeNullableFilter<"PublishedPlan"> | Date | string | null
+    createdAt?: DateTimeFilter<"PublishedPlan"> | Date | string
+    updatedAt?: DateTimeFilter<"PublishedPlan"> | Date | string
+    sourcePlan?: XOR<WorkoutPlanRelationFilter, WorkoutPlanWhereInput>
+    reviews?: PlanReviewListRelationFilter
+  }
+
+  export type PublishedPlanOrderByWithRelationInput = {
+    id?: SortOrder
+    sourcePlanId?: SortOrder
+    publisherId?: SortOrder
+    title?: SortOrder
+    description?: SortOrderInput | SortOrder
+    goal?: SortOrder
+    moderationStatus?: SortOrder
+    moderationNote?: SortOrderInput | SortOrder
+    avgRating?: SortOrder
+    ratingCount?: SortOrder
+    publishedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    sourcePlan?: WorkoutPlanOrderByWithRelationInput
+    reviews?: PlanReviewOrderByRelationAggregateInput
+  }
+
+  export type PublishedPlanWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PublishedPlanWhereInput | PublishedPlanWhereInput[]
+    OR?: PublishedPlanWhereInput[]
+    NOT?: PublishedPlanWhereInput | PublishedPlanWhereInput[]
+    sourcePlanId?: StringFilter<"PublishedPlan"> | string
+    publisherId?: StringFilter<"PublishedPlan"> | string
+    title?: StringFilter<"PublishedPlan"> | string
+    description?: StringNullableFilter<"PublishedPlan"> | string | null
+    goal?: StringFilter<"PublishedPlan"> | string
+    moderationStatus?: EnumPublishModerationStatusFilter<"PublishedPlan"> | $Enums.PublishModerationStatus
+    moderationNote?: StringNullableFilter<"PublishedPlan"> | string | null
+    avgRating?: FloatFilter<"PublishedPlan"> | number
+    ratingCount?: IntFilter<"PublishedPlan"> | number
+    publishedAt?: DateTimeNullableFilter<"PublishedPlan"> | Date | string | null
+    createdAt?: DateTimeFilter<"PublishedPlan"> | Date | string
+    updatedAt?: DateTimeFilter<"PublishedPlan"> | Date | string
+    sourcePlan?: XOR<WorkoutPlanRelationFilter, WorkoutPlanWhereInput>
+    reviews?: PlanReviewListRelationFilter
+  }, "id">
+
+  export type PublishedPlanOrderByWithAggregationInput = {
+    id?: SortOrder
+    sourcePlanId?: SortOrder
+    publisherId?: SortOrder
+    title?: SortOrder
+    description?: SortOrderInput | SortOrder
+    goal?: SortOrder
+    moderationStatus?: SortOrder
+    moderationNote?: SortOrderInput | SortOrder
+    avgRating?: SortOrder
+    ratingCount?: SortOrder
+    publishedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PublishedPlanCountOrderByAggregateInput
+    _avg?: PublishedPlanAvgOrderByAggregateInput
+    _max?: PublishedPlanMaxOrderByAggregateInput
+    _min?: PublishedPlanMinOrderByAggregateInput
+    _sum?: PublishedPlanSumOrderByAggregateInput
+  }
+
+  export type PublishedPlanScalarWhereWithAggregatesInput = {
+    AND?: PublishedPlanScalarWhereWithAggregatesInput | PublishedPlanScalarWhereWithAggregatesInput[]
+    OR?: PublishedPlanScalarWhereWithAggregatesInput[]
+    NOT?: PublishedPlanScalarWhereWithAggregatesInput | PublishedPlanScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PublishedPlan"> | string
+    sourcePlanId?: StringWithAggregatesFilter<"PublishedPlan"> | string
+    publisherId?: StringWithAggregatesFilter<"PublishedPlan"> | string
+    title?: StringWithAggregatesFilter<"PublishedPlan"> | string
+    description?: StringNullableWithAggregatesFilter<"PublishedPlan"> | string | null
+    goal?: StringWithAggregatesFilter<"PublishedPlan"> | string
+    moderationStatus?: EnumPublishModerationStatusWithAggregatesFilter<"PublishedPlan"> | $Enums.PublishModerationStatus
+    moderationNote?: StringNullableWithAggregatesFilter<"PublishedPlan"> | string | null
+    avgRating?: FloatWithAggregatesFilter<"PublishedPlan"> | number
+    ratingCount?: IntWithAggregatesFilter<"PublishedPlan"> | number
+    publishedAt?: DateTimeNullableWithAggregatesFilter<"PublishedPlan"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PublishedPlan"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PublishedPlan"> | Date | string
+  }
+
+  export type PlanReviewWhereInput = {
+    AND?: PlanReviewWhereInput | PlanReviewWhereInput[]
+    OR?: PlanReviewWhereInput[]
+    NOT?: PlanReviewWhereInput | PlanReviewWhereInput[]
+    id?: StringFilter<"PlanReview"> | string
+    publishedPlanId?: StringFilter<"PlanReview"> | string
+    reviewerId?: StringFilter<"PlanReview"> | string
+    rating?: IntFilter<"PlanReview"> | number
+    comment?: StringNullableFilter<"PlanReview"> | string | null
+    createdAt?: DateTimeFilter<"PlanReview"> | Date | string
+    publishedPlan?: XOR<PublishedPlanRelationFilter, PublishedPlanWhereInput>
+  }
+
+  export type PlanReviewOrderByWithRelationInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    reviewerId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    publishedPlan?: PublishedPlanOrderByWithRelationInput
+  }
+
+  export type PlanReviewWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    publishedPlanId_reviewerId?: PlanReviewPublishedPlanIdReviewerIdCompoundUniqueInput
+    AND?: PlanReviewWhereInput | PlanReviewWhereInput[]
+    OR?: PlanReviewWhereInput[]
+    NOT?: PlanReviewWhereInput | PlanReviewWhereInput[]
+    publishedPlanId?: StringFilter<"PlanReview"> | string
+    reviewerId?: StringFilter<"PlanReview"> | string
+    rating?: IntFilter<"PlanReview"> | number
+    comment?: StringNullableFilter<"PlanReview"> | string | null
+    createdAt?: DateTimeFilter<"PlanReview"> | Date | string
+    publishedPlan?: XOR<PublishedPlanRelationFilter, PublishedPlanWhereInput>
+  }, "id" | "publishedPlanId_reviewerId">
+
+  export type PlanReviewOrderByWithAggregationInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    reviewerId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: PlanReviewCountOrderByAggregateInput
+    _avg?: PlanReviewAvgOrderByAggregateInput
+    _max?: PlanReviewMaxOrderByAggregateInput
+    _min?: PlanReviewMinOrderByAggregateInput
+    _sum?: PlanReviewSumOrderByAggregateInput
+  }
+
+  export type PlanReviewScalarWhereWithAggregatesInput = {
+    AND?: PlanReviewScalarWhereWithAggregatesInput | PlanReviewScalarWhereWithAggregatesInput[]
+    OR?: PlanReviewScalarWhereWithAggregatesInput[]
+    NOT?: PlanReviewScalarWhereWithAggregatesInput | PlanReviewScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PlanReview"> | string
+    publishedPlanId?: StringWithAggregatesFilter<"PlanReview"> | string
+    reviewerId?: StringWithAggregatesFilter<"PlanReview"> | string
+    rating?: IntWithAggregatesFilter<"PlanReview"> | number
+    comment?: StringNullableWithAggregatesFilter<"PlanReview"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PlanReview"> | Date | string
   }
 
   export type NutritionPlanWhereInput = {
@@ -13587,6 +16188,7 @@ export namespace Prisma {
     archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    publishedListings?: PublishedPlanCreateNestedManyWithoutSourcePlanInput
   }
 
   export type WorkoutPlanUncheckedCreateInput = {
@@ -13611,6 +16213,7 @@ export namespace Prisma {
     archivedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    publishedListings?: PublishedPlanUncheckedCreateNestedManyWithoutSourcePlanInput
   }
 
   export type WorkoutPlanUpdateInput = {
@@ -13635,6 +16238,7 @@ export namespace Prisma {
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    publishedListings?: PublishedPlanUpdateManyWithoutSourcePlanNestedInput
   }
 
   export type WorkoutPlanUncheckedUpdateInput = {
@@ -13659,6 +16263,7 @@ export namespace Prisma {
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    publishedListings?: PublishedPlanUncheckedUpdateManyWithoutSourcePlanNestedInput
   }
 
   export type WorkoutPlanCreateManyInput = {
@@ -13731,6 +16336,183 @@ export namespace Prisma {
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PublishedPlanCreateInput = {
+    id?: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sourcePlan: WorkoutPlanCreateNestedOneWithoutPublishedListingsInput
+    reviews?: PlanReviewCreateNestedManyWithoutPublishedPlanInput
+  }
+
+  export type PublishedPlanUncheckedCreateInput = {
+    id?: string
+    sourcePlanId: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    reviews?: PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput
+  }
+
+  export type PublishedPlanUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourcePlan?: WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput
+    reviews?: PlanReviewUpdateManyWithoutPublishedPlanNestedInput
+  }
+
+  export type PublishedPlanUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourcePlanId?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reviews?: PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput
+  }
+
+  export type PublishedPlanCreateManyInput = {
+    id?: string
+    sourcePlanId: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PublishedPlanUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PublishedPlanUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourcePlanId?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanReviewCreateInput = {
+    id?: string
+    reviewerId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+    publishedPlan: PublishedPlanCreateNestedOneWithoutReviewsInput
+  }
+
+  export type PlanReviewUncheckedCreateInput = {
+    id?: string
+    publishedPlanId: string
+    reviewerId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PlanReviewUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reviewerId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    publishedPlan?: PublishedPlanUpdateOneRequiredWithoutReviewsNestedInput
+  }
+
+  export type PlanReviewUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    reviewerId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanReviewCreateManyInput = {
+    id?: string
+    publishedPlanId: string
+    reviewerId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PlanReviewUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reviewerId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanReviewUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publishedPlanId?: StringFieldUpdateOperationsInput | string
+    reviewerId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type NutritionPlanCreateInput = {
@@ -14702,6 +17484,16 @@ export namespace Prisma {
     not?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel> | $Enums.PtReviewStatus | null
   }
 
+  export type PublishedPlanListRelationFilter = {
+    every?: PublishedPlanWhereInput
+    some?: PublishedPlanWhereInput
+    none?: PublishedPlanWhereInput
+  }
+
+  export type PublishedPlanOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type WorkoutPlanCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
@@ -14827,6 +17619,141 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel>
     _max?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel>
+  }
+
+  export type EnumPublishModerationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PublishModerationStatus | EnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PublishModerationStatus[] | ListEnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PublishModerationStatus[] | ListEnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPublishModerationStatusFilter<$PrismaModel> | $Enums.PublishModerationStatus
+  }
+
+  export type WorkoutPlanRelationFilter = {
+    is?: WorkoutPlanWhereInput
+    isNot?: WorkoutPlanWhereInput
+  }
+
+  export type PlanReviewListRelationFilter = {
+    every?: PlanReviewWhereInput
+    some?: PlanReviewWhereInput
+    none?: PlanReviewWhereInput
+  }
+
+  export type PlanReviewOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PublishedPlanCountOrderByAggregateInput = {
+    id?: SortOrder
+    sourcePlanId?: SortOrder
+    publisherId?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    goal?: SortOrder
+    moderationStatus?: SortOrder
+    moderationNote?: SortOrder
+    avgRating?: SortOrder
+    ratingCount?: SortOrder
+    publishedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PublishedPlanAvgOrderByAggregateInput = {
+    avgRating?: SortOrder
+    ratingCount?: SortOrder
+  }
+
+  export type PublishedPlanMaxOrderByAggregateInput = {
+    id?: SortOrder
+    sourcePlanId?: SortOrder
+    publisherId?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    goal?: SortOrder
+    moderationStatus?: SortOrder
+    moderationNote?: SortOrder
+    avgRating?: SortOrder
+    ratingCount?: SortOrder
+    publishedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PublishedPlanMinOrderByAggregateInput = {
+    id?: SortOrder
+    sourcePlanId?: SortOrder
+    publisherId?: SortOrder
+    title?: SortOrder
+    description?: SortOrder
+    goal?: SortOrder
+    moderationStatus?: SortOrder
+    moderationNote?: SortOrder
+    avgRating?: SortOrder
+    ratingCount?: SortOrder
+    publishedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PublishedPlanSumOrderByAggregateInput = {
+    avgRating?: SortOrder
+    ratingCount?: SortOrder
+  }
+
+  export type EnumPublishModerationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PublishModerationStatus | EnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PublishModerationStatus[] | ListEnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PublishModerationStatus[] | ListEnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPublishModerationStatusWithAggregatesFilter<$PrismaModel> | $Enums.PublishModerationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPublishModerationStatusFilter<$PrismaModel>
+    _max?: NestedEnumPublishModerationStatusFilter<$PrismaModel>
+  }
+
+  export type PublishedPlanRelationFilter = {
+    is?: PublishedPlanWhereInput
+    isNot?: PublishedPlanWhereInput
+  }
+
+  export type PlanReviewPublishedPlanIdReviewerIdCompoundUniqueInput = {
+    publishedPlanId: string
+    reviewerId: string
+  }
+
+  export type PlanReviewCountOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    reviewerId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlanReviewAvgOrderByAggregateInput = {
+    rating?: SortOrder
+  }
+
+  export type PlanReviewMaxOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    reviewerId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlanReviewMinOrderByAggregateInput = {
+    id?: SortOrder
+    publishedPlanId?: SortOrder
+    reviewerId?: SortOrder
+    rating?: SortOrder
+    comment?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PlanReviewSumOrderByAggregateInput = {
+    rating?: SortOrder
   }
 
   export type NutritionPlanCountOrderByAggregateInput = {
@@ -15320,12 +18247,128 @@ export namespace Prisma {
     set?: Date | string
   }
 
+  export type PublishedPlanCreateNestedManyWithoutSourcePlanInput = {
+    create?: XOR<PublishedPlanCreateWithoutSourcePlanInput, PublishedPlanUncheckedCreateWithoutSourcePlanInput> | PublishedPlanCreateWithoutSourcePlanInput[] | PublishedPlanUncheckedCreateWithoutSourcePlanInput[]
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutSourcePlanInput | PublishedPlanCreateOrConnectWithoutSourcePlanInput[]
+    createMany?: PublishedPlanCreateManySourcePlanInputEnvelope
+    connect?: PublishedPlanWhereUniqueInput | PublishedPlanWhereUniqueInput[]
+  }
+
+  export type PublishedPlanUncheckedCreateNestedManyWithoutSourcePlanInput = {
+    create?: XOR<PublishedPlanCreateWithoutSourcePlanInput, PublishedPlanUncheckedCreateWithoutSourcePlanInput> | PublishedPlanCreateWithoutSourcePlanInput[] | PublishedPlanUncheckedCreateWithoutSourcePlanInput[]
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutSourcePlanInput | PublishedPlanCreateOrConnectWithoutSourcePlanInput[]
+    createMany?: PublishedPlanCreateManySourcePlanInputEnvelope
+    connect?: PublishedPlanWhereUniqueInput | PublishedPlanWhereUniqueInput[]
+  }
+
   export type EnumPlanStatusFieldUpdateOperationsInput = {
     set?: $Enums.PlanStatus
   }
 
   export type NullableEnumPtReviewStatusFieldUpdateOperationsInput = {
     set?: $Enums.PtReviewStatus | null
+  }
+
+  export type PublishedPlanUpdateManyWithoutSourcePlanNestedInput = {
+    create?: XOR<PublishedPlanCreateWithoutSourcePlanInput, PublishedPlanUncheckedCreateWithoutSourcePlanInput> | PublishedPlanCreateWithoutSourcePlanInput[] | PublishedPlanUncheckedCreateWithoutSourcePlanInput[]
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutSourcePlanInput | PublishedPlanCreateOrConnectWithoutSourcePlanInput[]
+    upsert?: PublishedPlanUpsertWithWhereUniqueWithoutSourcePlanInput | PublishedPlanUpsertWithWhereUniqueWithoutSourcePlanInput[]
+    createMany?: PublishedPlanCreateManySourcePlanInputEnvelope
+    set?: PublishedPlanWhereUniqueInput | PublishedPlanWhereUniqueInput[]
+    disconnect?: PublishedPlanWhereUniqueInput | PublishedPlanWhereUniqueInput[]
+    delete?: PublishedPlanWhereUniqueInput | PublishedPlanWhereUniqueInput[]
+    connect?: PublishedPlanWhereUniqueInput | PublishedPlanWhereUniqueInput[]
+    update?: PublishedPlanUpdateWithWhereUniqueWithoutSourcePlanInput | PublishedPlanUpdateWithWhereUniqueWithoutSourcePlanInput[]
+    updateMany?: PublishedPlanUpdateManyWithWhereWithoutSourcePlanInput | PublishedPlanUpdateManyWithWhereWithoutSourcePlanInput[]
+    deleteMany?: PublishedPlanScalarWhereInput | PublishedPlanScalarWhereInput[]
+  }
+
+  export type PublishedPlanUncheckedUpdateManyWithoutSourcePlanNestedInput = {
+    create?: XOR<PublishedPlanCreateWithoutSourcePlanInput, PublishedPlanUncheckedCreateWithoutSourcePlanInput> | PublishedPlanCreateWithoutSourcePlanInput[] | PublishedPlanUncheckedCreateWithoutSourcePlanInput[]
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutSourcePlanInput | PublishedPlanCreateOrConnectWithoutSourcePlanInput[]
+    upsert?: PublishedPlanUpsertWithWhereUniqueWithoutSourcePlanInput | PublishedPlanUpsertWithWhereUniqueWithoutSourcePlanInput[]
+    createMany?: PublishedPlanCreateManySourcePlanInputEnvelope
+    set?: PublishedPlanWhereUniqueInput | PublishedPlanWhereUniqueInput[]
+    disconnect?: PublishedPlanWhereUniqueInput | PublishedPlanWhereUniqueInput[]
+    delete?: PublishedPlanWhereUniqueInput | PublishedPlanWhereUniqueInput[]
+    connect?: PublishedPlanWhereUniqueInput | PublishedPlanWhereUniqueInput[]
+    update?: PublishedPlanUpdateWithWhereUniqueWithoutSourcePlanInput | PublishedPlanUpdateWithWhereUniqueWithoutSourcePlanInput[]
+    updateMany?: PublishedPlanUpdateManyWithWhereWithoutSourcePlanInput | PublishedPlanUpdateManyWithWhereWithoutSourcePlanInput[]
+    deleteMany?: PublishedPlanScalarWhereInput | PublishedPlanScalarWhereInput[]
+  }
+
+  export type WorkoutPlanCreateNestedOneWithoutPublishedListingsInput = {
+    create?: XOR<WorkoutPlanCreateWithoutPublishedListingsInput, WorkoutPlanUncheckedCreateWithoutPublishedListingsInput>
+    connectOrCreate?: WorkoutPlanCreateOrConnectWithoutPublishedListingsInput
+    connect?: WorkoutPlanWhereUniqueInput
+  }
+
+  export type PlanReviewCreateNestedManyWithoutPublishedPlanInput = {
+    create?: XOR<PlanReviewCreateWithoutPublishedPlanInput, PlanReviewUncheckedCreateWithoutPublishedPlanInput> | PlanReviewCreateWithoutPublishedPlanInput[] | PlanReviewUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanReviewCreateOrConnectWithoutPublishedPlanInput | PlanReviewCreateOrConnectWithoutPublishedPlanInput[]
+    createMany?: PlanReviewCreateManyPublishedPlanInputEnvelope
+    connect?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
+  }
+
+  export type PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput = {
+    create?: XOR<PlanReviewCreateWithoutPublishedPlanInput, PlanReviewUncheckedCreateWithoutPublishedPlanInput> | PlanReviewCreateWithoutPublishedPlanInput[] | PlanReviewUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanReviewCreateOrConnectWithoutPublishedPlanInput | PlanReviewCreateOrConnectWithoutPublishedPlanInput[]
+    createMany?: PlanReviewCreateManyPublishedPlanInputEnvelope
+    connect?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
+  }
+
+  export type EnumPublishModerationStatusFieldUpdateOperationsInput = {
+    set?: $Enums.PublishModerationStatus
+  }
+
+  export type WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput = {
+    create?: XOR<WorkoutPlanCreateWithoutPublishedListingsInput, WorkoutPlanUncheckedCreateWithoutPublishedListingsInput>
+    connectOrCreate?: WorkoutPlanCreateOrConnectWithoutPublishedListingsInput
+    upsert?: WorkoutPlanUpsertWithoutPublishedListingsInput
+    connect?: WorkoutPlanWhereUniqueInput
+    update?: XOR<XOR<WorkoutPlanUpdateToOneWithWhereWithoutPublishedListingsInput, WorkoutPlanUpdateWithoutPublishedListingsInput>, WorkoutPlanUncheckedUpdateWithoutPublishedListingsInput>
+  }
+
+  export type PlanReviewUpdateManyWithoutPublishedPlanNestedInput = {
+    create?: XOR<PlanReviewCreateWithoutPublishedPlanInput, PlanReviewUncheckedCreateWithoutPublishedPlanInput> | PlanReviewCreateWithoutPublishedPlanInput[] | PlanReviewUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanReviewCreateOrConnectWithoutPublishedPlanInput | PlanReviewCreateOrConnectWithoutPublishedPlanInput[]
+    upsert?: PlanReviewUpsertWithWhereUniqueWithoutPublishedPlanInput | PlanReviewUpsertWithWhereUniqueWithoutPublishedPlanInput[]
+    createMany?: PlanReviewCreateManyPublishedPlanInputEnvelope
+    set?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
+    disconnect?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
+    delete?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
+    connect?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
+    update?: PlanReviewUpdateWithWhereUniqueWithoutPublishedPlanInput | PlanReviewUpdateWithWhereUniqueWithoutPublishedPlanInput[]
+    updateMany?: PlanReviewUpdateManyWithWhereWithoutPublishedPlanInput | PlanReviewUpdateManyWithWhereWithoutPublishedPlanInput[]
+    deleteMany?: PlanReviewScalarWhereInput | PlanReviewScalarWhereInput[]
+  }
+
+  export type PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput = {
+    create?: XOR<PlanReviewCreateWithoutPublishedPlanInput, PlanReviewUncheckedCreateWithoutPublishedPlanInput> | PlanReviewCreateWithoutPublishedPlanInput[] | PlanReviewUncheckedCreateWithoutPublishedPlanInput[]
+    connectOrCreate?: PlanReviewCreateOrConnectWithoutPublishedPlanInput | PlanReviewCreateOrConnectWithoutPublishedPlanInput[]
+    upsert?: PlanReviewUpsertWithWhereUniqueWithoutPublishedPlanInput | PlanReviewUpsertWithWhereUniqueWithoutPublishedPlanInput[]
+    createMany?: PlanReviewCreateManyPublishedPlanInputEnvelope
+    set?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
+    disconnect?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
+    delete?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
+    connect?: PlanReviewWhereUniqueInput | PlanReviewWhereUniqueInput[]
+    update?: PlanReviewUpdateWithWhereUniqueWithoutPublishedPlanInput | PlanReviewUpdateWithWhereUniqueWithoutPublishedPlanInput[]
+    updateMany?: PlanReviewUpdateManyWithWhereWithoutPublishedPlanInput | PlanReviewUpdateManyWithWhereWithoutPublishedPlanInput[]
+    deleteMany?: PlanReviewScalarWhereInput | PlanReviewScalarWhereInput[]
+  }
+
+  export type PublishedPlanCreateNestedOneWithoutReviewsInput = {
+    create?: XOR<PublishedPlanCreateWithoutReviewsInput, PublishedPlanUncheckedCreateWithoutReviewsInput>
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutReviewsInput
+    connect?: PublishedPlanWhereUniqueInput
+  }
+
+  export type PublishedPlanUpdateOneRequiredWithoutReviewsNestedInput = {
+    create?: XOR<PublishedPlanCreateWithoutReviewsInput, PublishedPlanUncheckedCreateWithoutReviewsInput>
+    connectOrCreate?: PublishedPlanCreateOrConnectWithoutReviewsInput
+    upsert?: PublishedPlanUpsertWithoutReviewsInput
+    connect?: PublishedPlanWhereUniqueInput
+    update?: XOR<XOR<PublishedPlanUpdateToOneWithWhereWithoutReviewsInput, PublishedPlanUpdateWithoutReviewsInput>, PublishedPlanUncheckedUpdateWithoutReviewsInput>
   }
 
   export type KnowledgeDocumentCreateNestedManyWithoutSourceInput = {
@@ -15797,6 +18840,23 @@ export namespace Prisma {
     _max?: NestedEnumPtReviewStatusNullableFilter<$PrismaModel>
   }
 
+  export type NestedEnumPublishModerationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.PublishModerationStatus | EnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PublishModerationStatus[] | ListEnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PublishModerationStatus[] | ListEnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPublishModerationStatusFilter<$PrismaModel> | $Enums.PublishModerationStatus
+  }
+
+  export type NestedEnumPublishModerationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PublishModerationStatus | EnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.PublishModerationStatus[] | ListEnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PublishModerationStatus[] | ListEnumPublishModerationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumPublishModerationStatusWithAggregatesFilter<$PrismaModel> | $Enums.PublishModerationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPublishModerationStatusFilter<$PrismaModel>
+    _max?: NestedEnumPublishModerationStatusFilter<$PrismaModel>
+  }
+
   export type NestedEnumKnowledgeSourceTypeFilter<$PrismaModel = never> = {
     equals?: $Enums.KnowledgeSourceType | EnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
     in?: $Enums.KnowledgeSourceType[] | ListEnumKnowledgeSourceTypeFieldRefInput<$PrismaModel>
@@ -15907,6 +18967,329 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumKnowledgeReviewStatusFilter<$PrismaModel>
     _max?: NestedEnumKnowledgeReviewStatusFilter<$PrismaModel>
+  }
+
+  export type PublishedPlanCreateWithoutSourcePlanInput = {
+    id?: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    reviews?: PlanReviewCreateNestedManyWithoutPublishedPlanInput
+  }
+
+  export type PublishedPlanUncheckedCreateWithoutSourcePlanInput = {
+    id?: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    reviews?: PlanReviewUncheckedCreateNestedManyWithoutPublishedPlanInput
+  }
+
+  export type PublishedPlanCreateOrConnectWithoutSourcePlanInput = {
+    where: PublishedPlanWhereUniqueInput
+    create: XOR<PublishedPlanCreateWithoutSourcePlanInput, PublishedPlanUncheckedCreateWithoutSourcePlanInput>
+  }
+
+  export type PublishedPlanCreateManySourcePlanInputEnvelope = {
+    data: PublishedPlanCreateManySourcePlanInput | PublishedPlanCreateManySourcePlanInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PublishedPlanUpsertWithWhereUniqueWithoutSourcePlanInput = {
+    where: PublishedPlanWhereUniqueInput
+    update: XOR<PublishedPlanUpdateWithoutSourcePlanInput, PublishedPlanUncheckedUpdateWithoutSourcePlanInput>
+    create: XOR<PublishedPlanCreateWithoutSourcePlanInput, PublishedPlanUncheckedCreateWithoutSourcePlanInput>
+  }
+
+  export type PublishedPlanUpdateWithWhereUniqueWithoutSourcePlanInput = {
+    where: PublishedPlanWhereUniqueInput
+    data: XOR<PublishedPlanUpdateWithoutSourcePlanInput, PublishedPlanUncheckedUpdateWithoutSourcePlanInput>
+  }
+
+  export type PublishedPlanUpdateManyWithWhereWithoutSourcePlanInput = {
+    where: PublishedPlanScalarWhereInput
+    data: XOR<PublishedPlanUpdateManyMutationInput, PublishedPlanUncheckedUpdateManyWithoutSourcePlanInput>
+  }
+
+  export type PublishedPlanScalarWhereInput = {
+    AND?: PublishedPlanScalarWhereInput | PublishedPlanScalarWhereInput[]
+    OR?: PublishedPlanScalarWhereInput[]
+    NOT?: PublishedPlanScalarWhereInput | PublishedPlanScalarWhereInput[]
+    id?: StringFilter<"PublishedPlan"> | string
+    sourcePlanId?: StringFilter<"PublishedPlan"> | string
+    publisherId?: StringFilter<"PublishedPlan"> | string
+    title?: StringFilter<"PublishedPlan"> | string
+    description?: StringNullableFilter<"PublishedPlan"> | string | null
+    goal?: StringFilter<"PublishedPlan"> | string
+    moderationStatus?: EnumPublishModerationStatusFilter<"PublishedPlan"> | $Enums.PublishModerationStatus
+    moderationNote?: StringNullableFilter<"PublishedPlan"> | string | null
+    avgRating?: FloatFilter<"PublishedPlan"> | number
+    ratingCount?: IntFilter<"PublishedPlan"> | number
+    publishedAt?: DateTimeNullableFilter<"PublishedPlan"> | Date | string | null
+    createdAt?: DateTimeFilter<"PublishedPlan"> | Date | string
+    updatedAt?: DateTimeFilter<"PublishedPlan"> | Date | string
+  }
+
+  export type WorkoutPlanCreateWithoutPublishedListingsInput = {
+    id?: string
+    userId: string
+    name: string
+    description?: string | null
+    goal: string
+    duration: number
+    daysPerWeek: number
+    plan: JsonNullValueInput | InputJsonValue
+    status?: $Enums.PlanStatus
+    version?: number
+    jobId?: string | null
+    failReason?: string | null
+    ptUserId?: string | null
+    ptName?: string | null
+    clientName?: string | null
+    ptReviewStatus?: $Enums.PtReviewStatus | null
+    ptNote?: string | null
+    ptReviewedAt?: Date | string | null
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WorkoutPlanUncheckedCreateWithoutPublishedListingsInput = {
+    id?: string
+    userId: string
+    name: string
+    description?: string | null
+    goal: string
+    duration: number
+    daysPerWeek: number
+    plan: JsonNullValueInput | InputJsonValue
+    status?: $Enums.PlanStatus
+    version?: number
+    jobId?: string | null
+    failReason?: string | null
+    ptUserId?: string | null
+    ptName?: string | null
+    clientName?: string | null
+    ptReviewStatus?: $Enums.PtReviewStatus | null
+    ptNote?: string | null
+    ptReviewedAt?: Date | string | null
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WorkoutPlanCreateOrConnectWithoutPublishedListingsInput = {
+    where: WorkoutPlanWhereUniqueInput
+    create: XOR<WorkoutPlanCreateWithoutPublishedListingsInput, WorkoutPlanUncheckedCreateWithoutPublishedListingsInput>
+  }
+
+  export type PlanReviewCreateWithoutPublishedPlanInput = {
+    id?: string
+    reviewerId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PlanReviewUncheckedCreateWithoutPublishedPlanInput = {
+    id?: string
+    reviewerId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PlanReviewCreateOrConnectWithoutPublishedPlanInput = {
+    where: PlanReviewWhereUniqueInput
+    create: XOR<PlanReviewCreateWithoutPublishedPlanInput, PlanReviewUncheckedCreateWithoutPublishedPlanInput>
+  }
+
+  export type PlanReviewCreateManyPublishedPlanInputEnvelope = {
+    data: PlanReviewCreateManyPublishedPlanInput | PlanReviewCreateManyPublishedPlanInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type WorkoutPlanUpsertWithoutPublishedListingsInput = {
+    update: XOR<WorkoutPlanUpdateWithoutPublishedListingsInput, WorkoutPlanUncheckedUpdateWithoutPublishedListingsInput>
+    create: XOR<WorkoutPlanCreateWithoutPublishedListingsInput, WorkoutPlanUncheckedCreateWithoutPublishedListingsInput>
+    where?: WorkoutPlanWhereInput
+  }
+
+  export type WorkoutPlanUpdateToOneWithWhereWithoutPublishedListingsInput = {
+    where?: WorkoutPlanWhereInput
+    data: XOR<WorkoutPlanUpdateWithoutPublishedListingsInput, WorkoutPlanUncheckedUpdateWithoutPublishedListingsInput>
+  }
+
+  export type WorkoutPlanUpdateWithoutPublishedListingsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    duration?: IntFieldUpdateOperationsInput | number
+    daysPerWeek?: IntFieldUpdateOperationsInput | number
+    plan?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanStatusFieldUpdateOperationsInput | $Enums.PlanStatus
+    version?: IntFieldUpdateOperationsInput | number
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    failReason?: NullableStringFieldUpdateOperationsInput | string | null
+    ptUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientName?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewStatus?: NullableEnumPtReviewStatusFieldUpdateOperationsInput | $Enums.PtReviewStatus | null
+    ptNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutPlanUncheckedUpdateWithoutPublishedListingsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    duration?: IntFieldUpdateOperationsInput | number
+    daysPerWeek?: IntFieldUpdateOperationsInput | number
+    plan?: JsonNullValueInput | InputJsonValue
+    status?: EnumPlanStatusFieldUpdateOperationsInput | $Enums.PlanStatus
+    version?: IntFieldUpdateOperationsInput | number
+    jobId?: NullableStringFieldUpdateOperationsInput | string | null
+    failReason?: NullableStringFieldUpdateOperationsInput | string | null
+    ptUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    ptName?: NullableStringFieldUpdateOperationsInput | string | null
+    clientName?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewStatus?: NullableEnumPtReviewStatusFieldUpdateOperationsInput | $Enums.PtReviewStatus | null
+    ptNote?: NullableStringFieldUpdateOperationsInput | string | null
+    ptReviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanReviewUpsertWithWhereUniqueWithoutPublishedPlanInput = {
+    where: PlanReviewWhereUniqueInput
+    update: XOR<PlanReviewUpdateWithoutPublishedPlanInput, PlanReviewUncheckedUpdateWithoutPublishedPlanInput>
+    create: XOR<PlanReviewCreateWithoutPublishedPlanInput, PlanReviewUncheckedCreateWithoutPublishedPlanInput>
+  }
+
+  export type PlanReviewUpdateWithWhereUniqueWithoutPublishedPlanInput = {
+    where: PlanReviewWhereUniqueInput
+    data: XOR<PlanReviewUpdateWithoutPublishedPlanInput, PlanReviewUncheckedUpdateWithoutPublishedPlanInput>
+  }
+
+  export type PlanReviewUpdateManyWithWhereWithoutPublishedPlanInput = {
+    where: PlanReviewScalarWhereInput
+    data: XOR<PlanReviewUpdateManyMutationInput, PlanReviewUncheckedUpdateManyWithoutPublishedPlanInput>
+  }
+
+  export type PlanReviewScalarWhereInput = {
+    AND?: PlanReviewScalarWhereInput | PlanReviewScalarWhereInput[]
+    OR?: PlanReviewScalarWhereInput[]
+    NOT?: PlanReviewScalarWhereInput | PlanReviewScalarWhereInput[]
+    id?: StringFilter<"PlanReview"> | string
+    publishedPlanId?: StringFilter<"PlanReview"> | string
+    reviewerId?: StringFilter<"PlanReview"> | string
+    rating?: IntFilter<"PlanReview"> | number
+    comment?: StringNullableFilter<"PlanReview"> | string | null
+    createdAt?: DateTimeFilter<"PlanReview"> | Date | string
+  }
+
+  export type PublishedPlanCreateWithoutReviewsInput = {
+    id?: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sourcePlan: WorkoutPlanCreateNestedOneWithoutPublishedListingsInput
+  }
+
+  export type PublishedPlanUncheckedCreateWithoutReviewsInput = {
+    id?: string
+    sourcePlanId: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PublishedPlanCreateOrConnectWithoutReviewsInput = {
+    where: PublishedPlanWhereUniqueInput
+    create: XOR<PublishedPlanCreateWithoutReviewsInput, PublishedPlanUncheckedCreateWithoutReviewsInput>
+  }
+
+  export type PublishedPlanUpsertWithoutReviewsInput = {
+    update: XOR<PublishedPlanUpdateWithoutReviewsInput, PublishedPlanUncheckedUpdateWithoutReviewsInput>
+    create: XOR<PublishedPlanCreateWithoutReviewsInput, PublishedPlanUncheckedCreateWithoutReviewsInput>
+    where?: PublishedPlanWhereInput
+  }
+
+  export type PublishedPlanUpdateToOneWithWhereWithoutReviewsInput = {
+    where?: PublishedPlanWhereInput
+    data: XOR<PublishedPlanUpdateWithoutReviewsInput, PublishedPlanUncheckedUpdateWithoutReviewsInput>
+  }
+
+  export type PublishedPlanUpdateWithoutReviewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourcePlan?: WorkoutPlanUpdateOneRequiredWithoutPublishedListingsNestedInput
+  }
+
+  export type PublishedPlanUncheckedUpdateWithoutReviewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourcePlanId?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type KnowledgeDocumentCreateWithoutSourceInput = {
@@ -16386,6 +19769,100 @@ export namespace Prisma {
     chunks?: KnowledgeChunkUncheckedUpdateManyWithoutDocumentNestedInput
   }
 
+  export type PublishedPlanCreateManySourcePlanInput = {
+    id?: string
+    publisherId: string
+    title: string
+    description?: string | null
+    goal: string
+    moderationStatus?: $Enums.PublishModerationStatus
+    moderationNote?: string | null
+    avgRating?: number
+    ratingCount?: number
+    publishedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PublishedPlanUpdateWithoutSourcePlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reviews?: PlanReviewUpdateManyWithoutPublishedPlanNestedInput
+  }
+
+  export type PublishedPlanUncheckedUpdateWithoutSourcePlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reviews?: PlanReviewUncheckedUpdateManyWithoutPublishedPlanNestedInput
+  }
+
+  export type PublishedPlanUncheckedUpdateManyWithoutSourcePlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    publisherId?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    goal?: StringFieldUpdateOperationsInput | string
+    moderationStatus?: EnumPublishModerationStatusFieldUpdateOperationsInput | $Enums.PublishModerationStatus
+    moderationNote?: NullableStringFieldUpdateOperationsInput | string | null
+    avgRating?: FloatFieldUpdateOperationsInput | number
+    ratingCount?: IntFieldUpdateOperationsInput | number
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanReviewCreateManyPublishedPlanInput = {
+    id?: string
+    reviewerId: string
+    rating: number
+    comment?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PlanReviewUpdateWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reviewerId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanReviewUncheckedUpdateWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reviewerId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlanReviewUncheckedUpdateManyWithoutPublishedPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reviewerId?: StringFieldUpdateOperationsInput | string
+    rating?: IntFieldUpdateOperationsInput | number
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type KnowledgeDocumentCreateManySourceInput = {
     id?: string
     url: string
@@ -16544,6 +20021,14 @@ export namespace Prisma {
    * Aliases for legacy arg types
    */
     /**
+     * @deprecated Use WorkoutPlanCountOutputTypeDefaultArgs instead
+     */
+    export type WorkoutPlanCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutPlanCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PublishedPlanCountOutputTypeDefaultArgs instead
+     */
+    export type PublishedPlanCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PublishedPlanCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use KnowledgeSourceCountOutputTypeDefaultArgs instead
      */
     export type KnowledgeSourceCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = KnowledgeSourceCountOutputTypeDefaultArgs<ExtArgs>
@@ -16567,6 +20052,14 @@ export namespace Prisma {
      * @deprecated Use WorkoutPlanDefaultArgs instead
      */
     export type WorkoutPlanArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutPlanDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PublishedPlanDefaultArgs instead
+     */
+    export type PublishedPlanArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PublishedPlanDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PlanReviewDefaultArgs instead
+     */
+    export type PlanReviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlanReviewDefaultArgs<ExtArgs>
     /**
      * @deprecated Use NutritionPlanDefaultArgs instead
      */

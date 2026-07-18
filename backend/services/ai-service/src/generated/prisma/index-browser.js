@@ -189,6 +189,31 @@ exports.Prisma.WorkoutPlanScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.PublishedPlanScalarFieldEnum = {
+  id: 'id',
+  sourcePlanId: 'sourcePlanId',
+  publisherId: 'publisherId',
+  title: 'title',
+  description: 'description',
+  goal: 'goal',
+  moderationStatus: 'moderationStatus',
+  moderationNote: 'moderationNote',
+  avgRating: 'avgRating',
+  ratingCount: 'ratingCount',
+  publishedAt: 'publishedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PlanReviewScalarFieldEnum = {
+  id: 'id',
+  publishedPlanId: 'publishedPlanId',
+  reviewerId: 'reviewerId',
+  rating: 'rating',
+  comment: 'comment',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.NutritionPlanScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -306,6 +331,13 @@ exports.PtReviewStatus = exports.$Enums.PtReviewStatus = {
   PT_REJECTED: 'PT_REJECTED'
 };
 
+exports.PublishModerationStatus = exports.$Enums.PublishModerationStatus = {
+  DRAFT: 'DRAFT',
+  SUBMITTED: 'SUBMITTED',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
 exports.KnowledgeSourceType = exports.$Enums.KnowledgeSourceType = {
   RSS: 'RSS',
   API: 'API',
@@ -348,6 +380,8 @@ exports.Prisma.ModelName = {
   ChatSession: 'ChatSession',
   UserMemory: 'UserMemory',
   WorkoutPlan: 'WorkoutPlan',
+  PublishedPlan: 'PublishedPlan',
+  PlanReview: 'PlanReview',
   NutritionPlan: 'NutritionPlan',
   KnowledgeSource: 'KnowledgeSource',
   KnowledgeDocument: 'KnowledgeDocument',

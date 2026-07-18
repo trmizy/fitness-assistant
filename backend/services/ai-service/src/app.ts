@@ -4,6 +4,8 @@ import aiRoutes from "./routes/ai.routes";
 import planRoutes from "./routes/plan.routes";
 import adminAiRoutes from "./routes/admin.routes";
 import internalRoutes from "./routes/internal.routes";
+import marketplaceRoutes from "./routes/marketplace.routes";
+import adminMarketplaceRoutes from "./routes/admin-marketplace.routes";
 import { ApiError, formatErrorResponse } from "./errors/api-error";
 import { llmService } from "./services/llm.service";
 
@@ -40,7 +42,10 @@ app.get("/metrics", async (_req, res) => {
 
 app.use("/ai", aiRoutes);
 app.use("/plans", planRoutes);
+// Registered BEFORE the generic /admin/ai mount so /admin/ai/marketplace/* is matched first.
+app.use("/admin/ai/marketplace", adminMarketplaceRoutes);
 app.use("/admin/ai", adminAiRoutes);
+app.use("/marketplace", marketplaceRoutes);
 app.use("/internal", internalRoutes);
 
 // Global error handler.
