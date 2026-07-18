@@ -15,5 +15,10 @@ router.get(
   internalAuthMiddleware,
   internalController.foodsForAiNutrition as any,
 );
+router.get(
+  "/training-cycles/completed",
+  internalAuthMiddleware,
+  internalController.hasCompletedCycleForPlan as any,
+);
 
 export default router;

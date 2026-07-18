@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { exerciseRepository } from "../repositories/exercise.repository";
 import { logger } from "@gym-coach/shared";
+import { prisma } from "../repositories/prisma";
+import type { AuthRequest } from "../middleware/auth.middleware";
 
 // Equipment allowed per training location / preference
 const HOME_EQUIPMENT = [
@@ -253,6 +255,27 @@ export const internalController = {
     } catch (err) {
       logger.error({ err }, "internal.foodsForAiNutrition failed");
       res.status(500).json({ success: false, error: "Failed to fetch foods" });
+    }
+  },
+
+  // ai-service calls this to gate marketplace plan reviews: only a user who
+  // actually finished a training cycle built on this plan may rate it.
+  async hasCompletedCycleForPlan(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { sourcePlanId } = req.query as Record<string, string>;
+      const userId = req.user!.id;
+      if (!sourcePlanId) {
+        res.status(400).json({ success: false, error: "sourcePlanId is required" });
+        return;
+      }
+      const cycle = await prisma.trainingCycle.findFirst({
+        where: { userId, sourcePlanId, status: "CLOSED" },
+        select: { id: true },
+      });
+      res.json({ success: true, data: { completed: !!cycle } });
+    } catch (err) {
+      logger.error({ err }, "internal.hasCompletedCycleForPlan failed");
+      res.status(500).json({ success: false, error: "Failed to check cycle completion" });
     }
   },
 };

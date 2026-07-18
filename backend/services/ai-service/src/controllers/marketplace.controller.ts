@@ -13,6 +13,11 @@ const reviewSchema = z.object({
   note: z.string().max(1000).optional(),
 });
 
+const submitReviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(1000).optional(),
+});
+
 export const marketplaceController = {
   async publish(req: Request, res: Response, next: NextFunction) {
     try {
@@ -48,6 +53,50 @@ export const marketplaceController = {
       await marketplaceService.withdraw(req.params.id, req.context.userId);
       res.status(204).send();
     } catch (error) {
+      next(error);
+    }
+  },
+
+  async browse(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { goal, sort, page, limit } = req.query as Record<string, string>;
+      const result = await marketplaceService.browse({
+        goal,
+        sort: sort === "rating" ? "rating" : "recent",
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+      });
+      res.json(formatSuccessResponse(result));
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getDetail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const listing = await marketplaceService.getApprovedDetail(req.params.id);
+      res.json(formatSuccessResponse(listing));
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async submitReview(req: Request, res: Response, next: NextFunction) {
+    try {
+      const body = submitReviewSchema.parse(req.body);
+      const review = await marketplaceService.submitReview(
+        req.params.id,
+        req.context.userId,
+        body.rating,
+        body.comment,
+      );
+      res.status(201).json(formatSuccessResponse(review));
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return next(
+          new ApiError("VALIDATION_ERROR", error.errors[0]?.message ?? "Invalid input", 400),
+        );
+      }
       next(error);
     }
   },
