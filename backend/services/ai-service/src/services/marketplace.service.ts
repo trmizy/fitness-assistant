@@ -1,7 +1,9 @@
+import { randomUUID } from "crypto";
 import { prisma } from "../repositories/conversation.repository";
 import { PlanStatus } from "../generated/prisma";
 import { ApiError } from "../errors/api-error";
 import { hasCompletedCycleForPlan } from "../clients/fitness.client";
+import { paymentClient } from "../clients/payment.client";
 
 export const marketplaceService = {
   async publishPlan(
@@ -223,6 +225,175 @@ export const marketplaceService = {
         moderationStatus: action === "APPROVE" ? "APPROVED" : "REJECTED",
         moderationNote: note ?? null,
       },
+    });
+  },
+
+  // ── Selling packages ─────────────────────────────────────────────────────
+  async createPackage(
+    sellerId: string,
+    publishedPlanId: string,
+    name: string,
+    price: number,
+    description?: string,
+    durationWeeks?: number,
+  ) {
+    const listing = await prisma.publishedPlan.findUnique({
+      where: { id: publishedPlanId },
+    });
+    if (!listing || listing.moderationStatus !== "APPROVED") {
+      throw new ApiError(
+        "PUBLISHED_PLAN_NOT_FOUND",
+        "Listing not found or not approved",
+        404,
+      );
+    }
+    if (listing.publisherId !== sellerId) {
+      throw new ApiError(
+        "PUBLISHED_PLAN_FORBIDDEN",
+        "You can only sell packages for your own published plans",
+        403,
+      );
+    }
+
+    return prisma.trainingPackage.create({
+      data: {
+        sellerId,
+        publishedPlanId,
+        name,
+        description,
+        price,
+        durationWeeks,
+      },
+    });
+  },
+
+  async listMyPackages(sellerId: string) {
+    return prisma.trainingPackage.findMany({
+      where: { sellerId },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+
+  async archivePackage(id: string, sellerId: string) {
+    const pkg = await prisma.trainingPackage.findUnique({ where: { id } });
+    if (!pkg) {
+      throw new ApiError("TRAINING_PACKAGE_NOT_FOUND", "Package not found", 404);
+    }
+    if (pkg.sellerId !== sellerId) {
+      throw new ApiError(
+        "TRAINING_PACKAGE_FORBIDDEN",
+        "You do not own this package",
+        403,
+      );
+    }
+    return prisma.trainingPackage.update({
+      where: { id },
+      data: { status: "ARCHIVED" },
+    });
+  },
+
+  async browsePackages(params: { page?: number; limit?: number }) {
+    const page = Math.max(1, params.page ?? 1);
+    const limit = Math.min(50, Math.max(1, params.limit ?? 20));
+    const where = { status: "ACTIVE" as const };
+
+    const [items, total] = await Promise.all([
+      prisma.trainingPackage.findMany({
+        where,
+        include: { publishedPlan: { select: { title: true, goal: true, avgRating: true, ratingCount: true } } },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.trainingPackage.count({ where }),
+    ]);
+
+    return { items, total, page, limit };
+  },
+
+  async purchasePackage(packageId: string, buyerId: string) {
+    const pkg = await prisma.trainingPackage.findUnique({
+      where: { id: packageId },
+    });
+    if (!pkg || pkg.status !== "ACTIVE") {
+      throw new ApiError(
+        "TRAINING_PACKAGE_NOT_FOUND",
+        "Package not found or no longer for sale",
+        404,
+      );
+    }
+    if (pkg.sellerId === buyerId) {
+      throw new ApiError(
+        "TRAINING_PACKAGE_FORBIDDEN",
+        "You cannot purchase your own package",
+        403,
+      );
+    }
+
+    const existing = await prisma.trainingPackagePurchase.findUnique({
+      where: { packageId_buyerId: { packageId, buyerId } },
+    });
+    if (existing && existing.status === "PAID") {
+      throw new ApiError(
+        "TRAINING_PACKAGE_INVALID_STATE",
+        "You already purchased this package",
+        409,
+      );
+    }
+
+    const purchase =
+      existing ??
+      (await prisma.trainingPackagePurchase.create({
+        data: {
+          packageId,
+          buyerId,
+          priceAtPurchase: pkg.price,
+        },
+      }));
+
+    const idempotencyKey = `training-package:${purchase.id}:attempt:${randomUUID()}`;
+    const result = await paymentClient.walletTransfer({
+      payerOwnerId: buyerId,
+      receiverOwnerId: pkg.sellerId,
+      amount: pkg.price,
+      relatedEntityId: purchase.id,
+      idempotencyKey,
+      initiatedBy: buyerId,
+    });
+
+    if (result.status === "PAID") {
+      return prisma.trainingPackagePurchase.update({
+        where: { id: purchase.id },
+        data: {
+          status: "PAID",
+          purchasedAt: new Date(),
+          paymentTransactionId: result.transactionId,
+        },
+      });
+    }
+
+    await prisma.trainingPackagePurchase.update({
+      where: { id: purchase.id },
+      data: { status: "FAILED", paymentTransactionId: result.transactionId },
+    });
+    throw new ApiError(
+      "PAYMENT_FAILED",
+      result.failureReason ?? "Payment failed",
+      402,
+    );
+  },
+
+  async listMyPurchases(buyerId: string) {
+    return prisma.trainingPackagePurchase.findMany({
+      where: { buyerId, status: "PAID" },
+      include: {
+        package: {
+          include: {
+            publishedPlan: { select: { title: true, goal: true, sourcePlanId: true } },
+          },
+        },
+      },
+      orderBy: { purchasedAt: "desc" },
     });
   },
 };

@@ -245,6 +245,7 @@ services:
       QDRANT_PORT: 6333
       USER_SERVICE_URL: http://user-service:3004
       FITNESS_SERVICE_URL: http://fitness-service:3002
+      PAYMENT_SERVICE_URL: http://payment-service:3007
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
       # Default dev mode uses a Windows SSH tunnel to remote RunPod Ollama.
       # Start the tunnel before starting this service. For Docker-local Ollama,
@@ -290,6 +291,8 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+      payment-service:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
       interval: 20s
