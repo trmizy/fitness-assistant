@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { aiController } from "../controllers/ai.controller";
+import { cycleAnalysisController } from "../controllers/cycle-analysis.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 import { validateBody, validateQuery } from "../middleware/validate.middleware";
 import {
@@ -49,5 +50,9 @@ router.post(
 
 // NOTE: POST /ai/generate-plan has been removed.
 // Use POST /plans/workout/generate instead (single canonical endpoint).
+
+// Called by fitness-service (service-to-service, requireAuth accepts the
+// x-internal-token + x-user-id pair) after a training cycle completes.
+router.post("/analyze-cycle", cycleAnalysisController.analyzeCycle);
 
 export default router;
