@@ -14,6 +14,7 @@ import { PTApplicationPage } from "./pages/client/PTApplicationPage";
 import { WalletPage } from "./pages/client/WalletPage";
 import { PaymentResultPage } from "./pages/client/PaymentResultPage";
 import { GymDetailPage } from "./pages/client/GymDetailPage";
+import { ChatPage } from "./pages/client/ChatPage"; // reused directly by /pt/chat (trainer workspace)
 // Merged tabbed pages — each combines two previously-separate nav entries
 // under one sidebar item (see TabbedPage) to shorten the nav for mobile.
 import { PlansPage } from "./pages/client/PlansPage";
