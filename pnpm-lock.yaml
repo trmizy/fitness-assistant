@@ -39,6 +39,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@expo/vector-icons':
+        specifier: ^15.0.2
+        version: 15.1.1(expo-font@57.0.1)(react-native@0.86.0)(react@19.2.3)
       '@gym-coach/shared':
         specifier: workspace:*
         version: link:../../backend/shared
@@ -2918,6 +2921,18 @@ packages:
     transitivePeerDependencies:
       - '@types/react'
       - '@types/react-dom'
+    dev: false
+
+  /@expo/vector-icons@15.1.1(expo-font@57.0.1)(react-native@0.86.0)(react@19.2.3):
+    resolution: {integrity: sha512-Iu2VkcoI5vygbtYngm7jb4ifxElNVXQYdDrYkT7UCEIiKLeWnQY0wf2ZhHZ+Wro6Sc5TaumpKUOqDRpLi5rkvw==}
+    peerDependencies:
+      expo-font: '>=14.0.4'
+      react: '*'
+      react-native: '*'
+    dependencies:
+      expo-font: 57.0.1(expo@57.0.7)(react-native@0.86.0)(react@19.2.3)
+      react: 19.2.3
+      react-native: 0.86.0(@babel/core@7.28.6)(@react-native/metro-config@0.86.0)(@types/react@19.2.17)(react@19.2.3)
     dev: false
 
   /@expo/ws-tunnel@2.0.0(ws@8.18.3):
