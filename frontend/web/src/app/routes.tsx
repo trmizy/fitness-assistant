@@ -7,23 +7,20 @@ import { RegisterPage } from "./pages/auth/RegisterPage";
 // Client pages
 import { ClientDashboard } from "./pages/client/ClientDashboard";
 import { InBodyModule } from "./pages/client/InBodyModule";
-import { AIPlansPage } from "./pages/client/AIPlansPage";
 import { ContractPage } from "./pages/client/ContractPage";
-import { ChatPage } from "./pages/client/ChatPage";
-import { BookingPage } from "./pages/client/BookingPage";
-import { WorkoutLogPage } from "./pages/client/WorkoutLogPage";
 import { NutritionPage } from "./pages/client/NutritionPage";
-import { PTDiscoveryPage } from "./pages/client/PTDiscoveryPage";
-import { AICoachPage } from "./pages/client/AICoachPage";
 import { ProfilePage } from "./pages/client/ProfilePage";
 import { PTApplicationPage } from "./pages/client/PTApplicationPage";
 import { WalletPage } from "./pages/client/WalletPage";
 import { PaymentResultPage } from "./pages/client/PaymentResultPage";
-import { GymsPage } from "./pages/client/GymsPage";
 import { GymDetailPage } from "./pages/client/GymDetailPage";
-import { GymMembershipsPage } from "./pages/client/GymMembershipsPage";
-import { TrainingCyclePage } from "./pages/client/TrainingCyclePage";
-import { PlanMarketplacePage } from "./pages/client/PlanMarketplacePage";
+// Merged tabbed pages — each combines two previously-separate nav entries
+// under one sidebar item (see TabbedPage) to shorten the nav for mobile.
+import { PlansPage } from "./pages/client/PlansPage";
+import { TrainingPage } from "./pages/client/TrainingPage";
+import { CoachingPage } from "./pages/client/CoachingPage";
+import { GymPage } from "./pages/client/GymPage";
+import { ChatCoachPage } from "./pages/client/ChatCoachPage";
 
 // PT pages
 import { PTDashboard } from "./pages/pt/PTDashboard";
@@ -106,23 +103,21 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="/client/dashboard" replace /> },
           { path: "dashboard", Component: ClientDashboard },
           { path: "inbody", Component: InBodyModule },
-          { path: "plans", Component: AIPlansPage },
+          { path: "plans", Component: PlansPage },
           { path: "contracts", Component: ContractPage },
-          { path: "chat", Component: ChatPage },
-          { path: "booking", Component: BookingPage },
-          { path: "workout", Component: WorkoutLogPage },
+          { path: "chat", Component: ChatCoachPage },
+          { path: "booking", Component: CoachingPage },
+          { path: "workout", Component: TrainingPage },
           { path: "nutrition", Component: NutritionPage },
-          { path: "coaches", Component: PTDiscoveryPage },
-          { path: "ai-coach", Component: AICoachPage },
+          { path: "coaches", Component: CoachingPage },
+          { path: "ai-coach", Component: ChatCoachPage },
           { path: "profile", Component: ProfilePage },
           { path: "pt-application", Component: PTApplicationPage },
           { path: "wallet", Component: WalletPage },
           { path: "payments/result", Component: PaymentResultPage },
-          { path: "gyms", Component: GymsPage },
+          { path: "gyms", Component: GymPage },
           { path: "gyms/:id", Component: GymDetailPage },
-          { path: "gym-memberships", Component: GymMembershipsPage },
-          { path: "training-cycle", Component: TrainingCyclePage },
-          { path: "marketplace", Component: PlanMarketplacePage },
+          { path: "gym-memberships", Component: GymPage },
         ],
       },
 
