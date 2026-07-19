@@ -511,38 +511,108 @@ export const workoutService = {
   },
 };
 
+export type CycleDecision = "KEEP" | "ADJUST" | "NEW_PLAN";
+export type OverallTrend = "PROGRESSING" | "PLATEAU" | "DECLINING";
+
+export interface CycleAlert {
+  code: string;
+  severity: "info" | "warning";
+  message: string;
+  createdAt: string;
+}
+
+export interface CycleAdherence {
+  completed: number;
+  total: number;
+  percent: number;
+}
+
+export interface CycleVolumeWeek {
+  week: number;
+  totalVolumeKg: number;
+  byMuscleGroup: Record<string, number>;
+}
+
+export interface CycleProgressSignals {
+  overallTrend: OverallTrend;
+  deltaSMM: number | null;
+  deltaPBF: number | null;
+  volumeChangePct: number | null;
+  newPRs: string[];
+  adherencePct: number;
+  rpeTrend: "stable" | "increasing" | "decreasing";
+  laggingMuscleGroups: string[];
+}
+
+export interface CycleSummary {
+  adherence: CycleAdherence;
+  volumeByWeek: CycleVolumeWeek[];
+  volumeChangePct: number | null;
+  e1rmTrend: Array<{ exerciseName: string; weeklyTop: Array<{ week: number; e1rm: number }> }>;
+  rpeTrend: { weeklyAvg: number[]; trend: "stable" | "increasing" | "decreasing" };
+  newPRs: string[];
+  inBodySeries: Array<{ id: string; date: string; weight: number; bodyFatPct?: number | null; muscleMass: number }>;
+  alerts: CycleAlert[];
+  computedAt: string;
+  progressSignals?: CycleProgressSignals;
+  closedAt?: string;
+}
+
+export interface CycleAnalysisDetails {
+  cycleReview: {
+    bodyCompositionTrend: string;
+    trainingNote: string;
+    laggingMuscleGroups: string[];
+    confidence: "high" | "low";
+  };
+  keepDetails: { overloadIncreasePct: number; calorieDelta: number; notes: string } | null;
+  adjustDetails: {
+    pumpSetTargets: string[];
+    maxPumpSessionsPerWeek: number;
+    exerciseSwaps: unknown[];
+    calorieDeltaPct: number;
+    notes: string;
+  } | null;
+  newPlanDraft: {
+    goal: string;
+    durationDays: number;
+    daysPerWeek: number;
+    splitSuggestion: string;
+    deloadWeekFirst: boolean;
+    notes: string;
+  } | null;
+  mealPlanDraft: {
+    estimatedTDEE: number;
+    calorieTarget: number;
+    macros: { proteinG: number; carbG: number; fatG: number };
+    notes: string;
+  } | null;
+  aiFallback?: boolean;
+}
+
 export interface TrainingCycle {
   id: string;
   userId: string;
-  sourcePlanId: string | null;
+  planId: string | null;
+  cycleIndex: number;
   startDate: string;
-  endDate: string | null;
-  status: "ACTIVE" | "CLOSED";
-  goalAtStart: string | null;
-  targetWeightAtStart: number | null;
-  startWeightKg: number | null;
-  startBodyFatPct: number | null;
-  startMuscleMassKg: number | null;
-  startInBodyDate: string | null;
-  endWeightKg: number | null;
-  endBodyFatPct: number | null;
-  endMuscleMassKg: number | null;
-  endInBodyDate: string | null;
-  adherencePercent: number | null;
-  outcome: "ACHIEVED" | "PARTIAL" | "NOT_ACHIEVED" | null;
-  outcomeReason: string | null;
+  endDate: string;
+  durationDays: number;
+  goal: string | null;
+  status: "ACTIVE" | "COMPLETED" | "ANALYZED";
+  startInbodyId: string | null;
+  endInbodyId: string | null;
+  summary: CycleSummary | null;
+  lowConfidence: boolean;
+  decision: CycleDecision | null;
+  aiAnalysis: CycleAnalysisDetails | null;
+  nextPlanId: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface TrainingCycleAdherencePreview {
-  total: number;
-  completed: number;
-  percent: number;
-}
-
 export const trainingCycleService = {
-  start: async (params?: { sourcePlanId?: string; startDate?: string }) => {
+  start: async (params?: { planId?: string; startDate?: string; durationDays?: number }) => {
     const { data } = await api.post<TrainingCycle>(
       "/training-cycles",
       params ?? {},
@@ -550,18 +620,32 @@ export const trainingCycleService = {
     return data;
   },
 
-  getCurrent: async () => {
+  getActive: async () => {
     const { data } = await api.get<{
       cycle: TrainingCycle;
-      adherencePreview: TrainingCycleAdherencePreview;
-    }>("/training-cycles/current");
+      summary: CycleSummary;
+    }>("/training-cycles/active");
     return data;
   },
 
-  close: async (id: string) => {
+  complete: async (id: string, endInbodyId?: string) => {
     const { data } = await api.post<TrainingCycle>(
-      `/training-cycles/${id}/close`,
+      `/training-cycles/${id}/complete`,
+      endInbodyId ? { endInbodyId } : {},
     );
+    return data;
+  },
+
+  approve: async (id: string, nextPlanId: string) => {
+    const { data } = await api.post<TrainingCycle>(
+      `/training-cycles/${id}/approve`,
+      { nextPlanId },
+    );
+    return data;
+  },
+
+  get: async (id: string) => {
+    const { data } = await api.get<TrainingCycle>(`/training-cycles/${id}`);
     return data;
   },
 

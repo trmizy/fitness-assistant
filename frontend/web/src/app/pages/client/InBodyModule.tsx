@@ -37,9 +37,55 @@ import {
   Plus,
   Loader2,
 } from "lucide-react";
+import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { inbodyService } from "../../services/api";
+import { AlertTriangle, CalendarClock, Flag } from "lucide-react";
+import { inbodyService, trainingCycleService } from "../../services/api";
 import { InBodySegmentalDiagram } from "../../components/InBodySegmentalDiagram";
+
+/** Compact current-cycle summary — links to the full Chu kỳ tập luyện page for details/actions. */
+function CurrentCycleWidget() {
+  const navigate = useNavigate();
+  const activeQuery = useQuery({
+    queryKey: ["training-cycle", "active"],
+    queryFn: trainingCycleService.getActive,
+    retry: false,
+  });
+
+  if (activeQuery.isLoading || !activeQuery.data?.cycle) return null;
+
+  const { cycle, summary } = activeQuery.data;
+  const daysElapsed = Math.floor((Date.now() - new Date(cycle.startDate).getTime()) / 86_400_000);
+  const pctElapsed = Math.min(100, Math.round((daysElapsed / cycle.durationDays) * 100));
+
+  return (
+    <button
+      type="button"
+      onClick={() => navigate("/client/workout")}
+      className="w-full text-left bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-xl border border-green-500/20 p-4 transition-all hover:border-green-500/40"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+          <Flag className="h-4 w-4 text-green-400" />
+          Chu kỳ #{cycle.cycleIndex} — {pctElapsed}% ({daysElapsed}/{cycle.durationDays} ngày)
+        </div>
+        <ArrowRight className="w-4 h-4 text-zinc-600" />
+      </div>
+      <div className="mt-2 flex items-center gap-4 text-xs text-zinc-400">
+        <span className="flex items-center gap-1">
+          <CalendarClock className="h-3.5 w-3.5" />
+          Tuân thủ {summary.adherence.percent}%
+        </span>
+        {summary.alerts.length > 0 && (
+          <span className="flex items-center gap-1 text-amber-400">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {summary.alerts.length} cảnh báo
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
 
 /* ── Types & config ──────────────────────────────────────── */
 type Tab = "overview" | "manual" | "upload" | "history" | "compare";
@@ -400,6 +446,8 @@ export function InBodyModule() {
       ══════════════════════════════════════ */}
       {tab === "overview" && (
         <div className="space-y-4">
+          <CurrentCycleWidget />
+
           {/* Two-method CTA banner */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
