@@ -50,7 +50,7 @@ function OutcomeBadge({ outcome }: { outcome: string | null }) {
   const { Icon } = cfg;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${cfg.className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${cfg.className}`}
     >
       <Icon className="h-3.5 w-3.5" />
       {cfg.label}
@@ -63,7 +63,7 @@ function WeightTrend({ cycle }: { cycle: TrainingCycle }) {
   const delta = cycle.endWeightKg - cycle.startWeightKg;
   const Icon = delta <= 0 ? TrendingDown : TrendingUp;
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-zinc-400">
+    <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
       <Icon className="h-3.5 w-3.5" />
       {cycle.startWeightKg}kg → {cycle.endWeightKg}kg (
       {delta > 0 ? "+" : ""}
@@ -74,13 +74,13 @@ function WeightTrend({ cycle }: { cycle: TrainingCycle }) {
 
 function CycleHistoryRow({ cycle }: { cycle: TrainingCycle }) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2 rounded-xl border border-zinc-800/60 bg-zinc-900 p-3.5 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <div className="flex items-center gap-2 text-sm text-zinc-200">
+        <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
           <CalendarClock className="h-4 w-4 text-zinc-500" />
           {formatDate(cycle.startDate)} – {formatDate(cycle.endDate)}
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-3">
+        <div className="mt-1.5 flex flex-wrap items-center gap-3">
           <span className="text-xs text-zinc-500">
             Tuân thủ: {cycle.adherencePercent ?? 0}%
           </span>
@@ -141,46 +141,51 @@ export function TrainingCyclePage() {
   const current = currentQuery.data?.cycle;
   const preview = currentQuery.data?.adherencePreview;
   const hasActiveCycle = currentQuery.isSuccess && !!current;
+  const closedHistory = (historyQuery.data ?? []).filter(
+    (c) => c.status === "CLOSED",
+  );
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-zinc-100">
-          Chu kỳ tập luyện tháng
+        <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
+          <CalendarClock className="w-5 h-5 text-green-400" /> Chu kỳ tập
+          luyện tháng
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="text-zinc-500 text-sm mt-0.5">
           Theo dõi mức độ tuân thủ lịch tập và kết quả InBody trong một chu kỳ.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur-md">
+      {/* Current cycle hero card */}
+      <div className="bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-2xl border border-green-500/20 p-6">
         {currentQuery.isLoading ? (
-          <div className="flex items-center justify-center py-8 text-zinc-500">
-            <Loader2 className="h-5 w-5 animate-spin" />
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
           </div>
         ) : hasActiveCycle && current ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-zinc-300">
-                <Flag className="h-4 w-4 text-blue-400" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+                <Flag className="h-4 w-4 text-green-400" />
                 Chu kỳ hiện tại — bắt đầu {formatDate(current.startDate)}
               </div>
-              <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-400">
+              <span className="rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-1 text-xs font-bold text-green-400">
                 Đang diễn ra
               </span>
             </div>
 
             <div>
-              <div className="mb-1 flex items-center justify-between text-xs text-zinc-500">
+              <div className="mb-1.5 flex items-center justify-between text-xs text-zinc-400">
                 <span>Tuân thủ lịch tập</span>
-                <span>
+                <span className="font-semibold text-zinc-300">
                   {preview?.completed ?? 0}/{preview?.total ?? 0} buổi (
                   {preview?.percent ?? 0}%)
                 </span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
                 <div
-                  className="h-full rounded-full bg-blue-500 transition-all"
+                  className="h-full rounded-full bg-green-500 transition-all"
                   style={{ width: `${preview?.percent ?? 0}%` }}
                 />
               </div>
@@ -198,13 +203,14 @@ export function TrainingCyclePage() {
               type="button"
               onClick={() => closeMutation.mutate(current.id)}
               disabled={closing}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800/60 py-2.5 text-sm font-medium text-zinc-100 transition-colors hover:bg-zinc-700/60 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black py-2.5 rounded-xl text-sm font-bold transition-all"
             >
+              {closing && <Loader2 className="w-4 h-4 animate-spin" />}
               {closing ? "Đang kết thúc..." : "Kết thúc chu kỳ"}
             </button>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-3 py-6 text-center">
+          <div className="flex flex-col items-center gap-3 py-4 text-center">
             <p className="text-sm text-zinc-400">
               Bạn chưa có chu kỳ tập luyện nào đang diễn ra.
             </p>
@@ -212,8 +218,11 @@ export function TrainingCyclePage() {
               type="button"
               onClick={() => startMutation.mutate()}
               disabled={startMutation.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+              className="flex items-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/20"
             >
+              {startMutation.isPending && (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              )}
               {startMutation.isPending
                 ? "Đang bắt đầu..."
                 : "Bắt đầu chu kỳ mới"}
@@ -222,26 +231,28 @@ export function TrainingCyclePage() {
         )}
       </div>
 
+      {/* History */}
       <div>
-        <h2 className="mb-3 text-sm font-medium text-zinc-300">
+        <h2 className="text-sm font-bold text-zinc-300 mb-2">
           Lịch sử chu kỳ
         </h2>
         {historyQuery.isLoading ? (
-          <div className="flex items-center justify-center py-6 text-zinc-500">
-            <Loader2 className="h-5 w-5 animate-spin" />
+          <div className="flex items-center justify-center py-10">
+            <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
           </div>
-        ) : historyQuery.data && historyQuery.data.length > 0 ? (
+        ) : closedHistory.length > 0 ? (
           <div className="space-y-2">
-            {historyQuery.data
-              .filter((c) => c.status === "CLOSED")
-              .map((cycle) => (
-                <CycleHistoryRow key={cycle.id} cycle={cycle} />
-              ))}
+            {closedHistory.map((cycle) => (
+              <CycleHistoryRow key={cycle.id} cycle={cycle} />
+            ))}
           </div>
         ) : (
-          <p className="text-sm text-zinc-600">
-            Chưa có chu kỳ nào được hoàn thành.
-          </p>
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-10 text-center">
+            <CalendarClock className="w-10 h-10 text-zinc-800 mx-auto mb-3" />
+            <p className="text-sm text-zinc-500">
+              Chưa có chu kỳ nào được hoàn thành.
+            </p>
+          </div>
         )}
       </div>
     </div>
