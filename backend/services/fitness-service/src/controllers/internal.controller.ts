@@ -278,4 +278,20 @@ export const internalController = {
       res.status(500).json({ success: false, error: "Failed to check cycle completion" });
     }
   },
+
+  // ai-service calls this when generating/adjusting a plan, to feed the
+  // outcome of the user's most recently finished cycle into the LLM prompt.
+  async getLatestClosedCycle(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const cycle = await prisma.trainingCycle.findFirst({
+        where: { userId, status: "CLOSED" },
+        orderBy: { endDate: "desc" },
+      });
+      res.json({ success: true, data: { cycle } });
+    } catch (err) {
+      logger.error({ err }, "internal.getLatestClosedCycle failed");
+      res.status(500).json({ success: false, error: "Failed to fetch latest closed cycle" });
+    }
+  },
 };

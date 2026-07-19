@@ -4,6 +4,7 @@
  */
 import axios from "axios";
 import { logger } from "@gym-coach/shared";
+import { prisma } from "../repositories/conversation.repository";
 
 const USER_SERVICE_URL =
   process.env.USER_SERVICE_URL ||
@@ -82,6 +83,21 @@ export interface WorkerUserContext {
     carbs?: number;
     fat?: number;
   }>;
+  /**
+   * Outcome of the user's most recently CLOSED monthly training cycle (Part A),
+   * plus how that cycle's underlying plan fared in the marketplace (Part B) and
+   * with PT review — feeds the next plan's generation/adjustment (Part D).
+   */
+  lastCycleOutcome: {
+    outcome?: string | null;
+    outcomeReason?: string | null;
+    adherencePercent?: number | null;
+    startDate?: string;
+    endDate?: string;
+    sourcePlanId?: string | null;
+    planRating?: { avgRating: number; ratingCount: number } | null;
+    ptReview?: { status?: string | null; note?: string | null } | null;
+  } | null;
 }
 
 /**
@@ -96,7 +112,7 @@ export async function fetchWorkerUserContext(
   const userHeaders = userServiceHeaders();
   const timeout = 5000;
 
-  const [profileRes, inBodyRes, workoutsRes, nutritionRes] =
+  const [profileRes, inBodyRes, workoutsRes, nutritionRes, latestCycleRes] =
     await Promise.allSettled([
       axios.get(
         `${USER_SERVICE_URL}/internal/profile/${encodeURIComponent(userId)}`,
@@ -111,6 +127,10 @@ export async function fetchWorkerUserContext(
         timeout,
       }),
       axios.get(`${FITNESS_SERVICE_URL}/nutrition`, { headers, timeout }),
+      axios.get(`${FITNESS_SERVICE_URL}/internal/training-cycles/latest-closed`, {
+        headers,
+        timeout,
+      }),
     ]);
 
   // ── Profile ──────────────────────────────────────────────────────────────
@@ -230,18 +250,113 @@ export async function fetchWorkerUserContext(
       fat: Math.round(v.fat),
     }));
 
+  // ── Last cycle outcome + plan rating + PT review ────────────────────────────
+  const rawCycle =
+    latestCycleRes.status === "fulfilled"
+      ? (latestCycleRes.value.data?.data?.cycle ?? null)
+      : null;
+  if (latestCycleRes.status === "rejected") {
+    logger.debug(
+      { err: (latestCycleRes as any).reason?.message, userId },
+      "[worker-context] latest closed cycle fetch failed",
+    );
+  }
+
+  let lastCycleOutcome: WorkerUserContext["lastCycleOutcome"] = null;
+  if (rawCycle) {
+    let planRating: { avgRating: number; ratingCount: number } | null = null;
+    let ptReview: { status?: string | null; note?: string | null } | null =
+      null;
+
+    if (rawCycle.sourcePlanId) {
+      try {
+        const [publishedPlan, workoutPlan] = await Promise.all([
+          prisma.publishedPlan.findFirst({
+            where: { sourcePlanId: rawCycle.sourcePlanId },
+            select: { avgRating: true, ratingCount: true },
+          }),
+          prisma.workoutPlan.findUnique({
+            where: { id: rawCycle.sourcePlanId },
+            select: { ptReviewStatus: true, ptNote: true },
+          }),
+        ]);
+        if (publishedPlan) {
+          planRating = {
+            avgRating: publishedPlan.avgRating,
+            ratingCount: publishedPlan.ratingCount,
+          };
+        }
+        if (workoutPlan && (workoutPlan.ptReviewStatus || workoutPlan.ptNote)) {
+          ptReview = {
+            status: workoutPlan.ptReviewStatus,
+            note: workoutPlan.ptNote,
+          };
+        }
+      } catch (err) {
+        logger.debug(
+          { err: (err as Error).message, userId },
+          "[worker-context] local plan-rating/pt-review lookup failed",
+        );
+      }
+    }
+
+    lastCycleOutcome = {
+      outcome: rawCycle.outcome,
+      outcomeReason: rawCycle.outcomeReason,
+      adherencePercent: rawCycle.adherencePercent,
+      startDate: (rawCycle.startDate ?? "").split("T")[0] || undefined,
+      endDate: (rawCycle.endDate ?? "").split("T")[0] || undefined,
+      sourcePlanId: rawCycle.sourcePlanId,
+      planRating,
+      ptReview,
+    };
+  }
+
   return {
     latestInBody,
     inBodyHistory,
     profile: profileData,
     recentWorkouts,
     recentNutritionDays,
+    lastCycleOutcome,
   };
 }
 
 /** Build a compact text summary of the user context to inject into plan prompts */
 export function formatWorkerContextForPrompt(ctx: WorkerUserContext): string {
   const lines: string[] = [];
+
+  // Last cycle outcome — surfaced first so the model weighs it when deciding
+  // whether to repeat or change approach for the new plan.
+  if (ctx.lastCycleOutcome) {
+    const c = ctx.lastCycleOutcome;
+    const outcomeLabel: Record<string, string> = {
+      ACHIEVED: "Đạt chỉ tiêu",
+      PARTIAL: "Lưng chừng",
+      NOT_ACHIEVED: "Không đạt",
+    };
+    lines.push(
+      `[Kết quả chu kỳ tập gần nhất${c.startDate ? ` (${c.startDate} - ${c.endDate ?? "?"})` : ""}]`,
+    );
+    if (c.outcome) {
+      lines.push(`  Kết quả: ${outcomeLabel[c.outcome] ?? c.outcome}`);
+    }
+    if (c.adherencePercent != null) {
+      lines.push(`  Tuân thủ lịch tập: ${c.adherencePercent}%`);
+    }
+    if (c.outcomeReason) lines.push(`  Chi tiết: ${c.outcomeReason}`);
+    if (c.planRating) {
+      lines.push(
+        `  Đánh giá kế hoạch cũ trên chợ: ${c.planRating.avgRating.toFixed(1)}/5 (${c.planRating.ratingCount} lượt)`,
+      );
+    }
+    if (c.ptReview?.note) {
+      lines.push(`  Ghi chú của PT: ${c.ptReview.note}`);
+    }
+    lines.push(
+      `  => Nếu kết quả là "Đạt chỉ tiêu": có thể giữ hướng tiếp cận cũ, tăng nhẹ độ khó. Nếu "Lưng chừng" hoặc "Không đạt": cần điều chỉnh (đổi bài tập, giảm khối lượng, hoặc đổi cách tiếp cận) thay vì lặp lại y hệt kế hoạch cũ.`,
+    );
+  }
 
   // InBody
   if (ctx.latestInBody) {

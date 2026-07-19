@@ -20,5 +20,10 @@ router.get(
   internalAuthMiddleware,
   internalController.hasCompletedCycleForPlan as any,
 );
+router.get(
+  "/training-cycles/latest-closed",
+  internalAuthMiddleware,
+  internalController.getLatestClosedCycle as any,
+);
 
 export default router;
