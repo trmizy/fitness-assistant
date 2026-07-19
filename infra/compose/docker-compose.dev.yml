@@ -134,6 +134,7 @@ services:
       - ../../.env
     volumes:
       - ../../backend/services/auth-service/src:/app/backend/services/auth-service/src
+      - ../../backend/services/auth-service/prisma:/app/backend/services/auth-service/prisma
       - ../../scripts:/app/scripts # Seed scripts — shared with db-seeder
     depends_on:
       postgres:
@@ -173,6 +174,7 @@ services:
     volumes:
       # TypeScript source — hot-reloaded by tsx watch
       - ../../backend/services/user-service/src:/app/backend/services/user-service/src
+      - ../../backend/services/user-service/prisma:/app/backend/services/user-service/prisma
       # Persist uploaded files across container restarts
       - user_uploads:/app/backend/services/user-service/uploads
     depends_on:
@@ -380,6 +382,7 @@ services:
       - ../../.env
     volumes:
       - ../../backend/services/chat-service/src:/app/backend/services/chat-service/src
+      - ../../backend/services/chat-service/prisma:/app/backend/services/chat-service/prisma
     depends_on:
       postgres:
         condition: service_healthy
@@ -658,6 +661,7 @@ services:
       - ../../.env
     volumes:
       - ../../backend/services/payment-service/src:/app/backend/services/payment-service/src
+      - ../../backend/services/payment-service/prisma:/app/backend/services/payment-service/prisma
     depends_on:
       postgres:
         condition: service_healthy
@@ -688,6 +692,7 @@ services:
       - ../../.env
     volumes:
       - ../../backend/services/gym-service/src:/app/backend/services/gym-service/src
+      - ../../backend/services/gym-service/prisma:/app/backend/services/gym-service/prisma
     depends_on:
       postgres:
         condition: service_healthy

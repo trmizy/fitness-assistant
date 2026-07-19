@@ -16440,47 +16440,30 @@ export namespace Prisma {
   }
 
   export type TrainingCycleAvgAggregateOutputType = {
-    targetWeightAtStart: number | null
-    startWeightKg: number | null
-    startBodyFatPct: number | null
-    startMuscleMassKg: number | null
-    endWeightKg: number | null
-    endBodyFatPct: number | null
-    endMuscleMassKg: number | null
-    adherencePercent: number | null
+    cycleIndex: number | null
+    durationDays: number | null
   }
 
   export type TrainingCycleSumAggregateOutputType = {
-    targetWeightAtStart: number | null
-    startWeightKg: number | null
-    startBodyFatPct: number | null
-    startMuscleMassKg: number | null
-    endWeightKg: number | null
-    endBodyFatPct: number | null
-    endMuscleMassKg: number | null
-    adherencePercent: number | null
+    cycleIndex: number | null
+    durationDays: number | null
   }
 
   export type TrainingCycleMinAggregateOutputType = {
     id: string | null
     userId: string | null
-    sourcePlanId: string | null
+    planId: string | null
+    cycleIndex: number | null
     startDate: Date | null
     endDate: Date | null
+    durationDays: number | null
+    goal: string | null
     status: string | null
-    goalAtStart: string | null
-    targetWeightAtStart: number | null
-    startWeightKg: number | null
-    startBodyFatPct: number | null
-    startMuscleMassKg: number | null
-    startInBodyDate: Date | null
-    endWeightKg: number | null
-    endBodyFatPct: number | null
-    endMuscleMassKg: number | null
-    endInBodyDate: Date | null
-    adherencePercent: number | null
-    outcome: string | null
-    outcomeReason: string | null
+    startInbodyId: string | null
+    endInbodyId: string | null
+    lowConfidence: boolean | null
+    decision: string | null
+    nextPlanId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -16488,23 +16471,18 @@ export namespace Prisma {
   export type TrainingCycleMaxAggregateOutputType = {
     id: string | null
     userId: string | null
-    sourcePlanId: string | null
+    planId: string | null
+    cycleIndex: number | null
     startDate: Date | null
     endDate: Date | null
+    durationDays: number | null
+    goal: string | null
     status: string | null
-    goalAtStart: string | null
-    targetWeightAtStart: number | null
-    startWeightKg: number | null
-    startBodyFatPct: number | null
-    startMuscleMassKg: number | null
-    startInBodyDate: Date | null
-    endWeightKg: number | null
-    endBodyFatPct: number | null
-    endMuscleMassKg: number | null
-    endInBodyDate: Date | null
-    adherencePercent: number | null
-    outcome: string | null
-    outcomeReason: string | null
+    startInbodyId: string | null
+    endInbodyId: string | null
+    lowConfidence: boolean | null
+    decision: string | null
+    nextPlanId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -16512,23 +16490,20 @@ export namespace Prisma {
   export type TrainingCycleCountAggregateOutputType = {
     id: number
     userId: number
-    sourcePlanId: number
+    planId: number
+    cycleIndex: number
     startDate: number
     endDate: number
+    durationDays: number
+    goal: number
     status: number
-    goalAtStart: number
-    targetWeightAtStart: number
-    startWeightKg: number
-    startBodyFatPct: number
-    startMuscleMassKg: number
-    startInBodyDate: number
-    endWeightKg: number
-    endBodyFatPct: number
-    endMuscleMassKg: number
-    endInBodyDate: number
-    adherencePercent: number
-    outcome: number
-    outcomeReason: number
+    startInbodyId: number
+    endInbodyId: number
+    summary: number
+    lowConfidence: number
+    decision: number
+    aiAnalysis: number
+    nextPlanId: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -16536,47 +16511,30 @@ export namespace Prisma {
 
 
   export type TrainingCycleAvgAggregateInputType = {
-    targetWeightAtStart?: true
-    startWeightKg?: true
-    startBodyFatPct?: true
-    startMuscleMassKg?: true
-    endWeightKg?: true
-    endBodyFatPct?: true
-    endMuscleMassKg?: true
-    adherencePercent?: true
+    cycleIndex?: true
+    durationDays?: true
   }
 
   export type TrainingCycleSumAggregateInputType = {
-    targetWeightAtStart?: true
-    startWeightKg?: true
-    startBodyFatPct?: true
-    startMuscleMassKg?: true
-    endWeightKg?: true
-    endBodyFatPct?: true
-    endMuscleMassKg?: true
-    adherencePercent?: true
+    cycleIndex?: true
+    durationDays?: true
   }
 
   export type TrainingCycleMinAggregateInputType = {
     id?: true
     userId?: true
-    sourcePlanId?: true
+    planId?: true
+    cycleIndex?: true
     startDate?: true
     endDate?: true
+    durationDays?: true
+    goal?: true
     status?: true
-    goalAtStart?: true
-    targetWeightAtStart?: true
-    startWeightKg?: true
-    startBodyFatPct?: true
-    startMuscleMassKg?: true
-    startInBodyDate?: true
-    endWeightKg?: true
-    endBodyFatPct?: true
-    endMuscleMassKg?: true
-    endInBodyDate?: true
-    adherencePercent?: true
-    outcome?: true
-    outcomeReason?: true
+    startInbodyId?: true
+    endInbodyId?: true
+    lowConfidence?: true
+    decision?: true
+    nextPlanId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -16584,23 +16542,18 @@ export namespace Prisma {
   export type TrainingCycleMaxAggregateInputType = {
     id?: true
     userId?: true
-    sourcePlanId?: true
+    planId?: true
+    cycleIndex?: true
     startDate?: true
     endDate?: true
+    durationDays?: true
+    goal?: true
     status?: true
-    goalAtStart?: true
-    targetWeightAtStart?: true
-    startWeightKg?: true
-    startBodyFatPct?: true
-    startMuscleMassKg?: true
-    startInBodyDate?: true
-    endWeightKg?: true
-    endBodyFatPct?: true
-    endMuscleMassKg?: true
-    endInBodyDate?: true
-    adherencePercent?: true
-    outcome?: true
-    outcomeReason?: true
+    startInbodyId?: true
+    endInbodyId?: true
+    lowConfidence?: true
+    decision?: true
+    nextPlanId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -16608,23 +16561,20 @@ export namespace Prisma {
   export type TrainingCycleCountAggregateInputType = {
     id?: true
     userId?: true
-    sourcePlanId?: true
+    planId?: true
+    cycleIndex?: true
     startDate?: true
     endDate?: true
+    durationDays?: true
+    goal?: true
     status?: true
-    goalAtStart?: true
-    targetWeightAtStart?: true
-    startWeightKg?: true
-    startBodyFatPct?: true
-    startMuscleMassKg?: true
-    startInBodyDate?: true
-    endWeightKg?: true
-    endBodyFatPct?: true
-    endMuscleMassKg?: true
-    endInBodyDate?: true
-    adherencePercent?: true
-    outcome?: true
-    outcomeReason?: true
+    startInbodyId?: true
+    endInbodyId?: true
+    summary?: true
+    lowConfidence?: true
+    decision?: true
+    aiAnalysis?: true
+    nextPlanId?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -16719,23 +16669,20 @@ export namespace Prisma {
   export type TrainingCycleGroupByOutputType = {
     id: string
     userId: string
-    sourcePlanId: string | null
+    planId: string | null
+    cycleIndex: number
     startDate: Date
-    endDate: Date | null
+    endDate: Date
+    durationDays: number
+    goal: string | null
     status: string
-    goalAtStart: string | null
-    targetWeightAtStart: number | null
-    startWeightKg: number | null
-    startBodyFatPct: number | null
-    startMuscleMassKg: number | null
-    startInBodyDate: Date | null
-    endWeightKg: number | null
-    endBodyFatPct: number | null
-    endMuscleMassKg: number | null
-    endInBodyDate: Date | null
-    adherencePercent: number | null
-    outcome: string | null
-    outcomeReason: string | null
+    startInbodyId: string | null
+    endInbodyId: string | null
+    summary: JsonValue | null
+    lowConfidence: boolean
+    decision: string | null
+    aiAnalysis: JsonValue | null
+    nextPlanId: string | null
     createdAt: Date
     updatedAt: Date
     _count: TrainingCycleCountAggregateOutputType | null
@@ -16762,23 +16709,20 @@ export namespace Prisma {
   export type TrainingCycleSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
-    sourcePlanId?: boolean
+    planId?: boolean
+    cycleIndex?: boolean
     startDate?: boolean
     endDate?: boolean
+    durationDays?: boolean
+    goal?: boolean
     status?: boolean
-    goalAtStart?: boolean
-    targetWeightAtStart?: boolean
-    startWeightKg?: boolean
-    startBodyFatPct?: boolean
-    startMuscleMassKg?: boolean
-    startInBodyDate?: boolean
-    endWeightKg?: boolean
-    endBodyFatPct?: boolean
-    endMuscleMassKg?: boolean
-    endInBodyDate?: boolean
-    adherencePercent?: boolean
-    outcome?: boolean
-    outcomeReason?: boolean
+    startInbodyId?: boolean
+    endInbodyId?: boolean
+    summary?: boolean
+    lowConfidence?: boolean
+    decision?: boolean
+    aiAnalysis?: boolean
+    nextPlanId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["trainingCycle"]>
@@ -16786,23 +16730,20 @@ export namespace Prisma {
   export type TrainingCycleSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     userId?: boolean
-    sourcePlanId?: boolean
+    planId?: boolean
+    cycleIndex?: boolean
     startDate?: boolean
     endDate?: boolean
+    durationDays?: boolean
+    goal?: boolean
     status?: boolean
-    goalAtStart?: boolean
-    targetWeightAtStart?: boolean
-    startWeightKg?: boolean
-    startBodyFatPct?: boolean
-    startMuscleMassKg?: boolean
-    startInBodyDate?: boolean
-    endWeightKg?: boolean
-    endBodyFatPct?: boolean
-    endMuscleMassKg?: boolean
-    endInBodyDate?: boolean
-    adherencePercent?: boolean
-    outcome?: boolean
-    outcomeReason?: boolean
+    startInbodyId?: boolean
+    endInbodyId?: boolean
+    summary?: boolean
+    lowConfidence?: boolean
+    decision?: boolean
+    aiAnalysis?: boolean
+    nextPlanId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["trainingCycle"]>
@@ -16810,23 +16751,20 @@ export namespace Prisma {
   export type TrainingCycleSelectScalar = {
     id?: boolean
     userId?: boolean
-    sourcePlanId?: boolean
+    planId?: boolean
+    cycleIndex?: boolean
     startDate?: boolean
     endDate?: boolean
+    durationDays?: boolean
+    goal?: boolean
     status?: boolean
-    goalAtStart?: boolean
-    targetWeightAtStart?: boolean
-    startWeightKg?: boolean
-    startBodyFatPct?: boolean
-    startMuscleMassKg?: boolean
-    startInBodyDate?: boolean
-    endWeightKg?: boolean
-    endBodyFatPct?: boolean
-    endMuscleMassKg?: boolean
-    endInBodyDate?: boolean
-    adherencePercent?: boolean
-    outcome?: boolean
-    outcomeReason?: boolean
+    startInbodyId?: boolean
+    endInbodyId?: boolean
+    summary?: boolean
+    lowConfidence?: boolean
+    decision?: boolean
+    aiAnalysis?: boolean
+    nextPlanId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -16838,23 +16776,20 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       userId: string
-      sourcePlanId: string | null
+      planId: string | null
+      cycleIndex: number
       startDate: Date
-      endDate: Date | null
+      endDate: Date
+      durationDays: number
+      goal: string | null
       status: string
-      goalAtStart: string | null
-      targetWeightAtStart: number | null
-      startWeightKg: number | null
-      startBodyFatPct: number | null
-      startMuscleMassKg: number | null
-      startInBodyDate: Date | null
-      endWeightKg: number | null
-      endBodyFatPct: number | null
-      endMuscleMassKg: number | null
-      endInBodyDate: Date | null
-      adherencePercent: number | null
-      outcome: string | null
-      outcomeReason: string | null
+      startInbodyId: string | null
+      endInbodyId: string | null
+      summary: Prisma.JsonValue | null
+      lowConfidence: boolean
+      decision: string | null
+      aiAnalysis: Prisma.JsonValue | null
+      nextPlanId: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["trainingCycle"]>
@@ -17252,23 +17187,20 @@ export namespace Prisma {
   interface TrainingCycleFieldRefs {
     readonly id: FieldRef<"TrainingCycle", 'String'>
     readonly userId: FieldRef<"TrainingCycle", 'String'>
-    readonly sourcePlanId: FieldRef<"TrainingCycle", 'String'>
+    readonly planId: FieldRef<"TrainingCycle", 'String'>
+    readonly cycleIndex: FieldRef<"TrainingCycle", 'Int'>
     readonly startDate: FieldRef<"TrainingCycle", 'DateTime'>
     readonly endDate: FieldRef<"TrainingCycle", 'DateTime'>
+    readonly durationDays: FieldRef<"TrainingCycle", 'Int'>
+    readonly goal: FieldRef<"TrainingCycle", 'String'>
     readonly status: FieldRef<"TrainingCycle", 'String'>
-    readonly goalAtStart: FieldRef<"TrainingCycle", 'String'>
-    readonly targetWeightAtStart: FieldRef<"TrainingCycle", 'Float'>
-    readonly startWeightKg: FieldRef<"TrainingCycle", 'Float'>
-    readonly startBodyFatPct: FieldRef<"TrainingCycle", 'Float'>
-    readonly startMuscleMassKg: FieldRef<"TrainingCycle", 'Float'>
-    readonly startInBodyDate: FieldRef<"TrainingCycle", 'DateTime'>
-    readonly endWeightKg: FieldRef<"TrainingCycle", 'Float'>
-    readonly endBodyFatPct: FieldRef<"TrainingCycle", 'Float'>
-    readonly endMuscleMassKg: FieldRef<"TrainingCycle", 'Float'>
-    readonly endInBodyDate: FieldRef<"TrainingCycle", 'DateTime'>
-    readonly adherencePercent: FieldRef<"TrainingCycle", 'Int'>
-    readonly outcome: FieldRef<"TrainingCycle", 'String'>
-    readonly outcomeReason: FieldRef<"TrainingCycle", 'String'>
+    readonly startInbodyId: FieldRef<"TrainingCycle", 'String'>
+    readonly endInbodyId: FieldRef<"TrainingCycle", 'String'>
+    readonly summary: FieldRef<"TrainingCycle", 'Json'>
+    readonly lowConfidence: FieldRef<"TrainingCycle", 'Boolean'>
+    readonly decision: FieldRef<"TrainingCycle", 'String'>
+    readonly aiAnalysis: FieldRef<"TrainingCycle", 'Json'>
+    readonly nextPlanId: FieldRef<"TrainingCycle", 'String'>
     readonly createdAt: FieldRef<"TrainingCycle", 'DateTime'>
     readonly updatedAt: FieldRef<"TrainingCycle", 'DateTime'>
   }
@@ -23326,23 +23258,20 @@ export namespace Prisma {
   export const TrainingCycleScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
-    sourcePlanId: 'sourcePlanId',
+    planId: 'planId',
+    cycleIndex: 'cycleIndex',
     startDate: 'startDate',
     endDate: 'endDate',
+    durationDays: 'durationDays',
+    goal: 'goal',
     status: 'status',
-    goalAtStart: 'goalAtStart',
-    targetWeightAtStart: 'targetWeightAtStart',
-    startWeightKg: 'startWeightKg',
-    startBodyFatPct: 'startBodyFatPct',
-    startMuscleMassKg: 'startMuscleMassKg',
-    startInBodyDate: 'startInBodyDate',
-    endWeightKg: 'endWeightKg',
-    endBodyFatPct: 'endBodyFatPct',
-    endMuscleMassKg: 'endMuscleMassKg',
-    endInBodyDate: 'endInBodyDate',
-    adherencePercent: 'adherencePercent',
-    outcome: 'outcome',
-    outcomeReason: 'outcomeReason',
+    startInbodyId: 'startInbodyId',
+    endInbodyId: 'endInbodyId',
+    summary: 'summary',
+    lowConfidence: 'lowConfidence',
+    decision: 'decision',
+    aiAnalysis: 'aiAnalysis',
+    nextPlanId: 'nextPlanId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -23455,6 +23384,14 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+  export const NullableJsonNullValueInput: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull
+  };
+
+  export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
   export const QueryMode: {
     default: 'default',
     insensitive: 'insensitive'
@@ -23469,6 +23406,15 @@ export namespace Prisma {
   };
 
   export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+  export const JsonNullValueFilter: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull,
+    AnyNull: typeof AnyNull
+  };
+
+  export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
   /**
@@ -23592,6 +23538,13 @@ export namespace Prisma {
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
+   * Reference to a field of type 'Json'
+   */
+  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
     
   /**
    * Deep Input Types
@@ -24745,23 +24698,20 @@ export namespace Prisma {
     NOT?: TrainingCycleWhereInput | TrainingCycleWhereInput[]
     id?: StringFilter<"TrainingCycle"> | string
     userId?: StringFilter<"TrainingCycle"> | string
-    sourcePlanId?: StringNullableFilter<"TrainingCycle"> | string | null
+    planId?: StringNullableFilter<"TrainingCycle"> | string | null
+    cycleIndex?: IntFilter<"TrainingCycle"> | number
     startDate?: DateTimeFilter<"TrainingCycle"> | Date | string
-    endDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    endDate?: DateTimeFilter<"TrainingCycle"> | Date | string
+    durationDays?: IntFilter<"TrainingCycle"> | number
+    goal?: StringNullableFilter<"TrainingCycle"> | string | null
     status?: StringFilter<"TrainingCycle"> | string
-    goalAtStart?: StringNullableFilter<"TrainingCycle"> | string | null
-    targetWeightAtStart?: FloatNullableFilter<"TrainingCycle"> | number | null
-    startWeightKg?: FloatNullableFilter<"TrainingCycle"> | number | null
-    startBodyFatPct?: FloatNullableFilter<"TrainingCycle"> | number | null
-    startMuscleMassKg?: FloatNullableFilter<"TrainingCycle"> | number | null
-    startInBodyDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
-    endWeightKg?: FloatNullableFilter<"TrainingCycle"> | number | null
-    endBodyFatPct?: FloatNullableFilter<"TrainingCycle"> | number | null
-    endMuscleMassKg?: FloatNullableFilter<"TrainingCycle"> | number | null
-    endInBodyDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
-    adherencePercent?: IntNullableFilter<"TrainingCycle"> | number | null
-    outcome?: StringNullableFilter<"TrainingCycle"> | string | null
-    outcomeReason?: StringNullableFilter<"TrainingCycle"> | string | null
+    startInbodyId?: StringNullableFilter<"TrainingCycle"> | string | null
+    endInbodyId?: StringNullableFilter<"TrainingCycle"> | string | null
+    summary?: JsonNullableFilter<"TrainingCycle">
+    lowConfidence?: BoolFilter<"TrainingCycle"> | boolean
+    decision?: StringNullableFilter<"TrainingCycle"> | string | null
+    aiAnalysis?: JsonNullableFilter<"TrainingCycle">
+    nextPlanId?: StringNullableFilter<"TrainingCycle"> | string | null
     createdAt?: DateTimeFilter<"TrainingCycle"> | Date | string
     updatedAt?: DateTimeFilter<"TrainingCycle"> | Date | string
   }
@@ -24769,23 +24719,20 @@ export namespace Prisma {
   export type TrainingCycleOrderByWithRelationInput = {
     id?: SortOrder
     userId?: SortOrder
-    sourcePlanId?: SortOrderInput | SortOrder
+    planId?: SortOrderInput | SortOrder
+    cycleIndex?: SortOrder
     startDate?: SortOrder
-    endDate?: SortOrderInput | SortOrder
+    endDate?: SortOrder
+    durationDays?: SortOrder
+    goal?: SortOrderInput | SortOrder
     status?: SortOrder
-    goalAtStart?: SortOrderInput | SortOrder
-    targetWeightAtStart?: SortOrderInput | SortOrder
-    startWeightKg?: SortOrderInput | SortOrder
-    startBodyFatPct?: SortOrderInput | SortOrder
-    startMuscleMassKg?: SortOrderInput | SortOrder
-    startInBodyDate?: SortOrderInput | SortOrder
-    endWeightKg?: SortOrderInput | SortOrder
-    endBodyFatPct?: SortOrderInput | SortOrder
-    endMuscleMassKg?: SortOrderInput | SortOrder
-    endInBodyDate?: SortOrderInput | SortOrder
-    adherencePercent?: SortOrderInput | SortOrder
-    outcome?: SortOrderInput | SortOrder
-    outcomeReason?: SortOrderInput | SortOrder
+    startInbodyId?: SortOrderInput | SortOrder
+    endInbodyId?: SortOrderInput | SortOrder
+    summary?: SortOrderInput | SortOrder
+    lowConfidence?: SortOrder
+    decision?: SortOrderInput | SortOrder
+    aiAnalysis?: SortOrderInput | SortOrder
+    nextPlanId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -24796,23 +24743,20 @@ export namespace Prisma {
     OR?: TrainingCycleWhereInput[]
     NOT?: TrainingCycleWhereInput | TrainingCycleWhereInput[]
     userId?: StringFilter<"TrainingCycle"> | string
-    sourcePlanId?: StringNullableFilter<"TrainingCycle"> | string | null
+    planId?: StringNullableFilter<"TrainingCycle"> | string | null
+    cycleIndex?: IntFilter<"TrainingCycle"> | number
     startDate?: DateTimeFilter<"TrainingCycle"> | Date | string
-    endDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    endDate?: DateTimeFilter<"TrainingCycle"> | Date | string
+    durationDays?: IntFilter<"TrainingCycle"> | number
+    goal?: StringNullableFilter<"TrainingCycle"> | string | null
     status?: StringFilter<"TrainingCycle"> | string
-    goalAtStart?: StringNullableFilter<"TrainingCycle"> | string | null
-    targetWeightAtStart?: FloatNullableFilter<"TrainingCycle"> | number | null
-    startWeightKg?: FloatNullableFilter<"TrainingCycle"> | number | null
-    startBodyFatPct?: FloatNullableFilter<"TrainingCycle"> | number | null
-    startMuscleMassKg?: FloatNullableFilter<"TrainingCycle"> | number | null
-    startInBodyDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
-    endWeightKg?: FloatNullableFilter<"TrainingCycle"> | number | null
-    endBodyFatPct?: FloatNullableFilter<"TrainingCycle"> | number | null
-    endMuscleMassKg?: FloatNullableFilter<"TrainingCycle"> | number | null
-    endInBodyDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
-    adherencePercent?: IntNullableFilter<"TrainingCycle"> | number | null
-    outcome?: StringNullableFilter<"TrainingCycle"> | string | null
-    outcomeReason?: StringNullableFilter<"TrainingCycle"> | string | null
+    startInbodyId?: StringNullableFilter<"TrainingCycle"> | string | null
+    endInbodyId?: StringNullableFilter<"TrainingCycle"> | string | null
+    summary?: JsonNullableFilter<"TrainingCycle">
+    lowConfidence?: BoolFilter<"TrainingCycle"> | boolean
+    decision?: StringNullableFilter<"TrainingCycle"> | string | null
+    aiAnalysis?: JsonNullableFilter<"TrainingCycle">
+    nextPlanId?: StringNullableFilter<"TrainingCycle"> | string | null
     createdAt?: DateTimeFilter<"TrainingCycle"> | Date | string
     updatedAt?: DateTimeFilter<"TrainingCycle"> | Date | string
   }, "id">
@@ -24820,23 +24764,20 @@ export namespace Prisma {
   export type TrainingCycleOrderByWithAggregationInput = {
     id?: SortOrder
     userId?: SortOrder
-    sourcePlanId?: SortOrderInput | SortOrder
+    planId?: SortOrderInput | SortOrder
+    cycleIndex?: SortOrder
     startDate?: SortOrder
-    endDate?: SortOrderInput | SortOrder
+    endDate?: SortOrder
+    durationDays?: SortOrder
+    goal?: SortOrderInput | SortOrder
     status?: SortOrder
-    goalAtStart?: SortOrderInput | SortOrder
-    targetWeightAtStart?: SortOrderInput | SortOrder
-    startWeightKg?: SortOrderInput | SortOrder
-    startBodyFatPct?: SortOrderInput | SortOrder
-    startMuscleMassKg?: SortOrderInput | SortOrder
-    startInBodyDate?: SortOrderInput | SortOrder
-    endWeightKg?: SortOrderInput | SortOrder
-    endBodyFatPct?: SortOrderInput | SortOrder
-    endMuscleMassKg?: SortOrderInput | SortOrder
-    endInBodyDate?: SortOrderInput | SortOrder
-    adherencePercent?: SortOrderInput | SortOrder
-    outcome?: SortOrderInput | SortOrder
-    outcomeReason?: SortOrderInput | SortOrder
+    startInbodyId?: SortOrderInput | SortOrder
+    endInbodyId?: SortOrderInput | SortOrder
+    summary?: SortOrderInput | SortOrder
+    lowConfidence?: SortOrder
+    decision?: SortOrderInput | SortOrder
+    aiAnalysis?: SortOrderInput | SortOrder
+    nextPlanId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: TrainingCycleCountOrderByAggregateInput
@@ -24852,23 +24793,20 @@ export namespace Prisma {
     NOT?: TrainingCycleScalarWhereWithAggregatesInput | TrainingCycleScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"TrainingCycle"> | string
     userId?: StringWithAggregatesFilter<"TrainingCycle"> | string
-    sourcePlanId?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    planId?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    cycleIndex?: IntWithAggregatesFilter<"TrainingCycle"> | number
     startDate?: DateTimeWithAggregatesFilter<"TrainingCycle"> | Date | string
-    endDate?: DateTimeNullableWithAggregatesFilter<"TrainingCycle"> | Date | string | null
+    endDate?: DateTimeWithAggregatesFilter<"TrainingCycle"> | Date | string
+    durationDays?: IntWithAggregatesFilter<"TrainingCycle"> | number
+    goal?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
     status?: StringWithAggregatesFilter<"TrainingCycle"> | string
-    goalAtStart?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
-    targetWeightAtStart?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
-    startWeightKg?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
-    startBodyFatPct?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
-    startMuscleMassKg?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
-    startInBodyDate?: DateTimeNullableWithAggregatesFilter<"TrainingCycle"> | Date | string | null
-    endWeightKg?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
-    endBodyFatPct?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
-    endMuscleMassKg?: FloatNullableWithAggregatesFilter<"TrainingCycle"> | number | null
-    endInBodyDate?: DateTimeNullableWithAggregatesFilter<"TrainingCycle"> | Date | string | null
-    adherencePercent?: IntNullableWithAggregatesFilter<"TrainingCycle"> | number | null
-    outcome?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
-    outcomeReason?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    startInbodyId?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    endInbodyId?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    summary?: JsonNullableWithAggregatesFilter<"TrainingCycle">
+    lowConfidence?: BoolWithAggregatesFilter<"TrainingCycle"> | boolean
+    decision?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    aiAnalysis?: JsonNullableWithAggregatesFilter<"TrainingCycle">
+    nextPlanId?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"TrainingCycle"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"TrainingCycle"> | Date | string
   }
@@ -26677,23 +26615,20 @@ export namespace Prisma {
   export type TrainingCycleCreateInput = {
     id?: string
     userId: string
-    sourcePlanId?: string | null
+    planId?: string | null
+    cycleIndex?: number
     startDate: Date | string
-    endDate?: Date | string | null
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
     status?: string
-    goalAtStart?: string | null
-    targetWeightAtStart?: number | null
-    startWeightKg?: number | null
-    startBodyFatPct?: number | null
-    startMuscleMassKg?: number | null
-    startInBodyDate?: Date | string | null
-    endWeightKg?: number | null
-    endBodyFatPct?: number | null
-    endMuscleMassKg?: number | null
-    endInBodyDate?: Date | string | null
-    adherencePercent?: number | null
-    outcome?: string | null
-    outcomeReason?: string | null
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -26701,23 +26636,20 @@ export namespace Prisma {
   export type TrainingCycleUncheckedCreateInput = {
     id?: string
     userId: string
-    sourcePlanId?: string | null
+    planId?: string | null
+    cycleIndex?: number
     startDate: Date | string
-    endDate?: Date | string | null
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
     status?: string
-    goalAtStart?: string | null
-    targetWeightAtStart?: number | null
-    startWeightKg?: number | null
-    startBodyFatPct?: number | null
-    startMuscleMassKg?: number | null
-    startInBodyDate?: Date | string | null
-    endWeightKg?: number | null
-    endBodyFatPct?: number | null
-    endMuscleMassKg?: number | null
-    endInBodyDate?: Date | string | null
-    adherencePercent?: number | null
-    outcome?: string | null
-    outcomeReason?: string | null
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -26725,23 +26657,20 @@ export namespace Prisma {
   export type TrainingCycleUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
-    goalAtStart?: NullableStringFieldUpdateOperationsInput | string | null
-    targetWeightAtStart?: NullableFloatFieldUpdateOperationsInput | number | null
-    startWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    startBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
-    startMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    startInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    endBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
-    endMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    endInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    adherencePercent?: NullableIntFieldUpdateOperationsInput | number | null
-    outcome?: NullableStringFieldUpdateOperationsInput | string | null
-    outcomeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -26749,23 +26678,20 @@ export namespace Prisma {
   export type TrainingCycleUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
-    goalAtStart?: NullableStringFieldUpdateOperationsInput | string | null
-    targetWeightAtStart?: NullableFloatFieldUpdateOperationsInput | number | null
-    startWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    startBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
-    startMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    startInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    endBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
-    endMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    endInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    adherencePercent?: NullableIntFieldUpdateOperationsInput | number | null
-    outcome?: NullableStringFieldUpdateOperationsInput | string | null
-    outcomeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -26773,23 +26699,20 @@ export namespace Prisma {
   export type TrainingCycleCreateManyInput = {
     id?: string
     userId: string
-    sourcePlanId?: string | null
+    planId?: string | null
+    cycleIndex?: number
     startDate: Date | string
-    endDate?: Date | string | null
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
     status?: string
-    goalAtStart?: string | null
-    targetWeightAtStart?: number | null
-    startWeightKg?: number | null
-    startBodyFatPct?: number | null
-    startMuscleMassKg?: number | null
-    startInBodyDate?: Date | string | null
-    endWeightKg?: number | null
-    endBodyFatPct?: number | null
-    endMuscleMassKg?: number | null
-    endInBodyDate?: Date | string | null
-    adherencePercent?: number | null
-    outcome?: string | null
-    outcomeReason?: string | null
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -26797,23 +26720,20 @@ export namespace Prisma {
   export type TrainingCycleUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
-    goalAtStart?: NullableStringFieldUpdateOperationsInput | string | null
-    targetWeightAtStart?: NullableFloatFieldUpdateOperationsInput | number | null
-    startWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    startBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
-    startMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    startInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    endBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
-    endMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    endInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    adherencePercent?: NullableIntFieldUpdateOperationsInput | number | null
-    outcome?: NullableStringFieldUpdateOperationsInput | string | null
-    outcomeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -26821,23 +26741,20 @@ export namespace Prisma {
   export type TrainingCycleUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
-    goalAtStart?: NullableStringFieldUpdateOperationsInput | string | null
-    targetWeightAtStart?: NullableFloatFieldUpdateOperationsInput | number | null
-    startWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    startBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
-    startMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    startInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endWeightKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    endBodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
-    endMuscleMassKg?: NullableFloatFieldUpdateOperationsInput | number | null
-    endInBodyDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    adherencePercent?: NullableIntFieldUpdateOperationsInput | number | null
-    outcome?: NullableStringFieldUpdateOperationsInput | string | null
-    outcomeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -28584,62 +28501,70 @@ export namespace Prisma {
     durationSeconds?: SortOrder
     caloriesEstimate?: SortOrder
   }
+  export type JsonNullableFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type TrainingCycleCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
-    sourcePlanId?: SortOrder
+    planId?: SortOrder
+    cycleIndex?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
+    durationDays?: SortOrder
+    goal?: SortOrder
     status?: SortOrder
-    goalAtStart?: SortOrder
-    targetWeightAtStart?: SortOrder
-    startWeightKg?: SortOrder
-    startBodyFatPct?: SortOrder
-    startMuscleMassKg?: SortOrder
-    startInBodyDate?: SortOrder
-    endWeightKg?: SortOrder
-    endBodyFatPct?: SortOrder
-    endMuscleMassKg?: SortOrder
-    endInBodyDate?: SortOrder
-    adherencePercent?: SortOrder
-    outcome?: SortOrder
-    outcomeReason?: SortOrder
+    startInbodyId?: SortOrder
+    endInbodyId?: SortOrder
+    summary?: SortOrder
+    lowConfidence?: SortOrder
+    decision?: SortOrder
+    aiAnalysis?: SortOrder
+    nextPlanId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type TrainingCycleAvgOrderByAggregateInput = {
-    targetWeightAtStart?: SortOrder
-    startWeightKg?: SortOrder
-    startBodyFatPct?: SortOrder
-    startMuscleMassKg?: SortOrder
-    endWeightKg?: SortOrder
-    endBodyFatPct?: SortOrder
-    endMuscleMassKg?: SortOrder
-    adherencePercent?: SortOrder
+    cycleIndex?: SortOrder
+    durationDays?: SortOrder
   }
 
   export type TrainingCycleMaxOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
-    sourcePlanId?: SortOrder
+    planId?: SortOrder
+    cycleIndex?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
+    durationDays?: SortOrder
+    goal?: SortOrder
     status?: SortOrder
-    goalAtStart?: SortOrder
-    targetWeightAtStart?: SortOrder
-    startWeightKg?: SortOrder
-    startBodyFatPct?: SortOrder
-    startMuscleMassKg?: SortOrder
-    startInBodyDate?: SortOrder
-    endWeightKg?: SortOrder
-    endBodyFatPct?: SortOrder
-    endMuscleMassKg?: SortOrder
-    endInBodyDate?: SortOrder
-    adherencePercent?: SortOrder
-    outcome?: SortOrder
-    outcomeReason?: SortOrder
+    startInbodyId?: SortOrder
+    endInbodyId?: SortOrder
+    lowConfidence?: SortOrder
+    decision?: SortOrder
+    nextPlanId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -28647,36 +28572,50 @@ export namespace Prisma {
   export type TrainingCycleMinOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
-    sourcePlanId?: SortOrder
+    planId?: SortOrder
+    cycleIndex?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
+    durationDays?: SortOrder
+    goal?: SortOrder
     status?: SortOrder
-    goalAtStart?: SortOrder
-    targetWeightAtStart?: SortOrder
-    startWeightKg?: SortOrder
-    startBodyFatPct?: SortOrder
-    startMuscleMassKg?: SortOrder
-    startInBodyDate?: SortOrder
-    endWeightKg?: SortOrder
-    endBodyFatPct?: SortOrder
-    endMuscleMassKg?: SortOrder
-    endInBodyDate?: SortOrder
-    adherencePercent?: SortOrder
-    outcome?: SortOrder
-    outcomeReason?: SortOrder
+    startInbodyId?: SortOrder
+    endInbodyId?: SortOrder
+    lowConfidence?: SortOrder
+    decision?: SortOrder
+    nextPlanId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type TrainingCycleSumOrderByAggregateInput = {
-    targetWeightAtStart?: SortOrder
-    startWeightKg?: SortOrder
-    startBodyFatPct?: SortOrder
-    startMuscleMassKg?: SortOrder
-    endWeightKg?: SortOrder
-    endBodyFatPct?: SortOrder
-    endMuscleMassKg?: SortOrder
-    adherencePercent?: SortOrder
+    cycleIndex?: SortOrder
+    durationDays?: SortOrder
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type NutritionProgramDayListRelationFilter = {
@@ -30237,6 +30176,28 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+  export type NestedJsonNullableFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type WorkoutExerciseCreateWithoutExerciseInput = {

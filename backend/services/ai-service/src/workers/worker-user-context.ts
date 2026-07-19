@@ -84,13 +84,15 @@ export interface WorkerUserContext {
     fat?: number;
   }>;
   /**
-   * Outcome of the user's most recently CLOSED monthly training cycle (Part A),
-   * plus how that cycle's underlying plan fared in the marketplace (Part B) and
+   * Outcome of the user's most recently finished monthly training cycle (v2
+   * cycle model: decision KEEP/ADJUST/NEW_PLAN + deterministic progressSignals,
+   * replaces the earlier ACHIEVED/PARTIAL/NOT_ACHIEVED outcome field), plus
+   * how that cycle's underlying plan fared in the marketplace (Part B) and
    * with PT review — feeds the next plan's generation/adjustment (Part D).
    */
   lastCycleOutcome: {
-    outcome?: string | null;
-    outcomeReason?: string | null;
+    decision?: string | null;
+    overallTrend?: string | null;
     adherencePercent?: number | null;
     startDate?: string;
     endDate?: string;
@@ -268,15 +270,15 @@ export async function fetchWorkerUserContext(
     let ptReview: { status?: string | null; note?: string | null } | null =
       null;
 
-    if (rawCycle.sourcePlanId) {
+    if (rawCycle.planId) {
       try {
         const [publishedPlan, workoutPlan] = await Promise.all([
           prisma.publishedPlan.findFirst({
-            where: { sourcePlanId: rawCycle.sourcePlanId },
+            where: { sourcePlanId: rawCycle.planId },
             select: { avgRating: true, ratingCount: true },
           }),
           prisma.workoutPlan.findUnique({
-            where: { id: rawCycle.sourcePlanId },
+            where: { id: rawCycle.planId },
             select: { ptReviewStatus: true, ptNote: true },
           }),
         ]);
@@ -300,13 +302,15 @@ export async function fetchWorkerUserContext(
       }
     }
 
+    const progressSignals = rawCycle.summary?.progressSignals ?? null;
+
     lastCycleOutcome = {
-      outcome: rawCycle.outcome,
-      outcomeReason: rawCycle.outcomeReason,
-      adherencePercent: rawCycle.adherencePercent,
+      decision: rawCycle.decision,
+      overallTrend: progressSignals?.overallTrend ?? null,
+      adherencePercent: progressSignals?.adherencePct ?? null,
       startDate: (rawCycle.startDate ?? "").split("T")[0] || undefined,
       endDate: (rawCycle.endDate ?? "").split("T")[0] || undefined,
-      sourcePlanId: rawCycle.sourcePlanId,
+      sourcePlanId: rawCycle.planId,
       planRating,
       ptReview,
     };
@@ -330,21 +334,28 @@ export function formatWorkerContextForPrompt(ctx: WorkerUserContext): string {
   // whether to repeat or change approach for the new plan.
   if (ctx.lastCycleOutcome) {
     const c = ctx.lastCycleOutcome;
-    const outcomeLabel: Record<string, string> = {
-      ACHIEVED: "Đạt chỉ tiêu",
-      PARTIAL: "Lưng chừng",
-      NOT_ACHIEVED: "Không đạt",
+    const decisionLabel: Record<string, string> = {
+      KEEP: "Giữ nguyên lịch tập, tăng tải",
+      ADJUST: "Điều chỉnh lịch tập",
+      NEW_PLAN: "Đổi sang kế hoạch mới",
+    };
+    const trendLabel: Record<string, string> = {
+      PROGRESSING: "Đang tiến triển tốt",
+      PLATEAU: "Chững lại",
+      DECLINING: "Đang sụt giảm",
     };
     lines.push(
       `[Kết quả chu kỳ tập gần nhất${c.startDate ? ` (${c.startDate} - ${c.endDate ?? "?"})` : ""}]`,
     );
-    if (c.outcome) {
-      lines.push(`  Kết quả: ${outcomeLabel[c.outcome] ?? c.outcome}`);
+    if (c.overallTrend) {
+      lines.push(`  Xu hướng: ${trendLabel[c.overallTrend] ?? c.overallTrend}`);
+    }
+    if (c.decision) {
+      lines.push(`  Đề xuất chu kỳ trước: ${decisionLabel[c.decision] ?? c.decision}`);
     }
     if (c.adherencePercent != null) {
       lines.push(`  Tuân thủ lịch tập: ${c.adherencePercent}%`);
     }
-    if (c.outcomeReason) lines.push(`  Chi tiết: ${c.outcomeReason}`);
     if (c.planRating) {
       lines.push(
         `  Đánh giá kế hoạch cũ trên chợ: ${c.planRating.avgRating.toFixed(1)}/5 (${c.planRating.ratingCount} lượt)`,
@@ -354,7 +365,7 @@ export function formatWorkerContextForPrompt(ctx: WorkerUserContext): string {
       lines.push(`  Ghi chú của PT: ${c.ptReview.note}`);
     }
     lines.push(
-      `  => Nếu kết quả là "Đạt chỉ tiêu": có thể giữ hướng tiếp cận cũ, tăng nhẹ độ khó. Nếu "Lưng chừng" hoặc "Không đạt": cần điều chỉnh (đổi bài tập, giảm khối lượng, hoặc đổi cách tiếp cận) thay vì lặp lại y hệt kế hoạch cũ.`,
+      `  => Nếu xu hướng "Đang tiến triển tốt": có thể giữ hướng tiếp cận cũ, tăng nhẹ độ khó. Nếu "Chững lại" hoặc "Đang sụt giảm": cần điều chỉnh (đổi bài tập, giảm khối lượng, hoặc đổi cách tiếp cận) thay vì lặp lại y hệt kế hoạch cũ.`,
     );
   }
 

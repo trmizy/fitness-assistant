@@ -260,6 +260,8 @@ export const internalController = {
 
   // ai-service calls this to gate marketplace plan reviews: only a user who
   // actually finished a training cycle built on this plan may rate it.
+  // COMPLETED and ANALYZED both count — a cycle is "finished" as soon as it
+  // closes, regardless of whether the (fire-and-forget) AI analysis landed.
   async hasCompletedCycleForPlan(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { sourcePlanId } = req.query as Record<string, string>;
@@ -269,7 +271,7 @@ export const internalController = {
         return;
       }
       const cycle = await prisma.trainingCycle.findFirst({
-        where: { userId, sourcePlanId, status: "CLOSED" },
+        where: { userId, planId: sourcePlanId, status: { in: ["COMPLETED", "ANALYZED"] } },
         select: { id: true },
       });
       res.json({ success: true, data: { completed: !!cycle } });
@@ -280,12 +282,12 @@ export const internalController = {
   },
 
   // ai-service calls this when generating/adjusting a plan, to feed the
-  // outcome of the user's most recently finished cycle into the LLM prompt.
+  // most recently finished cycle's decision/progressSignals into the prompt.
   async getLatestClosedCycle(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const cycle = await prisma.trainingCycle.findFirst({
-        where: { userId, status: "CLOSED" },
+        where: { userId, status: { in: ["COMPLETED", "ANALYZED"] } },
         orderBy: { endDate: "desc" },
       });
       res.json({ success: true, data: { cycle } });

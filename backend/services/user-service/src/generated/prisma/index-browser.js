@@ -380,6 +380,8 @@ exports.Prisma.InBodyEntryScalarFieldEnum = {
   bodyFat: 'bodyFat',
   bodyFatPct: 'bodyFatPct',
   muscleMass: 'muscleMass',
+  visceralFat: 'visceralFat',
+  bmr: 'bmr',
   rightArmMuscle: 'rightArmMuscle',
   leftArmMuscle: 'leftArmMuscle',
   trunkMuscle: 'trunkMuscle',

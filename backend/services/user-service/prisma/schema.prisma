@@ -537,7 +537,9 @@ model InBodyEntry {
   bodyFat    Float    @map("body_fat")    // Mass in kg or %? Let's use mass kg
   bodyFatPct Float?   @map("body_fat_pct") // Percentage
   muscleMass Float    @map("muscle_mass")
-  
+  visceralFat Float?  @map("visceral_fat") // InBody visceral fat level (unitless index, typically 1-20)
+  bmr         Int?    @map("bmr") // Basal Metabolic Rate, kcal/day — printed on the InBody scan, used for TDEE recompute in cycle analysis
+
   // Segmental Lean Analysis (kg)
   rightArmMuscle Float? @map("right_arm_muscle")
   leftArmMuscle  Float? @map("left_arm_muscle")

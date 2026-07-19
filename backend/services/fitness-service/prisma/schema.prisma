@@ -315,31 +315,37 @@ model WorkoutSchedule {
   @@map("workout_schedules")
 }
 
-// 📅 Monthly Training Cycle (adherence + outcome classification for one AI plan cycle)
+// 📅 Monthly Training Cycle — continuous InBody/workout monitoring during the
+// cycle, deterministic pre-classification (progressSignals) at close, and an
+// AI-proposed decision (KEEP/ADJUST/NEW_PLAN) the user reviews before the
+// next cycle opens. v2 design — replaces the earlier outcome-only model
+// (ACHIEVED/PARTIAL/NOT_ACHIEVED); status/decision are plain strings to match
+// this schema's existing house style (see WorkoutSchedule.status etc.).
 model TrainingCycle {
-  id           String    @id @default(uuid())
-  userId       String    @map("user_id")
-  sourcePlanId String?   @map("source_plan_id") // ai-service WorkoutPlan.id, mirrors WorkoutSchedule.sourcePlanId
-  startDate    DateTime  @map("start_date")
-  endDate      DateTime? @map("end_date") // set on close; null while ACTIVE
-  status       String    @default("ACTIVE") // ACTIVE | CLOSED
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  planId       String?  @map("plan_id") // ai-service WorkoutPlan.id, mirrors WorkoutSchedule.sourcePlanId
+  cycleIndex   Int      @default(1) @map("cycle_index") // 1,2,3... sequential per user, across cycle lineage (nextPlanId chain)
+  startDate    DateTime @map("start_date")
+  endDate      DateTime @map("end_date") // planned close = startDate + durationDays; always set, unlike the old nullable endDate
+  durationDays Int      @default(30) @map("duration_days")
+  goal         String? // snapshot of UserProfile.goal at cycle start (real enum values: WEIGHT_LOSS | MUSCLE_GAIN | MAINTENANCE | ATHLETIC_PERFORMANCE)
+  status       String   @default("ACTIVE") @map("status") // ACTIVE | COMPLETED | ANALYZED
 
-  goalAtStart         String? @map("goal_at_start") // snapshot of UserProfile.goal
-  targetWeightAtStart Float?  @map("target_weight_at_start")
+  startInbodyId String? @map("start_inbody_id") // user-service InBodyEntry.id, latest on/before startDate
+  endInbodyId   String? @map("end_inbody_id") // user-service InBodyEntry.id at close; becomes next cycle's startInbodyId
 
-  startWeightKg     Float?    @map("start_weight_kg")
-  startBodyFatPct   Float?    @map("start_body_fat_pct")
-  startMuscleMassKg Float?    @map("start_muscle_mass_kg")
-  startInBodyDate   DateTime? @map("start_inbody_date")
+  // Rolling metrics during ACTIVE (adherence/volume/e1RM/RPE trend/alerts) and
+  // final metrics once COMPLETED — code-computed, cached here so /active
+  // reads don't recompute from scratch on every request. Shape documented in
+  // training-cycle.service.ts's CycleSummary type.
+  summary Json?
 
-  endWeightKg     Float?    @map("end_weight_kg")
-  endBodyFatPct   Float?    @map("end_body_fat_pct")
-  endMuscleMassKg Float?    @map("end_muscle_mass_kg")
-  endInBodyDate   DateTime? @map("end_inbody_date")
+  lowConfidence Boolean @default(false) @map("low_confidence") // set when completed without a fresh endInbodyId
 
-  adherencePercent Int?    @map("adherence_percent")
-  outcome          String? @map("outcome") // ACHIEVED | PARTIAL | NOT_ACHIEVED | null while ACTIVE
-  outcomeReason    String? @map("outcome_reason")
+  decision   String? @map("decision") // KEEP | ADJUST | NEW_PLAN — AI-proposed, user must approve to act on it
+  aiAnalysis Json?   @map("ai_analysis") // full structured LLM output (cycleReview + keepDetails/adjustDetails/newPlanDraft/mealPlanDraft)
+  nextPlanId String? @map("next_plan_id") // set once the user approves a decision and cycle N+1's plan is created
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

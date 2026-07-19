@@ -31,6 +31,8 @@ export interface InBodyEntrySnapshot {
   weight: number;
   bodyFatPct?: number | null;
   muscleMass: number;
+  visceralFat?: number | null;
+  bmr?: number | null;
 }
 
 export async function fetchUserProfile(
@@ -57,7 +59,7 @@ export async function fetchUserProfile(
   }
 }
 
-async function fetchInBodyHistory(
+export async function fetchInBodyHistory(
   userId: string,
 ): Promise<InBodyEntrySnapshot[]> {
   try {
@@ -72,6 +74,8 @@ async function fetchInBodyHistory(
       weight: e.weight,
       bodyFatPct: e.bodyFatPct ?? null,
       muscleMass: e.muscleMass,
+      visceralFat: e.visceralFat ?? null,
+      bmr: e.bmr ?? null,
     }));
   } catch (error) {
     logger.warn(
@@ -80,6 +84,30 @@ async function fetchInBodyHistory(
     );
     return [];
   }
+}
+
+/** InBody entries with date inside [start, end], oldest first. */
+export async function fetchInBodySeries(
+  userId: string,
+  start: Date,
+  end: Date,
+): Promise<InBodyEntrySnapshot[]> {
+  const history = await fetchInBodyHistory(userId);
+  return history
+    .filter((e) => {
+      const t = new Date(e.date).getTime();
+      return t >= start.getTime() && t <= end.getTime();
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+}
+
+/** Single InBody entry by id — history has no by-id endpoint, so filter client-side. */
+export async function fetchInBodyById(
+  userId: string,
+  id: string,
+): Promise<InBodyEntrySnapshot | null> {
+  const history = await fetchInBodyHistory(userId);
+  return history.find((e) => e.id === id) ?? null;
 }
 
 /** Latest InBody entry with date <= cutoff (history endpoint has no date filter, so filter client-side). */

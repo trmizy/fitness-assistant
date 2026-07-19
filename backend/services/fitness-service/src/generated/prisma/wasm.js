@@ -305,23 +305,20 @@ exports.Prisma.WorkoutScheduleScalarFieldEnum = {
 exports.Prisma.TrainingCycleScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
-  sourcePlanId: 'sourcePlanId',
+  planId: 'planId',
+  cycleIndex: 'cycleIndex',
   startDate: 'startDate',
   endDate: 'endDate',
+  durationDays: 'durationDays',
+  goal: 'goal',
   status: 'status',
-  goalAtStart: 'goalAtStart',
-  targetWeightAtStart: 'targetWeightAtStart',
-  startWeightKg: 'startWeightKg',
-  startBodyFatPct: 'startBodyFatPct',
-  startMuscleMassKg: 'startMuscleMassKg',
-  startInBodyDate: 'startInBodyDate',
-  endWeightKg: 'endWeightKg',
-  endBodyFatPct: 'endBodyFatPct',
-  endMuscleMassKg: 'endMuscleMassKg',
-  endInBodyDate: 'endInBodyDate',
-  adherencePercent: 'adherencePercent',
-  outcome: 'outcome',
-  outcomeReason: 'outcomeReason',
+  startInbodyId: 'startInbodyId',
+  endInbodyId: 'endInbodyId',
+  summary: 'summary',
+  lowConfidence: 'lowConfidence',
+  decision: 'decision',
+  aiAnalysis: 'aiAnalysis',
+  nextPlanId: 'nextPlanId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -413,6 +410,11 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -421,6 +423,12 @@ exports.Prisma.QueryMode = {
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
 };
 exports.ExerciseType = exports.$Enums.ExerciseType = {
   STRENGTH: 'STRENGTH',

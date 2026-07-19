@@ -6,11 +6,12 @@ import type { AuthRequest } from "../middleware/auth.middleware";
 export const trainingCycleController = {
   async start(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { sourcePlanId, startDate } = req.body ?? {};
+      const { planId, startDate, durationDays } = req.body ?? {};
       const cycle = await trainingCycleService.startCycle(
         req.user!.id,
-        sourcePlanId,
+        planId ?? null,
         startDate,
+        durationDays ?? 30,
       );
       res.status(201).json(cycle);
     } catch (error: any) {
@@ -23,27 +24,27 @@ export const trainingCycleController = {
     }
   },
 
-  async current(req: AuthRequest, res: Response): Promise<void> {
+  async active(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const result = await trainingCycleService.getCurrentCycle(
-        req.user!.id,
-      );
+      const result = await trainingCycleService.getActiveCycle(req.user!.id);
       res.json(result);
     } catch (error: any) {
       if (error.status) {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error({ err: error }, "Error fetching current training cycle");
-      res.status(500).json({ error: "Failed to fetch current training cycle" });
+      logger.error({ err: error }, "Error fetching active training cycle");
+      res.status(500).json({ error: "Failed to fetch active training cycle" });
     }
   },
 
-  async close(req: AuthRequest, res: Response): Promise<void> {
+  async complete(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const cycle = await trainingCycleService.closeCycle(
+      const { endInbodyId } = req.body ?? {};
+      const cycle = await trainingCycleService.completeCycle(
         req.params.id,
         req.user!.id,
+        endInbodyId,
       );
       res.json(cycle);
     } catch (error: any) {
@@ -51,20 +52,38 @@ export const trainingCycleController = {
         res.status(error.status).json({ error: error.message });
         return;
       }
-      logger.error({ err: error }, "Error closing training cycle");
-      res.status(500).json({ error: "Failed to close training cycle" });
+      logger.error({ err: error }, "Error completing training cycle");
+      res.status(500).json({ error: "Failed to complete training cycle" });
+    }
+  },
+
+  async approveDecision(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { nextPlanId } = req.body ?? {};
+      if (!nextPlanId) {
+        res.status(400).json({ error: "nextPlanId is required" });
+        return;
+      }
+      const cycle = await trainingCycleService.approveDecision(
+        req.params.id,
+        req.user!.id,
+        nextPlanId,
+      );
+      res.json(cycle);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error approving cycle decision");
+      res.status(500).json({ error: "Failed to approve cycle decision" });
     }
   },
 
   async list(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const limit = req.query.limit
-        ? parseInt(req.query.limit as string, 10)
-        : undefined;
-      const cycles = await trainingCycleService.listCycles(
-        req.user!.id,
-        limit,
-      );
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+      const cycles = await trainingCycleService.listCycles(req.user!.id, limit);
       res.json({ cycles });
     } catch (error) {
       logger.error({ err: error }, "Error listing training cycles");
@@ -74,10 +93,7 @@ export const trainingCycleController = {
 
   async getById(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const cycle = await trainingCycleService.getCycle(
-        req.params.id,
-        req.user!.id,
-      );
+      const cycle = await trainingCycleService.getCycle(req.params.id, req.user!.id);
       res.json(cycle);
     } catch (error: any) {
       if (error.status) {
