@@ -7,6 +7,7 @@ import {
   MoreVertical,
   Loader2,
   RefreshCw,
+  X,
 } from "lucide-react";
 import axios from "axios";
 
@@ -265,7 +266,15 @@ export function UserManagement() {
           {/* Detail panel */}
           {selectedUser && (
             <div className="lg:w-72 bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 self-start flex-shrink-0">
-              <div className="text-center mb-4 pb-4 border-b border-zinc-800/60">
+              <div className="text-center mb-4 pb-4 border-b border-zinc-800/60 relative">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUser(null)}
+                  className="absolute top-0 right-0 p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                  aria-label="Đóng"
+                >
+                  <X className="w-4 h-4" />
+                </button>
                 <div
                   className={`w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold mx-auto mb-3 ${avatarBg(selectedUser.role)}`}
                 >

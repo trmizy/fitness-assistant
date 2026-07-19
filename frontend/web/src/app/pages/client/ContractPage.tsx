@@ -9,6 +9,7 @@ import {
   User,
   Loader2,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -254,8 +255,18 @@ export function ContractPage() {
                       {statusConfig[selected.status].label}
                     </span>
                   </div>
-                  <div className="text-lg font-bold text-green-400">
-                    {formatPrice(selected.price)}
+                  <div className="flex items-start gap-3">
+                    <div className="text-lg font-bold text-green-400">
+                      {formatPrice(selected.price)}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(null)}
+                      className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0"
+                      aria-label="Đóng"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
