@@ -4,7 +4,9 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "../src/store/authStore";
+import { queryClient } from "../src/api/queryClient";
 import { colors } from "../src/ui";
 
 export default function RootLayout() {
@@ -17,16 +19,18 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <StatusBar style="light" />
-        {isBootstrapping ? (
-          <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center" }}>
-            <ActivityIndicator size="large" color={colors.accent} />
-          </View>
-        ) : (
-          <Stack screenOptions={{ headerShown: false }} />
-        )}
-      </SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <StatusBar style="light" />
+          {isBootstrapping ? (
+            <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center" }}>
+              <ActivityIndicator size="large" color={colors.accent} />
+            </View>
+          ) : (
+            <Stack screenOptions={{ headerShown: false }} />
+          )}
+        </SafeAreaProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>
   );
 }
