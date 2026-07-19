@@ -106,6 +106,37 @@
   --sidebar-ring: #059669;
 }
 
+/*
+ * Every page in this app is written against the dark-mode zinc scale
+ * directly (bg-zinc-900, text-zinc-400, border-zinc-800, ...) with no
+ * dark: variants — there was no separate "light" component styling to
+ * begin with. Rather than patch each literal class+opacity combination
+ * (the old approach below this block, which only covered a handful of
+ * cases and left most of the app unreadable in light mode), redefine the
+ * zinc scale itself for light mode. Tailwind v4 utilities reference
+ * --color-zinc-* at runtime (including opacity variants, via
+ * color-mix(... var(--color-zinc-900) ...)), so overriding these variables
+ * retroactively fixes every component using the zinc palette, with no
+ * per-component changes needed. Values are Tailwind's own zinc-scale
+ * oklch values, mirrored around the zinc-500 midpoint (950<->50, 900<->100,
+ * etc.) so light mode is a true tonal inversion of dark mode, not a
+ * hand-guessed palette.
+ */
+.light,
+:root[data-theme="light"] {
+  --color-zinc-50: oklch(14.1% 0.005 285.823);
+  --color-zinc-100: oklch(21% 0.006 285.885);
+  --color-zinc-200: oklch(27.4% 0.006 286.033);
+  --color-zinc-300: oklch(37% 0.013 285.805);
+  --color-zinc-400: oklch(44.2% 0.017 285.786);
+  --color-zinc-500: oklch(55.2% 0.016 285.938);
+  --color-zinc-600: oklch(70.5% 0.015 286.067);
+  --color-zinc-700: oklch(87.1% 0.006 286.286);
+  --color-zinc-800: oklch(92% 0.004 286.32);
+  --color-zinc-900: oklch(96.7% 0.001 286.375);
+  --color-zinc-950: oklch(98.5% 0 0);
+}
+
 .dark {
   --bg-color: #0a0a0a;
   --text-color: #f4f4f5;
