@@ -50,6 +50,75 @@ npx expo export --platform android
 npx expo export --platform web
 ```
 
+## Chạy trên iPhone thật qua LAN
+
+Dùng khi muốn test trên thiết bị thật thay vì web/simulator. App tự phát
+hiện IP LAN nếu `.env` để trống `EXPO_PUBLIC_API_URL` (xem
+[DECISIONS.md](./DECISIONS.md) mục "LAN — Item 2"), nhưng vẫn cần vài bước
+thủ công phía backend + mạng.
+
+### 1. Bật Ollama trên laptop (không dùng RunPod/tunnel nữa)
+
+```bash
+OLLAMA_HOST=0.0.0.0:11434 ollama serve
+```
+
+**Bắt buộc `0.0.0.0`, không phải `127.0.0.1`** — Docker container của
+`ai-service` gọi vào qua `host.docker.internal:11434`, nếu Ollama chỉ bind
+`127.0.0.1` thì Docker Desktop không reach được (dù `curl localhost:11434`
+từ chính laptop vẫn thấy "hoạt động bình thường", đây là điểm dễ nhầm
+nhất). Xem chi tiết ở [DECISIONS.md](./DECISIONS.md) mục "LAN — Item 4".
+
+### 2. Xác định đúng IP LAN (không phải IP máy ảo)
+
+```bash
+# Windows
+ipconfig
+# tìm adapter có "Default Gateway" khác trống — đó là mạng thật (WiFi/Ethernet).
+# Bỏ qua adapter tên "VMware", "VirtualBox", "vEthernet (WSL)", không có Default
+# Gateway (đó là mạng ảo nội bộ, điện thoại không kết nối vào được).
+
+# macOS/Linux
+ifconfig
+# hoặc: route get default   (macOS)  /  ip route get 1  (Linux)
+```
+
+Hoặc chạy `pnpm --filter @gym-coach/mobile start:lan` — script tự in ra IP
+LAN đã phát hiện được bằng cùng logic app dùng (`scripts/detect-api-url.js`),
+không cần đoán bằng tay.
+
+### 3. Cài Expo Go + quét QR
+
+1. Cài **Expo Go** từ App Store (SDK 57).
+2. Đảm bảo iPhone **cùng WiFi** với laptop (không phải 4G/5G, không phải
+   WiFi khách bị cô lập thiết bị — 1 số mạng công ty/quán cà phê chặn
+   client-to-client, xem mục Fallback bên dưới nếu gặp).
+3. Chạy `pnpm --filter @gym-coach/mobile start:lan` (hoặc `start`), mở
+   Camera app trên iPhone, quét QR hiện trong terminal.
+4. **Fast Refresh hoạt động tự động qua WebSocket** — sửa code trên laptop,
+   app trên điện thoại tự cập nhật ngay, không cần build lại hay quét QR lại.
+
+### 4. Fallback khi LAN không kết nối được
+
+```bash
+pnpm --filter @gym-coach/mobile start:tunnel
+```
+
+Dùng khi: mạng công ty/WiFi khách chặn kết nối client-to-client, firewall
+chặn port Metro (8081), hoặc laptop/điện thoại ở 2 mạng con khác nhau.
+`--tunnel` định tuyến qua dịch vụ ngrok-like của Expo, chậm hơn LAN trực
+tiếp nhưng vượt qua được firewall.
+
+### Troubleshooting
+
+| Triệu chứng | Nguyên nhân thường gặp | Cách sửa |
+|---|---|---|
+| Quét QR được, app mở nhưng **trắng màn hình / timeout** | Windows Firewall chặn port 8081 (Metro) hoặc 3000 (gateway) trên profile mạng hiện tại | Windows Defender Firewall → Allowed apps → đảm bảo Node.js/Docker Desktop được phép trên profile **Private** (không phải Public) cho cả 2 port. Nếu WiFi hiện đang gắn nhãn "Public network", đổi thành "Private" trong Settings → Network. |
+| Lỗi **"Network request failed"** khi đăng nhập/gọi API | `EXPO_PUBLIC_API_URL` (hoặc IP tự detect) không khớp IP hiện tại của laptop — IP đổi mỗi lần đổi mạng WiFi | Chạy lại `pnpm --filter @gym-coach/mobile start:lan` để xem IP mới; nếu `.env` có set cứng `EXPO_PUBLIC_API_URL`, xoá giá trị để dùng auto-detect, hoặc sửa tay theo IP mới. |
+| Vẫn "Network request failed" dù IP đúng | iPhone đang dùng 4G/5G thay vì WiFi, hoặc WiFi khách cô lập thiết bị | Kiểm tra iPhone Settings → WiFi đang bật và đúng mạng với laptop; tắt "Low Data Mode"; thử `start:tunnel` nếu mạng khách chặn LAN. |
+| App load được nhưng gọi AI Coach / tạo kế hoạch luôn lỗi/timeout | Ollama chưa chạy, hoặc bind `127.0.0.1` thay vì `0.0.0.0` | Xem bước 1 ở trên. Kiểm tra nhanh: `curl http://localhost:3000/plans/llm-health` qua gateway — `llmAvailable:false` kèm lỗi kết nối nghĩa là `ai-service` không reach được Ollama. |
+| `start:lan` báo "Không tìm thấy IP LAN nào" | Laptop chỉ có adapter ảo đang active (VPN, VM), WiFi/Ethernet tắt | Bật WiFi/Ethernet thật, tắt VPN tạm thời nếu cần, chạy lại. |
+
 ## Cấu trúc
 
 ```
@@ -93,7 +162,7 @@ apps/mobile/
 
 | Biến | Mặc định | Ý nghĩa |
 |---|---|---|
-| `EXPO_PUBLIC_API_URL` | `http://localhost:3000` | Base URL gateway |
+| `EXPO_PUBLIC_API_URL` | Để trống = tự phát hiện IP LAN; nếu detect thất bại thì `http://localhost:3000` | Base URL gateway. Điền cứng để ép 1 chế độ cụ thể (VD: `http://localhost:3000` cho web/laptop only). Xem mục ["Chạy trên iPhone thật qua LAN"](#chạy-trên-iphone-thật-qua-lan). |
 | `EXPO_PUBLIC_MOCK` | `0` | Đặt `1` để bật lớp mock (**chưa implement** — xem "Còn thiếu" bên dưới) |
 | `EXPO_PUBLIC_FEATURE_CYCLES` | bật (mọi giá trị khác `"0"`) | Ẩn/hiện toàn bộ UI liên quan training-cycles (card chu kỳ ở Dashboard, card quyết định 3 nhánh ở Plans, gợi ý đóng chu kỳ ở InBody). Backend hiện ĐÃ có tính năng này (xem `docs/training-cycle-v2.md` ở root repo) nên mặc định bật — tắt bằng `EXPO_PUBLIC_FEATURE_CYCLES=0` nếu test với backend/DB chưa migrate. |
 
