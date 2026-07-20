@@ -9,6 +9,7 @@ import {
 import { exercisesApi, type ExerciseListParams } from "./exercises";
 import { trainingCyclesApi } from "./trainingCycles";
 import { env } from "../config/env";
+import { countQueuedWorkoutLogs, listQueuedWorkoutLogs } from "../offline/workoutQueue";
 
 export const queryKeys = {
   profile: ["profile"] as const,
@@ -20,6 +21,7 @@ export const queryKeys = {
   workoutHistory: (params: ListWorkoutsParams) => ["workouts", "history", params] as const,
   workout: (id: string) => ["workouts", id] as const,
   prs: ["workouts", "prs"] as const,
+  pendingWorkoutLogs: ["offline", "pendingWorkoutLogs"] as const,
 };
 
 export function useProfileQuery() {
@@ -81,4 +83,15 @@ export function useWorkoutQuery(id: string) {
 
 export function usePRsQuery() {
   return useQuery({ queryKey: queryKeys.prs, queryFn: () => workoutsApi.getPRs() });
+}
+
+export function usePendingWorkoutLogsCountQuery() {
+  return useQuery({ queryKey: queryKeys.pendingWorkoutLogs, queryFn: countQueuedWorkoutLogs });
+}
+
+export function usePendingWorkoutLogsQuery() {
+  return useQuery({
+    queryKey: [...queryKeys.pendingWorkoutLogs, "list"] as const,
+    queryFn: listQueuedWorkoutLogs,
+  });
 }

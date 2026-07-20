@@ -4,6 +4,7 @@ import { Feather } from "@expo/vector-icons";
 import { Screen, Text, Card, Badge, SkeletonCard, colors, spacing } from "../../../../src/ui";
 import { useWorkoutHistoryQuery, usePRsQuery } from "../../../../src/api/queries";
 import { useWorkoutDraftStore } from "../../../../src/features/workouts/workoutDraftStore";
+import { PendingSyncCard } from "../../../../src/features/workouts/PendingSyncCard";
 import { formatShortDate } from "../../../../src/lib/date";
 
 function HubAction({
@@ -48,6 +49,7 @@ export default function WorkoutsHubScreen() {
 
   return (
     <Screen scroll>
+      <PendingSyncCard />
       <HubAction
         icon="plus-circle"
         title="Ghi buổi tập mới"

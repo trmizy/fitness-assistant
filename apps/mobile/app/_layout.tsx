@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "../src/store/authStore";
 import { queryClient } from "../src/api/queryClient";
+import { startAutoSyncListener, syncQueuedWorkoutLogs } from "../src/offline/syncEngine";
 import { colors } from "../src/ui";
 
 export default function RootLayout() {
@@ -15,6 +16,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     bootstrap();
+    startAutoSyncListener();
+    // Also try once on cold start — NetInfo's listener only fires on
+    // subsequent connectivity *changes*, not the initial known state.
+    void syncQueuedWorkoutLogs();
   }, [bootstrap]);
 
   return (

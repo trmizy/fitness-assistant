@@ -114,3 +114,32 @@ set bằng stepper, thêm/xoá set, chọn bài tập qua danh sách) do không 
 emulator/trình duyệt tương tác trong phiên CLI này — xem hướng dẫn test
 thủ công ở mục P3 phía trên, áp dụng tương tự cho luồng
 Tập luyện → Chọn bài tập → Ghi buổi tập → Lưu.
+
+## P7 — `expo export --platform web` không còn dùng để verify sau khi
+thêm `expo-sqlite`
+
+**Quyết định**: chuyển bước bundle-verify (DoD "chạy `npx expo export`
+để verify") từ `--platform web` sang `--platform android` kể từ P7 trở
+đi.
+
+**Lý do**: `expo-sqlite`'s web implementation (`expo-sqlite/web/worker.ts`)
+import trực tiếp 1 file `.wasm` (`wa-sqlite.wasm`) mà Metro's web
+bundler không resolve được (`Unable to resolve module` khi chạy
+`expo export --platform web`) — đây là giới hạn có thật của chính gói
+`expo-sqlite` khi bundle cho web, không phải lỗi code của app. Vì app
+này chỉ target Android/iOS thật (web chỉ được dùng làm proxy verify
+không cần emulator), việc sửa lỗi bundling web của 1 thư viện native
+nằm ngoài phạm vi công việc — chuyển sang verify bằng
+`--platform android` (cũng không cần emulator/thiết bị thật, chỉ bundle
+JS) là lựa chọn đúng mục đích hơn.
+
+**Ảnh hưởng**: mọi lần chạy DoD "expo export" từ P7 trở đi trong session
+này đều dùng `--platform android` thay vì `--platform web`. `/dev/ui`
+(P2) và các phase trước đó vẫn bundle OK trên web vì chưa import
+`expo-sqlite`.
+
+## P7 — Không có server-side idempotency key cho `POST /workouts`
+
+Xem chi tiết đầy đủ (3 hướng đã thử, đề xuất backend, giải pháp tạm
+thời) tại [BLOCKED.md](./BLOCKED.md#p7--post-workouts-không-có-idempotency-key--clientid).
+Tập luyện → Chọn bài tập → Ghi buổi tập → Lưu.
