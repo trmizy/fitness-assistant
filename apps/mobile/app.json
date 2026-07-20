@@ -10,7 +10,10 @@
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fitnessassistant.app"
+      "bundleIdentifier": "com.fitnessassistant.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.fitnessassistant.app",
