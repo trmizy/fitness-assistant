@@ -44,6 +44,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "start:lan": "node scripts/start-lan.js",
+    "start:tunnel": "expo start --tunnel",
+    "start:web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },

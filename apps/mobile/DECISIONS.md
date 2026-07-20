@@ -138,6 +138,14 @@ này đều dùng `--platform android` thay vì `--platform web`. `/dev/ui`
 (P2) và các phase trước đó vẫn bundle OK trên web vì chưa import
 `expo-sqlite`.
 
+> **CẬP NHẬT (LAN config task, item 3)**: quyết định ở trên đã LỖI THỜI
+> — đã fix triệt để bằng cách tách `src/offline/db.web.ts` (Metro tự
+> chọn file `.web.ts` khi bundle platform web, không bao giờ resolve
+> `expo-sqlite` cho web nữa). `npx expo export --platform web` giờ
+> CHẠY LẠI ĐƯỢC (đã verify thật, không phải suy đoán) — xem mục "LAN —
+> Item 3" bên dưới. Từ giờ có thể verify cả 2 platform
+> (`android` + `web`) thay vì chỉ `android`.
+
 ## P7 — Không có server-side idempotency key cho `POST /workouts`
 
 Xem chi tiết đầy đủ (3 hướng đã thử, đề xuất backend, giải pháp tạm
@@ -357,3 +365,38 @@ detectedApiUrl` có thực sự tới được `env.ts` khi app chạy thật tr
 điện thoại hay không vẫn là suy luận dựa trên tài liệu chính thức của
 `expo-constants` + xác nhận qua `expo config`, chưa phải bằng chứng
 runtime 100%. Ghi rõ vào README mục troubleshooting.
+
+## LAN — Item 3: sửa được luôn root cause khiến `expo start --web` hỏng
+từ P7 (không chỉ thêm script tiện ích)
+
+**Phát hiện khi làm theo đúng chỉ dẫn "kiểm tra `src/offline/db.ts` đã
+guard đúng chưa"**: `getDb()`/các hàm trong `workoutQueue.ts` ĐÃ guard
+đúng ở LOGIC runtime (mọi hàm check `isOfflineQueueSupported()` trước
+khi gọi `getDb()`), nhưng đó không phải nguyên nhân `expo-sqlite` làm
+hỏng bundle web — nguyên nhân là **Metro phải resolve tĩnh mọi import ở
+đầu file** (`import * as SQLite from "expo-sqlite"` trong `db.ts`) bất
+kể logic runtime có gọi tới hay không. Guard bằng `if` bên trong hàm
+KHÔNG giúp được gì ở bước bundle.
+
+**Fix thật (không phải chỉ thêm early-return như prompt gợi ý — early-
+return không đủ)**: tạo `src/offline/db.web.ts` — quy ước
+platform-extension chuẩn của Metro (`.web.ts` tự được chọn khi bundle
+platform web, hoàn toàn không cần cấu hình gì thêm), export cùng chữ
+ký hàm (`isOfflineQueueSupported() => false`,
+`getDb() => throw`) nhưng KHÔNG import `expo-sqlite` — nên Metro không
+bao giờ đưa `expo-sqlite` vào bundle graph khi build cho web nữa.
+
+**Verify thật**: `npx expo export --platform web` chạy THÀNH CÔNG lần
+đầu tiên kể từ khi thêm `expo-sqlite` ở P7 (trước đây lỗi
+`Unable to resolve module` ngay lập tức) — không phải suy đoán, đã
+chạy lệnh thật và xem output. Do đó cập nhật lại quyết định P7 ở trên
+(đánh dấu lỗi thời) — từ giờ `expo export` verify được cả `--platform
+android` lẫn `--platform web`.
+
+**Scripts thêm vào `package.json`**: `start:lan` (chạy
+`scripts/start-lan.js` — in IP LAN + nhắc nhở rồi spawn `expo start`
+kế thừa stdio để CLI tương tác của Expo vẫn hoạt động bình thường,
+không dùng `npx expo start` trực tiếp trong `package.json` script vì
+cần in thêm dòng nhắc trước), `start:tunnel` (`expo start --tunnel`),
+`start:web` (giống hệt script `web` đã có sẵn từ P1 — giữ cả 2 tên vì
+không có lý do xoá script cũ, tránh phá quy ước gọi lệnh đã quen).

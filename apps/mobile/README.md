@@ -29,10 +29,13 @@ pnpm --filter @gym-coach/mobile start
 Sau đó:
 - Nhấn `w` để mở bản web (dễ test nhất, không cần emulator — dùng
   `react-native-web`). **Lưu ý**: `expo-sqlite` (offline queue, P7) không
-  hỗ trợ web, hàng đợi offline sẽ luôn rỗng trên web — test thật cần
-  Android/iOS.
+  hỗ trợ web, hàng đợi offline sẽ luôn rỗng trên web (`src/offline/db.web.ts`
+  tự trả `isOfflineQueueSupported() => false`) — test hàng đợi offline thật
+  cần Android/iOS.
 - Nhấn `a`/`i` nếu có Android emulator / iOS simulator cài sẵn, hoặc scan QR
-  bằng app Expo Go (SDK 57) trên thiết bị thật cùng mạng LAN với máy dev.
+  bằng app Expo Go (SDK 57) trên thiết bị thật cùng mạng LAN với máy dev —
+  xem mục ["Chạy trên iPhone thật qua LAN"](#chạy-trên-iphone-thật-qua-lan)
+  bên dưới.
 
 Tài khoản demo (seed sẵn trong DB dev): `john.doe@example.com` /
 `password123`.
@@ -42,9 +45,9 @@ Tài khoản demo (seed sẵn trong DB dev): `john.doe@example.com` /
 pnpm --filter @gym-coach/mobile typecheck
 pnpm --filter @gym-coach/mobile lint
 
-# verify bundle không lỗi (không cần emulator) — dùng --platform android,
-# --platform web KHÔNG dùng được nữa từ khi có expo-sqlite (xem DECISIONS.md)
+# verify bundle không lỗi (không cần emulator) — cả 2 platform đều dùng được
 npx expo export --platform android
+npx expo export --platform web
 ```
 
 ## Cấu trúc
