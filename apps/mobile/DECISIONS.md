@@ -93,3 +93,24 @@ công cụ hiện có.
 5. Test refresh: access token hết hạn sau 15 phút (`JWT_ACCESS_EXPIRY`)
    — để app mở >15 phút rồi gọi 1 API bất kỳ (P5 trở đi) sẽ tự refresh
    qua `POST /auth/refresh`, không văng ra login.
+
+## P6 — Xác minh flow ghi buổi tập bằng curl mô phỏng chính xác request
+
+**Quyết định**: thay vì chỉ tin vào build/typecheck, đã curl mô phỏng
+CHÍNH XÁC chuỗi request mà `log.tsx` thực hiện: `POST /workouts` (tạo
+workout + WorkoutExercise summary) → 2× `POST /workouts/:id/sets` (per-
+set reps/weight/rpe) → `GET /workouts/:id` (đối chiếu response khớp
+type `Workout`/`WorkoutExercise`/`WorkoutSet`) → `DELETE /workouts/:id`
+dọn dẹp. Toàn bộ chuỗi trả đúng shape, đúng status code (201/200), xác
+nhận flow 2 bước (workout summary + set chi tiết) — bắt buộc vì
+`WorkoutExercise.sets/reps/weight` chỉ là số tổng hợp, chi tiết từng
+set nằm ở bảng `WorkoutSet` riêng, tạo qua endpoint khác.
+
+**Lý do**: đây là API call sequence phức tạp nhất trong app (2 endpoint
+phối hợp), rủi ro sai lệch cao nhất nếu chỉ dựa vào đọc code backend.
+
+**Ảnh hưởng / còn thiếu**: vẫn chưa test được thao tác UI thật (nhập
+set bằng stepper, thêm/xoá set, chọn bài tập qua danh sách) do không có
+emulator/trình duyệt tương tác trong phiên CLI này — xem hướng dẫn test
+thủ công ở mục P3 phía trên, áp dụng tương tự cho luồng
+Tập luyện → Chọn bài tập → Ghi buổi tập → Lưu.

@@ -50,6 +50,14 @@ export interface ExerciseListResponse {
   filters: Record<string, unknown>;
 }
 
+export interface ExerciseFilterOptions {
+  bodyParts: BodyPart[];
+  equipments: TypeOfEquipment[];
+  activityTypes: TypeOfActivity[];
+  types: ExerciseType[];
+  muscleGroups: string[];
+}
+
 // Public — no auth required.
 export const exercisesApi = {
   list(params: ExerciseListParams = {}) {
@@ -60,5 +68,11 @@ export const exercisesApi = {
 
   getById(id: string) {
     return apiClient.get<Exercise>(`/exercises/${id}`).then((r) => r.data);
+  },
+
+  getFilterOptions() {
+    return apiClient
+      .get<{ success: true; data: ExerciseFilterOptions }>("/exercises/filter-options")
+      .then((r) => r.data.data);
   },
 };

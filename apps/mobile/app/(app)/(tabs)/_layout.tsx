@@ -46,7 +46,7 @@ export default function TabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="workouts" />
+      <Tabs.Screen name="workouts" options={{ headerShown: false }} />
       <Tabs.Screen name="plans" />
       <Tabs.Screen name="inbody" />
       <Tabs.Screen name="coach" />
