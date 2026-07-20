@@ -400,3 +400,49 @@ không dùng `npx expo start` trực tiếp trong `package.json` script vì
 cần in thêm dòng nhắc trước), `start:tunnel` (`expo start --tunnel`),
 `start:web` (giống hệt script `web` đã có sẵn từ P1 — giữ cả 2 tên vì
 không có lý do xoá script cũ, tránh phá quy ước gọi lệnh đã quen).
+
+## LAN — Item 4: đúng tên biến `LLM_BASE_URL` (không phải
+`OLLAMA_BASE_URL`/`OLLAMA_HOST`/`OLLAMA_URL` như prompt đoán) + đổi port
+11435 → 11434
+
+**Xác nhận qua đọc code thật** (`backend/services/ai-service/src/services/llm.service.ts`
+dòng 7): `const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://localhost:11434"`.
+Có thêm `OLLAMA_BASE_URL` set song song trong `docker-compose.dev.yml`
+(cùng giá trị) — không phải tên chính, có vẻ để dự phòng/tương thích
+cho code khác, KHÔNG phải biến chính `llm.service.ts` đọc.
+
+**Phát hiện quan trọng khi đọc `docker-compose.dev.yml` (dòng
+251-257 và 331-336, cả `ai-service` và `knowledge-worker`)**: giá trị
+mặc định trước đó là `http://host.docker.internal:11435` (port
+**11435**, không phải 11434 chuẩn của Ollama) — đây chính là port SSH
+tunnel Windows tới RunPod đã dùng suốt phiên trước (khớp với
+`docs`/comment cũ "RunPod remote Ollama is reached only through a
+Windows SSH tunnel"). Đổi hẳn sang **11434** (port mặc định thật của
+`ollama serve`) ở cả 2 nơi: root `.env.example` và cả 2 block trong
+`docker-compose.dev.yml` (`ai-service` + `knowledge-worker`, dùng
+chung endpoint).
+
+**`extra_hosts: ["host.docker.internal:host-gateway"]` ĐÃ CÓ SẴN** cho
+cả 2 service từ trước (dòng 306-311 và 361-362, kèm comment giải thích
+lý do cần — DNS override `8.8.8.8` ở service làm hỏng auto-inject
+`host.docker.internal` mặc định của Docker Desktop) — không phải thêm
+mới như prompt gợi ý, chỉ cập nhật lại comment (bỏ nhắc "RunPod SSH
+tunnel", thay bằng "Ollama chạy trên Windows host laptop").
+
+**Verify live** (không chỉ đọc code, đã restart thật):
+`docker compose up -d --no-deps ai-service` rồi gọi
+`GET /plans/llm-health` qua gateway — `llmUrl` đổi đúng thành
+`http://host.docker.internal:11434` (trước đó `:11435`), và quan trọng
+hơn: response đổi từ lỗi kết nối chung chung (`"error":"Error"`, port
+11435 không có gì lắng nghe) sang lỗi CỤ THỂ
+`"Missing model(s): qwen3:30b-a3b-instruct-2507-q4_K_M"` — nghĩa là
+ai-service ĐÃ kết nối thành công tới 1 Ollama instance thật ở
+`host.docker.internal:11434` (Docker-local `gymcoach-ollama` container
+đang publish cổng 11434 ra host trong phiên hiện tại — không có model
+`qwen3:30b` nên báo thiếu model, không phải lỗi mạng). Điều này chứng
+minh đường mạng container→host qua `host.docker.internal:11434` hoạt
+động đúng; khi user chạy `ollama serve` thật trên laptop (theo hướng
+dẫn README) sẽ thay thế đúng vị trí này.
+
+**Không sửa**: root `.env.example` cũng có `LLM_API_KEY`, `LLM_NUM_CTX`,
+`LLM_JSON_NUM_CTX` không liên quan tới thay đổi này, giữ nguyên.
