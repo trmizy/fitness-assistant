@@ -308,3 +308,52 @@ tương tự nhưng hard-code `http://localhost:5173` thẳng trong
 `docker-compose.dev.yml` (không đọc biến env như gateway) — bất nhất
 nhưng KHÔNG ảnh hưởng mobile (mobile chưa dùng chat-service's socket,
 xem API_MAP.md §4.6), để nguyên tránh sửa ngoài phạm vi cần thiết.
+
+## LAN — Item 2: tự phát hiện IP LAN — 2 lần thử, lần 1 SAI (đã tự phát
+hiện qua verify, không phải đoán)
+
+**`scripts/detect-api-url.js`**: Node thuần (`os.networkInterfaces()`),
+loại interface tên chứa `vmware|virtualbox|wsl|vethernet|loopback|hyper-v`
+(regex, không phải whitelist tên card WiFi cụ thể — bền hơn qua nhiều
+máy khác nhau), ưu tiên dải `192.168.x` rồi `10.x` rồi bất kỳ IPv4
+non-internal nào còn lại (Node không expose default-gateway trực tiếp
+nên không thể biết chắc 100% "đâu là mạng thật", đây là heuristic tốt
+nhất có thể mà không thêm dependency). Test thật trên máy dev: chỉ có
+1 candidate (`Wi-Fi: 192.168.1.16`), đúng.
+
+**Lần thử 1 (SAI — tự phát hiện qua verify, đã sửa lại)**: `app.config.ts`
+set thẳng `process.env.EXPO_PUBLIC_API_URL = "http://<ip>:3000"` trước
+khi return config, kỳ vọng Metro's babel-preset-expo inline giá trị này
+vào bundle giống hệt cơ chế đọc từ `.env`. **Verify bằng cách export
+bundle thật rồi grep chuỗi IP trong file `.hbc`** — không thấy, bundle
+chỉ có `localhost:3000` (giá trị fallback cứng trong `env.ts`). Nghĩa
+là Metro chạy bước inline `EXPO_PUBLIC_*` trong 1 worker process khác
+với process của Expo CLI đã evaluate `app.config.ts`, nên mutation
+`process.env` không có tác dụng — đây LÀ MỘT PHÁT HIỆN THẬT, không
+phải giả định, nhờ luôn kiểm tra output thay vì tin logic suông.
+
+**Lần thử 2 (ĐÚNG)**: chuyển sang cơ chế `extra` — `app.config.ts` trả
+`{...config, extra: {...config.extra, detectedApiUrl}}`, và
+`src/config/env.ts` đọc `Constants.expoConfig?.extra?.detectedApiUrl`
+qua `expo-constants` (gói đã cài từ P1) làm fallback thứ 2 (sau
+`process.env.EXPO_PUBLIC_API_URL`, trước `"http://localhost:3000"`
+cứng). Đây là cơ chế Expo chính thức cho "giá trị tính lúc config-time,
+đọc lúc app chạy" — khác hẳn `EXPO_PUBLIC_*` (chỉ dành cho giá trị tĩnh
+đọc thẳng từ `.env`, inline bằng babel).
+
+**Verify lần 2**: `npx expo config --type public` (đúng manifest mà
+`expo start` phục vụ cho Expo Go quét QR, và cũng là nguồn native build
+dùng để sinh config nhúng vào app) — output có đúng
+`extra.detectedApiUrl: 'http://192.168.1.16:3000'`. Export bundle
+`.hbc` qua `expo export` KHÔNG chứa chuỗi IP (đúng như dự kiến — export
+JS-only không sinh native manifest, `Constants.expoConfig` chỉ có đầy
+đủ khi chạy qua `expo start`/native build thật, không phải lúc bundle
+tĩnh) — không phải dấu hiệu lỗi, chỉ là giới hạn của cách verify này;
+xác nhận đúng cơ chế đã đủ qua lệnh `expo config`.
+
+**Chưa verify được**: hành vi runtime thật trên Expo Go (không có
+thiết bị/emulator trong phiên CLI) — `Constants.expoConfig.extra.
+detectedApiUrl` có thực sự tới được `env.ts` khi app chạy thật trên
+điện thoại hay không vẫn là suy luận dựa trên tài liệu chính thức của
+`expo-constants` + xác nhận qua `expo config`, chưa phải bằng chứng
+runtime 100%. Ghi rõ vào README mục troubleshooting.
