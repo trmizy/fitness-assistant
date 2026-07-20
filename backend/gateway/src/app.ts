@@ -5,6 +5,7 @@ import { logger, register, metricsMiddleware } from "@gym-coach/shared";
 import { rateLimiter } from "./middleware/rateLimit.middleware";
 import proxyRoutes from "./routes/proxy.routes";
 import translateRoutes from "./routes/translate.routes";
+import { isAllowedOrigin } from "./utils/corsOrigins";
 
 const app = express();
 
@@ -16,22 +17,7 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      const envOrigins = (process.env.CORS_ORIGIN || "")
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
-      const allowedOrigins = Array.from(
-        new Set([
-          "http://localhost:3000", // gateway itself — needed for n8n studio asset requests
-          "http://localhost:5173",
-          "http://localhost:5678",
-          "http://127.0.0.1:3000",
-          "http://127.0.0.1:5173",
-          "http://127.0.0.1:5678",
-          ...envOrigins,
-        ]),
-      );
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));

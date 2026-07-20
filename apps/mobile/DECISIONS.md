@@ -260,3 +260,51 @@ app (VD: `workouts/[id].tsx`, `plans/decision.tsx` vẫn chỉ có
 loading, chưa có `ErrorNotice` retry) do giới hạn thời gian — nhưng
 pattern (`ErrorNotice` component dùng chung) đã có sẵn, dễ áp dụng
 tiếp cho các màn còn lại.
+
+(Ghi chú: mục "chưa rà hết" ở trên đã được bổ sung thêm ở 1 commit
+sau đó — xem lịch sử git, không sửa lại đoạn trên để giữ nguyên bối
+cảnh lúc viết.)
+
+## LAN — Item 1: CORS gateway KHÔNG chặn request không có Origin header
+(không phải bug cần sửa)
+
+**Xác nhận qua đọc code thật** (`backend/gateway/src/app.ts` dòng 34,
+trước khi sửa): `if (!origin || allowedOrigins.includes(origin))` —
+request không có Origin header (đúng hành vi của Expo Go/React Native
+`fetch`, khác hẳn trình duyệt) đã được cho qua từ trước, không phải lỗi
+phổ biến như prompt cảnh báo. Không có gì cần sửa cho việc Expo Go gọi
+API qua LAN.
+
+**Vấn đề THẬT tìm thấy khi đọc kỹ**: danh sách origin cho phép là 1
+mảng cứng chỉ gồm 3 cổng (`3000`/`5173`/`5678`) + biến env
+`CORS_ORIGIN` (đã tồn tại sẵn, KHÔNG phải `CORS_ALLOWED_ORIGINS` như
+prompt đoán — dùng đúng tên biến thật). Khi chạy `expo start --web`
+(item 3), Expo phục vụ web qua cổng Metro mặc định (`8081`), không nằm
+trong danh sách cứng → bị CORS chặn thật khi web-mode gọi gateway.
+
+**Fix**: tạo `backend/gateway/src/utils/corsOrigins.ts` — hàm dùng
+chung `isAllowedOrigin(origin)`: cho qua mọi origin dạng
+`http://localhost:<bất kỳ port>` / `http://127.0.0.1:<bất kỳ port>`
+bằng regex (thay vì liệt kê cứng từng port), cộng thêm origin trong
+`CORS_ORIGIN` (giữ nguyên cơ chế cũ), và luôn cho qua khi không có
+Origin header. Áp dụng cho cả `app.ts` (Express `cors()`) và
+`socket/index.ts` (Socket.IO's `cors.origin` — nhận cùng dạng
+callback function) để nhất quán, dù mobile hiện chưa dùng gateway's
+Socket.IO (chat AI coach dùng HTTP, chat PT↔client dùng chat-service
+port 3005 riêng, không qua gateway).
+
+**Xác minh live**: sau khi sửa, `docker restart gymcoach-gateway-dev`
+(bind-mount trên Windows không tự reload file MỚI tạo dù `tsx watch`
+đang chạy — file sửa trong file cũ có vẻ vẫn tự reload được nhưng file
+mới thì không, restart cho chắc). Test 3 trường hợp qua curl:
+`Origin: http://localhost:8081` → `204` + header
+`Access-Control-Allow-Origin` đúng (trước đây sẽ bị `500`);
+`Origin: http://evil.example.com` → vẫn `500` (đúng, không nới lỏng
+bảo mật); không có Origin header → `200` (không đổi, native mobile đã
+luôn hoạt động).
+
+**Không sửa**: `backend/services/chat-service` cũng có `CORS_ORIGIN`
+tương tự nhưng hard-code `http://localhost:5173` thẳng trong
+`docker-compose.dev.yml` (không đọc biến env như gateway) — bất nhất
+nhưng KHÔNG ảnh hưởng mobile (mobile chưa dùng chat-service's socket,
+xem API_MAP.md §4.6), để nguyên tránh sửa ngoài phạm vi cần thiết.
