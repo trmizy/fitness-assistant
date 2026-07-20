@@ -169,21 +169,29 @@ apps/mobile/
 
 ## Build EAS
 
+**⚠️ Luôn chạy các lệnh `eas` từ trong `apps/mobile`, KHÔNG chạy từ thư mục
+gốc repo.** EAS CLI tạo `app.json`/`eas.json` ngay tại thư mục đang đứng nếu
+không tìm thấy project Expo hợp lệ ở đó — chạy nhầm ở gốc repo sẽ tạo ra 1
+cặp file rác không liên quan gì tới app thật (đã xảy ra thật 1 lần, xem
+[DECISIONS.md](./DECISIONS.md) mục "EAS init chạy nhầm thư mục").
+
 ```bash
-npm install -g eas-cli   # hoặc npx eas-cli
-eas login                 # cần tài khoản Expo — CHƯA chạy trong lúc build repo này
-eas init                  # tạo EAS project thật, ghi projectId vào app.json (extra.eas) — CHƯA chạy
-eas build --profile development --platform android   # hoặc ios
+cd apps/mobile             # bắt buộc — xem cảnh báo ở trên
+npm install -g eas-cli   # hoặc dùng npx eas-cli cho từng lệnh
+eas login
+eas init                  # chỉ cần chạy 1 lần — đã chạy, projectId có sẵn trong app.json (extra.eas)
+eas build --profile development --platform ios   # hoặc android
 eas build --profile preview --platform all
 eas build --profile production --platform all
 ```
 
-**Chưa chạy `eas login`/`eas init`/`eas build` trong lúc build repo này** —
-đây là hành động xác thực với tài khoản Expo thật của người dùng, ngoài phạm
-vi tự động hoá của agent. `eas.json` đã có sẵn 3 profile; `preview` và
-`production` dùng URL API placeholder (`https://*.YOUR_DOMAIN.example`) vì
-backend hiện chỉ chạy local qua Docker — **phải sửa thành domain thật khi
-backend có URL public**, trước khi build preview/production thật.
+Project EAS đã được tạo: `@trmizy/ai-gym-coach`
+(`https://expo.dev/accounts/trmizy/projects/ai-gym-coach`), `projectId` đã
+ghi sẵn trong `apps/mobile/app.json` (`expo.extra.eas.projectId`). `preview`
+và `production` trong `eas.json` dùng URL API placeholder
+(`https://*.YOUR_DOMAIN.example`) vì backend hiện chỉ chạy local qua Docker
+— **phải sửa thành domain thật khi backend có URL public**, trước khi build
+preview/production thật.
 
 ## Đã xong (P0–P13)
 

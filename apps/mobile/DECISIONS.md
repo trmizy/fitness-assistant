@@ -536,3 +536,36 @@ chạy `expo start` thật, đợi qua giai đoạn crawl (không chỉ vài gi�
 đầu), và thử tải bundle thật để xác nhận resolve, mới coi là verify
 xong. `npx expo export` không thay thế được việc này cho phần liên
 quan tới watcher.
+
+## EAS init chạy nhầm thư mục — user tự chạy `eas login`/`eas init`/
+`eas build` (đúng theo README hướng dẫn, nhưng README lúc đó chưa cảnh
+báo rõ phải đứng đúng thư mục)
+
+**Sự việc**: user chạy `npx eas-cli init` và `npx eas-cli build` từ
+**thư mục gốc repo** (`C:\D_Backup\project_personal\fitness-assistant`)
+thay vì `apps/mobile`. EAS CLI không tìm thấy project Expo hợp lệ ở
+gốc repo nên tự tạo mới `app.json` (`{"expo":{"extra":{"eas":{"projectId":...}}}}`)
+và `eas.json` (bản mặc định, không có 3 profile với `env` như file
+thật của mobile) NGAY TẠI gốc repo — hoàn toàn tách biệt khỏi
+`apps/mobile/app.json`/`apps/mobile/eas.json` đã build từ P13.
+
+**Điều QUAN TRỌNG**: project EAS thật `@trmizy/ai-gym-coach`
+(ID `135dafba-2dbc-45c1-a4e5-a54a43c79170`) **đã được tạo thật trên
+tài khoản Expo của user** — đây là tài nguyên cloud thật, không xoá.
+Chỉ cần gắn đúng `projectId` vào file cấu hình đúng chỗ.
+
+**Fix**: 
+1. Thêm `expo.owner: "trmizy"` + `expo.extra.eas.projectId` (giữ nguyên
+   ID đã tạo) vào `apps/mobile/app.json` — merge, không tạo file mới
+   (đã có `extra.detectedApiUrl` từ trước, `app.config.ts`'s
+   `{...finalConfig.extra, detectedApiUrl}` tự gộp đúng cả 2, verify
+   qua `expo config` thấy cả `eas.projectId` lẫn `detectedApiUrl` cùng
+   lúc).
+2. Xoá 2 file rác `app.json`/`eas.json` ở gốc repo (`git status` xác
+   nhận chưa từng commit — an toàn xoá thẳng, không phải revert).
+3. Cập nhật README: thêm cảnh báo rõ **"luôn chạy lệnh eas từ trong
+   apps/mobile"** ở đầu mục Build EAS, tránh lặp lại sự cố.
+
+**Không cần**: chạy lại `eas init` (đã dùng project thật, chạy lại chỉ
+tạo thêm project trùng lặp trên tài khoản Expo) — chỉ cần `eas build`
+từ đúng thư mục `apps/mobile` là dùng được `projectId` đã gắn sẵn.

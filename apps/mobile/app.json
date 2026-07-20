@@ -2,6 +2,7 @@
   "expo": {
     "name": "Gym Coach",
     "slug": "gym-coach-mobile",
+    "owner": "trmizy",
     "scheme": "gymcoach",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -39,6 +40,11 @@
           "backgroundColor": "#09090b"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "135dafba-2dbc-45c1-a4e5-a54a43c79170"
+      }
+    }
   }
 }
