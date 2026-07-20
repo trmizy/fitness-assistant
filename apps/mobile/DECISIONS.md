@@ -223,3 +223,40 @@ vào sau này) đã ghi ở `src/notifications/pushToken.ts`.
    (`Notifications.getAllScheduledNotificationsAsync()`) qua debugger
    nếu cần xác minh không có nhắc lịch bị đặt trùng sau nhiều lần bấm
    "Đồng bộ" (vì luôn cancel-all rồi đặt lại, xem `scheduler.ts`).
+
+## P12 — Icon/splash: asset đơn giản tự sinh (không có công cụ tạo ảnh),
+không phải logo thiết kế thật
+
+**Quyết định**: viết 1 script Node dùng `zlib` (built-in, không cài
+thêm gói ảnh nào) tự encode PNG thô — icon/splash/adaptive-icon/
+favicon đều là 1 hình tròn trắng đơn giản trên nền accent xanh
+(`#22c55e`) hoặc nền trong suốt (foreground/monochrome/splash, theo
+đúng convention Android adaptive icon: background riêng, foreground
+riêng, monochrome đơn sắc cho themed icon Android 13+).
+
+**Lý do**: môi trường CLI này không có công cụ tạo ảnh/thiết kế. Một
+hình khối đơn giản đúng màu brand vẫn tốt hơn giữ logo mặc định của
+Expo (con chim xanh dương không liên quan gì tới app), và đúng tinh
+thần "tạo asset đơn giản đúng brand màu accent" mà prompt cho phép.
+
+**Ảnh hưởng**: đây KHÔNG phải logo thiết kế thật — nên thay bằng asset
+thật (icon có chữ/biểu tượng tạ tay, wordmark...) trước khi phát hành
+lên store. `app.json` đã trỏ đúng các file này + cấu hình
+`expo-splash-screen` plugin (nền `#09090b` khớp `colors.bg` trong
+theme, dark-first).
+
+## P12 — Xác minh: các thay đổi khác đã curl-verify lại
+
+`PUT /profile/me` với đúng payload `GoalEditor.tsx` gửi (`{goal}`) vào
+backend dev thật — trả `{profile}` khớp chính xác `UpdateProfileInput`/
+`UserProfile`. Các phần còn lại của P12 (haptics, KeyboardAvoidingView
+gộp vào `Screen.tsx`, `ErrorNotice` cho 1 số màn hình chính) là thay
+đổi thuần UI/UX phía client, không có API mới cần verify.
+
+**Phạm vi đã rà loading/error/empty**: Dashboard (2 card), Tập luyện
+(hub + lịch sử), InBody (hub), Kế hoạch (hub) — đây là các màn hình có
+lưu lượng cao nhất. KHÔNG rà exhaustively toàn bộ 20+ màn hình trong
+app (VD: `workouts/[id].tsx`, `plans/decision.tsx` vẫn chỉ có
+loading, chưa có `ErrorNotice` retry) do giới hạn thời gian — nhưng
+pattern (`ErrorNotice` component dùng chung) đã có sẵn, dễ áp dụng
+tiếp cho các màn còn lại.

@@ -2,7 +2,18 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import { Screen, Text, Card, Button, EmptyState, SkeletonCard, colors, radius, spacing } from "../../../../src/ui";
+import {
+  Screen,
+  Text,
+  Card,
+  Button,
+  EmptyState,
+  SkeletonCard,
+  ErrorNotice,
+  colors,
+  radius,
+  spacing,
+} from "../../../../src/ui";
 import { useInBodyHistoryQuery, useActiveCycleQuery } from "../../../../src/api/queries";
 import { TrendChart, type TrendMetric } from "../../../../src/features/inbody/TrendChart";
 import { formatShortDate } from "../../../../src/lib/date";
@@ -16,7 +27,7 @@ const METRICS: { key: TrendMetric; label: string }[] = [
 
 export default function InBodyHubScreen() {
   const router = useRouter();
-  const { data: history, isLoading } = useInBodyHistoryQuery();
+  const { data: history, isLoading, isError, refetch } = useInBodyHistoryQuery();
   const { data: activeCycleData } = useActiveCycleQuery();
   const [metric, setMetric] = useState<TrendMetric>("weight");
 
@@ -28,6 +39,8 @@ export default function InBodyHubScreen() {
     <Screen scroll>
       {isLoading ? (
         <SkeletonCard lines={4} />
+      ) : isError ? (
+        <ErrorNotice onRetry={refetch} />
       ) : sorted.length === 0 ? (
         <EmptyState
           icon={(p) => <Feather name="bar-chart-2" {...p} />}

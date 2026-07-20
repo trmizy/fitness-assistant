@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import { Screen, Text, Card, Badge, SkeletonCard, colors, spacing } from "../../../../src/ui";
+import { Screen, Text, Card, Badge, SkeletonCard, ErrorNotice, colors, spacing } from "../../../../src/ui";
 import { useWorkoutHistoryQuery, usePRsQuery } from "../../../../src/api/queries";
 import { useWorkoutDraftStore } from "../../../../src/features/workouts/workoutDraftStore";
 import { PendingSyncCard } from "../../../../src/features/workouts/PendingSyncCard";
@@ -43,7 +43,7 @@ function HubAction({
 
 export default function WorkoutsHubScreen() {
   const router = useRouter();
-  const { data: history, isLoading } = useWorkoutHistoryQuery({ limit: 3 });
+  const { data: history, isLoading, isError, refetch } = useWorkoutHistoryQuery({ limit: 3 });
   const { data: prs } = usePRsQuery();
   const draftCount = useWorkoutDraftStore((s) => s.exercises.length);
 
@@ -88,6 +88,8 @@ export default function WorkoutsHubScreen() {
         </Text>
         {isLoading ? (
           <SkeletonCard lines={2} />
+        ) : isError ? (
+          <ErrorNotice onRetry={refetch} />
         ) : history && history.length > 0 ? (
           history.map((w) => (
             <Card

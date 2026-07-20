@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card, Text, Badge, Button, SkeletonCard, colors, spacing } from "../../ui";
+import { Card, Text, Badge, Button, SkeletonCard, ErrorNotice, colors, spacing } from "../../ui";
 import { useActiveCycleQuery, useLatestInBodyQuery, queryKeys } from "../../api/queries";
 import { trainingCyclesApi } from "../../api/trainingCycles";
 import { elapsedPercent, formatShortDate } from "../../lib/date";
@@ -25,10 +25,11 @@ function TrendLine({ label, delta, unit }: { label: string; delta: number | null
 }
 
 function ActiveCycleCard() {
-  const { data, isLoading } = useActiveCycleQuery();
+  const { data, isLoading, isError, refetch } = useActiveCycleQuery();
   const router = useRouter();
 
   if (isLoading) return <SkeletonCard lines={3} />;
+  if (isError) return <ErrorNotice onRetry={refetch} />;
   if (!data) return null;
 
   const { cycle, summary } = data;
@@ -78,13 +79,14 @@ function ActiveCycleCard() {
 }
 
 function LatestInBodyCard() {
-  const { data, isLoading } = useLatestInBodyQuery();
+  const { data, isLoading, isError, refetch } = useLatestInBodyQuery();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
   if (isLoading) return <SkeletonCard lines={2} />;
+  if (isError) return <ErrorNotice onRetry={refetch} />;
 
   const onStartCycle = async () => {
     setStartError(null);

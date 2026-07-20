@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { View } from "react-native";
-import { Card, Text, Badge, Button, SkeletonCard, colors, spacing } from "../../ui";
+import { Card, Text, Badge, Button, SkeletonCard, ErrorNotice, colors, spacing } from "../../ui";
 import { useSchedulesQuery } from "../../api/queries";
 import { todayDateOnly } from "../../lib/date";
 import type { ScheduleStatus } from "../../api/workouts";
@@ -16,9 +16,13 @@ const STATUS_BADGE: Record<ScheduleStatus, { label: string; tone: "neutral" | "a
 export function TodayScheduleCard() {
   const router = useRouter();
   const today = todayDateOnly();
-  const { data: schedules, isLoading } = useSchedulesQuery({ startDate: today, endDate: today });
+  const { data: schedules, isLoading, isError, refetch } = useSchedulesQuery({
+    startDate: today,
+    endDate: today,
+  });
 
   if (isLoading) return <SkeletonCard lines={2} />;
+  if (isError) return <ErrorNotice onRetry={refetch} />;
 
   const todaySchedule = schedules?.[0];
 

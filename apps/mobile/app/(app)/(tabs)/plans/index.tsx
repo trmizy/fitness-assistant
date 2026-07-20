@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { Screen, Text, EmptyState, SkeletonCard, colors, radius, spacing } from "../../../../src/ui";
+import { Screen, Text, EmptyState, SkeletonCard, ErrorNotice, colors, radius, spacing } from "../../../../src/ui";
 import {
   useCurrentWorkoutPlansQuery,
   useCurrentNutritionPlansQuery,
@@ -16,8 +16,18 @@ type TabKey = "workout" | "nutrition";
 
 export default function PlansHubScreen() {
   const [tab, setTab] = useState<TabKey>("workout");
-  const { data: workoutPlans, isLoading: loadingWorkout } = useCurrentWorkoutPlansQuery();
-  const { data: nutritionPlans, isLoading: loadingNutrition } = useCurrentNutritionPlansQuery();
+  const {
+    data: workoutPlans,
+    isLoading: loadingWorkout,
+    isError: errorWorkout,
+    refetch: refetchWorkout,
+  } = useCurrentWorkoutPlansQuery();
+  const {
+    data: nutritionPlans,
+    isLoading: loadingNutrition,
+    isError: errorNutrition,
+    refetch: refetchNutrition,
+  } = useCurrentNutritionPlansQuery();
   const { data: cycles } = useCycleListQuery();
 
   const pendingDecisionCycle = cycles?.find((c) => c.status === "ANALYZED" && !c.nextPlanId);
@@ -61,6 +71,8 @@ export default function PlansHubScreen() {
       {tab === "workout" ? (
         loadingWorkout ? (
           <SkeletonCard lines={3} />
+        ) : errorWorkout ? (
+          <ErrorNotice onRetry={refetchWorkout} />
         ) : latestWorkoutPlan ? (
           <WorkoutPlanView plan={latestWorkoutPlan} />
         ) : (
@@ -72,6 +84,8 @@ export default function PlansHubScreen() {
         )
       ) : loadingNutrition ? (
         <SkeletonCard lines={3} />
+      ) : errorNutrition ? (
+        <ErrorNotice onRetry={refetchNutrition} />
       ) : latestNutritionPlan ? (
         <NutritionPlanView plan={latestNutritionPlan} />
       ) : (

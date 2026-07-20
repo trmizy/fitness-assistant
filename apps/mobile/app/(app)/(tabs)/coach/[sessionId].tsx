@@ -92,7 +92,7 @@ export default function CoachThreadScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={80}
     >
-      <Screen padded={false} style={{ flex: 1 }}>
+      <Screen padded={false} style={{ flex: 1 }} keyboardAvoiding={false}>
         <FlatList
           ref={listRef}
           data={messages}

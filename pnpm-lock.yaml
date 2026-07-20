@@ -69,6 +69,9 @@ importers:
       expo-device:
         specifier: ~57.0.1
         version: 57.0.1(expo@57.0.7)
+      expo-haptics:
+        specifier: ~57.0.1
+        version: 57.0.1(expo@57.0.7)
       expo-linking:
         specifier: ~57.0.3
         version: 57.0.3(expo@57.0.7)(react-native@0.86.0)(react@19.2.3)
@@ -81,6 +84,9 @@ importers:
       expo-secure-store:
         specifier: ~57.0.1
         version: 57.0.1(expo@57.0.7)
+      expo-splash-screen:
+        specifier: ~57.0.4
+        version: 57.0.4(expo@57.0.7)(typescript@6.0.3)
       expo-sqlite:
         specifier: ~57.0.1
         version: 57.0.1(expo@57.0.7)(react-native@0.86.0)(react@19.2.3)
@@ -8827,6 +8833,14 @@ packages:
       react-native: 0.86.0(@babel/core@7.28.6)(@react-native/metro-config@0.86.0)(@types/react@19.2.17)(react@19.2.3)
     dev: false
 
+  /expo-haptics@57.0.1(expo@57.0.7):
+    resolution: {integrity: sha512-8VhbnxlIrfXjP0syZr1JT197nafYicQu9119adOJnX62osU9Cw+PdDnAx/6LxuKJRzQdwxOMq7b7eWjhNL5zAQ==}
+    peerDependencies:
+      expo: '*'
+    dependencies:
+      expo: 57.0.7(@babel/core@7.28.6)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.6)(expo-router@57.0.7)(react-dom@19.2.3)(react-native-web@0.21.2)(react-native-worklets@0.11.1)(react-native@0.86.0)(react@19.2.3)(typescript@6.0.3)
+    dev: false
+
   /expo-keep-awake@57.0.1(expo@57.0.7)(react@19.2.3):
     resolution: {integrity: sha512-28lkFImeXTS+bhAjuCFV7w7tW5bXg27BJVrxv+nC/nyYa86qEa0oFeHwqol6ha5k4pdVDQgBF09GM4A1k76Ssg==}
     peerDependencies:
@@ -9003,6 +9017,20 @@ packages:
   /expo-server@57.0.1:
     resolution: {integrity: sha512-sBfVDH6dmKVHZxqUxbfkzS00PZELMZt1IpnHKxcOTMZtR/t7CtRAFrbXcisG+EyzeqHSVDacZT+1tbYfZt5D8w==}
     engines: {node: '>=20.16.0'}
+    dev: false
+
+  /expo-splash-screen@57.0.4(expo@57.0.7)(typescript@6.0.3):
+    resolution: {integrity: sha512-AspaOA5VZUl8yXb/BQORrRdOs0f7F/IgmvKNdCFaUDuz4X+j/4bPkkyssARFKwC5A5IQ3g7QS/Ve1XxDiDZ38Q==}
+    peerDependencies:
+      expo: '*'
+    dependencies:
+      '@expo/config-plugins': 57.0.5(typescript@6.0.3)
+      '@expo/image-utils': 0.11.3(typescript@6.0.3)
+      expo: 57.0.7(@babel/core@7.28.6)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.6)(expo-router@57.0.7)(react-dom@19.2.3)(react-native-web@0.21.2)(react-native-worklets@0.11.1)(react-native@0.86.0)(react@19.2.3)(typescript@6.0.3)
+      xml2js: 0.6.0
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
     dev: false
 
   /expo-sqlite@57.0.1(expo@57.0.7)(react-native@0.86.0)(react@19.2.3):

@@ -1,5 +1,13 @@
 import type { PropsWithChildren } from "react";
-import { RefreshControl, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+  type ViewStyle,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, spacing } from "./theme";
 
@@ -9,6 +17,9 @@ interface ScreenProps extends PropsWithChildren {
   style?: ViewStyle;
   onRefresh?: () => void;
   refreshing?: boolean;
+  // Đặt false khi màn tự quản KeyboardAvoidingView riêng (VD: coach
+  // thread có input ghim đáy) — tránh lồng 2 KeyboardAvoidingView.
+  keyboardAvoiding?: boolean;
 }
 
 // Standard SafeArea + padding wrapper used by every screen, mirroring the
@@ -20,34 +31,43 @@ export function Screen({
   style,
   onRefresh,
   refreshing = false,
+  keyboardAvoiding = true,
 }: ScreenProps) {
   const content = padded ? styles.padded : undefined;
 
-  if (scroll) {
-    return (
-      <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-        <ScrollView
-          contentContainerStyle={[content, style]}
-          refreshControl={
-            onRefresh ? (
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={colors.accent}
-                colors={[colors.accent]}
-              />
-            ) : undefined
-          }
-        >
-          {children}
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
+  const inner = scroll ? (
+    <ScrollView
+      contentContainerStyle={[content, style]}
+      keyboardShouldPersistTaps="handled"
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+          />
+        ) : undefined
+      }
+    >
+      {children}
+    </ScrollView>
+  ) : (
+    <View style={[styles.flex, content, style]}>{children}</View>
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
-      <View style={[styles.flex, content, style]}>{children}</View>
+      {keyboardAvoiding ? (
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          {inner}
+        </KeyboardAvoidingView>
+      ) : (
+        inner
+      )}
     </SafeAreaView>
   );
 }

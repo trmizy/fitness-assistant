@@ -13,3 +13,5 @@ export type { BadgeProps } from "./Badge";
 export { Skeleton, SkeletonCard } from "./Skeleton";
 export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps } from "./EmptyState";
+export { ErrorNotice } from "./ErrorNotice";
+export type { ErrorNoticeProps } from "./ErrorNotice";

@@ -36,11 +36,26 @@ export interface UserProfile {
   updatedAt: string;
 }
 
+export interface UpdateProfileInput {
+  goal?: Goal;
+  age?: number;
+  heightCm?: number;
+  currentWeight?: number;
+  targetWeight?: number;
+}
+
 export const profileApi = {
   // GET /profile/me -> { profile: UserProfile | null } (profile.service.ts::getProfile)
   getProfile() {
     return apiClient
       .get<{ profile: UserProfile | null }>("/profile/me")
+      .then((r) => r.data.profile);
+  },
+
+  // PUT /profile/me -> { profile } (profile.service.ts::upsertProfile)
+  updateProfile(input: UpdateProfileInput) {
+    return apiClient
+      .put<{ profile: UserProfile }>("/profile/me", input)
       .then((r) => r.data.profile);
   },
 };

@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import NetInfo from "@react-native-community/netinfo";
 import axios from "axios";
+import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { Screen, Text, Card, Button, Badge, EmptyState, colors, spacing } from "../../../../src/ui";
 import {
@@ -52,6 +53,7 @@ export default function LogWorkoutScreen() {
 
       const workout = await submitWorkoutLog({ name, date: new Date().toISOString(), exercises });
       await queryClient.invalidateQueries({ queryKey: ["workouts"] });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       reset();
       router.replace(`/(app)/(tabs)/workouts/${workout.id}`);
     } catch (err) {

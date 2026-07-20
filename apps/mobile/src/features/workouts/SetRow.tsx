@@ -1,7 +1,12 @@
 import { Pressable, View } from "react-native";
+import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { Text, colors, radius, spacing } from "../../ui";
 import type { DraftSet } from "./workoutDraftStore";
+
+function tapHaptic() {
+  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+}
 
 interface StepperProps {
   label: string;
@@ -26,7 +31,10 @@ function Stepper({ label, value, step, min, max, decimals = 0, onChange }: Stepp
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Giảm ${label}`}
-          onPress={() => onChange(clamp(value - step))}
+          onPress={() => {
+            tapHaptic();
+            onChange(clamp(value - step));
+          }}
           style={({ pressed }) => [stepperBtnStyle, pressed && { opacity: 0.7 }]}
         >
           <Feather name="minus" size={16} color={colors.textPrimary} />
@@ -37,7 +45,10 @@ function Stepper({ label, value, step, min, max, decimals = 0, onChange }: Stepp
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Tăng ${label}`}
-          onPress={() => onChange(clamp(value + step))}
+          onPress={() => {
+            tapHaptic();
+            onChange(clamp(value + step));
+          }}
           style={({ pressed }) => [stepperBtnStyle, pressed && { opacity: 0.7 }]}
         >
           <Feather name="plus" size={16} color={colors.textPrimary} />
@@ -99,7 +110,10 @@ export function SetRow({ index, set, onChange, onRemove }: SetRowProps) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Xoá set"
-        onPress={onRemove}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onRemove();
+        }}
         style={({ pressed }) => [{ padding: spacing.xs }, pressed && { opacity: 0.6 }]}
       >
         <Feather name="trash-2" size={16} color={colors.danger} />

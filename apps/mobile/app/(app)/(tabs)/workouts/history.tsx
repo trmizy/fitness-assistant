@@ -1,13 +1,13 @@
 import { FlatList, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import { Screen, Text, Card, EmptyState, SkeletonCard, spacing } from "../../../../src/ui";
+import { Screen, Text, Card, EmptyState, SkeletonCard, ErrorNotice, spacing } from "../../../../src/ui";
 import { useWorkoutHistoryQuery } from "../../../../src/api/queries";
 import { formatShortDate } from "../../../../src/lib/date";
 
 export default function WorkoutHistoryScreen() {
   const router = useRouter();
-  const { data, isLoading, refetch, isRefetching } = useWorkoutHistoryQuery({ limit: 50 });
+  const { data, isLoading, isError, refetch, isRefetching } = useWorkoutHistoryQuery({ limit: 50 });
 
   if (isLoading) {
     return (
@@ -15,6 +15,14 @@ export default function WorkoutHistoryScreen() {
         <SkeletonCard lines={2} />
         <SkeletonCard lines={2} />
         <SkeletonCard lines={2} />
+      </Screen>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Screen>
+        <ErrorNotice onRetry={refetch} />
       </Screen>
     );
   }
