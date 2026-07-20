@@ -8,9 +8,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fitnessassistant.app"
     },
     "android": {
+      "package": "com.fitnessassistant.app",
       "adaptiveIcon": {
         "backgroundColor": "#22c55e",
         "foregroundImage": "./assets/android-icon-foreground.png",
