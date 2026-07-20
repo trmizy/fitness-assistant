@@ -446,3 +446,93 @@ dẫn README) sẽ thay thế đúng vị trí này.
 
 **Không sửa**: root `.env.example` cũng có `LLM_API_KEY`, `LLM_NUM_CTX`,
 `LLM_JSON_NUM_CTX` không liên quan tới thay đổi này, giữ nguyên.
+
+## LAN — Bug thật phát sinh khi user tự chạy `start:lan`: Metro watcher
+crash EACCES (3 lần thử, 2 lần đầu SAI — phát hiện bằng cách chạy thật,
+không phải đọc code suông)
+
+**Báo lỗi từ user** khi chạy `pnpm --filter @gym-coach/mobile start:lan`
+thật lần đầu:
+```
+Error: EACCES: permission denied, lstat
+'...\backend\services\auth-service\node_modules\.ignored_prisma'
+    at FallbackWatcher.emitError ...
+```
+
+**Nguyên nhân gốc**: `metro.config.js` (viết từ P1) set
+`config.watchFolders = [workspaceRoot]` — Metro's file watcher (crawl
+bằng `FallbackWatcher`, dùng khi không có Watchman — mặc định trên
+Windows vì Watchman không hỗ trợ tốt) đi bộ đệ quy TOÀN BỘ repo, bao
+gồm `node_modules` của từng backend service. `.ignored_prisma` là 1
+**ReparsePoint** (junction Windows, xác nhận bằng
+`Get-Item -Force ... | Select Attributes` — không phải đoán) — khả năng
+cao do Prisma engine cache hoặc artifact từ Docker bind-mount tạo ra,
+`fs.lstat` không đọc được → crash toàn bộ dev server.
+
+**Vì sao không phát hiện được trong suốt quá trình build (P0-P13 +
+CORS/IP/scripts/Ollama)**: mọi lần verify trước giờ đều dùng
+`npx expo export` (build 1 lần rồi thoát) — KHÔNG bao giờ khởi động
+watcher thật sự lâu dài. `expo start` (dev server, cách user thực sự
+dùng) mới kích hoạt code path này. Đây là lỗ hổng thật trong cách
+verify suốt session — ghi nhận rõ, không né tránh.
+
+**Lần thử 1 (SAI — verify bằng cách chạy `expo start` thật, không phải
+đọc code rồi tự tin)**: dùng `resolver.blockList` (regex loại
+`backend/services/*/node_modules`, `backend/gateway/node_modules`,
+`frontend/*/node_modules`) trong khi vẫn giữ
+`watchFolders=[workspaceRoot]`. Đọc `metro/src/node-haste/DependencyGraph/createFileMap.js`
+xác nhận `blockList` được truyền vào làm `ignorePattern` của
+metro-file-map — TƯỞNG là đủ. Chạy `expo start` thật (background,
+theo dõi 20-30s) → **vẫn crash y hệt**. Lý do (đọc lại code kỹ hơn):
+`ignorePattern` chỉ lọc KẾT QUẢ sau khi Walker đã `lstat` toàn bộ file
+trong quá trình đi bộ — không ngăn được việc `lstat` chính file gây
+lỗi trong lúc đi bộ.
+
+**Lần thử 2 (SAI — cũng verify bằng cách chạy thật, phát hiện lỗi khác)**:
+thu hẹp `watchFolders` còn
+`[projectRoot, workspaceRoot/node_modules, backend/shared]` (bỏ hẳn
+`backend/services/*`, giữ lại root `node_modules` để đảm bảo resolve
+được dep hoisted của pnpm). Chạy `expo start` thật → **crash khác**,
+lần này ở `node_modules/.pnpm/lightningcss@1.30.1/node_modules/lightningcss-freebsd-x64`
+— stub package cho optional dependency của platform khác (FreeBSD),
+pnpm trên Windows để lại reparse point hỏng cho những package
+platform-specific không áp dụng được. Kết luận: root `node_modules`
+(`.pnpm` store) cũng rải rác đầy loại lỗi này, không chỉ ở
+`backend/services/*` — không có cách nào liệt kê hết bằng blockList.
+
+**Lần thử 3 (ĐÚNG — verify đầy đủ nhất, không chỉ "không crash" mà còn
+xác nhận resolve đúng)**: `watchFolders = [projectRoot, backend/shared]`
+— bỏ HẲN root `node_modules` khỏi watch. Dựa trên hiểu biết: resolve
+module (tìm file lúc bundle) và watch file (theo dõi đổi để hot-reload)
+là 2 cơ chế khác nhau trong Metro — `resolver.nodeModulesPaths` +
+`unstable_enableSymlinks` (đã có sẵn từ P1) đủ để Metro TỰ resolve qua
+symlink pnpm tạo sẵn trong `apps/mobile/node_modules`, không cần thư
+mục đích nằm trong `watchFolders`.
+
+Verify đầy đủ (không chỉ "chạy không crash" mà xác nhận cả resolve
+đúng):
+1. `expo start --port 8084` chạy nền, đợi 30s → **không crash**, log
+   hiện `Waiting on http://localhost:8084`, `netstat` xác nhận cổng
+   đang LISTENING thật.
+2. `curl http://localhost:8084/` → trả về đúng HTML app thật (title
+   "Gym Coach").
+3. `curl` thẳng vào URL bundle thật lấy từ HTML
+   (`/apps/mobile/node_modules/expo-router/entry.bundle?platform=web...`)
+   → **200, 9.7MB**, không phải lỗi resolve.
+4. Grep nội dung bundle: chứa chuỗi `"pino"` — `pino` là dependency
+   THẬT của `@gym-coach/shared` (không phải dep trực tiếp của mobile) —
+   xác nhận chuỗi resolve xuyên qua workspace package (mobile →
+   `@gym-coach/shared` → `pino`) hoạt động đúng dù `backend/shared`'s
+   own `node_modules` và root `node_modules` đều không nằm trong
+   `watchFolders`.
+5. Sau đó chạy lại `npx expo export --platform android` +
+   `--platform web` (static export) — vẫn pass như trước, không có gì
+   đổi ở đường này (export không dùng watcher).
+
+**Bài học rút ra** (áp dụng ngược cho các lần verify trước đó trong
+session): với watcher/dev-server, "code đọc có vẻ đúng" và thậm chí
+"resolver.blockList về mặt tài liệu có nghĩa đúng" KHÔNG đủ — phải
+chạy `expo start` thật, đợi qua giai đoạn crawl (không chỉ vài giây
+đầu), và thử tải bundle thật để xác nhận resolve, mới coi là verify
+xong. `npx expo export` không thay thế được việc này cho phần liên
+quan tới watcher.

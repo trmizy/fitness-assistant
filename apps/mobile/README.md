@@ -118,6 +118,7 @@ tiếp nhưng vượt qua được firewall.
 | Vẫn "Network request failed" dù IP đúng | iPhone đang dùng 4G/5G thay vì WiFi, hoặc WiFi khách cô lập thiết bị | Kiểm tra iPhone Settings → WiFi đang bật và đúng mạng với laptop; tắt "Low Data Mode"; thử `start:tunnel` nếu mạng khách chặn LAN. |
 | App load được nhưng gọi AI Coach / tạo kế hoạch luôn lỗi/timeout | Ollama chưa chạy, hoặc bind `127.0.0.1` thay vì `0.0.0.0` | Xem bước 1 ở trên. Kiểm tra nhanh: `curl http://localhost:3000/plans/llm-health` qua gateway — `llmAvailable:false` kèm lỗi kết nối nghĩa là `ai-service` không reach được Ollama. |
 | `start:lan` báo "Không tìm thấy IP LAN nào" | Laptop chỉ có adapter ảo đang active (VPN, VM), WiFi/Ethernet tắt | Bật WiFi/Ethernet thật, tắt VPN tạm thời nếu cần, chạy lại. |
+| `expo start` crash ngay với `Error: EACCES: permission denied, lstat '...node_modules\...'` | Windows-only: Metro's file watcher gặp reparse point/junction hỏng trong `node_modules` (thường do Prisma engine cache hoặc pnpm's optional-platform-package stub cho hệ điều hành khác). Đã fix bằng cách thu hẹp `watchFolders` trong `metro.config.js` — nếu vẫn gặp, có thể có junction hỏng khác chưa loại trừ. | Xem toàn bộ quá trình chẩn đoán (3 lần thử) ở [DECISIONS.md](./DECISIONS.md) mục "LAN — Bug thật... Metro watcher crash EACCES". Cách tự chẩn đoán: đọc đường dẫn trong thông báo lỗi, nếu nó nằm ngoài `apps/mobile` hoặc `backend/shared`, thêm điều kiện loại trừ tương tự vào `config.watchFolders`. |
 
 ## Cấu trúc
 
