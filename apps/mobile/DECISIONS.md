@@ -142,4 +142,27 @@ này đều dùng `--platform android` thay vì `--platform web`. `/dev/ui`
 
 Xem chi tiết đầy đủ (3 hướng đã thử, đề xuất backend, giải pháp tạm
 thời) tại [BLOCKED.md](./BLOCKED.md#p7--post-workouts-không-có-idempotency-key--clientid).
-Tập luyện → Chọn bài tập → Ghi buổi tập → Lưu.
+
+## P9 — "Xác nhận áp dụng" ở màn quyết định chu kỳ chỉ ghi nhận, chưa
+tự tạo kế hoạch mới
+
+**Quyết định**: nút "Xác nhận áp dụng" gọi
+`POST /training-cycles/:id/approve` với `nextPlanId = cycle.planId`
+(kế hoạch hiện tại) cho cả 3 nhánh quyết định (KEEP/ADJUST/NEW_PLAN),
+thay vì tự động sinh kế hoạch mới từ `newPlanDraft`/`adjustDetails`
+trước khi approve.
+
+**Lý do**: `approve()` phía backend không validate `nextPlanId` phải là
+1 plan mới thật (chỉ ghi thẳng vào cột), nên gửi `planId` cũ là an toàn
+kỹ thuật. Nhưng đúng ngữ nghĩa đầy đủ của ADJUST/NEW_PLAN phải là: gọi
+`POST /plans/workout/generate` với tham số từ `newPlanDraft` (goal,
+daysPerWeek, splitSuggestion...), chờ job hoàn tất (polling), rồi mới
+approve với plan mới đó. Đây là 1 luồng nhiều bước, phụ thuộc màn "tạo
+kế hoạch AI" mà 14-phase spec KHÔNG liệt kê như 1 mục riêng (chỉ có
+"xem kế hoạch hiện tại" ở P9) — coi như ngoài phạm vi lần build đầu
+tiên này.
+
+**Ảnh hưởng**: "Xác nhận áp dụng" hiện tại có ý nghĩa gần với "đã xem
+và ghi nhận đề xuất" hơn là "áp dụng kế hoạch mới thật sự". Việc sinh
+kế hoạch mới từ đề xuất AI là điểm mở rộng tự nhiên tiếp theo, cần thêm
+1 phase riêng (generate + poll job + auto-approve) nếu muốn hoàn thiện.
