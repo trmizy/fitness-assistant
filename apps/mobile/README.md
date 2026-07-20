@@ -33,7 +33,7 @@ Sau đó:
   tự trả `isOfflineQueueSupported() => false`) — test hàng đợi offline thật
   cần Android/iOS.
 - Nhấn `a`/`i` nếu có Android emulator / iOS simulator cài sẵn, hoặc scan QR
-  bằng app Expo Go (SDK 57) trên thiết bị thật cùng mạng LAN với máy dev —
+  bằng app Expo Go (SDK 54) trên thiết bị thật cùng mạng LAN với máy dev —
   xem mục ["Chạy trên iPhone thật qua LAN"](#chạy-trên-iphone-thật-qua-lan)
   bên dưới.
 
@@ -89,7 +89,7 @@ không cần đoán bằng tay.
 
 ### 3. Cài Expo Go + quét QR
 
-1. Cài **Expo Go** từ App Store (SDK 57).
+1. Cài **Expo Go** từ App Store — chỉ có 1 bản mới nhất cài được trên iOS, hiện hỗ trợ SDK 54 (project đang dùng, xem DECISIONS.md mục "Hạ SDK 57 → 54").
 2. Đảm bảo iPhone **cùng WiFi** với laptop (không phải 4G/5G, không phải
    WiFi khách bị cô lập thiết bị — 1 số mạng công ty/quán cà phê chặn
    client-to-client, xem mục Fallback bên dưới nếu gặp).
@@ -118,7 +118,7 @@ tiếp nhưng vượt qua được firewall.
 | Vẫn "Network request failed" dù IP đúng | iPhone đang dùng 4G/5G thay vì WiFi, hoặc WiFi khách cô lập thiết bị | Kiểm tra iPhone Settings → WiFi đang bật và đúng mạng với laptop; tắt "Low Data Mode"; thử `start:tunnel` nếu mạng khách chặn LAN. |
 | App load được nhưng gọi AI Coach / tạo kế hoạch luôn lỗi/timeout | Ollama chưa chạy, hoặc bind `127.0.0.1` thay vì `0.0.0.0` | Xem bước 1 ở trên. Kiểm tra nhanh: `curl http://localhost:3000/plans/llm-health` qua gateway — `llmAvailable:false` kèm lỗi kết nối nghĩa là `ai-service` không reach được Ollama. |
 | `start:lan` báo "Không tìm thấy IP LAN nào" | Laptop chỉ có adapter ảo đang active (VPN, VM), WiFi/Ethernet tắt | Bật WiFi/Ethernet thật, tắt VPN tạm thời nếu cần, chạy lại. |
-| `expo start` crash ngay với `Error: EACCES: permission denied, lstat '...node_modules\...'` | Windows-only: Metro's file watcher gặp reparse point/junction hỏng trong `node_modules` (thường do Prisma engine cache hoặc pnpm's optional-platform-package stub cho hệ điều hành khác). Đã fix bằng cách thu hẹp `watchFolders` trong `metro.config.js` — nếu vẫn gặp, có thể có junction hỏng khác chưa loại trừ. | Xem toàn bộ quá trình chẩn đoán (3 lần thử) ở [DECISIONS.md](./DECISIONS.md) mục "LAN — Bug thật... Metro watcher crash EACCES". Cách tự chẩn đoán: đọc đường dẫn trong thông báo lỗi, nếu nó nằm ngoài `apps/mobile` hoặc `backend/shared`, thêm điều kiện loại trừ tương tự vào `config.watchFolders`. |
+| `expo start`/`pnpm install` crash với `Error: EACCES: permission denied, lstat '...node_modules\...'` (path thường nằm trong `node_modules\.pnpm\<pkg>@.../node_modules\<pkg>-<os>-<arch>` hoặc `backend\services\*\node_modules\...`) | Windows-only: reparse point/junction hỏng trong `node_modules` — hoặc do Prisma engine cache (`backend/services/*`), hoặc do pnpm để lại stub hỏng cho optional-platform-package của OS khác (esbuild/rollup/lightningcss/@tailwindcss-oxide/msgpackr-extract/fsevents...). `metro.config.js` đã loại trừ được nhóm `backend/services/*` qua `resolver.blockList`, nhưng nhóm platform-stub trong root `node_modules/.pnpm` KHÔNG loại trừ được bằng blockList (xem giải thích trong comment của `metro.config.js`) — phải xoá file hỏng trực tiếp. | Chạy PowerShell: quét bằng `Get-ChildItem -Path node_modules -Recurse -Force -Attributes ReparsePoint \| Where-Object { $_.LinkType -ne 'SymbolicLink' -and $_.LinkType -ne 'Junction' }`, rồi với mỗi item chạy `fsutil reparsepoint delete <path>` (gỡ tag reparse point hỏng) trước khi `Remove-Item -Force -Recurse <path>` (`Directory.Delete()`/`rmdir` thường không xoá được, báo "the directory name is invalid"). Toàn bộ quy trình chẩn đoán đầy đủ (bao gồm cả những cách đã thử nhưng KHÔNG hiệu quả) ở [DECISIONS.md](./DECISIONS.md) mục "LAN — Bug thật... Metro watcher crash EACCES" và "Hạ SDK 57 → 54". Vấn đề có thể tái diễn sau 1 lần `pnpm install` mới — lặp lại đúng quy trình này nếu gặp lại. |
 
 ## Cấu trúc
 

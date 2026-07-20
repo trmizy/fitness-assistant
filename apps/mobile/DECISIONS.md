@@ -595,3 +595,94 @@ project trùng lặp trên tài khoản Expo của user. `name` (hiển thị,
 development build) — đã accept, thêm vào `package.json`/`pnpm-lock.yaml`,
 verify lại typecheck/lint/export sau khi có thêm dependency này, không
 phát sinh vấn đề gì.
+
+## Hạ SDK 57 → 54 để tương thích Expo Go public trên App Store
+
+**Bối cảnh**: Expo Go bản public trên App Store (iOS) chỉ hỗ trợ SDK 54
+tại thời điểm này — SDK 55 vẫn đang chờ Apple duyệt (xác nhận qua
+[changelog chính thức của Expo](https://expo.dev/changelog/expo-go-and-app-store-may-2026),
+không phải đoán), SDK 57 (project đang dùng) còn xa hơn nữa. Trên iOS,
+Apple chỉ cho cài đúng 1 bản Expo Go mới nhất từ App Store — không có
+cách nào "cài bản cũ hơn" như Android — nên project BẮT BUỘC phải chạy
+đúng SDK mà Expo Go public hỗ trợ, không có lựa chọn nào khác ngoài hạ
+SDK hoặc trả phí Apple Developer Program cho development build.
+
+**Quy trình hạ cấp** (theo đúng flow chính thức của Expo cho việc đổi
+SDK, dùng để NÂNG cấp bình thường nhưng áp dụng ngược để hạ):
+```bash
+npx expo install expo@54.0.36   # version chính xác lấy từ `npm view expo dist-tags` (sdk-54 tag)
+npx expo install --fix           # tự động hạ cấp ~20 gói expo-*/react-native/react/typescript kèm theo
+```
+Toàn bộ `expo-router` (57.0.7→6.0.24), `react-native` (0.86.0→0.81.5),
+`react` (19.2.3→19.1.0), `typescript` (6.0.3→5.9.3),
+`eslint-config-expo` (57.0.0→10.0.0) và ~15 gói `expo-*` khác đều đổi
+version theo — đây là hệ quả bình thường của việc SDK number không map
+1:1 với version riêng của từng gói con.
+
+**Lỗi phát sinh #1 — `expo-status-bar` không còn config plugin**:
+`expo-status-bar@3.0.9` (bản SDK 54) không có `app.plugin.js` — khác
+với bản SDK 57 vốn có. Xoá `"expo-status-bar"` khỏi mảng `plugins`
+trong `app.json` (chỉ đăng ký config plugin cho package nào THẬT SỰ có
+plugin — status bar component tự hoạt động không cần config plugin).
+
+**Lỗi phát sinh #2 — sau khi hạ SDK, `expo export`/`expo start` lỗi
+"Unable to resolve module .../expo-router/entry.js"**: đây là hệ quả
+gián tiếp của cách `metro.config.js` đang cấu hình (`watchFolders`
+thu hẹp còn `[projectRoot, backend/shared]`, xem mục "LAN — Bug thật
+... EACCES" phía trên). Search thấy đây là
+[lỗi đã biết](https://github.com/expo/router/issues/748) khi
+expo-router + pnpm monorepo không khớp với cách Metro tự động phát
+hiện monorepo (từ SDK 52, `expo/metro-config` tự đọc
+`pnpm-workspace.yaml` và set `watchFolders` = MỌI package trong
+workspace + root `node_modules`; `@expo/cli`'s logic resolve
+`main: "expo-router/entry"` phụ thuộc vào việc `watchFolders` khớp
+đúng với cấu trúc monorepo mà nó tự phát hiện — thu hẹp thủ công làm
+lệch giả định này). Fix: bỏ hẳn việc override `watchFolders` thủ công,
+để `getDefaultConfig()` tự set (xác nhận qua
+`node -e "console.log(getDefaultConfig(__dirname).watchFolders)"` —
+list ra đúng từng package + root `node_modules`).
+
+**Lỗi phát sinh #3 — quay lại EACCES watcher crash (khác lần trước)**:
+việc khôi phục `watchFolders` đầy đủ làm quay lại watcher crash gốc,
+nhưng lần này crash ở FILE KHÁC (`lightningcss-darwin-x64` trong ROOT
+`node_modules/.pnpm`, không phải `backend/services/*`). Áp dụng lại
+`resolver.blockList` cho `backend/services/*` (dùng lại pattern cũ) +
+thêm pattern mới cho package platform-specific — **nhưng blockList
+KHÔNG fix được lỗi này** (xem giải thích đầy đủ trong
+`metro.config.js`'s comment): `filterDir` chỉ ngăn RECURSE vào thư mục
+bị match, không ngăn được `lstat` chạy trên từng entry khi liệt kê nội
+dung của thư mục CHA chưa bị block — mà đúng entry gây crash
+(`lightningcss-darwin-x64`) là con trực tiếp của
+`.pnpm/lightningcss@.../node_modules/` (thư mục cha không, và không
+nên, bị block).
+
+**Nguyên nhân gốc thật sự**: quét bằng PowerShell
+(`Get-ChildItem -Recurse -Attributes ReparsePoint`) tìm thấy **102 reparse
+point hỏng** rải khắp `node_modules/.pnpm` — toàn bộ là stub package
+platform-specific (esbuild, rollup, lightningcss, @tailwindcss/oxide,
+msgpackr-extract, fsevents...) mà pnpm để lại cho các OS/arch KHÁC
+Windows thay vì bỏ qua hẳn. `Directory.Delete()`/`rmdir` chuẩn không
+xoá được (báo lỗi "the directory name is invalid" — xác nhận đây là
+reparse point hỏng thật ở tầng filesystem). Fix: dùng
+`fsutil reparsepoint delete <path>` để gỡ tag reparse point trước, rồi
+`Remove-Item -Force -Recurse` — xoá thành công cả 102/102. Sau khi xoá,
+`expo start` chạy ổn định, `expo export` cả 2 platform pass.
+
+**Đã thử nhưng KHÔNG dùng** (`pnpm.supportedArchitectures` trong
+`package.json`, để pnpm chỉ cài đúng platform hiện tại, tránh lặp lại
+sự cố sau lần `pnpm install` sau): pnpm 8.15.0 báo
+`"pnpm" field in package.json is no longer read by pnpm` — không tìm
+được vị trí cấu hình đúng cho version pnpm này trong thời gian hợp lý,
+bỏ qua vì không phải blocker cho việc chính (Expo Go tương thích) —
+**nếu lỗi EACCES tái diễn sau 1 lần `pnpm install` trong tương lai**,
+lặp lại đúng quy trình `fsutil reparsepoint delete` + `Remove-Item` ở
+trên (script PowerShell đầy đủ nằm trong lịch sử conversation, có thể
+yêu cầu Claude Code viết lại).
+
+**Verify cuối**: `expo start` chạy thật (không chỉ export tĩnh), fetch
+manifest thật (`curl http://localhost:8087/`) xác nhận
+`"runtimeVersion":"exposdk:54.0.0"` (đúng SDK Expo Go public hỗ trợ) +
+`launchAsset.url` trỏ đúng bundle thật; fetch thẳng bundle đó trả về
+200/9.8MB — không phải suy đoán, đã tải thật bundle Hermes bytecode
+qua HTTP từ dev server đang chạy. `typecheck`/`lint`/`expo export` cả
+2 platform đều pass sau toàn bộ quá trình.
