@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Screen, Text, Card, Badge, Button, SkeletonCard, colors, spacing } from "../../../../src/ui";
+import { Screen, Text, Card, Badge, Button, SkeletonCard, ErrorNotice, colors, spacing } from "../../../../src/ui";
 import { trainingCyclesApi } from "../../../../src/api/trainingCycles";
 import { getApiErrorMessage } from "../../../../src/api/client";
 import { queryKeys, useCycleQuery } from "../../../../src/api/queries";
@@ -14,12 +14,20 @@ export default function DecisionDetailScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: cycle, isLoading } = useCycleQuery(cycleId);
+  const { data: cycle, isLoading, isError, refetch } = useCycleQuery(cycleId);
 
-  if (isLoading || !cycle) {
+  if (isLoading) {
     return (
       <Screen scroll>
         <SkeletonCard lines={4} />
+      </Screen>
+    );
+  }
+
+  if (isError || !cycle) {
+    return (
+      <Screen scroll>
+        <ErrorNotice message={isError ? undefined : "Không tìm thấy chu kỳ"} onRetry={refetch} />
       </Screen>
     );
   }

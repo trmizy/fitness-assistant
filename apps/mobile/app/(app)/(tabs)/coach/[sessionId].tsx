@@ -3,7 +3,7 @@ import { FlatList, KeyboardAvoidingView, Platform, Pressable, View } from "react
 import { useLocalSearchParams } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
-import { Screen, Text, Input, Button, colors, spacing } from "../../../../src/ui";
+import { Screen, Text, Input, Button, ErrorNotice, colors, spacing } from "../../../../src/ui";
 import { coachApi } from "../../../../src/api/coach";
 import { getApiErrorMessage } from "../../../../src/api/client";
 import { queryKeys, useCoachSessionMessagesQuery } from "../../../../src/api/queries";
@@ -28,7 +28,9 @@ export default function CoachThreadScreen() {
   const [effectiveSessionId, setEffectiveSessionId] = useState<string | undefined>(
     isNew ? undefined : routeSessionId,
   );
-  const { data: history } = useCoachSessionMessagesQuery(isNew ? "" : routeSessionId);
+  const { data: history, isError: historyError, refetch: refetchHistory } = useCoachSessionMessagesQuery(
+    isNew ? "" : routeSessionId,
+  );
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [seededFromHistory, setSeededFromHistory] = useState(false);
   const [input, setInput] = useState("");
@@ -93,6 +95,11 @@ export default function CoachThreadScreen() {
       keyboardVerticalOffset={80}
     >
       <Screen padded={false} style={{ flex: 1 }} keyboardAvoiding={false}>
+        {historyError && messages.length === 0 ? (
+          <View style={{ padding: spacing.lg }}>
+            <ErrorNotice message="Không tải được lịch sử trò chuyện" onRetry={refetchHistory} />
+          </View>
+        ) : null}
         <FlatList
           ref={listRef}
           data={messages}

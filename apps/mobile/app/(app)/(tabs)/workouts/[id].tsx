@@ -1,18 +1,26 @@
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { Screen, Text, Card, Badge, SkeletonCard, spacing } from "../../../../src/ui";
+import { Screen, Text, Card, Badge, SkeletonCard, ErrorNotice, spacing } from "../../../../src/ui";
 import { useWorkoutQuery } from "../../../../src/api/queries";
 import { formatShortDate } from "../../../../src/lib/date";
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: workout, isLoading } = useWorkoutQuery(id);
+  const { data: workout, isLoading, isError, refetch } = useWorkoutQuery(id);
 
-  if (isLoading || !workout) {
+  if (isLoading) {
     return (
       <Screen scroll>
         <SkeletonCard lines={3} />
         <SkeletonCard lines={3} />
+      </Screen>
+    );
+  }
+
+  if (isError || !workout) {
+    return (
+      <Screen scroll>
+        <ErrorNotice message={isError ? undefined : "Không tìm thấy buổi tập"} onRetry={refetch} />
       </Screen>
     );
   }

@@ -153,7 +153,9 @@ Tổng hợp từ [BLOCKED.md](./BLOCKED.md) — chi tiết đầy đủ ở đ�
    buổi tập → thêm InBody → xem kế hoạch → chat coach → bật thông báo).
 6. **App icon/splash là asset tự sinh đơn giản** (hình tròn trắng trên nền
    accent xanh, không phải logo thiết kế thật) — xem DECISIONS.md mục P12.
-7. **`ErrorNotice` chưa phủ hết toàn bộ màn hình** — mới thêm vào Dashboard,
-   Tập luyện, InBody, Kế hoạch (màn lưu lượng cao nhất); một số màn con
-   (`workouts/[id].tsx`, `plans/decision.tsx`...) vẫn chỉ có loading state,
-   chưa có nút "Thử lại" khi lỗi.
+7. ~~`ErrorNotice` chưa phủ hết toàn bộ màn hình~~ — đã bổ sung thêm vào
+   `workouts/[id].tsx`, `workouts/exercises.tsx`, `plans/decision.tsx`,
+   `coach/index.tsx`, `coach/[sessionId].tsx` (lịch sử chat) sau lần rà soát
+   thứ 2. Vẫn còn vài màn action-only (`inbody/add.tsx`, `GoalEditor.tsx`)
+   chưa có, nhưng đó là nơi lỗi hiển thị trực tiếp qua state `error` cục bộ
+   khi submit, không phải qua `ErrorNotice` cho 1 query hiển thị danh sách.

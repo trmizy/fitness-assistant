@@ -9,6 +9,7 @@ import {
   Button,
   EmptyState,
   SkeletonCard,
+  ErrorNotice,
   colors,
   spacing,
   radius,
@@ -28,7 +29,7 @@ export default function ExercisesScreen() {
   const debouncedSearch = useDebouncedValue(search);
 
   const { data: filterOptions } = useExerciseFilterOptionsQuery();
-  const { data, isLoading } = useExercisesQuery({
+  const { data, isLoading, isError, refetch } = useExercisesQuery({
     search: debouncedSearch || undefined,
     muscleGroup: muscleGroup ?? undefined,
     limit: 50,
@@ -81,6 +82,10 @@ export default function ExercisesScreen() {
         <View style={{ paddingHorizontal: spacing.lg, gap: spacing.md }}>
           <SkeletonCard lines={2} />
           <SkeletonCard lines={2} />
+        </View>
+      ) : isError ? (
+        <View style={{ paddingHorizontal: spacing.lg }}>
+          <ErrorNotice onRetry={refetch} />
         </View>
       ) : (
         <FlatList
