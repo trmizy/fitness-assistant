@@ -195,3 +195,31 @@ thật, LLM (`qwen3:30b`) trả lời trong <1s (nhánh fallback vì model
 "starting up or overloaded" đúng lúc gọi) — xác nhận response envelope
 `{success, data:{conversationId, sessionId, answer, ...}}` khớp chính
 xác `AskResponseData`, bất kể model trả lời thật hay fallback.
+
+## P11 — Notification: chỉ local, không có endpoint push-token nào tồn
+tại ở backend để implement dù muốn
+
+**Xác nhận**: đọc thẳng `backend/services/user-service/src/routes/notification.routes.ts`
+— chỉ có `GET /`, `GET /unread-count`, `PATCH /:id/read`,
+`PATCH /read-all` (inbox thông báo TRONG APP), không có route nào để
+đăng ký push token. Xác nhận đúng như prompt dự đoán ("CHƯA implement
+server push"). TODO đầy đủ (3 việc backend cần làm + cách mobile nối
+vào sau này) đã ghi ở `src/notifications/pushToken.ts`.
+
+**Hướng dẫn test thủ công** (không có emulator trong phiên CLI này):
+1. `pnpm --filter @gym-coach/mobile android`/`ios` trên simulator/thiết
+   bị thật (local notification hoạt động cả trên simulator, không cần
+   thiết bị thật như push).
+2. Vào `/(app)/profile`, bấm "Đồng bộ nhắc lịch" ở card Thông báo — hệ
+   điều hành sẽ hỏi quyền thông báo lần đầu, chấp nhận.
+3. Kỳ vọng: text kết quả hiện "Đã đặt N nhắc lịch" nếu có buổi tập theo
+   lịch trong 7 ngày tới hoặc có chu kỳ ACTIVE sắp kết thúc trong ≤3
+   ngày; ngược lại hiện "Không có lịch nào cần nhắc".
+4. Để test nhận thông báo thật nhanh (không đợi đúng ngày/giờ 7h/9h),
+   sửa tạm `REMINDER_HOUR`/`INBODY_HOUR` trong `scheduler.ts` thành giờ
+   hiện tại +1 phút, hoặc set breakpoint/log ngày trigger để xác nhận
+   tính đúng ngày trước khi build thật lâu dài.
+5. Kiểm tra danh sách đã đặt bằng `listScheduledReminders()`
+   (`Notifications.getAllScheduledNotificationsAsync()`) qua debugger
+   nếu cần xác minh không có nhắc lịch bị đặt trùng sau nhiều lần bấm
+   "Đồng bộ" (vì luôn cancel-all rồi đặt lại, xem `scheduler.ts`).

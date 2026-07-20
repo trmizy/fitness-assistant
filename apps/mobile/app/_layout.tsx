@@ -8,7 +8,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "../src/store/authStore";
 import { queryClient } from "../src/api/queryClient";
 import { startAutoSyncListener, syncQueuedWorkoutLogs } from "../src/offline/syncEngine";
+import { configureNotificationHandler } from "../src/notifications/setup";
 import { colors } from "../src/ui";
+
+configureNotificationHandler();
 
 export default function RootLayout() {
   const isBootstrapping = useAuthStore((s) => s.isBootstrapping);
