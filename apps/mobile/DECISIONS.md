@@ -166,3 +166,32 @@ tiên này.
 và ghi nhận đề xuất" hơn là "áp dụng kế hoạch mới thật sự". Việc sinh
 kế hoạch mới từ đề xuất AI là điểm mở rộng tự nhiên tiếp theo, cần thêm
 1 phase riêng (generate + poll job + auto-approve) nếu muốn hoàn thiện.
+
+## P10 — Coach chat: chỉ dùng `POST /ai/ask` (không streaming), loading
+indicator thay cho SSE
+
+**Quyết định**: dùng endpoint non-streaming `POST /ai/ask` với timeout
+client 180s + `AbortController` để huỷ, hiển thị bubble "AI đang phân
+tích..." trong lúc chờ — KHÔNG implement `POST /ai/ask/stream` (SSE).
+
+**Lý do**: prompt cho phép rõ "streaming nếu API hỗ trợ (nếu không thì
+loading indicator)". React Native's `fetch` không hỗ trợ
+`ReadableStream`/SSE parsing đồng nhất như trình duyệt — cần polyfill
+riêng (`react-native-sse`, hoặc tự parse qua XHR `onprogress`), độ ổn
+định phụ thuộc engine JS (Hermes) và version RN, và KHÔNG thể verify
+thật trong phiên CLI này vì không có emulator/thiết bị để test luồng
+stream trực tiếp. Endpoint non-streaming đã verify thật (xem bên dưới)
+và cho trải nghiệm chấp nhận được với loading indicator rõ ràng.
+
+**Ảnh hưởng**: nếu sau này muốn thêm streaming thật, cần: (1) thêm
+`react-native-sse` hoặc polyfill fetch-stream, (2) viết lại
+`coachApi.ask` thành 1 hook xử lý event `status`/`token`/`done`/`error`
+giống `frontend/web`'s `chatStream`, (3) test trên thiết bị thật vì
+đây là hành vi network-layer khó verify qua bundle/typecheck.
+
+**Xác minh**: `POST /ai/ask` với đúng payload `coach.ts` gửi (chỉ
+`question`, không `sessionId` — luồng "trò chuyện mới") vào backend dev
+thật, LLM (`qwen3:30b`) trả lời trong <1s (nhánh fallback vì model
+"starting up or overloaded" đúng lúc gọi) — xác nhận response envelope
+`{success, data:{conversationId, sessionId, answer, ...}}` khớp chính
+xác `AskResponseData`, bất kể model trả lời thật hay fallback.

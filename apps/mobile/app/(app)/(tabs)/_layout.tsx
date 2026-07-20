@@ -49,7 +49,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="workouts" options={{ headerShown: false }} />
       <Tabs.Screen name="plans" options={{ headerShown: false }} />
       <Tabs.Screen name="inbody" options={{ headerShown: false }} />
-      <Tabs.Screen name="coach" />
+      <Tabs.Screen name="coach" options={{ headerShown: false }} />
     </Tabs>
   );
 }

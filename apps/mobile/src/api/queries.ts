@@ -9,6 +9,7 @@ import {
 import { exercisesApi, type ExerciseListParams } from "./exercises";
 import { trainingCyclesApi } from "./trainingCycles";
 import { plansApi } from "./plans";
+import { coachApi } from "./coach";
 import { env } from "../config/env";
 import { countQueuedWorkoutLogs, listQueuedWorkoutLogs } from "../offline/workoutQueue";
 
@@ -27,6 +28,8 @@ export const queryKeys = {
   pendingWorkoutLogs: ["offline", "pendingWorkoutLogs"] as const,
   currentWorkoutPlans: ["plans", "workout", "current"] as const,
   currentNutritionPlans: ["plans", "nutrition", "current"] as const,
+  coachSessions: ["coach", "sessions"] as const,
+  coachSessionMessages: (id: string) => ["coach", "sessions", id, "messages"] as const,
 };
 
 export function useProfileQuery() {
@@ -128,5 +131,17 @@ export function useCurrentNutritionPlansQuery() {
   return useQuery({
     queryKey: queryKeys.currentNutritionPlans,
     queryFn: plansApi.getCurrentNutritionPlans,
+  });
+}
+
+export function useCoachSessionsQuery() {
+  return useQuery({ queryKey: queryKeys.coachSessions, queryFn: () => coachApi.listSessions() });
+}
+
+export function useCoachSessionMessagesQuery(sessionId: string) {
+  return useQuery({
+    queryKey: queryKeys.coachSessionMessages(sessionId),
+    queryFn: () => coachApi.getSessionMessages(sessionId),
+    enabled: Boolean(sessionId),
   });
 }
