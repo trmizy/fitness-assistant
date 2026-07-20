@@ -569,3 +569,29 @@ Chỉ cần gắn đúng `projectId` vào file cấu hình đúng chỗ.
 **Không cần**: chạy lại `eas init` (đã dùng project thật, chạy lại chỉ
 tạo thêm project trùng lặp trên tài khoản Expo) — chỉ cần `eas build`
 từ đúng thư mục `apps/mobile` là dùng được `projectId` đã gắn sẵn.
+
+## EAS build lần đầu báo lệch `slug` — đổi slug cho khớp project đã tạo,
+không tạo project mới
+
+**Lỗi thật từ user** khi chạy `eas build --profile development --platform ios`
+(đã đứng đúng thư mục `apps/mobile` lần này):
+```
+Project config: Slug for project identified by "extra.eas.projectId"
+(ai-gym-coach) does not match the "slug" field (gym-coach-mobile).
+```
+
+**Nguyên nhân**: project EAS tạo lúc `eas init` chạy nhầm ở gốc repo
+(xem mục trên) được đặt tên `ai-gym-coach` (lấy theo `name` trong
+`package.json` gốc repo lúc đó). `apps/mobile/app.json` lại có
+`slug: "gym-coach-mobile"` — EAS yêu cầu 2 giá trị này khớp nhau để
+xác nhận đúng project.
+
+**Fix**: đổi `slug` trong `apps/mobile/app.json` thành `"ai-gym-coach"`
+(khớp project đã tồn tại) thay vì tạo project EAS mới — tránh có 2
+project trùng lặp trên tài khoản Expo của user. `name` (hiển thị,
+"Gym Coach") không đổi, chỉ `slug` (định danh kỹ thuật) đổi.
+
+**Phụ**: lệnh `eas build` tự cài `expo-dev-client` (bắt buộc cho
+development build) — đã accept, thêm vào `package.json`/`pnpm-lock.yaml`,
+verify lại typecheck/lint/export sau khi có thêm dependency này, không
+phát sinh vấn đề gì.
