@@ -22,3 +22,8 @@ export function elapsedPercent(startIso: string, endIso: string, nowIso = new Da
   if (end <= start) return 0;
   return clampPercent(((now - start) / (end - start)) * 100);
 }
+
+export function daysBetween(aIso: string, bIso: string): number {
+  const MS_PER_DAY = 1000 * 60 * 60 * 24;
+  return Math.abs(new Date(aIso).getTime() - new Date(bIso).getTime()) / MS_PER_DAY;
+}

@@ -24,6 +24,7 @@
     "react-native-gesture-handler": "~2.32.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
+    "react-native-svg": "15.15.4",
     "react-native-web": "^0.21.2",
     "zod": "^3.22.4",
     "zustand": "^4.4.7"
