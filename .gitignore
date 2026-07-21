@@ -107,6 +107,9 @@ training/unsloth_compiled_cache/
 # Anonymized production exports feeding the optional fine-tuning dataset —
 # never committed, even scrubbed (see ai-service ai:export:finetune script).
 training/data/raw/
+# Vendored upstream clone used only for GGUF conversion tooling (own .git,
+# ~200MB) — see training/scripts/merge_lora_unsloth.py's deployment flow.
+training/llama.cpp/
 backend/services/ai-service/src/scripts/.output/
 *.safetensors
 *.gguf
