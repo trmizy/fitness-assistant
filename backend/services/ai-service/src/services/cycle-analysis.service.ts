@@ -84,14 +84,33 @@ Các chu kỳ trước (gần nhất trước): ${JSON.stringify(priorCycles ?? 
  * 1.5B local model can track the whole shape reliably — see DECISIONS.md
  * "Fine-tuning — analyze-cycle 2-phase split" for why the single 20-field
  * combined schema was unreliable on this model. */
-function buildDecisionPrompt(req: AnalyzeCycleRequest, evidence: string): string {
-  return `Bạn là một huấn luyện viên thể hình giàu kinh nghiệm. Dựa trên các tín hiệu tiến triển đã được HỆ THỐNG TÍNH SẴN (progressSignals) — không tự bịa số liệu, không tính lại delta — hãy chọn 1 trong 3 quyết định:
+const DECISION_EXAMPLES: Record<"PROGRESSING" | "PLATEAU" | "DECLINING", string> = {
+  PROGRESSING: `Ví dụ: xu hướng "đang tiến triển tốt", adherence 90%, có PR mới, deltaSMM dương, deltaPBF âm →
+{"decision": "KEEP", "cycleReview": {"bodyCompositionTrend": "đang tiến triển tốt", "trainingNote": "Cơ thể đáp ứng tốt với plan hiện tại, tiếp tục progressive overload.", "laggingMuscleGroups": [], "confidence": "high"}}`,
+  PLATEAU: `Ví dụ: xu hướng "chững lại", adherence 70%, deltaSMM gần 0, volume không đổi →
+{"decision": "ADJUST", "cycleReview": {"bodyCompositionTrend": "chững lại", "trainingNote": "Cần thêm kích thích cho nhóm cơ ì, giữ khung plan.", "laggingMuscleGroups": ["vai"], "confidence": "low"}}`,
+  DECLINING: `Ví dụ: xu hướng "đang sụt giảm", adherence 40%, deltaSMM âm, RPE tăng mạnh (mệt mỏi tích lũy) →
+{"decision": "NEW_PLAN", "cycleReview": {"bodyCompositionTrend": "đang sụt giảm", "trainingNote": "Mệt mỏi tích lũy kéo dài, cần deload rồi đổi plan mới.", "laggingMuscleGroups": [], "confidence": "low"}}`,
+};
 
-- KEEP khi xu hướng "đang tiến triển tốt".
-- ADJUST khi "chững lại".
-- NEW_PLAN khi "đang sụt giảm", cần đổi mục tiêu, hoặc mệt tích lũy kéo dài.
+function buildDecisionPrompt(req: AnalyzeCycleRequest, evidence: string): string {
+  const trend = req.progressSignals.overallTrend;
+  const defaultDecision = fallbackDecision(trend);
+
+  return `Bạn là một huấn luyện viên thể hình giàu kinh nghiệm. Dựa trên các tín hiệu tiến triển đã được HỆ THỐNG TÍNH SẴN (progressSignals) — không tự bịa số liệu, không tính lại delta — hãy chọn 1 trong 3 quyết định.
+
+QUY TẮC BẮT BUỘC — decision gắn chặt với overallTrend, KHÔNG tự ý đổi để "đa dạng câu trả lời":
+- overallTrend="PROGRESSING" → decision PHẢI là "KEEP", trừ khi có dấu hiệu RÕ RÀNG và MẠNH (vd tỉ lệ mỡ vượt ngưỡng mục tiêu) buộc phải NEW_PLAN — nếu vậy phải nêu rõ lý do cụ thể trong trainingNote.
+- overallTrend="PLATEAU" → decision PHẢI là "ADJUST", trừ khi mệt mỏi tích lũy kéo dài nhiều chu kỳ buộc phải NEW_PLAN — nêu rõ lý do trong trainingNote.
+- overallTrend="DECLINING" → decision PHẢI là "NEW_PLAN", trừ khi sụt giảm chỉ nhẹ và có thể sửa bằng điều chỉnh nhỏ (ADJUST) — nêu rõ lý do trong trainingNote.
+
+Với dữ liệu chu kỳ này, overallTrend="${trend}" nên quyết định mặc định là "${defaultDecision}". Chỉ chọn khác đi nếu có bằng chứng cụ thể trong dữ liệu bên dưới, và PHẢI giải thích bằng chứng đó trong trainingNote.
+
+${DECISION_EXAMPLES[trend]}
 
 Nếu lowConfidence=true, đặt cycleReview.confidence="low" và giải thích hạn chế trong trainingNote.
+
+confidence CHỈ được nhận đúng 2 giá trị: "high" hoặc "low" — KHÔNG có "medium", KHÔNG có giá trị nào khác. Nếu phân vân giữa 2 mức, chọn "low".
 
 Chỉ trả lời bằng JSON hợp lệ theo ĐÚNG shape sau, không markdown, không giải thích ngoài JSON:
 {"decision": "KEEP"|"ADJUST"|"NEW_PLAN", "cycleReview": {"bodyCompositionTrend": string, "trainingNote": string, "laggingMuscleGroups": string[], "confidence": "high"|"low"}}
@@ -131,7 +150,7 @@ Trả lời theo ĐÚNG shape: {"newPlanDraft": {"goal": string, "durationDays":
 
 ${branchInstruction}
 
-Luôn tính lại TDEE ước lượng dựa trên BMR mới nhất trong dữ liệu InBody nếu có; nếu không có BMR, ước lượng TDEE từ cân nặng/khối lượng cơ hiện có. mealPlanDraft luôn phải có giá trị đầy đủ, không để trống field nào.
+Luôn tính lại TDEE ước lượng dựa trên BMR mới nhất trong dữ liệu InBody nếu có; nếu không có BMR, ước lượng TDEE từ cân nặng/khối lượng cơ hiện có. mealPlanDraft LUÔN phải có giá trị đầy đủ — đây là field BẮT BUỘC, không được bỏ qua hay để cuối cùng cắt mất. Viết các "notes" ngắn gọn (tối đa 1 câu, khoảng 15-20 từ) để còn đủ chỗ viết mealPlanDraft.
 
 Chỉ trả lời bằng JSON hợp lệ đúng shape trên, không markdown, không giải thích ngoài JSON.
 
@@ -186,12 +205,42 @@ function defaultDetailsFor(
   };
 }
 
+/** Extracts the first balanced top-level {...} object, respecting string
+ * literals so braces inside strings don't throw off the depth count. Needed
+ * because small local models under JSON mode sometimes keep generating
+ * after a complete object (e.g. a second attempt or trailing chatter) — a
+ * naive `/\{[\s\S]*\}/` regex greedily spans to the LAST `}` in the whole
+ * response and picks up that trailing content, breaking JSON.parse. */
+function extractFirstJsonObject(text: string): string | null {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
 async function callLlmJson<T>(
   prompt: string,
   schema: z.ZodType<T, z.ZodTypeDef, any>,
-  opts: { userId: string; phase: string; numPredict: number },
+  opts: { userId: string; phase: string; numPredict: number; attempts?: number },
 ): Promise<T | null> {
-  const attempts = 2;
+  const attempts = opts.attempts ?? 2;
   let lastError: unknown = null;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
@@ -201,9 +250,9 @@ async function callLlmJson<T>(
         numPredict: opts.numPredict,
         timeoutMs: Number(process.env.CYCLE_ANALYSIS_LLM_TIMEOUT_MS ?? 80_000),
       });
-      const jsonMatch = result.answer.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No JSON object found in LLM response");
-      const parsed = JSON.parse(jsonMatch[0]);
+      const jsonText = extractFirstJsonObject(result.answer);
+      if (!jsonText) throw new Error("No JSON object found in LLM response");
+      const parsed = JSON.parse(jsonText);
       return schema.parse(parsed);
     } catch (err) {
       lastError = err;
@@ -252,7 +301,7 @@ export const cycleAnalysisService = {
     const detailsResult = await callLlmJson<DetailsPhaseOutput>(
       buildDetailsPrompt(req, evidence, decisionPhase),
       detailsSchema,
-      { userId: req.userId, phase: "details", numPredict: 700 },
+      { userId: req.userId, phase: "details", numPredict: 1000, attempts: 3 },
     );
 
     const details = detailsResult
