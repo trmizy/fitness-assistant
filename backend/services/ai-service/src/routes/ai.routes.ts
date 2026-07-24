@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { aiController } from "../controllers/ai.controller";
 import { cycleAnalysisController } from "../controllers/cycle-analysis.controller";
+import { cycleAssessmentController } from "../controllers/cycle-assessment.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 import { validateBody, validateQuery } from "../middleware/validate.middleware";
 import {
@@ -54,5 +55,12 @@ router.post(
 // Called by fitness-service (service-to-service, requireAuth accepts the
 // x-internal-token + x-user-id pair) after a training cycle completes.
 router.post("/analyze-cycle", cycleAnalysisController.analyzeCycle);
+
+// Adaptive Training Cycle Evaluation — called by fitness-service's
+// POST /training-cycles/:id/evaluate with an already-computed Decision
+// Engine result; this endpoint only explains it, never decides. Additive:
+// does not replace /analyze-cycle, which the legacy /complete flow still
+// calls unchanged.
+router.post("/assess-cycle", cycleAssessmentController.assessCycle);
 
 export default router;
