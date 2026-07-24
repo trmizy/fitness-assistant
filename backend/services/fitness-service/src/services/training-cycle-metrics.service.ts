@@ -1,10 +1,5 @@
 import { prisma } from "../repositories/prisma";
-
-/** Epley formula — standard estimated-1RM approximation used throughout strength training. */
-function estimate1RM(weightKg: number, reps: number): number {
-  if (reps <= 0) return weightKg;
-  return weightKg * (1 + reps / 30);
-}
+import { estimate1RM } from "../utils/estimated-1rm.util";
 
 function weekIndexOf(date: Date, cycleStart: Date): number {
   const days = Math.floor((date.getTime() - cycleStart.getTime()) / 86_400_000);

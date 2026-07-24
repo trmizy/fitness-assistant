@@ -48,6 +48,25 @@ export const cycleThresholds = {
     laggingMuscleGroupCount: num("CYCLE_LAGGING_MUSCLE_GROUP_COUNT", 2),
   },
 
+  // InBodyDataQualityEvaluator — outlier/interval detection. Product
+  // defaults reflecting plausible short-term physiological change, not a
+  // medical standard.
+  inbodyQuality: {
+    // A day-over-day weight change rate beyond this (kg/day, averaged over
+    // the gap between two entries) is flagged as an outlier rather than
+    // trusted as real fat/muscle change (most such swings are water/food/
+    // hydration, not tissue change).
+    maxPlausibleWeightChangeKgPerDay: num("CYCLE_INBODY_MAX_WEIGHT_KG_PER_DAY", 0.35),
+    // Body-fat % change beyond this between two consecutive entries is
+    // flagged as an outlier (device noise or non-fasted/inconsistent
+    // measurement conditions are far more likely than real fat-mass change
+    // at this speed).
+    maxPlausibleBodyFatPctChange: num("CYCLE_INBODY_MAX_BODYFAT_PCT_CHANGE", 3),
+    // Two entries closer together than this are too close to treat as an
+    // independent trend data point (not an outlier, just low trend value).
+    minMeaningfulIntervalDays: num("CYCLE_INBODY_MIN_INTERVAL_DAYS", 3),
+  },
+
   // Adaptive Training Cycle Evaluation — CycleDecisionEngine (6-state) gate
   // thresholds. These are product defaults, not medical/scientific
   // constants — tune via env per coaching philosophy.

@@ -33,6 +33,10 @@ export interface InBodyEntrySnapshot {
   muscleMass: number;
   visceralFat?: number | null;
   bmr?: number | null;
+  /** "manual" | "extracted" | "pending" — used as a rough measurement-method
+   * consistency proxy by InBodyDataQualityEvaluator; user-service's
+   * InBodyEntry has no dedicated device/model field to compare against. */
+  status?: string | null;
 }
 
 export async function fetchUserProfile(
@@ -76,6 +80,7 @@ export async function fetchInBodyHistory(
       muscleMass: e.muscleMass,
       visceralFat: e.visceralFat ?? null,
       bmr: e.bmr ?? null,
+      status: e.status ?? null,
     }));
   } catch (error) {
     logger.warn(
