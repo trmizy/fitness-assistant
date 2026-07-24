@@ -133,6 +133,24 @@ export const cycleAssessmentService = {
       output.requiresConfirmation = true;
     }
 
+    // Belt-and-braces: drop any proposedChanges whose type isn't in
+    // allowedChanges — verified live that the model sometimes proposes a
+    // change anyway even when told allowedChanges is empty (e.g. for
+    // INSUFFICIENT_DATA, where recommendedActionScope="none" means nothing
+    // should be proposed at all).
+    const allowed = new Set(req.allowedChanges);
+    const filteredChanges = output.proposedChanges.filter((c) => allowed.has(c.type));
+    if (filteredChanges.length !== output.proposedChanges.length) {
+      logger.warn(
+        {
+          userId: req.userId,
+          droppedTypes: output.proposedChanges.filter((c) => !allowed.has(c.type)).map((c) => c.type),
+        },
+        "[cycle-assessment] LLM proposed change type(s) outside allowedChanges — dropping them",
+      );
+      output.proposedChanges = filteredChanges;
+    }
+
     return { ...output, citations };
   },
 };

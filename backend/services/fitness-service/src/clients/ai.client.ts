@@ -63,3 +63,57 @@ export async function analyzeCycleSafe(
     return null;
   }
 }
+
+export interface ProposedChange {
+  type: "VOLUME" | "LOAD" | "REPS" | "EXERCISE" | "FREQUENCY" | "DELOAD";
+  target: string;
+  currentValue: string;
+  proposedValue: string;
+  reason: string;
+}
+
+export interface AssessCycleResult {
+  decision: "KEEP" | "PROGRESS" | "ADJUST" | "DELOAD" | "REBUILD" | "INSUFFICIENT_DATA";
+  headline: string;
+  summary: string;
+  positiveSignals: string[];
+  warningSignals: string[];
+  proposedChanges: ProposedChange[];
+  missingData: string[];
+  safetyNotice: string | null;
+  requiresConfirmation: boolean;
+  citations: Array<Record<string, unknown>>;
+}
+
+/** Calls ai-service's new POST /ai/assess-cycle — additive alongside
+ * analyzeCycle above, used only by the new /evaluate endpoint (Adaptive
+ * Training Cycle Evaluation), not by the legacy /complete flow. */
+export async function assessCycle(
+  userId: string,
+  payload: Record<string, unknown>,
+): Promise<AssessCycleResult> {
+  const res = await axios.post(
+    `${AI_SERVICE_URL}/ai/assess-cycle`,
+    payload,
+    {
+      headers: internalHeaders(userId),
+      timeout: Number(process.env.CYCLE_ANALYSIS_TIMEOUT_MS ?? 90_000),
+    },
+  );
+  return res.data.data as AssessCycleResult;
+}
+
+export async function assessCycleSafe(
+  userId: string,
+  payload: Record<string, unknown>,
+): Promise<AssessCycleResult | null> {
+  try {
+    return await assessCycle(userId, payload);
+  } catch (error) {
+    logger.error(
+      { err: (error as Error).message, userId },
+      "[training-cycle] assess-cycle call failed",
+    );
+    return null;
+  }
+}

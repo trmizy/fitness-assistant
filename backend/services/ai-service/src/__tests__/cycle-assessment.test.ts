@@ -180,3 +180,44 @@ test("cycleAssessmentService.assessCycle: requiresConfirmation is forced true ev
   const result = await cycleAssessmentService.assessCycle(req);
   assert.equal(result.requiresConfirmation, true);
 });
+
+test("cycleAssessmentService.assessCycle: proposedChanges outside allowedChanges are dropped, not trusted", async (t) => {
+  t.after(() => {
+    llmService.callLLM = originalCallLLM;
+    retriever.retrieveEvidence = originalRetrieveEvidence;
+  });
+  const originalCallLLM = llmService.callLLM;
+  const originalRetrieveEvidence = retriever.retrieveEvidence;
+
+  retriever.retrieveEvidence = async () => [];
+  llmService.callLLM = async () =>
+    ({
+      answer: JSON.stringify({
+        decision: "INSUFFICIENT_DATA",
+        headline: "x",
+        summary: "x",
+        positiveSignals: [],
+        warningSignals: [],
+        proposedChanges: [
+          { type: "LOAD", target: "Squat", currentValue: "80", proposedValue: "75", reason: "model proposed this anyway" },
+        ],
+        missingData: [],
+        safetyNotice: null,
+        requiresConfirmation: true,
+      }),
+      model: "mock",
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+    }) as any;
+
+  // allowedChanges is empty, matching recommendedActionScope="none" for INSUFFICIENT_DATA
+  const req = AssessCycleRequestSchema.parse(
+    validRequest({
+      decision: { value: "INSUFFICIENT_DATA", confidenceScore: 0.03, recommendedActionScope: "none" },
+      allowedChanges: [],
+    }),
+  );
+  const result = await cycleAssessmentService.assessCycle(req);
+  assert.deepEqual(result.proposedChanges, []);
+});
