@@ -2,13 +2,25 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
+  BarChart,
+  Bar,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
+import {
   AlertTriangle,
   ArrowRight,
+  Ban,
   CalendarClock,
   CheckCircle2,
   Circle,
   Flag,
   Loader2,
+  RotateCw,
+  ShieldAlert,
   Sparkles,
   TrendingDown,
   TrendingUp,
@@ -16,7 +28,9 @@ import {
 } from "lucide-react";
 import {
   trainingCycleService,
+  type AdaptiveCycleDecision,
   type CycleAlert,
+  type CycleAssessment,
   type CycleDecision,
   type TrainingCycle,
 } from "../../services/api";
@@ -339,6 +353,305 @@ function DecisionCard({ cycle }: { cycle: TrainingCycle }) {
   );
 }
 
+// ── Adaptive Training Cycle Evaluation — Cycle Progress section ────────────
+// Deliberately embedded within this same page rather than a standalone
+// route, to avoid touching router configuration for this pass — the spec's
+// "Cycle Progress page" content (adherence, weekly volume, data-quality
+// warnings) is all here. Body-composition/InBody trend charts are omitted
+// (shown as text trend badges instead): GET /:id/progress's CycleMetrics
+// only exposes summarized inBodyQuality (record counts + flags), not the
+// raw comparable-point series, so there isn't per-point data to plot here
+// without extending that response — a deliberate scope trim, not an
+// oversight.
+
+function fieldTrendLabel(trend: { direction: "up" | "flat" | "down"; changePerWeek: number | null } | null): string {
+  if (!trend) return "Chưa đủ dữ liệu";
+  const arrow = trend.direction === "up" ? "↑" : trend.direction === "down" ? "↓" : "→";
+  const rate = trend.changePerWeek != null ? ` (${trend.changePerWeek > 0 ? "+" : ""}${trend.changePerWeek}/tuần)` : "";
+  return `${arrow}${rate}`;
+}
+
+function StatTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-3">
+      <div className="text-xs text-zinc-500">{label}</div>
+      <div className="mt-1 text-lg font-bold text-zinc-100">{value}</div>
+      {sub && <div className="text-[11px] text-zinc-500 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+function CycleProgressSection({ cycleId }: { cycleId: string }) {
+  const progressQuery = useQuery({
+    queryKey: ["training-cycle", "progress", cycleId],
+    queryFn: () => trainingCycleService.getProgress(cycleId),
+  });
+
+  if (progressQuery.isLoading) {
+    return (
+      <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 flex items-center justify-center py-8">
+        <Loader2 className="w-5 h-5 text-green-500 animate-spin" />
+      </div>
+    );
+  }
+  if (!progressQuery.data) return null;
+
+  const { metrics } = progressQuery.data;
+  const volumeChartData = metrics.weeklyVolumeByMuscleGroup.map((w) => ({
+    week: `Tuần ${w.week + 1}`,
+    volume: Math.round(w.totalVolumeKg),
+  }));
+
+  return (
+    <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 space-y-4">
+      <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+        <TrendingUp className="h-4 w-4 text-green-400" /> Tiến độ chu kỳ
+      </h3>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <StatTile label="Tuân thủ" value={`${Math.round(metrics.adherenceRate * 100)}%`} />
+        <StatTile label="Buổi/tuần" value={metrics.workoutsPerWeek.toString()} />
+        <StatTile
+          label="Sức mạnh"
+          value={metrics.strengthProgressScore != null ? `${Math.round(metrics.strengthProgressScore * 100)}%` : "—"}
+        />
+        <StatTile
+          label="Chất lượng dữ liệu"
+          value={`${Math.round(metrics.dataQualityScore * 100)}%`}
+          sub={!metrics.inBodyQuality.hasSufficientData ? "Cần thêm số liệu InBody" : undefined}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs text-zinc-400">
+        <div>Cân nặng: {fieldTrendLabel(metrics.bodyWeightTrend)}</div>
+        <div>Khối cơ: {fieldTrendLabel(metrics.skeletalMuscleTrend)}</div>
+        <div>Mỡ cơ thể: {fieldTrendLabel(metrics.bodyFatTrend)}</div>
+        <div>Đau/khó chịu: {fieldTrendLabel(metrics.painTrend)}</div>
+        <div>RPE: {metrics.rpeTrend === "increasing" ? "↑ tăng" : metrics.rpeTrend === "decreasing" ? "↓ giảm" : "→ ổn định"}</div>
+        <div>Hồi phục: {metrics.recoveryScore != null ? `${Math.round(metrics.recoveryScore * 100)}%` : "—"}</div>
+      </div>
+
+      {volumeChartData.length > 0 && (
+        <div>
+          <p className="text-xs text-zinc-500 mb-2">Volume tập luyện theo tuần</p>
+          <ResponsiveContainer width="100%" height={140}>
+            <BarChart data={volumeChartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+              <XAxis dataKey="week" tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: "#71717a" }} axisLine={false} tickLine={false} />
+              <Tooltip
+                contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #27272a", backgroundColor: "#111111", color: "#f4f4f5" }}
+              />
+              <Bar dataKey="volume" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {metrics.inBodyQuality.qualityFlags.length > 0 && (
+        <div className="space-y-1.5">
+          {metrics.inBodyQuality.qualityFlags.map((flag, i) => (
+            <div key={i} className="flex items-start gap-2 rounded-lg border border-zinc-700/40 bg-zinc-950/40 p-2.5">
+              <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 text-zinc-500 mt-0.5" />
+              <p className="text-[11px] text-zinc-500">{flag}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Adaptive Training Cycle Evaluation — End-of-cycle assessment card ──────
+// Additive alongside the legacy DecisionCard above (still wired to the old
+// 3-state /complete flow, unchanged). This is the new 6-state flow: the
+// user explicitly triggers POST /:id/evaluate (nothing runs automatically),
+// reviews the result, then explicitly Accepts/Rejects — accepting only
+// marks the recommendation reviewed, it does NOT itself activate any new
+// plan or schedule change.
+
+const ADAPTIVE_DECISION_CONFIG: Record<AdaptiveCycleDecision, { label: string; className: string }> = {
+  KEEP: { label: "Giữ nguyên", className: "border-green-500/30 bg-green-500/5 text-green-400" },
+  PROGRESS: { label: "Tăng tải", className: "border-emerald-500/30 bg-emerald-500/5 text-emerald-400" },
+  ADJUST: { label: "Điều chỉnh nhỏ", className: "border-amber-500/30 bg-amber-500/5 text-amber-400" },
+  DELOAD: { label: "Giảm tải (deload)", className: "border-orange-500/30 bg-orange-500/5 text-orange-400" },
+  REBUILD: { label: "Xây lại chương trình", className: "border-red-500/30 bg-red-500/5 text-red-400" },
+  INSUFFICIENT_DATA: { label: "Chưa đủ dữ liệu", className: "border-zinc-600/30 bg-zinc-500/5 text-zinc-400" },
+};
+
+function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
+  const queryClient = useQueryClient();
+  const [showDetails, setShowDetails] = useState(false);
+
+  const latestQuery = useQuery({
+    queryKey: ["training-cycle", "assessment", "latest", cycleId],
+    queryFn: () => trainingCycleService.getLatestAssessment(cycleId),
+    retry: false,
+  });
+
+  const evaluateMutation = useMutation({
+    mutationFn: () => trainingCycleService.evaluate(cycleId),
+    onSuccess: () => {
+      toast.success("Đang đánh giá chu kỳ — AI sẽ giải thích kết quả trong giây lát");
+      queryClient.invalidateQueries({ queryKey: ["training-cycle", "assessment", "latest", cycleId] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error ?? "Không thể đánh giá chu kỳ");
+    },
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: (decision: "accept" | "reject") =>
+      decision === "accept"
+        ? trainingCycleService.acceptRecommendation(cycleId)
+        : trainingCycleService.rejectRecommendation(cycleId),
+    onSuccess: (_data, decision) => {
+      toast.success(decision === "accept" ? "Đã chấp nhận đề xuất" : "Đã giữ lịch tập hiện tại");
+      queryClient.invalidateQueries({ queryKey: ["training-cycle", "assessment", "latest", cycleId] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error ?? "Không thể lưu lựa chọn");
+    },
+  });
+
+  const assessment: CycleAssessment | undefined = latestQuery.data;
+
+  if (!assessment) {
+    return (
+      <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 flex flex-col items-center gap-3 text-center">
+        <Sparkles className="h-5 w-5 text-green-400" />
+        <p className="text-sm text-zinc-400">Đánh giá nâng cao dùng Decision Engine + AI giải thích (6 mức quyết định).</p>
+        <button
+          type="button"
+          onClick={() => evaluateMutation.mutate()}
+          disabled={evaluateMutation.isPending}
+          className="flex items-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all"
+        >
+          {evaluateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+          {evaluateMutation.isPending ? "Đang đánh giá..." : "Đánh giá chu kỳ (nâng cao)"}
+        </button>
+      </div>
+    );
+  }
+
+  if (assessment.status === "PENDING") {
+    return (
+      <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 flex items-center gap-3">
+        <Loader2 className="h-5 w-5 text-green-500 animate-spin flex-shrink-0" />
+        <p className="text-sm text-zinc-300">Đang đánh giá chu kỳ...</p>
+      </div>
+    );
+  }
+
+  const decision = assessment.decision ?? "INSUFFICIENT_DATA";
+  const cfg = ADAPTIVE_DECISION_CONFIG[decision];
+  const criticalFlag = assessment.safetyFlags?.find((f) => f.severity === "critical");
+
+  return (
+    <div className={`rounded-2xl border p-6 space-y-4 ${cfg.className.replace("text-", "border-").split(" ")[0]} bg-zinc-900`}>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${cfg.className}`}>
+            {cfg.label}
+          </span>
+          {assessment.confidenceScore != null && (
+            <span className="text-xs text-zinc-500">Độ tin cậy: {Math.round(assessment.confidenceScore * 100)}%</span>
+          )}
+        </div>
+        <span className="text-[11px] text-zinc-600">Đánh giá lần {assessment.assessmentVersion}</span>
+      </div>
+
+      {criticalFlag && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 p-3">
+          <ShieldAlert className="h-4 w-4 flex-shrink-0 text-red-400 mt-0.5" />
+          <p className="text-xs text-red-200">{criticalFlag.message}</p>
+        </div>
+      )}
+
+      {assessment.aiSummary && <p className="text-sm text-zinc-300">{assessment.aiSummary}</p>}
+
+      {showDetails && (
+        <div className="space-y-3 rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-4">
+          {assessment.reasonCodes && assessment.reasonCodes.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-zinc-400 mb-1">Lý do (từ Decision Engine)</p>
+              <ul className="text-xs text-zinc-500 space-y-0.5 list-disc list-inside">
+                {assessment.reasonCodes.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {assessment.proposedChanges && assessment.proposedChanges.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-zinc-400 mb-1">Đề xuất thay đổi</p>
+              <div className="space-y-1.5">
+                {assessment.proposedChanges.map((c, i) => (
+                  <div key={i} className="text-xs text-zinc-300">
+                    <span className="font-semibold text-zinc-200">{c.target}</span>: {c.currentValue} → {c.proposedValue}
+                    <span className="text-zinc-500"> — {c.reason}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {assessment.conflictingSignals && assessment.conflictingSignals.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-amber-500 mb-1">Tín hiệu mâu thuẫn</p>
+              <ul className="text-xs text-zinc-500 space-y-0.5 list-disc list-inside">
+                {assessment.conflictingSignals.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {assessment.userDecision === "PENDING" ? (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => reviewMutation.mutate("accept")}
+            disabled={reviewMutation.isPending}
+            className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black px-3.5 py-2 rounded-lg text-xs font-bold transition-all"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" /> Chấp nhận
+          </button>
+          <button
+            type="button"
+            onClick={() => reviewMutation.mutate("reject")}
+            disabled={reviewMutation.isPending}
+            className="flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 disabled:opacity-60 text-zinc-200 px-3.5 py-2 rounded-lg text-xs font-bold transition-all"
+          >
+            <Ban className="w-3.5 h-3.5" /> Giữ lịch hiện tại
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDetails((v) => !v)}
+            className="flex items-center gap-1.5 bg-transparent hover:bg-zinc-800 border border-zinc-700 text-zinc-400 px-3.5 py-2 rounded-lg text-xs font-bold transition-all"
+          >
+            {showDetails ? "Ẩn chi tiết" : "Xem chi tiết"}
+          </button>
+          <button
+            type="button"
+            onClick={() => evaluateMutation.mutate()}
+            disabled={evaluateMutation.isPending}
+            className="flex items-center gap-1.5 bg-transparent hover:bg-zinc-800 border border-zinc-700 disabled:opacity-60 text-zinc-400 px-3.5 py-2 rounded-lg text-xs font-bold transition-all"
+          >
+            {evaluateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCw className="w-3.5 h-3.5" />}
+            Tạo lại đề xuất
+          </button>
+        </div>
+      ) : (
+        <p className="text-xs text-zinc-500">
+          {assessment.userDecision === "ACCEPTED" ? "✓ Bạn đã chấp nhận đề xuất này." : "Bạn đã chọn giữ lịch tập hiện tại."}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function CycleHistoryRow({ cycle }: { cycle: TrainingCycle }) {
   const trend = cycle.summary?.progressSignals?.overallTrend;
   return (
@@ -372,6 +685,8 @@ export function TrainingCyclePage() {
   const activeOrRecentCycle = historyQuery.data?.find(
     (c) => c.status === "COMPLETED" || c.status === "ANALYZED",
   );
+  const activeCycle = historyQuery.data?.find((c) => c.status === "ACTIVE");
+  const relevantCycleId = activeCycle?.id ?? activeOrRecentCycle?.id;
   const closedHistory = (historyQuery.data ?? []).filter((c) => c.status !== "ACTIVE");
 
   return (
@@ -388,6 +703,10 @@ export function TrainingCyclePage() {
       <ActiveCycleCard />
 
       {activeOrRecentCycle && <DecisionCard cycle={activeOrRecentCycle} />}
+
+      {relevantCycleId && <CycleProgressSection cycleId={relevantCycleId} />}
+
+      {relevantCycleId && <AdaptiveAssessmentCard cycleId={relevantCycleId} />}
 
       <div>
         <h2 className="text-sm font-bold text-zinc-300 mb-2">Lịch sử chu kỳ</h2>

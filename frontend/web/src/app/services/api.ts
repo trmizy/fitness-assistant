@@ -599,7 +599,7 @@ export interface TrainingCycle {
   endDate: string;
   durationDays: number;
   goal: string | null;
-  status: "ACTIVE" | "COMPLETED" | "ANALYZED";
+  status: "DRAFT" | "ACTIVE" | "COMPLETED" | "ANALYZED" | "CANCELLED";
   startInbodyId: string | null;
   endInbodyId: string | null;
   summary: CycleSummary | null;
@@ -607,8 +607,89 @@ export interface TrainingCycle {
   decision: CycleDecision | null;
   aiAnalysis: CycleAnalysisDetails | null;
   nextPlanId: string | null;
+  name: string | null;
+  actualEndDate: string | null;
+  baselineMetrics: Record<string, unknown> | null;
+  targetMetrics: Record<string, unknown> | null;
+  configuration: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// ── Adaptive Training Cycle Evaluation ────────────────────────────────────
+
+export type AdaptiveCycleDecision = "KEEP" | "PROGRESS" | "ADJUST" | "DELOAD" | "REBUILD" | "INSUFFICIENT_DATA";
+
+export interface CycleFieldTrend {
+  direction: "up" | "flat" | "down";
+  changePerWeek: number | null;
+  dataPoints: number;
+}
+
+export interface CycleSafetyFlag {
+  code: string;
+  severity: "warning" | "critical";
+  message: string;
+}
+
+export interface CycleProposedChange {
+  type: "VOLUME" | "LOAD" | "REPS" | "EXERCISE" | "FREQUENCY" | "DELOAD";
+  target: string;
+  currentValue: string;
+  proposedValue: string;
+  reason: string;
+}
+
+export interface CycleMetrics {
+  adherenceRate: number;
+  completionRate: number;
+  workoutsPerWeek: number;
+  weeklyVolumeByMuscleGroup: CycleVolumeWeek[];
+  volumeTrendPercent: number | null;
+  exerciseProgression: Array<{ exerciseName: string; firstWeekE1rm: number; lastWeekE1rm: number; changePct: number | null; isPriority: boolean }>;
+  estimated1RmTrend: Array<{ exerciseName: string; weeklyTop: Array<{ week: number; e1rm: number }> }>;
+  strengthProgressScore: number | null;
+  performanceConsistencyScore: number | null;
+  averageSessionRpe: number | null;
+  rpeTrend: "stable" | "increasing" | "decreasing";
+  averageRir: number | null;
+  painTrend: CycleFieldTrend | null;
+  averagePainScore: number | null;
+  fatigueScore: number | null;
+  recoveryScore: number | null;
+  bodyWeightTrend: CycleFieldTrend | null;
+  skeletalMuscleTrend: CycleFieldTrend | null;
+  bodyFatTrend: CycleFieldTrend | null;
+  goalProgressScore: number | null;
+  dataCompletenessScore: number;
+  dataQualityScore: number;
+  newPRs: string[];
+  inBodyQuality: {
+    recordCount: number;
+    comparableRecordCount: number;
+    hasSufficientData: boolean;
+    qualityFlags: string[];
+  };
+}
+
+export interface CycleAssessment {
+  id: string;
+  cycleId: string;
+  assessmentVersion: number;
+  status: "PENDING" | "COMPLETED" | "FAILED";
+  decision: AdaptiveCycleDecision | null;
+  confidenceScore: number | null;
+  dataQualityScore: number | null;
+  computedMetrics: CycleMetrics | null;
+  reasonCodes: string[] | null;
+  conflictingSignals: string[] | null;
+  safetyFlags: CycleSafetyFlag[] | null;
+  recommendedActionScope: "none" | "minor_adjustment" | "deload" | "full_rebuild" | null;
+  aiSummary: string | null;
+  proposedChanges: CycleProposedChange[] | null;
+  userDecision: "PENDING" | "ACCEPTED" | "REJECTED";
+  reviewedAt: string | null;
+  createdAt: string;
 }
 
 export const trainingCycleService = {
@@ -654,6 +735,63 @@ export const trainingCycleService = {
       `/training-cycles?limit=${limit}`,
     );
     return data.cycles;
+  },
+
+  // ── Adaptive Training Cycle Evaluation additions ────────────────────────
+
+  update: async (id: string, updates: { name?: string; targetMetrics?: Record<string, unknown>; configuration?: Record<string, unknown> }) => {
+    const { data } = await api.patch<TrainingCycle>(`/training-cycles/${id}`, updates);
+    return data;
+  },
+
+  startDraft: async (id: string) => {
+    const { data } = await api.post<TrainingCycle>(`/training-cycles/${id}/start`, {});
+    return data;
+  },
+
+  getProgress: async (id: string) => {
+    const { data } = await api.get<{ cycle: TrainingCycle; metrics: CycleMetrics; computedAt: string }>(
+      `/training-cycles/${id}/progress`,
+    );
+    return data;
+  },
+
+  evaluate: async (id: string) => {
+    const { data } = await api.post<CycleAssessment>(`/training-cycles/${id}/evaluate`, {});
+    return data;
+  },
+
+  listAssessments: async (id: string, page = 1, limit = 20) => {
+    const { data } = await api.get<{ assessments: CycleAssessment[]; total: number; page: number; limit: number }>(
+      `/training-cycles/${id}/assessments?page=${page}&limit=${limit}`,
+    );
+    return data;
+  },
+
+  getLatestAssessment: async (id: string) => {
+    const { data } = await api.get<CycleAssessment>(`/training-cycles/${id}/assessments/latest`);
+    return data;
+  },
+
+  acceptRecommendation: async (id: string, assessmentId?: string) => {
+    const { data } = await api.post<CycleAssessment>(
+      `/training-cycles/${id}/recommendation/accept`,
+      assessmentId ? { assessmentId } : {},
+    );
+    return data;
+  },
+
+  rejectRecommendation: async (id: string, assessmentId?: string) => {
+    const { data } = await api.post<CycleAssessment>(
+      `/training-cycles/${id}/recommendation/reject`,
+      assessmentId ? { assessmentId } : {},
+    );
+    return data;
+  },
+
+  linkInBodyEntry: async (id: string, inbodyEntryId: string) => {
+    const { data } = await api.post(`/training-cycles/${id}/inbody-links`, { inbodyEntryId });
+    return data;
   },
 };
 
