@@ -8,6 +8,7 @@ import {
   updateTrainingCycleSchema,
   listAssessmentsQuerySchema,
   recommendationDecisionSchema,
+  linkInBodyEntrySchema,
 } from "../models/training-cycle.models";
 
 function handleServiceError(res: Response, error: any, fallbackMessage: string): void {
@@ -113,6 +114,16 @@ export const trainingCycleController = {
       res.json(assessment);
     } catch (error: any) {
       handleServiceError(res, error, "Failed to reject cycle recommendation");
+    }
+  },
+
+  async linkInBodyEntry(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const body = linkInBodyEntrySchema.parse(req.body ?? {});
+      const link = await trainingCycleService.linkInBodyEntry(req.params.id, req.user!.id, body.inbodyEntryId);
+      res.status(201).json(link);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to link InBody entry to training cycle");
     }
   },
 

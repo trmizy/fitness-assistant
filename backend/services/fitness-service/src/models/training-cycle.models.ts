@@ -30,3 +30,7 @@ export const recommendationDecisionSchema = z.object({
   /** Optional — defaults to the latest COMPLETED assessment for the cycle. */
   assessmentId: z.string().min(1).optional(),
 });
+
+export const linkInBodyEntrySchema = z.object({
+  inbodyEntryId: z.string().min(1, "inbodyEntryId is required"),
+});

@@ -206,6 +206,13 @@ services:
       AUTH_SERVICE_URL: http://auth-service:3001
       AI_SERVICE_URL: http://ai-service:3003
       USER_SERVICE_URL: http://user-service:3004
+      # Was missing here (unlike gateway/user-service, which already override
+      # it) — without this, fitness-service inherited the root .env's
+      # CHAT_SERVICE_URL=http://localhost:3005, which inside this container
+      # means itself, not chat-service. Needed for the new
+      # "assessment ready" notification push (Adaptive Training Cycle
+      # Evaluation, Phase 5).
+      CHAT_SERVICE_URL: http://chat-service:3005
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:
       - ../../.env

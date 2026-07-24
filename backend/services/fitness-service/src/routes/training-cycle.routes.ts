@@ -21,6 +21,7 @@ router.get("/:id/assessments/latest", authMiddleware, trainingCycleController.la
 router.get("/:id/assessments", authMiddleware, trainingCycleController.listAssessments as any);
 router.post("/:id/recommendation/accept", authMiddleware, trainingCycleController.acceptRecommendation as any);
 router.post("/:id/recommendation/reject", authMiddleware, trainingCycleController.rejectRecommendation as any);
+router.post("/:id/inbody-links", authMiddleware, trainingCycleController.linkInBodyEntry as any);
 
 router.get("/:id", authMiddleware, trainingCycleController.getById as any);
 

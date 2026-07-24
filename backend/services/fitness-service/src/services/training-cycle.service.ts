@@ -9,6 +9,7 @@ import {
   type InBodyEntrySnapshot,
 } from "../clients/user.client";
 import { analyzeCycleSafe, assessCycleSafe } from "../clients/ai.client";
+import { pushCycleAssessmentNotification } from "../clients/notification.client";
 import {
   computeAdherence,
   computeWorkoutMetrics,
@@ -372,6 +373,29 @@ export const trainingCycleService = {
 
   // ── Adaptive Training Cycle Evaluation additions below ──────────────────
 
+  /** Links an InBody entry to a cycle once the user confirms it should
+   * count toward this cycle's trend (spec event flow: "inbody.created ->
+   * link with active cycle if user confirms -> invalidate progress
+   * cache"). Idempotent — linking the same entry twice is a no-op, not an
+   * error, since @@unique([cycleId, inbodyEntryId]) would otherwise 500. */
+  async linkInBodyEntry(cycleId: string, userId: string, inbodyEntryId: string) {
+    const cycle = await prisma.trainingCycle.findFirst({ where: { id: cycleId, userId } });
+    if (!cycle) throw { status: 404, message: "Training cycle not found" };
+    if (!["DRAFT", "ACTIVE"].includes(cycle.status)) {
+      throw { status: 409, message: "Cannot link new measurements to a closed cycle" };
+    }
+    const entry = await fetchInBodyById(userId, inbodyEntryId);
+    if (!entry) throw { status: 404, message: "InBody entry not found" };
+
+    const link = await prisma.cycleInBodyLink.upsert({
+      where: { cycleId_inbodyEntryId: { cycleId, inbodyEntryId } },
+      create: { cycleId, inbodyEntryId },
+      update: {},
+    });
+    await invalidateCycleProgressCache(cycleId);
+    return link;
+  },
+
   /** All InBody entries relevant to a cycle's body-composition trend:
    * explicit CycleInBodyLink rows plus the cycle's own start/end snapshots
    * (deduplicated) — so quality/trend analysis works even before a user has
@@ -579,6 +603,7 @@ export const trainingCycleService = {
           proposedChanges: (aiResult?.proposedChanges ?? []) as any,
         },
       });
+      void pushCycleAssessmentNotification(userId, cycleId, engineResult.decision).catch(() => {});
       return updated;
     } catch (err) {
       await prisma.cycleAssessment.update({ where: { id: assessmentRow.id }, data: { status: "FAILED" } });

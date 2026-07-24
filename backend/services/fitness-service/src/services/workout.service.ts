@@ -3,6 +3,7 @@ import { prisma } from "../repositories/prisma";
 import { workoutRepository } from "../repositories/workout.repository";
 import { exerciseRepository } from "../repositories/exercise.repository";
 import { checkMissingExerciseIds } from "../utils/workout-validation";
+import { invalidateCycleProgressCache } from "./training-cycle.service";
 import type {
   CreateManualProgramDto,
   CreateWorkoutDto,
@@ -277,6 +278,15 @@ async function recomputeScheduleProgress(
       startedAt: schedule.startedAt || (schedule.workoutId ? new Date() : null),
     },
   });
+
+  // Adaptive Training Cycle Evaluation: this session's progress just
+  // changed — invalidate the cached cycle-progress summary if it's linked
+  // to one. Fire-and-forget (best-effort, matches exercise.repository.ts's
+  // cache-invalidation style) so a slow/unavailable Redis never blocks or
+  // fails the workout-logging request; the 120s TTL self-heals regardless.
+  if (schedule.trainingCycleId) {
+    void invalidateCycleProgressCache(schedule.trainingCycleId).catch(() => {});
+  }
 
   return {
     sessionId: schedule.workoutId,
