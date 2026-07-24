@@ -50,6 +50,7 @@ export interface CycleMetricsResult {
   rpeTrend: RpeTrend["trend"];
   averageRir: number | null; // always null — no RIR data source in this schema today, see note at bottom of file
   painTrend: FieldTrend | null;
+  averagePainScore: number | null;
   fatigueScore: number | null;
   recoveryScore: number | null;
   bodyWeightTrend: FieldTrend | null;
@@ -365,6 +366,7 @@ export async function computeCycleMetrics(params: {
     rpeTrend: fatigueRecovery.rpeTrend,
     averageRir: null,
     painTrend: fatigueRecovery.painTrend,
+    averagePainScore: fatigueRecovery.averagePainScore,
     fatigueScore: fatigueRecovery.fatigueScore,
     recoveryScore: fatigueRecovery.recoveryScore,
     bodyWeightTrend,
