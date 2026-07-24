@@ -48,42 +48,384 @@ hành động).
 
 ---
 
-## 2. Đặc tả chi tiết các Use Case chính
+## 2. Đặc tả chi tiết các Use Case
+
+Mỗi use case được đặc tả theo mẫu: Tiền điều kiện / Hậu điều kiện / Actor
+chính / Actor phụ / Basic flow (2 cột Actor↔System) / Alternative flow /
+Exception.
 
 ### UC01 — Tạo chu kỳ tập luyện mới
 
-- **Actor:** Người dùng
-- **Điều kiện tiên quyết:** Đã đăng nhập; không có chu kỳ nào đang `ACTIVE` (nếu tạo trực tiếp ở trạng thái `ACTIVE`).
-- **Luồng chính:**
-  1. Người dùng gọi tạo chu kỳ, có thể kèm `name`, `durationDays`, `targetMetrics`.
-  2. Hệ thống tự tăng `cycleIndex`, lấy `goal` từ hồ sơ người dùng, tìm bản ghi InBody gần nhất làm mốc bắt đầu.
-  3. Chu kỳ được tạo với trạng thái `ACTIVE` (mặc định) hoặc `DRAFT` (nếu chọn).
-- **Luồng thay thế:** Nếu đã có chu kỳ `ACTIVE` khác và người dùng yêu cầu tạo trực tiếp `ACTIVE` → hệ thống từ chối (409), không tạo trùng.
-- **Hậu điều kiện:** Một bản ghi `TrainingCycle` mới tồn tại, thuộc về đúng người dùng.
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đăng nhập thành công.<br>- Người dùng đã có hồ sơ tập luyện (goal, thông số cơ thể).<br>- Không tồn tại chu kỳ nào của người dùng đang ở trạng thái ACTIVE (áp dụng khi tạo trực tiếp ở trạng thái ACTIVE). |
+| **Hậu điều kiện** | Tạo được chu kỳ tập luyện mới. |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Chọn chức năng **Tạo chu kỳ tập luyện**, nhập tên, thời lượng, chỉ tiêu (tuỳ chọn). | 2. Kiểm tra chưa có chu kỳ ACTIVE nào; lấy `goal` từ hồ sơ và bản ghi InBody gần nhất làm mốc bắt đầu.<br>3. Tạo chu kỳ mới, tự tăng số thứ tự chu kỳ, hiển thị thông báo tạo thành công. |
+
+**Alternative flow**
+
+A1. Người dùng chọn tạo ở trạng thái nháp (DRAFT) — hệ thống bỏ qua bước
+kiểm tra chu kỳ ACTIVE, tạo ngay chu kỳ DRAFT, không gán InBody bắt đầu.
+
+**Exception**
+
+2.1 Đã tồn tại chu kỳ đang hoạt động
+
+1. Hệ thống hiển thị thông báo lỗi "Đã có chu kỳ đang hoạt động."
+2. Kết thúc use case.
+
+---
+
+### UC02 — Bắt đầu chu kỳ nháp (DRAFT → ACTIVE)
+
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đăng nhập thành công.<br>- Có ít nhất 1 chu kỳ ở trạng thái DRAFT thuộc về người dùng.<br>- Không có chu kỳ nào khác đang ACTIVE. |
+| **Hậu điều kiện** | Chu kỳ chuyển sang trạng thái ACTIVE với ngày bắt đầu/kết thúc chính thức. |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Chọn **Bắt đầu chu kỳ** trên một chu kỳ đang ở trạng thái nháp. | 2. Kiểm tra chu kỳ đang DRAFT và không có ACTIVE khác; lấy chỉ số InBody gần nhất làm mốc bắt đầu.<br>3. Cập nhật trạng thái ACTIVE, tính lại ngày bắt đầu/kết thúc tại thời điểm kích hoạt, hiển thị xác nhận. |
+
+**Alternative flow**
+
+Không có.
+
+**Exception**
+
+2.1 Chu kỳ không ở trạng thái DRAFT
+
+1. Hệ thống hiển thị thông báo lỗi "Chỉ có thể bắt đầu chu kỳ ở trạng thái nháp."
+2. Kết thúc use case.
+
+2.2 Đã tồn tại chu kỳ ACTIVE khác
+
+1. Hệ thống hiển thị thông báo lỗi "Đã có chu kỳ đang hoạt động."
+2. Kết thúc use case.
+
+---
+
+### UC03 — Cập nhật thông tin chu kỳ
+
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đăng nhập thành công.<br>- Chu kỳ tồn tại và thuộc về người dùng.<br>- Chu kỳ đang ở trạng thái DRAFT hoặc ACTIVE. |
+| **Hậu điều kiện** | Thông tin chu kỳ (tên / chỉ tiêu / cấu hình) được cập nhật. |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Chọn **Sửa thông tin chu kỳ**, nhập tên/chỉ tiêu/cấu hình mới. | 2. Kiểm tra quyền sở hữu và trạng thái chu kỳ.<br>3. Cập nhật dữ liệu, hiển thị thông tin mới. |
+
+**Alternative flow**
+
+Không có.
+
+**Exception**
+
+2.1 Chu kỳ đã đóng (COMPLETED / ANALYZED)
+
+1. Hệ thống hiển thị thông báo lỗi "Không thể sửa chu kỳ đã đóng."
+2. Kết thúc use case.
+
+---
+
+### UC04 — Theo dõi tiến độ chu kỳ đang diễn ra
+
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đăng nhập thành công.<br>- Có chu kỳ đang ACTIVE (hoặc chỉ định một chu kỳ cụ thể). |
+| **Hậu điều kiện** | Xem được tiến độ chu kỳ: tỉ lệ tuân thủ, volume tập luyện, xu hướng, cảnh báo. |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Chọn chức năng **Xem tiến độ chu kỳ**. | 2. Tính toán (hoặc lấy từ cache) tỉ lệ tuân thủ, volume theo tuần, xu hướng sức mạnh/hồi phục, cảnh báo.<br>3. Hiển thị bảng tiến độ. |
+
+**Alternative flow**
+
+Không có.
+
+**Exception**
+
+2.1 Không có chu kỳ nào đang hoạt động
+
+1. Hệ thống hiển thị thông báo "Bạn chưa có chu kỳ tập luyện nào đang diễn ra."
+2. Kết thúc use case.
+
+---
+
+### UC05 — Ghi nhận buổi tập vào chu kỳ
+
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đăng nhập thành công.<br>- Có chu kỳ đang ACTIVE.<br>- Có lịch tập trong ngày. |
+| **Hậu điều kiện** | Buổi tập được đánh dấu hoàn thành và gắn với chu kỳ đang hoạt động. |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Thực hiện và hoàn thành các bài tập trong buổi tập (set/rep/weight). | 2. Ghi nhận tiến độ từng bài tập, tính % hoàn thành buổi tập.<br>3. Khi đạt 100%, cập nhật trạng thái buổi tập = COMPLETED, gắn với chu kỳ đang hoạt động, làm mới cache tiến độ. |
+
+**Alternative flow**
+
+A1. Không có chu kỳ ACTIVE nào tại thời điểm ghi nhận — buổi tập vẫn được
+lưu bình thường nhưng không gắn với chu kỳ nào.
+
+**Exception**
+
+Không có.
+
+---
+
+### UC06 — Liên kết chỉ số InBody vào chu kỳ
+
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đăng nhập thành công.<br>- Chu kỳ tồn tại, đang ở trạng thái DRAFT hoặc ACTIVE.<br>- Có bản ghi đo InBody hợp lệ. |
+| **Hậu điều kiện** | Bản ghi InBody được liên kết với chu kỳ, phục vụ tính xu hướng cơ thể. |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Sau khi đo InBody, chọn **Liên kết vào chu kỳ hiện tại**. | 2. Kiểm tra bản ghi InBody và trạng thái chu kỳ hợp lệ.<br>3. Lưu liên kết (bỏ qua nếu đã liên kết trước đó), làm mới cache tiến độ. |
+
+**Alternative flow**
+
+Không có.
+
+**Exception**
+
+2.1 Chu kỳ đã đóng
+
+1. Hệ thống hiển thị thông báo lỗi "Không thể liên kết số đo vào chu kỳ đã đóng."
+2. Kết thúc use case.
+
+---
+
+### UC07 — Kết thúc chu kỳ (luồng nhanh)
+
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đăng nhập thành công.<br>- Chu kỳ đang ở trạng thái ACTIVE. |
+| **Hậu điều kiện** | Chu kỳ chuyển COMPLETED rồi ANALYZED, có quyết định đề xuất (KEEP / ADJUST / NEW_PLAN). |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Chọn **Kết thúc chu kỳ**. | 2. Tính chỉ số tổng kết (tuân thủ, volume, thay đổi InBody), chuyển trạng thái COMPLETED, trả kết quả ngay lập tức.<br>3. (Chạy nền) Gửi dữ liệu cho AI phân tích, nhận quyết định, cập nhật trạng thái ANALYZED. |
+
+**Alternative flow**
+
+A1. AI không phản hồi được — hệ thống tự áp dụng quy tắc mặc định theo xu
+hướng tổng thể (không chặn use case).
+
+**Exception**
+
+2.1 Không tìm thấy chu kỳ hoặc chu kỳ không thuộc người dùng
+
+1. Hệ thống hiển thị thông báo lỗi "Không tìm thấy chu kỳ."
+2. Kết thúc use case.
+
+---
 
 ### UC08 — Đánh giá chu kỳ nâng cao
 
-- **Actor chính:** Người dùng (kích hoạt), **Actor phụ:** AI System.
-- **Điều kiện tiên quyết:** Chu kỳ tồn tại, không ở trạng thái `DRAFT`.
-- **Luồng chính:**
-  1. Người dùng bấm "Đánh giá chu kỳ".
-  2. Hệ thống tính toán số liệu deterministic (adherence, volume, 1RM, độ tin cậy dữ liệu InBody...).
-  3. Decision Engine ra quyết định trong 6 mức: KEEP / PROGRESS / ADJUST / DELOAD / REBUILD / INSUFFICIENT_DATA, kèm lý do (`reasonCodes`).
-  4. AI System chỉ **giải thích** quyết định bằng ngôn ngữ tự nhiên — không được đổi quyết định.
-  5. Kết quả lưu thành một bản ghi `CycleAssessment` mới (tăng version), người dùng nhận thông báo.
-- **Luồng thay thế:**
-  - Nếu đang có một đánh giá `PENDING` cho chu kỳ này → trả về đánh giá đó, không tính toán lại (đảm bảo idempotent).
-  - Nếu dữ liệu quá ít (chu kỳ quá ngắn, quá ít buổi tập, adherence quá thấp, không đủ số liệu InBody so sánh được) → quyết định luôn là `INSUFFICIENT_DATA`.
-  - Nếu phát hiện điểm đau cao/xu hướng đau tăng → gắn `safetyFlags`, không đề xuất tăng tải bất kể các chỉ số khác tốt thế nào.
-- **Hậu điều kiện:** `CycleAssessment` mới ở trạng thái `COMPLETED` (hoặc `FAILED` nếu lỗi hệ thống), `userDecision = PENDING` chờ người dùng phản hồi (UC10).
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đăng nhập thành công.<br>- Chu kỳ tồn tại, không ở trạng thái DRAFT. |
+| **Hậu điều kiện** | Một bản đánh giá mới (`CycleAssessment`) hoàn tất, chờ người dùng phản hồi (UC10). |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System (AI) |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Chọn **Đánh giá chu kỳ**. | 2. Tính số liệu deterministic: tỉ lệ tuân thủ, volume, 1RM, độ tin cậy dữ liệu InBody.<br>3. Decision Engine ra quyết định 1 trong 6 mức (KEEP / PROGRESS / ADJUST / DELOAD / REBUILD / INSUFFICIENT_DATA), kèm lý do rõ ràng.<br>4. AI chỉ diễn giải quyết định bằng ngôn ngữ tự nhiên — không được đổi quyết định.<br>5. Lưu kết quả thành bản đánh giá mới, gửi thông báo cho người dùng. |
+
+**Alternative flow**
+
+A1. Đang có một đánh giá chờ xử lý cho chu kỳ này — hệ thống trả về đánh
+giá đó, không tính toán lại (đảm bảo idempotent), không tạo bản ghi mới.
+
+**Exception**
+
+3.1 Dữ liệu quá ít để đánh giá (chu kỳ quá ngắn, quá ít buổi tập, tỉ lệ
+tuân thủ quá thấp, không đủ số liệu InBody so sánh được)
+
+1. Hệ thống ghi nhận quyết định là "Chưa đủ dữ liệu" (INSUFFICIENT_DATA) kèm lý do cụ thể.
+2. Kết thúc use case.
+
+3.2 Phát hiện điểm đau cao hoặc xu hướng đau tăng liên tục
+
+1. Hệ thống gắn cảnh báo an toàn vào kết quả, không đề xuất tăng tải dù các chỉ số khác tốt (xem UC13).
+2. Tiếp tục use case ở bước 5.
+
+---
+
+### UC09 — Xem lịch sử đánh giá của một chu kỳ
+
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đăng nhập thành công.<br>- Chu kỳ tồn tại và thuộc về người dùng. |
+| **Hậu điều kiện** | Xem được danh sách đánh giá hoặc đánh giá mới nhất. |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Chọn **Xem lịch sử đánh giá**. | 2. Truy vấn danh sách đánh giá theo chu kỳ (có phân trang) hoặc đánh giá mới nhất.<br>3. Hiển thị kết quả. |
+
+**Alternative flow**
+
+Không có.
+
+**Exception**
+
+2.1 Chưa có đánh giá nào cho chu kỳ này
+
+1. Hệ thống hiển thị thông báo "Chưa có đánh giá nào cho chu kỳ này."
+2. Kết thúc use case.
+
+---
 
 ### UC10 — Chấp nhận / Từ chối đề xuất của AI
 
-- **Actor:** Người dùng
-- **Điều kiện tiên quyết:** Đã có ít nhất một `CycleAssessment` ở trạng thái `COMPLETED`, `userDecision = PENDING`.
-- **Luồng chính:** Người dùng chọn "Chấp nhận" hoặc "Giữ lịch hiện tại" (từ chối) → hệ thống ghi nhận `userDecision` + `reviewedAt`.
-- **Ràng buộc quan trọng:** Hành động này **không** tự động tạo hay kích hoạt chu kỳ/lịch tập mới — việc mở chu kỳ tiếp theo luôn là một bước riêng, người dùng chủ động (UC01/UC02).
-- **Luồng ngoại lệ:** Đánh giá đã được review trước đó (`userDecision != PENDING`) → từ chối thao tác lần 2 (409).
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đăng nhập thành công.<br>- Đã có ít nhất một đánh giá hoàn tất, chưa được phản hồi (`userDecision = PENDING`). |
+| **Hậu điều kiện** | Đề xuất được ghi nhận là đã chấp nhận hoặc từ chối; **không** có chu kỳ/plan mới nào được tự động tạo hay kích hoạt. |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Xem đề xuất, chọn **Chấp nhận** hoặc **Giữ lịch hiện tại**. | 2. Kiểm tra đánh giá tồn tại và chưa được phản hồi.<br>3. Ghi nhận `userDecision` (ACCEPTED/REJECTED) và thời điểm phản hồi, hiển thị xác nhận. |
+
+**Alternative flow**
+
+Không có. *(Việc mở chu kỳ tiếp theo sau khi chấp nhận luôn là một bước
+riêng, người dùng chủ động thực hiện ở UC01/UC02 — không tự động.)*
+
+**Exception**
+
+2.1 Đánh giá đã được phản hồi trước đó
+
+1. Hệ thống hiển thị thông báo lỗi "Đề xuất này đã được xử lý."
+2. Kết thúc use case.
+
+---
+
+### UC11 — Duyệt quyết định & mở chu kỳ tiếp theo (luồng nhanh)
+
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đăng nhập thành công.<br>- Chu kỳ ở trạng thái ANALYZED, đã có quyết định đề xuất. |
+| **Hậu điều kiện** | Ghi nhận kế hoạch (`nextPlanId`) cho chu kỳ tiếp theo. |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Xem đề xuất, chọn **Đồng ý — mở chu kỳ tiếp theo**. | 2. Kiểm tra chu kỳ đang ở trạng thái ANALYZED.<br>3. Ghi nhận kế hoạch tiếp theo vào chu kỳ. |
+
+**Alternative flow**
+
+Không có.
+
+**Exception**
+
+2.1 Chu kỳ chưa được phân tích xong
+
+1. Hệ thống hiển thị thông báo lỗi "Chu kỳ cần được phân tích trước khi duyệt quyết định."
+2. Kết thúc use case.
+
+---
+
+### UC12 — Xem lịch sử các chu kỳ đã qua
+
+| | |
+|---|---|
+| **Tiền điều kiện** | Đăng nhập thành công. |
+| **Hậu điều kiện** | Xem được danh sách các chu kỳ trước đó, sắp xếp theo ngày bắt đầu giảm dần. |
+| **Actor chính** | Người dùng |
+| **Actor phụ** | System |
+
+**Basic flow**
+
+| Người dùng | System |
+|---|---|
+| 1. Chọn chức năng **Lịch sử chu kỳ**. | 2. Truy vấn danh sách chu kỳ theo người dùng, sắp xếp theo ngày bắt đầu giảm dần.<br>3. Hiển thị danh sách. |
+
+**Alternative flow**
+
+Không có.
+
+**Exception**
+
+2.1 Chưa có chu kỳ nào được hoàn thành
+
+1. Hệ thống hiển thị thông báo "Chưa có chu kỳ nào được hoàn thành."
+2. Kết thúc use case.
+
+---
+
+### UC13 — Nhận cảnh báo an toàn khi có dấu hiệu đau/chấn thương
+
+| | |
+|---|---|
+| **Tiền điều kiện** | - Đang thực hiện UC08 (Đánh giá chu kỳ nâng cao).<br>- Có dữ liệu điểm đau (`painScore`) được ghi nhận trong chu kỳ (qua phản hồi sau buổi tập). |
+| **Hậu điều kiện** | Người dùng nhận được cảnh báo an toàn rõ ràng; không có đề xuất tăng tải nào được đưa ra. |
+| **Actor chính** | System (AI) |
+| **Actor phụ** | Người dùng |
+
+**Basic flow**
+
+| System | Người dùng |
+|---|---|
+| 1. Trong lúc tính toán đánh giá (UC08), phát hiện điểm đau cao hoặc xu hướng đau tăng liên tục qua nhiều buổi tập.<br>2. Gắn cờ cảnh báo an toàn vào kết quả đánh giá; chặn mọi đề xuất tăng tải bất kể chỉ số khác tốt thế nào; không tự chẩn đoán nguyên nhân. | 3. Xem cảnh báo trong kết quả đánh giá, được khuyến nghị dừng bài tập gây đau và tham khảo chuyên gia y tế/huấn luyện viên phù hợp. |
+
+**Alternative flow**
+
+Không có.
+
+**Exception**
+
+Không có — cảnh báo luôn được gắn kèm quyết định chính (UC08), không làm
+gián đoạn luồng đánh giá.
 
 ---
 
