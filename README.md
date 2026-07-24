@@ -45,6 +45,11 @@ and `OLLAMA_BASE_URL=http://ollama:11434`.
 | Redis           | 6379 | Cache and queues                 |
 | Qdrant          | 6333 | Vector database                  |
 
+Training-cycle tracking and the adaptive, 6-decision evaluation flow
+(Fitness Service + AI Service) are documented in
+[`docs/adaptive-training-cycle-evaluation.md`](docs/adaptive-training-cycle-evaluation.md)
+(extends the earlier [`docs/training-cycle-v2.md`](docs/training-cycle-v2.md)).
+
 ## Quick Start
 
 Start the dev stack:

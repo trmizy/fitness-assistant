@@ -410,8 +410,42 @@ File Redis repository tồn tại nhưng không có controller nào sử dụng 
 **Việc cần làm:**
 
 - [ ] Cache exercise list (873 items, không thay đổi thường xuyên) — TTL 1 giờ
-- [ ] Cache user workout history — TTL 5 phút, invalidate khi có workout mới
+- [x] Cache user workout history — TTL 5 phút, invalidate khi có workout mới —
+  **một phần đã làm**: `GET /training-cycles/:id/progress` cache 120s,
+  invalidate khi workout hoàn thành hoặc InBody được liên kết (xem 5.7 bên
+  dưới). Danh sách exercise (873 items) và nutrition summary vẫn chưa cache.
 - [ ] Cache nutrition daily summary — TTL 10 phút
+
+---
+
+### 5.7 Adaptive Training Cycle Evaluation (hoàn thành 2026-07)
+
+Mở rộng chức năng chu kỳ tập luyện (mục 5, `training-cycle-v2.md` trước đó)
+thành hệ thống đánh giá 6 trạng thái quyết định (KEEP/PROGRESS/ADJUST/
+DELOAD/REBUILD/INSUFFICIENT_DATA) với Decision Engine deterministic tách
+biệt khỏi LLM, InBody data-quality evaluator, per-session readiness/RPE/pain
+feedback, lịch sử đánh giá có version, và safety flag cho pain/injury. Chi
+tiết đầy đủ: [`docs/adaptive-training-cycle-evaluation.md`](docs/adaptive-training-cycle-evaluation.md).
+
+Toàn bộ API/bảng của v2 giữ nguyên không đổi (backward compatible) — đây là
+một luồng bổ sung, không phải thay thế.
+
+**Rủi ro kỹ thuật còn tồn đọng** (xem thêm phần "Giới hạn đã biết" trong doc
+trên):
+- Migration history của fitness-service có 8 migration cũ (từ trước tính
+  năng này) chưa từng được `prisma migrate` ghi nhận là "applied" dù đã áp
+  dụng thật vào DB — `prisma migrate dev` sẽ lỗi ở bước shadow-DB replay khi
+  chạy lại. Migration của tính năng này (`20260721000000_adaptive_cycle_evaluation`)
+  đã được reconcile đúng cách, nhưng khoảng nợ kỹ thuật cũ đó vẫn còn, chưa
+  được dọn.
+- Notification "assessment ready" chỉ real-time (không lưu lịch sử).
+- `averageRir` và `weightWaterConflict` luôn null/false — thiếu cột dữ liệu
+  nguồn tương ứng trong schema hiện tại.
+- Cycle Progress UI chưa vẽ được line chart cho xu hướng InBody (chỉ có
+  badge xu hướng) — cần mở rộng `GET /:id/progress` để trả về từng điểm đo.
+- Frontend `frontend/web` không có `tsconfig.json`/lệnh typecheck riêng —
+  không xác nhận được bằng `tsc --noEmit`, chỉ xác nhận qua `vite build`
+  thành công.
 
 ---
 
