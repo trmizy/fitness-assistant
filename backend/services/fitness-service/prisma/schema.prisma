@@ -301,17 +301,21 @@ model WorkoutSchedule {
   sourcePlanId    String?  @map("source_plan_id")
   sourceType      String?  @map("source_type")
   notes           String?
+  trainingCycleId String?  @map("training_cycle_id") // optional link to the active TrainingCycle this session counts toward
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   programDay      WorkoutProgramDay? @relation(fields: [programDayId], references: [id], onDelete: SetNull)
   workout         Workout?           @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  trainingCycle   TrainingCycle?     @relation(fields: [trainingCycleId], references: [id], onDelete: SetNull)
+  sessionFeedback CycleSessionFeedback?
 
   @@unique([userId, date])
   @@index([userId, date])
   @@index([userId, sourcePlanId])
   @@index([programDayId])
   @@index([workoutId])
+  @@index([trainingCycleId])
   @@map("workout_schedules")
 }
 
@@ -347,12 +351,112 @@ model TrainingCycle {
   aiAnalysis Json?   @map("ai_analysis") // full structured LLM output (cycleReview + keepDetails/adjustDetails/newPlanDraft/mealPlanDraft)
   nextPlanId String? @map("next_plan_id") // set once the user approves a decision and cycle N+1's plan is created
 
+  // ── Adaptive Training Cycle Evaluation additions (additive; the fields
+  // above stay wired to the legacy /complete → analyzeCycleSafe → ANALYZED
+  // path unchanged). name/baselineMetrics/targetMetrics/configuration back
+  // the new richer /evaluate flow; status gains DRAFT/CANCELLED alongside the
+  // existing ACTIVE/COMPLETED/ANALYZED values (still a plain string, matching
+  // this schema's house style). goalType is NOT duplicated — `goal` above
+  // already carries the same enum values (WEIGHT_LOSS/MUSCLE_GAIN/etc.) and
+  // is reused as-is by the new Decision Engine.
+  name           String? // user-facing cycle name, e.g. "Bulk block 1"
+  actualEndDate  DateTime? @map("actual_end_date") // when the cycle was actually closed, vs. planned endDate above
+  baselineMetrics Json?    @map("baseline_metrics") // deterministic snapshot computed at cycle start (Phase 1 engine output)
+  targetMetrics   Json?    @map("target_metrics") // user/PT-set targets for this cycle, optional
+  configuration   Json?    // per-cycle engine config overrides, e.g. priority/primary lift list for weighted volume scoring
+
+  sessions        WorkoutSchedule[]
+  sessionFeedback CycleSessionFeedback[]
+  inbodyLinks     CycleInBodyLink[]
+  assessments     CycleAssessment[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId, status])
   @@index([userId, startDate])
   @@map("training_cycles")
+}
+
+// 🧪 Versioned, auditable assessment history for a TrainingCycle — the new
+// "Adaptive Training Cycle Evaluation" decision (6 states) + reasoning,
+// separate from the legacy 3-state TrainingCycle.decision/aiAnalysis columns
+// above (which stay untouched, written only by the old /complete path).
+// One cycle can accumulate multiple assessments over time (early-evaluate
+// requests, regenerate-after-new-data); assessmentVersion is a per-cycle
+// sequence enforced by the unique index below for /evaluate idempotency.
+model CycleAssessment {
+  id               String   @id @default(uuid())
+  cycleId          String   @map("cycle_id")
+  assessmentVersion Int     @map("assessment_version") // 1,2,3... sequential per cycleId, computed in app code
+  status           String   @default("PENDING") @map("status") // PENDING | COMPLETED | FAILED
+
+  decision         String?  // KEEP | PROGRESS | ADJUST | DELOAD | REBUILD | INSUFFICIENT_DATA
+  confidenceScore  Float?   @map("confidence_score") // 0-1, from CycleDecisionEngine
+  dataQualityScore Float?   @map("data_quality_score") // 0-1, from InBodyDataQualityEvaluator + engine data-completeness check
+
+  // Decision Engine output (deterministic — see plan's design decision 7)
+  computedMetrics Json? @map("computed_metrics") // full CycleMetricsEngine output
+  reasonCodes     Json? @map("reason_codes") // string[] audit trail explaining the decision
+  conflictingSignals Json? @map("conflicting_signals")
+  safetyFlags     Json? @map("safety_flags")
+  recommendedActionScope Json? @map("recommended_action_scope")
+
+  // LLM explanation layer (ai-service /ai/assess-cycle) — never overrides `decision` above
+  aiSummary       String?  @map("ai_summary")
+  proposedChanges Json?    @map("proposed_changes")
+
+  userDecision String   @default("PENDING") @map("user_decision") // PENDING | ACCEPTED | REJECTED
+  reviewedAt   DateTime? @map("reviewed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cycle TrainingCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@unique([cycleId, assessmentVersion])
+  @@index([cycleId, createdAt])
+  @@map("cycle_assessments")
+}
+
+// 📝 Per-session subjective feedback (readiness/RPE/pain/notes) — kept
+// separate from WorkoutSchedule (which already owns plannedDate/
+// completedDate/completionStatus) rather than duplicating those fields;
+// 1:1 with the WorkoutSchedule row it's rated against.
+model CycleSessionFeedback {
+  id                String   @id @default(uuid())
+  cycleId           String   @map("cycle_id")
+  workoutScheduleId String   @unique @map("workout_schedule_id")
+
+  readinessScore Int? @map("readiness_score") // 1-10, pre-session
+  sessionRpe     Float? @map("session_rpe") // 1-10, post-session overall RPE
+  painScore      Int?   @map("pain_score") // 0-10, 0 = no pain
+  notes          String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  cycle           TrainingCycle   @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  workoutSchedule WorkoutSchedule @relation(fields: [workoutScheduleId], references: [id], onDelete: Cascade)
+
+  @@index([cycleId])
+  @@map("cycle_session_feedback")
+}
+
+// 🔗 Links a user-service InBodyEntry (cross-service, plain id, no Prisma FK)
+// to a TrainingCycle once the user confirms it should count toward this
+// cycle's body-composition trend — enables InBodyDataQualityEvaluator to use
+// more than just the two start/end snapshots when more measurements exist.
+model CycleInBodyLink {
+  id             String   @id @default(uuid())
+  cycleId        String   @map("cycle_id")
+  inbodyEntryId  String   @map("inbody_entry_id") // user-service InBodyEntry.id
+  linkedAt       DateTime @default(now()) @map("linked_at")
+
+  cycle TrainingCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@unique([cycleId, inbodyEntryId])
+  @@index([cycleId])
+  @@map("cycle_inbody_links")
 }
 
 // 🥗 Nutrition Program (from AI plan or manual, replaces mock data)

@@ -47,4 +47,17 @@ export const cycleThresholds = {
     // the cycle median to call it "lagging"
     laggingMuscleGroupCount: num("CYCLE_LAGGING_MUSCLE_GROUP_COUNT", 2),
   },
+
+  // Adaptive Training Cycle Evaluation — CycleDecisionEngine (6-state) gate
+  // thresholds. These are product defaults, not medical/scientific
+  // constants — tune via env per coaching philosophy.
+  assessment: {
+    minimumCycleDays: num("CYCLE_ASSESSMENT_MIN_CYCLE_DAYS", 28),
+    minimumCompletedSessions: num("CYCLE_ASSESSMENT_MIN_COMPLETED_SESSIONS", 8),
+    minimumAdherenceRate: num("CYCLE_ASSESSMENT_MIN_ADHERENCE_RATE", 0.7),
+    minimumComparableInBodyRecords: num("CYCLE_ASSESSMENT_MIN_COMPARABLE_INBODY", 2),
+    plateauWindowWeeks: num("CYCLE_ASSESSMENT_PLATEAU_WINDOW_WEEKS", 3),
+    highPainScore: num("CYCLE_ASSESSMENT_HIGH_PAIN_SCORE", 7),
+    lowConfidenceThreshold: num("CYCLE_ASSESSMENT_LOW_CONFIDENCE_THRESHOLD", 0.6),
+  },
 } as const;

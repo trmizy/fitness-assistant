@@ -298,6 +298,7 @@ exports.Prisma.WorkoutScheduleScalarFieldEnum = {
   sourcePlanId: 'sourcePlanId',
   sourceType: 'sourceType',
   notes: 'notes',
+  trainingCycleId: 'trainingCycleId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -319,8 +320,52 @@ exports.Prisma.TrainingCycleScalarFieldEnum = {
   decision: 'decision',
   aiAnalysis: 'aiAnalysis',
   nextPlanId: 'nextPlanId',
+  name: 'name',
+  actualEndDate: 'actualEndDate',
+  baselineMetrics: 'baselineMetrics',
+  targetMetrics: 'targetMetrics',
+  configuration: 'configuration',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CycleAssessmentScalarFieldEnum = {
+  id: 'id',
+  cycleId: 'cycleId',
+  assessmentVersion: 'assessmentVersion',
+  status: 'status',
+  decision: 'decision',
+  confidenceScore: 'confidenceScore',
+  dataQualityScore: 'dataQualityScore',
+  computedMetrics: 'computedMetrics',
+  reasonCodes: 'reasonCodes',
+  conflictingSignals: 'conflictingSignals',
+  safetyFlags: 'safetyFlags',
+  recommendedActionScope: 'recommendedActionScope',
+  aiSummary: 'aiSummary',
+  proposedChanges: 'proposedChanges',
+  userDecision: 'userDecision',
+  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.CycleSessionFeedbackScalarFieldEnum = {
+  id: 'id',
+  cycleId: 'cycleId',
+  workoutScheduleId: 'workoutScheduleId',
+  readinessScore: 'readinessScore',
+  sessionRpe: 'sessionRpe',
+  painScore: 'painScore',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CycleInBodyLinkScalarFieldEnum = {
+  id: 'id',
+  cycleId: 'cycleId',
+  inbodyEntryId: 'inbodyEntryId',
+  linkedAt: 'linkedAt'
 };
 
 exports.Prisma.NutritionProgramScalarFieldEnum = {
@@ -479,6 +524,9 @@ exports.Prisma.ModelName = {
   WorkoutProgramExercise: 'WorkoutProgramExercise',
   WorkoutSchedule: 'WorkoutSchedule',
   TrainingCycle: 'TrainingCycle',
+  CycleAssessment: 'CycleAssessment',
+  CycleSessionFeedback: 'CycleSessionFeedback',
+  CycleInBodyLink: 'CycleInBodyLink',
   NutritionProgram: 'NutritionProgram',
   NutritionProgramDay: 'NutritionProgramDay',
   NutritionProgramMeal: 'NutritionProgramMeal',

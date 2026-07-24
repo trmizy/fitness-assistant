@@ -84,6 +84,21 @@ export type WorkoutSchedule = $Result.DefaultSelection<Prisma.$WorkoutSchedulePa
  */
 export type TrainingCycle = $Result.DefaultSelection<Prisma.$TrainingCyclePayload>
 /**
+ * Model CycleAssessment
+ * 
+ */
+export type CycleAssessment = $Result.DefaultSelection<Prisma.$CycleAssessmentPayload>
+/**
+ * Model CycleSessionFeedback
+ * 
+ */
+export type CycleSessionFeedback = $Result.DefaultSelection<Prisma.$CycleSessionFeedbackPayload>
+/**
+ * Model CycleInBodyLink
+ * 
+ */
+export type CycleInBodyLink = $Result.DefaultSelection<Prisma.$CycleInBodyLinkPayload>
+/**
  * Model NutritionProgram
  * 
  */
@@ -438,6 +453,36 @@ export class PrismaClient<
     * ```
     */
   get trainingCycle(): Prisma.TrainingCycleDelegate<ExtArgs>;
+
+  /**
+   * `prisma.cycleAssessment`: Exposes CRUD operations for the **CycleAssessment** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CycleAssessments
+    * const cycleAssessments = await prisma.cycleAssessment.findMany()
+    * ```
+    */
+  get cycleAssessment(): Prisma.CycleAssessmentDelegate<ExtArgs>;
+
+  /**
+   * `prisma.cycleSessionFeedback`: Exposes CRUD operations for the **CycleSessionFeedback** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CycleSessionFeedbacks
+    * const cycleSessionFeedbacks = await prisma.cycleSessionFeedback.findMany()
+    * ```
+    */
+  get cycleSessionFeedback(): Prisma.CycleSessionFeedbackDelegate<ExtArgs>;
+
+  /**
+   * `prisma.cycleInBodyLink`: Exposes CRUD operations for the **CycleInBodyLink** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CycleInBodyLinks
+    * const cycleInBodyLinks = await prisma.cycleInBodyLink.findMany()
+    * ```
+    */
+  get cycleInBodyLink(): Prisma.CycleInBodyLinkDelegate<ExtArgs>;
 
   /**
    * `prisma.nutritionProgram`: Exposes CRUD operations for the **NutritionProgram** model.
@@ -943,6 +988,9 @@ export namespace Prisma {
     WorkoutProgramExercise: 'WorkoutProgramExercise',
     WorkoutSchedule: 'WorkoutSchedule',
     TrainingCycle: 'TrainingCycle',
+    CycleAssessment: 'CycleAssessment',
+    CycleSessionFeedback: 'CycleSessionFeedback',
+    CycleInBodyLink: 'CycleInBodyLink',
     NutritionProgram: 'NutritionProgram',
     NutritionProgramDay: 'NutritionProgramDay',
     NutritionProgramMeal: 'NutritionProgramMeal',
@@ -963,7 +1011,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule" | "trainingCycle" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion"
+      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule" | "trainingCycle" | "cycleAssessment" | "cycleSessionFeedback" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1947,6 +1995,216 @@ export namespace Prisma {
           }
         }
       }
+      CycleAssessment: {
+        payload: Prisma.$CycleAssessmentPayload<ExtArgs>
+        fields: Prisma.CycleAssessmentFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CycleAssessmentFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleAssessmentPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CycleAssessmentFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleAssessmentPayload>
+          }
+          findFirst: {
+            args: Prisma.CycleAssessmentFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleAssessmentPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CycleAssessmentFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleAssessmentPayload>
+          }
+          findMany: {
+            args: Prisma.CycleAssessmentFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleAssessmentPayload>[]
+          }
+          create: {
+            args: Prisma.CycleAssessmentCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleAssessmentPayload>
+          }
+          createMany: {
+            args: Prisma.CycleAssessmentCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CycleAssessmentCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleAssessmentPayload>[]
+          }
+          delete: {
+            args: Prisma.CycleAssessmentDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleAssessmentPayload>
+          }
+          update: {
+            args: Prisma.CycleAssessmentUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleAssessmentPayload>
+          }
+          deleteMany: {
+            args: Prisma.CycleAssessmentDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CycleAssessmentUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.CycleAssessmentUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleAssessmentPayload>
+          }
+          aggregate: {
+            args: Prisma.CycleAssessmentAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCycleAssessment>
+          }
+          groupBy: {
+            args: Prisma.CycleAssessmentGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CycleAssessmentGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CycleAssessmentCountArgs<ExtArgs>
+            result: $Utils.Optional<CycleAssessmentCountAggregateOutputType> | number
+          }
+        }
+      }
+      CycleSessionFeedback: {
+        payload: Prisma.$CycleSessionFeedbackPayload<ExtArgs>
+        fields: Prisma.CycleSessionFeedbackFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CycleSessionFeedbackFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleSessionFeedbackPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CycleSessionFeedbackFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleSessionFeedbackPayload>
+          }
+          findFirst: {
+            args: Prisma.CycleSessionFeedbackFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleSessionFeedbackPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CycleSessionFeedbackFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleSessionFeedbackPayload>
+          }
+          findMany: {
+            args: Prisma.CycleSessionFeedbackFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleSessionFeedbackPayload>[]
+          }
+          create: {
+            args: Prisma.CycleSessionFeedbackCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleSessionFeedbackPayload>
+          }
+          createMany: {
+            args: Prisma.CycleSessionFeedbackCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CycleSessionFeedbackCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleSessionFeedbackPayload>[]
+          }
+          delete: {
+            args: Prisma.CycleSessionFeedbackDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleSessionFeedbackPayload>
+          }
+          update: {
+            args: Prisma.CycleSessionFeedbackUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleSessionFeedbackPayload>
+          }
+          deleteMany: {
+            args: Prisma.CycleSessionFeedbackDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CycleSessionFeedbackUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.CycleSessionFeedbackUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleSessionFeedbackPayload>
+          }
+          aggregate: {
+            args: Prisma.CycleSessionFeedbackAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCycleSessionFeedback>
+          }
+          groupBy: {
+            args: Prisma.CycleSessionFeedbackGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CycleSessionFeedbackGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CycleSessionFeedbackCountArgs<ExtArgs>
+            result: $Utils.Optional<CycleSessionFeedbackCountAggregateOutputType> | number
+          }
+        }
+      }
+      CycleInBodyLink: {
+        payload: Prisma.$CycleInBodyLinkPayload<ExtArgs>
+        fields: Prisma.CycleInBodyLinkFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CycleInBodyLinkFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleInBodyLinkPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CycleInBodyLinkFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleInBodyLinkPayload>
+          }
+          findFirst: {
+            args: Prisma.CycleInBodyLinkFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleInBodyLinkPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CycleInBodyLinkFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleInBodyLinkPayload>
+          }
+          findMany: {
+            args: Prisma.CycleInBodyLinkFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleInBodyLinkPayload>[]
+          }
+          create: {
+            args: Prisma.CycleInBodyLinkCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleInBodyLinkPayload>
+          }
+          createMany: {
+            args: Prisma.CycleInBodyLinkCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CycleInBodyLinkCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleInBodyLinkPayload>[]
+          }
+          delete: {
+            args: Prisma.CycleInBodyLinkDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleInBodyLinkPayload>
+          }
+          update: {
+            args: Prisma.CycleInBodyLinkUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleInBodyLinkPayload>
+          }
+          deleteMany: {
+            args: Prisma.CycleInBodyLinkDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CycleInBodyLinkUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.CycleInBodyLinkUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CycleInBodyLinkPayload>
+          }
+          aggregate: {
+            args: Prisma.CycleInBodyLinkAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCycleInBodyLink>
+          }
+          groupBy: {
+            args: Prisma.CycleInBodyLinkGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CycleInBodyLinkGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CycleInBodyLinkCountArgs<ExtArgs>
+            result: $Utils.Optional<CycleInBodyLinkCountAggregateOutputType> | number
+          }
+        }
+      }
       NutritionProgram: {
         payload: Prisma.$NutritionProgramPayload<ExtArgs>
         fields: Prisma.NutritionProgramFieldRefs
@@ -2672,6 +2930,64 @@ export namespace Prisma {
    */
   export type WorkoutProgramDayCountOutputTypeCountSchedulesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: WorkoutScheduleWhereInput
+  }
+
+
+  /**
+   * Count Type TrainingCycleCountOutputType
+   */
+
+  export type TrainingCycleCountOutputType = {
+    sessions: number
+    sessionFeedback: number
+    inbodyLinks: number
+    assessments: number
+  }
+
+  export type TrainingCycleCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sessions?: boolean | TrainingCycleCountOutputTypeCountSessionsArgs
+    sessionFeedback?: boolean | TrainingCycleCountOutputTypeCountSessionFeedbackArgs
+    inbodyLinks?: boolean | TrainingCycleCountOutputTypeCountInbodyLinksArgs
+    assessments?: boolean | TrainingCycleCountOutputTypeCountAssessmentsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * TrainingCycleCountOutputType without action
+   */
+  export type TrainingCycleCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycleCountOutputType
+     */
+    select?: TrainingCycleCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * TrainingCycleCountOutputType without action
+   */
+  export type TrainingCycleCountOutputTypeCountSessionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkoutScheduleWhereInput
+  }
+
+  /**
+   * TrainingCycleCountOutputType without action
+   */
+  export type TrainingCycleCountOutputTypeCountSessionFeedbackArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CycleSessionFeedbackWhereInput
+  }
+
+  /**
+   * TrainingCycleCountOutputType without action
+   */
+  export type TrainingCycleCountOutputTypeCountInbodyLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CycleInBodyLinkWhereInput
+  }
+
+  /**
+   * TrainingCycleCountOutputType without action
+   */
+  export type TrainingCycleCountOutputTypeCountAssessmentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CycleAssessmentWhereInput
   }
 
 
@@ -15271,6 +15587,7 @@ export namespace Prisma {
     sourcePlanId: string | null
     sourceType: string | null
     notes: string | null
+    trainingCycleId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -15294,6 +15611,7 @@ export namespace Prisma {
     sourcePlanId: string | null
     sourceType: string | null
     notes: string | null
+    trainingCycleId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -15317,6 +15635,7 @@ export namespace Prisma {
     sourcePlanId: number
     sourceType: number
     notes: number
+    trainingCycleId: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -15362,6 +15681,7 @@ export namespace Prisma {
     sourcePlanId?: true
     sourceType?: true
     notes?: true
+    trainingCycleId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -15385,6 +15705,7 @@ export namespace Prisma {
     sourcePlanId?: true
     sourceType?: true
     notes?: true
+    trainingCycleId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -15408,6 +15729,7 @@ export namespace Prisma {
     sourcePlanId?: true
     sourceType?: true
     notes?: true
+    trainingCycleId?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -15518,6 +15840,7 @@ export namespace Prisma {
     sourcePlanId: string | null
     sourceType: string | null
     notes: string | null
+    trainingCycleId: string | null
     createdAt: Date
     updatedAt: Date
     _count: WorkoutScheduleCountAggregateOutputType | null
@@ -15560,10 +15883,13 @@ export namespace Prisma {
     sourcePlanId?: boolean
     sourceType?: boolean
     notes?: boolean
+    trainingCycleId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     programDay?: boolean | WorkoutSchedule$programDayArgs<ExtArgs>
     workout?: boolean | WorkoutSchedule$workoutArgs<ExtArgs>
+    trainingCycle?: boolean | WorkoutSchedule$trainingCycleArgs<ExtArgs>
+    sessionFeedback?: boolean | WorkoutSchedule$sessionFeedbackArgs<ExtArgs>
   }, ExtArgs["result"]["workoutSchedule"]>
 
   export type WorkoutScheduleSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -15585,10 +15911,12 @@ export namespace Prisma {
     sourcePlanId?: boolean
     sourceType?: boolean
     notes?: boolean
+    trainingCycleId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     programDay?: boolean | WorkoutSchedule$programDayArgs<ExtArgs>
     workout?: boolean | WorkoutSchedule$workoutArgs<ExtArgs>
+    trainingCycle?: boolean | WorkoutSchedule$trainingCycleArgs<ExtArgs>
   }, ExtArgs["result"]["workoutSchedule"]>
 
   export type WorkoutScheduleSelectScalar = {
@@ -15610,6 +15938,7 @@ export namespace Prisma {
     sourcePlanId?: boolean
     sourceType?: boolean
     notes?: boolean
+    trainingCycleId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -15617,10 +15946,13 @@ export namespace Prisma {
   export type WorkoutScheduleInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     programDay?: boolean | WorkoutSchedule$programDayArgs<ExtArgs>
     workout?: boolean | WorkoutSchedule$workoutArgs<ExtArgs>
+    trainingCycle?: boolean | WorkoutSchedule$trainingCycleArgs<ExtArgs>
+    sessionFeedback?: boolean | WorkoutSchedule$sessionFeedbackArgs<ExtArgs>
   }
   export type WorkoutScheduleIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     programDay?: boolean | WorkoutSchedule$programDayArgs<ExtArgs>
     workout?: boolean | WorkoutSchedule$workoutArgs<ExtArgs>
+    trainingCycle?: boolean | WorkoutSchedule$trainingCycleArgs<ExtArgs>
   }
 
   export type $WorkoutSchedulePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -15628,6 +15960,8 @@ export namespace Prisma {
     objects: {
       programDay: Prisma.$WorkoutProgramDayPayload<ExtArgs> | null
       workout: Prisma.$WorkoutPayload<ExtArgs> | null
+      trainingCycle: Prisma.$TrainingCyclePayload<ExtArgs> | null
+      sessionFeedback: Prisma.$CycleSessionFeedbackPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -15648,6 +15982,7 @@ export namespace Prisma {
       sourcePlanId: string | null
       sourceType: string | null
       notes: string | null
+      trainingCycleId: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["workoutSchedule"]>
@@ -16016,6 +16351,8 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     programDay<T extends WorkoutSchedule$programDayArgs<ExtArgs> = {}>(args?: Subset<T, WorkoutSchedule$programDayArgs<ExtArgs>>): Prisma__WorkoutProgramDayClient<$Result.GetResult<Prisma.$WorkoutProgramDayPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     workout<T extends WorkoutSchedule$workoutArgs<ExtArgs> = {}>(args?: Subset<T, WorkoutSchedule$workoutArgs<ExtArgs>>): Prisma__WorkoutClient<$Result.GetResult<Prisma.$WorkoutPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    trainingCycle<T extends WorkoutSchedule$trainingCycleArgs<ExtArgs> = {}>(args?: Subset<T, WorkoutSchedule$trainingCycleArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    sessionFeedback<T extends WorkoutSchedule$sessionFeedbackArgs<ExtArgs> = {}>(args?: Subset<T, WorkoutSchedule$sessionFeedbackArgs<ExtArgs>>): Prisma__CycleSessionFeedbackClient<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -16063,6 +16400,7 @@ export namespace Prisma {
     readonly sourcePlanId: FieldRef<"WorkoutSchedule", 'String'>
     readonly sourceType: FieldRef<"WorkoutSchedule", 'String'>
     readonly notes: FieldRef<"WorkoutSchedule", 'String'>
+    readonly trainingCycleId: FieldRef<"WorkoutSchedule", 'String'>
     readonly createdAt: FieldRef<"WorkoutSchedule", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkoutSchedule", 'DateTime'>
   }
@@ -16413,6 +16751,36 @@ export namespace Prisma {
   }
 
   /**
+   * WorkoutSchedule.trainingCycle
+   */
+  export type WorkoutSchedule$trainingCycleArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TrainingCycle
+     */
+    select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
+    where?: TrainingCycleWhereInput
+  }
+
+  /**
+   * WorkoutSchedule.sessionFeedback
+   */
+  export type WorkoutSchedule$sessionFeedbackArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+    where?: CycleSessionFeedbackWhereInput
+  }
+
+  /**
    * WorkoutSchedule without action
    */
   export type WorkoutScheduleDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -16464,6 +16832,8 @@ export namespace Prisma {
     lowConfidence: boolean | null
     decision: string | null
     nextPlanId: string | null
+    name: string | null
+    actualEndDate: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -16483,6 +16853,8 @@ export namespace Prisma {
     lowConfidence: boolean | null
     decision: string | null
     nextPlanId: string | null
+    name: string | null
+    actualEndDate: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -16504,6 +16876,11 @@ export namespace Prisma {
     decision: number
     aiAnalysis: number
     nextPlanId: number
+    name: number
+    actualEndDate: number
+    baselineMetrics: number
+    targetMetrics: number
+    configuration: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -16535,6 +16912,8 @@ export namespace Prisma {
     lowConfidence?: true
     decision?: true
     nextPlanId?: true
+    name?: true
+    actualEndDate?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -16554,6 +16933,8 @@ export namespace Prisma {
     lowConfidence?: true
     decision?: true
     nextPlanId?: true
+    name?: true
+    actualEndDate?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -16575,6 +16956,11 @@ export namespace Prisma {
     decision?: true
     aiAnalysis?: true
     nextPlanId?: true
+    name?: true
+    actualEndDate?: true
+    baselineMetrics?: true
+    targetMetrics?: true
+    configuration?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -16683,6 +17069,11 @@ export namespace Prisma {
     decision: string | null
     aiAnalysis: JsonValue | null
     nextPlanId: string | null
+    name: string | null
+    actualEndDate: Date | null
+    baselineMetrics: JsonValue | null
+    targetMetrics: JsonValue | null
+    configuration: JsonValue | null
     createdAt: Date
     updatedAt: Date
     _count: TrainingCycleCountAggregateOutputType | null
@@ -16723,8 +17114,18 @@ export namespace Prisma {
     decision?: boolean
     aiAnalysis?: boolean
     nextPlanId?: boolean
+    name?: boolean
+    actualEndDate?: boolean
+    baselineMetrics?: boolean
+    targetMetrics?: boolean
+    configuration?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    sessions?: boolean | TrainingCycle$sessionsArgs<ExtArgs>
+    sessionFeedback?: boolean | TrainingCycle$sessionFeedbackArgs<ExtArgs>
+    inbodyLinks?: boolean | TrainingCycle$inbodyLinksArgs<ExtArgs>
+    assessments?: boolean | TrainingCycle$assessmentsArgs<ExtArgs>
+    _count?: boolean | TrainingCycleCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["trainingCycle"]>
 
   export type TrainingCycleSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -16744,6 +17145,11 @@ export namespace Prisma {
     decision?: boolean
     aiAnalysis?: boolean
     nextPlanId?: boolean
+    name?: boolean
+    actualEndDate?: boolean
+    baselineMetrics?: boolean
+    targetMetrics?: boolean
+    configuration?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["trainingCycle"]>
@@ -16765,14 +17171,32 @@ export namespace Prisma {
     decision?: boolean
     aiAnalysis?: boolean
     nextPlanId?: boolean
+    name?: boolean
+    actualEndDate?: boolean
+    baselineMetrics?: boolean
+    targetMetrics?: boolean
+    configuration?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
+  export type TrainingCycleInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sessions?: boolean | TrainingCycle$sessionsArgs<ExtArgs>
+    sessionFeedback?: boolean | TrainingCycle$sessionFeedbackArgs<ExtArgs>
+    inbodyLinks?: boolean | TrainingCycle$inbodyLinksArgs<ExtArgs>
+    assessments?: boolean | TrainingCycle$assessmentsArgs<ExtArgs>
+    _count?: boolean | TrainingCycleCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type TrainingCycleIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $TrainingCyclePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "TrainingCycle"
-    objects: {}
+    objects: {
+      sessions: Prisma.$WorkoutSchedulePayload<ExtArgs>[]
+      sessionFeedback: Prisma.$CycleSessionFeedbackPayload<ExtArgs>[]
+      inbodyLinks: Prisma.$CycleInBodyLinkPayload<ExtArgs>[]
+      assessments: Prisma.$CycleAssessmentPayload<ExtArgs>[]
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       userId: string
@@ -16790,6 +17214,11 @@ export namespace Prisma {
       decision: string | null
       aiAnalysis: Prisma.JsonValue | null
       nextPlanId: string | null
+      name: string | null
+      actualEndDate: Date | null
+      baselineMetrics: Prisma.JsonValue | null
+      targetMetrics: Prisma.JsonValue | null
+      configuration: Prisma.JsonValue | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["trainingCycle"]>
@@ -17156,6 +17585,10 @@ export namespace Prisma {
    */
   export interface Prisma__TrainingCycleClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    sessions<T extends TrainingCycle$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, TrainingCycle$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkoutSchedulePayload<ExtArgs>, T, "findMany"> | Null>
+    sessionFeedback<T extends TrainingCycle$sessionFeedbackArgs<ExtArgs> = {}>(args?: Subset<T, TrainingCycle$sessionFeedbackArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "findMany"> | Null>
+    inbodyLinks<T extends TrainingCycle$inbodyLinksArgs<ExtArgs> = {}>(args?: Subset<T, TrainingCycle$inbodyLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CycleInBodyLinkPayload<ExtArgs>, T, "findMany"> | Null>
+    assessments<T extends TrainingCycle$assessmentsArgs<ExtArgs> = {}>(args?: Subset<T, TrainingCycle$assessmentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -17201,6 +17634,11 @@ export namespace Prisma {
     readonly decision: FieldRef<"TrainingCycle", 'String'>
     readonly aiAnalysis: FieldRef<"TrainingCycle", 'Json'>
     readonly nextPlanId: FieldRef<"TrainingCycle", 'String'>
+    readonly name: FieldRef<"TrainingCycle", 'String'>
+    readonly actualEndDate: FieldRef<"TrainingCycle", 'DateTime'>
+    readonly baselineMetrics: FieldRef<"TrainingCycle", 'Json'>
+    readonly targetMetrics: FieldRef<"TrainingCycle", 'Json'>
+    readonly configuration: FieldRef<"TrainingCycle", 'Json'>
     readonly createdAt: FieldRef<"TrainingCycle", 'DateTime'>
     readonly updatedAt: FieldRef<"TrainingCycle", 'DateTime'>
   }
@@ -17216,6 +17654,10 @@ export namespace Prisma {
      */
     select?: TrainingCycleSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
+    /**
      * Filter, which TrainingCycle to fetch.
      */
     where: TrainingCycleWhereUniqueInput
@@ -17230,6 +17672,10 @@ export namespace Prisma {
      */
     select?: TrainingCycleSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
+    /**
      * Filter, which TrainingCycle to fetch.
      */
     where: TrainingCycleWhereUniqueInput
@@ -17243,6 +17689,10 @@ export namespace Prisma {
      * Select specific fields to fetch from the TrainingCycle
      */
     select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
     /**
      * Filter, which TrainingCycle to fetch.
      */
@@ -17288,6 +17738,10 @@ export namespace Prisma {
      */
     select?: TrainingCycleSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
+    /**
      * Filter, which TrainingCycle to fetch.
      */
     where?: TrainingCycleWhereInput
@@ -17332,6 +17786,10 @@ export namespace Prisma {
      */
     select?: TrainingCycleSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
+    /**
      * Filter, which TrainingCycles to fetch.
      */
     where?: TrainingCycleWhereInput
@@ -17370,6 +17828,10 @@ export namespace Prisma {
      * Select specific fields to fetch from the TrainingCycle
      */
     select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
     /**
      * The data needed to create a TrainingCycle.
      */
@@ -17411,6 +17873,10 @@ export namespace Prisma {
      */
     select?: TrainingCycleSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
+    /**
      * The data needed to update a TrainingCycle.
      */
     data: XOR<TrainingCycleUpdateInput, TrainingCycleUncheckedUpdateInput>
@@ -17443,6 +17909,10 @@ export namespace Prisma {
      */
     select?: TrainingCycleSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
+    /**
      * The filter to search for the TrainingCycle to update in case it exists.
      */
     where: TrainingCycleWhereUniqueInput
@@ -17465,6 +17935,10 @@ export namespace Prisma {
      */
     select?: TrainingCycleSelect<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
+    /**
      * Filter which TrainingCycle to delete.
      */
     where: TrainingCycleWhereUniqueInput
@@ -17481,6 +17955,86 @@ export namespace Prisma {
   }
 
   /**
+   * TrainingCycle.sessions
+   */
+  export type TrainingCycle$sessionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkoutSchedule
+     */
+    select?: WorkoutScheduleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkoutScheduleInclude<ExtArgs> | null
+    where?: WorkoutScheduleWhereInput
+    orderBy?: WorkoutScheduleOrderByWithRelationInput | WorkoutScheduleOrderByWithRelationInput[]
+    cursor?: WorkoutScheduleWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: WorkoutScheduleScalarFieldEnum | WorkoutScheduleScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingCycle.sessionFeedback
+   */
+  export type TrainingCycle$sessionFeedbackArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+    where?: CycleSessionFeedbackWhereInput
+    orderBy?: CycleSessionFeedbackOrderByWithRelationInput | CycleSessionFeedbackOrderByWithRelationInput[]
+    cursor?: CycleSessionFeedbackWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CycleSessionFeedbackScalarFieldEnum | CycleSessionFeedbackScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingCycle.inbodyLinks
+   */
+  export type TrainingCycle$inbodyLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkInclude<ExtArgs> | null
+    where?: CycleInBodyLinkWhereInput
+    orderBy?: CycleInBodyLinkOrderByWithRelationInput | CycleInBodyLinkOrderByWithRelationInput[]
+    cursor?: CycleInBodyLinkWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CycleInBodyLinkScalarFieldEnum | CycleInBodyLinkScalarFieldEnum[]
+  }
+
+  /**
+   * TrainingCycle.assessments
+   */
+  export type TrainingCycle$assessmentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentInclude<ExtArgs> | null
+    where?: CycleAssessmentWhereInput
+    orderBy?: CycleAssessmentOrderByWithRelationInput | CycleAssessmentOrderByWithRelationInput[]
+    cursor?: CycleAssessmentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CycleAssessmentScalarFieldEnum | CycleAssessmentScalarFieldEnum[]
+  }
+
+  /**
    * TrainingCycle without action
    */
   export type TrainingCycleDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -17488,6 +18042,3055 @@ export namespace Prisma {
      * Select specific fields to fetch from the TrainingCycle
      */
     select?: TrainingCycleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TrainingCycleInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CycleAssessment
+   */
+
+  export type AggregateCycleAssessment = {
+    _count: CycleAssessmentCountAggregateOutputType | null
+    _avg: CycleAssessmentAvgAggregateOutputType | null
+    _sum: CycleAssessmentSumAggregateOutputType | null
+    _min: CycleAssessmentMinAggregateOutputType | null
+    _max: CycleAssessmentMaxAggregateOutputType | null
+  }
+
+  export type CycleAssessmentAvgAggregateOutputType = {
+    assessmentVersion: number | null
+    confidenceScore: number | null
+    dataQualityScore: number | null
+  }
+
+  export type CycleAssessmentSumAggregateOutputType = {
+    assessmentVersion: number | null
+    confidenceScore: number | null
+    dataQualityScore: number | null
+  }
+
+  export type CycleAssessmentMinAggregateOutputType = {
+    id: string | null
+    cycleId: string | null
+    assessmentVersion: number | null
+    status: string | null
+    decision: string | null
+    confidenceScore: number | null
+    dataQualityScore: number | null
+    aiSummary: string | null
+    userDecision: string | null
+    reviewedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type CycleAssessmentMaxAggregateOutputType = {
+    id: string | null
+    cycleId: string | null
+    assessmentVersion: number | null
+    status: string | null
+    decision: string | null
+    confidenceScore: number | null
+    dataQualityScore: number | null
+    aiSummary: string | null
+    userDecision: string | null
+    reviewedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type CycleAssessmentCountAggregateOutputType = {
+    id: number
+    cycleId: number
+    assessmentVersion: number
+    status: number
+    decision: number
+    confidenceScore: number
+    dataQualityScore: number
+    computedMetrics: number
+    reasonCodes: number
+    conflictingSignals: number
+    safetyFlags: number
+    recommendedActionScope: number
+    aiSummary: number
+    proposedChanges: number
+    userDecision: number
+    reviewedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type CycleAssessmentAvgAggregateInputType = {
+    assessmentVersion?: true
+    confidenceScore?: true
+    dataQualityScore?: true
+  }
+
+  export type CycleAssessmentSumAggregateInputType = {
+    assessmentVersion?: true
+    confidenceScore?: true
+    dataQualityScore?: true
+  }
+
+  export type CycleAssessmentMinAggregateInputType = {
+    id?: true
+    cycleId?: true
+    assessmentVersion?: true
+    status?: true
+    decision?: true
+    confidenceScore?: true
+    dataQualityScore?: true
+    aiSummary?: true
+    userDecision?: true
+    reviewedAt?: true
+    createdAt?: true
+  }
+
+  export type CycleAssessmentMaxAggregateInputType = {
+    id?: true
+    cycleId?: true
+    assessmentVersion?: true
+    status?: true
+    decision?: true
+    confidenceScore?: true
+    dataQualityScore?: true
+    aiSummary?: true
+    userDecision?: true
+    reviewedAt?: true
+    createdAt?: true
+  }
+
+  export type CycleAssessmentCountAggregateInputType = {
+    id?: true
+    cycleId?: true
+    assessmentVersion?: true
+    status?: true
+    decision?: true
+    confidenceScore?: true
+    dataQualityScore?: true
+    computedMetrics?: true
+    reasonCodes?: true
+    conflictingSignals?: true
+    safetyFlags?: true
+    recommendedActionScope?: true
+    aiSummary?: true
+    proposedChanges?: true
+    userDecision?: true
+    reviewedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type CycleAssessmentAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CycleAssessment to aggregate.
+     */
+    where?: CycleAssessmentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleAssessments to fetch.
+     */
+    orderBy?: CycleAssessmentOrderByWithRelationInput | CycleAssessmentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CycleAssessmentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleAssessments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleAssessments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CycleAssessments
+    **/
+    _count?: true | CycleAssessmentCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: CycleAssessmentAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: CycleAssessmentSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CycleAssessmentMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CycleAssessmentMaxAggregateInputType
+  }
+
+  export type GetCycleAssessmentAggregateType<T extends CycleAssessmentAggregateArgs> = {
+        [P in keyof T & keyof AggregateCycleAssessment]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCycleAssessment[P]>
+      : GetScalarType<T[P], AggregateCycleAssessment[P]>
+  }
+
+
+
+
+  export type CycleAssessmentGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CycleAssessmentWhereInput
+    orderBy?: CycleAssessmentOrderByWithAggregationInput | CycleAssessmentOrderByWithAggregationInput[]
+    by: CycleAssessmentScalarFieldEnum[] | CycleAssessmentScalarFieldEnum
+    having?: CycleAssessmentScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CycleAssessmentCountAggregateInputType | true
+    _avg?: CycleAssessmentAvgAggregateInputType
+    _sum?: CycleAssessmentSumAggregateInputType
+    _min?: CycleAssessmentMinAggregateInputType
+    _max?: CycleAssessmentMaxAggregateInputType
+  }
+
+  export type CycleAssessmentGroupByOutputType = {
+    id: string
+    cycleId: string
+    assessmentVersion: number
+    status: string
+    decision: string | null
+    confidenceScore: number | null
+    dataQualityScore: number | null
+    computedMetrics: JsonValue | null
+    reasonCodes: JsonValue | null
+    conflictingSignals: JsonValue | null
+    safetyFlags: JsonValue | null
+    recommendedActionScope: JsonValue | null
+    aiSummary: string | null
+    proposedChanges: JsonValue | null
+    userDecision: string
+    reviewedAt: Date | null
+    createdAt: Date
+    _count: CycleAssessmentCountAggregateOutputType | null
+    _avg: CycleAssessmentAvgAggregateOutputType | null
+    _sum: CycleAssessmentSumAggregateOutputType | null
+    _min: CycleAssessmentMinAggregateOutputType | null
+    _max: CycleAssessmentMaxAggregateOutputType | null
+  }
+
+  type GetCycleAssessmentGroupByPayload<T extends CycleAssessmentGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CycleAssessmentGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CycleAssessmentGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CycleAssessmentGroupByOutputType[P]>
+            : GetScalarType<T[P], CycleAssessmentGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CycleAssessmentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cycleId?: boolean
+    assessmentVersion?: boolean
+    status?: boolean
+    decision?: boolean
+    confidenceScore?: boolean
+    dataQualityScore?: boolean
+    computedMetrics?: boolean
+    reasonCodes?: boolean
+    conflictingSignals?: boolean
+    safetyFlags?: boolean
+    recommendedActionScope?: boolean
+    aiSummary?: boolean
+    proposedChanges?: boolean
+    userDecision?: boolean
+    reviewedAt?: boolean
+    createdAt?: boolean
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cycleAssessment"]>
+
+  export type CycleAssessmentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cycleId?: boolean
+    assessmentVersion?: boolean
+    status?: boolean
+    decision?: boolean
+    confidenceScore?: boolean
+    dataQualityScore?: boolean
+    computedMetrics?: boolean
+    reasonCodes?: boolean
+    conflictingSignals?: boolean
+    safetyFlags?: boolean
+    recommendedActionScope?: boolean
+    aiSummary?: boolean
+    proposedChanges?: boolean
+    userDecision?: boolean
+    reviewedAt?: boolean
+    createdAt?: boolean
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cycleAssessment"]>
+
+  export type CycleAssessmentSelectScalar = {
+    id?: boolean
+    cycleId?: boolean
+    assessmentVersion?: boolean
+    status?: boolean
+    decision?: boolean
+    confidenceScore?: boolean
+    dataQualityScore?: boolean
+    computedMetrics?: boolean
+    reasonCodes?: boolean
+    conflictingSignals?: boolean
+    safetyFlags?: boolean
+    recommendedActionScope?: boolean
+    aiSummary?: boolean
+    proposedChanges?: boolean
+    userDecision?: boolean
+    reviewedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type CycleAssessmentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+  }
+  export type CycleAssessmentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+  }
+
+  export type $CycleAssessmentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CycleAssessment"
+    objects: {
+      cycle: Prisma.$TrainingCyclePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      cycleId: string
+      assessmentVersion: number
+      status: string
+      decision: string | null
+      confidenceScore: number | null
+      dataQualityScore: number | null
+      computedMetrics: Prisma.JsonValue | null
+      reasonCodes: Prisma.JsonValue | null
+      conflictingSignals: Prisma.JsonValue | null
+      safetyFlags: Prisma.JsonValue | null
+      recommendedActionScope: Prisma.JsonValue | null
+      aiSummary: string | null
+      proposedChanges: Prisma.JsonValue | null
+      userDecision: string
+      reviewedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["cycleAssessment"]>
+    composites: {}
+  }
+
+  type CycleAssessmentGetPayload<S extends boolean | null | undefined | CycleAssessmentDefaultArgs> = $Result.GetResult<Prisma.$CycleAssessmentPayload, S>
+
+  type CycleAssessmentCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<CycleAssessmentFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: CycleAssessmentCountAggregateInputType | true
+    }
+
+  export interface CycleAssessmentDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CycleAssessment'], meta: { name: 'CycleAssessment' } }
+    /**
+     * Find zero or one CycleAssessment that matches the filter.
+     * @param {CycleAssessmentFindUniqueArgs} args - Arguments to find a CycleAssessment
+     * @example
+     * // Get one CycleAssessment
+     * const cycleAssessment = await prisma.cycleAssessment.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CycleAssessmentFindUniqueArgs>(args: SelectSubset<T, CycleAssessmentFindUniqueArgs<ExtArgs>>): Prisma__CycleAssessmentClient<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one CycleAssessment that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {CycleAssessmentFindUniqueOrThrowArgs} args - Arguments to find a CycleAssessment
+     * @example
+     * // Get one CycleAssessment
+     * const cycleAssessment = await prisma.cycleAssessment.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CycleAssessmentFindUniqueOrThrowArgs>(args: SelectSubset<T, CycleAssessmentFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CycleAssessmentClient<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first CycleAssessment that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleAssessmentFindFirstArgs} args - Arguments to find a CycleAssessment
+     * @example
+     * // Get one CycleAssessment
+     * const cycleAssessment = await prisma.cycleAssessment.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CycleAssessmentFindFirstArgs>(args?: SelectSubset<T, CycleAssessmentFindFirstArgs<ExtArgs>>): Prisma__CycleAssessmentClient<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first CycleAssessment that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleAssessmentFindFirstOrThrowArgs} args - Arguments to find a CycleAssessment
+     * @example
+     * // Get one CycleAssessment
+     * const cycleAssessment = await prisma.cycleAssessment.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CycleAssessmentFindFirstOrThrowArgs>(args?: SelectSubset<T, CycleAssessmentFindFirstOrThrowArgs<ExtArgs>>): Prisma__CycleAssessmentClient<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more CycleAssessments that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleAssessmentFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CycleAssessments
+     * const cycleAssessments = await prisma.cycleAssessment.findMany()
+     * 
+     * // Get first 10 CycleAssessments
+     * const cycleAssessments = await prisma.cycleAssessment.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const cycleAssessmentWithIdOnly = await prisma.cycleAssessment.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CycleAssessmentFindManyArgs>(args?: SelectSubset<T, CycleAssessmentFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a CycleAssessment.
+     * @param {CycleAssessmentCreateArgs} args - Arguments to create a CycleAssessment.
+     * @example
+     * // Create one CycleAssessment
+     * const CycleAssessment = await prisma.cycleAssessment.create({
+     *   data: {
+     *     // ... data to create a CycleAssessment
+     *   }
+     * })
+     * 
+     */
+    create<T extends CycleAssessmentCreateArgs>(args: SelectSubset<T, CycleAssessmentCreateArgs<ExtArgs>>): Prisma__CycleAssessmentClient<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many CycleAssessments.
+     * @param {CycleAssessmentCreateManyArgs} args - Arguments to create many CycleAssessments.
+     * @example
+     * // Create many CycleAssessments
+     * const cycleAssessment = await prisma.cycleAssessment.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CycleAssessmentCreateManyArgs>(args?: SelectSubset<T, CycleAssessmentCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CycleAssessments and returns the data saved in the database.
+     * @param {CycleAssessmentCreateManyAndReturnArgs} args - Arguments to create many CycleAssessments.
+     * @example
+     * // Create many CycleAssessments
+     * const cycleAssessment = await prisma.cycleAssessment.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CycleAssessments and only return the `id`
+     * const cycleAssessmentWithIdOnly = await prisma.cycleAssessment.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CycleAssessmentCreateManyAndReturnArgs>(args?: SelectSubset<T, CycleAssessmentCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a CycleAssessment.
+     * @param {CycleAssessmentDeleteArgs} args - Arguments to delete one CycleAssessment.
+     * @example
+     * // Delete one CycleAssessment
+     * const CycleAssessment = await prisma.cycleAssessment.delete({
+     *   where: {
+     *     // ... filter to delete one CycleAssessment
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CycleAssessmentDeleteArgs>(args: SelectSubset<T, CycleAssessmentDeleteArgs<ExtArgs>>): Prisma__CycleAssessmentClient<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one CycleAssessment.
+     * @param {CycleAssessmentUpdateArgs} args - Arguments to update one CycleAssessment.
+     * @example
+     * // Update one CycleAssessment
+     * const cycleAssessment = await prisma.cycleAssessment.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CycleAssessmentUpdateArgs>(args: SelectSubset<T, CycleAssessmentUpdateArgs<ExtArgs>>): Prisma__CycleAssessmentClient<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more CycleAssessments.
+     * @param {CycleAssessmentDeleteManyArgs} args - Arguments to filter CycleAssessments to delete.
+     * @example
+     * // Delete a few CycleAssessments
+     * const { count } = await prisma.cycleAssessment.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CycleAssessmentDeleteManyArgs>(args?: SelectSubset<T, CycleAssessmentDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CycleAssessments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleAssessmentUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CycleAssessments
+     * const cycleAssessment = await prisma.cycleAssessment.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CycleAssessmentUpdateManyArgs>(args: SelectSubset<T, CycleAssessmentUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one CycleAssessment.
+     * @param {CycleAssessmentUpsertArgs} args - Arguments to update or create a CycleAssessment.
+     * @example
+     * // Update or create a CycleAssessment
+     * const cycleAssessment = await prisma.cycleAssessment.upsert({
+     *   create: {
+     *     // ... data to create a CycleAssessment
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CycleAssessment we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CycleAssessmentUpsertArgs>(args: SelectSubset<T, CycleAssessmentUpsertArgs<ExtArgs>>): Prisma__CycleAssessmentClient<$Result.GetResult<Prisma.$CycleAssessmentPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of CycleAssessments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleAssessmentCountArgs} args - Arguments to filter CycleAssessments to count.
+     * @example
+     * // Count the number of CycleAssessments
+     * const count = await prisma.cycleAssessment.count({
+     *   where: {
+     *     // ... the filter for the CycleAssessments we want to count
+     *   }
+     * })
+    **/
+    count<T extends CycleAssessmentCountArgs>(
+      args?: Subset<T, CycleAssessmentCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CycleAssessmentCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CycleAssessment.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleAssessmentAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CycleAssessmentAggregateArgs>(args: Subset<T, CycleAssessmentAggregateArgs>): Prisma.PrismaPromise<GetCycleAssessmentAggregateType<T>>
+
+    /**
+     * Group by CycleAssessment.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleAssessmentGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CycleAssessmentGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CycleAssessmentGroupByArgs['orderBy'] }
+        : { orderBy?: CycleAssessmentGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CycleAssessmentGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCycleAssessmentGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CycleAssessment model
+   */
+  readonly fields: CycleAssessmentFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CycleAssessment.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CycleAssessmentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    cycle<T extends TrainingCycleDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TrainingCycleDefaultArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CycleAssessment model
+   */ 
+  interface CycleAssessmentFieldRefs {
+    readonly id: FieldRef<"CycleAssessment", 'String'>
+    readonly cycleId: FieldRef<"CycleAssessment", 'String'>
+    readonly assessmentVersion: FieldRef<"CycleAssessment", 'Int'>
+    readonly status: FieldRef<"CycleAssessment", 'String'>
+    readonly decision: FieldRef<"CycleAssessment", 'String'>
+    readonly confidenceScore: FieldRef<"CycleAssessment", 'Float'>
+    readonly dataQualityScore: FieldRef<"CycleAssessment", 'Float'>
+    readonly computedMetrics: FieldRef<"CycleAssessment", 'Json'>
+    readonly reasonCodes: FieldRef<"CycleAssessment", 'Json'>
+    readonly conflictingSignals: FieldRef<"CycleAssessment", 'Json'>
+    readonly safetyFlags: FieldRef<"CycleAssessment", 'Json'>
+    readonly recommendedActionScope: FieldRef<"CycleAssessment", 'Json'>
+    readonly aiSummary: FieldRef<"CycleAssessment", 'String'>
+    readonly proposedChanges: FieldRef<"CycleAssessment", 'Json'>
+    readonly userDecision: FieldRef<"CycleAssessment", 'String'>
+    readonly reviewedAt: FieldRef<"CycleAssessment", 'DateTime'>
+    readonly createdAt: FieldRef<"CycleAssessment", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CycleAssessment findUnique
+   */
+  export type CycleAssessmentFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleAssessment to fetch.
+     */
+    where: CycleAssessmentWhereUniqueInput
+  }
+
+  /**
+   * CycleAssessment findUniqueOrThrow
+   */
+  export type CycleAssessmentFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleAssessment to fetch.
+     */
+    where: CycleAssessmentWhereUniqueInput
+  }
+
+  /**
+   * CycleAssessment findFirst
+   */
+  export type CycleAssessmentFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleAssessment to fetch.
+     */
+    where?: CycleAssessmentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleAssessments to fetch.
+     */
+    orderBy?: CycleAssessmentOrderByWithRelationInput | CycleAssessmentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CycleAssessments.
+     */
+    cursor?: CycleAssessmentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleAssessments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleAssessments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CycleAssessments.
+     */
+    distinct?: CycleAssessmentScalarFieldEnum | CycleAssessmentScalarFieldEnum[]
+  }
+
+  /**
+   * CycleAssessment findFirstOrThrow
+   */
+  export type CycleAssessmentFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleAssessment to fetch.
+     */
+    where?: CycleAssessmentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleAssessments to fetch.
+     */
+    orderBy?: CycleAssessmentOrderByWithRelationInput | CycleAssessmentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CycleAssessments.
+     */
+    cursor?: CycleAssessmentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleAssessments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleAssessments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CycleAssessments.
+     */
+    distinct?: CycleAssessmentScalarFieldEnum | CycleAssessmentScalarFieldEnum[]
+  }
+
+  /**
+   * CycleAssessment findMany
+   */
+  export type CycleAssessmentFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleAssessments to fetch.
+     */
+    where?: CycleAssessmentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleAssessments to fetch.
+     */
+    orderBy?: CycleAssessmentOrderByWithRelationInput | CycleAssessmentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CycleAssessments.
+     */
+    cursor?: CycleAssessmentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleAssessments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleAssessments.
+     */
+    skip?: number
+    distinct?: CycleAssessmentScalarFieldEnum | CycleAssessmentScalarFieldEnum[]
+  }
+
+  /**
+   * CycleAssessment create
+   */
+  export type CycleAssessmentCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CycleAssessment.
+     */
+    data: XOR<CycleAssessmentCreateInput, CycleAssessmentUncheckedCreateInput>
+  }
+
+  /**
+   * CycleAssessment createMany
+   */
+  export type CycleAssessmentCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CycleAssessments.
+     */
+    data: CycleAssessmentCreateManyInput | CycleAssessmentCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CycleAssessment createManyAndReturn
+   */
+  export type CycleAssessmentCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many CycleAssessments.
+     */
+    data: CycleAssessmentCreateManyInput | CycleAssessmentCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CycleAssessment update
+   */
+  export type CycleAssessmentUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CycleAssessment.
+     */
+    data: XOR<CycleAssessmentUpdateInput, CycleAssessmentUncheckedUpdateInput>
+    /**
+     * Choose, which CycleAssessment to update.
+     */
+    where: CycleAssessmentWhereUniqueInput
+  }
+
+  /**
+   * CycleAssessment updateMany
+   */
+  export type CycleAssessmentUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CycleAssessments.
+     */
+    data: XOR<CycleAssessmentUpdateManyMutationInput, CycleAssessmentUncheckedUpdateManyInput>
+    /**
+     * Filter which CycleAssessments to update
+     */
+    where?: CycleAssessmentWhereInput
+  }
+
+  /**
+   * CycleAssessment upsert
+   */
+  export type CycleAssessmentUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CycleAssessment to update in case it exists.
+     */
+    where: CycleAssessmentWhereUniqueInput
+    /**
+     * In case the CycleAssessment found by the `where` argument doesn't exist, create a new CycleAssessment with this data.
+     */
+    create: XOR<CycleAssessmentCreateInput, CycleAssessmentUncheckedCreateInput>
+    /**
+     * In case the CycleAssessment was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CycleAssessmentUpdateInput, CycleAssessmentUncheckedUpdateInput>
+  }
+
+  /**
+   * CycleAssessment delete
+   */
+  export type CycleAssessmentDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentInclude<ExtArgs> | null
+    /**
+     * Filter which CycleAssessment to delete.
+     */
+    where: CycleAssessmentWhereUniqueInput
+  }
+
+  /**
+   * CycleAssessment deleteMany
+   */
+  export type CycleAssessmentDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CycleAssessments to delete
+     */
+    where?: CycleAssessmentWhereInput
+  }
+
+  /**
+   * CycleAssessment without action
+   */
+  export type CycleAssessmentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleAssessment
+     */
+    select?: CycleAssessmentSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleAssessmentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CycleSessionFeedback
+   */
+
+  export type AggregateCycleSessionFeedback = {
+    _count: CycleSessionFeedbackCountAggregateOutputType | null
+    _avg: CycleSessionFeedbackAvgAggregateOutputType | null
+    _sum: CycleSessionFeedbackSumAggregateOutputType | null
+    _min: CycleSessionFeedbackMinAggregateOutputType | null
+    _max: CycleSessionFeedbackMaxAggregateOutputType | null
+  }
+
+  export type CycleSessionFeedbackAvgAggregateOutputType = {
+    readinessScore: number | null
+    sessionRpe: number | null
+    painScore: number | null
+  }
+
+  export type CycleSessionFeedbackSumAggregateOutputType = {
+    readinessScore: number | null
+    sessionRpe: number | null
+    painScore: number | null
+  }
+
+  export type CycleSessionFeedbackMinAggregateOutputType = {
+    id: string | null
+    cycleId: string | null
+    workoutScheduleId: string | null
+    readinessScore: number | null
+    sessionRpe: number | null
+    painScore: number | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CycleSessionFeedbackMaxAggregateOutputType = {
+    id: string | null
+    cycleId: string | null
+    workoutScheduleId: string | null
+    readinessScore: number | null
+    sessionRpe: number | null
+    painScore: number | null
+    notes: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CycleSessionFeedbackCountAggregateOutputType = {
+    id: number
+    cycleId: number
+    workoutScheduleId: number
+    readinessScore: number
+    sessionRpe: number
+    painScore: number
+    notes: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type CycleSessionFeedbackAvgAggregateInputType = {
+    readinessScore?: true
+    sessionRpe?: true
+    painScore?: true
+  }
+
+  export type CycleSessionFeedbackSumAggregateInputType = {
+    readinessScore?: true
+    sessionRpe?: true
+    painScore?: true
+  }
+
+  export type CycleSessionFeedbackMinAggregateInputType = {
+    id?: true
+    cycleId?: true
+    workoutScheduleId?: true
+    readinessScore?: true
+    sessionRpe?: true
+    painScore?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CycleSessionFeedbackMaxAggregateInputType = {
+    id?: true
+    cycleId?: true
+    workoutScheduleId?: true
+    readinessScore?: true
+    sessionRpe?: true
+    painScore?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CycleSessionFeedbackCountAggregateInputType = {
+    id?: true
+    cycleId?: true
+    workoutScheduleId?: true
+    readinessScore?: true
+    sessionRpe?: true
+    painScore?: true
+    notes?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type CycleSessionFeedbackAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CycleSessionFeedback to aggregate.
+     */
+    where?: CycleSessionFeedbackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleSessionFeedbacks to fetch.
+     */
+    orderBy?: CycleSessionFeedbackOrderByWithRelationInput | CycleSessionFeedbackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CycleSessionFeedbackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleSessionFeedbacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleSessionFeedbacks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CycleSessionFeedbacks
+    **/
+    _count?: true | CycleSessionFeedbackCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: CycleSessionFeedbackAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: CycleSessionFeedbackSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CycleSessionFeedbackMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CycleSessionFeedbackMaxAggregateInputType
+  }
+
+  export type GetCycleSessionFeedbackAggregateType<T extends CycleSessionFeedbackAggregateArgs> = {
+        [P in keyof T & keyof AggregateCycleSessionFeedback]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCycleSessionFeedback[P]>
+      : GetScalarType<T[P], AggregateCycleSessionFeedback[P]>
+  }
+
+
+
+
+  export type CycleSessionFeedbackGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CycleSessionFeedbackWhereInput
+    orderBy?: CycleSessionFeedbackOrderByWithAggregationInput | CycleSessionFeedbackOrderByWithAggregationInput[]
+    by: CycleSessionFeedbackScalarFieldEnum[] | CycleSessionFeedbackScalarFieldEnum
+    having?: CycleSessionFeedbackScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CycleSessionFeedbackCountAggregateInputType | true
+    _avg?: CycleSessionFeedbackAvgAggregateInputType
+    _sum?: CycleSessionFeedbackSumAggregateInputType
+    _min?: CycleSessionFeedbackMinAggregateInputType
+    _max?: CycleSessionFeedbackMaxAggregateInputType
+  }
+
+  export type CycleSessionFeedbackGroupByOutputType = {
+    id: string
+    cycleId: string
+    workoutScheduleId: string
+    readinessScore: number | null
+    sessionRpe: number | null
+    painScore: number | null
+    notes: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: CycleSessionFeedbackCountAggregateOutputType | null
+    _avg: CycleSessionFeedbackAvgAggregateOutputType | null
+    _sum: CycleSessionFeedbackSumAggregateOutputType | null
+    _min: CycleSessionFeedbackMinAggregateOutputType | null
+    _max: CycleSessionFeedbackMaxAggregateOutputType | null
+  }
+
+  type GetCycleSessionFeedbackGroupByPayload<T extends CycleSessionFeedbackGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CycleSessionFeedbackGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CycleSessionFeedbackGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CycleSessionFeedbackGroupByOutputType[P]>
+            : GetScalarType<T[P], CycleSessionFeedbackGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CycleSessionFeedbackSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cycleId?: boolean
+    workoutScheduleId?: boolean
+    readinessScore?: boolean
+    sessionRpe?: boolean
+    painScore?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+    workoutSchedule?: boolean | WorkoutScheduleDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cycleSessionFeedback"]>
+
+  export type CycleSessionFeedbackSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cycleId?: boolean
+    workoutScheduleId?: boolean
+    readinessScore?: boolean
+    sessionRpe?: boolean
+    painScore?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+    workoutSchedule?: boolean | WorkoutScheduleDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cycleSessionFeedback"]>
+
+  export type CycleSessionFeedbackSelectScalar = {
+    id?: boolean
+    cycleId?: boolean
+    workoutScheduleId?: boolean
+    readinessScore?: boolean
+    sessionRpe?: boolean
+    painScore?: boolean
+    notes?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type CycleSessionFeedbackInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+    workoutSchedule?: boolean | WorkoutScheduleDefaultArgs<ExtArgs>
+  }
+  export type CycleSessionFeedbackIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+    workoutSchedule?: boolean | WorkoutScheduleDefaultArgs<ExtArgs>
+  }
+
+  export type $CycleSessionFeedbackPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CycleSessionFeedback"
+    objects: {
+      cycle: Prisma.$TrainingCyclePayload<ExtArgs>
+      workoutSchedule: Prisma.$WorkoutSchedulePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      cycleId: string
+      workoutScheduleId: string
+      readinessScore: number | null
+      sessionRpe: number | null
+      painScore: number | null
+      notes: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["cycleSessionFeedback"]>
+    composites: {}
+  }
+
+  type CycleSessionFeedbackGetPayload<S extends boolean | null | undefined | CycleSessionFeedbackDefaultArgs> = $Result.GetResult<Prisma.$CycleSessionFeedbackPayload, S>
+
+  type CycleSessionFeedbackCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<CycleSessionFeedbackFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: CycleSessionFeedbackCountAggregateInputType | true
+    }
+
+  export interface CycleSessionFeedbackDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CycleSessionFeedback'], meta: { name: 'CycleSessionFeedback' } }
+    /**
+     * Find zero or one CycleSessionFeedback that matches the filter.
+     * @param {CycleSessionFeedbackFindUniqueArgs} args - Arguments to find a CycleSessionFeedback
+     * @example
+     * // Get one CycleSessionFeedback
+     * const cycleSessionFeedback = await prisma.cycleSessionFeedback.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CycleSessionFeedbackFindUniqueArgs>(args: SelectSubset<T, CycleSessionFeedbackFindUniqueArgs<ExtArgs>>): Prisma__CycleSessionFeedbackClient<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one CycleSessionFeedback that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {CycleSessionFeedbackFindUniqueOrThrowArgs} args - Arguments to find a CycleSessionFeedback
+     * @example
+     * // Get one CycleSessionFeedback
+     * const cycleSessionFeedback = await prisma.cycleSessionFeedback.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CycleSessionFeedbackFindUniqueOrThrowArgs>(args: SelectSubset<T, CycleSessionFeedbackFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CycleSessionFeedbackClient<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first CycleSessionFeedback that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleSessionFeedbackFindFirstArgs} args - Arguments to find a CycleSessionFeedback
+     * @example
+     * // Get one CycleSessionFeedback
+     * const cycleSessionFeedback = await prisma.cycleSessionFeedback.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CycleSessionFeedbackFindFirstArgs>(args?: SelectSubset<T, CycleSessionFeedbackFindFirstArgs<ExtArgs>>): Prisma__CycleSessionFeedbackClient<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first CycleSessionFeedback that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleSessionFeedbackFindFirstOrThrowArgs} args - Arguments to find a CycleSessionFeedback
+     * @example
+     * // Get one CycleSessionFeedback
+     * const cycleSessionFeedback = await prisma.cycleSessionFeedback.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CycleSessionFeedbackFindFirstOrThrowArgs>(args?: SelectSubset<T, CycleSessionFeedbackFindFirstOrThrowArgs<ExtArgs>>): Prisma__CycleSessionFeedbackClient<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more CycleSessionFeedbacks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleSessionFeedbackFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CycleSessionFeedbacks
+     * const cycleSessionFeedbacks = await prisma.cycleSessionFeedback.findMany()
+     * 
+     * // Get first 10 CycleSessionFeedbacks
+     * const cycleSessionFeedbacks = await prisma.cycleSessionFeedback.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const cycleSessionFeedbackWithIdOnly = await prisma.cycleSessionFeedback.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CycleSessionFeedbackFindManyArgs>(args?: SelectSubset<T, CycleSessionFeedbackFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a CycleSessionFeedback.
+     * @param {CycleSessionFeedbackCreateArgs} args - Arguments to create a CycleSessionFeedback.
+     * @example
+     * // Create one CycleSessionFeedback
+     * const CycleSessionFeedback = await prisma.cycleSessionFeedback.create({
+     *   data: {
+     *     // ... data to create a CycleSessionFeedback
+     *   }
+     * })
+     * 
+     */
+    create<T extends CycleSessionFeedbackCreateArgs>(args: SelectSubset<T, CycleSessionFeedbackCreateArgs<ExtArgs>>): Prisma__CycleSessionFeedbackClient<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many CycleSessionFeedbacks.
+     * @param {CycleSessionFeedbackCreateManyArgs} args - Arguments to create many CycleSessionFeedbacks.
+     * @example
+     * // Create many CycleSessionFeedbacks
+     * const cycleSessionFeedback = await prisma.cycleSessionFeedback.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CycleSessionFeedbackCreateManyArgs>(args?: SelectSubset<T, CycleSessionFeedbackCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CycleSessionFeedbacks and returns the data saved in the database.
+     * @param {CycleSessionFeedbackCreateManyAndReturnArgs} args - Arguments to create many CycleSessionFeedbacks.
+     * @example
+     * // Create many CycleSessionFeedbacks
+     * const cycleSessionFeedback = await prisma.cycleSessionFeedback.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CycleSessionFeedbacks and only return the `id`
+     * const cycleSessionFeedbackWithIdOnly = await prisma.cycleSessionFeedback.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CycleSessionFeedbackCreateManyAndReturnArgs>(args?: SelectSubset<T, CycleSessionFeedbackCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a CycleSessionFeedback.
+     * @param {CycleSessionFeedbackDeleteArgs} args - Arguments to delete one CycleSessionFeedback.
+     * @example
+     * // Delete one CycleSessionFeedback
+     * const CycleSessionFeedback = await prisma.cycleSessionFeedback.delete({
+     *   where: {
+     *     // ... filter to delete one CycleSessionFeedback
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CycleSessionFeedbackDeleteArgs>(args: SelectSubset<T, CycleSessionFeedbackDeleteArgs<ExtArgs>>): Prisma__CycleSessionFeedbackClient<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one CycleSessionFeedback.
+     * @param {CycleSessionFeedbackUpdateArgs} args - Arguments to update one CycleSessionFeedback.
+     * @example
+     * // Update one CycleSessionFeedback
+     * const cycleSessionFeedback = await prisma.cycleSessionFeedback.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CycleSessionFeedbackUpdateArgs>(args: SelectSubset<T, CycleSessionFeedbackUpdateArgs<ExtArgs>>): Prisma__CycleSessionFeedbackClient<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more CycleSessionFeedbacks.
+     * @param {CycleSessionFeedbackDeleteManyArgs} args - Arguments to filter CycleSessionFeedbacks to delete.
+     * @example
+     * // Delete a few CycleSessionFeedbacks
+     * const { count } = await prisma.cycleSessionFeedback.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CycleSessionFeedbackDeleteManyArgs>(args?: SelectSubset<T, CycleSessionFeedbackDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CycleSessionFeedbacks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleSessionFeedbackUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CycleSessionFeedbacks
+     * const cycleSessionFeedback = await prisma.cycleSessionFeedback.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CycleSessionFeedbackUpdateManyArgs>(args: SelectSubset<T, CycleSessionFeedbackUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one CycleSessionFeedback.
+     * @param {CycleSessionFeedbackUpsertArgs} args - Arguments to update or create a CycleSessionFeedback.
+     * @example
+     * // Update or create a CycleSessionFeedback
+     * const cycleSessionFeedback = await prisma.cycleSessionFeedback.upsert({
+     *   create: {
+     *     // ... data to create a CycleSessionFeedback
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CycleSessionFeedback we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CycleSessionFeedbackUpsertArgs>(args: SelectSubset<T, CycleSessionFeedbackUpsertArgs<ExtArgs>>): Prisma__CycleSessionFeedbackClient<$Result.GetResult<Prisma.$CycleSessionFeedbackPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of CycleSessionFeedbacks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleSessionFeedbackCountArgs} args - Arguments to filter CycleSessionFeedbacks to count.
+     * @example
+     * // Count the number of CycleSessionFeedbacks
+     * const count = await prisma.cycleSessionFeedback.count({
+     *   where: {
+     *     // ... the filter for the CycleSessionFeedbacks we want to count
+     *   }
+     * })
+    **/
+    count<T extends CycleSessionFeedbackCountArgs>(
+      args?: Subset<T, CycleSessionFeedbackCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CycleSessionFeedbackCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CycleSessionFeedback.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleSessionFeedbackAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CycleSessionFeedbackAggregateArgs>(args: Subset<T, CycleSessionFeedbackAggregateArgs>): Prisma.PrismaPromise<GetCycleSessionFeedbackAggregateType<T>>
+
+    /**
+     * Group by CycleSessionFeedback.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleSessionFeedbackGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CycleSessionFeedbackGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CycleSessionFeedbackGroupByArgs['orderBy'] }
+        : { orderBy?: CycleSessionFeedbackGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CycleSessionFeedbackGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCycleSessionFeedbackGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CycleSessionFeedback model
+   */
+  readonly fields: CycleSessionFeedbackFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CycleSessionFeedback.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CycleSessionFeedbackClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    cycle<T extends TrainingCycleDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TrainingCycleDefaultArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    workoutSchedule<T extends WorkoutScheduleDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WorkoutScheduleDefaultArgs<ExtArgs>>): Prisma__WorkoutScheduleClient<$Result.GetResult<Prisma.$WorkoutSchedulePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CycleSessionFeedback model
+   */ 
+  interface CycleSessionFeedbackFieldRefs {
+    readonly id: FieldRef<"CycleSessionFeedback", 'String'>
+    readonly cycleId: FieldRef<"CycleSessionFeedback", 'String'>
+    readonly workoutScheduleId: FieldRef<"CycleSessionFeedback", 'String'>
+    readonly readinessScore: FieldRef<"CycleSessionFeedback", 'Int'>
+    readonly sessionRpe: FieldRef<"CycleSessionFeedback", 'Float'>
+    readonly painScore: FieldRef<"CycleSessionFeedback", 'Int'>
+    readonly notes: FieldRef<"CycleSessionFeedback", 'String'>
+    readonly createdAt: FieldRef<"CycleSessionFeedback", 'DateTime'>
+    readonly updatedAt: FieldRef<"CycleSessionFeedback", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CycleSessionFeedback findUnique
+   */
+  export type CycleSessionFeedbackFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleSessionFeedback to fetch.
+     */
+    where: CycleSessionFeedbackWhereUniqueInput
+  }
+
+  /**
+   * CycleSessionFeedback findUniqueOrThrow
+   */
+  export type CycleSessionFeedbackFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleSessionFeedback to fetch.
+     */
+    where: CycleSessionFeedbackWhereUniqueInput
+  }
+
+  /**
+   * CycleSessionFeedback findFirst
+   */
+  export type CycleSessionFeedbackFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleSessionFeedback to fetch.
+     */
+    where?: CycleSessionFeedbackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleSessionFeedbacks to fetch.
+     */
+    orderBy?: CycleSessionFeedbackOrderByWithRelationInput | CycleSessionFeedbackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CycleSessionFeedbacks.
+     */
+    cursor?: CycleSessionFeedbackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleSessionFeedbacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleSessionFeedbacks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CycleSessionFeedbacks.
+     */
+    distinct?: CycleSessionFeedbackScalarFieldEnum | CycleSessionFeedbackScalarFieldEnum[]
+  }
+
+  /**
+   * CycleSessionFeedback findFirstOrThrow
+   */
+  export type CycleSessionFeedbackFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleSessionFeedback to fetch.
+     */
+    where?: CycleSessionFeedbackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleSessionFeedbacks to fetch.
+     */
+    orderBy?: CycleSessionFeedbackOrderByWithRelationInput | CycleSessionFeedbackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CycleSessionFeedbacks.
+     */
+    cursor?: CycleSessionFeedbackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleSessionFeedbacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleSessionFeedbacks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CycleSessionFeedbacks.
+     */
+    distinct?: CycleSessionFeedbackScalarFieldEnum | CycleSessionFeedbackScalarFieldEnum[]
+  }
+
+  /**
+   * CycleSessionFeedback findMany
+   */
+  export type CycleSessionFeedbackFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleSessionFeedbacks to fetch.
+     */
+    where?: CycleSessionFeedbackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleSessionFeedbacks to fetch.
+     */
+    orderBy?: CycleSessionFeedbackOrderByWithRelationInput | CycleSessionFeedbackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CycleSessionFeedbacks.
+     */
+    cursor?: CycleSessionFeedbackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleSessionFeedbacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleSessionFeedbacks.
+     */
+    skip?: number
+    distinct?: CycleSessionFeedbackScalarFieldEnum | CycleSessionFeedbackScalarFieldEnum[]
+  }
+
+  /**
+   * CycleSessionFeedback create
+   */
+  export type CycleSessionFeedbackCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CycleSessionFeedback.
+     */
+    data: XOR<CycleSessionFeedbackCreateInput, CycleSessionFeedbackUncheckedCreateInput>
+  }
+
+  /**
+   * CycleSessionFeedback createMany
+   */
+  export type CycleSessionFeedbackCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CycleSessionFeedbacks.
+     */
+    data: CycleSessionFeedbackCreateManyInput | CycleSessionFeedbackCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CycleSessionFeedback createManyAndReturn
+   */
+  export type CycleSessionFeedbackCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many CycleSessionFeedbacks.
+     */
+    data: CycleSessionFeedbackCreateManyInput | CycleSessionFeedbackCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CycleSessionFeedback update
+   */
+  export type CycleSessionFeedbackUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CycleSessionFeedback.
+     */
+    data: XOR<CycleSessionFeedbackUpdateInput, CycleSessionFeedbackUncheckedUpdateInput>
+    /**
+     * Choose, which CycleSessionFeedback to update.
+     */
+    where: CycleSessionFeedbackWhereUniqueInput
+  }
+
+  /**
+   * CycleSessionFeedback updateMany
+   */
+  export type CycleSessionFeedbackUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CycleSessionFeedbacks.
+     */
+    data: XOR<CycleSessionFeedbackUpdateManyMutationInput, CycleSessionFeedbackUncheckedUpdateManyInput>
+    /**
+     * Filter which CycleSessionFeedbacks to update
+     */
+    where?: CycleSessionFeedbackWhereInput
+  }
+
+  /**
+   * CycleSessionFeedback upsert
+   */
+  export type CycleSessionFeedbackUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CycleSessionFeedback to update in case it exists.
+     */
+    where: CycleSessionFeedbackWhereUniqueInput
+    /**
+     * In case the CycleSessionFeedback found by the `where` argument doesn't exist, create a new CycleSessionFeedback with this data.
+     */
+    create: XOR<CycleSessionFeedbackCreateInput, CycleSessionFeedbackUncheckedCreateInput>
+    /**
+     * In case the CycleSessionFeedback was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CycleSessionFeedbackUpdateInput, CycleSessionFeedbackUncheckedUpdateInput>
+  }
+
+  /**
+   * CycleSessionFeedback delete
+   */
+  export type CycleSessionFeedbackDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter which CycleSessionFeedback to delete.
+     */
+    where: CycleSessionFeedbackWhereUniqueInput
+  }
+
+  /**
+   * CycleSessionFeedback deleteMany
+   */
+  export type CycleSessionFeedbackDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CycleSessionFeedbacks to delete
+     */
+    where?: CycleSessionFeedbackWhereInput
+  }
+
+  /**
+   * CycleSessionFeedback without action
+   */
+  export type CycleSessionFeedbackDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleSessionFeedback
+     */
+    select?: CycleSessionFeedbackSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleSessionFeedbackInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CycleInBodyLink
+   */
+
+  export type AggregateCycleInBodyLink = {
+    _count: CycleInBodyLinkCountAggregateOutputType | null
+    _min: CycleInBodyLinkMinAggregateOutputType | null
+    _max: CycleInBodyLinkMaxAggregateOutputType | null
+  }
+
+  export type CycleInBodyLinkMinAggregateOutputType = {
+    id: string | null
+    cycleId: string | null
+    inbodyEntryId: string | null
+    linkedAt: Date | null
+  }
+
+  export type CycleInBodyLinkMaxAggregateOutputType = {
+    id: string | null
+    cycleId: string | null
+    inbodyEntryId: string | null
+    linkedAt: Date | null
+  }
+
+  export type CycleInBodyLinkCountAggregateOutputType = {
+    id: number
+    cycleId: number
+    inbodyEntryId: number
+    linkedAt: number
+    _all: number
+  }
+
+
+  export type CycleInBodyLinkMinAggregateInputType = {
+    id?: true
+    cycleId?: true
+    inbodyEntryId?: true
+    linkedAt?: true
+  }
+
+  export type CycleInBodyLinkMaxAggregateInputType = {
+    id?: true
+    cycleId?: true
+    inbodyEntryId?: true
+    linkedAt?: true
+  }
+
+  export type CycleInBodyLinkCountAggregateInputType = {
+    id?: true
+    cycleId?: true
+    inbodyEntryId?: true
+    linkedAt?: true
+    _all?: true
+  }
+
+  export type CycleInBodyLinkAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CycleInBodyLink to aggregate.
+     */
+    where?: CycleInBodyLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleInBodyLinks to fetch.
+     */
+    orderBy?: CycleInBodyLinkOrderByWithRelationInput | CycleInBodyLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CycleInBodyLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleInBodyLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleInBodyLinks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CycleInBodyLinks
+    **/
+    _count?: true | CycleInBodyLinkCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CycleInBodyLinkMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CycleInBodyLinkMaxAggregateInputType
+  }
+
+  export type GetCycleInBodyLinkAggregateType<T extends CycleInBodyLinkAggregateArgs> = {
+        [P in keyof T & keyof AggregateCycleInBodyLink]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCycleInBodyLink[P]>
+      : GetScalarType<T[P], AggregateCycleInBodyLink[P]>
+  }
+
+
+
+
+  export type CycleInBodyLinkGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CycleInBodyLinkWhereInput
+    orderBy?: CycleInBodyLinkOrderByWithAggregationInput | CycleInBodyLinkOrderByWithAggregationInput[]
+    by: CycleInBodyLinkScalarFieldEnum[] | CycleInBodyLinkScalarFieldEnum
+    having?: CycleInBodyLinkScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CycleInBodyLinkCountAggregateInputType | true
+    _min?: CycleInBodyLinkMinAggregateInputType
+    _max?: CycleInBodyLinkMaxAggregateInputType
+  }
+
+  export type CycleInBodyLinkGroupByOutputType = {
+    id: string
+    cycleId: string
+    inbodyEntryId: string
+    linkedAt: Date
+    _count: CycleInBodyLinkCountAggregateOutputType | null
+    _min: CycleInBodyLinkMinAggregateOutputType | null
+    _max: CycleInBodyLinkMaxAggregateOutputType | null
+  }
+
+  type GetCycleInBodyLinkGroupByPayload<T extends CycleInBodyLinkGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CycleInBodyLinkGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CycleInBodyLinkGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CycleInBodyLinkGroupByOutputType[P]>
+            : GetScalarType<T[P], CycleInBodyLinkGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CycleInBodyLinkSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cycleId?: boolean
+    inbodyEntryId?: boolean
+    linkedAt?: boolean
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cycleInBodyLink"]>
+
+  export type CycleInBodyLinkSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    cycleId?: boolean
+    inbodyEntryId?: boolean
+    linkedAt?: boolean
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["cycleInBodyLink"]>
+
+  export type CycleInBodyLinkSelectScalar = {
+    id?: boolean
+    cycleId?: boolean
+    inbodyEntryId?: boolean
+    linkedAt?: boolean
+  }
+
+  export type CycleInBodyLinkInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+  }
+  export type CycleInBodyLinkIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    cycle?: boolean | TrainingCycleDefaultArgs<ExtArgs>
+  }
+
+  export type $CycleInBodyLinkPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CycleInBodyLink"
+    objects: {
+      cycle: Prisma.$TrainingCyclePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      cycleId: string
+      inbodyEntryId: string
+      linkedAt: Date
+    }, ExtArgs["result"]["cycleInBodyLink"]>
+    composites: {}
+  }
+
+  type CycleInBodyLinkGetPayload<S extends boolean | null | undefined | CycleInBodyLinkDefaultArgs> = $Result.GetResult<Prisma.$CycleInBodyLinkPayload, S>
+
+  type CycleInBodyLinkCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<CycleInBodyLinkFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: CycleInBodyLinkCountAggregateInputType | true
+    }
+
+  export interface CycleInBodyLinkDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CycleInBodyLink'], meta: { name: 'CycleInBodyLink' } }
+    /**
+     * Find zero or one CycleInBodyLink that matches the filter.
+     * @param {CycleInBodyLinkFindUniqueArgs} args - Arguments to find a CycleInBodyLink
+     * @example
+     * // Get one CycleInBodyLink
+     * const cycleInBodyLink = await prisma.cycleInBodyLink.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CycleInBodyLinkFindUniqueArgs>(args: SelectSubset<T, CycleInBodyLinkFindUniqueArgs<ExtArgs>>): Prisma__CycleInBodyLinkClient<$Result.GetResult<Prisma.$CycleInBodyLinkPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one CycleInBodyLink that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {CycleInBodyLinkFindUniqueOrThrowArgs} args - Arguments to find a CycleInBodyLink
+     * @example
+     * // Get one CycleInBodyLink
+     * const cycleInBodyLink = await prisma.cycleInBodyLink.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CycleInBodyLinkFindUniqueOrThrowArgs>(args: SelectSubset<T, CycleInBodyLinkFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CycleInBodyLinkClient<$Result.GetResult<Prisma.$CycleInBodyLinkPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first CycleInBodyLink that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleInBodyLinkFindFirstArgs} args - Arguments to find a CycleInBodyLink
+     * @example
+     * // Get one CycleInBodyLink
+     * const cycleInBodyLink = await prisma.cycleInBodyLink.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CycleInBodyLinkFindFirstArgs>(args?: SelectSubset<T, CycleInBodyLinkFindFirstArgs<ExtArgs>>): Prisma__CycleInBodyLinkClient<$Result.GetResult<Prisma.$CycleInBodyLinkPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first CycleInBodyLink that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleInBodyLinkFindFirstOrThrowArgs} args - Arguments to find a CycleInBodyLink
+     * @example
+     * // Get one CycleInBodyLink
+     * const cycleInBodyLink = await prisma.cycleInBodyLink.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CycleInBodyLinkFindFirstOrThrowArgs>(args?: SelectSubset<T, CycleInBodyLinkFindFirstOrThrowArgs<ExtArgs>>): Prisma__CycleInBodyLinkClient<$Result.GetResult<Prisma.$CycleInBodyLinkPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more CycleInBodyLinks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleInBodyLinkFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CycleInBodyLinks
+     * const cycleInBodyLinks = await prisma.cycleInBodyLink.findMany()
+     * 
+     * // Get first 10 CycleInBodyLinks
+     * const cycleInBodyLinks = await prisma.cycleInBodyLink.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const cycleInBodyLinkWithIdOnly = await prisma.cycleInBodyLink.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CycleInBodyLinkFindManyArgs>(args?: SelectSubset<T, CycleInBodyLinkFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CycleInBodyLinkPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a CycleInBodyLink.
+     * @param {CycleInBodyLinkCreateArgs} args - Arguments to create a CycleInBodyLink.
+     * @example
+     * // Create one CycleInBodyLink
+     * const CycleInBodyLink = await prisma.cycleInBodyLink.create({
+     *   data: {
+     *     // ... data to create a CycleInBodyLink
+     *   }
+     * })
+     * 
+     */
+    create<T extends CycleInBodyLinkCreateArgs>(args: SelectSubset<T, CycleInBodyLinkCreateArgs<ExtArgs>>): Prisma__CycleInBodyLinkClient<$Result.GetResult<Prisma.$CycleInBodyLinkPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many CycleInBodyLinks.
+     * @param {CycleInBodyLinkCreateManyArgs} args - Arguments to create many CycleInBodyLinks.
+     * @example
+     * // Create many CycleInBodyLinks
+     * const cycleInBodyLink = await prisma.cycleInBodyLink.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CycleInBodyLinkCreateManyArgs>(args?: SelectSubset<T, CycleInBodyLinkCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CycleInBodyLinks and returns the data saved in the database.
+     * @param {CycleInBodyLinkCreateManyAndReturnArgs} args - Arguments to create many CycleInBodyLinks.
+     * @example
+     * // Create many CycleInBodyLinks
+     * const cycleInBodyLink = await prisma.cycleInBodyLink.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CycleInBodyLinks and only return the `id`
+     * const cycleInBodyLinkWithIdOnly = await prisma.cycleInBodyLink.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CycleInBodyLinkCreateManyAndReturnArgs>(args?: SelectSubset<T, CycleInBodyLinkCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CycleInBodyLinkPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a CycleInBodyLink.
+     * @param {CycleInBodyLinkDeleteArgs} args - Arguments to delete one CycleInBodyLink.
+     * @example
+     * // Delete one CycleInBodyLink
+     * const CycleInBodyLink = await prisma.cycleInBodyLink.delete({
+     *   where: {
+     *     // ... filter to delete one CycleInBodyLink
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CycleInBodyLinkDeleteArgs>(args: SelectSubset<T, CycleInBodyLinkDeleteArgs<ExtArgs>>): Prisma__CycleInBodyLinkClient<$Result.GetResult<Prisma.$CycleInBodyLinkPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one CycleInBodyLink.
+     * @param {CycleInBodyLinkUpdateArgs} args - Arguments to update one CycleInBodyLink.
+     * @example
+     * // Update one CycleInBodyLink
+     * const cycleInBodyLink = await prisma.cycleInBodyLink.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CycleInBodyLinkUpdateArgs>(args: SelectSubset<T, CycleInBodyLinkUpdateArgs<ExtArgs>>): Prisma__CycleInBodyLinkClient<$Result.GetResult<Prisma.$CycleInBodyLinkPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more CycleInBodyLinks.
+     * @param {CycleInBodyLinkDeleteManyArgs} args - Arguments to filter CycleInBodyLinks to delete.
+     * @example
+     * // Delete a few CycleInBodyLinks
+     * const { count } = await prisma.cycleInBodyLink.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CycleInBodyLinkDeleteManyArgs>(args?: SelectSubset<T, CycleInBodyLinkDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CycleInBodyLinks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleInBodyLinkUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CycleInBodyLinks
+     * const cycleInBodyLink = await prisma.cycleInBodyLink.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CycleInBodyLinkUpdateManyArgs>(args: SelectSubset<T, CycleInBodyLinkUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one CycleInBodyLink.
+     * @param {CycleInBodyLinkUpsertArgs} args - Arguments to update or create a CycleInBodyLink.
+     * @example
+     * // Update or create a CycleInBodyLink
+     * const cycleInBodyLink = await prisma.cycleInBodyLink.upsert({
+     *   create: {
+     *     // ... data to create a CycleInBodyLink
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CycleInBodyLink we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CycleInBodyLinkUpsertArgs>(args: SelectSubset<T, CycleInBodyLinkUpsertArgs<ExtArgs>>): Prisma__CycleInBodyLinkClient<$Result.GetResult<Prisma.$CycleInBodyLinkPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of CycleInBodyLinks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleInBodyLinkCountArgs} args - Arguments to filter CycleInBodyLinks to count.
+     * @example
+     * // Count the number of CycleInBodyLinks
+     * const count = await prisma.cycleInBodyLink.count({
+     *   where: {
+     *     // ... the filter for the CycleInBodyLinks we want to count
+     *   }
+     * })
+    **/
+    count<T extends CycleInBodyLinkCountArgs>(
+      args?: Subset<T, CycleInBodyLinkCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CycleInBodyLinkCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CycleInBodyLink.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleInBodyLinkAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CycleInBodyLinkAggregateArgs>(args: Subset<T, CycleInBodyLinkAggregateArgs>): Prisma.PrismaPromise<GetCycleInBodyLinkAggregateType<T>>
+
+    /**
+     * Group by CycleInBodyLink.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CycleInBodyLinkGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CycleInBodyLinkGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CycleInBodyLinkGroupByArgs['orderBy'] }
+        : { orderBy?: CycleInBodyLinkGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CycleInBodyLinkGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCycleInBodyLinkGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CycleInBodyLink model
+   */
+  readonly fields: CycleInBodyLinkFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CycleInBodyLink.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CycleInBodyLinkClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    cycle<T extends TrainingCycleDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TrainingCycleDefaultArgs<ExtArgs>>): Prisma__TrainingCycleClient<$Result.GetResult<Prisma.$TrainingCyclePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CycleInBodyLink model
+   */ 
+  interface CycleInBodyLinkFieldRefs {
+    readonly id: FieldRef<"CycleInBodyLink", 'String'>
+    readonly cycleId: FieldRef<"CycleInBodyLink", 'String'>
+    readonly inbodyEntryId: FieldRef<"CycleInBodyLink", 'String'>
+    readonly linkedAt: FieldRef<"CycleInBodyLink", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CycleInBodyLink findUnique
+   */
+  export type CycleInBodyLinkFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleInBodyLink to fetch.
+     */
+    where: CycleInBodyLinkWhereUniqueInput
+  }
+
+  /**
+   * CycleInBodyLink findUniqueOrThrow
+   */
+  export type CycleInBodyLinkFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleInBodyLink to fetch.
+     */
+    where: CycleInBodyLinkWhereUniqueInput
+  }
+
+  /**
+   * CycleInBodyLink findFirst
+   */
+  export type CycleInBodyLinkFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleInBodyLink to fetch.
+     */
+    where?: CycleInBodyLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleInBodyLinks to fetch.
+     */
+    orderBy?: CycleInBodyLinkOrderByWithRelationInput | CycleInBodyLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CycleInBodyLinks.
+     */
+    cursor?: CycleInBodyLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleInBodyLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleInBodyLinks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CycleInBodyLinks.
+     */
+    distinct?: CycleInBodyLinkScalarFieldEnum | CycleInBodyLinkScalarFieldEnum[]
+  }
+
+  /**
+   * CycleInBodyLink findFirstOrThrow
+   */
+  export type CycleInBodyLinkFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleInBodyLink to fetch.
+     */
+    where?: CycleInBodyLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleInBodyLinks to fetch.
+     */
+    orderBy?: CycleInBodyLinkOrderByWithRelationInput | CycleInBodyLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CycleInBodyLinks.
+     */
+    cursor?: CycleInBodyLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleInBodyLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleInBodyLinks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CycleInBodyLinks.
+     */
+    distinct?: CycleInBodyLinkScalarFieldEnum | CycleInBodyLinkScalarFieldEnum[]
+  }
+
+  /**
+   * CycleInBodyLink findMany
+   */
+  export type CycleInBodyLinkFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which CycleInBodyLinks to fetch.
+     */
+    where?: CycleInBodyLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CycleInBodyLinks to fetch.
+     */
+    orderBy?: CycleInBodyLinkOrderByWithRelationInput | CycleInBodyLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CycleInBodyLinks.
+     */
+    cursor?: CycleInBodyLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CycleInBodyLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CycleInBodyLinks.
+     */
+    skip?: number
+    distinct?: CycleInBodyLinkScalarFieldEnum | CycleInBodyLinkScalarFieldEnum[]
+  }
+
+  /**
+   * CycleInBodyLink create
+   */
+  export type CycleInBodyLinkCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CycleInBodyLink.
+     */
+    data: XOR<CycleInBodyLinkCreateInput, CycleInBodyLinkUncheckedCreateInput>
+  }
+
+  /**
+   * CycleInBodyLink createMany
+   */
+  export type CycleInBodyLinkCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CycleInBodyLinks.
+     */
+    data: CycleInBodyLinkCreateManyInput | CycleInBodyLinkCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CycleInBodyLink createManyAndReturn
+   */
+  export type CycleInBodyLinkCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many CycleInBodyLinks.
+     */
+    data: CycleInBodyLinkCreateManyInput | CycleInBodyLinkCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CycleInBodyLink update
+   */
+  export type CycleInBodyLinkUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CycleInBodyLink.
+     */
+    data: XOR<CycleInBodyLinkUpdateInput, CycleInBodyLinkUncheckedUpdateInput>
+    /**
+     * Choose, which CycleInBodyLink to update.
+     */
+    where: CycleInBodyLinkWhereUniqueInput
+  }
+
+  /**
+   * CycleInBodyLink updateMany
+   */
+  export type CycleInBodyLinkUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CycleInBodyLinks.
+     */
+    data: XOR<CycleInBodyLinkUpdateManyMutationInput, CycleInBodyLinkUncheckedUpdateManyInput>
+    /**
+     * Filter which CycleInBodyLinks to update
+     */
+    where?: CycleInBodyLinkWhereInput
+  }
+
+  /**
+   * CycleInBodyLink upsert
+   */
+  export type CycleInBodyLinkUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CycleInBodyLink to update in case it exists.
+     */
+    where: CycleInBodyLinkWhereUniqueInput
+    /**
+     * In case the CycleInBodyLink found by the `where` argument doesn't exist, create a new CycleInBodyLink with this data.
+     */
+    create: XOR<CycleInBodyLinkCreateInput, CycleInBodyLinkUncheckedCreateInput>
+    /**
+     * In case the CycleInBodyLink was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CycleInBodyLinkUpdateInput, CycleInBodyLinkUncheckedUpdateInput>
+  }
+
+  /**
+   * CycleInBodyLink delete
+   */
+  export type CycleInBodyLinkDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkInclude<ExtArgs> | null
+    /**
+     * Filter which CycleInBodyLink to delete.
+     */
+    where: CycleInBodyLinkWhereUniqueInput
+  }
+
+  /**
+   * CycleInBodyLink deleteMany
+   */
+  export type CycleInBodyLinkDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CycleInBodyLinks to delete
+     */
+    where?: CycleInBodyLinkWhereInput
+  }
+
+  /**
+   * CycleInBodyLink without action
+   */
+  export type CycleInBodyLinkDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CycleInBodyLink
+     */
+    select?: CycleInBodyLinkSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CycleInBodyLinkInclude<ExtArgs> | null
   }
 
 
@@ -23248,6 +26851,7 @@ export namespace Prisma {
     sourcePlanId: 'sourcePlanId',
     sourceType: 'sourceType',
     notes: 'notes',
+    trainingCycleId: 'trainingCycleId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -23272,11 +26876,64 @@ export namespace Prisma {
     decision: 'decision',
     aiAnalysis: 'aiAnalysis',
     nextPlanId: 'nextPlanId',
+    name: 'name',
+    actualEndDate: 'actualEndDate',
+    baselineMetrics: 'baselineMetrics',
+    targetMetrics: 'targetMetrics',
+    configuration: 'configuration',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
 
   export type TrainingCycleScalarFieldEnum = (typeof TrainingCycleScalarFieldEnum)[keyof typeof TrainingCycleScalarFieldEnum]
+
+
+  export const CycleAssessmentScalarFieldEnum: {
+    id: 'id',
+    cycleId: 'cycleId',
+    assessmentVersion: 'assessmentVersion',
+    status: 'status',
+    decision: 'decision',
+    confidenceScore: 'confidenceScore',
+    dataQualityScore: 'dataQualityScore',
+    computedMetrics: 'computedMetrics',
+    reasonCodes: 'reasonCodes',
+    conflictingSignals: 'conflictingSignals',
+    safetyFlags: 'safetyFlags',
+    recommendedActionScope: 'recommendedActionScope',
+    aiSummary: 'aiSummary',
+    proposedChanges: 'proposedChanges',
+    userDecision: 'userDecision',
+    reviewedAt: 'reviewedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type CycleAssessmentScalarFieldEnum = (typeof CycleAssessmentScalarFieldEnum)[keyof typeof CycleAssessmentScalarFieldEnum]
+
+
+  export const CycleSessionFeedbackScalarFieldEnum: {
+    id: 'id',
+    cycleId: 'cycleId',
+    workoutScheduleId: 'workoutScheduleId',
+    readinessScore: 'readinessScore',
+    sessionRpe: 'sessionRpe',
+    painScore: 'painScore',
+    notes: 'notes',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type CycleSessionFeedbackScalarFieldEnum = (typeof CycleSessionFeedbackScalarFieldEnum)[keyof typeof CycleSessionFeedbackScalarFieldEnum]
+
+
+  export const CycleInBodyLinkScalarFieldEnum: {
+    id: 'id',
+    cycleId: 'cycleId',
+    inbodyEntryId: 'inbodyEntryId',
+    linkedAt: 'linkedAt'
+  };
+
+  export type CycleInBodyLinkScalarFieldEnum = (typeof CycleInBodyLinkScalarFieldEnum)[keyof typeof CycleInBodyLinkScalarFieldEnum]
 
 
   export const NutritionProgramScalarFieldEnum: {
@@ -24578,10 +28235,13 @@ export namespace Prisma {
     sourcePlanId?: StringNullableFilter<"WorkoutSchedule"> | string | null
     sourceType?: StringNullableFilter<"WorkoutSchedule"> | string | null
     notes?: StringNullableFilter<"WorkoutSchedule"> | string | null
+    trainingCycleId?: StringNullableFilter<"WorkoutSchedule"> | string | null
     createdAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
     programDay?: XOR<WorkoutProgramDayNullableRelationFilter, WorkoutProgramDayWhereInput> | null
     workout?: XOR<WorkoutNullableRelationFilter, WorkoutWhereInput> | null
+    trainingCycle?: XOR<TrainingCycleNullableRelationFilter, TrainingCycleWhereInput> | null
+    sessionFeedback?: XOR<CycleSessionFeedbackNullableRelationFilter, CycleSessionFeedbackWhereInput> | null
   }
 
   export type WorkoutScheduleOrderByWithRelationInput = {
@@ -24603,10 +28263,13 @@ export namespace Prisma {
     sourcePlanId?: SortOrderInput | SortOrder
     sourceType?: SortOrderInput | SortOrder
     notes?: SortOrderInput | SortOrder
+    trainingCycleId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     programDay?: WorkoutProgramDayOrderByWithRelationInput
     workout?: WorkoutOrderByWithRelationInput
+    trainingCycle?: TrainingCycleOrderByWithRelationInput
+    sessionFeedback?: CycleSessionFeedbackOrderByWithRelationInput
   }
 
   export type WorkoutScheduleWhereUniqueInput = Prisma.AtLeast<{
@@ -24632,10 +28295,13 @@ export namespace Prisma {
     sourcePlanId?: StringNullableFilter<"WorkoutSchedule"> | string | null
     sourceType?: StringNullableFilter<"WorkoutSchedule"> | string | null
     notes?: StringNullableFilter<"WorkoutSchedule"> | string | null
+    trainingCycleId?: StringNullableFilter<"WorkoutSchedule"> | string | null
     createdAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
     programDay?: XOR<WorkoutProgramDayNullableRelationFilter, WorkoutProgramDayWhereInput> | null
     workout?: XOR<WorkoutNullableRelationFilter, WorkoutWhereInput> | null
+    trainingCycle?: XOR<TrainingCycleNullableRelationFilter, TrainingCycleWhereInput> | null
+    sessionFeedback?: XOR<CycleSessionFeedbackNullableRelationFilter, CycleSessionFeedbackWhereInput> | null
   }, "id" | "userId_date">
 
   export type WorkoutScheduleOrderByWithAggregationInput = {
@@ -24657,6 +28323,7 @@ export namespace Prisma {
     sourcePlanId?: SortOrderInput | SortOrder
     sourceType?: SortOrderInput | SortOrder
     notes?: SortOrderInput | SortOrder
+    trainingCycleId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: WorkoutScheduleCountOrderByAggregateInput
@@ -24688,6 +28355,7 @@ export namespace Prisma {
     sourcePlanId?: StringNullableWithAggregatesFilter<"WorkoutSchedule"> | string | null
     sourceType?: StringNullableWithAggregatesFilter<"WorkoutSchedule"> | string | null
     notes?: StringNullableWithAggregatesFilter<"WorkoutSchedule"> | string | null
+    trainingCycleId?: StringNullableWithAggregatesFilter<"WorkoutSchedule"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WorkoutSchedule"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"WorkoutSchedule"> | Date | string
   }
@@ -24712,8 +28380,17 @@ export namespace Prisma {
     decision?: StringNullableFilter<"TrainingCycle"> | string | null
     aiAnalysis?: JsonNullableFilter<"TrainingCycle">
     nextPlanId?: StringNullableFilter<"TrainingCycle"> | string | null
+    name?: StringNullableFilter<"TrainingCycle"> | string | null
+    actualEndDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    baselineMetrics?: JsonNullableFilter<"TrainingCycle">
+    targetMetrics?: JsonNullableFilter<"TrainingCycle">
+    configuration?: JsonNullableFilter<"TrainingCycle">
     createdAt?: DateTimeFilter<"TrainingCycle"> | Date | string
     updatedAt?: DateTimeFilter<"TrainingCycle"> | Date | string
+    sessions?: WorkoutScheduleListRelationFilter
+    sessionFeedback?: CycleSessionFeedbackListRelationFilter
+    inbodyLinks?: CycleInBodyLinkListRelationFilter
+    assessments?: CycleAssessmentListRelationFilter
   }
 
   export type TrainingCycleOrderByWithRelationInput = {
@@ -24733,8 +28410,17 @@ export namespace Prisma {
     decision?: SortOrderInput | SortOrder
     aiAnalysis?: SortOrderInput | SortOrder
     nextPlanId?: SortOrderInput | SortOrder
+    name?: SortOrderInput | SortOrder
+    actualEndDate?: SortOrderInput | SortOrder
+    baselineMetrics?: SortOrderInput | SortOrder
+    targetMetrics?: SortOrderInput | SortOrder
+    configuration?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    sessions?: WorkoutScheduleOrderByRelationAggregateInput
+    sessionFeedback?: CycleSessionFeedbackOrderByRelationAggregateInput
+    inbodyLinks?: CycleInBodyLinkOrderByRelationAggregateInput
+    assessments?: CycleAssessmentOrderByRelationAggregateInput
   }
 
   export type TrainingCycleWhereUniqueInput = Prisma.AtLeast<{
@@ -24757,8 +28443,17 @@ export namespace Prisma {
     decision?: StringNullableFilter<"TrainingCycle"> | string | null
     aiAnalysis?: JsonNullableFilter<"TrainingCycle">
     nextPlanId?: StringNullableFilter<"TrainingCycle"> | string | null
+    name?: StringNullableFilter<"TrainingCycle"> | string | null
+    actualEndDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    baselineMetrics?: JsonNullableFilter<"TrainingCycle">
+    targetMetrics?: JsonNullableFilter<"TrainingCycle">
+    configuration?: JsonNullableFilter<"TrainingCycle">
     createdAt?: DateTimeFilter<"TrainingCycle"> | Date | string
     updatedAt?: DateTimeFilter<"TrainingCycle"> | Date | string
+    sessions?: WorkoutScheduleListRelationFilter
+    sessionFeedback?: CycleSessionFeedbackListRelationFilter
+    inbodyLinks?: CycleInBodyLinkListRelationFilter
+    assessments?: CycleAssessmentListRelationFilter
   }, "id">
 
   export type TrainingCycleOrderByWithAggregationInput = {
@@ -24778,6 +28473,11 @@ export namespace Prisma {
     decision?: SortOrderInput | SortOrder
     aiAnalysis?: SortOrderInput | SortOrder
     nextPlanId?: SortOrderInput | SortOrder
+    name?: SortOrderInput | SortOrder
+    actualEndDate?: SortOrderInput | SortOrder
+    baselineMetrics?: SortOrderInput | SortOrder
+    targetMetrics?: SortOrderInput | SortOrder
+    configuration?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: TrainingCycleCountOrderByAggregateInput
@@ -24807,8 +28507,262 @@ export namespace Prisma {
     decision?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
     aiAnalysis?: JsonNullableWithAggregatesFilter<"TrainingCycle">
     nextPlanId?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    name?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
+    actualEndDate?: DateTimeNullableWithAggregatesFilter<"TrainingCycle"> | Date | string | null
+    baselineMetrics?: JsonNullableWithAggregatesFilter<"TrainingCycle">
+    targetMetrics?: JsonNullableWithAggregatesFilter<"TrainingCycle">
+    configuration?: JsonNullableWithAggregatesFilter<"TrainingCycle">
     createdAt?: DateTimeWithAggregatesFilter<"TrainingCycle"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"TrainingCycle"> | Date | string
+  }
+
+  export type CycleAssessmentWhereInput = {
+    AND?: CycleAssessmentWhereInput | CycleAssessmentWhereInput[]
+    OR?: CycleAssessmentWhereInput[]
+    NOT?: CycleAssessmentWhereInput | CycleAssessmentWhereInput[]
+    id?: StringFilter<"CycleAssessment"> | string
+    cycleId?: StringFilter<"CycleAssessment"> | string
+    assessmentVersion?: IntFilter<"CycleAssessment"> | number
+    status?: StringFilter<"CycleAssessment"> | string
+    decision?: StringNullableFilter<"CycleAssessment"> | string | null
+    confidenceScore?: FloatNullableFilter<"CycleAssessment"> | number | null
+    dataQualityScore?: FloatNullableFilter<"CycleAssessment"> | number | null
+    computedMetrics?: JsonNullableFilter<"CycleAssessment">
+    reasonCodes?: JsonNullableFilter<"CycleAssessment">
+    conflictingSignals?: JsonNullableFilter<"CycleAssessment">
+    safetyFlags?: JsonNullableFilter<"CycleAssessment">
+    recommendedActionScope?: JsonNullableFilter<"CycleAssessment">
+    aiSummary?: StringNullableFilter<"CycleAssessment"> | string | null
+    proposedChanges?: JsonNullableFilter<"CycleAssessment">
+    userDecision?: StringFilter<"CycleAssessment"> | string
+    reviewedAt?: DateTimeNullableFilter<"CycleAssessment"> | Date | string | null
+    createdAt?: DateTimeFilter<"CycleAssessment"> | Date | string
+    cycle?: XOR<TrainingCycleRelationFilter, TrainingCycleWhereInput>
+  }
+
+  export type CycleAssessmentOrderByWithRelationInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    assessmentVersion?: SortOrder
+    status?: SortOrder
+    decision?: SortOrderInput | SortOrder
+    confidenceScore?: SortOrderInput | SortOrder
+    dataQualityScore?: SortOrderInput | SortOrder
+    computedMetrics?: SortOrderInput | SortOrder
+    reasonCodes?: SortOrderInput | SortOrder
+    conflictingSignals?: SortOrderInput | SortOrder
+    safetyFlags?: SortOrderInput | SortOrder
+    recommendedActionScope?: SortOrderInput | SortOrder
+    aiSummary?: SortOrderInput | SortOrder
+    proposedChanges?: SortOrderInput | SortOrder
+    userDecision?: SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    cycle?: TrainingCycleOrderByWithRelationInput
+  }
+
+  export type CycleAssessmentWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    cycleId_assessmentVersion?: CycleAssessmentCycleIdAssessmentVersionCompoundUniqueInput
+    AND?: CycleAssessmentWhereInput | CycleAssessmentWhereInput[]
+    OR?: CycleAssessmentWhereInput[]
+    NOT?: CycleAssessmentWhereInput | CycleAssessmentWhereInput[]
+    cycleId?: StringFilter<"CycleAssessment"> | string
+    assessmentVersion?: IntFilter<"CycleAssessment"> | number
+    status?: StringFilter<"CycleAssessment"> | string
+    decision?: StringNullableFilter<"CycleAssessment"> | string | null
+    confidenceScore?: FloatNullableFilter<"CycleAssessment"> | number | null
+    dataQualityScore?: FloatNullableFilter<"CycleAssessment"> | number | null
+    computedMetrics?: JsonNullableFilter<"CycleAssessment">
+    reasonCodes?: JsonNullableFilter<"CycleAssessment">
+    conflictingSignals?: JsonNullableFilter<"CycleAssessment">
+    safetyFlags?: JsonNullableFilter<"CycleAssessment">
+    recommendedActionScope?: JsonNullableFilter<"CycleAssessment">
+    aiSummary?: StringNullableFilter<"CycleAssessment"> | string | null
+    proposedChanges?: JsonNullableFilter<"CycleAssessment">
+    userDecision?: StringFilter<"CycleAssessment"> | string
+    reviewedAt?: DateTimeNullableFilter<"CycleAssessment"> | Date | string | null
+    createdAt?: DateTimeFilter<"CycleAssessment"> | Date | string
+    cycle?: XOR<TrainingCycleRelationFilter, TrainingCycleWhereInput>
+  }, "id" | "cycleId_assessmentVersion">
+
+  export type CycleAssessmentOrderByWithAggregationInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    assessmentVersion?: SortOrder
+    status?: SortOrder
+    decision?: SortOrderInput | SortOrder
+    confidenceScore?: SortOrderInput | SortOrder
+    dataQualityScore?: SortOrderInput | SortOrder
+    computedMetrics?: SortOrderInput | SortOrder
+    reasonCodes?: SortOrderInput | SortOrder
+    conflictingSignals?: SortOrderInput | SortOrder
+    safetyFlags?: SortOrderInput | SortOrder
+    recommendedActionScope?: SortOrderInput | SortOrder
+    aiSummary?: SortOrderInput | SortOrder
+    proposedChanges?: SortOrderInput | SortOrder
+    userDecision?: SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: CycleAssessmentCountOrderByAggregateInput
+    _avg?: CycleAssessmentAvgOrderByAggregateInput
+    _max?: CycleAssessmentMaxOrderByAggregateInput
+    _min?: CycleAssessmentMinOrderByAggregateInput
+    _sum?: CycleAssessmentSumOrderByAggregateInput
+  }
+
+  export type CycleAssessmentScalarWhereWithAggregatesInput = {
+    AND?: CycleAssessmentScalarWhereWithAggregatesInput | CycleAssessmentScalarWhereWithAggregatesInput[]
+    OR?: CycleAssessmentScalarWhereWithAggregatesInput[]
+    NOT?: CycleAssessmentScalarWhereWithAggregatesInput | CycleAssessmentScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CycleAssessment"> | string
+    cycleId?: StringWithAggregatesFilter<"CycleAssessment"> | string
+    assessmentVersion?: IntWithAggregatesFilter<"CycleAssessment"> | number
+    status?: StringWithAggregatesFilter<"CycleAssessment"> | string
+    decision?: StringNullableWithAggregatesFilter<"CycleAssessment"> | string | null
+    confidenceScore?: FloatNullableWithAggregatesFilter<"CycleAssessment"> | number | null
+    dataQualityScore?: FloatNullableWithAggregatesFilter<"CycleAssessment"> | number | null
+    computedMetrics?: JsonNullableWithAggregatesFilter<"CycleAssessment">
+    reasonCodes?: JsonNullableWithAggregatesFilter<"CycleAssessment">
+    conflictingSignals?: JsonNullableWithAggregatesFilter<"CycleAssessment">
+    safetyFlags?: JsonNullableWithAggregatesFilter<"CycleAssessment">
+    recommendedActionScope?: JsonNullableWithAggregatesFilter<"CycleAssessment">
+    aiSummary?: StringNullableWithAggregatesFilter<"CycleAssessment"> | string | null
+    proposedChanges?: JsonNullableWithAggregatesFilter<"CycleAssessment">
+    userDecision?: StringWithAggregatesFilter<"CycleAssessment"> | string
+    reviewedAt?: DateTimeNullableWithAggregatesFilter<"CycleAssessment"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"CycleAssessment"> | Date | string
+  }
+
+  export type CycleSessionFeedbackWhereInput = {
+    AND?: CycleSessionFeedbackWhereInput | CycleSessionFeedbackWhereInput[]
+    OR?: CycleSessionFeedbackWhereInput[]
+    NOT?: CycleSessionFeedbackWhereInput | CycleSessionFeedbackWhereInput[]
+    id?: StringFilter<"CycleSessionFeedback"> | string
+    cycleId?: StringFilter<"CycleSessionFeedback"> | string
+    workoutScheduleId?: StringFilter<"CycleSessionFeedback"> | string
+    readinessScore?: IntNullableFilter<"CycleSessionFeedback"> | number | null
+    sessionRpe?: FloatNullableFilter<"CycleSessionFeedback"> | number | null
+    painScore?: IntNullableFilter<"CycleSessionFeedback"> | number | null
+    notes?: StringNullableFilter<"CycleSessionFeedback"> | string | null
+    createdAt?: DateTimeFilter<"CycleSessionFeedback"> | Date | string
+    updatedAt?: DateTimeFilter<"CycleSessionFeedback"> | Date | string
+    cycle?: XOR<TrainingCycleRelationFilter, TrainingCycleWhereInput>
+    workoutSchedule?: XOR<WorkoutScheduleRelationFilter, WorkoutScheduleWhereInput>
+  }
+
+  export type CycleSessionFeedbackOrderByWithRelationInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    workoutScheduleId?: SortOrder
+    readinessScore?: SortOrderInput | SortOrder
+    sessionRpe?: SortOrderInput | SortOrder
+    painScore?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    cycle?: TrainingCycleOrderByWithRelationInput
+    workoutSchedule?: WorkoutScheduleOrderByWithRelationInput
+  }
+
+  export type CycleSessionFeedbackWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    workoutScheduleId?: string
+    AND?: CycleSessionFeedbackWhereInput | CycleSessionFeedbackWhereInput[]
+    OR?: CycleSessionFeedbackWhereInput[]
+    NOT?: CycleSessionFeedbackWhereInput | CycleSessionFeedbackWhereInput[]
+    cycleId?: StringFilter<"CycleSessionFeedback"> | string
+    readinessScore?: IntNullableFilter<"CycleSessionFeedback"> | number | null
+    sessionRpe?: FloatNullableFilter<"CycleSessionFeedback"> | number | null
+    painScore?: IntNullableFilter<"CycleSessionFeedback"> | number | null
+    notes?: StringNullableFilter<"CycleSessionFeedback"> | string | null
+    createdAt?: DateTimeFilter<"CycleSessionFeedback"> | Date | string
+    updatedAt?: DateTimeFilter<"CycleSessionFeedback"> | Date | string
+    cycle?: XOR<TrainingCycleRelationFilter, TrainingCycleWhereInput>
+    workoutSchedule?: XOR<WorkoutScheduleRelationFilter, WorkoutScheduleWhereInput>
+  }, "id" | "workoutScheduleId">
+
+  export type CycleSessionFeedbackOrderByWithAggregationInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    workoutScheduleId?: SortOrder
+    readinessScore?: SortOrderInput | SortOrder
+    sessionRpe?: SortOrderInput | SortOrder
+    painScore?: SortOrderInput | SortOrder
+    notes?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: CycleSessionFeedbackCountOrderByAggregateInput
+    _avg?: CycleSessionFeedbackAvgOrderByAggregateInput
+    _max?: CycleSessionFeedbackMaxOrderByAggregateInput
+    _min?: CycleSessionFeedbackMinOrderByAggregateInput
+    _sum?: CycleSessionFeedbackSumOrderByAggregateInput
+  }
+
+  export type CycleSessionFeedbackScalarWhereWithAggregatesInput = {
+    AND?: CycleSessionFeedbackScalarWhereWithAggregatesInput | CycleSessionFeedbackScalarWhereWithAggregatesInput[]
+    OR?: CycleSessionFeedbackScalarWhereWithAggregatesInput[]
+    NOT?: CycleSessionFeedbackScalarWhereWithAggregatesInput | CycleSessionFeedbackScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CycleSessionFeedback"> | string
+    cycleId?: StringWithAggregatesFilter<"CycleSessionFeedback"> | string
+    workoutScheduleId?: StringWithAggregatesFilter<"CycleSessionFeedback"> | string
+    readinessScore?: IntNullableWithAggregatesFilter<"CycleSessionFeedback"> | number | null
+    sessionRpe?: FloatNullableWithAggregatesFilter<"CycleSessionFeedback"> | number | null
+    painScore?: IntNullableWithAggregatesFilter<"CycleSessionFeedback"> | number | null
+    notes?: StringNullableWithAggregatesFilter<"CycleSessionFeedback"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"CycleSessionFeedback"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"CycleSessionFeedback"> | Date | string
+  }
+
+  export type CycleInBodyLinkWhereInput = {
+    AND?: CycleInBodyLinkWhereInput | CycleInBodyLinkWhereInput[]
+    OR?: CycleInBodyLinkWhereInput[]
+    NOT?: CycleInBodyLinkWhereInput | CycleInBodyLinkWhereInput[]
+    id?: StringFilter<"CycleInBodyLink"> | string
+    cycleId?: StringFilter<"CycleInBodyLink"> | string
+    inbodyEntryId?: StringFilter<"CycleInBodyLink"> | string
+    linkedAt?: DateTimeFilter<"CycleInBodyLink"> | Date | string
+    cycle?: XOR<TrainingCycleRelationFilter, TrainingCycleWhereInput>
+  }
+
+  export type CycleInBodyLinkOrderByWithRelationInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    inbodyEntryId?: SortOrder
+    linkedAt?: SortOrder
+    cycle?: TrainingCycleOrderByWithRelationInput
+  }
+
+  export type CycleInBodyLinkWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    cycleId_inbodyEntryId?: CycleInBodyLinkCycleIdInbodyEntryIdCompoundUniqueInput
+    AND?: CycleInBodyLinkWhereInput | CycleInBodyLinkWhereInput[]
+    OR?: CycleInBodyLinkWhereInput[]
+    NOT?: CycleInBodyLinkWhereInput | CycleInBodyLinkWhereInput[]
+    cycleId?: StringFilter<"CycleInBodyLink"> | string
+    inbodyEntryId?: StringFilter<"CycleInBodyLink"> | string
+    linkedAt?: DateTimeFilter<"CycleInBodyLink"> | Date | string
+    cycle?: XOR<TrainingCycleRelationFilter, TrainingCycleWhereInput>
+  }, "id" | "cycleId_inbodyEntryId">
+
+  export type CycleInBodyLinkOrderByWithAggregationInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    inbodyEntryId?: SortOrder
+    linkedAt?: SortOrder
+    _count?: CycleInBodyLinkCountOrderByAggregateInput
+    _max?: CycleInBodyLinkMaxOrderByAggregateInput
+    _min?: CycleInBodyLinkMinOrderByAggregateInput
+  }
+
+  export type CycleInBodyLinkScalarWhereWithAggregatesInput = {
+    AND?: CycleInBodyLinkScalarWhereWithAggregatesInput | CycleInBodyLinkScalarWhereWithAggregatesInput[]
+    OR?: CycleInBodyLinkScalarWhereWithAggregatesInput[]
+    NOT?: CycleInBodyLinkScalarWhereWithAggregatesInput | CycleInBodyLinkScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CycleInBodyLink"> | string
+    cycleId?: StringWithAggregatesFilter<"CycleInBodyLink"> | string
+    inbodyEntryId?: StringWithAggregatesFilter<"CycleInBodyLink"> | string
+    linkedAt?: DateTimeWithAggregatesFilter<"CycleInBodyLink"> | Date | string
   }
 
   export type NutritionProgramWhereInput = {
@@ -26474,6 +30428,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     programDay?: WorkoutProgramDayCreateNestedOneWithoutSchedulesInput
     workout?: WorkoutCreateNestedOneWithoutSchedulesInput
+    trainingCycle?: TrainingCycleCreateNestedOneWithoutSessionsInput
+    sessionFeedback?: CycleSessionFeedbackCreateNestedOneWithoutWorkoutScheduleInput
   }
 
   export type WorkoutScheduleUncheckedCreateInput = {
@@ -26495,8 +30451,10 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    trainingCycleId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedOneWithoutWorkoutScheduleInput
   }
 
   export type WorkoutScheduleUpdateInput = {
@@ -26520,6 +30478,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     programDay?: WorkoutProgramDayUpdateOneWithoutSchedulesNestedInput
     workout?: WorkoutUpdateOneWithoutSchedulesNestedInput
+    trainingCycle?: TrainingCycleUpdateOneWithoutSessionsNestedInput
+    sessionFeedback?: CycleSessionFeedbackUpdateOneWithoutWorkoutScheduleNestedInput
   }
 
   export type WorkoutScheduleUncheckedUpdateInput = {
@@ -26541,8 +30501,10 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessionFeedback?: CycleSessionFeedbackUncheckedUpdateOneWithoutWorkoutScheduleNestedInput
   }
 
   export type WorkoutScheduleCreateManyInput = {
@@ -26564,6 +30526,7 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    trainingCycleId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -26608,6 +30571,7 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -26629,8 +30593,17 @@ export namespace Prisma {
     decision?: string | null
     aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
     nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    sessions?: WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput
+    sessionFeedback?: CycleSessionFeedbackCreateNestedManyWithoutCycleInput
+    inbodyLinks?: CycleInBodyLinkCreateNestedManyWithoutCycleInput
+    assessments?: CycleAssessmentCreateNestedManyWithoutCycleInput
   }
 
   export type TrainingCycleUncheckedCreateInput = {
@@ -26650,8 +30623,17 @@ export namespace Prisma {
     decision?: string | null
     aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
     nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
+    sessions?: WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput
+    sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedManyWithoutCycleInput
+    inbodyLinks?: CycleInBodyLinkUncheckedCreateNestedManyWithoutCycleInput
+    assessments?: CycleAssessmentUncheckedCreateNestedManyWithoutCycleInput
   }
 
   export type TrainingCycleUpdateInput = {
@@ -26671,8 +30653,17 @@ export namespace Prisma {
     decision?: NullableStringFieldUpdateOperationsInput | string | null
     aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput
+    sessionFeedback?: CycleSessionFeedbackUpdateManyWithoutCycleNestedInput
+    inbodyLinks?: CycleInBodyLinkUpdateManyWithoutCycleNestedInput
+    assessments?: CycleAssessmentUpdateManyWithoutCycleNestedInput
   }
 
   export type TrainingCycleUncheckedUpdateInput = {
@@ -26692,8 +30683,17 @@ export namespace Prisma {
     decision?: NullableStringFieldUpdateOperationsInput | string | null
     aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput
+    sessionFeedback?: CycleSessionFeedbackUncheckedUpdateManyWithoutCycleNestedInput
+    inbodyLinks?: CycleInBodyLinkUncheckedUpdateManyWithoutCycleNestedInput
+    assessments?: CycleAssessmentUncheckedUpdateManyWithoutCycleNestedInput
   }
 
   export type TrainingCycleCreateManyInput = {
@@ -26713,6 +30713,11 @@ export namespace Prisma {
     decision?: string | null
     aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
     nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -26734,6 +30739,11 @@ export namespace Prisma {
     decision?: NullableStringFieldUpdateOperationsInput | string | null
     aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -26755,8 +30765,282 @@ export namespace Prisma {
     decision?: NullableStringFieldUpdateOperationsInput | string | null
     aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleAssessmentCreateInput = {
+    id?: string
+    assessmentVersion: number
+    status?: string
+    decision?: string | null
+    confidenceScore?: number | null
+    dataQualityScore?: number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: string
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    cycle: TrainingCycleCreateNestedOneWithoutAssessmentsInput
+  }
+
+  export type CycleAssessmentUncheckedCreateInput = {
+    id?: string
+    cycleId: string
+    assessmentVersion: number
+    status?: string
+    decision?: string | null
+    confidenceScore?: number | null
+    dataQualityScore?: number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: string
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type CycleAssessmentUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    assessmentVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    confidenceScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    dataQualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: NullableStringFieldUpdateOperationsInput | string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: StringFieldUpdateOperationsInput | string
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    cycle?: TrainingCycleUpdateOneRequiredWithoutAssessmentsNestedInput
+  }
+
+  export type CycleAssessmentUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cycleId?: StringFieldUpdateOperationsInput | string
+    assessmentVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    confidenceScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    dataQualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: NullableStringFieldUpdateOperationsInput | string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: StringFieldUpdateOperationsInput | string
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleAssessmentCreateManyInput = {
+    id?: string
+    cycleId: string
+    assessmentVersion: number
+    status?: string
+    decision?: string | null
+    confidenceScore?: number | null
+    dataQualityScore?: number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: string
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type CycleAssessmentUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    assessmentVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    confidenceScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    dataQualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: NullableStringFieldUpdateOperationsInput | string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: StringFieldUpdateOperationsInput | string
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleAssessmentUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cycleId?: StringFieldUpdateOperationsInput | string
+    assessmentVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    confidenceScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    dataQualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: NullableStringFieldUpdateOperationsInput | string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: StringFieldUpdateOperationsInput | string
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleSessionFeedbackCreateInput = {
+    id?: string
+    readinessScore?: number | null
+    sessionRpe?: number | null
+    painScore?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    cycle: TrainingCycleCreateNestedOneWithoutSessionFeedbackInput
+    workoutSchedule: WorkoutScheduleCreateNestedOneWithoutSessionFeedbackInput
+  }
+
+  export type CycleSessionFeedbackUncheckedCreateInput = {
+    id?: string
+    cycleId: string
+    workoutScheduleId: string
+    readinessScore?: number | null
+    sessionRpe?: number | null
+    painScore?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CycleSessionFeedbackUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    readinessScore?: NullableIntFieldUpdateOperationsInput | number | null
+    sessionRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    cycle?: TrainingCycleUpdateOneRequiredWithoutSessionFeedbackNestedInput
+    workoutSchedule?: WorkoutScheduleUpdateOneRequiredWithoutSessionFeedbackNestedInput
+  }
+
+  export type CycleSessionFeedbackUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cycleId?: StringFieldUpdateOperationsInput | string
+    workoutScheduleId?: StringFieldUpdateOperationsInput | string
+    readinessScore?: NullableIntFieldUpdateOperationsInput | number | null
+    sessionRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleSessionFeedbackCreateManyInput = {
+    id?: string
+    cycleId: string
+    workoutScheduleId: string
+    readinessScore?: number | null
+    sessionRpe?: number | null
+    painScore?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CycleSessionFeedbackUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    readinessScore?: NullableIntFieldUpdateOperationsInput | number | null
+    sessionRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleSessionFeedbackUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cycleId?: StringFieldUpdateOperationsInput | string
+    workoutScheduleId?: StringFieldUpdateOperationsInput | string
+    readinessScore?: NullableIntFieldUpdateOperationsInput | number | null
+    sessionRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleInBodyLinkCreateInput = {
+    id?: string
+    inbodyEntryId: string
+    linkedAt?: Date | string
+    cycle: TrainingCycleCreateNestedOneWithoutInbodyLinksInput
+  }
+
+  export type CycleInBodyLinkUncheckedCreateInput = {
+    id?: string
+    cycleId: string
+    inbodyEntryId: string
+    linkedAt?: Date | string
+  }
+
+  export type CycleInBodyLinkUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    inbodyEntryId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    cycle?: TrainingCycleUpdateOneRequiredWithoutInbodyLinksNestedInput
+  }
+
+  export type CycleInBodyLinkUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cycleId?: StringFieldUpdateOperationsInput | string
+    inbodyEntryId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleInBodyLinkCreateManyInput = {
+    id?: string
+    cycleId: string
+    inbodyEntryId: string
+    linkedAt?: Date | string
+  }
+
+  export type CycleInBodyLinkUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    inbodyEntryId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleInBodyLinkUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cycleId?: StringFieldUpdateOperationsInput | string
+    inbodyEntryId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type NutritionProgramCreateInput = {
@@ -28408,6 +32692,16 @@ export namespace Prisma {
     isNot?: WorkoutWhereInput | null
   }
 
+  export type TrainingCycleNullableRelationFilter = {
+    is?: TrainingCycleWhereInput | null
+    isNot?: TrainingCycleWhereInput | null
+  }
+
+  export type CycleSessionFeedbackNullableRelationFilter = {
+    is?: CycleSessionFeedbackWhereInput | null
+    isNot?: CycleSessionFeedbackWhereInput | null
+  }
+
   export type WorkoutScheduleUserIdDateCompoundUniqueInput = {
     userId: string
     date: Date | string
@@ -28432,6 +32726,7 @@ export namespace Prisma {
     sourcePlanId?: SortOrder
     sourceType?: SortOrder
     notes?: SortOrder
+    trainingCycleId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -28465,6 +32760,7 @@ export namespace Prisma {
     sourcePlanId?: SortOrder
     sourceType?: SortOrder
     notes?: SortOrder
+    trainingCycleId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -28488,6 +32784,7 @@ export namespace Prisma {
     sourcePlanId?: SortOrder
     sourceType?: SortOrder
     notes?: SortOrder
+    trainingCycleId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -28524,6 +32821,36 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
+  export type CycleSessionFeedbackListRelationFilter = {
+    every?: CycleSessionFeedbackWhereInput
+    some?: CycleSessionFeedbackWhereInput
+    none?: CycleSessionFeedbackWhereInput
+  }
+
+  export type CycleInBodyLinkListRelationFilter = {
+    every?: CycleInBodyLinkWhereInput
+    some?: CycleInBodyLinkWhereInput
+    none?: CycleInBodyLinkWhereInput
+  }
+
+  export type CycleAssessmentListRelationFilter = {
+    every?: CycleAssessmentWhereInput
+    some?: CycleAssessmentWhereInput
+    none?: CycleAssessmentWhereInput
+  }
+
+  export type CycleSessionFeedbackOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CycleInBodyLinkOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CycleAssessmentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type TrainingCycleCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
@@ -28541,6 +32868,11 @@ export namespace Prisma {
     decision?: SortOrder
     aiAnalysis?: SortOrder
     nextPlanId?: SortOrder
+    name?: SortOrder
+    actualEndDate?: SortOrder
+    baselineMetrics?: SortOrder
+    targetMetrics?: SortOrder
+    configuration?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -28565,6 +32897,8 @@ export namespace Prisma {
     lowConfidence?: SortOrder
     decision?: SortOrder
     nextPlanId?: SortOrder
+    name?: SortOrder
+    actualEndDate?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -28584,6 +32918,8 @@ export namespace Prisma {
     lowConfidence?: SortOrder
     decision?: SortOrder
     nextPlanId?: SortOrder
+    name?: SortOrder
+    actualEndDate?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -28616,6 +32952,155 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedJsonNullableFilter<$PrismaModel>
     _max?: NestedJsonNullableFilter<$PrismaModel>
+  }
+
+  export type TrainingCycleRelationFilter = {
+    is?: TrainingCycleWhereInput
+    isNot?: TrainingCycleWhereInput
+  }
+
+  export type CycleAssessmentCycleIdAssessmentVersionCompoundUniqueInput = {
+    cycleId: string
+    assessmentVersion: number
+  }
+
+  export type CycleAssessmentCountOrderByAggregateInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    assessmentVersion?: SortOrder
+    status?: SortOrder
+    decision?: SortOrder
+    confidenceScore?: SortOrder
+    dataQualityScore?: SortOrder
+    computedMetrics?: SortOrder
+    reasonCodes?: SortOrder
+    conflictingSignals?: SortOrder
+    safetyFlags?: SortOrder
+    recommendedActionScope?: SortOrder
+    aiSummary?: SortOrder
+    proposedChanges?: SortOrder
+    userDecision?: SortOrder
+    reviewedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CycleAssessmentAvgOrderByAggregateInput = {
+    assessmentVersion?: SortOrder
+    confidenceScore?: SortOrder
+    dataQualityScore?: SortOrder
+  }
+
+  export type CycleAssessmentMaxOrderByAggregateInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    assessmentVersion?: SortOrder
+    status?: SortOrder
+    decision?: SortOrder
+    confidenceScore?: SortOrder
+    dataQualityScore?: SortOrder
+    aiSummary?: SortOrder
+    userDecision?: SortOrder
+    reviewedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CycleAssessmentMinOrderByAggregateInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    assessmentVersion?: SortOrder
+    status?: SortOrder
+    decision?: SortOrder
+    confidenceScore?: SortOrder
+    dataQualityScore?: SortOrder
+    aiSummary?: SortOrder
+    userDecision?: SortOrder
+    reviewedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CycleAssessmentSumOrderByAggregateInput = {
+    assessmentVersion?: SortOrder
+    confidenceScore?: SortOrder
+    dataQualityScore?: SortOrder
+  }
+
+  export type WorkoutScheduleRelationFilter = {
+    is?: WorkoutScheduleWhereInput
+    isNot?: WorkoutScheduleWhereInput
+  }
+
+  export type CycleSessionFeedbackCountOrderByAggregateInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    workoutScheduleId?: SortOrder
+    readinessScore?: SortOrder
+    sessionRpe?: SortOrder
+    painScore?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CycleSessionFeedbackAvgOrderByAggregateInput = {
+    readinessScore?: SortOrder
+    sessionRpe?: SortOrder
+    painScore?: SortOrder
+  }
+
+  export type CycleSessionFeedbackMaxOrderByAggregateInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    workoutScheduleId?: SortOrder
+    readinessScore?: SortOrder
+    sessionRpe?: SortOrder
+    painScore?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CycleSessionFeedbackMinOrderByAggregateInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    workoutScheduleId?: SortOrder
+    readinessScore?: SortOrder
+    sessionRpe?: SortOrder
+    painScore?: SortOrder
+    notes?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CycleSessionFeedbackSumOrderByAggregateInput = {
+    readinessScore?: SortOrder
+    sessionRpe?: SortOrder
+    painScore?: SortOrder
+  }
+
+  export type CycleInBodyLinkCycleIdInbodyEntryIdCompoundUniqueInput = {
+    cycleId: string
+    inbodyEntryId: string
+  }
+
+  export type CycleInBodyLinkCountOrderByAggregateInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    inbodyEntryId?: SortOrder
+    linkedAt?: SortOrder
+  }
+
+  export type CycleInBodyLinkMaxOrderByAggregateInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    inbodyEntryId?: SortOrder
+    linkedAt?: SortOrder
+  }
+
+  export type CycleInBodyLinkMinOrderByAggregateInput = {
+    id?: SortOrder
+    cycleId?: SortOrder
+    inbodyEntryId?: SortOrder
+    linkedAt?: SortOrder
   }
 
   export type NutritionProgramDayListRelationFilter = {
@@ -29617,6 +34102,24 @@ export namespace Prisma {
     connect?: WorkoutWhereUniqueInput
   }
 
+  export type TrainingCycleCreateNestedOneWithoutSessionsInput = {
+    create?: XOR<TrainingCycleCreateWithoutSessionsInput, TrainingCycleUncheckedCreateWithoutSessionsInput>
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutSessionsInput
+    connect?: TrainingCycleWhereUniqueInput
+  }
+
+  export type CycleSessionFeedbackCreateNestedOneWithoutWorkoutScheduleInput = {
+    create?: XOR<CycleSessionFeedbackCreateWithoutWorkoutScheduleInput, CycleSessionFeedbackUncheckedCreateWithoutWorkoutScheduleInput>
+    connectOrCreate?: CycleSessionFeedbackCreateOrConnectWithoutWorkoutScheduleInput
+    connect?: CycleSessionFeedbackWhereUniqueInput
+  }
+
+  export type CycleSessionFeedbackUncheckedCreateNestedOneWithoutWorkoutScheduleInput = {
+    create?: XOR<CycleSessionFeedbackCreateWithoutWorkoutScheduleInput, CycleSessionFeedbackUncheckedCreateWithoutWorkoutScheduleInput>
+    connectOrCreate?: CycleSessionFeedbackCreateOrConnectWithoutWorkoutScheduleInput
+    connect?: CycleSessionFeedbackWhereUniqueInput
+  }
+
   export type WorkoutProgramDayUpdateOneWithoutSchedulesNestedInput = {
     create?: XOR<WorkoutProgramDayCreateWithoutSchedulesInput, WorkoutProgramDayUncheckedCreateWithoutSchedulesInput>
     connectOrCreate?: WorkoutProgramDayCreateOrConnectWithoutSchedulesInput
@@ -29635,6 +34138,260 @@ export namespace Prisma {
     delete?: WorkoutWhereInput | boolean
     connect?: WorkoutWhereUniqueInput
     update?: XOR<XOR<WorkoutUpdateToOneWithWhereWithoutSchedulesInput, WorkoutUpdateWithoutSchedulesInput>, WorkoutUncheckedUpdateWithoutSchedulesInput>
+  }
+
+  export type TrainingCycleUpdateOneWithoutSessionsNestedInput = {
+    create?: XOR<TrainingCycleCreateWithoutSessionsInput, TrainingCycleUncheckedCreateWithoutSessionsInput>
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutSessionsInput
+    upsert?: TrainingCycleUpsertWithoutSessionsInput
+    disconnect?: TrainingCycleWhereInput | boolean
+    delete?: TrainingCycleWhereInput | boolean
+    connect?: TrainingCycleWhereUniqueInput
+    update?: XOR<XOR<TrainingCycleUpdateToOneWithWhereWithoutSessionsInput, TrainingCycleUpdateWithoutSessionsInput>, TrainingCycleUncheckedUpdateWithoutSessionsInput>
+  }
+
+  export type CycleSessionFeedbackUpdateOneWithoutWorkoutScheduleNestedInput = {
+    create?: XOR<CycleSessionFeedbackCreateWithoutWorkoutScheduleInput, CycleSessionFeedbackUncheckedCreateWithoutWorkoutScheduleInput>
+    connectOrCreate?: CycleSessionFeedbackCreateOrConnectWithoutWorkoutScheduleInput
+    upsert?: CycleSessionFeedbackUpsertWithoutWorkoutScheduleInput
+    disconnect?: CycleSessionFeedbackWhereInput | boolean
+    delete?: CycleSessionFeedbackWhereInput | boolean
+    connect?: CycleSessionFeedbackWhereUniqueInput
+    update?: XOR<XOR<CycleSessionFeedbackUpdateToOneWithWhereWithoutWorkoutScheduleInput, CycleSessionFeedbackUpdateWithoutWorkoutScheduleInput>, CycleSessionFeedbackUncheckedUpdateWithoutWorkoutScheduleInput>
+  }
+
+  export type CycleSessionFeedbackUncheckedUpdateOneWithoutWorkoutScheduleNestedInput = {
+    create?: XOR<CycleSessionFeedbackCreateWithoutWorkoutScheduleInput, CycleSessionFeedbackUncheckedCreateWithoutWorkoutScheduleInput>
+    connectOrCreate?: CycleSessionFeedbackCreateOrConnectWithoutWorkoutScheduleInput
+    upsert?: CycleSessionFeedbackUpsertWithoutWorkoutScheduleInput
+    disconnect?: CycleSessionFeedbackWhereInput | boolean
+    delete?: CycleSessionFeedbackWhereInput | boolean
+    connect?: CycleSessionFeedbackWhereUniqueInput
+    update?: XOR<XOR<CycleSessionFeedbackUpdateToOneWithWhereWithoutWorkoutScheduleInput, CycleSessionFeedbackUpdateWithoutWorkoutScheduleInput>, CycleSessionFeedbackUncheckedUpdateWithoutWorkoutScheduleInput>
+  }
+
+  export type WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput = {
+    create?: XOR<WorkoutScheduleCreateWithoutTrainingCycleInput, WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput> | WorkoutScheduleCreateWithoutTrainingCycleInput[] | WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput[]
+    connectOrCreate?: WorkoutScheduleCreateOrConnectWithoutTrainingCycleInput | WorkoutScheduleCreateOrConnectWithoutTrainingCycleInput[]
+    createMany?: WorkoutScheduleCreateManyTrainingCycleInputEnvelope
+    connect?: WorkoutScheduleWhereUniqueInput | WorkoutScheduleWhereUniqueInput[]
+  }
+
+  export type CycleSessionFeedbackCreateNestedManyWithoutCycleInput = {
+    create?: XOR<CycleSessionFeedbackCreateWithoutCycleInput, CycleSessionFeedbackUncheckedCreateWithoutCycleInput> | CycleSessionFeedbackCreateWithoutCycleInput[] | CycleSessionFeedbackUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleSessionFeedbackCreateOrConnectWithoutCycleInput | CycleSessionFeedbackCreateOrConnectWithoutCycleInput[]
+    createMany?: CycleSessionFeedbackCreateManyCycleInputEnvelope
+    connect?: CycleSessionFeedbackWhereUniqueInput | CycleSessionFeedbackWhereUniqueInput[]
+  }
+
+  export type CycleInBodyLinkCreateNestedManyWithoutCycleInput = {
+    create?: XOR<CycleInBodyLinkCreateWithoutCycleInput, CycleInBodyLinkUncheckedCreateWithoutCycleInput> | CycleInBodyLinkCreateWithoutCycleInput[] | CycleInBodyLinkUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleInBodyLinkCreateOrConnectWithoutCycleInput | CycleInBodyLinkCreateOrConnectWithoutCycleInput[]
+    createMany?: CycleInBodyLinkCreateManyCycleInputEnvelope
+    connect?: CycleInBodyLinkWhereUniqueInput | CycleInBodyLinkWhereUniqueInput[]
+  }
+
+  export type CycleAssessmentCreateNestedManyWithoutCycleInput = {
+    create?: XOR<CycleAssessmentCreateWithoutCycleInput, CycleAssessmentUncheckedCreateWithoutCycleInput> | CycleAssessmentCreateWithoutCycleInput[] | CycleAssessmentUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleAssessmentCreateOrConnectWithoutCycleInput | CycleAssessmentCreateOrConnectWithoutCycleInput[]
+    createMany?: CycleAssessmentCreateManyCycleInputEnvelope
+    connect?: CycleAssessmentWhereUniqueInput | CycleAssessmentWhereUniqueInput[]
+  }
+
+  export type WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput = {
+    create?: XOR<WorkoutScheduleCreateWithoutTrainingCycleInput, WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput> | WorkoutScheduleCreateWithoutTrainingCycleInput[] | WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput[]
+    connectOrCreate?: WorkoutScheduleCreateOrConnectWithoutTrainingCycleInput | WorkoutScheduleCreateOrConnectWithoutTrainingCycleInput[]
+    createMany?: WorkoutScheduleCreateManyTrainingCycleInputEnvelope
+    connect?: WorkoutScheduleWhereUniqueInput | WorkoutScheduleWhereUniqueInput[]
+  }
+
+  export type CycleSessionFeedbackUncheckedCreateNestedManyWithoutCycleInput = {
+    create?: XOR<CycleSessionFeedbackCreateWithoutCycleInput, CycleSessionFeedbackUncheckedCreateWithoutCycleInput> | CycleSessionFeedbackCreateWithoutCycleInput[] | CycleSessionFeedbackUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleSessionFeedbackCreateOrConnectWithoutCycleInput | CycleSessionFeedbackCreateOrConnectWithoutCycleInput[]
+    createMany?: CycleSessionFeedbackCreateManyCycleInputEnvelope
+    connect?: CycleSessionFeedbackWhereUniqueInput | CycleSessionFeedbackWhereUniqueInput[]
+  }
+
+  export type CycleInBodyLinkUncheckedCreateNestedManyWithoutCycleInput = {
+    create?: XOR<CycleInBodyLinkCreateWithoutCycleInput, CycleInBodyLinkUncheckedCreateWithoutCycleInput> | CycleInBodyLinkCreateWithoutCycleInput[] | CycleInBodyLinkUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleInBodyLinkCreateOrConnectWithoutCycleInput | CycleInBodyLinkCreateOrConnectWithoutCycleInput[]
+    createMany?: CycleInBodyLinkCreateManyCycleInputEnvelope
+    connect?: CycleInBodyLinkWhereUniqueInput | CycleInBodyLinkWhereUniqueInput[]
+  }
+
+  export type CycleAssessmentUncheckedCreateNestedManyWithoutCycleInput = {
+    create?: XOR<CycleAssessmentCreateWithoutCycleInput, CycleAssessmentUncheckedCreateWithoutCycleInput> | CycleAssessmentCreateWithoutCycleInput[] | CycleAssessmentUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleAssessmentCreateOrConnectWithoutCycleInput | CycleAssessmentCreateOrConnectWithoutCycleInput[]
+    createMany?: CycleAssessmentCreateManyCycleInputEnvelope
+    connect?: CycleAssessmentWhereUniqueInput | CycleAssessmentWhereUniqueInput[]
+  }
+
+  export type WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput = {
+    create?: XOR<WorkoutScheduleCreateWithoutTrainingCycleInput, WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput> | WorkoutScheduleCreateWithoutTrainingCycleInput[] | WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput[]
+    connectOrCreate?: WorkoutScheduleCreateOrConnectWithoutTrainingCycleInput | WorkoutScheduleCreateOrConnectWithoutTrainingCycleInput[]
+    upsert?: WorkoutScheduleUpsertWithWhereUniqueWithoutTrainingCycleInput | WorkoutScheduleUpsertWithWhereUniqueWithoutTrainingCycleInput[]
+    createMany?: WorkoutScheduleCreateManyTrainingCycleInputEnvelope
+    set?: WorkoutScheduleWhereUniqueInput | WorkoutScheduleWhereUniqueInput[]
+    disconnect?: WorkoutScheduleWhereUniqueInput | WorkoutScheduleWhereUniqueInput[]
+    delete?: WorkoutScheduleWhereUniqueInput | WorkoutScheduleWhereUniqueInput[]
+    connect?: WorkoutScheduleWhereUniqueInput | WorkoutScheduleWhereUniqueInput[]
+    update?: WorkoutScheduleUpdateWithWhereUniqueWithoutTrainingCycleInput | WorkoutScheduleUpdateWithWhereUniqueWithoutTrainingCycleInput[]
+    updateMany?: WorkoutScheduleUpdateManyWithWhereWithoutTrainingCycleInput | WorkoutScheduleUpdateManyWithWhereWithoutTrainingCycleInput[]
+    deleteMany?: WorkoutScheduleScalarWhereInput | WorkoutScheduleScalarWhereInput[]
+  }
+
+  export type CycleSessionFeedbackUpdateManyWithoutCycleNestedInput = {
+    create?: XOR<CycleSessionFeedbackCreateWithoutCycleInput, CycleSessionFeedbackUncheckedCreateWithoutCycleInput> | CycleSessionFeedbackCreateWithoutCycleInput[] | CycleSessionFeedbackUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleSessionFeedbackCreateOrConnectWithoutCycleInput | CycleSessionFeedbackCreateOrConnectWithoutCycleInput[]
+    upsert?: CycleSessionFeedbackUpsertWithWhereUniqueWithoutCycleInput | CycleSessionFeedbackUpsertWithWhereUniqueWithoutCycleInput[]
+    createMany?: CycleSessionFeedbackCreateManyCycleInputEnvelope
+    set?: CycleSessionFeedbackWhereUniqueInput | CycleSessionFeedbackWhereUniqueInput[]
+    disconnect?: CycleSessionFeedbackWhereUniqueInput | CycleSessionFeedbackWhereUniqueInput[]
+    delete?: CycleSessionFeedbackWhereUniqueInput | CycleSessionFeedbackWhereUniqueInput[]
+    connect?: CycleSessionFeedbackWhereUniqueInput | CycleSessionFeedbackWhereUniqueInput[]
+    update?: CycleSessionFeedbackUpdateWithWhereUniqueWithoutCycleInput | CycleSessionFeedbackUpdateWithWhereUniqueWithoutCycleInput[]
+    updateMany?: CycleSessionFeedbackUpdateManyWithWhereWithoutCycleInput | CycleSessionFeedbackUpdateManyWithWhereWithoutCycleInput[]
+    deleteMany?: CycleSessionFeedbackScalarWhereInput | CycleSessionFeedbackScalarWhereInput[]
+  }
+
+  export type CycleInBodyLinkUpdateManyWithoutCycleNestedInput = {
+    create?: XOR<CycleInBodyLinkCreateWithoutCycleInput, CycleInBodyLinkUncheckedCreateWithoutCycleInput> | CycleInBodyLinkCreateWithoutCycleInput[] | CycleInBodyLinkUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleInBodyLinkCreateOrConnectWithoutCycleInput | CycleInBodyLinkCreateOrConnectWithoutCycleInput[]
+    upsert?: CycleInBodyLinkUpsertWithWhereUniqueWithoutCycleInput | CycleInBodyLinkUpsertWithWhereUniqueWithoutCycleInput[]
+    createMany?: CycleInBodyLinkCreateManyCycleInputEnvelope
+    set?: CycleInBodyLinkWhereUniqueInput | CycleInBodyLinkWhereUniqueInput[]
+    disconnect?: CycleInBodyLinkWhereUniqueInput | CycleInBodyLinkWhereUniqueInput[]
+    delete?: CycleInBodyLinkWhereUniqueInput | CycleInBodyLinkWhereUniqueInput[]
+    connect?: CycleInBodyLinkWhereUniqueInput | CycleInBodyLinkWhereUniqueInput[]
+    update?: CycleInBodyLinkUpdateWithWhereUniqueWithoutCycleInput | CycleInBodyLinkUpdateWithWhereUniqueWithoutCycleInput[]
+    updateMany?: CycleInBodyLinkUpdateManyWithWhereWithoutCycleInput | CycleInBodyLinkUpdateManyWithWhereWithoutCycleInput[]
+    deleteMany?: CycleInBodyLinkScalarWhereInput | CycleInBodyLinkScalarWhereInput[]
+  }
+
+  export type CycleAssessmentUpdateManyWithoutCycleNestedInput = {
+    create?: XOR<CycleAssessmentCreateWithoutCycleInput, CycleAssessmentUncheckedCreateWithoutCycleInput> | CycleAssessmentCreateWithoutCycleInput[] | CycleAssessmentUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleAssessmentCreateOrConnectWithoutCycleInput | CycleAssessmentCreateOrConnectWithoutCycleInput[]
+    upsert?: CycleAssessmentUpsertWithWhereUniqueWithoutCycleInput | CycleAssessmentUpsertWithWhereUniqueWithoutCycleInput[]
+    createMany?: CycleAssessmentCreateManyCycleInputEnvelope
+    set?: CycleAssessmentWhereUniqueInput | CycleAssessmentWhereUniqueInput[]
+    disconnect?: CycleAssessmentWhereUniqueInput | CycleAssessmentWhereUniqueInput[]
+    delete?: CycleAssessmentWhereUniqueInput | CycleAssessmentWhereUniqueInput[]
+    connect?: CycleAssessmentWhereUniqueInput | CycleAssessmentWhereUniqueInput[]
+    update?: CycleAssessmentUpdateWithWhereUniqueWithoutCycleInput | CycleAssessmentUpdateWithWhereUniqueWithoutCycleInput[]
+    updateMany?: CycleAssessmentUpdateManyWithWhereWithoutCycleInput | CycleAssessmentUpdateManyWithWhereWithoutCycleInput[]
+    deleteMany?: CycleAssessmentScalarWhereInput | CycleAssessmentScalarWhereInput[]
+  }
+
+  export type WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput = {
+    create?: XOR<WorkoutScheduleCreateWithoutTrainingCycleInput, WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput> | WorkoutScheduleCreateWithoutTrainingCycleInput[] | WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput[]
+    connectOrCreate?: WorkoutScheduleCreateOrConnectWithoutTrainingCycleInput | WorkoutScheduleCreateOrConnectWithoutTrainingCycleInput[]
+    upsert?: WorkoutScheduleUpsertWithWhereUniqueWithoutTrainingCycleInput | WorkoutScheduleUpsertWithWhereUniqueWithoutTrainingCycleInput[]
+    createMany?: WorkoutScheduleCreateManyTrainingCycleInputEnvelope
+    set?: WorkoutScheduleWhereUniqueInput | WorkoutScheduleWhereUniqueInput[]
+    disconnect?: WorkoutScheduleWhereUniqueInput | WorkoutScheduleWhereUniqueInput[]
+    delete?: WorkoutScheduleWhereUniqueInput | WorkoutScheduleWhereUniqueInput[]
+    connect?: WorkoutScheduleWhereUniqueInput | WorkoutScheduleWhereUniqueInput[]
+    update?: WorkoutScheduleUpdateWithWhereUniqueWithoutTrainingCycleInput | WorkoutScheduleUpdateWithWhereUniqueWithoutTrainingCycleInput[]
+    updateMany?: WorkoutScheduleUpdateManyWithWhereWithoutTrainingCycleInput | WorkoutScheduleUpdateManyWithWhereWithoutTrainingCycleInput[]
+    deleteMany?: WorkoutScheduleScalarWhereInput | WorkoutScheduleScalarWhereInput[]
+  }
+
+  export type CycleSessionFeedbackUncheckedUpdateManyWithoutCycleNestedInput = {
+    create?: XOR<CycleSessionFeedbackCreateWithoutCycleInput, CycleSessionFeedbackUncheckedCreateWithoutCycleInput> | CycleSessionFeedbackCreateWithoutCycleInput[] | CycleSessionFeedbackUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleSessionFeedbackCreateOrConnectWithoutCycleInput | CycleSessionFeedbackCreateOrConnectWithoutCycleInput[]
+    upsert?: CycleSessionFeedbackUpsertWithWhereUniqueWithoutCycleInput | CycleSessionFeedbackUpsertWithWhereUniqueWithoutCycleInput[]
+    createMany?: CycleSessionFeedbackCreateManyCycleInputEnvelope
+    set?: CycleSessionFeedbackWhereUniqueInput | CycleSessionFeedbackWhereUniqueInput[]
+    disconnect?: CycleSessionFeedbackWhereUniqueInput | CycleSessionFeedbackWhereUniqueInput[]
+    delete?: CycleSessionFeedbackWhereUniqueInput | CycleSessionFeedbackWhereUniqueInput[]
+    connect?: CycleSessionFeedbackWhereUniqueInput | CycleSessionFeedbackWhereUniqueInput[]
+    update?: CycleSessionFeedbackUpdateWithWhereUniqueWithoutCycleInput | CycleSessionFeedbackUpdateWithWhereUniqueWithoutCycleInput[]
+    updateMany?: CycleSessionFeedbackUpdateManyWithWhereWithoutCycleInput | CycleSessionFeedbackUpdateManyWithWhereWithoutCycleInput[]
+    deleteMany?: CycleSessionFeedbackScalarWhereInput | CycleSessionFeedbackScalarWhereInput[]
+  }
+
+  export type CycleInBodyLinkUncheckedUpdateManyWithoutCycleNestedInput = {
+    create?: XOR<CycleInBodyLinkCreateWithoutCycleInput, CycleInBodyLinkUncheckedCreateWithoutCycleInput> | CycleInBodyLinkCreateWithoutCycleInput[] | CycleInBodyLinkUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleInBodyLinkCreateOrConnectWithoutCycleInput | CycleInBodyLinkCreateOrConnectWithoutCycleInput[]
+    upsert?: CycleInBodyLinkUpsertWithWhereUniqueWithoutCycleInput | CycleInBodyLinkUpsertWithWhereUniqueWithoutCycleInput[]
+    createMany?: CycleInBodyLinkCreateManyCycleInputEnvelope
+    set?: CycleInBodyLinkWhereUniqueInput | CycleInBodyLinkWhereUniqueInput[]
+    disconnect?: CycleInBodyLinkWhereUniqueInput | CycleInBodyLinkWhereUniqueInput[]
+    delete?: CycleInBodyLinkWhereUniqueInput | CycleInBodyLinkWhereUniqueInput[]
+    connect?: CycleInBodyLinkWhereUniqueInput | CycleInBodyLinkWhereUniqueInput[]
+    update?: CycleInBodyLinkUpdateWithWhereUniqueWithoutCycleInput | CycleInBodyLinkUpdateWithWhereUniqueWithoutCycleInput[]
+    updateMany?: CycleInBodyLinkUpdateManyWithWhereWithoutCycleInput | CycleInBodyLinkUpdateManyWithWhereWithoutCycleInput[]
+    deleteMany?: CycleInBodyLinkScalarWhereInput | CycleInBodyLinkScalarWhereInput[]
+  }
+
+  export type CycleAssessmentUncheckedUpdateManyWithoutCycleNestedInput = {
+    create?: XOR<CycleAssessmentCreateWithoutCycleInput, CycleAssessmentUncheckedCreateWithoutCycleInput> | CycleAssessmentCreateWithoutCycleInput[] | CycleAssessmentUncheckedCreateWithoutCycleInput[]
+    connectOrCreate?: CycleAssessmentCreateOrConnectWithoutCycleInput | CycleAssessmentCreateOrConnectWithoutCycleInput[]
+    upsert?: CycleAssessmentUpsertWithWhereUniqueWithoutCycleInput | CycleAssessmentUpsertWithWhereUniqueWithoutCycleInput[]
+    createMany?: CycleAssessmentCreateManyCycleInputEnvelope
+    set?: CycleAssessmentWhereUniqueInput | CycleAssessmentWhereUniqueInput[]
+    disconnect?: CycleAssessmentWhereUniqueInput | CycleAssessmentWhereUniqueInput[]
+    delete?: CycleAssessmentWhereUniqueInput | CycleAssessmentWhereUniqueInput[]
+    connect?: CycleAssessmentWhereUniqueInput | CycleAssessmentWhereUniqueInput[]
+    update?: CycleAssessmentUpdateWithWhereUniqueWithoutCycleInput | CycleAssessmentUpdateWithWhereUniqueWithoutCycleInput[]
+    updateMany?: CycleAssessmentUpdateManyWithWhereWithoutCycleInput | CycleAssessmentUpdateManyWithWhereWithoutCycleInput[]
+    deleteMany?: CycleAssessmentScalarWhereInput | CycleAssessmentScalarWhereInput[]
+  }
+
+  export type TrainingCycleCreateNestedOneWithoutAssessmentsInput = {
+    create?: XOR<TrainingCycleCreateWithoutAssessmentsInput, TrainingCycleUncheckedCreateWithoutAssessmentsInput>
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutAssessmentsInput
+    connect?: TrainingCycleWhereUniqueInput
+  }
+
+  export type TrainingCycleUpdateOneRequiredWithoutAssessmentsNestedInput = {
+    create?: XOR<TrainingCycleCreateWithoutAssessmentsInput, TrainingCycleUncheckedCreateWithoutAssessmentsInput>
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutAssessmentsInput
+    upsert?: TrainingCycleUpsertWithoutAssessmentsInput
+    connect?: TrainingCycleWhereUniqueInput
+    update?: XOR<XOR<TrainingCycleUpdateToOneWithWhereWithoutAssessmentsInput, TrainingCycleUpdateWithoutAssessmentsInput>, TrainingCycleUncheckedUpdateWithoutAssessmentsInput>
+  }
+
+  export type TrainingCycleCreateNestedOneWithoutSessionFeedbackInput = {
+    create?: XOR<TrainingCycleCreateWithoutSessionFeedbackInput, TrainingCycleUncheckedCreateWithoutSessionFeedbackInput>
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutSessionFeedbackInput
+    connect?: TrainingCycleWhereUniqueInput
+  }
+
+  export type WorkoutScheduleCreateNestedOneWithoutSessionFeedbackInput = {
+    create?: XOR<WorkoutScheduleCreateWithoutSessionFeedbackInput, WorkoutScheduleUncheckedCreateWithoutSessionFeedbackInput>
+    connectOrCreate?: WorkoutScheduleCreateOrConnectWithoutSessionFeedbackInput
+    connect?: WorkoutScheduleWhereUniqueInput
+  }
+
+  export type TrainingCycleUpdateOneRequiredWithoutSessionFeedbackNestedInput = {
+    create?: XOR<TrainingCycleCreateWithoutSessionFeedbackInput, TrainingCycleUncheckedCreateWithoutSessionFeedbackInput>
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutSessionFeedbackInput
+    upsert?: TrainingCycleUpsertWithoutSessionFeedbackInput
+    connect?: TrainingCycleWhereUniqueInput
+    update?: XOR<XOR<TrainingCycleUpdateToOneWithWhereWithoutSessionFeedbackInput, TrainingCycleUpdateWithoutSessionFeedbackInput>, TrainingCycleUncheckedUpdateWithoutSessionFeedbackInput>
+  }
+
+  export type WorkoutScheduleUpdateOneRequiredWithoutSessionFeedbackNestedInput = {
+    create?: XOR<WorkoutScheduleCreateWithoutSessionFeedbackInput, WorkoutScheduleUncheckedCreateWithoutSessionFeedbackInput>
+    connectOrCreate?: WorkoutScheduleCreateOrConnectWithoutSessionFeedbackInput
+    upsert?: WorkoutScheduleUpsertWithoutSessionFeedbackInput
+    connect?: WorkoutScheduleWhereUniqueInput
+    update?: XOR<XOR<WorkoutScheduleUpdateToOneWithWhereWithoutSessionFeedbackInput, WorkoutScheduleUpdateWithoutSessionFeedbackInput>, WorkoutScheduleUncheckedUpdateWithoutSessionFeedbackInput>
+  }
+
+  export type TrainingCycleCreateNestedOneWithoutInbodyLinksInput = {
+    create?: XOR<TrainingCycleCreateWithoutInbodyLinksInput, TrainingCycleUncheckedCreateWithoutInbodyLinksInput>
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutInbodyLinksInput
+    connect?: TrainingCycleWhereUniqueInput
+  }
+
+  export type TrainingCycleUpdateOneRequiredWithoutInbodyLinksNestedInput = {
+    create?: XOR<TrainingCycleCreateWithoutInbodyLinksInput, TrainingCycleUncheckedCreateWithoutInbodyLinksInput>
+    connectOrCreate?: TrainingCycleCreateOrConnectWithoutInbodyLinksInput
+    upsert?: TrainingCycleUpsertWithoutInbodyLinksInput
+    connect?: TrainingCycleWhereUniqueInput
+    update?: XOR<XOR<TrainingCycleUpdateToOneWithWhereWithoutInbodyLinksInput, TrainingCycleUpdateWithoutInbodyLinksInput>, TrainingCycleUncheckedUpdateWithoutInbodyLinksInput>
   }
 
   export type NutritionProgramDayCreateNestedManyWithoutProgramInput = {
@@ -30398,6 +35155,8 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     programDay?: WorkoutProgramDayCreateNestedOneWithoutSchedulesInput
+    trainingCycle?: TrainingCycleCreateNestedOneWithoutSessionsInput
+    sessionFeedback?: CycleSessionFeedbackCreateNestedOneWithoutWorkoutScheduleInput
   }
 
   export type WorkoutScheduleUncheckedCreateWithoutWorkoutInput = {
@@ -30418,8 +35177,10 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    trainingCycleId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedOneWithoutWorkoutScheduleInput
   }
 
   export type WorkoutScheduleCreateOrConnectWithoutWorkoutInput = {
@@ -30486,6 +35247,7 @@ export namespace Prisma {
     sourcePlanId?: StringNullableFilter<"WorkoutSchedule"> | string | null
     sourceType?: StringNullableFilter<"WorkoutSchedule"> | string | null
     notes?: StringNullableFilter<"WorkoutSchedule"> | string | null
+    trainingCycleId?: StringNullableFilter<"WorkoutSchedule"> | string | null
     createdAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
     updatedAt?: DateTimeFilter<"WorkoutSchedule"> | Date | string
   }
@@ -31130,6 +35892,8 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     workout?: WorkoutCreateNestedOneWithoutSchedulesInput
+    trainingCycle?: TrainingCycleCreateNestedOneWithoutSessionsInput
+    sessionFeedback?: CycleSessionFeedbackCreateNestedOneWithoutWorkoutScheduleInput
   }
 
   export type WorkoutScheduleUncheckedCreateWithoutProgramDayInput = {
@@ -31150,8 +35914,10 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    trainingCycleId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedOneWithoutWorkoutScheduleInput
   }
 
   export type WorkoutScheduleCreateOrConnectWithoutProgramDayInput = {
@@ -31443,6 +36209,96 @@ export namespace Prisma {
     create: XOR<WorkoutCreateWithoutSchedulesInput, WorkoutUncheckedCreateWithoutSchedulesInput>
   }
 
+  export type TrainingCycleCreateWithoutSessionsInput = {
+    id?: string
+    userId: string
+    planId?: string | null
+    cycleIndex?: number
+    startDate: Date | string
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
+    status?: string
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessionFeedback?: CycleSessionFeedbackCreateNestedManyWithoutCycleInput
+    inbodyLinks?: CycleInBodyLinkCreateNestedManyWithoutCycleInput
+    assessments?: CycleAssessmentCreateNestedManyWithoutCycleInput
+  }
+
+  export type TrainingCycleUncheckedCreateWithoutSessionsInput = {
+    id?: string
+    userId: string
+    planId?: string | null
+    cycleIndex?: number
+    startDate: Date | string
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
+    status?: string
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedManyWithoutCycleInput
+    inbodyLinks?: CycleInBodyLinkUncheckedCreateNestedManyWithoutCycleInput
+    assessments?: CycleAssessmentUncheckedCreateNestedManyWithoutCycleInput
+  }
+
+  export type TrainingCycleCreateOrConnectWithoutSessionsInput = {
+    where: TrainingCycleWhereUniqueInput
+    create: XOR<TrainingCycleCreateWithoutSessionsInput, TrainingCycleUncheckedCreateWithoutSessionsInput>
+  }
+
+  export type CycleSessionFeedbackCreateWithoutWorkoutScheduleInput = {
+    id?: string
+    readinessScore?: number | null
+    sessionRpe?: number | null
+    painScore?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    cycle: TrainingCycleCreateNestedOneWithoutSessionFeedbackInput
+  }
+
+  export type CycleSessionFeedbackUncheckedCreateWithoutWorkoutScheduleInput = {
+    id?: string
+    cycleId: string
+    readinessScore?: number | null
+    sessionRpe?: number | null
+    painScore?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CycleSessionFeedbackCreateOrConnectWithoutWorkoutScheduleInput = {
+    where: CycleSessionFeedbackWhereUniqueInput
+    create: XOR<CycleSessionFeedbackCreateWithoutWorkoutScheduleInput, CycleSessionFeedbackUncheckedCreateWithoutWorkoutScheduleInput>
+  }
+
   export type WorkoutProgramDayUpsertWithoutSchedulesInput = {
     update: XOR<WorkoutProgramDayUpdateWithoutSchedulesInput, WorkoutProgramDayUncheckedUpdateWithoutSchedulesInput>
     create: XOR<WorkoutProgramDayCreateWithoutSchedulesInput, WorkoutProgramDayUncheckedCreateWithoutSchedulesInput>
@@ -31513,6 +36369,888 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     exercises?: WorkoutExerciseUncheckedUpdateManyWithoutWorkoutNestedInput
+  }
+
+  export type TrainingCycleUpsertWithoutSessionsInput = {
+    update: XOR<TrainingCycleUpdateWithoutSessionsInput, TrainingCycleUncheckedUpdateWithoutSessionsInput>
+    create: XOR<TrainingCycleCreateWithoutSessionsInput, TrainingCycleUncheckedCreateWithoutSessionsInput>
+    where?: TrainingCycleWhereInput
+  }
+
+  export type TrainingCycleUpdateToOneWithWhereWithoutSessionsInput = {
+    where?: TrainingCycleWhereInput
+    data: XOR<TrainingCycleUpdateWithoutSessionsInput, TrainingCycleUncheckedUpdateWithoutSessionsInput>
+  }
+
+  export type TrainingCycleUpdateWithoutSessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessionFeedback?: CycleSessionFeedbackUpdateManyWithoutCycleNestedInput
+    inbodyLinks?: CycleInBodyLinkUpdateManyWithoutCycleNestedInput
+    assessments?: CycleAssessmentUpdateManyWithoutCycleNestedInput
+  }
+
+  export type TrainingCycleUncheckedUpdateWithoutSessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessionFeedback?: CycleSessionFeedbackUncheckedUpdateManyWithoutCycleNestedInput
+    inbodyLinks?: CycleInBodyLinkUncheckedUpdateManyWithoutCycleNestedInput
+    assessments?: CycleAssessmentUncheckedUpdateManyWithoutCycleNestedInput
+  }
+
+  export type CycleSessionFeedbackUpsertWithoutWorkoutScheduleInput = {
+    update: XOR<CycleSessionFeedbackUpdateWithoutWorkoutScheduleInput, CycleSessionFeedbackUncheckedUpdateWithoutWorkoutScheduleInput>
+    create: XOR<CycleSessionFeedbackCreateWithoutWorkoutScheduleInput, CycleSessionFeedbackUncheckedCreateWithoutWorkoutScheduleInput>
+    where?: CycleSessionFeedbackWhereInput
+  }
+
+  export type CycleSessionFeedbackUpdateToOneWithWhereWithoutWorkoutScheduleInput = {
+    where?: CycleSessionFeedbackWhereInput
+    data: XOR<CycleSessionFeedbackUpdateWithoutWorkoutScheduleInput, CycleSessionFeedbackUncheckedUpdateWithoutWorkoutScheduleInput>
+  }
+
+  export type CycleSessionFeedbackUpdateWithoutWorkoutScheduleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    readinessScore?: NullableIntFieldUpdateOperationsInput | number | null
+    sessionRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    cycle?: TrainingCycleUpdateOneRequiredWithoutSessionFeedbackNestedInput
+  }
+
+  export type CycleSessionFeedbackUncheckedUpdateWithoutWorkoutScheduleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    cycleId?: StringFieldUpdateOperationsInput | string
+    readinessScore?: NullableIntFieldUpdateOperationsInput | number | null
+    sessionRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutScheduleCreateWithoutTrainingCycleInput = {
+    id?: string
+    userId: string
+    date: Date | string
+    status?: string
+    progressPercent?: number
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+    totalExercises?: number | null
+    completedExercises?: number | null
+    totalSets?: number | null
+    completedSets?: number | null
+    durationSeconds?: number | null
+    caloriesEstimate?: number | null
+    sourcePlanId?: string | null
+    sourceType?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    programDay?: WorkoutProgramDayCreateNestedOneWithoutSchedulesInput
+    workout?: WorkoutCreateNestedOneWithoutSchedulesInput
+    sessionFeedback?: CycleSessionFeedbackCreateNestedOneWithoutWorkoutScheduleInput
+  }
+
+  export type WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput = {
+    id?: string
+    userId: string
+    date: Date | string
+    programDayId?: string | null
+    workoutId?: string | null
+    status?: string
+    progressPercent?: number
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+    totalExercises?: number | null
+    completedExercises?: number | null
+    totalSets?: number | null
+    completedSets?: number | null
+    durationSeconds?: number | null
+    caloriesEstimate?: number | null
+    sourcePlanId?: string | null
+    sourceType?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedOneWithoutWorkoutScheduleInput
+  }
+
+  export type WorkoutScheduleCreateOrConnectWithoutTrainingCycleInput = {
+    where: WorkoutScheduleWhereUniqueInput
+    create: XOR<WorkoutScheduleCreateWithoutTrainingCycleInput, WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput>
+  }
+
+  export type WorkoutScheduleCreateManyTrainingCycleInputEnvelope = {
+    data: WorkoutScheduleCreateManyTrainingCycleInput | WorkoutScheduleCreateManyTrainingCycleInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CycleSessionFeedbackCreateWithoutCycleInput = {
+    id?: string
+    readinessScore?: number | null
+    sessionRpe?: number | null
+    painScore?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    workoutSchedule: WorkoutScheduleCreateNestedOneWithoutSessionFeedbackInput
+  }
+
+  export type CycleSessionFeedbackUncheckedCreateWithoutCycleInput = {
+    id?: string
+    workoutScheduleId: string
+    readinessScore?: number | null
+    sessionRpe?: number | null
+    painScore?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CycleSessionFeedbackCreateOrConnectWithoutCycleInput = {
+    where: CycleSessionFeedbackWhereUniqueInput
+    create: XOR<CycleSessionFeedbackCreateWithoutCycleInput, CycleSessionFeedbackUncheckedCreateWithoutCycleInput>
+  }
+
+  export type CycleSessionFeedbackCreateManyCycleInputEnvelope = {
+    data: CycleSessionFeedbackCreateManyCycleInput | CycleSessionFeedbackCreateManyCycleInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CycleInBodyLinkCreateWithoutCycleInput = {
+    id?: string
+    inbodyEntryId: string
+    linkedAt?: Date | string
+  }
+
+  export type CycleInBodyLinkUncheckedCreateWithoutCycleInput = {
+    id?: string
+    inbodyEntryId: string
+    linkedAt?: Date | string
+  }
+
+  export type CycleInBodyLinkCreateOrConnectWithoutCycleInput = {
+    where: CycleInBodyLinkWhereUniqueInput
+    create: XOR<CycleInBodyLinkCreateWithoutCycleInput, CycleInBodyLinkUncheckedCreateWithoutCycleInput>
+  }
+
+  export type CycleInBodyLinkCreateManyCycleInputEnvelope = {
+    data: CycleInBodyLinkCreateManyCycleInput | CycleInBodyLinkCreateManyCycleInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CycleAssessmentCreateWithoutCycleInput = {
+    id?: string
+    assessmentVersion: number
+    status?: string
+    decision?: string | null
+    confidenceScore?: number | null
+    dataQualityScore?: number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: string
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type CycleAssessmentUncheckedCreateWithoutCycleInput = {
+    id?: string
+    assessmentVersion: number
+    status?: string
+    decision?: string | null
+    confidenceScore?: number | null
+    dataQualityScore?: number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: string
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type CycleAssessmentCreateOrConnectWithoutCycleInput = {
+    where: CycleAssessmentWhereUniqueInput
+    create: XOR<CycleAssessmentCreateWithoutCycleInput, CycleAssessmentUncheckedCreateWithoutCycleInput>
+  }
+
+  export type CycleAssessmentCreateManyCycleInputEnvelope = {
+    data: CycleAssessmentCreateManyCycleInput | CycleAssessmentCreateManyCycleInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type WorkoutScheduleUpsertWithWhereUniqueWithoutTrainingCycleInput = {
+    where: WorkoutScheduleWhereUniqueInput
+    update: XOR<WorkoutScheduleUpdateWithoutTrainingCycleInput, WorkoutScheduleUncheckedUpdateWithoutTrainingCycleInput>
+    create: XOR<WorkoutScheduleCreateWithoutTrainingCycleInput, WorkoutScheduleUncheckedCreateWithoutTrainingCycleInput>
+  }
+
+  export type WorkoutScheduleUpdateWithWhereUniqueWithoutTrainingCycleInput = {
+    where: WorkoutScheduleWhereUniqueInput
+    data: XOR<WorkoutScheduleUpdateWithoutTrainingCycleInput, WorkoutScheduleUncheckedUpdateWithoutTrainingCycleInput>
+  }
+
+  export type WorkoutScheduleUpdateManyWithWhereWithoutTrainingCycleInput = {
+    where: WorkoutScheduleScalarWhereInput
+    data: XOR<WorkoutScheduleUpdateManyMutationInput, WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleInput>
+  }
+
+  export type CycleSessionFeedbackUpsertWithWhereUniqueWithoutCycleInput = {
+    where: CycleSessionFeedbackWhereUniqueInput
+    update: XOR<CycleSessionFeedbackUpdateWithoutCycleInput, CycleSessionFeedbackUncheckedUpdateWithoutCycleInput>
+    create: XOR<CycleSessionFeedbackCreateWithoutCycleInput, CycleSessionFeedbackUncheckedCreateWithoutCycleInput>
+  }
+
+  export type CycleSessionFeedbackUpdateWithWhereUniqueWithoutCycleInput = {
+    where: CycleSessionFeedbackWhereUniqueInput
+    data: XOR<CycleSessionFeedbackUpdateWithoutCycleInput, CycleSessionFeedbackUncheckedUpdateWithoutCycleInput>
+  }
+
+  export type CycleSessionFeedbackUpdateManyWithWhereWithoutCycleInput = {
+    where: CycleSessionFeedbackScalarWhereInput
+    data: XOR<CycleSessionFeedbackUpdateManyMutationInput, CycleSessionFeedbackUncheckedUpdateManyWithoutCycleInput>
+  }
+
+  export type CycleSessionFeedbackScalarWhereInput = {
+    AND?: CycleSessionFeedbackScalarWhereInput | CycleSessionFeedbackScalarWhereInput[]
+    OR?: CycleSessionFeedbackScalarWhereInput[]
+    NOT?: CycleSessionFeedbackScalarWhereInput | CycleSessionFeedbackScalarWhereInput[]
+    id?: StringFilter<"CycleSessionFeedback"> | string
+    cycleId?: StringFilter<"CycleSessionFeedback"> | string
+    workoutScheduleId?: StringFilter<"CycleSessionFeedback"> | string
+    readinessScore?: IntNullableFilter<"CycleSessionFeedback"> | number | null
+    sessionRpe?: FloatNullableFilter<"CycleSessionFeedback"> | number | null
+    painScore?: IntNullableFilter<"CycleSessionFeedback"> | number | null
+    notes?: StringNullableFilter<"CycleSessionFeedback"> | string | null
+    createdAt?: DateTimeFilter<"CycleSessionFeedback"> | Date | string
+    updatedAt?: DateTimeFilter<"CycleSessionFeedback"> | Date | string
+  }
+
+  export type CycleInBodyLinkUpsertWithWhereUniqueWithoutCycleInput = {
+    where: CycleInBodyLinkWhereUniqueInput
+    update: XOR<CycleInBodyLinkUpdateWithoutCycleInput, CycleInBodyLinkUncheckedUpdateWithoutCycleInput>
+    create: XOR<CycleInBodyLinkCreateWithoutCycleInput, CycleInBodyLinkUncheckedCreateWithoutCycleInput>
+  }
+
+  export type CycleInBodyLinkUpdateWithWhereUniqueWithoutCycleInput = {
+    where: CycleInBodyLinkWhereUniqueInput
+    data: XOR<CycleInBodyLinkUpdateWithoutCycleInput, CycleInBodyLinkUncheckedUpdateWithoutCycleInput>
+  }
+
+  export type CycleInBodyLinkUpdateManyWithWhereWithoutCycleInput = {
+    where: CycleInBodyLinkScalarWhereInput
+    data: XOR<CycleInBodyLinkUpdateManyMutationInput, CycleInBodyLinkUncheckedUpdateManyWithoutCycleInput>
+  }
+
+  export type CycleInBodyLinkScalarWhereInput = {
+    AND?: CycleInBodyLinkScalarWhereInput | CycleInBodyLinkScalarWhereInput[]
+    OR?: CycleInBodyLinkScalarWhereInput[]
+    NOT?: CycleInBodyLinkScalarWhereInput | CycleInBodyLinkScalarWhereInput[]
+    id?: StringFilter<"CycleInBodyLink"> | string
+    cycleId?: StringFilter<"CycleInBodyLink"> | string
+    inbodyEntryId?: StringFilter<"CycleInBodyLink"> | string
+    linkedAt?: DateTimeFilter<"CycleInBodyLink"> | Date | string
+  }
+
+  export type CycleAssessmentUpsertWithWhereUniqueWithoutCycleInput = {
+    where: CycleAssessmentWhereUniqueInput
+    update: XOR<CycleAssessmentUpdateWithoutCycleInput, CycleAssessmentUncheckedUpdateWithoutCycleInput>
+    create: XOR<CycleAssessmentCreateWithoutCycleInput, CycleAssessmentUncheckedCreateWithoutCycleInput>
+  }
+
+  export type CycleAssessmentUpdateWithWhereUniqueWithoutCycleInput = {
+    where: CycleAssessmentWhereUniqueInput
+    data: XOR<CycleAssessmentUpdateWithoutCycleInput, CycleAssessmentUncheckedUpdateWithoutCycleInput>
+  }
+
+  export type CycleAssessmentUpdateManyWithWhereWithoutCycleInput = {
+    where: CycleAssessmentScalarWhereInput
+    data: XOR<CycleAssessmentUpdateManyMutationInput, CycleAssessmentUncheckedUpdateManyWithoutCycleInput>
+  }
+
+  export type CycleAssessmentScalarWhereInput = {
+    AND?: CycleAssessmentScalarWhereInput | CycleAssessmentScalarWhereInput[]
+    OR?: CycleAssessmentScalarWhereInput[]
+    NOT?: CycleAssessmentScalarWhereInput | CycleAssessmentScalarWhereInput[]
+    id?: StringFilter<"CycleAssessment"> | string
+    cycleId?: StringFilter<"CycleAssessment"> | string
+    assessmentVersion?: IntFilter<"CycleAssessment"> | number
+    status?: StringFilter<"CycleAssessment"> | string
+    decision?: StringNullableFilter<"CycleAssessment"> | string | null
+    confidenceScore?: FloatNullableFilter<"CycleAssessment"> | number | null
+    dataQualityScore?: FloatNullableFilter<"CycleAssessment"> | number | null
+    computedMetrics?: JsonNullableFilter<"CycleAssessment">
+    reasonCodes?: JsonNullableFilter<"CycleAssessment">
+    conflictingSignals?: JsonNullableFilter<"CycleAssessment">
+    safetyFlags?: JsonNullableFilter<"CycleAssessment">
+    recommendedActionScope?: JsonNullableFilter<"CycleAssessment">
+    aiSummary?: StringNullableFilter<"CycleAssessment"> | string | null
+    proposedChanges?: JsonNullableFilter<"CycleAssessment">
+    userDecision?: StringFilter<"CycleAssessment"> | string
+    reviewedAt?: DateTimeNullableFilter<"CycleAssessment"> | Date | string | null
+    createdAt?: DateTimeFilter<"CycleAssessment"> | Date | string
+  }
+
+  export type TrainingCycleCreateWithoutAssessmentsInput = {
+    id?: string
+    userId: string
+    planId?: string | null
+    cycleIndex?: number
+    startDate: Date | string
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
+    status?: string
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput
+    sessionFeedback?: CycleSessionFeedbackCreateNestedManyWithoutCycleInput
+    inbodyLinks?: CycleInBodyLinkCreateNestedManyWithoutCycleInput
+  }
+
+  export type TrainingCycleUncheckedCreateWithoutAssessmentsInput = {
+    id?: string
+    userId: string
+    planId?: string | null
+    cycleIndex?: number
+    startDate: Date | string
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
+    status?: string
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput
+    sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedManyWithoutCycleInput
+    inbodyLinks?: CycleInBodyLinkUncheckedCreateNestedManyWithoutCycleInput
+  }
+
+  export type TrainingCycleCreateOrConnectWithoutAssessmentsInput = {
+    where: TrainingCycleWhereUniqueInput
+    create: XOR<TrainingCycleCreateWithoutAssessmentsInput, TrainingCycleUncheckedCreateWithoutAssessmentsInput>
+  }
+
+  export type TrainingCycleUpsertWithoutAssessmentsInput = {
+    update: XOR<TrainingCycleUpdateWithoutAssessmentsInput, TrainingCycleUncheckedUpdateWithoutAssessmentsInput>
+    create: XOR<TrainingCycleCreateWithoutAssessmentsInput, TrainingCycleUncheckedCreateWithoutAssessmentsInput>
+    where?: TrainingCycleWhereInput
+  }
+
+  export type TrainingCycleUpdateToOneWithWhereWithoutAssessmentsInput = {
+    where?: TrainingCycleWhereInput
+    data: XOR<TrainingCycleUpdateWithoutAssessmentsInput, TrainingCycleUncheckedUpdateWithoutAssessmentsInput>
+  }
+
+  export type TrainingCycleUpdateWithoutAssessmentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput
+    sessionFeedback?: CycleSessionFeedbackUpdateManyWithoutCycleNestedInput
+    inbodyLinks?: CycleInBodyLinkUpdateManyWithoutCycleNestedInput
+  }
+
+  export type TrainingCycleUncheckedUpdateWithoutAssessmentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput
+    sessionFeedback?: CycleSessionFeedbackUncheckedUpdateManyWithoutCycleNestedInput
+    inbodyLinks?: CycleInBodyLinkUncheckedUpdateManyWithoutCycleNestedInput
+  }
+
+  export type TrainingCycleCreateWithoutSessionFeedbackInput = {
+    id?: string
+    userId: string
+    planId?: string | null
+    cycleIndex?: number
+    startDate: Date | string
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
+    status?: string
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput
+    inbodyLinks?: CycleInBodyLinkCreateNestedManyWithoutCycleInput
+    assessments?: CycleAssessmentCreateNestedManyWithoutCycleInput
+  }
+
+  export type TrainingCycleUncheckedCreateWithoutSessionFeedbackInput = {
+    id?: string
+    userId: string
+    planId?: string | null
+    cycleIndex?: number
+    startDate: Date | string
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
+    status?: string
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput
+    inbodyLinks?: CycleInBodyLinkUncheckedCreateNestedManyWithoutCycleInput
+    assessments?: CycleAssessmentUncheckedCreateNestedManyWithoutCycleInput
+  }
+
+  export type TrainingCycleCreateOrConnectWithoutSessionFeedbackInput = {
+    where: TrainingCycleWhereUniqueInput
+    create: XOR<TrainingCycleCreateWithoutSessionFeedbackInput, TrainingCycleUncheckedCreateWithoutSessionFeedbackInput>
+  }
+
+  export type WorkoutScheduleCreateWithoutSessionFeedbackInput = {
+    id?: string
+    userId: string
+    date: Date | string
+    status?: string
+    progressPercent?: number
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+    totalExercises?: number | null
+    completedExercises?: number | null
+    totalSets?: number | null
+    completedSets?: number | null
+    durationSeconds?: number | null
+    caloriesEstimate?: number | null
+    sourcePlanId?: string | null
+    sourceType?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    programDay?: WorkoutProgramDayCreateNestedOneWithoutSchedulesInput
+    workout?: WorkoutCreateNestedOneWithoutSchedulesInput
+    trainingCycle?: TrainingCycleCreateNestedOneWithoutSessionsInput
+  }
+
+  export type WorkoutScheduleUncheckedCreateWithoutSessionFeedbackInput = {
+    id?: string
+    userId: string
+    date: Date | string
+    programDayId?: string | null
+    workoutId?: string | null
+    status?: string
+    progressPercent?: number
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+    totalExercises?: number | null
+    completedExercises?: number | null
+    totalSets?: number | null
+    completedSets?: number | null
+    durationSeconds?: number | null
+    caloriesEstimate?: number | null
+    sourcePlanId?: string | null
+    sourceType?: string | null
+    notes?: string | null
+    trainingCycleId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WorkoutScheduleCreateOrConnectWithoutSessionFeedbackInput = {
+    where: WorkoutScheduleWhereUniqueInput
+    create: XOR<WorkoutScheduleCreateWithoutSessionFeedbackInput, WorkoutScheduleUncheckedCreateWithoutSessionFeedbackInput>
+  }
+
+  export type TrainingCycleUpsertWithoutSessionFeedbackInput = {
+    update: XOR<TrainingCycleUpdateWithoutSessionFeedbackInput, TrainingCycleUncheckedUpdateWithoutSessionFeedbackInput>
+    create: XOR<TrainingCycleCreateWithoutSessionFeedbackInput, TrainingCycleUncheckedCreateWithoutSessionFeedbackInput>
+    where?: TrainingCycleWhereInput
+  }
+
+  export type TrainingCycleUpdateToOneWithWhereWithoutSessionFeedbackInput = {
+    where?: TrainingCycleWhereInput
+    data: XOR<TrainingCycleUpdateWithoutSessionFeedbackInput, TrainingCycleUncheckedUpdateWithoutSessionFeedbackInput>
+  }
+
+  export type TrainingCycleUpdateWithoutSessionFeedbackInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput
+    inbodyLinks?: CycleInBodyLinkUpdateManyWithoutCycleNestedInput
+    assessments?: CycleAssessmentUpdateManyWithoutCycleNestedInput
+  }
+
+  export type TrainingCycleUncheckedUpdateWithoutSessionFeedbackInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput
+    inbodyLinks?: CycleInBodyLinkUncheckedUpdateManyWithoutCycleNestedInput
+    assessments?: CycleAssessmentUncheckedUpdateManyWithoutCycleNestedInput
+  }
+
+  export type WorkoutScheduleUpsertWithoutSessionFeedbackInput = {
+    update: XOR<WorkoutScheduleUpdateWithoutSessionFeedbackInput, WorkoutScheduleUncheckedUpdateWithoutSessionFeedbackInput>
+    create: XOR<WorkoutScheduleCreateWithoutSessionFeedbackInput, WorkoutScheduleUncheckedCreateWithoutSessionFeedbackInput>
+    where?: WorkoutScheduleWhereInput
+  }
+
+  export type WorkoutScheduleUpdateToOneWithWhereWithoutSessionFeedbackInput = {
+    where?: WorkoutScheduleWhereInput
+    data: XOR<WorkoutScheduleUpdateWithoutSessionFeedbackInput, WorkoutScheduleUncheckedUpdateWithoutSessionFeedbackInput>
+  }
+
+  export type WorkoutScheduleUpdateWithoutSessionFeedbackInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    totalExercises?: NullableIntFieldUpdateOperationsInput | number | null
+    completedExercises?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSets?: NullableIntFieldUpdateOperationsInput | number | null
+    completedSets?: NullableIntFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    caloriesEstimate?: NullableIntFieldUpdateOperationsInput | number | null
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    programDay?: WorkoutProgramDayUpdateOneWithoutSchedulesNestedInput
+    workout?: WorkoutUpdateOneWithoutSchedulesNestedInput
+    trainingCycle?: TrainingCycleUpdateOneWithoutSessionsNestedInput
+  }
+
+  export type WorkoutScheduleUncheckedUpdateWithoutSessionFeedbackInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    programDayId?: NullableStringFieldUpdateOperationsInput | string | null
+    workoutId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    totalExercises?: NullableIntFieldUpdateOperationsInput | number | null
+    completedExercises?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSets?: NullableIntFieldUpdateOperationsInput | number | null
+    completedSets?: NullableIntFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    caloriesEstimate?: NullableIntFieldUpdateOperationsInput | number | null
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TrainingCycleCreateWithoutInbodyLinksInput = {
+    id?: string
+    userId: string
+    planId?: string | null
+    cycleIndex?: number
+    startDate: Date | string
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
+    status?: string
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkoutScheduleCreateNestedManyWithoutTrainingCycleInput
+    sessionFeedback?: CycleSessionFeedbackCreateNestedManyWithoutCycleInput
+    assessments?: CycleAssessmentCreateNestedManyWithoutCycleInput
+  }
+
+  export type TrainingCycleUncheckedCreateWithoutInbodyLinksInput = {
+    id?: string
+    userId: string
+    planId?: string | null
+    cycleIndex?: number
+    startDate: Date | string
+    endDate: Date | string
+    durationDays?: number
+    goal?: string | null
+    status?: string
+    startInbodyId?: string | null
+    endInbodyId?: string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: boolean
+    decision?: string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: string | null
+    name?: string | null
+    actualEndDate?: Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: WorkoutScheduleUncheckedCreateNestedManyWithoutTrainingCycleInput
+    sessionFeedback?: CycleSessionFeedbackUncheckedCreateNestedManyWithoutCycleInput
+    assessments?: CycleAssessmentUncheckedCreateNestedManyWithoutCycleInput
+  }
+
+  export type TrainingCycleCreateOrConnectWithoutInbodyLinksInput = {
+    where: TrainingCycleWhereUniqueInput
+    create: XOR<TrainingCycleCreateWithoutInbodyLinksInput, TrainingCycleUncheckedCreateWithoutInbodyLinksInput>
+  }
+
+  export type TrainingCycleUpsertWithoutInbodyLinksInput = {
+    update: XOR<TrainingCycleUpdateWithoutInbodyLinksInput, TrainingCycleUncheckedUpdateWithoutInbodyLinksInput>
+    create: XOR<TrainingCycleCreateWithoutInbodyLinksInput, TrainingCycleUncheckedCreateWithoutInbodyLinksInput>
+    where?: TrainingCycleWhereInput
+  }
+
+  export type TrainingCycleUpdateToOneWithWhereWithoutInbodyLinksInput = {
+    where?: TrainingCycleWhereInput
+    data: XOR<TrainingCycleUpdateWithoutInbodyLinksInput, TrainingCycleUncheckedUpdateWithoutInbodyLinksInput>
+  }
+
+  export type TrainingCycleUpdateWithoutInbodyLinksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkoutScheduleUpdateManyWithoutTrainingCycleNestedInput
+    sessionFeedback?: CycleSessionFeedbackUpdateManyWithoutCycleNestedInput
+    assessments?: CycleAssessmentUpdateManyWithoutCycleNestedInput
+  }
+
+  export type TrainingCycleUncheckedUpdateWithoutInbodyLinksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    planId?: NullableStringFieldUpdateOperationsInput | string | null
+    cycleIndex?: IntFieldUpdateOperationsInput | number
+    startDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    endDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    durationDays?: IntFieldUpdateOperationsInput | number
+    goal?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    lowConfidence?: BoolFieldUpdateOperationsInput | boolean
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    aiAnalysis?: NullableJsonNullValueInput | InputJsonValue
+    nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
+    targetMetrics?: NullableJsonNullValueInput | InputJsonValue
+    configuration?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleNestedInput
+    sessionFeedback?: CycleSessionFeedbackUncheckedUpdateManyWithoutCycleNestedInput
+    assessments?: CycleAssessmentUncheckedUpdateManyWithoutCycleNestedInput
   }
 
   export type NutritionProgramDayCreateWithoutProgramInput = {
@@ -32320,6 +38058,7 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    trainingCycleId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -32385,6 +38124,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     programDay?: WorkoutProgramDayUpdateOneWithoutSchedulesNestedInput
+    trainingCycle?: TrainingCycleUpdateOneWithoutSessionsNestedInput
+    sessionFeedback?: CycleSessionFeedbackUpdateOneWithoutWorkoutScheduleNestedInput
   }
 
   export type WorkoutScheduleUncheckedUpdateWithoutWorkoutInput = {
@@ -32405,8 +38146,10 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessionFeedback?: CycleSessionFeedbackUncheckedUpdateOneWithoutWorkoutScheduleNestedInput
   }
 
   export type WorkoutScheduleUncheckedUpdateManyWithoutWorkoutInput = {
@@ -32427,6 +38170,7 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -32646,6 +38390,7 @@ export namespace Prisma {
     sourcePlanId?: string | null
     sourceType?: string | null
     notes?: string | null
+    trainingCycleId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -32709,6 +38454,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workout?: WorkoutUpdateOneWithoutSchedulesNestedInput
+    trainingCycle?: TrainingCycleUpdateOneWithoutSessionsNestedInput
+    sessionFeedback?: CycleSessionFeedbackUpdateOneWithoutWorkoutScheduleNestedInput
   }
 
   export type WorkoutScheduleUncheckedUpdateWithoutProgramDayInput = {
@@ -32729,8 +38476,10 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessionFeedback?: CycleSessionFeedbackUncheckedUpdateOneWithoutWorkoutScheduleNestedInput
   }
 
   export type WorkoutScheduleUncheckedUpdateManyWithoutProgramDayInput = {
@@ -32751,8 +38500,247 @@ export namespace Prisma {
     sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
     sourceType?: NullableStringFieldUpdateOperationsInput | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    trainingCycleId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkoutScheduleCreateManyTrainingCycleInput = {
+    id?: string
+    userId: string
+    date: Date | string
+    programDayId?: string | null
+    workoutId?: string | null
+    status?: string
+    progressPercent?: number
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+    totalExercises?: number | null
+    completedExercises?: number | null
+    totalSets?: number | null
+    completedSets?: number | null
+    durationSeconds?: number | null
+    caloriesEstimate?: number | null
+    sourcePlanId?: string | null
+    sourceType?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CycleSessionFeedbackCreateManyCycleInput = {
+    id?: string
+    workoutScheduleId: string
+    readinessScore?: number | null
+    sessionRpe?: number | null
+    painScore?: number | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CycleInBodyLinkCreateManyCycleInput = {
+    id?: string
+    inbodyEntryId: string
+    linkedAt?: Date | string
+  }
+
+  export type CycleAssessmentCreateManyCycleInput = {
+    id?: string
+    assessmentVersion: number
+    status?: string
+    decision?: string | null
+    confidenceScore?: number | null
+    dataQualityScore?: number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: string
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type WorkoutScheduleUpdateWithoutTrainingCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    status?: StringFieldUpdateOperationsInput | string
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    totalExercises?: NullableIntFieldUpdateOperationsInput | number | null
+    completedExercises?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSets?: NullableIntFieldUpdateOperationsInput | number | null
+    completedSets?: NullableIntFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    caloriesEstimate?: NullableIntFieldUpdateOperationsInput | number | null
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    programDay?: WorkoutProgramDayUpdateOneWithoutSchedulesNestedInput
+    workout?: WorkoutUpdateOneWithoutSchedulesNestedInput
+    sessionFeedback?: CycleSessionFeedbackUpdateOneWithoutWorkoutScheduleNestedInput
+  }
+
+  export type WorkoutScheduleUncheckedUpdateWithoutTrainingCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    programDayId?: NullableStringFieldUpdateOperationsInput | string | null
+    workoutId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    totalExercises?: NullableIntFieldUpdateOperationsInput | number | null
+    completedExercises?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSets?: NullableIntFieldUpdateOperationsInput | number | null
+    completedSets?: NullableIntFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    caloriesEstimate?: NullableIntFieldUpdateOperationsInput | number | null
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessionFeedback?: CycleSessionFeedbackUncheckedUpdateOneWithoutWorkoutScheduleNestedInput
+  }
+
+  export type WorkoutScheduleUncheckedUpdateManyWithoutTrainingCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    date?: DateTimeFieldUpdateOperationsInput | Date | string
+    programDayId?: NullableStringFieldUpdateOperationsInput | string | null
+    workoutId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    progressPercent?: IntFieldUpdateOperationsInput | number
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    totalExercises?: NullableIntFieldUpdateOperationsInput | number | null
+    completedExercises?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSets?: NullableIntFieldUpdateOperationsInput | number | null
+    completedSets?: NullableIntFieldUpdateOperationsInput | number | null
+    durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
+    caloriesEstimate?: NullableIntFieldUpdateOperationsInput | number | null
+    sourcePlanId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleSessionFeedbackUpdateWithoutCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    readinessScore?: NullableIntFieldUpdateOperationsInput | number | null
+    sessionRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workoutSchedule?: WorkoutScheduleUpdateOneRequiredWithoutSessionFeedbackNestedInput
+  }
+
+  export type CycleSessionFeedbackUncheckedUpdateWithoutCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workoutScheduleId?: StringFieldUpdateOperationsInput | string
+    readinessScore?: NullableIntFieldUpdateOperationsInput | number | null
+    sessionRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleSessionFeedbackUncheckedUpdateManyWithoutCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workoutScheduleId?: StringFieldUpdateOperationsInput | string
+    readinessScore?: NullableIntFieldUpdateOperationsInput | number | null
+    sessionRpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleInBodyLinkUpdateWithoutCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    inbodyEntryId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleInBodyLinkUncheckedUpdateWithoutCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    inbodyEntryId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleInBodyLinkUncheckedUpdateManyWithoutCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    inbodyEntryId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleAssessmentUpdateWithoutCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    assessmentVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    confidenceScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    dataQualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: NullableStringFieldUpdateOperationsInput | string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: StringFieldUpdateOperationsInput | string
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleAssessmentUncheckedUpdateWithoutCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    assessmentVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    confidenceScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    dataQualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: NullableStringFieldUpdateOperationsInput | string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: StringFieldUpdateOperationsInput | string
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CycleAssessmentUncheckedUpdateManyWithoutCycleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    assessmentVersion?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    decision?: NullableStringFieldUpdateOperationsInput | string | null
+    confidenceScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    dataQualityScore?: NullableFloatFieldUpdateOperationsInput | number | null
+    computedMetrics?: NullableJsonNullValueInput | InputJsonValue
+    reasonCodes?: NullableJsonNullValueInput | InputJsonValue
+    conflictingSignals?: NullableJsonNullValueInput | InputJsonValue
+    safetyFlags?: NullableJsonNullValueInput | InputJsonValue
+    recommendedActionScope?: NullableJsonNullValueInput | InputJsonValue
+    aiSummary?: NullableStringFieldUpdateOperationsInput | string | null
+    proposedChanges?: NullableJsonNullValueInput | InputJsonValue
+    userDecision?: StringFieldUpdateOperationsInput | string
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type NutritionProgramDayCreateManyProgramInput = {
@@ -33011,6 +38999,10 @@ export namespace Prisma {
      */
     export type WorkoutProgramDayCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = WorkoutProgramDayCountOutputTypeDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use TrainingCycleCountOutputTypeDefaultArgs instead
+     */
+    export type TrainingCycleCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = TrainingCycleCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use NutritionProgramCountOutputTypeDefaultArgs instead
      */
     export type NutritionProgramCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NutritionProgramCountOutputTypeDefaultArgs<ExtArgs>
@@ -33078,6 +39070,18 @@ export namespace Prisma {
      * @deprecated Use TrainingCycleDefaultArgs instead
      */
     export type TrainingCycleArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = TrainingCycleDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use CycleAssessmentDefaultArgs instead
+     */
+    export type CycleAssessmentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = CycleAssessmentDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use CycleSessionFeedbackDefaultArgs instead
+     */
+    export type CycleSessionFeedbackArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = CycleSessionFeedbackDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use CycleInBodyLinkDefaultArgs instead
+     */
+    export type CycleInBodyLinkArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = CycleInBodyLinkDefaultArgs<ExtArgs>
     /**
      * @deprecated Use NutritionProgramDefaultArgs instead
      */
