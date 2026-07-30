@@ -46,9 +46,22 @@ services:
     ports:
       - "5173:5173" # Vite dev server (not nginx)
     environment:
-      VITE_API_URL: http://127.0.0.1:3000
-      VITE_SOCKET_URL: http://127.0.0.1:3000
-      VITE_CHAT_WS_URL: http://127.0.0.1:3005
+      # VITE_API_URL / VITE_SOCKET_URL / VITE_CHAT_WS_URL are intentionally
+      # left unset — the frontend defaults to same-origin relative requests,
+      # which vite.config.ts proxies to the targets below over the Docker
+      # network. This is what makes login (and everything else) work both at
+      # http://localhost:5173 and through a Dev Tunnel/port-forwarded HTTPS
+      # URL: the browser only ever talks to one origin, so there's no CORS
+      # preflight and no https-page-calling-http mixed-content block — both
+      # of which broke login when this pointed at an absolute
+      # http://127.0.0.1:3000 (that address means "this machine", which is
+      # meaningless to whatever remote/tunneled browser opens the tunnel URL).
+      GATEWAY_PROXY_TARGET: http://api-gateway:3000
+      CHAT_PROXY_TARGET: http://chat-service:3005
+      # Extra Host headers Vite should accept beyond localhost and
+      # *.devtunnels.ms (always allowed, see vite.config.ts) — comma
+      # separated, for other tunnel providers. Empty by default.
+      VITE_EXTRA_ALLOWED_HOSTS: ${VITE_EXTRA_ALLOWED_HOSTS:-}
       CHOKIDAR_USEPOLLING: "true" # Required for Windows bind-mount file-watching
     volumes:
       # Bind-mount React source so Vite HMR picks up every save
@@ -643,6 +656,7 @@ services:
       NODE_ENV: development
       PORT: 3007
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_payment
+      AUTH_SERVICE_URL: http://auth-service:3001
       GYM_SERVICE_URL: http://gym-service:3006
       USER_SERVICE_URL: http://user-service:3004
       PLATFORM_COMMISSION_RATE: ${PLATFORM_COMMISSION_RATE:-0.10}
@@ -695,6 +709,7 @@ services:
       NODE_ENV: development
       PORT: 3006
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_gym
+      AUTH_SERVICE_URL: http://auth-service:3001
       PAYMENT_SERVICE_URL: http://payment-service:3007
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:

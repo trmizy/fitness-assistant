@@ -34,3 +34,11 @@ export const recommendationDecisionSchema = z.object({
 export const linkInBodyEntrySchema = z.object({
   inbodyEntryId: z.string().min(1, "inbodyEntryId is required"),
 });
+
+export const sessionFeedbackSchema = z.object({
+  readinessScore: z.number().int().min(1).max(10).optional(),
+  sessionRpe: z.number().min(1).max(10).optional(),
+  painScore: z.number().int().min(0).max(10).optional(),
+  notes: z.string().max(1000).optional(),
+});
+export type SessionFeedbackInput = z.infer<typeof sessionFeedbackSchema>;

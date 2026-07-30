@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { membershipController } from '../controllers/membership.controller';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
 
@@ -11,18 +12,18 @@ const router = Router();
 const gate = [extractUser, requireAuth, requireRoles('CUSTOMER', 'PT')];
 
 // First purchase at this gym.
-router.post('/gyms/:gymId/memberships', ...gate, membershipController.purchase);
+router.post('/gyms/:gymId/memberships', ...gate, asyncHandler(membershipController.purchase));
 
 // Retry payment on an existing PENDING_PAYMENT membership (separate from the first-purchase
 // route above — see plan §2.3 for why these must not be overloaded into one endpoint).
-router.post('/me/gym-memberships/:id/pay', ...gate, membershipController.pay);
+router.post('/me/gym-memberships/:id/pay', ...gate, asyncHandler(membershipController.pay));
 
 // Abandon a stuck PENDING_PAYMENT membership so the client isn't locked out of buying a
 // different plan at the same gym (the open-membership unique index blocks a second purchase
 // while one is still PENDING_PAYMENT).
-router.post('/me/gym-memberships/:id/cancel', ...gate, membershipController.cancel);
+router.post('/me/gym-memberships/:id/cancel', ...gate, asyncHandler(membershipController.cancel));
 
-router.get('/me/gym-memberships', ...gate, membershipController.listForClient);
-router.get('/me/gym-memberships/:id', ...gate, membershipController.getForClient);
+router.get('/me/gym-memberships', ...gate, asyncHandler(membershipController.listForClient));
+router.get('/me/gym-memberships/:id', ...gate, asyncHandler(membershipController.getForClient));
 
 export default router;

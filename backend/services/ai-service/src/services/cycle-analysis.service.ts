@@ -12,6 +12,7 @@ import {
   type CycleReview,
 } from "../schemas/cycle-analysis.schemas";
 import { z } from "zod";
+import { reconcileMealPlanDraft } from "../llm/meal-plan-validator";
 
 const GOAL_LABEL: Record<string, string> = {
   WEIGHT_LOSS: "giảm mỡ (cut)",
@@ -132,12 +133,17 @@ function buildDetailsPrompt(
   decisionPhase: DecisionPhaseOutput,
 ): string {
   const { decision } = decisionPhase;
+  const experienceLevel = req.cycle.experienceLevel ?? "UNKNOWN";
+  const experienceKnownAndAtLeastIntermediate = experienceLevel === "INTERMEDIATE" || experienceLevel === "ADVANCED";
+  const pumpSetInstruction = experienceKnownAndAtLeastIntermediate
+    ? "thêm kỹ thuật pump-set/isolation cuối buổi cho tối đa 1-2 nhóm cơ ì (tối đa 2 buổi/tuần)"
+    : `KHÔNG được đề xuất kỹ thuật pump-set/isolation hay bất kỳ kỹ thuật nâng cao nào — trình độ tập luyện của người dùng ${experienceLevel === "UNKNOWN" ? "chưa được xác thực" : "là người mới (beginner)"}. Trả về pumpSetTargets là mảng rỗng [] và maxPumpSessionsPerWeek=0; trong "notes" ghi rõ cần xác nhận trình độ tập luyện (hoặc tích lũy thêm kinh nghiệm) trước khi áp dụng kỹ thuật nâng cao.`;
   const branchInstruction =
     decision === "KEEP"
       ? `Quyết định đã chọn là KEEP: giữ split hiện tại, đề xuất % tăng tải hợp lý cho chu kỳ tới, giữ hoặc tinh chỉnh nhẹ lượng calo.
 Trả lời theo ĐÚNG shape: {"keepDetails": {"overloadIncreasePct": number, "calorieDelta": number, "notes": string}, "mealPlanDraft": {"estimatedTDEE": number, "calorieTarget": number, "macros": {"proteinG": number, "carbG": number, "fatG": number}, "notes": string}}`
       : decision === "ADJUST"
-        ? `Quyết định đã chọn là ADJUST: giữ khung plan hiện tại; thêm kỹ thuật pump-set/isolation cuối buổi cho tối đa 1-2 nhóm cơ ì (tối đa 2 buổi/tuần); có thể chỉnh calo ±5-10%; có thể đổi 1-2 bài tập.
+        ? `Quyết định đã chọn là ADJUST: giữ khung plan hiện tại; ${pumpSetInstruction} có thể chỉnh calo ±5-10%; có thể đổi 1-2 bài tập.
 Trả lời theo ĐÚNG shape: {"adjustDetails": {"pumpSetTargets": string[], "maxPumpSessionsPerWeek": number, "exerciseSwaps": [], "calorieDeltaPct": number, "notes": string}, "mealPlanDraft": {"estimatedTDEE": number, "calorieTarget": number, "macros": {"proteinG": number, "carbG": number, "fatG": number}, "notes": string}}`
         : `Quyết định đã chọn là NEW_PLAN: cần chèn 1 tuần deload trước khi bắt đầu plan mới.
 Trả lời theo ĐÚNG shape: {"newPlanDraft": {"goal": string, "durationDays": number, "daysPerWeek": number, "splitSuggestion": string, "deloadWeekFirst": boolean, "notes": string}, "mealPlanDraft": {"estimatedTDEE": number, "calorieTarget": number, "macros": {"proteinG": number, "carbG": number, "fatG": number}, "notes": string}}`;
@@ -182,8 +188,12 @@ function defaultDetailsFor(
     adjustDetails:
       decision === "ADJUST"
         ? {
-            pumpSetTargets: req.progressSignals.laggingMuscleGroups ?? [],
-            maxPumpSessionsPerWeek: 2,
+            pumpSetTargets:
+              req.cycle.experienceLevel === "INTERMEDIATE" || req.cycle.experienceLevel === "ADVANCED"
+                ? (req.progressSignals.laggingMuscleGroups ?? [])
+                : [],
+            maxPumpSessionsPerWeek:
+              req.cycle.experienceLevel === "INTERMEDIATE" || req.cycle.experienceLevel === "ADVANCED" ? 2 : 0,
             exerciseSwaps: [],
             calorieDeltaPct: 0,
             notes: "Mặc định khi AI không phản hồi.",
@@ -239,12 +249,41 @@ export const cycleAnalysisService = {
       { userId: req.userId, phase: "details", numPredict: 1000, attempts: 3 },
     );
 
+    // Deterministic safety clamp — the prompt instructs the LLM not to
+    // suggest advanced/pump-set technique while experience level is unknown
+    // or beginner, but per this codebase's "code tính, LLM chỉ diễn giải"
+    // principle the LLM is never trusted to reliably follow that on its
+    // own. Reproduced bug (§3.8): AI proposed "Advanced" pump-set technique
+    // while the user's experience level was never verified.
+    const experienceLevel = req.cycle.experienceLevel ?? "UNKNOWN";
+    const experienceKnownAndAtLeastIntermediate = experienceLevel === "INTERMEDIATE" || experienceLevel === "ADVANCED";
+    function clampAdjustDetailsForExperience<T extends { pumpSetTargets: string[]; maxPumpSessionsPerWeek: number; notes: string } | null>(
+      adjustDetails: T,
+    ): T {
+      if (!adjustDetails || experienceKnownAndAtLeastIntermediate) return adjustDetails;
+      return {
+        ...adjustDetails,
+        pumpSetTargets: [],
+        maxPumpSessionsPerWeek: 0,
+        notes: `${adjustDetails.notes} (Kỹ thuật nâng cao bị ẩn: cần xác nhận trình độ tập luyện trước.)`.trim(),
+      };
+    }
+
     const details = detailsResult
       ? {
           keepDetails: "keepDetails" in detailsResult ? detailsResult.keepDetails : null,
-          adjustDetails: "adjustDetails" in detailsResult ? detailsResult.adjustDetails : null,
+          adjustDetails: clampAdjustDetailsForExperience(
+            "adjustDetails" in detailsResult ? detailsResult.adjustDetails : null,
+          ),
           newPlanDraft: "newPlanDraft" in detailsResult ? detailsResult.newPlanDraft : null,
-          mealPlanDraft: detailsResult.mealPlanDraft,
+          // The LLM is not trusted to do its own calorie/macro arithmetic —
+          // reconcileMealPlanDraft deterministically corrects calorieTarget
+          // to match what the stated macros actually add up to (or returns
+          // null if the draft is unsalvageable, e.g. implausible calorie
+          // bounds), rather than passing through whatever numbers the model
+          // produced unchecked. See meal-plan-validator.ts's doc comment for
+          // the exact bug this closes (§3.5: 595 kcal target/macro mismatch).
+          mealPlanDraft: reconcileMealPlanDraft(detailsResult.mealPlanDraft),
         }
       : defaultDetailsFor(req, decision);
 

@@ -11,7 +11,7 @@ export interface ProgressSignals {
   deltaPBF: number | null;
   volumeChangePct: number | null;
   newPRs: string[];
-  adherencePct: number;
+  adherencePct: number | null;
   rpeTrend: RpeTrend["trend"];
   laggingMuscleGroups: string[];
   signalBreakdown: Record<string, SignalLevel>;
@@ -57,7 +57,10 @@ function classifyVolume(volumeChangePct: number | null): SignalLevel {
   return "flat";
 }
 
-function classifyAdherence(adherencePct: number): SignalLevel {
+function classifyAdherence(adherencePct: number | null): SignalLevel {
+  // null = no scheduled sessions to judge against at all — absence of data
+  // is not evidence of decline, so this must never read as "down".
+  if (adherencePct == null) return "flat";
   const c = cycleThresholds.classification;
   if (adherencePct >= c.adherenceProgressingMinPct) return "up";
   if (adherencePct < c.adherenceDecliningMaxPct) return "down";

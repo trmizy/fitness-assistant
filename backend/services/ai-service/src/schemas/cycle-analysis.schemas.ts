@@ -10,6 +10,12 @@ export const AnalyzeCycleRequestSchema = z.object({
     endDate: z.union([z.string(), z.date()]),
     durationDays: z.number().int(),
     lowConfidence: z.boolean().optional(),
+    /** "UNKNOWN" when the user has never declared it — never silently
+     * defaulted upstream to BEGINNER/INTERMEDIATE. The details prompt gates
+     * advanced/isolation-technique suggestions on this being a known,
+     * non-BEGINNER level (see buildDetailsPrompt / the deterministic
+     * post-LLM clamp in cycle-analysis.service.ts). */
+    experienceLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED", "UNKNOWN"]).optional(),
   }),
   progressSignals: z.object({
     overallTrend: z.enum(["PROGRESSING", "PLATEAU", "DECLINING"]),

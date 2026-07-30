@@ -169,8 +169,15 @@ exports.Prisma.WorkoutSetScalarFieldEnum = {
   reps: 'reps',
   weight: 'weight',
   rpe: 'rpe',
+  rir: 'rir',
   completed: 'completed',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  setType: 'setType',
+  tempo: 'tempo',
+  rangeOfMotion: 'rangeOfMotion',
+  side: 'side',
+  painScore: 'painScore',
+  techniqueNotes: 'techniqueNotes'
 };
 
 exports.Prisma.FoodScalarFieldEnum = {
@@ -313,6 +320,7 @@ exports.Prisma.TrainingCycleScalarFieldEnum = {
   durationDays: 'durationDays',
   goal: 'goal',
   status: 'status',
+  archivedAt: 'archivedAt',
   startInbodyId: 'startInbodyId',
   endInbodyId: 'endInbodyId',
   summary: 'summary',
@@ -322,6 +330,7 @@ exports.Prisma.TrainingCycleScalarFieldEnum = {
   nextPlanId: 'nextPlanId',
   name: 'name',
   actualEndDate: 'actualEndDate',
+  timezoneAtStart: 'timezoneAtStart',
   baselineMetrics: 'baselineMetrics',
   targetMetrics: 'targetMetrics',
   configuration: 'configuration',

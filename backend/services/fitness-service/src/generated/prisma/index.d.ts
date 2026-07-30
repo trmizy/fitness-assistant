@@ -6295,6 +6295,8 @@ export namespace Prisma {
     reps: number | null
     weight: number | null
     rpe: number | null
+    rir: number | null
+    painScore: number | null
   }
 
   export type WorkoutSetSumAggregateOutputType = {
@@ -6302,6 +6304,8 @@ export namespace Prisma {
     reps: number | null
     weight: number | null
     rpe: number | null
+    rir: number | null
+    painScore: number | null
   }
 
   export type WorkoutSetMinAggregateOutputType = {
@@ -6311,8 +6315,15 @@ export namespace Prisma {
     reps: number | null
     weight: number | null
     rpe: number | null
+    rir: number | null
     completed: boolean | null
     createdAt: Date | null
+    setType: string | null
+    tempo: string | null
+    rangeOfMotion: string | null
+    side: string | null
+    painScore: number | null
+    techniqueNotes: string | null
   }
 
   export type WorkoutSetMaxAggregateOutputType = {
@@ -6322,8 +6333,15 @@ export namespace Prisma {
     reps: number | null
     weight: number | null
     rpe: number | null
+    rir: number | null
     completed: boolean | null
     createdAt: Date | null
+    setType: string | null
+    tempo: string | null
+    rangeOfMotion: string | null
+    side: string | null
+    painScore: number | null
+    techniqueNotes: string | null
   }
 
   export type WorkoutSetCountAggregateOutputType = {
@@ -6333,8 +6351,15 @@ export namespace Prisma {
     reps: number
     weight: number
     rpe: number
+    rir: number
     completed: number
     createdAt: number
+    setType: number
+    tempo: number
+    rangeOfMotion: number
+    side: number
+    painScore: number
+    techniqueNotes: number
     _all: number
   }
 
@@ -6344,6 +6369,8 @@ export namespace Prisma {
     reps?: true
     weight?: true
     rpe?: true
+    rir?: true
+    painScore?: true
   }
 
   export type WorkoutSetSumAggregateInputType = {
@@ -6351,6 +6378,8 @@ export namespace Prisma {
     reps?: true
     weight?: true
     rpe?: true
+    rir?: true
+    painScore?: true
   }
 
   export type WorkoutSetMinAggregateInputType = {
@@ -6360,8 +6389,15 @@ export namespace Prisma {
     reps?: true
     weight?: true
     rpe?: true
+    rir?: true
     completed?: true
     createdAt?: true
+    setType?: true
+    tempo?: true
+    rangeOfMotion?: true
+    side?: true
+    painScore?: true
+    techniqueNotes?: true
   }
 
   export type WorkoutSetMaxAggregateInputType = {
@@ -6371,8 +6407,15 @@ export namespace Prisma {
     reps?: true
     weight?: true
     rpe?: true
+    rir?: true
     completed?: true
     createdAt?: true
+    setType?: true
+    tempo?: true
+    rangeOfMotion?: true
+    side?: true
+    painScore?: true
+    techniqueNotes?: true
   }
 
   export type WorkoutSetCountAggregateInputType = {
@@ -6382,8 +6425,15 @@ export namespace Prisma {
     reps?: true
     weight?: true
     rpe?: true
+    rir?: true
     completed?: true
     createdAt?: true
+    setType?: true
+    tempo?: true
+    rangeOfMotion?: true
+    side?: true
+    painScore?: true
+    techniqueNotes?: true
     _all?: true
   }
 
@@ -6480,8 +6530,15 @@ export namespace Prisma {
     reps: number | null
     weight: number | null
     rpe: number | null
+    rir: number | null
     completed: boolean
     createdAt: Date
+    setType: string | null
+    tempo: string | null
+    rangeOfMotion: string | null
+    side: string | null
+    painScore: number | null
+    techniqueNotes: string | null
     _count: WorkoutSetCountAggregateOutputType | null
     _avg: WorkoutSetAvgAggregateOutputType | null
     _sum: WorkoutSetSumAggregateOutputType | null
@@ -6510,8 +6567,15 @@ export namespace Prisma {
     reps?: boolean
     weight?: boolean
     rpe?: boolean
+    rir?: boolean
     completed?: boolean
     createdAt?: boolean
+    setType?: boolean
+    tempo?: boolean
+    rangeOfMotion?: boolean
+    side?: boolean
+    painScore?: boolean
+    techniqueNotes?: boolean
     workoutExercise?: boolean | WorkoutExerciseDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["workoutSet"]>
 
@@ -6522,8 +6586,15 @@ export namespace Prisma {
     reps?: boolean
     weight?: boolean
     rpe?: boolean
+    rir?: boolean
     completed?: boolean
     createdAt?: boolean
+    setType?: boolean
+    tempo?: boolean
+    rangeOfMotion?: boolean
+    side?: boolean
+    painScore?: boolean
+    techniqueNotes?: boolean
     workoutExercise?: boolean | WorkoutExerciseDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["workoutSet"]>
 
@@ -6534,8 +6605,15 @@ export namespace Prisma {
     reps?: boolean
     weight?: boolean
     rpe?: boolean
+    rir?: boolean
     completed?: boolean
     createdAt?: boolean
+    setType?: boolean
+    tempo?: boolean
+    rangeOfMotion?: boolean
+    side?: boolean
+    painScore?: boolean
+    techniqueNotes?: boolean
   }
 
   export type WorkoutSetInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6557,8 +6635,15 @@ export namespace Prisma {
       reps: number | null
       weight: number | null
       rpe: number | null
+      rir: number | null
       completed: boolean
       createdAt: Date
+      setType: string | null
+      tempo: string | null
+      rangeOfMotion: string | null
+      side: string | null
+      painScore: number | null
+      techniqueNotes: string | null
     }, ExtArgs["result"]["workoutSet"]>
     composites: {}
   }
@@ -6959,8 +7044,15 @@ export namespace Prisma {
     readonly reps: FieldRef<"WorkoutSet", 'Int'>
     readonly weight: FieldRef<"WorkoutSet", 'Float'>
     readonly rpe: FieldRef<"WorkoutSet", 'Float'>
+    readonly rir: FieldRef<"WorkoutSet", 'Int'>
     readonly completed: FieldRef<"WorkoutSet", 'Boolean'>
     readonly createdAt: FieldRef<"WorkoutSet", 'DateTime'>
+    readonly setType: FieldRef<"WorkoutSet", 'String'>
+    readonly tempo: FieldRef<"WorkoutSet", 'String'>
+    readonly rangeOfMotion: FieldRef<"WorkoutSet", 'String'>
+    readonly side: FieldRef<"WorkoutSet", 'String'>
+    readonly painScore: FieldRef<"WorkoutSet", 'Int'>
+    readonly techniqueNotes: FieldRef<"WorkoutSet", 'String'>
   }
     
 
@@ -16827,6 +16919,7 @@ export namespace Prisma {
     durationDays: number | null
     goal: string | null
     status: string | null
+    archivedAt: Date | null
     startInbodyId: string | null
     endInbodyId: string | null
     lowConfidence: boolean | null
@@ -16834,6 +16927,7 @@ export namespace Prisma {
     nextPlanId: string | null
     name: string | null
     actualEndDate: Date | null
+    timezoneAtStart: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -16848,6 +16942,7 @@ export namespace Prisma {
     durationDays: number | null
     goal: string | null
     status: string | null
+    archivedAt: Date | null
     startInbodyId: string | null
     endInbodyId: string | null
     lowConfidence: boolean | null
@@ -16855,6 +16950,7 @@ export namespace Prisma {
     nextPlanId: string | null
     name: string | null
     actualEndDate: Date | null
+    timezoneAtStart: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -16869,6 +16965,7 @@ export namespace Prisma {
     durationDays: number
     goal: number
     status: number
+    archivedAt: number
     startInbodyId: number
     endInbodyId: number
     summary: number
@@ -16878,6 +16975,7 @@ export namespace Prisma {
     nextPlanId: number
     name: number
     actualEndDate: number
+    timezoneAtStart: number
     baselineMetrics: number
     targetMetrics: number
     configuration: number
@@ -16907,6 +17005,7 @@ export namespace Prisma {
     durationDays?: true
     goal?: true
     status?: true
+    archivedAt?: true
     startInbodyId?: true
     endInbodyId?: true
     lowConfidence?: true
@@ -16914,6 +17013,7 @@ export namespace Prisma {
     nextPlanId?: true
     name?: true
     actualEndDate?: true
+    timezoneAtStart?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -16928,6 +17028,7 @@ export namespace Prisma {
     durationDays?: true
     goal?: true
     status?: true
+    archivedAt?: true
     startInbodyId?: true
     endInbodyId?: true
     lowConfidence?: true
@@ -16935,6 +17036,7 @@ export namespace Prisma {
     nextPlanId?: true
     name?: true
     actualEndDate?: true
+    timezoneAtStart?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -16949,6 +17051,7 @@ export namespace Prisma {
     durationDays?: true
     goal?: true
     status?: true
+    archivedAt?: true
     startInbodyId?: true
     endInbodyId?: true
     summary?: true
@@ -16958,6 +17061,7 @@ export namespace Prisma {
     nextPlanId?: true
     name?: true
     actualEndDate?: true
+    timezoneAtStart?: true
     baselineMetrics?: true
     targetMetrics?: true
     configuration?: true
@@ -17062,6 +17166,7 @@ export namespace Prisma {
     durationDays: number
     goal: string | null
     status: string
+    archivedAt: Date | null
     startInbodyId: string | null
     endInbodyId: string | null
     summary: JsonValue | null
@@ -17071,6 +17176,7 @@ export namespace Prisma {
     nextPlanId: string | null
     name: string | null
     actualEndDate: Date | null
+    timezoneAtStart: string | null
     baselineMetrics: JsonValue | null
     targetMetrics: JsonValue | null
     configuration: JsonValue | null
@@ -17107,6 +17213,7 @@ export namespace Prisma {
     durationDays?: boolean
     goal?: boolean
     status?: boolean
+    archivedAt?: boolean
     startInbodyId?: boolean
     endInbodyId?: boolean
     summary?: boolean
@@ -17116,6 +17223,7 @@ export namespace Prisma {
     nextPlanId?: boolean
     name?: boolean
     actualEndDate?: boolean
+    timezoneAtStart?: boolean
     baselineMetrics?: boolean
     targetMetrics?: boolean
     configuration?: boolean
@@ -17138,6 +17246,7 @@ export namespace Prisma {
     durationDays?: boolean
     goal?: boolean
     status?: boolean
+    archivedAt?: boolean
     startInbodyId?: boolean
     endInbodyId?: boolean
     summary?: boolean
@@ -17147,6 +17256,7 @@ export namespace Prisma {
     nextPlanId?: boolean
     name?: boolean
     actualEndDate?: boolean
+    timezoneAtStart?: boolean
     baselineMetrics?: boolean
     targetMetrics?: boolean
     configuration?: boolean
@@ -17164,6 +17274,7 @@ export namespace Prisma {
     durationDays?: boolean
     goal?: boolean
     status?: boolean
+    archivedAt?: boolean
     startInbodyId?: boolean
     endInbodyId?: boolean
     summary?: boolean
@@ -17173,6 +17284,7 @@ export namespace Prisma {
     nextPlanId?: boolean
     name?: boolean
     actualEndDate?: boolean
+    timezoneAtStart?: boolean
     baselineMetrics?: boolean
     targetMetrics?: boolean
     configuration?: boolean
@@ -17207,6 +17319,7 @@ export namespace Prisma {
       durationDays: number
       goal: string | null
       status: string
+      archivedAt: Date | null
       startInbodyId: string | null
       endInbodyId: string | null
       summary: Prisma.JsonValue | null
@@ -17216,6 +17329,7 @@ export namespace Prisma {
       nextPlanId: string | null
       name: string | null
       actualEndDate: Date | null
+      timezoneAtStart: string | null
       baselineMetrics: Prisma.JsonValue | null
       targetMetrics: Prisma.JsonValue | null
       configuration: Prisma.JsonValue | null
@@ -17627,6 +17741,7 @@ export namespace Prisma {
     readonly durationDays: FieldRef<"TrainingCycle", 'Int'>
     readonly goal: FieldRef<"TrainingCycle", 'String'>
     readonly status: FieldRef<"TrainingCycle", 'String'>
+    readonly archivedAt: FieldRef<"TrainingCycle", 'DateTime'>
     readonly startInbodyId: FieldRef<"TrainingCycle", 'String'>
     readonly endInbodyId: FieldRef<"TrainingCycle", 'String'>
     readonly summary: FieldRef<"TrainingCycle", 'Json'>
@@ -17636,6 +17751,7 @@ export namespace Prisma {
     readonly nextPlanId: FieldRef<"TrainingCycle", 'String'>
     readonly name: FieldRef<"TrainingCycle", 'String'>
     readonly actualEndDate: FieldRef<"TrainingCycle", 'DateTime'>
+    readonly timezoneAtStart: FieldRef<"TrainingCycle", 'String'>
     readonly baselineMetrics: FieldRef<"TrainingCycle", 'Json'>
     readonly targetMetrics: FieldRef<"TrainingCycle", 'Json'>
     readonly configuration: FieldRef<"TrainingCycle", 'Json'>
@@ -26695,8 +26811,15 @@ export namespace Prisma {
     reps: 'reps',
     weight: 'weight',
     rpe: 'rpe',
+    rir: 'rir',
     completed: 'completed',
-    createdAt: 'createdAt'
+    createdAt: 'createdAt',
+    setType: 'setType',
+    tempo: 'tempo',
+    rangeOfMotion: 'rangeOfMotion',
+    side: 'side',
+    painScore: 'painScore',
+    techniqueNotes: 'techniqueNotes'
   };
 
   export type WorkoutSetScalarFieldEnum = (typeof WorkoutSetScalarFieldEnum)[keyof typeof WorkoutSetScalarFieldEnum]
@@ -26869,6 +26992,7 @@ export namespace Prisma {
     durationDays: 'durationDays',
     goal: 'goal',
     status: 'status',
+    archivedAt: 'archivedAt',
     startInbodyId: 'startInbodyId',
     endInbodyId: 'endInbodyId',
     summary: 'summary',
@@ -26878,6 +27002,7 @@ export namespace Prisma {
     nextPlanId: 'nextPlanId',
     name: 'name',
     actualEndDate: 'actualEndDate',
+    timezoneAtStart: 'timezoneAtStart',
     baselineMetrics: 'baselineMetrics',
     targetMetrics: 'targetMetrics',
     configuration: 'configuration',
@@ -27480,8 +27605,15 @@ export namespace Prisma {
     reps?: IntNullableFilter<"WorkoutSet"> | number | null
     weight?: FloatNullableFilter<"WorkoutSet"> | number | null
     rpe?: FloatNullableFilter<"WorkoutSet"> | number | null
+    rir?: IntNullableFilter<"WorkoutSet"> | number | null
     completed?: BoolFilter<"WorkoutSet"> | boolean
     createdAt?: DateTimeFilter<"WorkoutSet"> | Date | string
+    setType?: StringNullableFilter<"WorkoutSet"> | string | null
+    tempo?: StringNullableFilter<"WorkoutSet"> | string | null
+    rangeOfMotion?: StringNullableFilter<"WorkoutSet"> | string | null
+    side?: StringNullableFilter<"WorkoutSet"> | string | null
+    painScore?: IntNullableFilter<"WorkoutSet"> | number | null
+    techniqueNotes?: StringNullableFilter<"WorkoutSet"> | string | null
     workoutExercise?: XOR<WorkoutExerciseRelationFilter, WorkoutExerciseWhereInput>
   }
 
@@ -27492,8 +27624,15 @@ export namespace Prisma {
     reps?: SortOrderInput | SortOrder
     weight?: SortOrderInput | SortOrder
     rpe?: SortOrderInput | SortOrder
+    rir?: SortOrderInput | SortOrder
     completed?: SortOrder
     createdAt?: SortOrder
+    setType?: SortOrderInput | SortOrder
+    tempo?: SortOrderInput | SortOrder
+    rangeOfMotion?: SortOrderInput | SortOrder
+    side?: SortOrderInput | SortOrder
+    painScore?: SortOrderInput | SortOrder
+    techniqueNotes?: SortOrderInput | SortOrder
     workoutExercise?: WorkoutExerciseOrderByWithRelationInput
   }
 
@@ -27507,8 +27646,15 @@ export namespace Prisma {
     reps?: IntNullableFilter<"WorkoutSet"> | number | null
     weight?: FloatNullableFilter<"WorkoutSet"> | number | null
     rpe?: FloatNullableFilter<"WorkoutSet"> | number | null
+    rir?: IntNullableFilter<"WorkoutSet"> | number | null
     completed?: BoolFilter<"WorkoutSet"> | boolean
     createdAt?: DateTimeFilter<"WorkoutSet"> | Date | string
+    setType?: StringNullableFilter<"WorkoutSet"> | string | null
+    tempo?: StringNullableFilter<"WorkoutSet"> | string | null
+    rangeOfMotion?: StringNullableFilter<"WorkoutSet"> | string | null
+    side?: StringNullableFilter<"WorkoutSet"> | string | null
+    painScore?: IntNullableFilter<"WorkoutSet"> | number | null
+    techniqueNotes?: StringNullableFilter<"WorkoutSet"> | string | null
     workoutExercise?: XOR<WorkoutExerciseRelationFilter, WorkoutExerciseWhereInput>
   }, "id">
 
@@ -27519,8 +27665,15 @@ export namespace Prisma {
     reps?: SortOrderInput | SortOrder
     weight?: SortOrderInput | SortOrder
     rpe?: SortOrderInput | SortOrder
+    rir?: SortOrderInput | SortOrder
     completed?: SortOrder
     createdAt?: SortOrder
+    setType?: SortOrderInput | SortOrder
+    tempo?: SortOrderInput | SortOrder
+    rangeOfMotion?: SortOrderInput | SortOrder
+    side?: SortOrderInput | SortOrder
+    painScore?: SortOrderInput | SortOrder
+    techniqueNotes?: SortOrderInput | SortOrder
     _count?: WorkoutSetCountOrderByAggregateInput
     _avg?: WorkoutSetAvgOrderByAggregateInput
     _max?: WorkoutSetMaxOrderByAggregateInput
@@ -27538,8 +27691,15 @@ export namespace Prisma {
     reps?: IntNullableWithAggregatesFilter<"WorkoutSet"> | number | null
     weight?: FloatNullableWithAggregatesFilter<"WorkoutSet"> | number | null
     rpe?: FloatNullableWithAggregatesFilter<"WorkoutSet"> | number | null
+    rir?: IntNullableWithAggregatesFilter<"WorkoutSet"> | number | null
     completed?: BoolWithAggregatesFilter<"WorkoutSet"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"WorkoutSet"> | Date | string
+    setType?: StringNullableWithAggregatesFilter<"WorkoutSet"> | string | null
+    tempo?: StringNullableWithAggregatesFilter<"WorkoutSet"> | string | null
+    rangeOfMotion?: StringNullableWithAggregatesFilter<"WorkoutSet"> | string | null
+    side?: StringNullableWithAggregatesFilter<"WorkoutSet"> | string | null
+    painScore?: IntNullableWithAggregatesFilter<"WorkoutSet"> | number | null
+    techniqueNotes?: StringNullableWithAggregatesFilter<"WorkoutSet"> | string | null
   }
 
   export type FoodWhereInput = {
@@ -28373,6 +28533,7 @@ export namespace Prisma {
     durationDays?: IntFilter<"TrainingCycle"> | number
     goal?: StringNullableFilter<"TrainingCycle"> | string | null
     status?: StringFilter<"TrainingCycle"> | string
+    archivedAt?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
     startInbodyId?: StringNullableFilter<"TrainingCycle"> | string | null
     endInbodyId?: StringNullableFilter<"TrainingCycle"> | string | null
     summary?: JsonNullableFilter<"TrainingCycle">
@@ -28382,6 +28543,7 @@ export namespace Prisma {
     nextPlanId?: StringNullableFilter<"TrainingCycle"> | string | null
     name?: StringNullableFilter<"TrainingCycle"> | string | null
     actualEndDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    timezoneAtStart?: StringNullableFilter<"TrainingCycle"> | string | null
     baselineMetrics?: JsonNullableFilter<"TrainingCycle">
     targetMetrics?: JsonNullableFilter<"TrainingCycle">
     configuration?: JsonNullableFilter<"TrainingCycle">
@@ -28403,6 +28565,7 @@ export namespace Prisma {
     durationDays?: SortOrder
     goal?: SortOrderInput | SortOrder
     status?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
     startInbodyId?: SortOrderInput | SortOrder
     endInbodyId?: SortOrderInput | SortOrder
     summary?: SortOrderInput | SortOrder
@@ -28412,6 +28575,7 @@ export namespace Prisma {
     nextPlanId?: SortOrderInput | SortOrder
     name?: SortOrderInput | SortOrder
     actualEndDate?: SortOrderInput | SortOrder
+    timezoneAtStart?: SortOrderInput | SortOrder
     baselineMetrics?: SortOrderInput | SortOrder
     targetMetrics?: SortOrderInput | SortOrder
     configuration?: SortOrderInput | SortOrder
@@ -28436,6 +28600,7 @@ export namespace Prisma {
     durationDays?: IntFilter<"TrainingCycle"> | number
     goal?: StringNullableFilter<"TrainingCycle"> | string | null
     status?: StringFilter<"TrainingCycle"> | string
+    archivedAt?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
     startInbodyId?: StringNullableFilter<"TrainingCycle"> | string | null
     endInbodyId?: StringNullableFilter<"TrainingCycle"> | string | null
     summary?: JsonNullableFilter<"TrainingCycle">
@@ -28445,6 +28610,7 @@ export namespace Prisma {
     nextPlanId?: StringNullableFilter<"TrainingCycle"> | string | null
     name?: StringNullableFilter<"TrainingCycle"> | string | null
     actualEndDate?: DateTimeNullableFilter<"TrainingCycle"> | Date | string | null
+    timezoneAtStart?: StringNullableFilter<"TrainingCycle"> | string | null
     baselineMetrics?: JsonNullableFilter<"TrainingCycle">
     targetMetrics?: JsonNullableFilter<"TrainingCycle">
     configuration?: JsonNullableFilter<"TrainingCycle">
@@ -28466,6 +28632,7 @@ export namespace Prisma {
     durationDays?: SortOrder
     goal?: SortOrderInput | SortOrder
     status?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
     startInbodyId?: SortOrderInput | SortOrder
     endInbodyId?: SortOrderInput | SortOrder
     summary?: SortOrderInput | SortOrder
@@ -28475,6 +28642,7 @@ export namespace Prisma {
     nextPlanId?: SortOrderInput | SortOrder
     name?: SortOrderInput | SortOrder
     actualEndDate?: SortOrderInput | SortOrder
+    timezoneAtStart?: SortOrderInput | SortOrder
     baselineMetrics?: SortOrderInput | SortOrder
     targetMetrics?: SortOrderInput | SortOrder
     configuration?: SortOrderInput | SortOrder
@@ -28500,6 +28668,7 @@ export namespace Prisma {
     durationDays?: IntWithAggregatesFilter<"TrainingCycle"> | number
     goal?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
     status?: StringWithAggregatesFilter<"TrainingCycle"> | string
+    archivedAt?: DateTimeNullableWithAggregatesFilter<"TrainingCycle"> | Date | string | null
     startInbodyId?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
     endInbodyId?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
     summary?: JsonNullableWithAggregatesFilter<"TrainingCycle">
@@ -28509,6 +28678,7 @@ export namespace Prisma {
     nextPlanId?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
     name?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
     actualEndDate?: DateTimeNullableWithAggregatesFilter<"TrainingCycle"> | Date | string | null
+    timezoneAtStart?: StringNullableWithAggregatesFilter<"TrainingCycle"> | string | null
     baselineMetrics?: JsonNullableWithAggregatesFilter<"TrainingCycle">
     targetMetrics?: JsonNullableWithAggregatesFilter<"TrainingCycle">
     configuration?: JsonNullableWithAggregatesFilter<"TrainingCycle">
@@ -29579,8 +29749,15 @@ export namespace Prisma {
     reps?: number | null
     weight?: number | null
     rpe?: number | null
+    rir?: number | null
     completed?: boolean
     createdAt?: Date | string
+    setType?: string | null
+    tempo?: string | null
+    rangeOfMotion?: string | null
+    side?: string | null
+    painScore?: number | null
+    techniqueNotes?: string | null
     workoutExercise: WorkoutExerciseCreateNestedOneWithoutWorkoutSetsInput
   }
 
@@ -29591,8 +29768,15 @@ export namespace Prisma {
     reps?: number | null
     weight?: number | null
     rpe?: number | null
+    rir?: number | null
     completed?: boolean
     createdAt?: Date | string
+    setType?: string | null
+    tempo?: string | null
+    rangeOfMotion?: string | null
+    side?: string | null
+    painScore?: number | null
+    techniqueNotes?: string | null
   }
 
   export type WorkoutSetUpdateInput = {
@@ -29601,8 +29785,15 @@ export namespace Prisma {
     reps?: NullableIntFieldUpdateOperationsInput | number | null
     weight?: NullableFloatFieldUpdateOperationsInput | number | null
     rpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    rir?: NullableIntFieldUpdateOperationsInput | number | null
     completed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    setType?: NullableStringFieldUpdateOperationsInput | string | null
+    tempo?: NullableStringFieldUpdateOperationsInput | string | null
+    rangeOfMotion?: NullableStringFieldUpdateOperationsInput | string | null
+    side?: NullableStringFieldUpdateOperationsInput | string | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
     workoutExercise?: WorkoutExerciseUpdateOneRequiredWithoutWorkoutSetsNestedInput
   }
 
@@ -29613,8 +29804,15 @@ export namespace Prisma {
     reps?: NullableIntFieldUpdateOperationsInput | number | null
     weight?: NullableFloatFieldUpdateOperationsInput | number | null
     rpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    rir?: NullableIntFieldUpdateOperationsInput | number | null
     completed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    setType?: NullableStringFieldUpdateOperationsInput | string | null
+    tempo?: NullableStringFieldUpdateOperationsInput | string | null
+    rangeOfMotion?: NullableStringFieldUpdateOperationsInput | string | null
+    side?: NullableStringFieldUpdateOperationsInput | string | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type WorkoutSetCreateManyInput = {
@@ -29624,8 +29822,15 @@ export namespace Prisma {
     reps?: number | null
     weight?: number | null
     rpe?: number | null
+    rir?: number | null
     completed?: boolean
     createdAt?: Date | string
+    setType?: string | null
+    tempo?: string | null
+    rangeOfMotion?: string | null
+    side?: string | null
+    painScore?: number | null
+    techniqueNotes?: string | null
   }
 
   export type WorkoutSetUpdateManyMutationInput = {
@@ -29634,8 +29839,15 @@ export namespace Prisma {
     reps?: NullableIntFieldUpdateOperationsInput | number | null
     weight?: NullableFloatFieldUpdateOperationsInput | number | null
     rpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    rir?: NullableIntFieldUpdateOperationsInput | number | null
     completed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    setType?: NullableStringFieldUpdateOperationsInput | string | null
+    tempo?: NullableStringFieldUpdateOperationsInput | string | null
+    rangeOfMotion?: NullableStringFieldUpdateOperationsInput | string | null
+    side?: NullableStringFieldUpdateOperationsInput | string | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type WorkoutSetUncheckedUpdateManyInput = {
@@ -29645,8 +29857,15 @@ export namespace Prisma {
     reps?: NullableIntFieldUpdateOperationsInput | number | null
     weight?: NullableFloatFieldUpdateOperationsInput | number | null
     rpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    rir?: NullableIntFieldUpdateOperationsInput | number | null
     completed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    setType?: NullableStringFieldUpdateOperationsInput | string | null
+    tempo?: NullableStringFieldUpdateOperationsInput | string | null
+    rangeOfMotion?: NullableStringFieldUpdateOperationsInput | string | null
+    side?: NullableStringFieldUpdateOperationsInput | string | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type FoodCreateInput = {
@@ -30586,6 +30805,7 @@ export namespace Prisma {
     durationDays?: number
     goal?: string | null
     status?: string
+    archivedAt?: Date | string | null
     startInbodyId?: string | null
     endInbodyId?: string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -30595,6 +30815,7 @@ export namespace Prisma {
     nextPlanId?: string | null
     name?: string | null
     actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -30616,6 +30837,7 @@ export namespace Prisma {
     durationDays?: number
     goal?: string | null
     status?: string
+    archivedAt?: Date | string | null
     startInbodyId?: string | null
     endInbodyId?: string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -30625,6 +30847,7 @@ export namespace Prisma {
     nextPlanId?: string | null
     name?: string | null
     actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -30646,6 +30869,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -30655,6 +30879,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -30676,6 +30901,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -30685,6 +30911,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -30706,6 +30933,7 @@ export namespace Prisma {
     durationDays?: number
     goal?: string | null
     status?: string
+    archivedAt?: Date | string | null
     startInbodyId?: string | null
     endInbodyId?: string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -30715,6 +30943,7 @@ export namespace Prisma {
     nextPlanId?: string | null
     name?: string | null
     actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -30732,6 +30961,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -30741,6 +30971,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -30758,6 +30989,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -30767,6 +30999,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -32095,8 +32328,15 @@ export namespace Prisma {
     reps?: SortOrder
     weight?: SortOrder
     rpe?: SortOrder
+    rir?: SortOrder
     completed?: SortOrder
     createdAt?: SortOrder
+    setType?: SortOrder
+    tempo?: SortOrder
+    rangeOfMotion?: SortOrder
+    side?: SortOrder
+    painScore?: SortOrder
+    techniqueNotes?: SortOrder
   }
 
   export type WorkoutSetAvgOrderByAggregateInput = {
@@ -32104,6 +32344,8 @@ export namespace Prisma {
     reps?: SortOrder
     weight?: SortOrder
     rpe?: SortOrder
+    rir?: SortOrder
+    painScore?: SortOrder
   }
 
   export type WorkoutSetMaxOrderByAggregateInput = {
@@ -32113,8 +32355,15 @@ export namespace Prisma {
     reps?: SortOrder
     weight?: SortOrder
     rpe?: SortOrder
+    rir?: SortOrder
     completed?: SortOrder
     createdAt?: SortOrder
+    setType?: SortOrder
+    tempo?: SortOrder
+    rangeOfMotion?: SortOrder
+    side?: SortOrder
+    painScore?: SortOrder
+    techniqueNotes?: SortOrder
   }
 
   export type WorkoutSetMinOrderByAggregateInput = {
@@ -32124,8 +32373,15 @@ export namespace Prisma {
     reps?: SortOrder
     weight?: SortOrder
     rpe?: SortOrder
+    rir?: SortOrder
     completed?: SortOrder
     createdAt?: SortOrder
+    setType?: SortOrder
+    tempo?: SortOrder
+    rangeOfMotion?: SortOrder
+    side?: SortOrder
+    painScore?: SortOrder
+    techniqueNotes?: SortOrder
   }
 
   export type WorkoutSetSumOrderByAggregateInput = {
@@ -32133,6 +32389,8 @@ export namespace Prisma {
     reps?: SortOrder
     weight?: SortOrder
     rpe?: SortOrder
+    rir?: SortOrder
+    painScore?: SortOrder
   }
 
   export type BoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -32861,6 +33119,7 @@ export namespace Prisma {
     durationDays?: SortOrder
     goal?: SortOrder
     status?: SortOrder
+    archivedAt?: SortOrder
     startInbodyId?: SortOrder
     endInbodyId?: SortOrder
     summary?: SortOrder
@@ -32870,6 +33129,7 @@ export namespace Prisma {
     nextPlanId?: SortOrder
     name?: SortOrder
     actualEndDate?: SortOrder
+    timezoneAtStart?: SortOrder
     baselineMetrics?: SortOrder
     targetMetrics?: SortOrder
     configuration?: SortOrder
@@ -32892,6 +33152,7 @@ export namespace Prisma {
     durationDays?: SortOrder
     goal?: SortOrder
     status?: SortOrder
+    archivedAt?: SortOrder
     startInbodyId?: SortOrder
     endInbodyId?: SortOrder
     lowConfidence?: SortOrder
@@ -32899,6 +33160,7 @@ export namespace Prisma {
     nextPlanId?: SortOrder
     name?: SortOrder
     actualEndDate?: SortOrder
+    timezoneAtStart?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -32913,6 +33175,7 @@ export namespace Prisma {
     durationDays?: SortOrder
     goal?: SortOrder
     status?: SortOrder
+    archivedAt?: SortOrder
     startInbodyId?: SortOrder
     endInbodyId?: SortOrder
     lowConfidence?: SortOrder
@@ -32920,6 +33183,7 @@ export namespace Prisma {
     nextPlanId?: SortOrder
     name?: SortOrder
     actualEndDate?: SortOrder
+    timezoneAtStart?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -35324,8 +35588,15 @@ export namespace Prisma {
     reps?: number | null
     weight?: number | null
     rpe?: number | null
+    rir?: number | null
     completed?: boolean
     createdAt?: Date | string
+    setType?: string | null
+    tempo?: string | null
+    rangeOfMotion?: string | null
+    side?: string | null
+    painScore?: number | null
+    techniqueNotes?: string | null
   }
 
   export type WorkoutSetUncheckedCreateWithoutWorkoutExerciseInput = {
@@ -35334,8 +35605,15 @@ export namespace Prisma {
     reps?: number | null
     weight?: number | null
     rpe?: number | null
+    rir?: number | null
     completed?: boolean
     createdAt?: Date | string
+    setType?: string | null
+    tempo?: string | null
+    rangeOfMotion?: string | null
+    side?: string | null
+    painScore?: number | null
+    techniqueNotes?: string | null
   }
 
   export type WorkoutSetCreateOrConnectWithoutWorkoutExerciseInput = {
@@ -35452,8 +35730,15 @@ export namespace Prisma {
     reps?: IntNullableFilter<"WorkoutSet"> | number | null
     weight?: FloatNullableFilter<"WorkoutSet"> | number | null
     rpe?: FloatNullableFilter<"WorkoutSet"> | number | null
+    rir?: IntNullableFilter<"WorkoutSet"> | number | null
     completed?: BoolFilter<"WorkoutSet"> | boolean
     createdAt?: DateTimeFilter<"WorkoutSet"> | Date | string
+    setType?: StringNullableFilter<"WorkoutSet"> | string | null
+    tempo?: StringNullableFilter<"WorkoutSet"> | string | null
+    rangeOfMotion?: StringNullableFilter<"WorkoutSet"> | string | null
+    side?: StringNullableFilter<"WorkoutSet"> | string | null
+    painScore?: IntNullableFilter<"WorkoutSet"> | number | null
+    techniqueNotes?: StringNullableFilter<"WorkoutSet"> | string | null
   }
 
   export type WorkoutExerciseCreateWithoutWorkoutSetsInput = {
@@ -36219,6 +36504,7 @@ export namespace Prisma {
     durationDays?: number
     goal?: string | null
     status?: string
+    archivedAt?: Date | string | null
     startInbodyId?: string | null
     endInbodyId?: string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -36228,6 +36514,7 @@ export namespace Prisma {
     nextPlanId?: string | null
     name?: string | null
     actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -36248,6 +36535,7 @@ export namespace Prisma {
     durationDays?: number
     goal?: string | null
     status?: string
+    archivedAt?: Date | string | null
     startInbodyId?: string | null
     endInbodyId?: string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -36257,6 +36545,7 @@ export namespace Prisma {
     nextPlanId?: string | null
     name?: string | null
     actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -36392,6 +36681,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -36401,6 +36691,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -36421,6 +36712,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -36430,6 +36722,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -36755,6 +37048,7 @@ export namespace Prisma {
     durationDays?: number
     goal?: string | null
     status?: string
+    archivedAt?: Date | string | null
     startInbodyId?: string | null
     endInbodyId?: string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -36764,6 +37058,7 @@ export namespace Prisma {
     nextPlanId?: string | null
     name?: string | null
     actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -36784,6 +37079,7 @@ export namespace Prisma {
     durationDays?: number
     goal?: string | null
     status?: string
+    archivedAt?: Date | string | null
     startInbodyId?: string | null
     endInbodyId?: string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -36793,6 +37089,7 @@ export namespace Prisma {
     nextPlanId?: string | null
     name?: string | null
     actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -36829,6 +37126,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -36838,6 +37136,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -36858,6 +37157,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -36867,6 +37167,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -36887,6 +37188,7 @@ export namespace Prisma {
     durationDays?: number
     goal?: string | null
     status?: string
+    archivedAt?: Date | string | null
     startInbodyId?: string | null
     endInbodyId?: string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -36896,6 +37198,7 @@ export namespace Prisma {
     nextPlanId?: string | null
     name?: string | null
     actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -36916,6 +37219,7 @@ export namespace Prisma {
     durationDays?: number
     goal?: string | null
     status?: string
+    archivedAt?: Date | string | null
     startInbodyId?: string | null
     endInbodyId?: string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -36925,6 +37229,7 @@ export namespace Prisma {
     nextPlanId?: string | null
     name?: string | null
     actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -37014,6 +37319,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -37023,6 +37329,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -37043,6 +37350,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -37052,6 +37360,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -37131,6 +37440,7 @@ export namespace Prisma {
     durationDays?: number
     goal?: string | null
     status?: string
+    archivedAt?: Date | string | null
     startInbodyId?: string | null
     endInbodyId?: string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -37140,6 +37450,7 @@ export namespace Prisma {
     nextPlanId?: string | null
     name?: string | null
     actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -37160,6 +37471,7 @@ export namespace Prisma {
     durationDays?: number
     goal?: string | null
     status?: string
+    archivedAt?: Date | string | null
     startInbodyId?: string | null
     endInbodyId?: string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -37169,6 +37481,7 @@ export namespace Prisma {
     nextPlanId?: string | null
     name?: string | null
     actualEndDate?: Date | string | null
+    timezoneAtStart?: string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -37205,6 +37518,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -37214,6 +37528,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -37234,6 +37549,7 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     goal?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     startInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     endInbodyId?: NullableStringFieldUpdateOperationsInput | string | null
     summary?: NullableJsonNullValueInput | InputJsonValue
@@ -37243,6 +37559,7 @@ export namespace Prisma {
     nextPlanId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: NullableStringFieldUpdateOperationsInput | string | null
     actualEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    timezoneAtStart?: NullableStringFieldUpdateOperationsInput | string | null
     baselineMetrics?: NullableJsonNullValueInput | InputJsonValue
     targetMetrics?: NullableJsonNullValueInput | InputJsonValue
     configuration?: NullableJsonNullValueInput | InputJsonValue
@@ -38181,8 +38498,15 @@ export namespace Prisma {
     reps?: number | null
     weight?: number | null
     rpe?: number | null
+    rir?: number | null
     completed?: boolean
     createdAt?: Date | string
+    setType?: string | null
+    tempo?: string | null
+    rangeOfMotion?: string | null
+    side?: string | null
+    painScore?: number | null
+    techniqueNotes?: string | null
   }
 
   export type WorkoutSetUpdateWithoutWorkoutExerciseInput = {
@@ -38191,8 +38515,15 @@ export namespace Prisma {
     reps?: NullableIntFieldUpdateOperationsInput | number | null
     weight?: NullableFloatFieldUpdateOperationsInput | number | null
     rpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    rir?: NullableIntFieldUpdateOperationsInput | number | null
     completed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    setType?: NullableStringFieldUpdateOperationsInput | string | null
+    tempo?: NullableStringFieldUpdateOperationsInput | string | null
+    rangeOfMotion?: NullableStringFieldUpdateOperationsInput | string | null
+    side?: NullableStringFieldUpdateOperationsInput | string | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type WorkoutSetUncheckedUpdateWithoutWorkoutExerciseInput = {
@@ -38201,8 +38532,15 @@ export namespace Prisma {
     reps?: NullableIntFieldUpdateOperationsInput | number | null
     weight?: NullableFloatFieldUpdateOperationsInput | number | null
     rpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    rir?: NullableIntFieldUpdateOperationsInput | number | null
     completed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    setType?: NullableStringFieldUpdateOperationsInput | string | null
+    tempo?: NullableStringFieldUpdateOperationsInput | string | null
+    rangeOfMotion?: NullableStringFieldUpdateOperationsInput | string | null
+    side?: NullableStringFieldUpdateOperationsInput | string | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type WorkoutSetUncheckedUpdateManyWithoutWorkoutExerciseInput = {
@@ -38211,8 +38549,15 @@ export namespace Prisma {
     reps?: NullableIntFieldUpdateOperationsInput | number | null
     weight?: NullableFloatFieldUpdateOperationsInput | number | null
     rpe?: NullableFloatFieldUpdateOperationsInput | number | null
+    rir?: NullableIntFieldUpdateOperationsInput | number | null
     completed?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    setType?: NullableStringFieldUpdateOperationsInput | string | null
+    tempo?: NullableStringFieldUpdateOperationsInput | string | null
+    rangeOfMotion?: NullableStringFieldUpdateOperationsInput | string | null
+    side?: NullableStringFieldUpdateOperationsInput | string | null
+    painScore?: NullableIntFieldUpdateOperationsInput | number | null
+    techniqueNotes?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type FoodAliasCreateManyFoodInput = {

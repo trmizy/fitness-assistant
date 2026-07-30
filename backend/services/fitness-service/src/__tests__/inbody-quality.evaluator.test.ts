@@ -22,7 +22,7 @@ test("single measurement: insufficient data, low confidence, no conclusion drawn
   assert.equal(result.recordCount, 1);
   assert.equal(result.hasSufficientData, false);
   assert.equal(result.confidenceMultiplier, 0.3);
-  assert.ok(result.qualityFlags.some((f) => /single|one InBody/i.test(f)));
+  assert.ok(result.qualityFlags.some((f) => /1 lần đo InBody/i.test(f)));
 });
 
 test("two normal, well-spaced measurements: sufficient data, high confidence, no outliers", () => {
@@ -56,7 +56,9 @@ test("implausible body-fat-pct swing is flagged as an outlier independent of wei
     entry({ id: "b", date: "2026-06-11", weight: 75.2, bodyFatPct: 23 }),
   ]);
   assert.equal(result.outlierFlags.length, 1);
-  assert.match(result.outlierFlags[0].reason, /body fat/i);
+  // Messages are Vietnamese (user-facing — see §9 Vietnamese-ization fix);
+  // match on "mỡ cơ thể" (body fat) rather than the old English wording.
+  assert.match(result.outlierFlags[0].reason, /mỡ cơ thể/i);
 });
 
 test("entries closer than the minimum meaningful interval get an interval warning, not an outlier flag", () => {

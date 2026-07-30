@@ -37,6 +37,14 @@ const upload = multer({
   },
 });
 
+// Document download — signature-gated (see ptDocumentUrl.util.ts), not
+// authMiddleware-gated: this URL is loaded via plain <img src=...>, which
+// cannot attach an Authorization header. No auth middleware here on purpose.
+router.get(
+  "/documents/:filename",
+  ptApplicationController.getDocument as any,
+);
+
 // Applicant routes
 router.get("/me", authMiddleware, ptApplicationController.getMe as any);
 router.post(

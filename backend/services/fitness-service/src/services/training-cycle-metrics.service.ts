@@ -9,7 +9,10 @@ function weekIndexOf(date: Date, cycleStart: Date): number {
 export interface AdherenceMetric {
   completed: number;
   total: number;
-  percent: number;
+  /** null when there were no scheduled sessions to judge against — a 0/0
+   * cycle must never read as either 0% (no data mistaken for total failure)
+   * or 100% (no data mistaken for perfect adherence). */
+  percent: number | null;
 }
 
 export interface VolumeWeek {
@@ -24,6 +27,11 @@ export interface E1rmTrendPoint {
 }
 
 export interface RpeTrend {
+  weeklyAvg: number[];
+  trend: "stable" | "increasing" | "decreasing";
+}
+
+export interface RirTrend {
   weeklyAvg: number[];
   trend: "stable" | "increasing" | "decreasing";
 }
@@ -48,7 +56,7 @@ export async function computeAdherence(
   return {
     completed,
     total,
-    percent: total > 0 ? Math.round((completed / total) * 100) : 0,
+    percent: total > 0 ? Math.round((completed / total) * 100) : null,
   };
 }
 
@@ -56,6 +64,7 @@ interface SetRow {
   weight: number | null;
   reps: number | null;
   rpe: number | null;
+  rir: number | null;
   completed: boolean;
   date: Date;
   exerciseName: string;
@@ -66,9 +75,21 @@ async function fetchCompletedSets(
   userId: string,
   start: Date,
   end: Date,
+  sourcePlanId?: string | null,
 ): Promise<SetRow[]> {
+  // Workout has no direct sourcePlanId of its own — scope through its
+  // linked WorkoutSchedule when a plan is given, so a user with more than
+  // one plan/cycle overlapping the same date range (e.g. an old test cycle
+  // still sitting in the same calendar month) doesn't have its sets bleed
+  // into a DIFFERENT cycle's volume/e1RM/PR calculations. Optional and
+  // undefined-safe: omitting it reproduces the exact prior (unscoped)
+  // behavior for any caller that doesn't have a plan to scope by.
   const workouts = await prisma.workout.findMany({
-    where: { userId, date: { gte: start, lte: end } },
+    where: {
+      userId,
+      date: { gte: start, lte: end },
+      ...(sourcePlanId ? { schedules: { some: { sourcePlanId } } } : {}),
+    },
     select: {
       date: true,
       exercises: {
@@ -76,7 +97,7 @@ async function fetchCompletedSets(
           exercise: { select: { exerciseName: true, muscleGroupsActivated: true } },
           workoutSets: {
             where: { completed: true },
-            select: { weight: true, reps: true, rpe: true, completed: true },
+            select: { weight: true, reps: true, rpe: true, rir: true, completed: true },
           },
         },
       },
@@ -91,6 +112,7 @@ async function fetchCompletedSets(
           weight: set.weight,
           reps: set.reps,
           rpe: set.rpe,
+          rir: set.rir,
           completed: set.completed,
           date: w.date,
           exerciseName: ex.exercise.exerciseName,
@@ -236,12 +258,47 @@ export function computeRpeTrend(sets: SetRow[], cycleStart: Date): RpeTrend {
   return { weeklyAvg, trend };
 }
 
+/** RIR (Reps in Reserve) trend across weeks of the cycle — mirrors
+ * computeRpeTrend's shape exactly. Backed by WorkoutSet.rir, added in the
+ * 20260728010000_workout_set_rir migration; before that migration this
+ * schema had no RIR data source at all (see the averageRir doc comment in
+ * cycle-metrics.engine.ts for that now-resolved history). */
+export function computeRirTrend(sets: SetRow[], cycleStart: Date): RirTrend {
+  const byWeek = new Map<number, number[]>();
+  for (const s of sets) {
+    if (s.rir == null) continue;
+    const week = weekIndexOf(s.date, cycleStart);
+    if (!byWeek.has(week)) byWeek.set(week, []);
+    byWeek.get(week)!.push(s.rir);
+  }
+  const weeklyAvg = [...byWeek.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, values]) => Math.round((values.reduce((s, v) => s + v, 0) / values.length) * 10) / 10);
+
+  let trend: RirTrend["trend"] = "stable";
+  if (weeklyAvg.length >= 3) {
+    const risingStreak = weeklyAvg
+      .slice(-3)
+      .every((v, i, arr) => i === 0 || v >= arr[i - 1]);
+    const fallingStreak = weeklyAvg
+      .slice(-3)
+      .every((v, i, arr) => i === 0 || v <= arr[i - 1]);
+    if (risingStreak && weeklyAvg[weeklyAvg.length - 1] > weeklyAvg[weeklyAvg.length - 3]) {
+      trend = "increasing";
+    } else if (fallingStreak && weeklyAvg[weeklyAvg.length - 1] < weeklyAvg[weeklyAvg.length - 3]) {
+      trend = "decreasing";
+    }
+  }
+  return { weeklyAvg, trend };
+}
+
 export async function computeWorkoutMetrics(
   userId: string,
   cycleStart: Date,
   asOf: Date,
+  sourcePlanId?: string | null,
 ) {
-  const sets = await fetchCompletedSets(userId, cycleStart, asOf);
+  const sets = await fetchCompletedSets(userId, cycleStart, asOf, sourcePlanId);
   const volumeByWeek = computeVolumeByWeek(sets, cycleStart);
   return {
     sets,
@@ -249,5 +306,6 @@ export async function computeWorkoutMetrics(
     volumeChangePct: computeVolumeChangePct(volumeByWeek),
     e1rmTrend: computeE1rmTrend(sets, cycleStart),
     rpeTrend: computeRpeTrend(sets, cycleStart),
+    rirTrend: computeRirTrend(sets, cycleStart),
   };
 }

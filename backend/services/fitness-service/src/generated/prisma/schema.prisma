@@ -1,7 +1,7 @@
 generator client {
   provider      = "prisma-client-js"
   output        = "../src/generated/prisma"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -113,8 +113,26 @@ model WorkoutSet {
   reps              Int?
   weight            Float? // kg
   rpe               Float? // Rate of Perceived Exertion (1-10)
+  rir               Int? // Reps in Reserve (0-5)
   completed         Boolean  @default(false)
   createdAt         DateTime @default(now()) @map("created_at")
+
+  // Advanced/professional-athlete logging fields — all optional and
+  // additive (existing rows read as null/"every set is an unclassified
+  // working set", never backfilled or guessed). Plain strings validated at
+  // the app layer against a fixed allowed-value list, matching this
+  // codebase's existing convention for WorkoutSchedule.status rather than a
+  // Prisma/DB enum (see fitness.models.ts's Zod schema for the authoritative
+  // list). "Top set"/"back-off set" terminology follows common
+  // powerlifting-coaching practice (e.g. Andy Baker/PowerliftingTechnique.com)
+  // — a practitioner convention, NOT a peer-reviewed classification; see
+  // docs/advanced-set-logging.md for the full evidence/inference split.
+  setType        String? @map("set_type") // WARMUP | WORKING | TOP | BACKOFF | FAILURE
+  tempo          String? // free-text eccentric-pause-concentric-pause notation, e.g. "3-1-1-0"
+  rangeOfMotion  String? @map("range_of_motion") // FULL | PARTIAL | free text
+  side           String? // LEFT | RIGHT | BOTH — unilateral exercises only
+  painScore      Int?    @map("pain_score") // 0-10 subjective pain/discomfort during this set
+  techniqueNotes String? @map("technique_notes")
 
   workoutExercise WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
 
@@ -326,15 +344,21 @@ model WorkoutSchedule {
 // (ACHIEVED/PARTIAL/NOT_ACHIEVED); status/decision are plain strings to match
 // this schema's existing house style (see WorkoutSchedule.status etc.).
 model TrainingCycle {
-  id           String   @id @default(uuid())
-  userId       String   @map("user_id")
-  planId       String?  @map("plan_id") // ai-service WorkoutPlan.id, mirrors WorkoutSchedule.sourcePlanId
-  cycleIndex   Int      @default(1) @map("cycle_index") // 1,2,3... sequential per user, across cycle lineage (nextPlanId chain)
-  startDate    DateTime @map("start_date")
-  endDate      DateTime @map("end_date") // planned close = startDate + durationDays; always set, unlike the old nullable endDate
-  durationDays Int      @default(30) @map("duration_days")
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  planId       String?   @map("plan_id") // ai-service WorkoutPlan.id, mirrors WorkoutSchedule.sourcePlanId
+  cycleIndex   Int       @default(1) @map("cycle_index") // 1,2,3... sequential per user, across cycle lineage (nextPlanId chain)
+  startDate    DateTime  @map("start_date")
+  endDate      DateTime  @map("end_date") // planned close = startDate + durationDays; always set, unlike the old nullable endDate
+  durationDays Int       @default(30) @map("duration_days")
   goal         String? // snapshot of UserProfile.goal at cycle start (real enum values: WEIGHT_LOSS | MUSCLE_GAIN | MAINTENANCE | ATHLETIC_PERFORMANCE)
-  status       String   @default("ACTIVE") @map("status") // ACTIVE | COMPLETED | ANALYZED
+  status       String    @default("ACTIVE") @map("status") // ACTIVE | COMPLETED | ANALYZED | DRAFT | CANCELLED
+  // Invariant "at most one ACTIVE cycle per user" is enforced by a raw-SQL
+  // partial unique index (Prisma's schema DSL can't express a WHERE-
+  // conditioned unique index): training_cycles_one_active_per_user ON
+  // training_cycles(user_id) WHERE status='ACTIVE' AND archived_at IS NULL
+  // — see migration 20260730020000_training_cycle_active_unique_constraint.
+  archivedAt   DateTime? @map("archived_at") // soft-delete marker; set via DELETE /:id, mirrors ai-service's archivePlan/archiveNutritionPlan pattern. Orthogonal to status — an archived cycle keeps whatever status it had (ACTIVE/DRAFT/COMPLETED/...) so history/audit stays intact.
 
   startInbodyId String? @map("start_inbody_id") // user-service InBodyEntry.id, latest on/before startDate
   endInbodyId   String? @map("end_inbody_id") // user-service InBodyEntry.id at close; becomes next cycle's startInbodyId
@@ -361,6 +385,14 @@ model TrainingCycle {
   // is reused as-is by the new Decision Engine.
   name            String? // user-facing cycle name, e.g. "Bulk block 1"
   actualEndDate   DateTime? @map("actual_end_date") // when the cycle was actually closed, vs. planned endDate above
+  // Snapshot of APP_SCHEDULE_TIME_ZONE (schedule-lock.util.ts) at the moment
+  // this cycle's startDate was set (creation for an immediately-ACTIVE
+  // cycle, or activation time for a DRAFT->ACTIVE transition) — there is no
+  // per-user timezone field anywhere in this schema today, so this is the
+  // single app-wide zone, but stored per-row so a later change to that
+  // app-wide default doesn't retroactively reinterpret historical cycles'
+  // date-boundary decisions (adherence windows, day-lock comparisons).
+  timezoneAtStart String?   @map("timezone_at_start")
   baselineMetrics Json?     @map("baseline_metrics") // deterministic snapshot computed at cycle start (Phase 1 engine output)
   targetMetrics   Json?     @map("target_metrics") // user/PT-set targets for this cycle, optional
   configuration   Json? // per-cycle engine config overrides, e.g. priority/primary lift list for weighted volume scoring

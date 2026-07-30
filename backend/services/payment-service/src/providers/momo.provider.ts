@@ -80,6 +80,12 @@ export class MoMoProvider implements PaymentProvider {
   }
 
   verifyWebhookSignature(rawBody: Buffer): WebhookVerifyResult {
+    // Fail closed: an empty SECRET_KEY is a known, publicly-computable HMAC key —
+    // never treat "not configured" as "verification not needed."
+    if (!SECRET_KEY) {
+      logger.error('[MoMo] MOMO_SECRET_KEY is not configured — rejecting webhook');
+      return { valid: false };
+    }
     let payload: MoMoIpnPayload;
     try {
       payload = JSON.parse(rawBody.toString('utf-8')) as MoMoIpnPayload;

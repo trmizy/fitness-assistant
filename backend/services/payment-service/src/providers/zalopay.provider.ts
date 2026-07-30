@@ -88,6 +88,12 @@ export class ZaloPayProvider implements PaymentProvider {
 
   /** Callback body is `{ data, mac }`; mac = HMAC-SHA256(KEY2, data). */
   verifyWebhookSignature(rawBody: Buffer): WebhookVerifyResult {
+    // Fail closed: an empty KEY2 is a known, publicly-computable HMAC key —
+    // never treat "not configured" as "verification not needed."
+    if (!KEY2) {
+      logger.error('[ZaloPay] ZALOPAY_KEY2 is not configured — rejecting webhook');
+      return { valid: false };
+    }
     let parsed: { data?: string; mac?: string };
     try {
       parsed = JSON.parse(rawBody.toString('utf-8'));

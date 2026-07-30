@@ -1588,6 +1588,23 @@ router.use(
   }),
 );
 
+// Protected — Admin-only user-service endpoints. Previously only had
+// authMiddleware (any logged-in Client/PT/Gym Owner could call
+// /profile/admin/contracts/summary and /profile/admin/stats and read
+// platform-wide contract/OCR data). Registered before the general
+// /profile mount below so Express matches this more specific prefix first.
+router.use(
+  "/profile/admin",
+  authMiddleware,
+  requireRoles("ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { "^/profile": "/profile" },
+    onError: serviceUnavailable("User service"),
+  }),
+);
+
 // Protected — User Service
 router.use(
   "/profile",
@@ -2056,6 +2073,25 @@ router.use(
     // OCR image extraction can run for tens of seconds.
     timeout: 180000,
     proxyTimeout: 180000,
+    onError: serviceUnavailable("User service"),
+  }),
+);
+
+// Public (signature-gated, not session-gated) — PT application document
+// downloads. Loaded via plain <img src=...>, which cannot attach an
+// Authorization header, so this must NOT sit behind authMiddleware — it is
+// registered before the general /pt-applications mount below so Express
+// matches this more specific path first. Authorization is enforced by
+// user-service itself via a short-lived HMAC signature in the URL's
+// exp/sig query params (see ptDocumentUrl.util.ts) — those are only ever
+// handed out by the already auth-gated getMe/getById/listApplications
+// responses, never guessable/forgeable without the server-side secret.
+router.use(
+  "/pt-applications/documents",
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { "^/pt-applications/documents": "/pt-applications/documents" },
     onError: serviceUnavailable("User service"),
   }),
 );

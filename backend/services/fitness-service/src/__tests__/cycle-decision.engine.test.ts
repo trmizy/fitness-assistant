@@ -24,6 +24,7 @@ function baseMetrics(overrides: Partial<CycleMetricsResult> = {}): CycleMetricsR
   return {
     adherenceRate: 0.85,
     completionRate: 0.85,
+    hasScheduledSessions: true,
     workoutsPerWeek: 4,
     weeklyVolumeByMuscleGroup: [],
     volumeTrendPercent: 10,
@@ -34,6 +35,7 @@ function baseMetrics(overrides: Partial<CycleMetricsResult> = {}): CycleMetricsR
     averageSessionRpe: 7,
     rpeTrend: "stable",
     averageRir: null,
+    rirTrend: "stable",
     painTrend: null,
     averagePainScore: null,
     fatigueScore: 0.4,

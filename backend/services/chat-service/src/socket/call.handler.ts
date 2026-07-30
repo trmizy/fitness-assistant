@@ -41,6 +41,24 @@ function clearRingTimeout(callSessionId: string) {
   }
 }
 
+/**
+ * True only for the two real participants of a call. Shared by every
+ * signaling-relay event (ice_candidate, media_toggle, ...) so the check
+ * lives in exactly one place — see the regression this fixed: computing
+ * `targetId` via `user.id === call.callerId ? call.calleeId : call.callerId`
+ * with no membership check first falsely resolves to `call.callerId` for
+ * ANY third party too (since "not the caller" is also true for someone who
+ * isn't the callee), letting an unrelated authenticated user inject fake
+ * signaling into someone else's active call just by guessing/knowing its
+ * callSessionId.
+ */
+export function isCallParticipant(
+  userId: string,
+  call: { callerId: string; calleeId: string },
+): boolean {
+  return userId === call.callerId || userId === call.calleeId;
+}
+
 export function registerCallHandlers(
   io: Server,
   socket: Socket,
@@ -358,7 +376,7 @@ export function registerCallHandlers(
     }) => {
       try {
         const call = await callService.findById(callSessionId);
-        if (!call) return;
+        if (!call || !isCallParticipant(user.id, call)) return;
 
         const targetId =
           user.id === call.callerId ? call.calleeId : call.callerId;
@@ -424,7 +442,7 @@ export function registerCallHandlers(
     }) => {
       try {
         const call = await callService.findById(callSessionId);
-        if (!call) return;
+        if (!call || !isCallParticipant(user.id, call)) return;
 
         const targetId =
           user.id === call.callerId ? call.calleeId : call.callerId;

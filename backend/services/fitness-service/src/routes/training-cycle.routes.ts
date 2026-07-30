@@ -9,6 +9,7 @@ router.post("/", authMiddleware, trainingCycleController.start as any);
 router.get("/active", authMiddleware, trainingCycleController.active as any);
 router.get("/", authMiddleware, trainingCycleController.list as any);
 router.post("/:id/complete", authMiddleware, trainingCycleController.complete as any);
+router.post("/:id/cancel", authMiddleware, trainingCycleController.cancel as any);
 router.post("/:id/approve", authMiddleware, trainingCycleController.approveDecision as any);
 
 // Adaptive Training Cycle Evaluation additions — additive, existing routes
@@ -22,6 +23,9 @@ router.get("/:id/assessments", authMiddleware, trainingCycleController.listAsses
 router.post("/:id/recommendation/accept", authMiddleware, trainingCycleController.acceptRecommendation as any);
 router.post("/:id/recommendation/reject", authMiddleware, trainingCycleController.rejectRecommendation as any);
 router.post("/:id/inbody-links", authMiddleware, trainingCycleController.linkInBodyEntry as any);
+router.post("/:id/sessions/:scheduleId/feedback", authMiddleware, trainingCycleController.submitSessionFeedback as any);
+router.get("/:id/report", authMiddleware, trainingCycleController.report as any);
+router.delete("/:id", authMiddleware, trainingCycleController.remove as any);
 
 router.get("/:id", authMiddleware, trainingCycleController.getById as any);
 

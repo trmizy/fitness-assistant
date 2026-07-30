@@ -17,13 +17,17 @@ import {
   CalendarClock,
   CheckCircle2,
   Circle,
+  Dumbbell,
   Flag,
   Loader2,
   RotateCw,
   ShieldAlert,
   Sparkles,
+  Trash2,
   TrendingDown,
   TrendingUp,
+  Utensils,
+  X,
   XCircle,
 } from "lucide-react";
 import {
@@ -77,6 +81,11 @@ const DECISION_CONFIG: Record<CycleDecision, { label: string; className: string;
     label: "Đổi sang kế hoạch mới",
     className: "border-red-500/30 bg-red-500/5",
     buttonClassName: "bg-red-500 hover:bg-red-400",
+  },
+  INSUFFICIENT_DATA: {
+    label: "Chưa đủ dữ liệu để đánh giá",
+    className: "border-zinc-600/30 bg-zinc-500/5",
+    buttonClassName: "bg-zinc-700 hover:bg-zinc-600",
   },
 };
 
@@ -136,6 +145,32 @@ function ActiveCycleCard() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => trainingCycleService.remove(id),
+    onSuccess: () => {
+      toast.success("Đã xoá chu kỳ tập luyện");
+      queryClient.invalidateQueries({ queryKey: ["training-cycle"] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error ?? "Không thể xoá chu kỳ");
+    },
+  });
+
+  // Distinct from completeMutation: cancelling never triggers a progress
+  // evaluation or AI call, regardless of how much data exists — for a user
+  // who wants to abandon the cycle outright (started by mistake, changed
+  // their mind), not one asking "how did I do".
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => trainingCycleService.cancel(id),
+    onSuccess: () => {
+      toast.success("Đã huỷ chu kỳ tập luyện");
+      queryClient.invalidateQueries({ queryKey: ["training-cycle"] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error ?? "Không thể huỷ chu kỳ");
+    },
+  });
+
   if (activeQuery.isLoading) {
     return (
       <div className="bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-2xl border border-green-500/20 p-6 flex items-center justify-center py-8">
@@ -183,11 +218,16 @@ function ActiveCycleCard() {
         <div className="mb-1.5 flex items-center justify-between text-xs text-zinc-400">
           <span>Tuân thủ lịch tập</span>
           <span className="font-semibold text-zinc-300">
-            {summary.adherence.completed}/{summary.adherence.total} buổi ({summary.adherence.percent}%)
+            {summary.adherence.total > 0
+              ? `${summary.adherence.completed}/${summary.adherence.total} buổi (${summary.adherence.percent}%)`
+              : "Chưa có buổi nào được lên lịch"}
           </span>
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-800">
-          <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${summary.adherence.percent}%` }} />
+          <div
+            className="h-full rounded-full bg-green-500 transition-all"
+            style={{ width: `${summary.adherence.percent ?? 0}%` }}
+          />
         </div>
       </div>
 
@@ -210,18 +250,61 @@ function ActiveCycleCard() {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => completeMutation.mutate(cycle.id)}
-        disabled={completing}
-        className="w-full flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 disabled:opacity-60 text-zinc-200 py-2.5 rounded-xl text-sm font-bold transition-all"
-      >
-        {completing && <Loader2 className="w-4 h-4 animate-spin" />}
-        {completing ? "Đang đóng chu kỳ..." : "Kết thúc chu kỳ"}
-      </button>
+      {summary.adherence.total === 0 && (
+        <p className="text-[11px] text-amber-400/80">
+          Chưa có buổi tập nào được lên lịch — kết thúc chu kỳ ngay bây giờ sẽ không tạo ra đánh giá tiến triển đáng tin cậy (đánh dấu "Chưa đủ dữ liệu").
+        </p>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => completeMutation.mutate(cycle.id)}
+          disabled={completing}
+          title={summary.adherence.total === 0 ? "Chưa có buổi tập nào — chu kỳ sẽ đóng ở trạng thái Chưa đủ dữ liệu" : undefined}
+          className="flex-1 flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 disabled:opacity-60 text-zinc-200 py-2.5 rounded-xl text-sm font-bold transition-all"
+        >
+          {completing && <Loader2 className="w-4 h-4 animate-spin" />}
+          {completing ? "Đang đóng chu kỳ..." : "Kết thúc chu kỳ"}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm("Huỷ chu kỳ tập luyện này? Sẽ KHÔNG có đánh giá tiến triển nào được thực hiện — dùng khi bạn muốn bỏ chu kỳ này hẳn, không phải để xem kết quả.")) {
+              cancelMutation.mutate(cycle.id);
+            }
+          }}
+          disabled={cancelMutation.isPending}
+          title="Huỷ chu kỳ mà không đánh giá tiến triển (khác với Kết thúc chu kỳ)"
+          className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-amber-500/20 border border-zinc-700 hover:border-amber-500/40 disabled:opacity-60 text-zinc-400 hover:text-amber-400 px-3 py-2.5 rounded-xl text-sm font-bold transition-all"
+        >
+          {cancelMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm("Xoá chu kỳ tập luyện này? Bạn có thể bắt đầu một chu kỳ mới sau khi xoá.")) {
+              deleteMutation.mutate(cycle.id);
+            }
+          }}
+          disabled={deleteMutation.isPending}
+          className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-red-500/20 border border-zinc-700 hover:border-red-500/40 disabled:opacity-60 text-zinc-400 hover:text-red-400 px-3 py-2.5 rounded-xl text-sm font-bold transition-all"
+          title="Xoá chu kỳ"
+        >
+          {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+        </button>
+      </div>
     </div>
   );
 }
+
+/** Cycles that only ever went through the new /evaluate flow (created
+ * directly as COMPLETED, or the legacy /complete analysis never ran for any
+ * other reason) will sit in status COMPLETED forever — the legacy
+ * ANALYZED transition only happens as a side effect of the OLD /complete
+ * endpoint's fire-and-forget job. Without this, the card below would spin
+ * on "AI đang phân tích..." with no way out. */
+const LEGACY_ANALYSIS_STUCK_HINT_MS = 2 * 60 * 1000;
 
 function DecisionCard({ cycle }: { cycle: TrainingCycle }) {
   const queryClient = useQueryClient();
@@ -234,8 +317,34 @@ function DecisionCard({ cycle }: { cycle: TrainingCycle }) {
     refetchInterval: (query) => (query.state.data?.status === "COMPLETED" ? 4000 : false),
   });
 
+  // Same query key + cache as AdaptiveAssessmentCard for this same cycle
+  // (always rendered together, see the page layout below) — no extra
+  // network request, just reads whatever's already been fetched. If the
+  // NEW flow already produced a real result for this cycle, that result is
+  // strictly more capable (6-state, safety flags, versioned) than anything
+  // this legacy card could show, so defer to it entirely instead of also
+  // showing a stuck/redundant "analyzing" spinner here.
+  const latestAssessmentQuery = useQuery({
+    queryKey: ["training-cycle", "assessment", "latest", cycle.id],
+    queryFn: () => trainingCycleService.getLatestAssessment(cycle.id),
+    retry: false,
+  });
+
+  // Records the approval on the ANALYZED cycle (audit trail: who approved
+  // what plan, when — trainingCycleService.approve -> POST /:id/approve)
+  // BEFORE creating the next cycle, instead of the previous behavior of
+  // calling start() directly with no planId and no approval record at all.
+  // Only called for KEEP/ADJUST, where the current plan is known and
+  // genuinely carries forward unchanged — see the button logic below for
+  // why NEW_PLAN is handled differently (no auto plan-creation pipeline
+  // exists yet, so it must not silently reuse the old plan as if approved).
   const startNextMutation = useMutation({
-    mutationFn: () => trainingCycleService.start(),
+    mutationFn: async (planId: string | null) => {
+      if (planId) {
+        await trainingCycleService.approve(cycle.id, planId);
+      }
+      return trainingCycleService.start(planId ? { planId } : undefined);
+    },
     onSuccess: () => {
       toast.success("Đã mở chu kỳ tiếp theo");
       queryClient.invalidateQueries({ queryKey: ["training-cycle"] });
@@ -248,12 +357,21 @@ function DecisionCard({ cycle }: { cycle: TrainingCycle }) {
   const current = cycleQuery.data ?? cycle;
 
   if (current.status === "COMPLETED") {
+    if (latestAssessmentQuery.data) return null;
+
+    const stuckTooLong =
+      Date.now() - new Date(current.updatedAt).getTime() > LEGACY_ANALYSIS_STUCK_HINT_MS;
+
     return (
       <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 flex items-center gap-3">
         <Loader2 className="h-5 w-5 text-green-500 animate-spin flex-shrink-0" />
         <div>
           <p className="text-sm font-semibold text-zinc-200">AI đang phân tích chu kỳ #{current.cycleIndex}...</p>
-          <p className="text-xs text-zinc-500 mt-0.5">Quá trình này có thể mất khoảng 1 phút.</p>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            {stuckTooLong
+              ? "Quá trình này đang lâu hơn dự kiến — bạn có thể dùng \"Đánh giá chu kỳ (nâng cao)\" bên dưới để nhận đề xuất ngay."
+              : "Quá trình này có thể mất khoảng 1 phút."}
+          </p>
         </div>
       </div>
     );
@@ -291,6 +409,11 @@ function DecisionCard({ cycle }: { cycle: TrainingCycle }) {
         {current.aiAnalysis?.aiFallback && (
           <p className="mt-2 text-xs text-zinc-500">
             (AI không phản hồi được — áp dụng quy tắc mặc định theo xu hướng tổng thể)
+          </p>
+        )}
+        {decision === "INSUFFICIENT_DATA" && Array.isArray((current.aiAnalysis as any)?.reasonCodes) && (
+          <p className="mt-2 text-xs text-zinc-500">
+            Lý do: {(current.aiAnalysis as any).reasonCodes.join(", ")} — chu kỳ chưa đủ thời gian/số buổi tập để đưa ra đánh giá đáng tin cậy.
           </p>
         )}
       </div>
@@ -340,15 +463,31 @@ function DecisionCard({ cycle }: { cycle: TrainingCycle }) {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={() => startNextMutation.mutate()}
-        disabled={startNextMutation.isPending}
-        className={`w-full flex items-center justify-center gap-2 ${cfg.buttonClassName} disabled:opacity-60 text-black py-2.5 rounded-xl text-sm font-bold transition-all`}
-      >
-        {startNextMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-        {startNextMutation.isPending ? "Đang mở chu kỳ..." : "Đồng ý — mở chu kỳ tiếp theo"}
-      </button>
+      {decision === "NEW_PLAN" ? (
+        // No pipeline exists yet to turn aiAnalysis.newPlanDraft into a real
+        // WorkoutPlan — silently reusing the OLD plan here would make
+        // "Đồng ý" a lie (the user thinks they're accepting a new plan) and
+        // auto-creating one would violate "AI must never auto-change the
+        // plan without an explicit, real plan to point to". Block the
+        // action with an honest explanation instead of either shortcut.
+        <div className="rounded-xl border border-dashed border-zinc-700/60 bg-zinc-950/30 p-3.5 text-xs text-zinc-400">
+          Đề xuất này cần một chương trình tập <strong>mới</strong>. Hãy tạo chương trình mới (qua AI Plans hoặc PT) trước, sau đó quay lại đây để bắt đầu chu kỳ tiếp theo với chương trình đó — hệ thống không tự tạo hoặc áp dụng chương trình thay bạn.
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => startNextMutation.mutate(decision === "INSUFFICIENT_DATA" ? null : current.planId)}
+          disabled={startNextMutation.isPending}
+          className={`w-full flex items-center justify-center gap-2 ${cfg.buttonClassName} disabled:opacity-60 text-black py-2.5 rounded-xl text-sm font-bold transition-all`}
+        >
+          {startNextMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+          {startNextMutation.isPending
+            ? "Đang mở chu kỳ..."
+            : decision === "INSUFFICIENT_DATA"
+              ? "Bắt đầu chu kỳ mới"
+              : "Đồng ý — mở chu kỳ tiếp theo (giữ chương trình hiện tại)"}
+        </button>
+      )}
     </div>
   );
 }
@@ -371,10 +510,40 @@ function fieldTrendLabel(trend: { direction: "up" | "flat" | "down"; changePerWe
   return `${arrow}${rate}`;
 }
 
-function StatTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function StatTile({
+  label,
+  value,
+  sub,
+  formula,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  /** Plain-language "Cách tính" explanation — every stat here is a
+   * computed/designed score, not a lab measurement, so this must always be
+   * shown rather than left to be assumed self-evident (see report §10/§18
+   * requirement to make every metric's formula inspectable in the UI). */
+  formula: string;
+}) {
   return (
     <div className="rounded-xl border border-zinc-800/60 bg-zinc-950/40 p-3">
-      <div className="text-xs text-zinc-500">{label}</div>
+      <div className="flex items-center gap-1 text-xs text-zinc-500">
+        <span>{label}</span>
+        <button
+          type="button"
+          className="text-zinc-600 hover:text-zinc-400 focus-visible:text-zinc-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500/50 rounded-full"
+          title={formula}
+          aria-label={`Cách tính ${label}: ${formula}`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clipRule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
       <div className="mt-1 text-lg font-bold text-zinc-100">{value}</div>
       {sub && <div className="text-[11px] text-zinc-500 mt-0.5">{sub}</div>}
     </div>
@@ -409,16 +578,26 @@ function CycleProgressSection({ cycleId }: { cycleId: string }) {
       </h3>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <StatTile label="Tuân thủ" value={`${Math.round(metrics.adherenceRate * 100)}%`} />
-        <StatTile label="Buổi/tuần" value={metrics.workoutsPerWeek.toString()} />
+        <StatTile
+          label="Tuân thủ buổi tập"
+          value={metrics.hasScheduledSessions ? `${Math.round(metrics.adherenceRate * 100)}%` : "Chưa có dữ liệu"}
+          formula="Số buổi có trạng thái Hoàn thành ÷ tổng số buổi đã lên lịch trong chu kỳ tính đến hiện tại (hoặc đến ngày kết thúc nếu chu kỳ đã đóng). Không tính buổi trong tương lai chưa tới hạn. Hiển thị 'Chưa có dữ liệu' khi chưa có buổi nào được lên lịch — không phải 0%."
+        />
+        <StatTile
+          label="Buổi/tuần"
+          value={metrics.workoutsPerWeek.toString()}
+          formula="Tổng số buổi đã hoàn thành ÷ số tuần đã trôi qua kể từ ngày bắt đầu chu kỳ."
+        />
         <StatTile
           label="Sức mạnh"
           value={metrics.strengthProgressScore != null ? `${Math.round(metrics.strengthProgressScore * 100)}%` : "—"}
+          formula="Điểm tổng hợp (không phải số đo lâm sàng) từ % thay đổi e1RM ước tính của từng bài giữa tuần đầu và tuần cuối có dữ liệu: -20% -> 0%, 0% -> 50%, +20% -> 100% (giới hạn 0-100%). Bài tập được đánh dấu ưu tiên tính gấp đôi trọng số. Đây là chỉ số thiết kế để hỗ trợ theo dõi xu hướng, không phải kết luận y khoa."
         />
         <StatTile
           label="Chất lượng dữ liệu"
           value={`${Math.round(metrics.dataQualityScore * 100)}%`}
           sub={!metrics.inBodyQuality.hasSufficientData ? "Cần thêm số liệu InBody" : undefined}
+          formula="Kết hợp mức độ đầy đủ của nhật ký tập (trọng số 50%), số lần đo InBody có thể so sánh được (35%), và mức đầy đủ của phản hồi cảm nhận buổi tập RPE/đau (15%). Càng thấp nghĩa là kết luận của AI càng cần được xem là tham khảo, chưa chắc chắn."
         />
       </div>
 
@@ -530,6 +709,9 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
           {evaluateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
           {evaluateMutation.isPending ? "Đang đánh giá..." : "Đánh giá chu kỳ (nâng cao)"}
         </button>
+        {evaluateMutation.isPending && (
+          <p className="text-[11px] text-zinc-500">Quá trình này có thể mất đến 1-2 phút do cần gọi AI để giải thích kết quả.</p>
+        )}
       </div>
     );
   }
@@ -652,27 +834,256 @@ function AdaptiveAssessmentCard({ cycleId }: { cycleId: string }) {
   );
 }
 
-function CycleHistoryRow({ cycle }: { cycle: TrainingCycle }) {
-  const trend = cycle.summary?.progressSignals?.overallTrend;
+const REPORT_FLAG_LABELS: Record<string, string> = {
+  PROTEIN_BELOW_TARGET: "Nạp protein trung bình thấp hơn mục tiêu cá nhân",
+  PROTEIN_BELOW_EVIDENCE_RANGE: "Protein trung bình dưới ngưỡng khoa học cho tăng cơ (1.6–2.2g/kg thể trọng)",
+  FREQUENT_SKIPPED_MEALS: "Bỏ bữa khá thường xuyên",
+  FREQUENT_MISSED_SESSIONS: "Bỏ lỡ nhiều buổi tập hơn số buổi hoàn thành",
+  PAIN_REPORTED: "Có buổi tập ghi nhận đau đáng kể (≥5/10)",
+  HIGH_TRAINING_MONOTONY: "Lịch tập thiếu biến thiên (training monotony ≥2.0) — có thể tăng nguy cơ quá tải",
+  RAPID_VOLUME_INCREASE: "Khối lượng tập tăng đột ngột (>50%) giữa 2 tuần liên tiếp",
+};
+
+function CycleReportModal({ cycleId, onClose }: { cycleId: string; onClose: () => void }) {
+  const reportQuery = useQuery({
+    queryKey: ["training-cycle", "report", cycleId],
+    queryFn: () => trainingCycleService.getReport(cycleId),
+  });
+
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-zinc-800/60 bg-zinc-900 p-3.5 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-          <CalendarClock className="h-4 w-4 text-zinc-500" />
-          Chu kỳ #{cycle.cycleIndex}: {formatDate(cycle.startDate)} – {formatDate(cycle.endDate)}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-zinc-800/60 sticky top-0 bg-zinc-900">
+          <h3 className="text-zinc-100 font-bold flex items-center gap-2">
+            <Flag className="w-4 h-4 text-green-400" />
+            Báo cáo chu kỳ {reportQuery.data ? `#${reportQuery.data.cycle.cycleIndex}` : ""}
+          </h3>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <div className="mt-1.5 flex flex-wrap items-center gap-3">
-          <span className="text-xs text-zinc-500">Tuân thủ: {cycle.summary?.adherence.percent ?? 0}%</span>
-          {cycle.decision && (
-            <span className="inline-flex items-center gap-1 text-xs text-zinc-400">
-              {cycle.decision === "KEEP" ? <TrendingUp className="h-3.5 w-3.5 text-green-400" /> : cycle.decision === "NEW_PLAN" ? <TrendingDown className="h-3.5 w-3.5 text-red-400" /> : null}
-              {DECISION_CONFIG[cycle.decision].label}
-            </span>
+
+        <div className="p-5 space-y-5">
+          {reportQuery.isLoading && (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
+            </div>
+          )}
+
+          {reportQuery.isError && (
+            <p className="text-sm text-red-400">Không thể tải báo cáo chu kỳ.</p>
+          )}
+
+          {reportQuery.data && (
+            <>
+              <p className="text-xs text-zinc-500">
+                {formatDate(reportQuery.data.window.startDate)} – {formatDate(reportQuery.data.window.endDate)}
+              </p>
+
+              {reportQuery.data.flags.length > 0 && (
+                <div className="space-y-2">
+                  {reportQuery.data.flags.map((flag) => (
+                    <div key={flag} className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-400 mt-0.5" />
+                      <p className="text-xs text-amber-200">{REPORT_FLAG_LABELS[flag] ?? flag}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <h4 className="text-xs font-bold text-zinc-300 mb-2 flex items-center gap-1.5">
+                  <Dumbbell className="w-3.5 h-3.5 text-green-400" /> Buổi tập
+                </h4>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-zinc-800/60 p-2.5">
+                    <p className="text-lg font-bold text-zinc-100">{reportQuery.data.workouts.completed}</p>
+                    <p className="text-[11px] text-zinc-500">Hoàn thành</p>
+                  </div>
+                  <div className="rounded-lg bg-zinc-800/60 p-2.5">
+                    <p className="text-lg font-bold text-red-400">{reportQuery.data.workouts.missed}</p>
+                    <p className="text-[11px] text-zinc-500">Bỏ lỡ</p>
+                  </div>
+                  <div className="rounded-lg bg-zinc-800/60 p-2.5">
+                    <p className="text-lg font-bold text-zinc-100">{reportQuery.data.workouts.completionRate}%</p>
+                    <p className="text-[11px] text-zinc-500">Tỷ lệ</p>
+                  </div>
+                </div>
+                {reportQuery.data.workouts.missedSessions.length > 0 && (
+                  <p className="mt-2 text-xs text-zinc-500">
+                    Ngày bỏ lỡ: {reportQuery.data.workouts.missedSessions.map((s) => formatDate(s.date)).join(", ")}
+                  </p>
+                )}
+                {reportQuery.data.workouts.highPainSessions.length > 0 && (
+                  <p className="mt-1.5 text-xs text-red-400">
+                    {reportQuery.data.workouts.highPainSessions.length} buổi tập ghi nhận đau đáng kể
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold text-zinc-300 mb-2 flex items-center gap-1.5">
+                  <Utensils className="w-3.5 h-3.5 text-orange-400" /> Dinh dưỡng
+                </h4>
+                {reportQuery.data.nutrition.daysLogged > 0 ? (
+                  <div className="space-y-1.5 text-xs text-zinc-400">
+                    <p>
+                      Protein trung bình:{" "}
+                      <span className="font-semibold text-zinc-200">
+                        {Math.round(reportQuery.data.nutrition.avgProtein ?? 0)}g
+                      </span>
+                      {reportQuery.data.nutrition.targetProtein != null && (
+                        <> / mục tiêu {reportQuery.data.nutrition.targetProtein}g ({reportQuery.data.nutrition.proteinAdherencePct}%)</>
+                      )}
+                    </p>
+                    <p>
+                      Calories trung bình:{" "}
+                      <span className="font-semibold text-zinc-200">
+                        {Math.round(reportQuery.data.nutrition.avgCalories ?? 0)} kcal
+                      </span>
+                      {reportQuery.data.nutrition.targetCalories != null && (
+                        <> / mục tiêu {reportQuery.data.nutrition.targetCalories} kcal ({reportQuery.data.nutrition.caloriesAdherencePct}%)</>
+                      )}
+                    </p>
+                    {reportQuery.data.nutrition.proteinPerKgBodyWeight != null && (
+                      <p>
+                        Protein/kg thể trọng:{" "}
+                        <span className="font-semibold text-zinc-200">
+                          {reportQuery.data.nutrition.proteinPerKgBodyWeight}g/kg
+                        </span>{" "}
+                        (khuyến nghị khoa học: {reportQuery.data.nutrition.proteinEvidenceRangeGPerKg.min}–
+                        {reportQuery.data.nutrition.proteinEvidenceRangeGPerKg.max}g/kg cho tăng cơ)
+                      </p>
+                    )}
+                    <p>
+                      Số ngày ghi log: {reportQuery.data.nutrition.daysLogged}/{reportQuery.data.nutrition.totalDaysInWindow}, bỏ bữa: {reportQuery.data.nutrition.skippedMeals}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-500">Không có dữ liệu dinh dưỡng được ghi log trong chu kỳ này.</p>
+                )}
+              </div>
+
+              {reportQuery.data.trainingLoad.hasData && (
+                <div>
+                  <h4 className="text-xs font-bold text-zinc-300 mb-2 flex items-center gap-1.5">
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-400" /> Tải trọng &amp; biến thiên tập luyện
+                  </h4>
+                  <div className="space-y-1 text-xs text-zinc-400">
+                    {reportQuery.data.trainingLoad.weeklyLoad.map((w) => (
+                      <p key={w.week}>
+                        Tuần {w.week}: tải {w.totalLoad}
+                        {w.monotony != null && (
+                          <>
+                            {" "}
+                            · monotony{" "}
+                            <span className={w.monotony >= reportQuery.data!.trainingLoad.monotonyThreshold ? "text-amber-400 font-semibold" : "text-zinc-300"}>
+                              {w.monotony}
+                            </span>
+                          </>
+                        )}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {reportQuery.data.newPRs.length > 0 && (
+                <p className="text-xs text-green-400">🏆 PR mới: {reportQuery.data.newPRs.join(", ")}</p>
+              )}
+            </>
           )}
         </div>
       </div>
-      <TrendBadge trend={trend} />
     </div>
+  );
+}
+
+function CycleHistoryRow({ cycle }: { cycle: TrainingCycle }) {
+  const queryClient = useQueryClient();
+  const trend = cycle.summary?.progressSignals?.overallTrend;
+  const [showReport, setShowReport] = useState(false);
+  const isClosed = cycle.status === "COMPLETED" || cycle.status === "ANALYZED";
+
+  // "Tuân thủ" here means the SAME thing as the "Tuân thủ" stat tile in
+  // CycleProgressSection below (session-level adherence, see that
+  // component's own formula comment) — sourced from whichever flow actually
+  // has real data for this cycle: the legacy summary (old /complete path)
+  // if present, else the new versioned assessment's computedMetrics (same
+  // query key as AdaptiveAssessmentCard/DecisionCard for this cycle, so
+  // this reuses whatever's already cached instead of adding a request).
+  // Never fabricated as 0% just because neither source has run yet.
+  const latestAssessmentQuery = useQuery({
+    queryKey: ["training-cycle", "assessment", "latest", cycle.id],
+    queryFn: () => trainingCycleService.getLatestAssessment(cycle.id),
+    retry: false,
+    enabled: isClosed && cycle.summary?.adherence == null,
+  });
+  const adherencePercent =
+    cycle.summary?.adherence?.percent ??
+    (latestAssessmentQuery.data?.computedMetrics
+      ? Math.round(latestAssessmentQuery.data.computedMetrics.adherenceRate * 100)
+      : null);
+
+  const deleteMutation = useMutation({
+    mutationFn: () => trainingCycleService.remove(cycle.id),
+    onSuccess: () => {
+      toast.success("Đã xoá chu kỳ tập luyện");
+      queryClient.invalidateQueries({ queryKey: ["training-cycle"] });
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error ?? "Không thể xoá chu kỳ");
+    },
+  });
+
+  return (
+    <>
+      <div
+        onClick={() => isClosed && setShowReport(true)}
+        className={`flex flex-col gap-2 rounded-xl border border-zinc-800/60 bg-zinc-900 p-3.5 sm:flex-row sm:items-center sm:justify-between ${isClosed ? "cursor-pointer hover:border-zinc-700" : ""}`}
+      >
+        <div>
+          <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
+            <CalendarClock className="h-4 w-4 text-zinc-500" />
+            Chu kỳ #{cycle.cycleIndex}: {formatDate(cycle.startDate)} – {formatDate(cycle.endDate)}
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-3">
+            <span className="text-xs text-zinc-500">
+              Tuân thủ buổi tập: {adherencePercent != null ? `${adherencePercent}%` : "Chưa có dữ liệu"}
+            </span>
+            {cycle.decision && (
+              <span className="inline-flex items-center gap-1 text-xs text-zinc-400">
+                {cycle.decision === "KEEP" ? <TrendingUp className="h-3.5 w-3.5 text-green-400" /> : cycle.decision === "NEW_PLAN" ? <TrendingDown className="h-3.5 w-3.5 text-red-400" /> : null}
+                {DECISION_CONFIG[cycle.decision].label}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <TrendBadge trend={trend} />
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm("Xoá chu kỳ tập luyện này khỏi lịch sử?")) {
+                deleteMutation.mutate();
+              }
+            }}
+            disabled={deleteMutation.isPending}
+            className="flex items-center justify-center rounded-lg border border-zinc-800 p-1.5 text-zinc-500 hover:border-red-500/40 hover:text-red-400 disabled:opacity-60 transition-all"
+            title="Xoá chu kỳ"
+          >
+            {deleteMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+      </div>
+      {showReport && <CycleReportModal cycleId={cycle.id} onClose={() => setShowReport(false)} />}
+    </>
   );
 }
 
@@ -702,7 +1113,12 @@ export function TrainingCyclePage() {
 
       <ActiveCycleCard />
 
-      {activeOrRecentCycle && <DecisionCard cycle={activeOrRecentCycle} />}
+      {/* A stale proposal from an older COMPLETED/ANALYZED cycle must never
+          be offered once a newer cycle already exists and is running — the
+          user has already moved on (whether by approving it or starting a
+          fresh cycle some other way). Only show the "start next cycle"
+          proposal when there is genuinely no active cycle to conflict with. */}
+      {!activeCycle && activeOrRecentCycle && <DecisionCard cycle={activeOrRecentCycle} />}
 
       {relevantCycleId && <CycleProgressSection cycleId={relevantCycleId} />}
 

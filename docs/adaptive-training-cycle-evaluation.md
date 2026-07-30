@@ -80,11 +80,82 @@ Người dùng: Accept / Reject (POST /:id/recommendation/accept|reject)
 | GET | `/training-cycles/:id/assessments/latest` | — |
 | POST | `/training-cycles/:id/recommendation/accept` \| `/reject` | Chỉ đánh dấu `userDecision`, 409 nếu đã review |
 | POST | `/training-cycles/:id/inbody-links` | Nối 1 InBody entry vào cycle, idempotent (upsert) |
+| GET | `/training-cycles/:id/report` | Báo cáo đầy đủ 1 chu kỳ: buổi tập hoàn thành/bỏ lỡ (+ readiness/RPE/pain từng buổi), dinh dưỡng thực tế so với `NutritionGoal` (protein/calories/carbs/fat), protein/kg thể trọng so với khoảng khoa học, training load/monotony, spike khối lượng tuần-qua-tuần, cờ cảnh báo (`flags`) |
+| POST | `/training-cycles/:id/sessions/:scheduleId/feedback` | Ghi nhận readiness/RPE/pain/notes cho 1 buổi tập (upsert theo `workoutScheduleId`) — nguồn dữ liệu cho phần training load/monotony của report |
+| DELETE | `/training-cycles/:id` | Xoá mềm (`archivedAt`), idempotent, giữ nguyên `CycleAssessment`/`CycleSessionFeedback`/`CycleInBodyLink` để audit |
 | POST | `/ai/assess-cycle` | Nội bộ (fitness-service→ai-service), song song với `/ai/analyze-cycle` cũ |
 
 `POST /training-cycles` (tạo cycle, endpoint cũ) nhận thêm field tùy chọn
 `status: "DRAFT" | "ACTIVE"` (mặc định `ACTIVE` — hành vi cũ không đổi) và
 `name`/`targetMetrics`/`configuration`.
+
+### Xoá chu kỳ (`DELETE /training-cycles/:id`)
+
+Theo đúng pattern `archivePlan`/`archiveNutritionPlan` đã có ở ai-service:
+xoá là soft-delete qua cột `TrainingCycle.archivedAt`, không xoá cứng dòng dữ
+liệu (giữ lịch sử/audit). Sai chủ sở hữu → 404 (khớp convention hiện có của
+`training-cycle.service.ts`, không dùng 403 như bên plan). Xoá lại một cycle
+đã xoá trả về cùng kết quả (200, `archived: true`) thay vì lỗi.
+
+Cycle đã archive bị loại khỏi `GET /training-cycles` (lịch sử) và
+`GET /training-cycles/active`, và không còn tính là "cycle ACTIVE hiện có"
+khi kiểm tra trùng lặp ở `startCycle`/`startDraftCycle` — nghĩa là xoá cycle
+ACTIVE hiện tại giải phóng ngay slot để bắt đầu cycle mới. Vẫn có thể fetch
+trực tiếp qua `GET /training-cycles/:id` sau khi archive (giống hành vi của
+plan đã archive).
+
+### Báo cáo chu kỳ (`GET /training-cycles/:id/report`)
+
+Trả lời câu hỏi "trong chu kỳ này mình đã trải qua những gì" khi bấm vào một
+chu kỳ trong lịch sử (frontend: `CycleReportModal` trong
+`TrainingCyclePage.tsx`, mở khi click một `CycleHistoryRow` ở trạng thái
+COMPLETED/ANALYZED). Toàn bộ dữ liệu nằm trong fitness-service, không cần gọi
+sang service khác:
+
+- **Buổi tập**: quét `WorkoutSchedule` theo `trainingCycleId`, phân loại
+  hoàn thành/bỏ lỡ (buổi có `date` trong quá khứ nhưng `status !== COMPLETED`
+  — giá trị `"SKIPPED"` được định nghĩa trong schema nhưng chưa nơi nào thực
+  sự ghi ra nó), kèm feedback từng buổi (`readinessScore`/`sessionRpe`/
+  `painScore`/`notes` từ `CycleSessionFeedback`).
+- **Dinh dưỡng**: gộp `NutritionMealCompletion` trong khoảng
+  `[startDate, endDate]` của cycle theo ngày, tính trung bình
+  protein/calories/carbs/fat mỗi ngày có log, so với `NutritionGoal` của
+  user (mục tiêu chung, không phải mục tiêu riêng theo `NutritionProgram`).
+- **`flags`**: `PROTEIN_BELOW_TARGET` (protein TB < 85% mục tiêu),
+  `FREQUENT_SKIPPED_MEALS`, `FREQUENT_MISSED_SESSIONS` (bỏ lỡ nhiều hơn hoàn
+  thành), `PAIN_REPORTED` (có buổi pain ≥ 5/10) — dùng để hiển thị cảnh báo
+  ở đầu modal.
+- Tái sử dụng `cycle.summary` đã tính sẵn (progressSignals/alerts/newPRs/
+  inBodySeries) thay vì tính lại.
+
+Không cache (đọc theo yêu cầu khi mở modal, không polling).
+
+**Bổ sung dựa trên tài liệu khoa học thể thao** (nghiên cứu qua PMC/Frontiers,
+xem trích dẫn trong code comment của `getCycleReport`):
+
+- `nutrition.proteinPerKgBodyWeight` so với khoảng **1.6–2.2 g/kg thể
+  trọng/ngày** (Morton et al. 2018 meta-analysis n=1863; đồng thuận cập nhật
+  1.6–2.4g/kg) — dùng cân nặng InBody gần nhất của chính chu kỳ, không phải
+  mục tiêu tuỳ chỉnh của user. Cờ `PROTEIN_BELOW_EVIDENCE_RANGE`.
+- `trainingLoad.weeklyLoad`: training load (session RPE × phút tập) +
+  **monotony/strain** theo phương pháp Foster (1998) — monotony ≥ 2.0 là
+  ngưỡng được ghi nhận liên quan đến tăng nguy cơ quá tải/ốm/chấn thương. Cờ
+  `HIGH_TRAINING_MONOTONY`. Chỉ tính khi buổi tập có cả `sessionRpe` (từ
+  `CycleSessionFeedback`) và `durationSeconds`.
+- `volumeWeekOverWeekPct`: % thay đổi khối lượng tập giữa các tuần liên
+  tiếp (tái dùng `volumeByWeek` có sẵn) — mang tính thông tin, không phải
+  claim y khoa tuyệt đối (ACWR còn gây tranh cãi trong tài liệu). Cờ
+  `RAPID_VOLUME_INCREASE` khi tăng >50%.
+
+**Thu thập readiness/RPE/pain** (`POST /training-cycles/:id/sessions/:scheduleId/feedback`):
+trước đây `CycleSessionFeedback` có schema nhưng không có đường nhập liệu
+thật nào trong sản phẩm (chỉ được ghi trực tiếp trong integration test).
+Nay khi một buổi tập gắn với training cycle được hoàn thành (`WorkoutSchedule.status`
+chuyển `COMPLETED`, kiểm tra qua `trainingCycleId` trả về trong response của
+`completeScheduleExercise`), frontend (`WorkoutLogPage.tsx`'s
+`SessionFeedbackModal`) hiện 1 form nhanh (3 thanh trượt: readiness/RPE/pain +
+ghi chú tuỳ chọn, có thể bỏ qua). Endpoint upsert theo
+`workoutScheduleId` (1:1), ownership kiểm qua chính `WorkoutSchedule.userId`.
 
 ## Bảng ngưỡng Decision Engine (bổ sung vào `cycle-thresholds.config.ts`)
 

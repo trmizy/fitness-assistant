@@ -1,5 +1,5 @@
-import express from 'express';
-import { metricsMiddleware, register } from '@gym-coach/shared';
+import express, { NextFunction, Request, Response } from 'express';
+import { logger, metricsMiddleware, register } from '@gym-coach/shared';
 import publicRoutes from './routes/public.routes';
 import ownerRoutes from './routes/owner.routes';
 import clientRoutes from './routes/client.routes';
@@ -27,5 +27,17 @@ app.use('/', clientRoutes);
 app.use('/', ptRoutes);
 app.use('/admin', adminRoutes);
 app.use('/internal', internalRoutes);
+
+// Last-resort safety net: catches anything forwarded via next(err) (every
+// route handler is now wrapped in asyncHandler, so a rejected promise ends
+// up here instead of crashing the process as an unhandled rejection) and
+// any synchronous throw Express 4 already catches on its own. Never leaks
+// an internal stack trace/error message to the client.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+  logger.error({ err: err?.message, path: req.path }, 'Unhandled error in gym-service');
+  if (res.headersSent) return;
+  res.status(err?.status || 500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Internal server error' } });
+});
 
 export default app;

@@ -69,7 +69,7 @@ export function evaluateInBodyQuality(entries: InBodyEntrySnapshot[]): InBodyQua
     if (gapDays > 0 && gapDays < t.minMeaningfulIntervalDays) {
       intervalWarnings.push({
         entryId: cur.id,
-        reason: `Only ${gapDays.toFixed(1)} day(s) since prior measurement — below the ${t.minMeaningfulIntervalDays}-day minimum meaningful interval; low trend value.`,
+        reason: `Chỉ cách lần đo trước ${gapDays.toFixed(1)} ngày — dưới khoảng cách tối thiểu ${t.minMeaningfulIntervalDays} ngày để có giá trị xu hướng.`,
       });
     }
 
@@ -78,7 +78,7 @@ export function evaluateInBodyQuality(entries: InBodyEntrySnapshot[]): InBodyQua
       if (weightRate > t.maxPlausibleWeightChangeKgPerDay) {
         outlierFlags.push({
           entryId: cur.id,
-          reason: `Weight changed ${(cur.weight - prev.weight).toFixed(1)}kg over ${gapDays.toFixed(1)} day(s) (${weightRate.toFixed(2)}kg/day) — exceeds the ${t.maxPlausibleWeightChangeKgPerDay}kg/day plausibility threshold; likely hydration/food-timing noise rather than tissue change.`,
+          reason: `Cân nặng thay đổi ${(cur.weight - prev.weight).toFixed(1)}kg trong ${gapDays.toFixed(1)} ngày (${weightRate.toFixed(2)}kg/ngày) — vượt ngưỡng hợp lý ${t.maxPlausibleWeightChangeKgPerDay}kg/ngày; nhiều khả năng do nước/thời điểm ăn uống hơn là thay đổi mô thực sự.`,
         });
         outlierIds.add(cur.id);
       }
@@ -90,7 +90,7 @@ export function evaluateInBodyQuality(entries: InBodyEntrySnapshot[]): InBodyQua
       ) {
         outlierFlags.push({
           entryId: cur.id,
-          reason: `Body fat % changed ${(cur.bodyFatPct - prev.bodyFatPct).toFixed(1)}pp over ${gapDays.toFixed(1)} day(s) — exceeds the ${t.maxPlausibleBodyFatPctChange}pp plausibility threshold; likely measurement-condition noise.`,
+          reason: `Tỉ lệ mỡ cơ thể thay đổi ${(cur.bodyFatPct - prev.bodyFatPct).toFixed(1)}pp trong ${gapDays.toFixed(1)} ngày — vượt ngưỡng hợp lý ${t.maxPlausibleBodyFatPctChange}pp; nhiều khả năng do sai số điều kiện đo hơn là thay đổi thực sự.`,
         });
         outlierIds.add(cur.id);
       }
@@ -102,7 +102,7 @@ export function evaluateInBodyQuality(entries: InBodyEntrySnapshot[]): InBodyQua
   const statuses = new Set(sorted.map((e) => e.status).filter((s): s is string => !!s));
   const deviceConsistencyWarning =
     statuses.size > 1
-      ? `Mixed measurement sources across entries (${[...statuses].join(", ")}) — comparisons across sources are less reliable than same-source comparisons.`
+      ? `Các lần đo dùng nguồn khác nhau (${[...statuses].join(", ")}) — so sánh giữa các nguồn khác nhau kém tin cậy hơn so với cùng một nguồn.`
       : null;
   if (deviceConsistencyWarning) qualityFlags.push(deviceConsistencyWarning);
 
@@ -122,15 +122,15 @@ export function evaluateInBodyQuality(entries: InBodyEntrySnapshot[]): InBodyQua
 
   if (sorted.length === 1) {
     qualityFlags.push(
-      "Only one InBody measurement available for this cycle — cannot draw a confident conclusion about muscle/fat change from a single point.",
+      "Chỉ có 1 lần đo InBody trong chu kỳ này — không đủ để kết luận đáng tin cậy về thay đổi cơ/mỡ chỉ từ một điểm dữ liệu.",
     );
   }
   if (outlierFlags.length > 0) {
-    qualityFlags.push(`${outlierFlags.length} measurement(s) flagged as outliers and excluded from trend calculation.`);
+    qualityFlags.push(`${outlierFlags.length} lần đo bị đánh dấu là bất thường và bị loại khỏi tính toán xu hướng.`);
   }
   if (!hasSufficientData) {
     qualityFlags.push(
-      `Only ${comparableRecordCount} comparable measurement(s) — below the minimum of ${cycleThresholds.assessment.minimumComparableInBodyRecords} required for a confident body-composition trend.`,
+      `Chỉ có ${comparableRecordCount} lần đo có thể so sánh được — thấp hơn mức tối thiểu ${cycleThresholds.assessment.minimumComparableInBodyRecords} lần cần thiết để kết luận đáng tin cậy về xu hướng thể trạng.`,
     );
   }
 

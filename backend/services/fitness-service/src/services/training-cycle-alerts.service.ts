@@ -70,8 +70,10 @@ export function evaluateAlerts(params: {
     });
   }
 
-  // Rule: adherence low by week 2
-  if (weekOfCycle >= 2 && adherence.percent < t.lowAdherencePctAtWeek2) {
+  // Rule: adherence low by week 2 — null (no scheduled sessions at all) is
+  // absence of data, not evidence of low adherence, so it must never fire
+  // this alert (same principle as classifyAdherence's null handling).
+  if (weekOfCycle >= 2 && adherence.percent != null && adherence.percent < t.lowAdherencePctAtWeek2) {
     alerts.push({
       code: "LOW_ADHERENCE",
       severity: "warning",

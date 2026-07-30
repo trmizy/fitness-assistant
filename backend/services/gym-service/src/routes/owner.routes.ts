@@ -6,6 +6,7 @@ import { membershipController } from '../controllers/membership.controller';
 import { affiliationController } from '../controllers/affiliation.controller';
 import { paymentClient } from '../clients/payment.client';
 import { gymService } from '../services/gym.service';
+import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
 router.use(extractUser, requireAuth, requireRoles('GYM_OWNER'));
@@ -13,12 +14,12 @@ router.use(extractUser, requireAuth, requireRoles('GYM_OWNER'));
 // Ownership is verified per-row inside each service method (gymService.getOwnedGym) —
 // requireRoles('GYM_OWNER') alone only proves the caller is *a* gym owner, not that
 // they own *this* gym.
-router.post('/gyms', gymController.createOwned);
-router.get('/gyms', gymController.listOwned);
-router.get('/gyms/:id', gymController.getOwnedById);
-router.patch('/gyms/:id', gymController.updateOwned);
+router.post('/gyms', asyncHandler(gymController.createOwned));
+router.get('/gyms', asyncHandler(gymController.listOwned));
+router.get('/gyms/:id', asyncHandler(gymController.getOwnedById));
+router.patch('/gyms/:id', asyncHandler(gymController.updateOwned));
 
-router.get('/gyms/:gymId/wallet', async (req, res) => {
+router.get('/gyms/:gymId/wallet', asyncHandler(async (req, res) => {
   try {
     const ownerId = req.user!.userId;
     const gym = await gymService.getOwnedGym(req.params.gymId, ownerId);
@@ -27,14 +28,14 @@ router.get('/gyms/:gymId/wallet', async (req, res) => {
   } catch (e: any) {
     res.status(e.status || 500).json({ success: false, error: { message: e.message } });
   }
-});
+}));
 
-router.post('/gyms/:gymId/plans', planController.create);
-router.get('/gyms/:gymId/plans', planController.listOwned);
-router.patch('/gyms/:gymId/plans/:planId', planController.update);
+router.post('/gyms/:gymId/plans', asyncHandler(planController.create));
+router.get('/gyms/:gymId/plans', asyncHandler(planController.listOwned));
+router.patch('/gyms/:gymId/plans/:planId', asyncHandler(planController.update));
 
-router.get('/gyms/:gymId/memberships', membershipController.listForOwner);
+router.get('/gyms/:gymId/memberships', asyncHandler(membershipController.listForOwner));
 
-router.post('/gyms/:gymId/trainers', affiliationController.invite);
+router.post('/gyms/:gymId/trainers', asyncHandler(affiliationController.invite));
 
 export default router;

@@ -82,6 +82,12 @@ export class PayOSProvider implements PaymentProvider {
 
   /** Webhook body: `{ code, desc, success, data, signature }`; signature = HMAC over sorted `data`. */
   verifyWebhookSignature(rawBody: Buffer): WebhookVerifyResult {
+    // Fail closed: an empty CHECKSUM_KEY is a known, publicly-computable HMAC key —
+    // never treat "not configured" as "verification not needed."
+    if (!CHECKSUM_KEY) {
+      logger.error('[PayOS] PAYOS_CHECKSUM_KEY is not configured — rejecting webhook');
+      return { valid: false };
+    }
     let body: { code?: string; success?: boolean; data?: Record<string, unknown>; signature?: string };
     try {
       body = JSON.parse(rawBody.toString('utf-8'));

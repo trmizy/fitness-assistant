@@ -9,6 +9,7 @@ import {
   type VolumeWeek,
   type E1rmTrendPoint,
   type RpeTrend,
+  type RirTrend,
 } from "./training-cycle-metrics.service";
 import { evaluateInBodyQuality, type InBodyQualityResult, type InBodyTrendPoint } from "./inbody-quality.evaluator";
 
@@ -37,8 +38,13 @@ export interface FatigueRecoveryMetrics {
 }
 
 export interface CycleMetricsResult {
-  adherenceRate: number; // 0-1 (AdherenceMetric.percent / 100)
+  adherenceRate: number; // 0-1 (AdherenceMetric.percent / 100) — 0 when hasScheduledSessions is false; callers must check hasScheduledSessions before displaying this as a percentage
   completionRate: number; // alias of adherenceRate today — kept as a distinct field per spec, may diverge later (e.g. counting partial completions)
+  /** false when there were zero scheduled sessions in the window at all —
+   * distinguishes "genuinely 0% adherence" from "no data to judge yet".
+   * The frontend must render "Chưa có dữ liệu"/similar instead of "0%"
+   * when this is false (see TrainingCyclePage.tsx's CycleProgressSection). */
+  hasScheduledSessions: boolean;
   workoutsPerWeek: number;
   weeklyVolumeByMuscleGroup: VolumeWeek[];
   volumeTrendPercent: number | null;
@@ -48,7 +54,8 @@ export interface CycleMetricsResult {
   performanceConsistencyScore: number | null; // 0-1
   averageSessionRpe: number | null;
   rpeTrend: RpeTrend["trend"];
-  averageRir: number | null; // always null — no RIR data source in this schema today, see note at bottom of file
+  averageRir: number | null;
+  rirTrend: RirTrend["trend"];
   painTrend: FieldTrend | null;
   averagePainScore: number | null;
   fatigueScore: number | null;
@@ -270,7 +277,7 @@ export function computeDataCompletenessScore(params: {
   sessionFeedbackCount: number;
   completedSessionCount: number;
 }): number {
-  const workoutLoggingCompleteness = params.adherence.total > 0 ? params.adherence.percent / 100 : 0;
+  const workoutLoggingCompleteness = params.adherence.total > 0 ? (params.adherence.percent ?? 0) / 100 : 0;
   const inbodyCompleteness = Math.min(
     1,
     params.inBodyRecordCount / Math.max(1, params.minimumComparableInBodyRecords),
@@ -297,7 +304,7 @@ export async function computeCycleMetrics(params: {
 }): Promise<CycleMetricsResult> {
   const [adherence, workoutMetrics, sessionFeedbackRows] = await Promise.all([
     computeAdherence(params.userId, params.planId, params.startDate, params.asOf),
-    computeWorkoutMetrics(params.userId, params.startDate, params.asOf),
+    computeWorkoutMetrics(params.userId, params.startDate, params.asOf, params.planId),
     prisma.cycleSessionFeedback.findMany({
       where: { cycleId: params.cycleId },
       select: {
@@ -352,9 +359,18 @@ export async function computeCycleMetrics(params: {
   const dataQualityScore =
     Math.round(dataCompletenessScore * inBodyQuality.confidenceMultiplier * 100) / 100;
 
+  // adherence.percent is null when there were zero scheduled sessions —
+  // treated as 0 here (not skipped) so the Decision Engine's own
+  // TOO_FEW_COMPLETED_SESSIONS / CYCLE_TOO_SHORT gates (which look at
+  // completedSessions/cycleDurationDays directly, not adherenceRate) are
+  // what correctly route a 0/0 cycle to INSUFFICIENT_DATA — this field is
+  // just not left as NaN.
+  const adherenceRateValue = adherence.percent == null ? 0 : Math.round((adherence.percent / 100) * 100) / 100;
+
   return {
-    adherenceRate: Math.round((adherence.percent / 100) * 100) / 100,
-    completionRate: Math.round((adherence.percent / 100) * 100) / 100,
+    adherenceRate: adherenceRateValue,
+    completionRate: adherenceRateValue,
+    hasScheduledSessions: adherence.total > 0,
     workoutsPerWeek: Math.round((adherence.completed / cycleWeeks) * 10) / 10,
     weeklyVolumeByMuscleGroup: workoutMetrics.volumeByWeek,
     volumeTrendPercent: workoutMetrics.volumeChangePct,
@@ -364,7 +380,18 @@ export async function computeCycleMetrics(params: {
     performanceConsistencyScore: computePerformanceConsistencyScore(workoutMetrics.volumeByWeek),
     averageSessionRpe: fatigueRecovery.averageSessionRpe,
     rpeTrend: fatigueRecovery.rpeTrend,
-    averageRir: null,
+    // No RIR source at the CycleSessionFeedback (session-level) layer, only
+    // the set-level WorkoutSet.rir — averaged across whatever weeks logged
+    // it, same shape as averageSessionRpe's set-level fallback.
+    averageRir:
+      workoutMetrics.rirTrend.weeklyAvg.length > 0
+        ? Math.round(
+            (workoutMetrics.rirTrend.weeklyAvg.reduce((s, v) => s + v, 0) /
+              workoutMetrics.rirTrend.weeklyAvg.length) *
+              10,
+          ) / 10
+        : null,
+    rirTrend: workoutMetrics.rirTrend.trend,
     painTrend: fatigueRecovery.painTrend,
     averagePainScore: fatigueRecovery.averagePainScore,
     fatigueScore: fatigueRecovery.fatigueScore,
@@ -379,12 +406,3 @@ export async function computeCycleMetrics(params: {
     inBodyQuality,
   };
 }
-
-// NOTE on averageRir: the spec's "Workout data" input list includes RIR
-// (Reps in Reserve) alongside RPE. This schema's WorkoutSet only stores
-// `rpe` (Float?) — there is no `rir` column anywhere in fitness-service or
-// user-service. Rather than fabricate a value or silently ignore the
-// requirement, averageRir is always returned as null (a real, documented
-// "missing data" signal that lowers dataCompletenessScore's workout-side
-// component implicitly via the same adherence/logging completeness used
-// elsewhere) until a real RIR data source exists.

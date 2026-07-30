@@ -4,6 +4,7 @@ import { ptApplicationRepository } from "../repositories/pt_application.reposito
 import { profileRepository } from "../repositories/profile.repository";
 import { PrismaClient, PTApplicationStatus } from "../generated/prisma";
 import { ptApplicationsTotal } from "@gym-coach/shared";
+import { signPtApplicationDocumentUrls } from "../utils/ptDocumentUrl.util";
 
 const prisma = new PrismaClient();
 
@@ -173,7 +174,8 @@ async function syncRoleToPT(userId: string): Promise<void> {
 
 export const ptApplicationService = {
   async getMe(userId: string) {
-    return ptApplicationRepository.findByUserId(userId);
+    const app = await ptApplicationRepository.findByUserId(userId);
+    return app ? signPtApplicationDocumentUrls(app) : app;
   },
 
   async saveDraft(userId: string, data: any) {
@@ -401,18 +403,19 @@ export const ptApplicationService = {
     // Fetch full application with userProfile and enrich with auth-service data
     const updated = await ptApplicationRepository.findById(id);
     if (!updated) throw new Error("Application not found after update");
-    return enrichWithUserInfo(updated);
+    return signPtApplicationDocumentUrls(await enrichWithUserInfo(updated));
   },
 
   async listApplications(filters: any) {
     const apps = await ptApplicationRepository.findAll(filters);
     // Enrich all applications with user info from auth-service (in parallel)
-    return Promise.all(apps.map(enrichWithUserInfo));
+    const enriched = await Promise.all(apps.map(enrichWithUserInfo));
+    return enriched.map(signPtApplicationDocumentUrls);
   },
 
   async getById(id: string) {
     const app = await ptApplicationRepository.findById(id);
     if (!app) return null;
-    return enrichWithUserInfo(app);
+    return signPtApplicationDocumentUrls(await enrichWithUserInfo(app));
   },
 };

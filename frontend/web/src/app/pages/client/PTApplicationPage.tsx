@@ -197,6 +197,13 @@ function UploadBox({
   onUpload: (url: string) => void;
 }) {
   const [isUploading, setIsUploading] = useState(false);
+  // The server's uploads/pt-applications directory is no longer served
+  // statically/unauthenticated (see user-service app.ts) — `value` (the
+  // stable path stored via onUpload) 404s on its own until the page is
+  // reloaded and re-fetched through getMe, which returns a signed, short-
+  // lived preview link instead. Right after a fresh upload we already have
+  // that signed link (resp.previewUrl) — keep it locally just for display.
+  const [justUploadedPreview, setJustUploadedPreview] = useState<string | null>(null);
 
   const getFullUrl = (url: string) => {
     if (!url) return "";
@@ -214,6 +221,7 @@ function UploadBox({
     try {
       const resp = await ptApplicationService.uploadDocument(file);
       console.log("Upload response:", resp);
+      setJustUploadedPreview(resp.previewUrl || null);
       onUpload(resp.url);
     } catch (error) {
       console.error("Upload failed", error);
@@ -247,17 +255,19 @@ function UploadBox({
           </div>
         ) : value ? (
           <div className="flex flex-col items-center gap-3">
-            {value.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/) ||
+            {/* Signed document links (/pt-applications/documents/<file>?exp=...&sig=...)
+                don't end with the file extension — check the path portion only. */}
+            {value.split("?")[0].toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/) ||
             value.includes("image") ? (
               <div className="relative group">
                 <img
-                  src={getFullUrl(value)}
+                  src={getFullUrl(justUploadedPreview || value)}
                   alt="Preview"
                   className="h-32 w-auto rounded-lg object-cover border border-zinc-700 shadow-lg"
                   onError={(e) => {
                     console.error(
                       "Image preview failed to load:",
-                      getFullUrl(value),
+                      getFullUrl(justUploadedPreview || value),
                     );
                     (e.target as any).src =
                       "https://placehold.co/200x200?text=Format+Error";
@@ -281,6 +291,7 @@ function UploadBox({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                setJustUploadedPreview(null);
                 onUpload("");
               }}
               className="px-3 py-1 rounded-full bg-zinc-900/80 border border-zinc-700 text-zinc-400 hover:text-red-400 text-[11px] font-medium transition-colors flex items-center gap-1.5"
@@ -676,7 +687,42 @@ export function PTApplicationPage() {
     return true;
   };
 
+  // Steps 0/1 previously had no validation at all before advancing — a user
+  // could leave every field blank and still reach step 2, with the progress
+  // bar climbing to 14% ("Hoàn thành 14%") despite nothing being filled in.
+  // These mirror the SAME fields pt_application.service.ts's submit() already
+  // requires server-side (phoneNumber/nationalIdNumber/currentAddress and
+  // the three identity documents) — checked here per-step instead of only
+  // at the very end, so the step indicator/progress bar reflects reality.
+  const validatePersonalInfoStep = () => {
+    if (currentStep !== 0) return true;
+    if (!formData.phoneNumber?.trim()) {
+      alert("Vui lòng nhập số điện thoại.");
+      return false;
+    }
+    if (!formData.nationalIdNumber?.trim()) {
+      alert("Vui lòng nhập số CMND/Hộ chiếu.");
+      return false;
+    }
+    if (!formData.currentAddress?.trim()) {
+      alert("Vui lòng nhập địa chỉ hiện tại.");
+      return false;
+    }
+    return true;
+  };
+
+  const validateIdentityStep = () => {
+    if (currentStep !== 1) return true;
+    if (!formData.idCardFrontUrl || !formData.idCardBackUrl || !formData.portraitPhotoUrl) {
+      alert("Vui lòng tải lên đầy đủ CMND (mặt trước, mặt sau) và ảnh chân dung.");
+      return false;
+    }
+    return true;
+  };
+
   const goNext = () => {
+    if (!validatePersonalInfoStep()) return;
+    if (!validateIdentityStep()) return;
     if (currentStep === 5 && !validateAvailability()) return;
     if (currentStep === 5) {
       const mode = formData.serviceMode;
@@ -2364,14 +2410,14 @@ export function PTApplicationPage() {
           {currentStep === steps.length - 1 ? (
             <button
               onClick={handleSubmit}
-              disabled={!allConsented || submitMutation.isPending}
+              disabled={!allConsented || saveMutation.isPending || submitMutation.isPending}
               className={`flex items-center gap-2 px-6 py-2.5 text-sm font-bold rounded-lg transition-all shadow-lg ${
                 allConsented
                   ? "bg-green-500 hover:bg-green-400 text-black shadow-green-500/20"
                   : "bg-zinc-700 text-zinc-500 cursor-not-allowed shadow-none"
               }`}
             >
-              {submitMutation.isPending ? (
+              {saveMutation.isPending || submitMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>

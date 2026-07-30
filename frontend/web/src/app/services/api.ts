@@ -7,8 +7,16 @@ export interface PlanExplanationResponse {
 import axios from "axios";
 import { makeRefreshOnce } from "./refresh-once";
 
+// Defaults to a same-origin relative path, proxied by Vite's dev server to
+// the gateway (see vite.config.ts's "/api" proxy rule) — this is what makes
+// the app work identically whether opened at http://localhost:5173 or
+// through a Dev Tunnel/port-forwarded HTTPS URL, with no CORS or
+// mixed-content issues, since the browser never makes a cross-origin
+// request. Set VITE_API_URL to an absolute URL only when the frontend must
+// reach a backend that ISN'T proxied same-origin (e.g. a production static
+// build served without an API-proxying reverse proxy in front of it).
 // @ts-ignore - ImportMeta.env is provided by Vite
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+export const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -511,7 +519,7 @@ export const workoutService = {
   },
 };
 
-export type CycleDecision = "KEEP" | "ADJUST" | "NEW_PLAN";
+export type CycleDecision = "KEEP" | "ADJUST" | "NEW_PLAN" | "INSUFFICIENT_DATA";
 export type OverallTrend = "PROGRESSING" | "PLATEAU" | "DECLINING";
 
 export interface CycleAlert {
@@ -524,7 +532,10 @@ export interface CycleAlert {
 export interface CycleAdherence {
   completed: number;
   total: number;
-  percent: number;
+  /** null when there were no scheduled sessions to judge against — never a
+   * substitute for 0% (no data mistaken for failure) or 100% (no data
+   * mistaken for perfect adherence). */
+  percent: number | null;
 }
 
 export interface CycleVolumeWeek {
@@ -539,7 +550,7 @@ export interface CycleProgressSignals {
   deltaPBF: number | null;
   volumeChangePct: number | null;
   newPRs: string[];
-  adherencePct: number;
+  adherencePct: number | null;
   rpeTrend: "stable" | "increasing" | "decreasing";
   laggingMuscleGroups: string[];
 }
@@ -556,6 +567,61 @@ export interface CycleSummary {
   computedAt: string;
   progressSignals?: CycleProgressSignals;
   closedAt?: string;
+}
+
+export interface CycleReportSessionDetail {
+  date: string;
+  completedExercises: number | null;
+  totalExercises: number | null;
+  readinessScore: number | null;
+  sessionRpe: number | null;
+  painScore: number | null;
+  notes: string | null;
+}
+
+export interface CycleReport {
+  cycle: TrainingCycle;
+  window: { startDate: string; endDate: string };
+  workouts: {
+    totalScheduled: number;
+    completed: number;
+    missed: number;
+    upcoming: number;
+    completionRate: number;
+    missedSessions: Array<{ date: string }>;
+    sessionDetails: CycleReportSessionDetail[];
+    highPainSessions: CycleReportSessionDetail[];
+  };
+  trainingLoad: {
+    hasData: boolean;
+    weeklyLoad: Array<{ week: number; totalLoad: number; monotony: number | null; strain: number | null }>;
+    monotonyThreshold: number;
+  };
+  nutrition: {
+    daysLogged: number;
+    totalDaysInWindow: number;
+    avgProtein: number | null;
+    targetProtein: number | null;
+    proteinAdherencePct: number | null;
+    proteinPerKgBodyWeight: number | null;
+    proteinEvidenceRangeGPerKg: { min: number; max: number };
+    avgCalories: number | null;
+    targetCalories: number | null;
+    caloriesAdherencePct: number | null;
+    avgCarbs: number | null;
+    targetCarbs: number | null;
+    avgFat: number | null;
+    targetFat: number | null;
+    completedMeals: number;
+    partialMeals: number;
+    skippedMeals: number;
+  };
+  bodyComposition: CycleSummary["inBodySeries"];
+  volumeWeekOverWeekPct: Array<{ week: number; changePct: number | null }>;
+  progressSignals: CycleProgressSignals | null;
+  alerts: CycleAlert[];
+  newPRs: string[];
+  flags: string[];
 }
 
 export interface CycleAnalysisDetails {
@@ -612,6 +678,7 @@ export interface TrainingCycle {
   baselineMetrics: Record<string, unknown> | null;
   targetMetrics: Record<string, unknown> | null;
   configuration: Record<string, unknown> | null;
+  archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -643,6 +710,9 @@ export interface CycleProposedChange {
 export interface CycleMetrics {
   adherenceRate: number;
   completionRate: number;
+  /** false when there were zero scheduled sessions at all — must render as
+   * "no data" rather than "0%" (see CycleProgressSection). */
+  hasScheduledSessions: boolean;
   workoutsPerWeek: number;
   weeklyVolumeByMuscleGroup: CycleVolumeWeek[];
   volumeTrendPercent: number | null;
@@ -717,6 +787,13 @@ export const trainingCycleService = {
     return data;
   },
 
+  /** Explicit abandonment — distinct from complete(): never evaluated,
+   * never calls the AI, regardless of how much data exists. */
+  cancel: async (id: string) => {
+    const { data } = await api.post<TrainingCycle>(`/training-cycles/${id}/cancel`, {});
+    return data;
+  },
+
   approve: async (id: string, nextPlanId: string) => {
     const { data } = await api.post<TrainingCycle>(
       `/training-cycles/${id}/approve`,
@@ -757,7 +834,16 @@ export const trainingCycleService = {
   },
 
   evaluate: async (id: string) => {
-    const { data } = await api.post<CycleAssessment>(`/training-cycles/${id}/evaluate`, {});
+    // The real LLM round-trip inside POST /evaluate is synchronous
+    // server-side (not fire-and-forget like legacy /complete) and has taken
+    // 5-90s in live testing — the shared `api` instance's flat 10s default
+    // timeout previously aborted this call client-side well before the
+    // server finished, surfacing a false "Không thể đánh giá chu kỳ" error
+    // toast even though the assessment went on to complete successfully in
+    // the DB moments later (the exact "button flips back with no clear
+    // success/failure" symptom from the bug report). Matches the same
+    // 120s override already used for other LLM-heavy calls (coachService.chat).
+    const { data } = await api.post<CycleAssessment>(`/training-cycles/${id}/evaluate`, {}, { timeout: 120000 });
     return data;
   },
 
@@ -791,6 +877,27 @@ export const trainingCycleService = {
 
   linkInBodyEntry: async (id: string, inbodyEntryId: string) => {
     const { data } = await api.post(`/training-cycles/${id}/inbody-links`, { inbodyEntryId });
+    return data;
+  },
+
+  remove: async (id: string) => {
+    const { data } = await api.delete<{ cycleId: string; archived: boolean; archivedAt: string }>(
+      `/training-cycles/${id}`,
+    );
+    return data;
+  },
+
+  getReport: async (id: string) => {
+    const { data } = await api.get<CycleReport>(`/training-cycles/${id}/report`);
+    return data;
+  },
+
+  submitSessionFeedback: async (
+    cycleId: string,
+    scheduleId: string,
+    input: { readinessScore?: number; sessionRpe?: number; painScore?: number; notes?: string },
+  ) => {
+    const { data } = await api.post(`/training-cycles/${cycleId}/sessions/${scheduleId}/feedback`, input);
     return data;
   },
 };
@@ -1118,6 +1225,7 @@ export interface WorkoutExerciseCompletionResponse {
   sessionStatus: "not_started" | "in_progress" | "completed";
   dayStatus: "not_started" | "in_progress" | "completed";
   completedAt: string | null;
+  trainingCycleId?: string | null;
 }
 
 export interface PlanJobResponse {

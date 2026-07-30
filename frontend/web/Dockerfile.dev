@@ -24,9 +24,15 @@ EXPOSE 5173
 # CHOKIDAR_USEPOLLING=true ensures file-change events work when the source
 # directory is a bind-mounted volume on Windows (Docker Desktop / WSL2).
 ENV CHOKIDAR_USEPOLLING=true
-ENV VITE_API_URL=http://localhost:3000
-ENV VITE_SOCKET_URL=http://localhost:3000
-ENV VITE_CHAT_WS_URL=http://localhost:3005
+# Left unset here on purpose (image default): api.ts/socketClient.ts/socket.ts
+# all default to same-origin relative requests when VITE_API_URL /
+# VITE_SOCKET_URL / VITE_CHAT_WS_URL aren't set, proxied by vite.config.ts's
+# "/api" / "/socket.io" / "/chat-socket.io" rules to GATEWAY_PROXY_TARGET /
+# CHAT_PROXY_TARGET (defaulting to localhost:3000 / localhost:3005 — see
+# vite.config.ts). This is what makes the SAME image work unchanged whether
+# opened at http://localhost:5173 or through a Dev Tunnel/port-forwarded
+# HTTPS URL. docker-compose.dev.yml overrides GATEWAY_PROXY_TARGET /
+# CHAT_PROXY_TARGET to the container DNS names (api-gateway/chat-service).
 
 # --host 0.0.0.0 exposes Vite's dev server outside the container
 CMD ["pnpm", "run", "dev", "--host", "0.0.0.0"]

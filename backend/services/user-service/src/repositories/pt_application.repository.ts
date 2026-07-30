@@ -1,4 +1,5 @@
 import { PrismaClient, PTApplicationStatus } from "../generated/prisma";
+import { canonicalizePtDocumentUrl } from "../utils/ptDocumentUrl.util";
 
 const prisma = new PrismaClient();
 
@@ -80,6 +81,7 @@ function sanitizeCert(c: any): Record<string, any> {
   // Convert empty date strings to null for Prisma DateTime fields
   if (clean.issueDate === "") clean.issueDate = null;
   if (clean.expirationDate === "") clean.expirationDate = null;
+  if (clean.certificateFileUrl) clean.certificateFileUrl = canonicalizePtDocumentUrl(clean.certificateFileUrl);
   return clean;
 }
 
@@ -105,9 +107,39 @@ export const ptApplicationRepository = {
     });
   },
 
+  /**
+   * Reverse lookup for the authenticated document-serving endpoint: given a
+   * stored document filename, find the application (and its owning auth
+   * userId) that actually owns it — across every URL-holding field (id card
+   * front/back, portrait, certificate files, other media). Returns null if
+   * no application references this filename, which the caller must treat as
+   * "not found" (never leak whether a filename exists to a non-owner).
+   */
+  findOwnerByDocumentFilename: async (filename: string) => {
+    const url = `/uploads/pt-applications/${filename}`;
+    return prisma.pTApplication.findFirst({
+      where: {
+        OR: [
+          { idCardFrontUrl: url },
+          { idCardBackUrl: url },
+          { portraitPhotoUrl: url },
+          { certificates: { some: { certificateFileUrl: url } } },
+          { media: { some: { fileUrl: url } } },
+        ],
+      },
+      include: { userProfile: true },
+    });
+  },
+
   upsertDraft: async (userProfileId: string, data: any) => {
     const { certificates, media, ...raw } = data;
     const baseData = pickFields(raw, WRITABLE_FIELDS);
+    // Canonicalize before persisting — see canonicalizePtDocumentUrl's doc
+    // comment: the client may echo back a signed (time-limited) document
+    // link it received from a previous read; this must never be stored as-is.
+    for (const field of ["idCardFrontUrl", "idCardBackUrl", "portraitPhotoUrl"] as const) {
+      if (field in baseData) baseData[field] = canonicalizePtDocumentUrl(baseData[field]);
+    }
 
     return prisma.$transaction(async (tx) => {
       const application = await tx.pTApplication.upsert({
@@ -148,6 +180,7 @@ export const ptApplicationRepository = {
         });
         const validMedia = media
           .map((m: any) => pickFields(m, MEDIA_WRITABLE_FIELDS))
+          .map((m: any) => (m.fileUrl ? { ...m, fileUrl: canonicalizePtDocumentUrl(m.fileUrl) } : m))
           .filter((m: any) => m.fileUrl); // skip empty entries
         if (validMedia.length > 0) {
           await tx.pTApplicationMedia.createMany({

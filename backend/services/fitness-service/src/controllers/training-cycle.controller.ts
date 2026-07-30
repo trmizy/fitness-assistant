@@ -9,6 +9,7 @@ import {
   listAssessmentsQuerySchema,
   recommendationDecisionSchema,
   linkInBodyEntrySchema,
+  sessionFeedbackSchema,
 } from "../models/training-cycle.models";
 
 function handleServiceError(res: Response, error: any, fallbackMessage: string): void {
@@ -160,6 +161,20 @@ export const trainingCycleController = {
     }
   },
 
+  async cancel(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const cycle = await trainingCycleService.cancelCycle(req.params.id, req.user!.id);
+      res.json(cycle);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error cancelling training cycle");
+      res.status(500).json({ error: "Failed to cancel training cycle" });
+    }
+  },
+
   async approveDecision(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { nextPlanId } = req.body ?? {};
@@ -191,6 +206,39 @@ export const trainingCycleController = {
     } catch (error) {
       logger.error({ err: error }, "Error listing training cycles");
       res.status(500).json({ error: "Failed to list training cycles" });
+    }
+  },
+
+  async submitSessionFeedback(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const body = sessionFeedbackSchema.parse(req.body ?? {});
+      const feedback = await trainingCycleService.submitSessionFeedback(
+        req.params.id,
+        req.user!.id,
+        req.params.scheduleId,
+        body,
+      );
+      res.status(201).json(feedback);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to submit session feedback");
+    }
+  },
+
+  async report(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const result = await trainingCycleService.getCycleReport(req.params.id, req.user!.id);
+      res.json(result);
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to build training cycle report");
+    }
+  },
+
+  async remove(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const cycle = await trainingCycleService.deleteCycle(req.params.id, req.user!.id);
+      res.json({ cycleId: cycle.id, archived: true, archivedAt: cycle.archivedAt });
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to delete training cycle");
     }
   },
 

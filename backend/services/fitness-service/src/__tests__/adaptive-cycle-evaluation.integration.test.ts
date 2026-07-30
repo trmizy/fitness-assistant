@@ -150,8 +150,19 @@ test(
     });
 
     await t.test("5. Complete cycle (legacy /complete path stays available)", async () => {
+      // This cycle was activated moments ago (step 2) with a single logged
+      // session — nowhere near the Decision Engine's minimum cycle-length/
+      // session-count gates. completeCycle() now applies that same
+      // data-sufficiency gate to the legacy path (previously it had none at
+      // all — see training-cycle.service.ts's completeCycle doc comment /
+      // the training-cycle bug report §3.4), so it correctly closes as
+      // ANALYZED + decision=INSUFFICIENT_DATA rather than running a
+      // confident PROGRESSING/PLATEAU/DECLINING classification (and a real
+      // AI call) off a few minutes of data.
       const completed = await service.completeCycle(cycle.id, TEST_USER_ID);
-      assert.equal(completed.status, "COMPLETED");
+      assert.equal(completed.status, "ANALYZED");
+      assert.equal(completed.decision, "INSUFFICIENT_DATA");
+      assert.equal((completed.summary as any)?.progressSignals, null);
     });
 
     let assessmentDecision: string | null = null;

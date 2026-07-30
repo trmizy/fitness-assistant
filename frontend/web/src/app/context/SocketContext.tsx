@@ -37,9 +37,21 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     setSocket(current);
     setStatus(current.connected ? "connected" : "connecting");
 
-    const handleConnect = () => setStatus("connected");
-    const handleDisconnect = () => setStatus("disconnected");
-    const handleConnectError = () => setStatus("error");
+    const handleConnect = () => {
+      console.info("[socket] connected", current.id);
+      setStatus("connected");
+    };
+    const handleDisconnect = (reason: string) => {
+      console.warn("[socket] disconnected:", reason);
+      setStatus("disconnected");
+    };
+    const handleConnectError = (err: Error) => {
+      // connect_error swallowed the actual reason before — surfacing it is the
+      // only way to diagnose transport/CORS/auth failures without a debugger
+      // attached, since the socket silently retries in the background otherwise.
+      console.error("[socket] connect_error:", err.message, err);
+      setStatus("error");
+    };
     const handleReconnectAttempt = () => setStatus("connecting");
 
     current.on("connect", handleConnect);

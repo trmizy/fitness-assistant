@@ -1,8 +1,13 @@
 import { io, Socket } from "socket.io-client";
-import { API_URL } from "../services/api";
 
-const DEFAULT_SOCKET_URL = API_URL || "http://localhost:3000";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || DEFAULT_SOCKET_URL;
+// Empty string tells socket.io-client to connect to the CURRENT page origin
+// (its documented default-URL behavior) at the default "/socket.io" path —
+// proxied by Vite in dev (see vite.config.ts) to the gateway's own
+// Socket.IO server. This must NOT reuse API_URL's "/api" default: passing a
+// bare path like "/api" as socket.io-client's server-URL argument is not
+// the same thing as a same-origin connection and is not a supported input.
+// Set VITE_SOCKET_URL to an absolute URL to bypass the proxy entirely.
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "";
 
 let socket: Socket | null = null;
 

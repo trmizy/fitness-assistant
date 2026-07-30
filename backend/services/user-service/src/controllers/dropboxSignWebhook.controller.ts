@@ -2,6 +2,24 @@ import { Request, Response } from "express";
 import * as DropboxSign from "@dropbox/sign";
 import { dropboxSignWebhookService } from "../services/dropboxSignWebhook.service";
 
+/**
+ * Fail-closed rule: a missing DROPBOX_SIGN_API_KEY must NEVER be treated as
+ * "skip verification" in production — that previously let anyone POST an
+ * unsigned, fabricated event to this endpoint and flip a real contract's
+ * signing status (e.g. straight to PENDING_PAYMENT) with no verification at
+ * all, simply by having a misconfigured/missing key in the deployment.
+ * Skipping verification is only ever acceptable outside production, and only
+ * when the operator has deliberately opted into the mock e-sign provider
+ * (ESIGN_PROVIDER=MOCK) — never as a silent fallback for "key happens to be
+ * absent."
+ */
+export function canSkipDropboxSignVerification(env: {
+  isProduction: boolean;
+  isMockEsignProvider: boolean;
+}): boolean {
+  return !env.isProduction && env.isMockEsignProvider;
+}
+
 export async function handleDropboxSignWebhook(
   req: Request,
   res: Response,
@@ -21,9 +39,22 @@ export async function handleDropboxSignWebhook(
     return;
   }
 
-  // Verify event using Dropbox Sign SDK helper
   const apiKey = process.env.DROPBOX_SIGN_API_KEY;
-  if (apiKey) {
+
+  if (!apiKey) {
+    const canSkip = canSkipDropboxSignVerification({
+      isProduction: process.env.NODE_ENV === "production",
+      isMockEsignProvider: process.env.ESIGN_PROVIDER === "MOCK",
+    });
+    if (!canSkip) {
+      res
+        .status(503)
+        .send("E-sign webhook verification is not configured");
+      return;
+    }
+    // ESIGN_PROVIDER=MOCK, non-production: no real Dropbox Sign key exists
+    // to verify against — this path is only reachable in local/dev/test.
+  } else {
     try {
       const eventCallback = DropboxSign.EventCallbackRequest.init(parsedData);
       const isValid = DropboxSign.EventCallbackHelper.isValid(
@@ -39,7 +70,6 @@ export async function handleDropboxSignWebhook(
       return;
     }
   }
-  // When ESIGN_PROVIDER=MOCK, skip verification (no real API key)
 
   // Dropbox Sign requires this exact response body
   res.status(200).send("Hello API Event Received");

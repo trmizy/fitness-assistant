@@ -50,6 +50,8 @@ export const workoutRepository = {
                   setNumber: i + 1,
                   reps: ex.reps ?? null,
                   weight: ex.weight ?? null,
+                  rpe: ex.rpe ?? null,
+                  rir: ex.rir ?? null,
                   completed: ex.completed === false ? false : true,
                 })),
               },
@@ -113,6 +115,8 @@ export const workoutRepository = {
                   setNumber: i + 1,
                   reps: ex.reps ?? null,
                   weight: ex.weight ?? null,
+                  rpe: ex.rpe ?? null,
+                  rir: ex.rir ?? null,
                   completed: ex.completed === false ? false : true,
                 })),
               },
@@ -155,7 +159,19 @@ export const workoutRepository = {
 
   updateSet: (
     setId: string,
-    data: { reps?: number; weight?: number; rpe?: number; completed?: boolean },
+    data: {
+      reps?: number;
+      weight?: number;
+      rpe?: number;
+      rir?: number;
+      completed?: boolean;
+      setType?: string | null;
+      tempo?: string | null;
+      rangeOfMotion?: string | null;
+      side?: string | null;
+      painScore?: number | null;
+      techniqueNotes?: string | null;
+    },
   ) =>
     prisma.workoutSet.update({
       where: { id: setId },
@@ -206,6 +222,32 @@ export const workoutRepository = {
       include: { exercises: true },
     }),
 
+  // Canonical "completed session" count for a date range — WorkoutSchedule
+  // rows the user actually finished (status === "COMPLETED"), matching the
+  // same definition used by adherence/training-cycle metrics elsewhere.
+  // Deliberately NOT a count of raw Workout rows (see findForStats above):
+  // a Workout can be logged without ever being tied to a completed schedule
+  // (or a schedule can be re-logged), which previously made this page's
+  // "completed sessions" number diverge from the cycle report's.
+  countCompletedSchedules: (userId: string, startDate: Date, endDate: Date) =>
+    prisma.workoutSchedule.count({
+      where: {
+        userId,
+        status: "COMPLETED",
+        date: { gte: startDate, lte: endDate },
+      },
+    }),
+
+  // Dates (only) of every COMPLETED schedule since `since` — the raw
+  // material for a real consecutive-day streak calculation, rather than a
+  // hardcoded UI placeholder.
+  findCompletedScheduleDates: (userId: string, since: Date) =>
+    prisma.workoutSchedule.findMany({
+      where: { userId, status: "COMPLETED", date: { gte: since } },
+      select: { date: true },
+      orderBy: { date: "desc" },
+    }),
+
   // Append a set to an existing workout's exercise. If the WorkoutExercise pair
   // (workoutId, exerciseId) doesn't exist, create it first with the next `order`.
   async appendSet(
@@ -216,6 +258,13 @@ export const workoutRepository = {
       weight?: number;
       reps?: number;
       rpe?: number;
+      rir?: number;
+      setType?: string | null;
+      tempo?: string | null;
+      rangeOfMotion?: string | null;
+      side?: string | null;
+      painScore?: number | null;
+      techniqueNotes?: string | null;
     },
   ) {
     let workoutExercise = await prisma.workoutExercise.findFirst({
@@ -252,6 +301,13 @@ export const workoutRepository = {
         weight: setData.weight,
         reps: setData.reps,
         rpe: setData.rpe,
+        rir: setData.rir,
+        setType: setData.setType,
+        tempo: setData.tempo,
+        rangeOfMotion: setData.rangeOfMotion,
+        side: setData.side,
+        painScore: setData.painScore,
+        techniqueNotes: setData.techniqueNotes,
       },
     });
   },

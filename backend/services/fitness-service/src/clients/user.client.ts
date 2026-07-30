@@ -23,6 +23,13 @@ export interface UserProfileSnapshot {
   goal?: string | null;
   targetWeight?: number | null;
   currentWeight?: number | null;
+  /** "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null (never declared). Callers
+   * must treat a null/missing value as an explicit UNKNOWN state — never
+   * silently default it to BEGINNER or INTERMEDIATE (see cycle-analysis
+   * request building in training-cycle.service.ts, which maps this to the
+   * literal "UNKNOWN" the AI-service prompt gates advanced-technique
+   * suggestions on). */
+  experienceLevel?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
 }
 
 export interface InBodyEntrySnapshot {
@@ -53,6 +60,7 @@ export async function fetchUserProfile(
       goal: profile.goal ?? null,
       targetWeight: profile.targetWeight ?? null,
       currentWeight: profile.currentWeight ?? null,
+      experienceLevel: profile.experienceLevel ?? null,
     };
   } catch (error) {
     logger.warn(

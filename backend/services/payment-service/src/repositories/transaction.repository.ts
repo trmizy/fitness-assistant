@@ -14,8 +14,16 @@ export const transactionRepository = {
     return prisma.paymentTransaction.findUnique({ where: { idempotencyKey: key } });
   },
 
-  async findByProviderTransactionId(providerTransactionId: string) {
-    return prisma.paymentTransaction.findFirst({ where: { providerTransactionId } });
+  /**
+   * Scoped by BOTH provider and providerTransactionId — a webhook claiming to be
+   * from provider X must only ever be able to match a transaction that was
+   * actually created under provider X. Without the provider filter, a webhook
+   * event from one provider (e.g. a forged MOCK event) could match — and
+   * fraudulently complete — a real transaction created under a different
+   * provider (e.g. VNPAY) if the attacker knows/guesses its providerTransactionId.
+   */
+  async findByProviderTransactionId(providerTransactionId: string, provider: Prisma.PaymentTransactionWhereInput['provider']) {
+    return prisma.paymentTransaction.findFirst({ where: { providerTransactionId, provider } });
   },
 
   async updateById(id: string, data: Prisma.PaymentTransactionUpdateInput) {
@@ -95,5 +103,22 @@ export const transactionRepository = {
 
   async findCommissionByTransactionId(paymentTransactionId: string) {
     return prisma.platformCommission.findFirst({ where: { paymentTransactionId } });
+  },
+
+  /** Admin transaction list — most recent first, capped so the endpoint can't
+   * be used to dump the entire table in one request. */
+  async findRecent(limit: number) {
+    return prisma.paymentTransaction.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  },
+
+  /** Admin commission list — most recent first, same cap rationale as findRecent. */
+  async findRecentCommissions(limit: number) {
+    return prisma.platformCommission.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
   },
 };

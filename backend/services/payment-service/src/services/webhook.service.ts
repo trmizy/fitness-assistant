@@ -42,9 +42,16 @@ export async function handleEvent(event: IncomingWebhookEvent): Promise<void> {
     return;
   }
 
-  const txn = await transactionRepository.findByProviderTransactionId(event.providerTransactionId);
+  const txn = await transactionRepository.findByProviderTransactionId(event.providerTransactionId, providerEnum);
   if (!txn) {
-    logger.warn(`[WebhookService] No transaction found for providerTxnId=${event.providerTransactionId}`);
+    // Deliberately do NOT fall back to an unscoped (any-provider) lookup here:
+    // that fallback is exactly the bug this fixes — a webhook event for one
+    // provider must never be able to resolve to a transaction created under a
+    // different provider, even if the id happens to match. If a transaction
+    // exists under a different provider with this id, this is either a
+    // misconfigured provider name or a forged/mismatched event — both must
+    // be rejected, not silently matched.
+    logger.warn(`[WebhookService] No ${providerEnum} transaction found for providerTxnId=${event.providerTransactionId}`);
     await webhookRepository.markProcessed(webhookRecord.id);
     return;
   }
