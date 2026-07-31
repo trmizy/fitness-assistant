@@ -47,6 +47,21 @@ export const membershipController = {
     }
   },
 
+  async refund(req: Request, res: Response) {
+    try {
+      const clientId = req.user!.userId;
+      const result = await membershipService.refund(req.params.id, clientId);
+      return res.json({ success: true, data: result });
+    } catch (e: any) {
+      const known = ['INSUFFICIENT_REFUND_FUNDS', 'ALREADY_REFUNDED', 'NOT_REFUNDABLE', 'REFUND_FAILED'];
+      if (known.includes(e.message)) {
+        return res.status(e.status || 409).json({ success: false, error: { code: e.message } });
+      }
+      logger.error(e, 'membership refund error');
+      return res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+    }
+  },
+
   async listForClient(req: Request, res: Response) {
     const clientId = req.user!.userId;
     const list = await membershipService.listForClient(clientId);

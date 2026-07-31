@@ -4,6 +4,7 @@ import { gymController } from '../controllers/gym.controller';
 import { planController } from '../controllers/plan.controller';
 import { membershipController } from '../controllers/membership.controller';
 import { affiliationController } from '../controllers/affiliation.controller';
+import { checkinController } from '../controllers/checkin.controller';
 import { paymentClient } from '../clients/payment.client';
 import { gymService } from '../services/gym.service';
 
@@ -34,6 +35,10 @@ router.get('/gyms/:gymId/plans', planController.listOwned);
 router.patch('/gyms/:gymId/plans/:planId', planController.update);
 
 router.get('/gyms/:gymId/memberships', membershipController.listForOwner);
+
+// Phase 4 — gym scans a member's QR to record entry; owner sees recent check-ins.
+router.post('/gyms/:gymId/checkins', checkinController.record);
+router.get('/gyms/:gymId/checkins', checkinController.listForGym);
 
 router.post('/gyms/:gymId/trainers', affiliationController.invite);
 

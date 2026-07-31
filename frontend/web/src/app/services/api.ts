@@ -182,7 +182,10 @@ export const authService = {
   },
 
   logout: () => {
-    localStorage.clear();
+    // Only clear session keys — keep theme, language and other non-session preferences.
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
     window.location.href = "/login";
   },
 };
@@ -2001,6 +2004,11 @@ export const gymService = {
     const { data } = await api.post(`/me/gym-memberships/${membershipId}/cancel`);
     return data?.data ?? data;
   },
+  // Cancel an ACTIVE membership → prorated refund (unused days) to the client wallet.
+  refundMembership: async (membershipId: string) => {
+    const { data } = await api.post(`/me/gym-memberships/${membershipId}/refund`);
+    return data?.data ?? data;
+  },
   listMyMemberships: async () => {
     const { data } = await api.get('/me/gym-memberships');
     return data?.data ?? data;
@@ -2032,6 +2040,36 @@ export const gymService = {
   },
   listOwnedMemberships: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/memberships`);
+    return data?.data ?? data;
+  },
+
+  // ── Check-in (Phase 4) ──────────────────────────────────────────────
+  // Member: fetch a fresh short-lived QR token for one of their ACTIVE memberships.
+  getCheckinToken: async (membershipId: string) => {
+    const { data } = await api.get(`/me/gym-memberships/${membershipId}/checkin-token`);
+    return data?.data ?? data;
+  },
+  // Gym owner: record a scanned member token as a check-in.
+  recordCheckin: async (gymId: string, token: string) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/checkins`, { token });
+    return data?.data ?? data;
+  },
+  listCheckins: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/checkins`);
+    return data?.data ?? data;
+  },
+
+  // ── Reviews (Phase 4) ───────────────────────────────────────────────
+  getGymReviews: async (gymId: string) => {
+    const { data } = await api.get(`/gyms/${gymId}/reviews`);
+    return data?.data ?? data;
+  },
+  submitGymReview: async (gymId: string, payload: { rating: number; comment?: string }) => {
+    const { data } = await api.post(`/gyms/${gymId}/reviews`, payload);
+    return data?.data ?? data;
+  },
+  deleteGymReview: async (gymId: string) => {
+    const { data } = await api.delete(`/gyms/${gymId}/reviews`);
     return data?.data ?? data;
   },
 };

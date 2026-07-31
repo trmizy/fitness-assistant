@@ -1,4 +1,6 @@
 import { Response } from "express";
+import path from "path";
+import fs from "fs";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { ptApplicationService } from "../services/pt_application.service";
 import { logger } from "@gym-coach/shared";
@@ -10,6 +12,35 @@ export const ptApplicationController = {
       return res.json(app);
     } catch (error: any) {
       logger.error(error, "Get my PT application error");
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  /**
+   * Serves a PT identity document (CCCD, portrait, certificate) — never public. Requires a valid
+   * JWT (gateway + authMiddleware) and authorization: ADMIN may view any, otherwise the file must
+   * belong to the requester's OWN application. Replaces the old public /uploads/pt-applications static.
+   */
+  async serveDocument(req: AuthRequest, res: Response) {
+    try {
+      const filename = path.basename(String(req.params.filename || ""));
+      if (!filename || filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
+        return res.status(400).json({ error: "Invalid filename" });
+      }
+      // Authorize BEFORE touching the filesystem so a non-owner can't enumerate which files
+      // exist (they always get 403, never a 404-vs-403 distinction).
+      if (req.user!.role !== "ADMIN") {
+        const app = await ptApplicationService.getMe(req.user!.id);
+        if (!app || !JSON.stringify(app).includes(filename)) {
+          return res.status(403).json({ error: "Forbidden" });
+        }
+      }
+
+      const filePath = path.join(process.cwd(), "uploads/pt-applications", filename);
+      if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Document not found" });
+      return res.sendFile(filePath);
+    } catch (error: any) {
+      logger.error(error, "Serve PT document error");
       return res.status(500).json({ error: "Internal server error" });
     }
   },

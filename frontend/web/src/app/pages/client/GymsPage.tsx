@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import type { Gym } from "../../types";
+import { Stars } from "../../components/gym/Stars";
 
 export function GymsPage() {
   const navigate = useNavigate();
@@ -70,6 +71,11 @@ export function GymsPage() {
               <div className="flex items-center gap-1 text-xs text-zinc-500">
                 <MapPin className="w-3 h-3" /> {g.address}{g.city ? `, ${g.city}` : ""}
               </div>
+              {typeof g.reviewCount === "number" && g.reviewCount > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-1.5">
+                  <Stars value={g.averageRating ?? 0} /> {(g.averageRating ?? 0).toFixed(1)} ({g.reviewCount})
+                </div>
+              )}
             </button>
           ))}
         </div>

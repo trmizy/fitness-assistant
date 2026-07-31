@@ -7,6 +7,11 @@ import { PayOSProvider } from '../providers/payos.provider';
 
 export function getProvider(override?: string): PaymentProvider {
   const name = (override ?? process.env.PAYMENT_PROVIDER ?? 'MOCK').toUpperCase();
+  // MOCK auto-marks payments PAID with no real money and no signature check — it must never be
+  // reachable in production (would let anyone mint wallet balance). Dev/test set NODE_ENV!=production.
+  if (name === 'MOCK' && process.env.NODE_ENV === 'production' && process.env.ALLOW_MOCK_PAYMENTS !== 'true') {
+    throw Object.assign(new Error('MOCK payment provider is disabled in production'), { status: 400 });
+  }
   switch (name) {
     case 'MOMO':    return new MoMoProvider();
     case 'MOCK':    return new MockProvider();

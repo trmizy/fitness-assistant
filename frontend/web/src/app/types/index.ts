@@ -329,6 +329,8 @@ export interface Gym {
   status: GymStatus;
   createdAt: string;
   updatedAt: string;
+  averageRating?: number; // public DTO only
+  reviewCount?: number; // public DTO only
 }
 
 export interface GymMembershipPlan {
@@ -359,4 +361,45 @@ export interface GymMembershipContract {
   usedVisits: number;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Phase 4: check-in + reviews ─────────────────────────────────────
+export interface CheckinToken {
+  token: string;
+  expiresAt: number; // epoch ms
+  gymId: string;
+}
+
+export interface CheckinResult {
+  ok: boolean;
+  checkinId: string;
+  clientId: string;
+  usedVisits: number;
+  totalVisits: number | null;
+  checkedInAt: string;
+}
+
+export interface GymCheckIn {
+  id: string;
+  membershipId: string;
+  gymId: string;
+  clientId: string;
+  checkedInBy: string;
+  createdAt: string;
+}
+
+export interface GymReview {
+  id: string;
+  gymId: string;
+  clientId: string;
+  rating: number;
+  comment?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GymReviewsResponse {
+  averageRating: number;
+  count: number;
+  reviews: GymReview[];
 }

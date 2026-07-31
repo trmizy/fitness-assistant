@@ -180,6 +180,25 @@ exports.Prisma.GymTrainerAffiliationScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.GymCheckInScalarFieldEnum = {
+  id: 'id',
+  membershipId: 'membershipId',
+  gymId: 'gymId',
+  clientId: 'clientId',
+  checkedInBy: 'checkedInBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.GymReviewScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  clientId: 'clientId',
+  rating: 'rating',
+  comment: 'comment',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -235,7 +254,9 @@ exports.Prisma.ModelName = {
   Gym: 'Gym',
   GymMembershipPlan: 'GymMembershipPlan',
   GymMembershipContract: 'GymMembershipContract',
-  GymTrainerAffiliation: 'GymTrainerAffiliation'
+  GymTrainerAffiliation: 'GymTrainerAffiliation',
+  GymCheckIn: 'GymCheckIn',
+  GymReview: 'GymReview'
 };
 
 /**

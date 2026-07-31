@@ -37,6 +37,13 @@ const upload = multer({
   },
 });
 
+// Authenticated document serving (owner or admin) — replaces the old public static path.
+router.get(
+  "/documents/:filename",
+  authMiddleware,
+  ptApplicationController.serveDocument as any,
+);
+
 // Applicant routes
 router.get("/me", authMiddleware, ptApplicationController.getMe as any);
 router.post(

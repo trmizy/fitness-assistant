@@ -39,7 +39,14 @@ for (const dir of [
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 }
 
-// Serve static files from uploads directory
+// PT identity documents (CCCD, portrait, certificates) are NOT public. They are served only via
+// the authenticated GET /pt-applications/documents/:filename endpoint (owner or admin). Block any
+// direct/static access to this folder before the static handler below.
+app.use("/uploads/pt-applications", (_req, res) => {
+  res.status(403).json({ error: "Forbidden — use the authenticated document endpoint" });
+});
+
+// Serve remaining static uploads (e.g. profile photos) from the uploads directory.
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.get("/health", (_req, res) => {

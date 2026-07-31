@@ -1,18 +1,27 @@
 import { gymRepository } from '../repositories/gym.repository';
+import { reviewRepository } from '../repositories/review.repository';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
 export const gymService = {
   async listApproved() {
-    return gymRepository.findApproved();
+    const gyms = await gymRepository.findApproved();
+    const ratings = await reviewRepository.aggregateForGyms(gyms.map((g) => g.id));
+    return gyms.map((g) => {
+      const r = ratings.get(g.id);
+      return { ...g, averageRating: round2(r?.averageRating ?? 0), reviewCount: r?.count ?? 0 };
+    });
   },
 
   async getApprovedById(id: string) {
     const gym = await gymRepository.findApprovedById(id);
     if (!gym) throw err('Gym not found', 404);
-    return gym;
+    const r = await reviewRepository.aggregateForGym(id);
+    return { ...gym, averageRating: round2(r.averageRating), reviewCount: r.count };
   },
 
   async createGym(ownerId: string, data: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string }) {

@@ -48,6 +48,32 @@ export const paymentClient = {
     await axios.post(`${PAYMENT_SERVICE_URL}/internal/payments/${transactionId}/mark-activated`, {}, { headers, timeout: 10_000 });
   },
 
+  /** Prorated (partial) refund of a membership's original purchase transaction. */
+  async refund(params: {
+    originalTransactionId: string;
+    refundAmount: number;
+    idempotencyKey: string;
+    initiatedBy: string;
+    reason: string;
+  }): Promise<{ transactionId: string; status: string; refundAmount: number; commissionAmount: number; netToReceiver: number }> {
+    try {
+      const { data } = await axios.post(
+        `${PAYMENT_SERVICE_URL}/internal/payments/${params.originalTransactionId}/refund`,
+        {
+          refundAmount: params.refundAmount,
+          idempotencyKey: params.idempotencyKey,
+          initiatedBy: params.initiatedBy,
+          reason: params.reason,
+        },
+        { headers, timeout: 15_000 },
+      );
+      return data.data;
+    } catch (e: any) {
+      const code = e?.response?.data?.error?.code || 'REFUND_FAILED';
+      throw Object.assign(new Error(code), { status: e?.response?.status || 502 });
+    }
+  },
+
   async getTransaction(transactionId: string): Promise<any> {
     const { data } = await axios.get(`${PAYMENT_SERVICE_URL}/internal/payments/${transactionId}`, { headers, timeout: 10_000 });
     return data.data;

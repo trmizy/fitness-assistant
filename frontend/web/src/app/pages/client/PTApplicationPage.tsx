@@ -35,6 +35,7 @@ import {
   PTApplicationCertificate,
 } from "../../services/ptApplicationService";
 import { formatVND } from "../../utils/currency";
+import { AuthedDocImage } from "../../components/AuthedDocImage";
 import { locationService } from "../../services/api";
 
 const inp =
@@ -197,19 +198,13 @@ function UploadBox({
   onUpload: (url: string) => void;
 }) {
   const [isUploading, setIsUploading] = useState(false);
-
-  const getFullUrl = (url: string) => {
-    if (!url) return "";
-    if (url.startsWith("http")) return url;
-    // @ts-ignore
-    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
-    return `${baseUrl}${url}`;
-  };
+  const [localPreview, setLocalPreview] = useState("");
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setLocalPreview(URL.createObjectURL(file)); // immediate preview before the record is saved
     setIsUploading(true);
     try {
       const resp = await ptApplicationService.uploadDocument(file);
@@ -250,19 +245,19 @@ function UploadBox({
             {value.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|bmp|tiff)$/) ||
             value.includes("image") ? (
               <div className="relative group">
-                <img
-                  src={getFullUrl(value)}
-                  alt="Preview"
-                  className="h-32 w-auto rounded-lg object-cover border border-zinc-700 shadow-lg"
-                  onError={(e) => {
-                    console.error(
-                      "Image preview failed to load:",
-                      getFullUrl(value),
-                    );
-                    (e.target as any).src =
-                      "https://placehold.co/200x200?text=Format+Error";
-                  }}
-                />
+                {localPreview ? (
+                  <img
+                    src={localPreview}
+                    alt="Preview"
+                    className="h-32 w-auto rounded-lg object-cover border border-zinc-700 shadow-lg"
+                  />
+                ) : (
+                  <AuthedDocImage
+                    url={value}
+                    alt="Preview"
+                    className="h-32 w-auto rounded-lg object-cover border border-zinc-700 shadow-lg"
+                  />
+                )}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                   <p className="text-[10px] text-white font-bold uppercase tracking-wider">
                     Đổi ảnh

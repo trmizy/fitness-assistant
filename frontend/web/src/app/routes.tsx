@@ -48,6 +48,7 @@ import { AdminAIObservability } from "./pages/admin/AdminAIObservability";
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
+import { RoleGuard } from "./components/RoleGuard";
 import { CallProvider } from "./context/CallContext";
 import { SocketProvider } from "./context/SocketContext";
 
@@ -98,7 +99,11 @@ export const router = createBrowserRouter([
       // ── Client workspace ────────────────────────────────────────────────
       {
         path: "client",
-        Component: AppShell,
+        element: (
+          <RoleGuard allow={["client", "pt"]}>
+            <AppShell />
+          </RoleGuard>
+        ),
         children: [
           { index: true, element: <Navigate to="/client/dashboard" replace /> },
           { path: "dashboard", Component: ClientDashboard },
@@ -124,7 +129,11 @@ export const router = createBrowserRouter([
       // ── PT workspace ─────────────────────────────────────────────────────
       {
         path: "pt",
-        Component: AppShell,
+        element: (
+          <RoleGuard allow={["pt"]}>
+            <AppShell />
+          </RoleGuard>
+        ),
         children: [
           { index: true, element: <Navigate to="/pt/dashboard" replace /> },
           { path: "dashboard", Component: PTDashboard },
@@ -142,7 +151,11 @@ export const router = createBrowserRouter([
       // ── Gym owner workspace ──────────────────────────────────────────────
       {
         path: "gym-owner",
-        Component: AppShell,
+        element: (
+          <RoleGuard allow={["gym_owner", "gym_staff"]}>
+            <AppShell />
+          </RoleGuard>
+        ),
         children: [
           { index: true, element: <Navigate to="/gym-owner/gyms" replace /> },
           { path: "gyms", Component: MyGymsPage },
@@ -153,7 +166,11 @@ export const router = createBrowserRouter([
       // ── Admin workspace ──────────────────────────────────────────────────
       {
         path: "admin",
-        Component: AppShell,
+        element: (
+          <RoleGuard allow={["admin"]}>
+            <AppShell />
+          </RoleGuard>
+        ),
         children: [
           { index: true, element: <Navigate to="/admin/dashboard" replace /> },
           { path: "dashboard", Component: AdminDashboard },

@@ -38,14 +38,7 @@ import {
   ptApplicationService,
   PTApplication,
 } from "../../services/ptApplicationService";
-const API_URL =
-  (import.meta as any).env.VITE_API_URL || "http://localhost:3000";
-
-const getFullUrl = (url?: string) => {
-  if (!url) return undefined;
-  if (url.startsWith("http")) return url;
-  return `${API_URL.replace(/\/$/, "")}${url.startsWith("/") ? "" : "/"}${url}`;
-};
+import { AuthedDocImage, openAuthedDoc } from "../../components/AuthedDocImage";
 
 /* ── Status config ──────────────────────────────────────── */
 const statusConfig: Record<
@@ -180,7 +173,6 @@ function DocThumb({
   url?: string;
   tag?: string;
 }) {
-  const fullUrl = getFullUrl(url);
   return (
     <div
       className={`rounded-xl overflow-hidden border-2 transition-all ${url ? "border-green-500/30" : "border-red-500/20"}`}
@@ -188,18 +180,18 @@ function DocThumb({
       <div
         className={`h-40 flex items-center justify-center relative ${url ? "bg-zinc-800/60" : "bg-red-500/5"}`}
       >
-        {fullUrl ? (
-          <a
-            href={fullUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="absolute inset-0 z-20"
+        {url ? (
+          <button
+            type="button"
+            onClick={() => openAuthedDoc(url)}
+            className="absolute inset-0 z-20 cursor-pointer"
+            aria-label={`Mở ${label}`}
           />
         ) : null}
-        {fullUrl ? (
+        {url ? (
           <>
-            <img
-              src={fullUrl}
+            <AuthedDocImage
+              url={url}
               alt={label}
               className="absolute inset-0 w-full h-full object-cover opacity-50 hover:opacity-100 transition-opacity"
             />
@@ -492,12 +484,8 @@ function DetailView({ app, onBack }: { app: App; onBack: () => void }) {
             <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-6 text-center shadow-xl">
               <div className="w-24 h-24 bg-zinc-800 border-2 border-zinc-700/50 rounded-3xl overflow-hidden flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-black/40">
                 {app.portraitPhotoUrl ? (
-                  <img
-                    src={
-                      app.portraitPhotoUrl.startsWith("http")
-                        ? app.portraitPhotoUrl
-                        : `${import.meta.env.VITE_API_URL}${app.portraitPhotoUrl}`
-                    }
+                  <AuthedDocImage
+                    url={app.portraitPhotoUrl}
                     className="w-full h-full object-cover"
                     alt="Profile"
                   />

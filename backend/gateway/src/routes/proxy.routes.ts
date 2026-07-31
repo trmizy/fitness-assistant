@@ -2111,10 +2111,24 @@ router.get('/gyms', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigi
 router.get('/gyms/:id', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
 router.get('/gyms/:gymId/plans', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
 router.get('/gyms/:gymId/trainers', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
+router.get('/gyms/:gymId/reviews', createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }));
 
 // Client — first purchase + retry/cancel/list (CUSTOMER or PT acting as buyer)
 router.post(
   '/gyms/:gymId/memberships',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// Gym review write/delete — only a logged-in buyer (gym-service verifies they actually purchased).
+router.post(
+  '/gyms/:gymId/reviews',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.delete(
+  '/gyms/:gymId/reviews',
   authMiddleware,
   requireRoles('CUSTOMER', 'PT'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),

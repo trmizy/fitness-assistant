@@ -62,6 +62,7 @@ model Gym {
   plans        GymMembershipPlan[]
   memberships  GymMembershipContract[]
   affiliations GymTrainerAffiliation[]
+  reviews      GymReview[]
 
   @@index([status])
   @@index([ownerId])
@@ -103,8 +104,9 @@ model GymMembershipContract {
   createdAt            DateTime                    @default(now()) @map("created_at")
   updatedAt            DateTime                    @updatedAt @map("updated_at")
 
-  gym  Gym               @relation(fields: [gymId], references: [id])
-  plan GymMembershipPlan @relation(fields: [planId], references: [id])
+  gym      Gym               @relation(fields: [gymId], references: [id])
+  plan     GymMembershipPlan @relation(fields: [planId], references: [id])
+  checkIns GymCheckIn[]
 
   @@index([clientId, status])
   @@index([gymId, status])
@@ -130,4 +132,37 @@ model GymTrainerAffiliation {
   @@index([ptId, status])
   @@index([gymId, status])
   @@map("gym_trainer_affiliations")
+}
+
+// ─── Gym Check-in (member scans in at the gym) ────────────────────────
+model GymCheckIn {
+  id           String   @id @default(uuid())
+  membershipId String   @map("membership_id")
+  gymId        String   @map("gym_id")
+  clientId     String   @map("client_id")
+  checkedInBy  String   @map("checked_in_by") // owner userId who scanned
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  membership GymMembershipContract @relation(fields: [membershipId], references: [id])
+
+  @@index([gymId, createdAt])
+  @@index([membershipId, createdAt])
+  @@map("gym_check_ins")
+}
+
+// ─── Gym Review / Rating (one per member per gym) ─────────────────────
+model GymReview {
+  id        String   @id @default(uuid())
+  gymId     String   @map("gym_id")
+  clientId  String   @map("client_id")
+  rating    Int // 1–5
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  gym Gym @relation(fields: [gymId], references: [id])
+
+  @@unique([gymId, clientId])
+  @@index([gymId])
+  @@map("gym_reviews")
 }

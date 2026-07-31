@@ -117,6 +117,111 @@ router.post('/payments/wallet-transfer', async (req: Request, res: Response) => 
   }
 });
 
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+const refundSchema = z.object({
+  refundAmount: z.number().positive(),
+  initiatedBy: z.string().min(1),
+  reason: z.string().min(1),
+  idempotencyKey: z.string().min(1),
+});
+
+// POST /internal/payments/:id/refund — partial (prorated) refund initiated by a service on the
+// user's behalf (e.g. gym-service when a client cancels a membership early). Same ledger-reversal
+// engine as the admin full-refund, but the caller passes the exact gross amount to return; the
+// commission portion is prorated at the original transaction's commission rate. reverseTransfer
+// runs the whole reversal (credit payer, debit receiver + platform, flip original → REFUNDED) in
+// one DB transaction with the wallets locked FOR UPDATE.
+router.post('/payments/:id/refund', async (req: Request, res: Response) => {
+  const parsed = refundSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const { refundAmount, initiatedBy, reason, idempotencyKey } = parsed.data;
+
+  const original = await transactionRepository.findById(req.params.id);
+  if (!original) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } });
+  if (original.status !== 'PAID') {
+    const code = original.status === 'REFUNDED' ? 'ALREADY_REFUNDED' : 'NOT_REFUNDABLE';
+    return res.status(409).json({ success: false, error: { code } });
+  }
+  if (!original.payerWalletId || !original.receiverWalletId) {
+    return res.status(400).json({ success: false, error: { code: 'NOT_REFUNDABLE', message: 'Original has no wallet references' } });
+  }
+  if (refundAmount > Number(original.amount) + 0.001) {
+    return res.status(400).json({ success: false, error: { code: 'REFUND_EXCEEDS_ORIGINAL' } });
+  }
+
+  const commission = await transactionRepository.findCommissionByTransactionId(original.id);
+  if (!commission) return res.status(500).json({ success: false, error: { code: 'MISSING_COMMISSION_RECORD' } });
+
+  const rate = Number(commission.commissionRate);
+  const commissionAmount = round2(refundAmount * rate);
+  const netToReceiver = round2(refundAmount - commissionAmount);
+
+  const fingerprint = computeFingerprint({ originalTransactionId: original.id, refundAmount, initiatedBy });
+  const check = await checkIdempotency(idempotencyKey, fingerprint);
+  if (check.kind === 'CONFLICT') return res.status(409).json({ success: false, error: { code: 'IDEMPOTENCY_KEY_CONFLICT' } });
+  if (check.kind === 'REPLAY') {
+    return res.json({ success: true, data: { transactionId: check.transaction.id, status: check.transaction.status, refundAmount } });
+  }
+
+  const affordable = await walletService.checkRefundAffordable(
+    original.receiverWalletId,
+    new Prisma.Decimal(netToReceiver),
+    new Prisma.Decimal(commissionAmount),
+  );
+
+  const refundTxn = await transactionRepository.create({
+    payerId: original.payerId,
+    purpose: 'REFUND',
+    gymId: original.gymId,
+    ptId: original.ptId,
+    membershipId: original.membershipId,
+    ptContractId: original.ptContractId,
+    amount: refundAmount,
+    currency: original.currency,
+    status: 'PROCESSING',
+    idempotencyKey,
+    requestFingerprint: fingerprint,
+    payerWalletId: original.payerWalletId,
+    receiverWalletId: original.receiverWalletId,
+    relatedEntityType: original.relatedEntityType,
+    relatedEntityId: original.relatedEntityId,
+    activationStatus: 'PENDING',
+    initiatedBy,
+    sourceService: 'payment-service',
+    refundOfTransactionId: original.id,
+    metadata: { reason, partialRefund: true, originalAmount: Number(original.amount) },
+  });
+
+  if (!affordable) {
+    await transactionRepository.markFailed(refundTxn.id);
+    return res.status(409).json({ success: false, error: { code: 'INSUFFICIENT_REFUND_FUNDS' }, data: { transactionId: refundTxn.id, status: 'FAILED' } });
+  }
+
+  try {
+    await walletService.reverseTransfer({
+      payerWalletId: original.payerWalletId,
+      receiverWalletId: original.receiverWalletId,
+      amount: new Prisma.Decimal(refundAmount),
+      commissionAmount: new Prisma.Decimal(commissionAmount),
+      refundTransactionId: refundTxn.id,
+      originalTransactionId: original.id,
+      platformCommissionId: commission.id,
+    });
+  } catch (err) {
+    logger.error({ error: 'Partial refund reversal failed', transactionId: refundTxn.id, message: (err as Error).message });
+    await transactionRepository.markFailed(refundTxn.id);
+    return res.status(500).json({ success: false, error: { code: 'REFUND_FAILED' }, data: { transactionId: refundTxn.id, status: 'FAILED' } });
+  }
+
+  // The initiating service (gym-service) cancels the membership itself, so no cancel-after-refund
+  // callback is needed here.
+  await transactionRepository.markActivated(refundTxn.id);
+  return res.json({ success: true, data: { transactionId: refundTxn.id, status: 'PAID', refundAmount, commissionAmount, netToReceiver } });
+});
+
 // POST /internal/payments/:transactionId/mark-activated
 router.post('/payments/:transactionId/mark-activated', async (req: Request, res: Response) => {
   const txn = await transactionRepository.findById(req.params.transactionId);

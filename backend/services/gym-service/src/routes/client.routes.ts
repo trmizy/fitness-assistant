@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { membershipController } from '../controllers/membership.controller';
+import { checkinController } from '../controllers/checkin.controller';
+import { reviewController } from '../controllers/review.controller';
 
 const router = Router();
 
@@ -22,7 +24,17 @@ router.post('/me/gym-memberships/:id/pay', ...gate, membershipController.pay);
 // while one is still PENDING_PAYMENT).
 router.post('/me/gym-memberships/:id/cancel', ...gate, membershipController.cancel);
 
+// Client cancels an ACTIVE membership → prorated refund (unused days) to their wallet.
+router.post('/me/gym-memberships/:id/refund', ...gate, membershipController.refund);
+
 router.get('/me/gym-memberships', ...gate, membershipController.listForClient);
 router.get('/me/gym-memberships/:id', ...gate, membershipController.getForClient);
+
+// Phase 4 — member's rotating QR check-in token for an ACTIVE membership.
+router.get('/me/gym-memberships/:id/checkin-token', ...gate, checkinController.getToken);
+
+// Phase 4 — gym review (only members who paid can write; one review per client per gym).
+router.post('/gyms/:gymId/reviews', ...gate, reviewController.submit);
+router.delete('/gyms/:gymId/reviews', ...gate, reviewController.remove);
 
 export default router;

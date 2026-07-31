@@ -49,6 +49,16 @@ export async function handleEvent(event: IncomingWebhookEvent): Promise<void> {
     return;
   }
 
+  // Provider match: the webhook's provider MUST equal the transaction's own provider. Without this,
+  // an unauthenticated MOCK webhook (mock skips signature verification) could complete a real
+  // VNPay/ZaloPay transaction if the attacker learns its providerTransactionId — crediting a wallet
+  // with no real money. Never credit across providers.
+  if (String(event.provider).toUpperCase() !== String(txn.provider).toUpperCase()) {
+    logger.warn(`[WebhookService] Provider mismatch for txn ${txn.id}: event=${event.provider} txn=${txn.provider} — rejecting`);
+    await webhookRepository.markProcessed(webhookRecord.id);
+    return;
+  }
+
   if (txn.purpose !== 'WALLET_TOPUP') {
     logger.warn(`[WebhookService] Transaction ${txn.id} is not a WALLET_TOPUP (purpose=${txn.purpose}) — ignoring webhook`);
     await webhookRepository.markProcessed(webhookRecord.id);

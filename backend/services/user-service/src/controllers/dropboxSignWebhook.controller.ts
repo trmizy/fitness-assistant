@@ -21,15 +21,20 @@ export async function handleDropboxSignWebhook(
     return;
   }
 
-  // Verify event using Dropbox Sign SDK helper
+  // Verify event using Dropbox Sign SDK helper. Signature verification is only skipped when the
+  // e-sign provider is explicitly MOCK (dev/test). For any real provider we FAIL CLOSED: a missing
+  // API key or an invalid signature is rejected, so a misconfigured production can't accept forged
+  // webhooks that flip contract/signature state.
   const apiKey = process.env.DROPBOX_SIGN_API_KEY;
-  if (apiKey) {
+  const isMockEsign = (process.env.ESIGN_PROVIDER || "").toUpperCase() === "MOCK";
+  if (!isMockEsign) {
+    if (!apiKey) {
+      res.status(500).send("E-sign webhook verification is not configured");
+      return;
+    }
     try {
       const eventCallback = DropboxSign.EventCallbackRequest.init(parsedData);
-      const isValid = DropboxSign.EventCallbackHelper.isValid(
-        apiKey,
-        eventCallback,
-      );
+      const isValid = DropboxSign.EventCallbackHelper.isValid(apiKey, eventCallback);
       if (!isValid) {
         res.status(401).send("Invalid event signature");
         return;
@@ -39,7 +44,6 @@ export async function handleDropboxSignWebhook(
       return;
     }
   }
-  // When ESIGN_PROVIDER=MOCK, skip verification (no real API key)
 
   // Dropbox Sign requires this exact response body
   res.status(200).send("Hello API Event Received");

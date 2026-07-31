@@ -15,9 +15,16 @@ declare global {
   }
 }
 
+const GATEWAY_SECRET =
+  process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
+
 export function extractUser(req: Request, _res: Response, next: NextFunction): void {
+  // Only trust identity headers when the request actually came through the gateway (which stamps
+  // x-gateway-secret). A direct call to this service's port with forged x-user-* headers is treated
+  // as unauthenticated, so bypassing the gateway can't impersonate a user/role.
+  const fromGateway = req.headers['x-gateway-secret'] === GATEWAY_SECRET;
   const userId = req.headers['x-user-id'] as string | undefined;
-  req.user = userId
+  req.user = fromGateway && userId
     ? { userId, role: (req.headers['x-user-role'] as string) ?? '', email: (req.headers['x-user-email'] as string) ?? '' }
     : null;
   next();

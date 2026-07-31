@@ -4,8 +4,10 @@ import { Dumbbell, Loader2, ArrowLeft, Plus, X, Wallet as WalletIcon, Users, Lis
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gymService } from "../../services/api";
 import { toast } from "sonner";
-import type { Gym, GymMembershipPlan, GymMembershipContract, Wallet } from "../../types";
+import type { Gym, GymMembershipPlan, GymMembershipContract, Wallet, GymReviewsResponse } from "../../types";
 import { formatVND } from "../../utils/currency";
+import { Stars } from "../../components/gym/Stars";
+import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
 
 export function GymManagePage() {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +37,12 @@ export function GymManagePage() {
   const { data: memberships = [] } = useQuery<GymMembershipContract[]>({
     queryKey: ["owned-gym-memberships", id],
     queryFn: () => gymService.listOwnedMemberships(id!),
+    enabled: !!id,
+  });
+
+  const { data: reviews } = useQuery<GymReviewsResponse>({
+    queryKey: ["gym-reviews", id],
+    queryFn: () => gymService.getGymReviews(id!),
     enabled: !!id,
   });
 
@@ -80,6 +88,11 @@ export function GymManagePage() {
         <div>
           <h1 className="text-lg font-bold text-zinc-100">{gym.name}</h1>
           <div className="text-xs text-zinc-500">{gym.address}{gym.city ? `, ${gym.city}` : ""}</div>
+          {reviews && reviews.count > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-1">
+              <Stars value={reviews.averageRating} /> {reviews.averageRating.toFixed(1)} ({reviews.count} đánh giá)
+            </div>
+          )}
         </div>
       </div>
 
@@ -91,6 +104,9 @@ export function GymManagePage() {
           <div className="text-xl font-bold text-zinc-100">{formatVND(Number(wallet?.availableBalance ?? 0))}</div>
         </div>
       </div>
+
+      {/* Check-in */}
+      <GymCheckinPanel gymId={id!} />
 
       {/* Plans */}
       <div>
@@ -137,7 +153,14 @@ export function GymManagePage() {
           <div className="space-y-2">
             {memberships.map((m) => (
               <div key={m.id} className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-3.5 flex items-center justify-between">
-                <div className="text-xs text-zinc-500">{m.clientId.slice(0, 8)}...</div>
+                <div>
+                  <div className="text-xs text-zinc-500">{m.clientId.slice(0, 8)}...</div>
+                  {m.status === "ACTIVE" && (
+                    <div className="text-[11px] text-zinc-600 mt-0.5">
+                      {m.totalVisits != null ? `Lượt: ${m.usedVisits}/${m.totalVisits}` : `Lượt đã vào: ${m.usedVisits} · không giới hạn`}
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center gap-3">
                   <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${
                     m.status === "ACTIVE" ? "bg-green-500/10 border-green-500/20 text-green-400"

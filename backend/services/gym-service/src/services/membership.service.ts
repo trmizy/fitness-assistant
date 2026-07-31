@@ -97,6 +97,52 @@ export const membershipService = {
     return membershipRepository.cancelIfPending(membershipId);
   },
 
+  /** Compute the prorated refund (by remaining days) for an ACTIVE membership, without mutating. */
+  quoteRefund(contract: { priceAtPurchase: any; durationDaysSnapshot: number; startDate: Date | null; endDate: Date | null }) {
+    const now = Date.now();
+    const totalMs = contract.durationDaysSnapshot * 24 * 60 * 60 * 1000;
+    const end = contract.endDate ? contract.endDate.getTime() : now;
+    const remainingMs = Math.max(0, end - now);
+    const fraction = totalMs > 0 ? Math.min(1, remainingMs / totalMs) : 0;
+    const refundAmount = Math.round(Number(contract.priceAtPurchase) * fraction * 100) / 100;
+    const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
+    return { refundAmount, remainingDays, fraction };
+  },
+
+  /**
+   * Client cancels their own ACTIVE membership and gets a PRORATED refund (by remaining days).
+   * Refunds the unused portion to the client wallet, debits the gym + platform proportionally
+   * (payment-service does the ledger reversal), then marks the membership CANCELLED. The used
+   * portion is forfeited.
+   */
+  async refund(membershipId: string, clientId: string) {
+    const contract = await membershipRepository.findById(membershipId);
+    if (!contract) throw err('Membership not found', 404);
+    if (contract.clientId !== clientId) throw err('Not authorized', 403);
+    if (contract.status === 'ACTIVE' && contract.endDate && contract.endDate < new Date()) {
+      await membershipRepository.expireIfPastEndDate(contract);
+      throw err('Membership has already expired', 409);
+    }
+    if (contract.status !== 'ACTIVE') throw err(`Cannot refund a membership in ${contract.status} status`, 409);
+    if (!contract.paymentTxnId) throw err('No payment on record to refund', 409);
+
+    const { refundAmount, remainingDays } = this.quoteRefund(contract);
+
+    let refund = null;
+    if (refundAmount >= 1) {
+      refund = await paymentClient.refund({
+        originalTransactionId: contract.paymentTxnId,
+        refundAmount,
+        idempotencyKey: `gym-membership-refund:${contract.id}:${randomUUID()}`,
+        initiatedBy: clientId,
+        reason: 'Client cancelled membership (prorated refund)',
+      });
+    }
+
+    const cancelled = await membershipRepository.cancelAfterRefund(contract.id);
+    return { membership: cancelled, refundAmount, remainingDays, refund };
+  },
+
   async listForClient(clientId: string) {
     const list = await membershipRepository.findByClient(clientId);
     const result = [];
