@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { logger, chatMessagesTotal } from "@gym-coach/shared";
 import { chatRepository } from "../repositories/chat.repository";
+import { sendMessageSchema } from "../models/chat.models";
 
 interface JoinPayload {
   conversationId: string;
@@ -59,9 +60,14 @@ export function registerChatHandlers(
     "chat:send_message",
     async ({ conversationId, content }: SendPayload) => {
       try {
-        if (!content?.trim()) {
+        // Same Zod schema the REST POST /conversations/:id/messages endpoint
+        // uses (min 1, max 5000 chars) — previously this socket path only
+        // checked non-empty, so a message could bypass the REST length limit
+        // entirely just by sending it over the socket instead.
+        const parsed = sendMessageSchema.safeParse({ content });
+        if (!parsed.success) {
           socket.emit("chat:error", {
-            message: "Message content cannot be empty",
+            message: parsed.error.errors[0]?.message || "Invalid message content",
           });
           return;
         }

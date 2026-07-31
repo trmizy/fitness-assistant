@@ -4,6 +4,7 @@
  */
 import axios from "axios";
 import { logger } from "@gym-coach/shared";
+import { prisma } from "../repositories/conversation.repository";
 
 const USER_SERVICE_URL =
   process.env.USER_SERVICE_URL ||
@@ -82,6 +83,23 @@ export interface WorkerUserContext {
     carbs?: number;
     fat?: number;
   }>;
+  /**
+   * Outcome of the user's most recently finished monthly training cycle (v2
+   * cycle model: decision KEEP/ADJUST/NEW_PLAN + deterministic progressSignals,
+   * replaces the earlier ACHIEVED/PARTIAL/NOT_ACHIEVED outcome field), plus
+   * how that cycle's underlying plan fared in the marketplace (Part B) and
+   * with PT review — feeds the next plan's generation/adjustment (Part D).
+   */
+  lastCycleOutcome: {
+    decision?: string | null;
+    overallTrend?: string | null;
+    adherencePercent?: number | null;
+    startDate?: string;
+    endDate?: string;
+    sourcePlanId?: string | null;
+    planRating?: { avgRating: number; ratingCount: number } | null;
+    ptReview?: { status?: string | null; note?: string | null } | null;
+  } | null;
 }
 
 /**
@@ -96,7 +114,7 @@ export async function fetchWorkerUserContext(
   const userHeaders = userServiceHeaders();
   const timeout = 5000;
 
-  const [profileRes, inBodyRes, workoutsRes, nutritionRes] =
+  const [profileRes, inBodyRes, workoutsRes, nutritionRes, latestCycleRes] =
     await Promise.allSettled([
       axios.get(
         `${USER_SERVICE_URL}/internal/profile/${encodeURIComponent(userId)}`,
@@ -111,6 +129,10 @@ export async function fetchWorkerUserContext(
         timeout,
       }),
       axios.get(`${FITNESS_SERVICE_URL}/nutrition`, { headers, timeout }),
+      axios.get(`${FITNESS_SERVICE_URL}/internal/training-cycles/latest-closed`, {
+        headers,
+        timeout,
+      }),
     ]);
 
   // ── Profile ──────────────────────────────────────────────────────────────
@@ -230,18 +252,122 @@ export async function fetchWorkerUserContext(
       fat: Math.round(v.fat),
     }));
 
+  // ── Last cycle outcome + plan rating + PT review ────────────────────────────
+  const rawCycle =
+    latestCycleRes.status === "fulfilled"
+      ? (latestCycleRes.value.data?.data?.cycle ?? null)
+      : null;
+  if (latestCycleRes.status === "rejected") {
+    logger.debug(
+      { err: (latestCycleRes as any).reason?.message, userId },
+      "[worker-context] latest closed cycle fetch failed",
+    );
+  }
+
+  let lastCycleOutcome: WorkerUserContext["lastCycleOutcome"] = null;
+  if (rawCycle) {
+    let planRating: { avgRating: number; ratingCount: number } | null = null;
+    let ptReview: { status?: string | null; note?: string | null } | null =
+      null;
+
+    if (rawCycle.planId) {
+      try {
+        const [publishedPlan, workoutPlan] = await Promise.all([
+          prisma.publishedPlan.findFirst({
+            where: { sourcePlanId: rawCycle.planId },
+            select: { avgRating: true, ratingCount: true },
+          }),
+          prisma.workoutPlan.findUnique({
+            where: { id: rawCycle.planId },
+            select: { ptReviewStatus: true, ptNote: true },
+          }),
+        ]);
+        if (publishedPlan) {
+          planRating = {
+            avgRating: publishedPlan.avgRating,
+            ratingCount: publishedPlan.ratingCount,
+          };
+        }
+        if (workoutPlan && (workoutPlan.ptReviewStatus || workoutPlan.ptNote)) {
+          ptReview = {
+            status: workoutPlan.ptReviewStatus,
+            note: workoutPlan.ptNote,
+          };
+        }
+      } catch (err) {
+        logger.debug(
+          { err: (err as Error).message, userId },
+          "[worker-context] local plan-rating/pt-review lookup failed",
+        );
+      }
+    }
+
+    const progressSignals = rawCycle.summary?.progressSignals ?? null;
+
+    lastCycleOutcome = {
+      decision: rawCycle.decision,
+      overallTrend: progressSignals?.overallTrend ?? null,
+      adherencePercent: progressSignals?.adherencePct ?? null,
+      startDate: (rawCycle.startDate ?? "").split("T")[0] || undefined,
+      endDate: (rawCycle.endDate ?? "").split("T")[0] || undefined,
+      sourcePlanId: rawCycle.planId,
+      planRating,
+      ptReview,
+    };
+  }
+
   return {
     latestInBody,
     inBodyHistory,
     profile: profileData,
     recentWorkouts,
     recentNutritionDays,
+    lastCycleOutcome,
   };
 }
 
 /** Build a compact text summary of the user context to inject into plan prompts */
 export function formatWorkerContextForPrompt(ctx: WorkerUserContext): string {
   const lines: string[] = [];
+
+  // Last cycle outcome — surfaced first so the model weighs it when deciding
+  // whether to repeat or change approach for the new plan.
+  if (ctx.lastCycleOutcome) {
+    const c = ctx.lastCycleOutcome;
+    const decisionLabel: Record<string, string> = {
+      KEEP: "Giữ nguyên lịch tập, tăng tải",
+      ADJUST: "Điều chỉnh lịch tập",
+      NEW_PLAN: "Đổi sang kế hoạch mới",
+    };
+    const trendLabel: Record<string, string> = {
+      PROGRESSING: "Đang tiến triển tốt",
+      PLATEAU: "Chững lại",
+      DECLINING: "Đang sụt giảm",
+    };
+    lines.push(
+      `[Kết quả chu kỳ tập gần nhất${c.startDate ? ` (${c.startDate} - ${c.endDate ?? "?"})` : ""}]`,
+    );
+    if (c.overallTrend) {
+      lines.push(`  Xu hướng: ${trendLabel[c.overallTrend] ?? c.overallTrend}`);
+    }
+    if (c.decision) {
+      lines.push(`  Đề xuất chu kỳ trước: ${decisionLabel[c.decision] ?? c.decision}`);
+    }
+    if (c.adherencePercent != null) {
+      lines.push(`  Tuân thủ lịch tập: ${c.adherencePercent}%`);
+    }
+    if (c.planRating) {
+      lines.push(
+        `  Đánh giá kế hoạch cũ trên chợ: ${c.planRating.avgRating.toFixed(1)}/5 (${c.planRating.ratingCount} lượt)`,
+      );
+    }
+    if (c.ptReview?.note) {
+      lines.push(`  Ghi chú của PT: ${c.ptReview.note}`);
+    }
+    lines.push(
+      `  => Nếu xu hướng "Đang tiến triển tốt": có thể giữ hướng tiếp cận cũ, tăng nhẹ độ khó. Nếu "Chững lại" hoặc "Đang sụt giảm": cần điều chỉnh (đổi bài tập, giảm khối lượng, hoặc đổi cách tiếp cận) thay vì lặp lại y hệt kế hoạch cũ.`,
+    );
+  }
 
   // InBody
   if (ctx.latestInBody) {

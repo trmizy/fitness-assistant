@@ -45,6 +45,7 @@ test("startSchedule returns canonical in-progress progress contract", async () =
     sessionStatus: "in_progress",
     dayStatus: "in_progress",
     completedAt: null,
+    trainingCycleId: null,
   });
 
   const res = createResponse();
@@ -72,6 +73,7 @@ test("startSchedule returns canonical in-progress progress contract", async () =
       sessionStatus: "in_progress",
       dayStatus: "in_progress",
       completedAt: null,
+      trainingCycleId: null,
     },
   });
 });
@@ -94,6 +96,7 @@ test("completeScheduleExercise returns 100 percent when all planned exercises ar
     sessionStatus: "completed",
     dayStatus: "completed",
     completedAt,
+    trainingCycleId: null,
   });
 
   const res = createResponse();

@@ -3,12 +3,15 @@ import { prisma } from "../repositories/prisma";
 import { workoutRepository } from "../repositories/workout.repository";
 import { exerciseRepository } from "../repositories/exercise.repository";
 import { checkMissingExerciseIds } from "../utils/workout-validation";
+import { invalidateCycleProgressCache } from "./training-cycle.service";
+import { assertScheduleDateEditable } from "../utils/schedule-lock.util";
 import type {
   CreateManualProgramDto,
   CreateWorkoutDto,
   UpdateWorkoutSetDto,
   ImportAiPlanDto,
 } from "../models/fitness.models";
+import { SET_TYPES, SET_SIDES } from "../models/fitness.models";
 
 type NormalizedExerciseCatalogItem = {
   id: string;
@@ -117,6 +120,7 @@ type WorkoutProgressSummary = {
   sessionStatus: "not_started" | "in_progress" | "completed";
   dayStatus: "not_started" | "in_progress" | "completed";
   completedAt: Date | null;
+  trainingCycleId?: string | null;
 };
 
 function progressPercent(
@@ -278,6 +282,15 @@ async function recomputeScheduleProgress(
     },
   });
 
+  // Adaptive Training Cycle Evaluation: this session's progress just
+  // changed — invalidate the cached cycle-progress summary if it's linked
+  // to one. Fire-and-forget (best-effort, matches exercise.repository.ts's
+  // cache-invalidation style) so a slow/unavailable Redis never blocks or
+  // fails the workout-logging request; the 120s TTL self-heals regardless.
+  if (schedule.trainingCycleId) {
+    void invalidateCycleProgressCache(schedule.trainingCycleId).catch(() => {});
+  }
+
   return {
     sessionId: schedule.workoutId,
     workoutId: schedule.workoutId,
@@ -299,6 +312,7 @@ async function recomputeScheduleProgress(
         ? "in_progress"
         : "not_started",
     completedAt,
+    trainingCycleId: schedule.trainingCycleId ?? null,
     ...patch,
   } satisfies WorkoutProgressSummary;
 }
@@ -332,6 +346,32 @@ async function validateExerciseIds(ids: string[]): Promise<void> {
   if (missing.length > 0) {
     throw { status: 400, message: `Exercise not found: ${missing.join(", ")}` };
   }
+}
+
+// --- Past-date lock guards -------------------------------------------------
+// The server is the sole authority on whether a given day's log/plan data
+// may still be mutated; the frontend calendar's disabled/locked styling is
+// only a UI convenience and must never be the only enforcement point (a
+// stale client or a direct API call must be rejected here regardless of
+// what the calendar shows). Every mutating entry point below resolves the
+// relevant WorkoutSchedule.date (or, for a schedule-less ad-hoc workout log,
+// the workout's own `date`) and asserts it via schedule-lock.util before
+// touching the database.
+
+async function assertWorkoutEditableByWorkoutId(workoutId: string) {
+  const schedule = await prisma.workoutSchedule.findFirst({
+    where: { workoutId },
+    select: { date: true },
+  });
+  if (schedule) {
+    assertScheduleDateEditable(schedule.date);
+    return;
+  }
+  const workout = await prisma.workout.findUnique({
+    where: { id: workoutId },
+    select: { date: true },
+  });
+  if (workout) assertScheduleDateEditable(workout.date);
 }
 
 export const workoutQueue = new Queue("workout-generation", {
@@ -377,7 +417,10 @@ export const workoutService = {
           status: 409,
           message: "Schedule already has a completed workout log",
         };
+      assertScheduleDateEditable(schedule.date);
       workoutData.date = schedule.date.toISOString();
+    } else if (data.date) {
+      assertScheduleDateEditable(new Date(data.date));
     }
     return workoutRepository.create(userId, workoutData);
   },
@@ -398,7 +441,10 @@ export const workoutService = {
           message: "Schedule already has a completed workout log",
         };
       }
+      assertScheduleDateEditable(schedule.date);
       workoutData.date = schedule.date.toISOString();
+    } else {
+      await assertWorkoutEditableByWorkoutId(id);
     }
     return workoutRepository.update(id, workoutData);
   },
@@ -406,6 +452,7 @@ export const workoutService = {
   async deleteWorkout(id: string, userId: string) {
     const workout = await workoutRepository.findOne(id, userId);
     if (!workout) throw { status: 404, message: "Workout not found" };
+    await assertWorkoutEditableByWorkoutId(id);
     await workoutRepository.delete(id);
     return { message: "Workout deleted" };
   },
@@ -424,6 +471,13 @@ export const workoutService = {
   async updateSet(setId: string, userId: string, data: UpdateWorkoutSetDto) {
     const existing = await workoutRepository.findSetWithOwner(setId, userId);
     if (!existing) throw { status: 404, message: "Set not found" };
+    const workoutExerciseForLock = await prisma.workoutExercise.findFirst({
+      where: { id: existing.workoutExerciseId, workout: { userId } },
+      select: { workoutId: true },
+    });
+    if (workoutExerciseForLock?.workoutId) {
+      await assertWorkoutEditableByWorkoutId(workoutExerciseForLock.workoutId);
+    }
     const updated = await workoutRepository.updateSet(setId, data);
     const workoutExercise = await prisma.workoutExercise.findFirst({
       where: { id: existing.workoutExerciseId, workout: { userId } },
@@ -455,16 +509,39 @@ export const workoutService = {
       weight?: number;
       reps?: number;
       rpe?: number;
+      rir?: number;
+      setType?: string | null;
+      tempo?: string | null;
+      rangeOfMotion?: string | null;
+      side?: string | null;
+      painScore?: number | null;
+      techniqueNotes?: string | null;
     },
   ) {
     if (body.rpe !== undefined && (body.rpe < 1 || body.rpe > 10)) {
       throw { status: 400, message: "rpe must be between 1 and 10" };
+    }
+    if (body.rir !== undefined && (body.rir < 0 || body.rir > 5)) {
+      throw { status: 400, message: "rir must be between 0 and 5" };
+    }
+    if (body.setType != null && !SET_TYPES.includes(body.setType as any)) {
+      throw {
+        status: 400,
+        message: `setType must be one of: ${SET_TYPES.join(", ")}`,
+      };
+    }
+    if (body.side != null && !SET_SIDES.includes(body.side as any)) {
+      throw { status: 400, message: `side must be one of: ${SET_SIDES.join(", ")}` };
+    }
+    if (body.painScore != null && (body.painScore < 0 || body.painScore > 10)) {
+      throw { status: 400, message: "painScore must be between 0 and 10" };
     }
     if (!body.exerciseId)
       throw { status: 400, message: "exerciseId is required" };
 
     const workout = await workoutRepository.findOne(workoutId, userId);
     if (!workout) throw { status: 404, message: "Workout not found" };
+    await assertWorkoutEditableByWorkoutId(workoutId);
 
     await validateExerciseIds([body.exerciseId]);
     return workoutRepository.appendSet(workoutId, body.exerciseId, body);
@@ -484,11 +561,17 @@ export const workoutService = {
   ) {
     const where: any = {
       userId,
-      // Only return schedules from ACTIVE programs (or schedules without a programDay link)
-      // This prevents archived program schedules from polluting the calendar.
+      // Hide un-executed placeholder days from an abandoned (archived)
+      // program so an old plan doesn't keep cluttering the calendar after
+      // the user switches plans — but a schedule that already has a real
+      // completed workout attached must ALWAYS stay visible regardless of
+      // its program's current status; that's real history, not a stale
+      // placeholder, and archiving a later plan must never make a past
+      // completed session disappear.
       OR: [
         { programDayId: null },
         { programDay: { program: { status: "ACTIVE" } } },
+        { workoutId: { not: null } },
       ],
     };
     if (params.startDate || params.endDate) {
@@ -621,6 +704,12 @@ export const workoutService = {
 
       let workoutId = schedule.workoutId;
       if (!workoutId) {
+        // Only block *creating* a brand-new session for a locked past day —
+        // a day that already has a workout attached is allowed to resume
+        // here (idempotent progress recompute), since that's also how the
+        // frontend re-enters an existing session to show it read-only.
+        // Historical data must stay viewable even once it's locked.
+        assertScheduleDateEditable(schedule.date);
         const workout = await createStartedWorkoutForSchedule(
           tx,
           schedule,
@@ -674,6 +763,7 @@ export const workoutService = {
         },
       });
       if (!schedule) throw { status: 404, message: "Schedule not found" };
+      assertScheduleDateEditable(schedule.date);
 
       const plannedExercise = schedule.programDay?.exercises?.find(
         (exercise: any) => exercise.id === programExerciseId,
@@ -782,11 +872,19 @@ export const workoutService = {
     const result = await prisma.$transaction(async (tx) => {
       let cancelledScheduleCount = 0;
       if (shouldReplace) {
+        // Delete ALL of this user's incomplete schedules (any date, past or
+        // future), not just ones on/after the new startDate. A schedule row
+        // dated before the new plan's start would otherwise survive here,
+        // then become invisible once its program is archived below
+        // (listSchedules only returns ACTIVE-program schedules) while still
+        // permanently occupying its (userId, date) slot — createMany's
+        // skipDuplicates then silently drops the new row for that same date
+        // forever. This is the exact bug where some calendar days vanish
+        // after editing/regenerating a schedule.
         const deleteResult = await (tx.workoutSchedule as any).deleteMany({
           where: {
             userId,
             workoutId: null,
-            date: { gte: startDate },
           },
         });
         cancelledScheduleCount = deleteResult.count ?? 0;
@@ -1089,6 +1187,7 @@ export const workoutService = {
           "Cannot delete a schedule that already has a completed workout log",
       };
     }
+    assertScheduleDateEditable(existing.date);
     return prisma.workoutSchedule.delete({ where: { id } });
   },
 
@@ -1135,11 +1234,13 @@ export const workoutService = {
         let cancelledScheduleCount = 0;
         const shouldReplace = input.replaceExisting !== false;
         if (shouldReplace) {
+          // Any date, not just >= startDate — see the matching comment in
+          // createManualProgram for why a date lower-bound here leaves
+          // orphaned schedule rows that silently vanish from the calendar.
           const deleteResult = await (tx.workoutSchedule as any).deleteMany({
             where: {
               userId,
               workoutId: null,
-              date: { gte: startDate },
             },
           });
           cancelledScheduleCount = deleteResult.count ?? 0;
@@ -1422,17 +1523,20 @@ export const workoutService = {
       let cancelledScheduleCount = 0;
 
       if (shouldReplace) {
-        // Delete ALL incomplete schedules for this user from startDate onwards.
-        // We cannot limit by programDayId because old archived programs' schedules
-        // are still in the DB and their dates conflict with new ones due to
-        // @@unique([userId, date]). Deleting only active-program schedules leaves
-        // stale dates that cause createMany({ skipDuplicates: true }) to silently skip
-        // the new schedules (root cause: user sees only 1 schedule instead of 48).
+        // Delete ALL incomplete schedules for this user, any date — not just
+        // startDate onwards. We cannot limit by programDayId because old
+        // archived programs' schedules are still in the DB and their dates
+        // conflict with new ones due to @@unique([userId, date]). A date
+        // lower-bound has the same problem in the other direction: a row
+        // dated *before* the new startDate survives, then becomes invisible
+        // once its program is archived below (listSchedules only returns
+        // ACTIVE-program schedules) while still permanently blocking that
+        // date via skipDuplicates — the exact bug where some calendar days
+        // silently vanish after regenerating a plan.
         const deleteResult = await (tx.workoutSchedule as any).deleteMany({
           where: {
             userId,
             workoutId: null, // Keep schedules that have a completed workout log
-            date: { gte: startDate }, // Only future/current dates from the new plan start
           },
         });
         cancelledScheduleCount = deleteResult.count ?? 0;

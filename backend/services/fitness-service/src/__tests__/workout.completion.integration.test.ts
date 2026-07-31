@@ -39,9 +39,17 @@ test.after(async () => {
   if (prisma) await prisma.$disconnect();
 });
 
+// Anchored to the real current UTC day (not a hardcoded past date) so these
+// schedules are always "today" or later — otherwise, once enough real time
+// passes, a fixed historical anchor date silently drifts into the past and
+// trips the past-date lock (schedule-lock.util.ts) that every mutating
+// schedule/workout endpoint now enforces, failing this test for a reason
+// that has nothing to do with what it's actually testing.
 function dateOnly(offsetDays: number): Date {
-  const date = new Date(Date.UTC(2026, 6, 9 + offsetDays));
-  return date;
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + offsetDays),
+  );
 }
 
 async function seedProgramWithSchedule(
@@ -288,8 +296,10 @@ test(
     await deleteSeed(db, userId);
 
     const seeded = await seedProgramWithSchedule(db, {
+      // Today, not a future date — this test is about duplicate-exercise-id
+      // handling, not date locking (future days are now locked, §3.3 fix).
       userId,
-      date: dateOnly(2),
+      date: dateOnly(0),
       exerciseCount: 2,
       duplicateGlobalExercise: true,
     });

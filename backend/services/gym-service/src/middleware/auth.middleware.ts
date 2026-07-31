@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import axios from 'axios';
+import { logger } from '@gym-coach/shared';
 
 export interface AuthUser {
   userId: string;
@@ -15,19 +17,55 @@ declare global {
   }
 }
 
-const GATEWAY_SECRET =
-  process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://localhost:3001';
 
-export function extractUser(req: Request, _res: Response, next: NextFunction): void {
-  // Only trust identity headers when the request actually came through the gateway (which stamps
-  // x-gateway-secret). A direct call to this service's port with forged x-user-* headers is treated
-  // as unauthenticated, so bypassing the gateway can't impersonate a user/role.
-  const fromGateway = req.headers['x-gateway-secret'] === GATEWAY_SECRET;
-  const userId = req.headers['x-user-id'] as string | undefined;
-  req.user = fromGateway && userId
-    ? { userId, role: (req.headers['x-user-role'] as string) ?? '', email: (req.headers['x-user-email'] as string) ?? '' }
-    : null;
-  next();
+/**
+ * Verifies the caller's JWT directly against auth-service — the same
+ * pattern fitness-service/user-service/chat-service already use for their
+ * public, gateway-facing routes (see fitness-service's authMiddleware).
+ *
+ * This REPLACES the previous behavior of trusting x-user-id/x-user-role
+ * headers directly off the incoming request. Those are ordinary HTTP
+ * headers any caller can set, and gym-service's port is published directly
+ * on the host in docker-compose.dev.yml — bypassing the gateway entirely
+ * and setting x-user-id/x-user-role by hand would previously have
+ * impersonated any user or role, including ADMIN/GYM_OWNER. Verifying the
+ * JWT independently means an attacker needs a real, valid token for the
+ * specific identity they want to act as — not just knowledge of a header
+ * name — regardless of how the request reached this service.
+ *
+ * Every call site in this service chains `extractUser` immediately with
+ * `requireAuth` (never used for "optional auth" alone), so combining
+ * identity-extraction and verification into one network call here doesn't
+ * change any route's externally-visible behavior — a request either
+ * carries a valid Bearer token and gets `req.user` populated, or it
+ * doesn't and requireAuth (or this middleware's own 401) rejects it.
+ */
+export async function extractUser(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    req.user = null;
+    next();
+    return;
+  }
+
+  const token = authHeader.substring(7);
+  try {
+    const { data } = await axios.post(
+      `${AUTH_SERVICE_URL}/auth/verify`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 },
+    );
+    const payload = data?.user;
+    req.user = payload?.id
+      ? { userId: payload.id, role: payload.role ?? '', email: payload.email ?? '' }
+      : null;
+    next();
+  } catch (error) {
+    logger.warn({ err: (error as Error).message }, '[gym-service] token verification failed');
+    req.user = null;
+    next();
+  }
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {

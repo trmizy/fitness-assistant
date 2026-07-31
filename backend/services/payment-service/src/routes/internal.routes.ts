@@ -19,8 +19,8 @@ const walletTransferSchema = z.object({
   receiverOwnerId: z.string().min(1),
   amount: z.number().positive(),
   commissionRate: z.number().min(0).max(1).optional(),
-  purpose: z.enum(['GYM_MEMBERSHIP', 'PT_CONTRACT']),
-  relatedEntityType: z.enum(['GYM_MEMBERSHIP', 'PT_CONTRACT']),
+  purpose: z.enum(['GYM_MEMBERSHIP', 'PT_CONTRACT', 'TRAINING_PACKAGE_PURCHASE']),
+  relatedEntityType: z.enum(['GYM_MEMBERSHIP', 'PT_CONTRACT', 'TRAINING_PACKAGE_PURCHASE']),
   relatedEntityId: z.string().min(1),
   idempotencyKey: z.string().min(1),
   initiatedBy: z.string().min(1),
@@ -58,41 +58,49 @@ router.post('/payments/wallet-transfer', async (req: Request, res: Response) => 
     relatedEntityId: data.relatedEntityId,
   });
 
-  const check = await checkIdempotency(data.idempotencyKey, fingerprint);
-  if (check.kind === 'CONFLICT') {
-    return res.status(409).json({ success: false, error: { code: 'IDEMPOTENCY_KEY_CONFLICT' } });
-  }
-  if (check.kind === 'REPLAY') {
-    return res.json({ success: true, data: statusResponse(check.transaction) });
-  }
-
-  const payerWallet = await walletService.getOrCreateWallet(data.payerOwnerType, data.payerOwnerId);
-  const receiverWallet = await walletService.getOrCreateWallet(data.receiverOwnerType, data.receiverOwnerId);
-  const commissionRate = new Prisma.Decimal(data.commissionRate ?? DEFAULT_COMMISSION_RATE);
-  const partnerType: PartnerType = data.receiverOwnerType === 'GYM' ? 'GYM' : 'PT';
-
-  const txn = await transactionRepository.create({
-    payerId: data.payerOwnerId,
-    purpose: data.purpose,
-    gymId: data.gymId,
-    ptId: data.ptId,
-    membershipId: data.membershipId,
-    ptContractId: data.ptContractId,
-    amount: data.amount,
-    currency: 'VND',
-    status: 'PROCESSING',
-    idempotencyKey: data.idempotencyKey,
-    requestFingerprint: fingerprint,
-    payerWalletId: payerWallet.id,
-    receiverWalletId: receiverWallet.id,
-    relatedEntityType: data.relatedEntityType,
-    relatedEntityId: data.relatedEntityId,
-    activationStatus: 'PENDING',
-    initiatedBy: data.initiatedBy,
-    sourceService: data.sourceService,
-  });
-
+  // Everything up to and including transactionRepository.create() previously ran
+  // outside any try/catch — a DB-level error there (e.g. an enum value the running
+  // process's Prisma client didn't yet know about) became an unhandled rejection
+  // that crashed the whole service instead of returning a 500. Wrapping the full
+  // handler body closes that gap.
+  let txn: Awaited<ReturnType<typeof transactionRepository.create>>;
   try {
+    const check = await checkIdempotency(data.idempotencyKey, fingerprint);
+    if (check.kind === 'CONFLICT') {
+      return res.status(409).json({ success: false, error: { code: 'IDEMPOTENCY_KEY_CONFLICT' } });
+    }
+    if (check.kind === 'REPLAY') {
+      return res.json({ success: true, data: statusResponse(check.transaction) });
+    }
+
+    const payerWallet = await walletService.getOrCreateWallet(data.payerOwnerType, data.payerOwnerId);
+    const receiverWallet = await walletService.getOrCreateWallet(data.receiverOwnerType, data.receiverOwnerId);
+
+    txn = await transactionRepository.create({
+      payerId: data.payerOwnerId,
+      purpose: data.purpose,
+      gymId: data.gymId,
+      ptId: data.ptId,
+      membershipId: data.membershipId,
+      ptContractId: data.ptContractId,
+      amount: data.amount,
+      currency: 'VND',
+      status: 'PROCESSING',
+      idempotencyKey: data.idempotencyKey,
+      requestFingerprint: fingerprint,
+      payerWalletId: payerWallet.id,
+      receiverWalletId: receiverWallet.id,
+      relatedEntityType: data.relatedEntityType,
+      relatedEntityId: data.relatedEntityId,
+      activationStatus: 'PENDING',
+      initiatedBy: data.initiatedBy,
+      sourceService: data.sourceService,
+    });
+
+    const commissionRate = new Prisma.Decimal(data.commissionRate ?? DEFAULT_COMMISSION_RATE);
+    const partnerType: PartnerType =
+      data.receiverOwnerType === 'GYM' ? 'GYM' : data.receiverOwnerType === 'PT' ? 'PT' : 'CLIENT';
+
     await walletService.transferInternal({
       payerWalletId: payerWallet.id,
       receiverWalletId: receiverWallet.id,
@@ -105,6 +113,10 @@ router.post('/payments/wallet-transfer', async (req: Request, res: Response) => 
     const updated = await transactionRepository.findById(txn.id);
     return res.json({ success: true, data: statusResponse(updated!) });
   } catch (err) {
+    if (!txn!) {
+      logger.error({ error: 'wallet-transfer failed before transaction row was created', message: (err as Error).message });
+      return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR' } });
+    }
     const isBusinessError = err instanceof InsufficientBalanceError || err instanceof WalletNotActiveError;
     if (!isBusinessError) {
       logger.error({ error: 'wallet-transfer failed', message: (err as Error).message, transactionId: txn.id });

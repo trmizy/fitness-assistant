@@ -7,8 +7,16 @@ export interface PlanExplanationResponse {
 import axios from "axios";
 import { makeRefreshOnce } from "./refresh-once";
 
+// Defaults to a same-origin relative path, proxied by Vite's dev server to
+// the gateway (see vite.config.ts's "/api" proxy rule) — this is what makes
+// the app work identically whether opened at http://localhost:5173 or
+// through a Dev Tunnel/port-forwarded HTTPS URL, with no CORS or
+// mixed-content issues, since the browser never makes a cross-origin
+// request. Set VITE_API_URL to an absolute URL only when the frontend must
+// reach a backend that ISN'T proxied same-origin (e.g. a production static
+// build served without an API-proxying reverse proxy in front of it).
 // @ts-ignore - ImportMeta.env is provided by Vite
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+export const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -32,11 +40,30 @@ export interface CoachEvidenceItem {
 
 export interface CoachStreamDonePayload {
   conversationId?: string;
+  sessionId?: string;
   evidenceUsed?: CoachEvidenceItem[];
   adjustmentReasons?: unknown[];
   safetyNotes?: string[];
   timing?: unknown;
   fallbackReason?: string;
+}
+
+export interface AiChatSessionSummary {
+  id: string;
+  userId: string;
+  title: string;
+  lastMessageAt: string;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AiSessionMessage {
+  id: string;
+  question: string;
+  answer: string;
+  createdAt: string;
+  evidenceUsed?: CoachEvidenceItem[];
 }
 
 export type TranslationLanguage = "en" | "vi";
@@ -495,6 +522,581 @@ export const workoutService = {
   },
 };
 
+export type CycleDecision = "KEEP" | "ADJUST" | "NEW_PLAN" | "INSUFFICIENT_DATA";
+export type OverallTrend = "PROGRESSING" | "PLATEAU" | "DECLINING";
+
+export interface CycleAlert {
+  code: string;
+  severity: "info" | "warning";
+  message: string;
+  createdAt: string;
+}
+
+export interface CycleAdherence {
+  completed: number;
+  total: number;
+  /** null when there were no scheduled sessions to judge against — never a
+   * substitute for 0% (no data mistaken for failure) or 100% (no data
+   * mistaken for perfect adherence). */
+  percent: number | null;
+}
+
+export interface CycleVolumeWeek {
+  week: number;
+  totalVolumeKg: number;
+  byMuscleGroup: Record<string, number>;
+}
+
+export interface CycleProgressSignals {
+  overallTrend: OverallTrend;
+  deltaSMM: number | null;
+  deltaPBF: number | null;
+  volumeChangePct: number | null;
+  newPRs: string[];
+  adherencePct: number | null;
+  rpeTrend: "stable" | "increasing" | "decreasing";
+  laggingMuscleGroups: string[];
+}
+
+export interface CycleSummary {
+  adherence: CycleAdherence;
+  volumeByWeek: CycleVolumeWeek[];
+  volumeChangePct: number | null;
+  e1rmTrend: Array<{ exerciseName: string; weeklyTop: Array<{ week: number; e1rm: number }> }>;
+  rpeTrend: { weeklyAvg: number[]; trend: "stable" | "increasing" | "decreasing" };
+  newPRs: string[];
+  inBodySeries: Array<{ id: string; date: string; weight: number; bodyFatPct?: number | null; muscleMass: number }>;
+  alerts: CycleAlert[];
+  computedAt: string;
+  progressSignals?: CycleProgressSignals;
+  closedAt?: string;
+}
+
+export interface CycleReportSessionDetail {
+  date: string;
+  completedExercises: number | null;
+  totalExercises: number | null;
+  readinessScore: number | null;
+  sessionRpe: number | null;
+  painScore: number | null;
+  notes: string | null;
+}
+
+export interface CycleReport {
+  cycle: TrainingCycle;
+  window: { startDate: string; endDate: string };
+  workouts: {
+    totalScheduled: number;
+    completed: number;
+    missed: number;
+    upcoming: number;
+    completionRate: number;
+    missedSessions: Array<{ date: string }>;
+    sessionDetails: CycleReportSessionDetail[];
+    highPainSessions: CycleReportSessionDetail[];
+  };
+  trainingLoad: {
+    hasData: boolean;
+    weeklyLoad: Array<{ week: number; totalLoad: number; monotony: number | null; strain: number | null }>;
+    monotonyThreshold: number;
+  };
+  nutrition: {
+    daysLogged: number;
+    totalDaysInWindow: number;
+    avgProtein: number | null;
+    targetProtein: number | null;
+    proteinAdherencePct: number | null;
+    proteinPerKgBodyWeight: number | null;
+    proteinEvidenceRangeGPerKg: { min: number; max: number };
+    avgCalories: number | null;
+    targetCalories: number | null;
+    caloriesAdherencePct: number | null;
+    avgCarbs: number | null;
+    targetCarbs: number | null;
+    avgFat: number | null;
+    targetFat: number | null;
+    completedMeals: number;
+    partialMeals: number;
+    skippedMeals: number;
+  };
+  bodyComposition: CycleSummary["inBodySeries"];
+  volumeWeekOverWeekPct: Array<{ week: number; changePct: number | null }>;
+  progressSignals: CycleProgressSignals | null;
+  alerts: CycleAlert[];
+  newPRs: string[];
+  flags: string[];
+}
+
+export interface CycleAnalysisDetails {
+  cycleReview: {
+    bodyCompositionTrend: string;
+    trainingNote: string;
+    laggingMuscleGroups: string[];
+    confidence: "high" | "low";
+  };
+  keepDetails: { overloadIncreasePct: number; calorieDelta: number; notes: string } | null;
+  adjustDetails: {
+    pumpSetTargets: string[];
+    maxPumpSessionsPerWeek: number;
+    exerciseSwaps: unknown[];
+    calorieDeltaPct: number;
+    notes: string;
+  } | null;
+  newPlanDraft: {
+    goal: string;
+    durationDays: number;
+    daysPerWeek: number;
+    splitSuggestion: string;
+    deloadWeekFirst: boolean;
+    notes: string;
+  } | null;
+  mealPlanDraft: {
+    estimatedTDEE: number;
+    calorieTarget: number;
+    macros: { proteinG: number; carbG: number; fatG: number };
+    notes: string;
+  } | null;
+  aiFallback?: boolean;
+}
+
+export interface TrainingCycle {
+  id: string;
+  userId: string;
+  planId: string | null;
+  cycleIndex: number;
+  startDate: string;
+  endDate: string;
+  durationDays: number;
+  goal: string | null;
+  status: "DRAFT" | "ACTIVE" | "COMPLETED" | "ANALYZED" | "CANCELLED";
+  startInbodyId: string | null;
+  endInbodyId: string | null;
+  summary: CycleSummary | null;
+  lowConfidence: boolean;
+  decision: CycleDecision | null;
+  aiAnalysis: CycleAnalysisDetails | null;
+  nextPlanId: string | null;
+  name: string | null;
+  actualEndDate: string | null;
+  baselineMetrics: Record<string, unknown> | null;
+  targetMetrics: Record<string, unknown> | null;
+  configuration: Record<string, unknown> | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── Adaptive Training Cycle Evaluation ────────────────────────────────────
+
+export type AdaptiveCycleDecision = "KEEP" | "PROGRESS" | "ADJUST" | "DELOAD" | "REBUILD" | "INSUFFICIENT_DATA";
+
+export interface CycleFieldTrend {
+  direction: "up" | "flat" | "down";
+  changePerWeek: number | null;
+  dataPoints: number;
+}
+
+export interface CycleSafetyFlag {
+  code: string;
+  severity: "warning" | "critical";
+  message: string;
+}
+
+export interface CycleProposedChange {
+  type: "VOLUME" | "LOAD" | "REPS" | "EXERCISE" | "FREQUENCY" | "DELOAD";
+  target: string;
+  currentValue: string;
+  proposedValue: string;
+  reason: string;
+}
+
+export interface CycleMetrics {
+  adherenceRate: number;
+  completionRate: number;
+  /** false when there were zero scheduled sessions at all — must render as
+   * "no data" rather than "0%" (see CycleProgressSection). */
+  hasScheduledSessions: boolean;
+  workoutsPerWeek: number;
+  weeklyVolumeByMuscleGroup: CycleVolumeWeek[];
+  volumeTrendPercent: number | null;
+  exerciseProgression: Array<{ exerciseName: string; firstWeekE1rm: number; lastWeekE1rm: number; changePct: number | null; isPriority: boolean }>;
+  estimated1RmTrend: Array<{ exerciseName: string; weeklyTop: Array<{ week: number; e1rm: number }> }>;
+  strengthProgressScore: number | null;
+  performanceConsistencyScore: number | null;
+  averageSessionRpe: number | null;
+  rpeTrend: "stable" | "increasing" | "decreasing";
+  averageRir: number | null;
+  painTrend: CycleFieldTrend | null;
+  averagePainScore: number | null;
+  fatigueScore: number | null;
+  recoveryScore: number | null;
+  bodyWeightTrend: CycleFieldTrend | null;
+  skeletalMuscleTrend: CycleFieldTrend | null;
+  bodyFatTrend: CycleFieldTrend | null;
+  goalProgressScore: number | null;
+  dataCompletenessScore: number;
+  dataQualityScore: number;
+  newPRs: string[];
+  inBodyQuality: {
+    recordCount: number;
+    comparableRecordCount: number;
+    hasSufficientData: boolean;
+    qualityFlags: string[];
+  };
+}
+
+export interface CycleAssessment {
+  id: string;
+  cycleId: string;
+  assessmentVersion: number;
+  status: "PENDING" | "COMPLETED" | "FAILED";
+  decision: AdaptiveCycleDecision | null;
+  confidenceScore: number | null;
+  dataQualityScore: number | null;
+  computedMetrics: CycleMetrics | null;
+  reasonCodes: string[] | null;
+  conflictingSignals: string[] | null;
+  safetyFlags: CycleSafetyFlag[] | null;
+  recommendedActionScope: "none" | "minor_adjustment" | "deload" | "full_rebuild" | null;
+  aiSummary: string | null;
+  proposedChanges: CycleProposedChange[] | null;
+  userDecision: "PENDING" | "ACCEPTED" | "REJECTED";
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+export const trainingCycleService = {
+  start: async (params?: { planId?: string; startDate?: string; durationDays?: number }) => {
+    const { data } = await api.post<TrainingCycle>(
+      "/training-cycles",
+      params ?? {},
+    );
+    return data;
+  },
+
+  getActive: async () => {
+    const { data } = await api.get<{
+      cycle: TrainingCycle;
+      summary: CycleSummary;
+    }>("/training-cycles/active");
+    return data;
+  },
+
+  complete: async (id: string, endInbodyId?: string) => {
+    const { data } = await api.post<TrainingCycle>(
+      `/training-cycles/${id}/complete`,
+      endInbodyId ? { endInbodyId } : {},
+    );
+    return data;
+  },
+
+  /** Explicit abandonment — distinct from complete(): never evaluated,
+   * never calls the AI, regardless of how much data exists. */
+  cancel: async (id: string) => {
+    const { data } = await api.post<TrainingCycle>(`/training-cycles/${id}/cancel`, {});
+    return data;
+  },
+
+  approve: async (id: string, nextPlanId: string) => {
+    const { data } = await api.post<TrainingCycle>(
+      `/training-cycles/${id}/approve`,
+      { nextPlanId },
+    );
+    return data;
+  },
+
+  get: async (id: string) => {
+    const { data } = await api.get<TrainingCycle>(`/training-cycles/${id}`);
+    return data;
+  },
+
+  list: async (limit = 20) => {
+    const { data } = await api.get<{ cycles: TrainingCycle[] }>(
+      `/training-cycles?limit=${limit}`,
+    );
+    return data.cycles;
+  },
+
+  // ── Adaptive Training Cycle Evaluation additions ────────────────────────
+
+  update: async (id: string, updates: { name?: string; targetMetrics?: Record<string, unknown>; configuration?: Record<string, unknown> }) => {
+    const { data } = await api.patch<TrainingCycle>(`/training-cycles/${id}`, updates);
+    return data;
+  },
+
+  startDraft: async (id: string) => {
+    const { data } = await api.post<TrainingCycle>(`/training-cycles/${id}/start`, {});
+    return data;
+  },
+
+  getProgress: async (id: string) => {
+    const { data } = await api.get<{ cycle: TrainingCycle; metrics: CycleMetrics; computedAt: string }>(
+      `/training-cycles/${id}/progress`,
+    );
+    return data;
+  },
+
+  evaluate: async (id: string) => {
+    // The real LLM round-trip inside POST /evaluate is synchronous
+    // server-side (not fire-and-forget like legacy /complete) and has taken
+    // 5-90s in live testing — the shared `api` instance's flat 10s default
+    // timeout previously aborted this call client-side well before the
+    // server finished, surfacing a false "Không thể đánh giá chu kỳ" error
+    // toast even though the assessment went on to complete successfully in
+    // the DB moments later (the exact "button flips back with no clear
+    // success/failure" symptom from the bug report). Matches the same
+    // 120s override already used for other LLM-heavy calls (coachService.chat).
+    const { data } = await api.post<CycleAssessment>(`/training-cycles/${id}/evaluate`, {}, { timeout: 120000 });
+    return data;
+  },
+
+  listAssessments: async (id: string, page = 1, limit = 20) => {
+    const { data } = await api.get<{ assessments: CycleAssessment[]; total: number; page: number; limit: number }>(
+      `/training-cycles/${id}/assessments?page=${page}&limit=${limit}`,
+    );
+    return data;
+  },
+
+  getLatestAssessment: async (id: string) => {
+    const { data } = await api.get<CycleAssessment>(`/training-cycles/${id}/assessments/latest`);
+    return data;
+  },
+
+  acceptRecommendation: async (id: string, assessmentId?: string) => {
+    const { data } = await api.post<CycleAssessment>(
+      `/training-cycles/${id}/recommendation/accept`,
+      assessmentId ? { assessmentId } : {},
+    );
+    return data;
+  },
+
+  rejectRecommendation: async (id: string, assessmentId?: string) => {
+    const { data } = await api.post<CycleAssessment>(
+      `/training-cycles/${id}/recommendation/reject`,
+      assessmentId ? { assessmentId } : {},
+    );
+    return data;
+  },
+
+  linkInBodyEntry: async (id: string, inbodyEntryId: string) => {
+    const { data } = await api.post(`/training-cycles/${id}/inbody-links`, { inbodyEntryId });
+    return data;
+  },
+
+  remove: async (id: string) => {
+    const { data } = await api.delete<{ cycleId: string; archived: boolean; archivedAt: string }>(
+      `/training-cycles/${id}`,
+    );
+    return data;
+  },
+
+  getReport: async (id: string) => {
+    const { data } = await api.get<CycleReport>(`/training-cycles/${id}/report`);
+    return data;
+  },
+
+  submitSessionFeedback: async (
+    cycleId: string,
+    scheduleId: string,
+    input: { readinessScore?: number; sessionRpe?: number; painScore?: number; notes?: string },
+  ) => {
+    const { data } = await api.post(`/training-cycles/${cycleId}/sessions/${scheduleId}/feedback`, input);
+    return data;
+  },
+};
+
+export interface PublishedPlanListing {
+  id: string;
+  sourcePlanId: string;
+  publisherId: string;
+  title: string;
+  description: string | null;
+  goal: string;
+  moderationStatus: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
+  moderationNote: string | null;
+  avgRating: number;
+  ratingCount: number;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlanReview {
+  id: string;
+  publishedPlanId: string;
+  reviewerId: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+}
+
+export const marketplaceService = {
+  browse: async (params?: {
+    goal?: string;
+    sort?: "rating" | "recent";
+    page?: number;
+    limit?: number;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.goal) qs.set("goal", params.goal);
+    if (params?.sort) qs.set("sort", params.sort);
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const { data } = await api.get<{
+      success: boolean;
+      data: {
+        items: PublishedPlanListing[];
+        total: number;
+        page: number;
+        limit: number;
+      };
+    }>(`/marketplace/plans${qs.toString() ? `?${qs.toString()}` : ""}`);
+    return data.data;
+  },
+
+  getDetail: async (id: string) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: PublishedPlanListing & { reviews: PlanReview[] };
+    }>(`/marketplace/plans/${id}`);
+    return data.data;
+  },
+
+  submitReview: async (id: string, rating: number, comment?: string) => {
+    const { data } = await api.post<{ success: boolean; data: PlanReview }>(
+      `/marketplace/plans/${id}/reviews`,
+      { rating, comment },
+    );
+    return data.data;
+  },
+
+  publish: async (sourcePlanId: string, title: string, description?: string) => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: PublishedPlanListing;
+    }>("/marketplace/plans", { sourcePlanId, title, description });
+    return data.data;
+  },
+
+  listMine: async () => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: PublishedPlanListing[];
+    }>("/marketplace/plans/mine");
+    return data.data;
+  },
+
+  withdraw: async (id: string) => {
+    await api.delete(`/marketplace/plans/${id}`);
+  },
+
+  // ── Admin ──────────────────────────────────────────────────────────────
+  adminListForModeration: async (status?: string) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: PublishedPlanListing[];
+    }>(`/admin/ai/marketplace/plans${status ? `?status=${status}` : ""}`);
+    return data.data;
+  },
+
+  adminReviewAction: async (
+    id: string,
+    action: "APPROVE" | "REJECT",
+    note?: string,
+  ) => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: PublishedPlanListing;
+    }>(`/admin/ai/marketplace/plans/${id}/review/${action}`, { note });
+    return data.data;
+  },
+};
+
+export interface TrainingPackage {
+  id: string;
+  sellerId: string;
+  publishedPlanId: string;
+  name: string;
+  description: string | null;
+  price: number;
+  durationWeeks: number | null;
+  status: "ACTIVE" | "ARCHIVED";
+  createdAt: string;
+  updatedAt: string;
+  publishedPlan?: {
+    title: string;
+    goal: string;
+    avgRating?: number;
+    ratingCount?: number;
+    sourcePlanId?: string;
+  };
+}
+
+export interface TrainingPackagePurchase {
+  id: string;
+  packageId: string;
+  buyerId: string;
+  priceAtPurchase: number;
+  status: "PENDING" | "PAID" | "FAILED";
+  purchasedAt: string | null;
+  createdAt: string;
+  package?: TrainingPackage;
+}
+
+export const trainingPackageService = {
+  create: async (params: {
+    publishedPlanId: string;
+    name: string;
+    description?: string;
+    price: number;
+    durationWeeks?: number;
+  }) => {
+    const { data } = await api.post<{ success: boolean; data: TrainingPackage }>(
+      "/marketplace/packages",
+      params,
+    );
+    return data.data;
+  },
+
+  listMine: async () => {
+    const { data } = await api.get<{ success: boolean; data: TrainingPackage[] }>(
+      "/marketplace/packages/mine",
+    );
+    return data.data;
+  },
+
+  archive: async (id: string) => {
+    const { data } = await api.post<{ success: boolean; data: TrainingPackage }>(
+      `/marketplace/packages/${id}/archive`,
+    );
+    return data.data;
+  },
+
+  browse: async (page = 1, limit = 20) => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: { items: TrainingPackage[]; total: number; page: number; limit: number };
+    }>(`/marketplace/packages?page=${page}&limit=${limit}`);
+    return data.data;
+  },
+
+  purchase: async (id: string) => {
+    const { data } = await api.post<{
+      success: boolean;
+      data: TrainingPackagePurchase;
+    }>(`/marketplace/packages/${id}/purchase`);
+    return data.data;
+  },
+
+  listMyPurchases: async () => {
+    const { data } = await api.get<{
+      success: boolean;
+      data: TrainingPackagePurchase[];
+    }>("/marketplace/packages/purchases/mine");
+    return data.data;
+  },
+};
+
 export type PlanStatusBackend =
   | "QUEUED"
   | "PROCESSING"
@@ -626,6 +1228,7 @@ export interface WorkoutExerciseCompletionResponse {
   sessionStatus: "not_started" | "in_progress" | "completed";
   dayStatus: "not_started" | "in_progress" | "completed";
   completedAt: string | null;
+  trainingCycleId?: string | null;
 }
 
 export interface PlanJobResponse {
@@ -1093,10 +1696,10 @@ export const planService = {
 };
 
 export const coachService = {
-  chat: async (message: string) => {
+  chat: async (message: string, sessionId?: string) => {
     const { data } = await api.post(
       "/ai/ask",
-      { question: message },
+      { question: message, ...(sessionId ? { sessionId } : {}) },
       {
         // AI generation can take longer than standard API calls.
         timeout: 120000,
@@ -1111,6 +1714,28 @@ export const coachService = {
     return data?.data ?? data;
   },
 
+  listSessions: async (): Promise<AiChatSessionSummary[]> => {
+    const { data } = await api.get("/ai/sessions");
+    return data?.data?.sessions ?? [];
+  },
+
+  getSessionMessages: async (
+    sessionId: string,
+  ): Promise<AiSessionMessage[]> => {
+    const { data } = await api.get(`/ai/sessions/${sessionId}/messages`);
+    return data?.data?.messages ?? [];
+  },
+
+  renameSession: async (sessionId: string, title: string) => {
+    const { data } = await api.patch(`/ai/sessions/${sessionId}`, { title });
+    return data?.data ?? data;
+  },
+
+  archiveSession: async (sessionId: string) => {
+    const { data } = await api.delete(`/ai/sessions/${sessionId}`);
+    return data?.data ?? data;
+  },
+
   chatStream(
     message: string,
     callbacks: {
@@ -1119,6 +1744,7 @@ export const coachService = {
       onDone: (payload: CoachStreamDonePayload) => void;
       onError: (message: string) => void;
     },
+    sessionId?: string,
   ): () => void {
     const controller = new AbortController();
     const slowNoticeTimer = window.setTimeout(() => {
@@ -1141,7 +1767,10 @@ export const coachService = {
                 ? { Authorization: `Bearer ${token}` }
                 : {}),
             },
-            body: JSON.stringify({ question: message }),
+            body: JSON.stringify({
+              question: message,
+              ...(sessionId ? { sessionId } : {}),
+            }),
             signal: controller.signal,
           });
 

@@ -696,13 +696,23 @@ export function PTDiscoveryPage() {
                       {selectedPT.lastName?.[0]}
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="text-zinc-100">
-                          {selectedPT.firstName} {selectedPT.lastName}
-                        </h2>
-                        <span className="flex items-center gap-1 text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
-                          <Award className="w-3 h-3" /> Đã xác minh
-                        </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-zinc-100">
+                            {selectedPT.firstName} {selectedPT.lastName}
+                          </h2>
+                          <span className="flex items-center gap-1 text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
+                            <Award className="w-3 h-3" /> Đã xác minh
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedId(null)}
+                          className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors flex-shrink-0"
+                          aria-label="Đóng"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-zinc-500 mt-1 flex-wrap">
                         {(() => {

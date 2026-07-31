@@ -136,6 +136,13 @@ export class VNPayProvider implements PaymentProvider {
    * payload, so callers pass the raw query string as the body buffer.
    */
   verifyWebhookSignature(rawBody: Buffer): WebhookVerifyResult {
+    // Fail closed: an empty HASH_SECRET is a known, publicly-computable HMAC key —
+    // never treat "not configured" as "verification not needed." A misconfigured
+    // deployment must reject every webhook, not silently accept forged ones.
+    if (!HASH_SECRET) {
+      logger.error('[VNPay] VNPAY_HASH_SECRET is not configured — rejecting webhook');
+      return { valid: false };
+    }
     const search = new URLSearchParams(rawBody.toString('utf-8'));
     const params: Record<string, string> = {};
     for (const [k, v] of search.entries()) params[k] = v;

@@ -7,6 +7,7 @@ import {
 import { ragService } from "../services/rag.service";
 import { conversationService } from "../services/conversation.service";
 import {
+  ApiError,
   LlmError,
   LlmGenerationError,
   formatSuccessResponse,
@@ -23,13 +24,14 @@ export const aiController = {
     const startTime = Date.now();
     // userId is guaranteed by requireAuth middleware
     const { userId, authorizationHeader } = req.context;
-    const { question } = req.body as AskRequest;
+    const { question, sessionId } = req.body as AskRequest;
 
     try {
       const result = await ragService.rag(
         question,
         userId,
         authorizationHeader,
+        sessionId,
       );
 
       aiCoachQueriesTotal.inc({ status: "success" });
@@ -64,7 +66,7 @@ export const aiController = {
   ): Promise<void> {
     const startTime = Date.now();
     const { userId, authorizationHeader } = req.context;
-    const { question } = req.body as AskRequest;
+    const { question, sessionId } = req.body as AskRequest;
 
     res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -95,6 +97,7 @@ export const aiController = {
         question,
         userId,
         authorizationHeader,
+        sessionId,
         (message) => sendEvent("status", { message }),
       );
 
@@ -118,6 +121,7 @@ export const aiController = {
 
       sendEvent("done", {
         conversationId: result.conversationId,
+        sessionId: result.sessionId,
         evidenceUsed: result.evidenceUsed ?? [],
         adjustmentReasons: result.adjustmentReasons ?? [],
         safetyNotes: result.safetyNotes ?? [],
@@ -128,7 +132,12 @@ export const aiController = {
       aiCoachQueriesTotal.inc({ status: "failure" });
       aiCoachQueryDuration.observe((Date.now() - startTime) / 1000);
 
-      if (err instanceof LlmError) {
+      // Must check SESSION_NOT_FOUND before the LlmError check below —
+      // LlmError extends ApiError, so a generic ApiError check would need to
+      // come after it, not before, to avoid misclassifying LLM failures.
+      if (err instanceof ApiError && err.code === "SESSION_NOT_FOUND") {
+        sendEvent("error", { message: err.message });
+      } else if (err instanceof LlmError) {
         sendEvent("error", {
           message:
             "AI service is temporarily unavailable. Please try again shortly.",

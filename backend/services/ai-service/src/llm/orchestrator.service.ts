@@ -1,4 +1,5 @@
 import { llmService } from "../services/llm.service";
+import { runToolCallingTurn } from "./tools";
 import { conversationRepository } from "../repositories/conversation.repository";
 import { logger } from "@gym-coach/shared";
 import { inputParser } from "./input_parser";
@@ -56,7 +57,14 @@ const RAG_TIMEOUT_MS = Number(process.env.AI_CHAT_RAG_TIMEOUT_MS || "8000");
 const EVIDENCE_TIMEOUT_MS = Number(
   process.env.AI_CHAT_EVIDENCE_TIMEOUT_MS || "8000",
 );
-const LLM_TIMEOUT_MS = Number(process.env.AI_CHAT_LLM_TIMEOUT_MS || "60000");
+const LLM_TIMEOUT_MS = Number(
+  process.env.AI_CHAT_LLM_TIMEOUT_MS || process.env.LLM_TIMEOUT_MS || "60000",
+);
+// Opt-in real tool-calling for the LLM-bound intents (Phase 2 of the AI
+// readiness roadmap). Defaults off: the regex/deterministic routing this
+// gates around already scores hitAtK=0.98 on the retrieval eval, so this is
+// additive, not a replacement, and must be explicitly enabled per environment.
+const ENABLE_TOOL_CALLING = process.env.ENABLE_TOOL_CALLING === "true";
 
 async function withTimeout<T>(
   promise: Promise<T>,
@@ -231,6 +239,7 @@ export const llmOrchestrator = {
     question: string,
     userId?: string,
     authHeader?: string,
+    sessionId?: string,
     onProgress?: ProgressCallback,
   ): Promise<FinalAnswerPayload> {
     const trace = traceLogger.start(question, userId);
@@ -250,7 +259,10 @@ export const llmOrchestrator = {
 
     if (
       safetyCheck.type === "off_topic" ||
-      safetyCheck.type === "medical_emergency"
+      safetyCheck.type === "medical_emergency" ||
+      safetyCheck.type === "unsafe_ped_request" ||
+      safetyCheck.type === "unsafe_extreme_calorie_request" ||
+      safetyCheck.type === "prompt_injection_attempt"
     ) {
       const answer =
         language.responseLanguage === "vi"
@@ -279,7 +291,7 @@ export const llmOrchestrator = {
     const preliminaryScheduleIntent = preliminaryNutritionIntent.enabled
       ? { enabled: false }
       : detectWorkoutScheduleIntent(question);
-    const [context, retrieval, chatHistory] = await Promise.all([
+    const [context, retrieval, chatHistory, memories] = await Promise.all([
       timeAsync(timing, "profileContextMs", () =>
         withTimeout(
           profileExtractor.extract(userId, authHeader),
@@ -322,10 +334,25 @@ export const llmOrchestrator = {
       }),
       timeAsync(timing, "chatHistoryMs", () =>
         userId
-          ? conversationRepository.findMany({ userId }, 5)
+          ? conversationRepository.findMany(
+              { userId, sessionId, usedFallback: false, excludeThumbsDown: true },
+              5,
+            )
           : Promise.resolve([]),
       ),
+      timeAsync(timing, "memoriesMs", () =>
+        userId
+          ? conversationRepository.findMemoriesByUser(userId, 20)
+          : Promise.resolve([]),
+      ).catch((err) => {
+        logger.warn(
+          { error: safeErrorMessage(err), request_id: trace.traceId },
+          "AI chat memory fetch failed; continuing without saved memories",
+        );
+        return [];
+      }),
     ]);
+    context.memories = memories;
 
     const nutritionIntent = detectNutritionLookupIntent(question, chatHistory);
     if (nutritionIntent.enabled) {
@@ -608,16 +635,19 @@ export const llmOrchestrator = {
         ),
       );
       try {
+        const llmCallOpts = {
+          timeoutMs: LLM_TIMEOUT_MS,
+          temperature: routedIntent.intent === "general_fitness_knowledge" ? 0.2 : undefined,
+          numPredict: bodyCompositionQuestion
+            ? 650
+            : routedIntent.intent === "general_fitness_knowledge"
+              ? 420
+              : undefined,
+        };
         const llmResponse = await timeAsync(timing, "llmGenerateMs", () =>
-          llmService.callLLM(prompt, {
-            timeoutMs: LLM_TIMEOUT_MS,
-            temperature: routedIntent.intent === "general_fitness_knowledge" ? 0.2 : undefined,
-            numPredict: bodyCompositionQuestion
-              ? 650
-              : routedIntent.intent === "general_fitness_knowledge"
-                ? 420
-                : undefined,
-          }),
+          ENABLE_TOOL_CALLING
+            ? runToolCallingTurn(prompt, context, llmCallOpts)
+            : llmService.callLLM(prompt, llmCallOpts),
         );
         llmAnswer = labelLocalizer.localize(
           llmResponse.answer,

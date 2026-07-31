@@ -21,7 +21,9 @@ const MIN_SCORE = Number(process.env.RAG_MIN_SCORE || "0.35");
 const TOP_K = Number(process.env.RAG_TOP_K || "5");
 const DEBUG_RAG = process.env.DEBUG_RAG === "true";
 const RAG_EMBEDDING_TIMEOUT_MS = Number(
-  process.env.RAG_EMBEDDING_TIMEOUT_MS || "8000",
+  process.env.RAG_EMBEDDING_TIMEOUT_MS ||
+    process.env.EMBEDDING_TIMEOUT_MS ||
+    "8000",
 );
 // Max chars for instructions field - long how-to text bloats the prompt without adding value for the LLM
 const INSTRUCTION_MAX_CHARS = 120;
@@ -65,6 +67,28 @@ function foldVietnameseForQuery(text: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[đĐ]/g, "d");
+}
+
+// Equipment values that require gym-only machines/free weights, observed in
+// the `exercises` collection's real payload (confirmed via direct Qdrant
+// scroll — this collection has its own equipment vocabulary, distinct from
+// fitness-service's DB enum used for plan generation). When a chat question
+// signals "home / no equipment", these are excluded via a Qdrant filter so
+// RAG doesn't surface a barbell/machine exercise as the answer.
+const GYM_ONLY_EQUIPMENT = [
+  "Barbell",
+  "Cable Machine",
+  "Machine",
+  "Smith Machine",
+  "Sled",
+  "Treadmill",
+];
+
+export function detectHomeOnlyConstraint(question: string): boolean {
+  const q = foldVietnameseForQuery(question);
+  return /(tap o nha|tai nha|khong co ta|khong co dung cu|khong dung cu|home workout|no equipment|bodyweight only|without equipment)/i.test(
+    q,
+  );
 }
 
 function expandQueries(question: string): string[] {
@@ -267,12 +291,14 @@ function dedupeAndSort(docs: RetrievalDocument[]): RetrievalDocument[] {
 async function searchCollection(
   collection: string,
   vector: number[],
+  filter?: Record<string, unknown>,
 ): Promise<RetrievalDocument[]> {
   try {
     const results = await getQdrantClient().search(collection, {
       vector,
       limit: TOP_K,
       with_payload: true,
+      ...(filter ? { filter } : {}),
     });
     const docs: RetrievalDocument[] = [];
     for (const item of results) {
@@ -346,11 +372,16 @@ export const retriever = {
 
   async retrieveForChat(question: string): Promise<RetrievalResult> {
     const queries = expandQueries(question);
+    const homeOnly = detectHomeOnlyConstraint(question);
+    const exercisesFilter = homeOnly
+      ? { must_not: [{ key: "typeOfEquipment", match: { any: GYM_ONLY_EQUIPMENT } }] }
+      : undefined;
     debugRag("RAG chat query expanded", {
       scope: "chat",
       queryCount: queries.length,
       queryPreviews: queries.map(safeQueryPreview),
       collections: [...CHAT_COLLECTIONS],
+      homeOnlyEquipmentFilter: homeOnly,
     });
 
     const collected: RetrievalDocument[] = [];
@@ -363,7 +394,11 @@ export const retriever = {
           timeoutMs: RAG_EMBEDDING_TIMEOUT_MS,
         });
         const collectionPromises = CHAT_COLLECTIONS.map((col) =>
-          searchCollection(col, vector),
+          searchCollection(
+            col,
+            vector,
+            col === "exercises" ? exercisesFilter : undefined,
+          ),
         );
         const collectionResults = await Promise.all(collectionPromises);
         return collectionResults.flat();
@@ -400,5 +435,35 @@ export const retriever = {
 
   async retrieve(question: string): Promise<RetrievalResult> {
     return this.retrieveForChat(question);
+  },
+
+  /**
+   * Narrow, single-collection exercise search for the `search_exercise_library`
+   * tool call — the LLM supplies `equipment` explicitly (from the user's
+   * stated constraint), instead of `retrieveForChat`'s regex-based
+   * `detectHomeOnlyConstraint`.
+   */
+  async searchExercises(
+    query: string,
+    equipment?: string,
+  ): Promise<RetrievalDocument[]> {
+    try {
+      const vector = await llmService.generateEmbedding(query, {
+        timeoutMs: RAG_EMBEDDING_TIMEOUT_MS,
+      });
+      const filter =
+        equipment === "none"
+          ? {
+              must_not: [
+                { key: "typeOfEquipment", match: { any: GYM_ONLY_EQUIPMENT } },
+              ],
+            }
+          : undefined;
+      const docs = await searchCollection("exercises", vector, filter);
+      return dedupeAndSort(docs).slice(0, 3);
+    } catch (err) {
+      logger.warn({ err, query }, "Tool searchExercises failed");
+      return [];
+    }
   },
 };

@@ -113,7 +113,7 @@ export const ptApplicationService = {
 
   uploadDocument: async (
     file: File,
-  ): Promise<{ url: string; filename: string }> => {
+  ): Promise<{ url: string; previewUrl?: string; filename: string }> => {
     const formData = new FormData();
     formData.append("document", file);
     const { data } = await api.post("/pt-applications/me/upload", formData, {

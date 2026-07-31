@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
 import { logger, register, metricsMiddleware } from "@gym-coach/shared";
@@ -24,7 +23,11 @@ app.use(
     crossOriginResourcePolicy: { policy: "cross-origin" },
   }),
 );
-app.use(cors());
+// No CORS middleware here on purpose — see the matching note in
+// auth-service/src/app.ts: this service is only ever reached via the
+// gateway's proxy, and a no-args cors() was overriding the gateway's own
+// origin-scoped CORS header with an invalid wildcard-plus-credentials
+// combination once http-proxy-middleware forwarded it through.
 app.use(express.json());
 app.use(pinoHttp({ logger }));
 app.use(metricsMiddleware());
@@ -39,15 +42,18 @@ for (const dir of [
   if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 }
 
-// PT identity documents (CCCD, portrait, certificates) are NOT public. They are served only via
-// the authenticated GET /pt-applications/documents/:filename endpoint (owner or admin). Block any
-// direct/static access to this folder before the static handler below.
-app.use("/uploads/pt-applications", (_req, res) => {
-  res.status(403).json({ error: "Forbidden — use the authenticated document endpoint" });
-});
-
-// Serve remaining static uploads (e.g. profile photos) from the uploads directory.
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+// Only profile-photos (public avatars, same exposure level as any social-app
+// avatar URL) are served statically/unauthenticated. `pt-applications`
+// (national ID, portrait, certificates) and `contracts` are identity/legal
+// documents and must NEVER be reachable without an ownership/role check —
+// they are served through the authenticated /pt-applications/documents/:filename
+// endpoint instead (see pt_application.routes.ts). Do not add a blanket
+// `/uploads` static mount back — that previously served every file in
+// `uploads/pt-applications` to anyone on the internet with no auth at all.
+app.use(
+  "/uploads/profile-photos",
+  express.static(path.join(process.cwd(), "uploads/profile-photos")),
+);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "user-service" });

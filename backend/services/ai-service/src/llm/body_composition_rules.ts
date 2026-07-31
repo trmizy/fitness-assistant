@@ -49,6 +49,71 @@ function isModerateHighBF(bfPct: number, gender?: string): boolean {
   return bfPct >= threshold;
 }
 
+// Bilateral limb asymmetry thresholds, expressed as % difference relative to
+// the larger side. These mirror common InBody/BIA practitioner guidance:
+// <5% is normal side-to-side variation (measurement noise + natural
+// handedness), 5-10% is a mild but noticeable imbalance worth a small
+// training bias, >=10% is a significant imbalance worth explicit correction.
+const LIMB_ASYMMETRY_MILD_PCT = 5;
+const LIMB_ASYMMETRY_SIGNIFICANT_PCT = 10;
+
+interface LimbAsymmetryResult {
+  adjustment: AdjustmentReason;
+  evidenceQueries: string[];
+  weakerSide: "left" | "right";
+}
+
+/**
+ * Compares left vs right segmental muscle mass for one limb pair (arms or
+ * legs) and returns a plan adjustment when the gap is meaningful. Returns
+ * null when data is missing or the sides are within normal variation.
+ */
+function analyzeLimbAsymmetry(
+  limbLabelVi: "Tay" | "Chân",
+  leftKg: number | undefined,
+  rightKg: number | undefined,
+): LimbAsymmetryResult | null {
+  if (!leftKg || !rightKg || leftKg <= 0 || rightKg <= 0) return null;
+
+  const larger = Math.max(leftKg, rightKg);
+  const diffPct = (Math.abs(leftKg - rightKg) / larger) * 100;
+  if (diffPct < LIMB_ASYMMETRY_MILD_PCT) return null;
+
+  const weakerSide: "left" | "right" = leftKg < rightKg ? "left" : "right";
+  const weakerSideVi = weakerSide === "left" ? "trái" : "phải";
+  const strongerSideVi = weakerSide === "left" ? "phải" : "trái";
+  const isSignificant = diffPct >= LIMB_ASYMMETRY_SIGNIFICANT_PCT;
+  const limbLower = limbLabelVi === "Tay" ? "tay" : "chân";
+
+  const unilateralExamples =
+    limbLabelVi === "Tay"
+      ? "Single-Arm Dumbbell Row, One-Arm Dumbbell Overhead Press, Cable Single-Arm Triceps Pushdown"
+      : "Bulgarian Split Squat, Single-Leg Press, Walking Lunge";
+
+  return {
+    weakerSide,
+    adjustment: {
+      metric:
+        limbLabelVi === "Tay" ? "segmentalMuscle_arms" : "segmentalMuscle_legs",
+      observed_value: `${limbLabelVi} trái ${leftKg}kg vs ${limbLabelVi} phải ${rightKg}kg (lệch ${diffPct.toFixed(1)}%)`,
+      interpretation: isSignificant
+        ? `Khối lượng cơ ${limbLower} bên ${weakerSideVi} thấp hơn bên ${strongerSideVi} tới ${diffPct.toFixed(1)}% — mức lệch đáng kể, vượt ngưỡng biến động đo bình thường (~${LIMB_ASYMMETRY_MILD_PCT}%).`
+        : `Khối lượng cơ ${limbLower} bên ${weakerSideVi} thấp hơn bên ${strongerSideVi} khoảng ${diffPct.toFixed(1)}% — lệch nhẹ, có thể do thuận tay/chân hoặc thói quen tập luyện.`,
+      plan_adjustment: isSignificant
+        ? `Ưu tiên bài tập unilateral (từng bên riêng biệt) cho ${limbLower}, ví dụ: ${unilateralExamples}. ` +
+          `Tập bên ${weakerSideVi} TRƯỚC khi còn sung sức, và cân nhắc thêm 1 hiệp (set) cho bên ${weakerSideVi} so với bên ${strongerSideVi}. ` +
+          "Theo dõi lại qua lần đo InBody tiếp theo để đánh giá tiến triển."
+        : `Thêm 1-2 bài unilateral cho ${limbLower} (ví dụ: ${unilateralExamples}) để cân bằng dần, không cần thay đổi toàn bộ cấu trúc buổi tập.`,
+    },
+    evidenceQueries: isSignificant
+      ? [
+          "bilateral asymmetry unilateral training strength correction",
+          "single limb training muscle imbalance protocol",
+        ]
+      : ["unilateral exercise bilateral strength balance training"],
+  };
+}
+
 // ── Main analysis function ────────────────────────────────────────────────────
 
 export function analyzeBodyComposition(profile: UserProfile): BodyCompAnalysis {
@@ -232,6 +297,58 @@ export function analyzeBodyComposition(profile: UserProfile): BodyCompAnalysis {
       "protein intake muscle gain hypertrophy resistance training",
       "protein synthesis muscle building leucine timing",
     );
+  }
+
+  // ── Rule H: Left/right segmental muscle asymmetry ─────────────────────────
+  // InBody reports per-limb skeletal muscle mass (kg). A meaningful bilateral
+  // gap is a well-known, correctable training signal (limb dominance, injury
+  // history, unilateral sport background) — bias volume/exercise selection
+  // toward the weaker side rather than always training both sides identically.
+  const segMuscle = ib?.segmentalMuscle;
+  if (segMuscle) {
+    const armCase = analyzeLimbAsymmetry(
+      "Tay",
+      segMuscle.leftArm,
+      segMuscle.rightArm,
+    );
+    if (armCase) {
+      analysis.adjustments.push(armCase.adjustment);
+      analysis.evidenceQueries.push(...armCase.evidenceQueries);
+    }
+
+    const legCase = analyzeLimbAsymmetry(
+      "Chân",
+      segMuscle.leftLeg,
+      segMuscle.rightLeg,
+    );
+    if (legCase) {
+      analysis.adjustments.push(legCase.adjustment);
+      analysis.evidenceQueries.push(...legCase.evidenceQueries);
+    }
+
+    // ── Rule I: Same-side dominance across both limbs ───────────────────────
+    // If the SAME side (e.g. right arm AND right leg) is weaker in both
+    // cases, this points to a whole-body dominant-side pattern (handedness,
+    // stance sport, old injury) rather than two unrelated imbalances — call
+    // it out explicitly so the plan can bias overall exercise order/volume,
+    // not just isolated arm/leg accessory work.
+    if (armCase && legCase && armCase.weakerSide === legCase.weakerSide) {
+      const side = armCase.weakerSide === "left" ? "trái" : "phải";
+      analysis.adjustments.push({
+        metric: "segmentalMuscle_sameSideDominance",
+        observed_value: `Bên ${side} yếu hơn ở cả tay và chân`,
+        interpretation:
+          `Cả tay và chân bên ${side} đều có khối lượng cơ thấp hơn bên đối diện. ` +
+          "Đây thường là dấu hiệu của thuận tay/chân, thói quen vận động một bên, hoặc chấn thương cũ — không chỉ là lệch cục bộ một nhóm cơ.",
+        plan_adjustment:
+          `Cân nhắc bắt đầu buổi tập bằng các bài unilateral cho bên ${side} khi còn sung sức, ` +
+          "và rà soát thói quen sinh hoạt/thể thao một bên (ví dụ mang vác, đá bóng) có thể là nguyên nhân gốc rễ. " +
+          "Nếu lệch rõ rệt và kéo dài, khuyến nghị tham khảo huấn luyện viên hoặc chuyên gia vật lý trị liệu để đánh giá thêm.",
+      });
+      analysis.evidenceQueries.push(
+        "limb dominance handedness unilateral sport muscle asymmetry",
+      );
+    }
   }
 
   // ── Generic evidence queries always useful ────────────────────────────────

@@ -13,6 +13,9 @@ import type {
 
 const originalRun = llmOrchestrator.run;
 const originalCreate = conversationRepository.create;
+const originalCreateSession = conversationRepository.createSession;
+const originalTouchSessionLastMessage =
+  conversationRepository.touchSessionLastMessage;
 
 function baseRecommendation(): RecommendationResult {
   return {
@@ -58,6 +61,9 @@ function basePayload(
 test.afterEach(() => {
   llmOrchestrator.run = originalRun;
   conversationRepository.create = originalCreate;
+  conversationRepository.createSession = originalCreateSession;
+  conversationRepository.touchSessionLastMessage =
+    originalTouchSessionLastMessage;
 });
 
 test("retriever maps knowledge pipeline evidence payload aliases into citation metadata", () => {
@@ -115,6 +121,12 @@ test("ragService exposes evidenceUsed returned by the orchestrator", async () =>
 
   conversationRepository.create = (() =>
     ({ id: "conversation-1" }) as any) as typeof conversationRepository.create;
+  conversationRepository.createSession = (() =>
+    ({ id: "session-1" }) as any) as typeof conversationRepository.createSession;
+  conversationRepository.touchSessionLastMessage = (() =>
+    Promise.resolve(
+      {} as any,
+    )) as typeof conversationRepository.touchSessionLastMessage;
 
   const result = await ragService.rag(
     "How much protein do I need?",

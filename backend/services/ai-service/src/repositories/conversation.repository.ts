@@ -8,6 +8,7 @@ export const prisma = new PrismaClient();
 
 export type CreateConversationInput = {
   userId?: string;
+  sessionId?: string;
   question: string;
   answer: string;
   modelUsed: string;
@@ -48,9 +49,28 @@ export const conversationRepository = {
     return prisma.conversation.create({ data });
   },
 
-  findMany(where: { userId?: string }, limit = 10) {
+  findMany(
+    where: {
+      userId?: string;
+      sessionId?: string;
+      usedFallback?: boolean;
+      /** Excludes thumbs-downed turns (feedback === -1) so a rejected answer
+       * isn't fed back into future context identically to an accepted one. */
+      excludeThumbsDown?: boolean;
+    },
+    limit = 10,
+  ) {
+    const { excludeThumbsDown, ...rest } = where;
     return prisma.conversation.findMany({
-      where,
+      where: {
+        ...rest,
+        // `feedback: { not: -1 }` alone also excludes never-rated (NULL) rows
+        // under Postgres NULL-comparison semantics — only unrated or
+        // thumbs-up turns should stay in the history window.
+        ...(excludeThumbsDown
+          ? { OR: [{ feedback: null }, { feedback: { not: -1 } }] }
+          : {}),
+      },
       orderBy: { createdAt: "desc" },
       take: limit,
     });
@@ -65,6 +85,91 @@ export const conversationRepository = {
 
   count(where?: { feedback?: number }) {
     return prisma.conversation.count({ where });
+  },
+
+  // ── Chat sessions ──────────────────────────────────────────────────────────
+
+  createSession(data: { userId: string; title: string }) {
+    return prisma.chatSession.create({
+      data: { ...data, lastMessageAt: new Date() },
+    });
+  },
+
+  findSessionById(sessionId: string) {
+    return prisma.chatSession.findUnique({ where: { id: sessionId } });
+  },
+
+  findSessionsByUser(userId: string, limit = 50) {
+    return prisma.chatSession.findMany({
+      where: { userId, archivedAt: null },
+      orderBy: { lastMessageAt: "desc" },
+      take: limit,
+    });
+  },
+
+  renameSession(sessionId: string, title: string) {
+    return prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { title },
+    });
+  },
+
+  archiveSession(sessionId: string) {
+    return prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { archivedAt: new Date() },
+    });
+  },
+
+  touchSessionLastMessage(sessionId: string) {
+    return prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { lastMessageAt: new Date() },
+    });
+  },
+
+  findSessionMessages(userId: string, sessionId: string, limit = 200) {
+    return prisma.conversation.findMany({
+      where: { userId, sessionId },
+      orderBy: { createdAt: "asc" },
+      take: limit,
+    });
+  },
+
+  // ── User memory (Phase 3: cross-session personalization) ───────────────────
+
+  createUserMemory(data: { userId: string; content: string; category?: string }) {
+    return prisma.userMemory.create({ data });
+  },
+
+  findMemoriesByUser(userId: string, limit = 20) {
+    return prisma.userMemory.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+  },
+
+  findMemoryById(memoryId: string) {
+    return prisma.userMemory.findUnique({ where: { id: memoryId } });
+  },
+
+  deleteUserMemory(memoryId: string) {
+    return prisma.userMemory.delete({ where: { id: memoryId } });
+  },
+
+  /** Keeps only the newest `keepCount` memories for a user so the prompt block stays bounded. */
+  async pruneOldestMemories(userId: string, keepCount = 20) {
+    const excess = await prisma.userMemory.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      skip: keepCount,
+      select: { id: true },
+    });
+    if (excess.length === 0) return;
+    await prisma.userMemory.deleteMany({
+      where: { id: { in: excess.map((m) => m.id) } },
+    });
   },
 
   // ── Admin observability queries ───────────────────────────────────────────
@@ -247,9 +352,12 @@ export const conversationRepository = {
     });
   },
 
-  /** BR-34B: Delete all conversations for a user (cascade on account deletion) */
-  deleteByUserId: (userId: string) =>
-    prisma.conversation.deleteMany({ where: { userId } }),
+  /** BR-34B: Delete all conversations + chat sessions + memories for a user (cascade on account deletion) */
+  deleteByUserId: async (userId: string) => {
+    await prisma.chatSession.deleteMany({ where: { userId } });
+    await prisma.userMemory.deleteMany({ where: { userId } });
+    return prisma.conversation.deleteMany({ where: { userId } });
+  },
 
   /**
    * Recent workout plans for the queue panel.

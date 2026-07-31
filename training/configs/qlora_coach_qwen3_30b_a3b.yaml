@@ -1,0 +1,49 @@
+# QLoRA config for the ACTUAL production chat model. Confirmed via Ollama
+# (LLM_MODEL=qwen3:30b-a3b-instruct-2507-q4_K_M) that this HF repo is the
+# exact source: https://huggingface.co/Qwen/Qwen3-30B-A3B-Instruct-2507
+# (previous config here targeted meta-llama/Llama-3.2-3B-Instruct, which is
+# not the model ai-service actually serves — an adapter trained against it
+# could never be deployed into production chat).
+#
+# Qwen3-30B-A3B is a Mixture-of-Experts model (30B total / ~3B active params
+# per token). Unlike a dense model, VRAM for QLoRA is driven by the FULL 30B
+# parameter count (all experts must be resident, even though only a few are
+# active per token) — MoE reduces compute, not memory footprint. Rough
+# estimate for 4-bit QLoRA: ~15-18GB for quantized weights + LoRA
+# adapter/optimizer state + activations (varies with batch size and
+# max_seq_length below) — should fit on a single 48GB GPU (e.g. RunPod A40,
+# already used for inference in this project) but has NOT been verified end
+# to end in this repo: no GPU host was available to actually run a training
+# job and confirm it fits. Reduce per_device_train_batch_size or
+# max_seq_length first if you hit an OOM.
+#
+# target_modules below deliberately excludes the MoE router (the per-token
+# expert-selection layer, typically named `mlp.gate` on Qwen3) — only the
+# per-expert projection layers are adapted. This matches the community/HF
+# convention for LoRA on Qwen3-30B-A3B as of 2026-07.
+base_model: Qwen/Qwen3-30B-A3B-Instruct-2507
+output_dir: training/outputs/fitness-coach-qlora
+train_file: training/data/processed/train.jsonl
+eval_file: training/data/processed/eval.jsonl
+max_seq_length: 2048
+learning_rate: 0.0002
+num_train_epochs: 2
+max_steps: null
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 16
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+load_in_4bit: true
+bf16: true
+save_steps: 100
+eval_steps: 100
+logging_steps: 10

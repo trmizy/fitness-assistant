@@ -36,7 +36,8 @@ interface SourceDef {
     | "nhanes"
     | "bia_guideline"
     | "physical_activity"
-    | "nutrition_paper";
+    | "nutrition_paper"
+    | "training_paper";
   evidenceLevel: string;
   note: string;
 }
@@ -171,6 +172,47 @@ const SOURCES: SourceDef[] = [
     category: "nutrition_paper",
     evidenceLevel: "expert_consensus",
     note: "ISSN nutrient timing around exercise. CC BY 4.0. DOI: 10.1186/1550-2783-11-20",
+  },
+  // Muscle asymmetry / unilateral training papers (added for InBody segmental
+  // muscle imbalance coaching — see body_composition_rules.ts Rule H/I)
+  {
+    id: "asymmetry-thresholds-2021",
+    title:
+      "The Calculation, Thresholds and Reporting of Inter-Limb Strength Asymmetry: A Systematic Review (2021)",
+    url: "https://europepmc.org/backend/ptpmcrender.fcgi?accid=PMC8488821&blobtype=pdf",
+    localPath: path.join(
+      RAW_PAPERS,
+      "Parkinson_InterLimb_Asymmetry_2021.pdf",
+    ),
+    category: "training_paper",
+    evidenceLevel: "systematic_review",
+    note: "Parkinson et al., J Sports Sci Med 2021. Open access. DOI: 10.52082/jssm.2021.594",
+  },
+  {
+    id: "unilateral-bilateral-training-2022",
+    title:
+      "Effects of Unilateral vs. Bilateral Resistance Training Interventions on Strength, Jump, and Speed: Systematic Review and Meta-Analysis (2022)",
+    url: "https://europepmc.org/backend/ptpmcrender.fcgi?accid=PMC9331349&blobtype=pdf",
+    localPath: path.join(
+      RAW_PAPERS,
+      "Liao_Unilateral_Bilateral_Training_2022.pdf",
+    ),
+    category: "training_paper",
+    evidenceLevel: "systematic_review",
+    note: "Liao et al., Biology of Sport 2022. Open access. DOI: 10.5114/biolsport.2022.107024",
+  },
+  {
+    id: "unilateral-plyometric-asymmetry-2025",
+    title:
+      "Unilateral Plyometric Training Effectively Reduces Lower Limb Asymmetry in Athletes: A Meta-Analysis (2025)",
+    url: "https://europepmc.org/backend/ptpmcrender.fcgi?accid=PMC12014563&blobtype=pdf",
+    localPath: path.join(
+      RAW_PAPERS,
+      "Sun_Unilateral_Plyometric_Asymmetry_2025.pdf",
+    ),
+    category: "training_paper",
+    evidenceLevel: "systematic_review",
+    note: "Sun et al., Frontiers in Physiology 2025. Open access CC BY. DOI: 10.3389/fphys.2025.1551523",
   },
 ];
 

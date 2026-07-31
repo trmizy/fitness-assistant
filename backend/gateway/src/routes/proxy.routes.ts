@@ -9,6 +9,7 @@ import {
   validateInternalSecret,
   INTERNAL_SERVICE_SECRET_DEFAULT,
 } from "../utils/internal-secret";
+import { authRateLimiter, aiAskRateLimiter } from "../middleware/rateLimit.middleware";
 
 export { validateInternalSecret };
 
@@ -1566,6 +1567,7 @@ router.use(
 // Public — Auth Service
 router.use(
   "/auth",
+  authRateLimiter,
   createProxyMiddleware({
     target: AUTH_SERVICE_URL,
     changeOrigin: true,
@@ -1578,6 +1580,23 @@ router.use(
   "/profile/me/become-pt",
   authMiddleware,
   requireRoles("CUSTOMER", "ADMIN"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { "^/profile": "/profile" },
+    onError: serviceUnavailable("User service"),
+  }),
+);
+
+// Protected — Admin-only user-service endpoints. Previously only had
+// authMiddleware (any logged-in Client/PT/Gym Owner could call
+// /profile/admin/contracts/summary and /profile/admin/stats and read
+// platform-wide contract/OCR data). Registered before the general
+// /profile mount below so Express matches this more specific prefix first.
+router.use(
+  "/profile/admin",
+  authMiddleware,
+  requireRoles("ADMIN"),
   createProxyMiddleware({
     target: USER_SERVICE_URL,
     changeOrigin: true,
@@ -1601,6 +1620,16 @@ router.use(
 // Protected — Fitness Service (workouts)
 router.use(
   "/workouts",
+  authMiddleware,
+  createProxyMiddleware({
+    target: FITNESS_SERVICE_URL,
+    changeOrigin: true,
+  }),
+);
+
+// Protected — Fitness Service (training cycles)
+router.use(
+  "/training-cycles",
   authMiddleware,
   createProxyMiddleware({
     target: FITNESS_SERVICE_URL,
@@ -1816,6 +1845,45 @@ router.use(
   }),
 );
 
+router.use(
+  "/marketplace",
+  authMiddleware,
+  (req, _res, next) => {
+    req.headers["x-internal-token"] = INTERNAL_SERVICE_SECRET;
+    next();
+  },
+  createProxyMiddleware({
+    target: AI_SERVICE_URL,
+    changeOrigin: true,
+    onProxyReq: (proxyReq, req) => {
+      const userId = req.headers["x-user-id"];
+      const userEmail = req.headers["x-user-email"];
+      const userRole = req.headers["x-user-role"];
+      const authorization = req.headers.authorization;
+
+      if (typeof userId === "string") proxyReq.setHeader("x-user-id", userId);
+      if (typeof userEmail === "string") {
+        proxyReq.setHeader("x-user-email", userEmail);
+      }
+      if (typeof userRole === "string") {
+        proxyReq.setHeader("x-user-role", userRole);
+      }
+      if (typeof authorization === "string") {
+        proxyReq.setHeader("Authorization", authorization);
+      }
+      proxyReq.setHeader("x-internal-token", INTERNAL_SERVICE_SECRET);
+    },
+    onError: serviceUnavailable("AI service"),
+  }),
+);
+
+// Cost-aware limiter for real LLM calls — matches both /ai/ask and
+// /ai/ask/stream (Express `use()` does prefix matching), registered before
+// both so it applies regardless of which route below actually handles the
+// request. Every other /ai/* endpoint (sessions, memories, feedback) stays
+// on the flat global limiter — those are cheap CRUD, not LLM calls.
+router.use("/ai/ask", aiAskRateLimiter);
+
 // Dedicated SSE streaming route for /ai/ask/stream.
 // http-proxy-middleware v2 buffers chunked responses, which breaks SSE.
 // This route uses Node's native http module to pipe the response without buffering.
@@ -2005,6 +2073,25 @@ router.use(
     // OCR image extraction can run for tens of seconds.
     timeout: 180000,
     proxyTimeout: 180000,
+    onError: serviceUnavailable("User service"),
+  }),
+);
+
+// Public (signature-gated, not session-gated) — PT application document
+// downloads. Loaded via plain <img src=...>, which cannot attach an
+// Authorization header, so this must NOT sit behind authMiddleware — it is
+// registered before the general /pt-applications mount below so Express
+// matches this more specific path first. Authorization is enforced by
+// user-service itself via a short-lived HMAC signature in the URL's
+// exp/sig query params (see ptDocumentUrl.util.ts) — those are only ever
+// handed out by the already auth-gated getMe/getById/listApplications
+// responses, never guessable/forgeable without the server-side secret.
+router.use(
+  "/pt-applications/documents",
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { "^/pt-applications/documents": "/pt-applications/documents" },
     onError: serviceUnavailable("User service"),
   }),
 );

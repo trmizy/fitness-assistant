@@ -125,6 +125,7 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.ConversationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  sessionId: 'sessionId',
   question: 'question',
   answer: 'answer',
   modelUsed: 'modelUsed',
@@ -143,6 +144,24 @@ exports.Prisma.ConversationScalarFieldEnum = {
   responseLanguage: 'responseLanguage',
   routeIntent: 'routeIntent',
   warningCount: 'warningCount',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ChatSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  title: 'title',
+  lastMessageAt: 'lastMessageAt',
+  archivedAt: 'archivedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.UserMemoryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  content: 'content',
+  category: 'category',
   createdAt: 'createdAt'
 };
 
@@ -170,6 +189,56 @@ exports.Prisma.WorkoutPlanScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.PublishedPlanScalarFieldEnum = {
+  id: 'id',
+  sourcePlanId: 'sourcePlanId',
+  publisherId: 'publisherId',
+  title: 'title',
+  description: 'description',
+  goal: 'goal',
+  moderationStatus: 'moderationStatus',
+  moderationNote: 'moderationNote',
+  avgRating: 'avgRating',
+  ratingCount: 'ratingCount',
+  publishedAt: 'publishedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PlanReviewScalarFieldEnum = {
+  id: 'id',
+  publishedPlanId: 'publishedPlanId',
+  reviewerId: 'reviewerId',
+  rating: 'rating',
+  comment: 'comment',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.TrainingPackageScalarFieldEnum = {
+  id: 'id',
+  sellerId: 'sellerId',
+  publishedPlanId: 'publishedPlanId',
+  name: 'name',
+  description: 'description',
+  price: 'price',
+  durationWeeks: 'durationWeeks',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.TrainingPackagePurchaseScalarFieldEnum = {
+  id: 'id',
+  packageId: 'packageId',
+  buyerId: 'buyerId',
+  priceAtPurchase: 'priceAtPurchase',
+  paymentTransactionId: 'paymentTransactionId',
+  status: 'status',
+  purchasedAt: 'purchasedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.NutritionPlanScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -184,6 +253,70 @@ exports.Prisma.NutritionPlanScalarFieldEnum = {
   archivedAt: 'archivedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.KnowledgeSourceScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  baseUrl: 'baseUrl',
+  sourceType: 'sourceType',
+  trustTier: 'trustTier',
+  crawlCron: 'crawlCron',
+  isActive: 'isActive',
+  lastCrawledAt: 'lastCrawledAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.KnowledgeDocumentScalarFieldEnum = {
+  id: 'id',
+  sourceId: 'sourceId',
+  url: 'url',
+  title: 'title',
+  author: 'author',
+  language: 'language',
+  contentHash: 'contentHash',
+  rawObjectKey: 'rawObjectKey',
+  cleanText: 'cleanText',
+  topic: 'topic',
+  trustScore: 'trustScore',
+  qualityScore: 'qualityScore',
+  safetyFlag: 'safetyFlag',
+  status: 'status',
+  rejectionReason: 'rejectionReason',
+  publishedAt: 'publishedAt',
+  crawledAt: 'crawledAt',
+  processedAt: 'processedAt'
+};
+
+exports.Prisma.KnowledgeChunkScalarFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  chunkIndex: 'chunkIndex',
+  text: 'text',
+  tokenCount: 'tokenCount',
+  vectorId: 'vectorId',
+  embeddedAt: 'embeddedAt'
+};
+
+exports.Prisma.KnowledgePipelineRunScalarFieldEnum = {
+  id: 'id',
+  runType: 'runType',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  docsCrawled: 'docsCrawled',
+  docsAccepted: 'docsAccepted',
+  docsRejected: 'docsRejected',
+  docsReview: 'docsReview',
+  status: 'status'
+};
+
+exports.Prisma.KnowledgeReviewItemScalarFieldEnum = {
+  id: 'id',
+  documentId: 'documentId',
+  reason: 'reason',
+  status: 'status',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -223,10 +356,76 @@ exports.PtReviewStatus = exports.$Enums.PtReviewStatus = {
   PT_REJECTED: 'PT_REJECTED'
 };
 
+exports.PublishModerationStatus = exports.$Enums.PublishModerationStatus = {
+  DRAFT: 'DRAFT',
+  SUBMITTED: 'SUBMITTED',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+exports.TrainingPackageStatus = exports.$Enums.TrainingPackageStatus = {
+  ACTIVE: 'ACTIVE',
+  ARCHIVED: 'ARCHIVED'
+};
+
+exports.TrainingPackagePurchaseStatus = exports.$Enums.TrainingPackagePurchaseStatus = {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  FAILED: 'FAILED'
+};
+
+exports.KnowledgeSourceType = exports.$Enums.KnowledgeSourceType = {
+  RSS: 'RSS',
+  API: 'API',
+  WEB: 'WEB',
+  LOCAL: 'LOCAL'
+};
+
+exports.KnowledgeDocumentTopic = exports.$Enums.KnowledgeDocumentTopic = {
+  TRAINING: 'TRAINING',
+  NUTRITION: 'NUTRITION',
+  RECOVERY: 'RECOVERY',
+  INJURY: 'INJURY',
+  BODY_COMPOSITION: 'BODY_COMPOSITION',
+  GENERAL: 'GENERAL'
+};
+
+exports.KnowledgeDocumentStatus = exports.$Enums.KnowledgeDocumentStatus = {
+  CRAWLED: 'CRAWLED',
+  CLEANED: 'CLEANED',
+  SCORED: 'SCORED',
+  EMBEDDED: 'EMBEDDED',
+  REJECTED: 'REJECTED',
+  REVIEW: 'REVIEW'
+};
+
+exports.KnowledgePipelineRunStatus = exports.$Enums.KnowledgePipelineRunStatus = {
+  RUNNING: 'RUNNING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED'
+};
+
+exports.KnowledgeReviewStatus = exports.$Enums.KnowledgeReviewStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
 exports.Prisma.ModelName = {
   Conversation: 'Conversation',
+  ChatSession: 'ChatSession',
+  UserMemory: 'UserMemory',
   WorkoutPlan: 'WorkoutPlan',
-  NutritionPlan: 'NutritionPlan'
+  PublishedPlan: 'PublishedPlan',
+  PlanReview: 'PlanReview',
+  TrainingPackage: 'TrainingPackage',
+  TrainingPackagePurchase: 'TrainingPackagePurchase',
+  NutritionPlan: 'NutritionPlan',
+  KnowledgeSource: 'KnowledgeSource',
+  KnowledgeDocument: 'KnowledgeDocument',
+  KnowledgeChunk: 'KnowledgeChunk',
+  KnowledgePipelineRun: 'KnowledgePipelineRun',
+  KnowledgeReviewItem: 'KnowledgeReviewItem'
 };
 
 /**

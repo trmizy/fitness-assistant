@@ -11,7 +11,6 @@ import {
   Utensils,
   Users,
   Search,
-  Bot,
   User,
   Shield,
   UserCheck,
@@ -22,13 +21,19 @@ import {
   Zap,
   Workflow,
   Wallet,
+  Store,
 } from "lucide-react";
 import { AutoText } from "../i18n/AutoText";
 import type { AppLanguage } from "../../context/SettingsContext";
 
 // ─── Navigation definitions ────────────────────────────────────────────────
 
-/** Full client nav — shown to pure Client accounts */
+/**
+ * Full client nav — shown to pure Client accounts.
+ * Several entries are merged tabbed pages (see TabbedPage) so two related
+ * features share one nav slot instead of each taking a row — keeps this
+ * list short enough to be usable on a mobile-width sidebar/drawer.
+ */
 const clientNavFull = [
   {
     label: "Dashboard",
@@ -42,31 +47,13 @@ const clientNavFull = [
     to: "/client/inbody",
     sourceLang: "en" as const,
   },
-  {
-    label: "AI Plans",
-    icon: Brain,
-    to: "/client/plans",
-    sourceLang: "en" as const,
-  },
-  { label: "Nhật ký tập", icon: Dumbbell, to: "/client/workout" },
+  { label: "Kế hoạch AI", icon: Brain, to: "/client/plans" },
+  { label: "Tập luyện", icon: Dumbbell, to: "/client/workout" },
   { label: "Dinh dưỡng", icon: Utensils, to: "/client/nutrition" },
-  { label: "Tìm PT", icon: Search, to: "/client/coaches" },
+  { label: "PT & Đặt lịch", icon: Search, to: "/client/coaches" },
   { label: "Hợp đồng", icon: FileText, to: "/client/contracts" },
-  { label: "Đặt lịch", icon: Calendar, to: "/client/booking" },
-  {
-    label: "Chat",
-    icon: MessageSquare,
-    to: "/client/chat",
-    sourceLang: "en" as const,
-  },
-  {
-    label: "AI Coach",
-    icon: Bot,
-    to: "/client/ai-coach",
-    sourceLang: "en" as const,
-  },
-  { label: "Tìm phòng gym", icon: Search, to: "/client/gyms" },
-  { label: "Hội viên gym", icon: Dumbbell, to: "/client/gym-memberships" },
+  { label: "Trò chuyện", icon: MessageSquare, to: "/client/chat" },
+  { label: "Phòng gym", icon: Store, to: "/client/gyms" },
   { label: "Ví", icon: Wallet, to: "/client/wallet" },
   { label: "Hồ sơ", icon: User, to: "/client/profile" },
 ];
@@ -76,10 +63,11 @@ const gymOwnerNav = [
   { label: "Phòng gym của tôi", icon: Dumbbell, to: "/gym-owner/gyms" },
 ];
 
-/** Client nav for PT users — no Find a Coach, no Chat (PT chats from Trainer workspace) */
-const ptClientNav = clientNavFull.filter(
-  (n) => n.to !== "/client/coaches" && n.to !== "/client/chat",
-);
+// Client nav for PT users — no "PT & Đặt lịch" (a PT doesn't need to find
+// another coach for themselves). "Trò chuyện" now also bundles AI Coach
+// (previously always visible to PT-as-client, unlike plain user-chat), so
+// it stays visible here rather than being excluded like the old "Chat" was.
+const ptClientNav = clientNavFull.filter((n) => n.to !== "/client/coaches");
 
 /** PT professional workspace nav */
 const ptWorkspaceNav = [
@@ -113,6 +101,7 @@ const adminNav = [
   },
   { label: "Người dùng", icon: Users, to: "/admin/users" },
   { label: "Quản lý PT", icon: UserCheck, to: "/admin/pts" },
+  { label: "Chợ kế hoạch", icon: Store, to: "/admin/marketplace" },
   { label: "Giám sát hệ thống", icon: Monitor, to: "/admin/system" },
   {
     label: "Workflows",

@@ -35,6 +35,7 @@ test(
   async () => {
     ragService.rag = async (question: string) => ({
       conversationId: "conv-1",
+      sessionId: "session-1",
       question,
       answer:
         "Ban nen uu tien squat va deadlift 3 buoi moi tuan de tang suc manh.",

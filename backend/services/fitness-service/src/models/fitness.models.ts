@@ -3,6 +3,24 @@ import { WORKOUT_LIMITS } from "../utils/workout-validation";
 
 const L = WORKOUT_LIMITS;
 
+// Advanced/professional-athlete set-logging fields (WorkoutSet.setType,
+// .side). Plain string enums validated here at the app layer rather than a
+// DB enum, matching this codebase's existing convention for
+// WorkoutSchedule.status. "Top set"/"back-off set" naming follows common
+// powerlifting-coaching practice (not a peer-reviewed classification) — see
+// docs/advanced-set-logging.md.
+export const SET_TYPES = ["WARMUP", "WORKING", "TOP", "BACKOFF", "FAILURE"] as const;
+export const SET_SIDES = ["LEFT", "RIGHT", "BOTH"] as const;
+
+const advancedSetFields = {
+  setType: z.enum(SET_TYPES).optional().nullable(),
+  tempo: z.string().max(20).optional().nullable(),
+  rangeOfMotion: z.string().max(40).optional().nullable(),
+  side: z.enum(SET_SIDES).optional().nullable(),
+  painScore: z.number().int().min(0).max(10).optional().nullable(),
+  techniqueNotes: z.string().max(500).optional().nullable(),
+};
+
 export const aiPlanExerciseSchema = z.object({
   exerciseId: z.string().min(1, "Exercise ID is required"),
   order: z.number().int().min(1).max(30).optional(),
@@ -124,8 +142,11 @@ export const createWorkoutSchema = z
             .min(L.WEIGHT_MIN, "Weight cannot be negative")
             .max(L.WEIGHT_MAX, `Weight cannot exceed ${L.WEIGHT_MAX} kg`)
             .optional(),
+          rpe: z.number().min(1).max(10).optional(),
+          rir: z.number().int().min(0).max(5).optional(),
           completed: z.boolean().optional(),
           notes: z.string().optional(),
+          ...advancedSetFields,
         }),
       )
       .min(L.EXERCISES_MIN, "At least one exercise is required")
@@ -152,7 +173,9 @@ export const updateWorkoutSetSchema = z.object({
   reps: z.number().int().positive().optional(),
   weight: z.number().nonnegative().optional(),
   rpe: z.number().min(1).max(10).optional(),
+  rir: z.number().int().min(0).max(5).optional(),
   completed: z.boolean().optional(),
+  ...advancedSetFields,
 });
 
 export const createNutritionSchema = z.object({

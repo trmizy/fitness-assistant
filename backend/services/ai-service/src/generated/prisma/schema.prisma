@@ -1,7 +1,7 @@
 generator client {
   provider      = "prisma-client-js"
   output        = "../src/generated/prisma"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -12,6 +12,7 @@ datasource db {
 model Conversation {
   id                        String    @id @default(uuid())
   userId                    String?   @map("user_id")
+  sessionId                 String?   @map("session_id")
   question                  String
   answer                    String
   modelUsed                 String    @map("model_used")
@@ -34,10 +35,41 @@ model Conversation {
   createdAt                 DateTime  @default(now()) @map("created_at")
 
   @@index([userId, createdAt])
+  @@index([userId, sessionId, createdAt])
   @@index([createdAt])
   @@index([routeIntent])
   @@index([usedFallback])
   @@map("conversations")
+}
+
+model ChatSession {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  title         String
+  // Bumped explicitly whenever a new turn is appended to this session (not on
+  // every touch) — the sidebar sorts by this, so a title rename alone never
+  // reorders the list.
+  lastMessageAt DateTime  @default(now()) @map("last_message_at")
+  archivedAt    DateTime? @map("archived_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, archivedAt, lastMessageAt])
+  @@map("chat_sessions")
+}
+
+model UserMemory {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  content   String
+  // Free-text label ("dietary" | "schedule" | "exercise_preference" | "other"),
+  // not an enum — keeps the remember_user_fact tool schema simple and lets the
+  // model choose without a migration if new categories come up.
+  category  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("user_memories")
 }
 
 enum PlanStatus {
@@ -78,10 +110,271 @@ model WorkoutPlan {
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
 
+  publishedListings PublishedPlan[]
+
   @@index([userId])
   @@index([jobId])
   @@index([userId, status])
   @@index([ptUserId, ptReviewStatus])
   @@index([userId, archivedAt])
   @@map("workout_plans")
+}
+
+enum PublishModerationStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+// A user-published, community-visible listing wrapping one of their WorkoutPlan
+// rows. Title/description/goal are snapshotted at publish time so edits to the
+// underlying WorkoutPlan don't silently change an already-approved listing.
+model PublishedPlan {
+  id               String                  @id @default(uuid())
+  sourcePlanId     String                  @map("source_plan_id")
+  publisherId      String                  @map("publisher_id")
+  title            String
+  description      String?
+  goal             String
+  moderationStatus PublishModerationStatus @default(DRAFT) @map("moderation_status")
+  moderationNote   String?                 @map("moderation_note")
+  avgRating        Float                   @default(0) @map("avg_rating")
+  ratingCount      Int                     @default(0) @map("rating_count")
+  publishedAt      DateTime?               @map("published_at")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  sourcePlan WorkoutPlan       @relation(fields: [sourcePlanId], references: [id], onDelete: Cascade)
+  reviews    PlanReview[]
+  packages   TrainingPackage[]
+
+  @@index([publisherId])
+  @@index([moderationStatus])
+  @@map("published_plans")
+}
+
+model PlanReview {
+  id              String   @id @default(uuid())
+  publishedPlanId String   @map("published_plan_id")
+  reviewerId      String   @map("reviewer_id")
+  rating          Int // 1-5
+  comment         String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  publishedPlan PublishedPlan @relation(fields: [publishedPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([publishedPlanId, reviewerId])
+  @@index([publishedPlanId])
+  @@map("plan_reviews")
+}
+
+enum TrainingPackageStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum TrainingPackagePurchaseStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+// A priced, sellable listing wrapping an APPROVED PublishedPlan. sellerId is
+// always the PublishedPlan's publisher (enforced in the service layer, not by
+// FK) — this is a distinct entity so a publisher can price/name multiple
+// sellable variants of the same underlying plan later without re-publishing.
+model TrainingPackage {
+  id              String                @id @default(uuid())
+  sellerId        String                @map("seller_id")
+  publishedPlanId String                @map("published_plan_id")
+  name            String
+  description     String?
+  price           Float
+  durationWeeks   Int?                  @map("duration_weeks")
+  status          TrainingPackageStatus @default(ACTIVE)
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  publishedPlan PublishedPlan             @relation(fields: [publishedPlanId], references: [id], onDelete: Cascade)
+  purchases     TrainingPackagePurchase[]
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([publishedPlanId])
+  @@map("training_packages")
+}
+
+model TrainingPackagePurchase {
+  id                   String                        @id @default(uuid())
+  packageId            String                        @map("package_id")
+  buyerId              String                        @map("buyer_id")
+  priceAtPurchase      Float                         @map("price_at_purchase")
+  paymentTransactionId String?                       @map("payment_transaction_id")
+  status               TrainingPackagePurchaseStatus @default(PENDING)
+  purchasedAt          DateTime?                     @map("purchased_at")
+  createdAt            DateTime                      @default(now()) @map("created_at")
+  updatedAt            DateTime                      @updatedAt @map("updated_at")
+
+  package TrainingPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, buyerId])
+  @@index([buyerId])
+  @@index([packageId])
+  @@map("training_package_purchases")
+}
+
+model NutritionPlan {
+  id            String     @id @default(uuid())
+  userId        String     @map("user_id")
+  name          String
+  goal          String
+  durationWeeks Int        @map("duration_weeks")
+  mealsPerDay   Int        @map("meals_per_day")
+  /// Structured JSON matching NutritionPlanContentSchema once COMPLETED; empty object while QUEUED/PROCESSING
+  plan          Json
+  status        PlanStatus @default(QUEUED)
+  jobId         String?    @map("job_id")
+  failReason    String?    @map("fail_reason")
+  archivedAt    DateTime?  @map("archived_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([jobId])
+  @@index([userId, status])
+  @@index([userId, archivedAt])
+  @@map("nutrition_plans")
+}
+
+enum KnowledgeSourceType {
+  RSS
+  API
+  WEB
+  LOCAL
+}
+
+enum KnowledgeDocumentTopic {
+  TRAINING
+  NUTRITION
+  RECOVERY
+  INJURY
+  BODY_COMPOSITION
+  GENERAL
+}
+
+enum KnowledgeDocumentStatus {
+  CRAWLED
+  CLEANED
+  SCORED
+  EMBEDDED
+  REJECTED
+  REVIEW
+}
+
+enum KnowledgePipelineRunStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum KnowledgeReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model KnowledgeSource {
+  id            String              @id @default(uuid())
+  name          String
+  baseUrl       String              @unique @map("base_url")
+  sourceType    KnowledgeSourceType @map("source_type")
+  trustTier     Int                 @default(3) @map("trust_tier")
+  crawlCron     String              @default("0 2 * * *") @map("crawl_cron")
+  isActive      Boolean             @default(true) @map("is_active")
+  lastCrawledAt DateTime?           @map("last_crawled_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  documents KnowledgeDocument[]
+
+  @@index([isActive])
+  @@map("knowledge_sources")
+}
+
+model KnowledgeDocument {
+  id              String                  @id @default(uuid())
+  sourceId        String                  @map("source_id")
+  url             String
+  title           String?
+  author          String?
+  language        String?
+  contentHash     String                  @unique @map("content_hash")
+  rawObjectKey    String?                 @map("raw_object_key")
+  cleanText       String?                 @map("clean_text")
+  topic           KnowledgeDocumentTopic?
+  trustScore      Decimal?                @map("trust_score") @db.Decimal(4, 3)
+  qualityScore    Decimal?                @map("quality_score") @db.Decimal(4, 3)
+  safetyFlag      Boolean                 @default(false) @map("safety_flag")
+  status          KnowledgeDocumentStatus @default(CRAWLED)
+  rejectionReason String?                 @map("rejection_reason")
+  publishedAt     DateTime?               @map("published_at")
+  crawledAt       DateTime                @default(now()) @map("crawled_at")
+  processedAt     DateTime?               @map("processed_at")
+
+  source      KnowledgeSource       @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  chunks      KnowledgeChunk[]
+  reviewItems KnowledgeReviewItem[]
+
+  @@index([status])
+  @@index([topic])
+  @@index([sourceId])
+  @@index([contentHash])
+  @@map("knowledge_documents")
+}
+
+model KnowledgeChunk {
+  id         String   @id @default(uuid())
+  documentId String   @map("document_id")
+  chunkIndex Int      @map("chunk_index")
+  text       String
+  tokenCount Int?     @map("token_count")
+  vectorId   String   @map("vector_id")
+  embeddedAt DateTime @default(now()) @map("embedded_at")
+
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([vectorId])
+  @@map("knowledge_chunks")
+}
+
+model KnowledgePipelineRun {
+  id           String                     @id @default(uuid())
+  runType      String                     @default("manual_local_evidence") @map("run_type")
+  startedAt    DateTime                   @default(now()) @map("started_at")
+  finishedAt   DateTime?                  @map("finished_at")
+  docsCrawled  Int                        @default(0) @map("docs_crawled")
+  docsAccepted Int                        @default(0) @map("docs_accepted")
+  docsRejected Int                        @default(0) @map("docs_rejected")
+  docsReview   Int                        @default(0) @map("docs_review")
+  status       KnowledgePipelineRunStatus @default(RUNNING)
+
+  @@index([startedAt])
+  @@index([status])
+  @@map("knowledge_pipeline_runs")
+}
+
+model KnowledgeReviewItem {
+  id         String                @id @default(uuid())
+  documentId String                @map("document_id")
+  reason     String?
+  status     KnowledgeReviewStatus @default(PENDING)
+  reviewedBy String?               @map("reviewed_by")
+  reviewedAt DateTime?             @map("reviewed_at")
+
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([documentId])
+  @@map("knowledge_review_queue")
 }

@@ -1,0 +1,50 @@
+# QLoRA config for LOCAL training on a low-VRAM consumer GPU (~4GB), using
+# Unsloth (see train_qlora_unsloth.py). Superseded the Qwen3-30B-A3B/RunPod
+# config (qlora_coach_qwen3_30b_a3b.yaml, kept for reference) after RunPod
+# credit ran out — that config needed a ~48GB GPU and is not runnable here.
+#
+# Qwen2.5-1.5B-Instruct chosen because: (1) small enough to QLoRA-train on
+# 4GB with Unsloth, verified — see training run log; (2) still a real
+# instruction-tuned chat model with solid Vietnamese support, not a toy;
+# (3) has an official `qwen2.5:1.5b` Ollama tag, so the merged/quantized
+# result can be served the same way the app already expects (LLM_MODEL env
+# var), no new serving code needed.
+#
+# max_seq_length kept short (1024, vs 2048 for the 30B config) specifically
+# to control activation memory on 4GB — raise it later on better hardware
+# if truncation becomes a real problem for longer coaching answers.
+#
+# Overnight-run scoping (measured via a real 20-step smoke test on the RTX
+# 3050 Ti: ~19.5s/step): num_train_epochs dropped from 3 to 1 (full 3 epochs
+# on the 15,944-row dataset would take ~32h — not practical on this GPU).
+# 1 epoch at batch_size=1 x grad_accum=8 (effective batch 8) is ~1993 steps
+# ≈ 10.8h train time. eval_file points at eval_small.jsonl (a 200-row head
+# of the full 1771-row eval.jsonl) and eval_steps raised to 500 (~4 evals
+# total) — the full eval set cost ~182s per run in the smoke test, which
+# would otherwise add hours across many eval checkpoints.
+base_model: unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit
+output_dir: training/outputs/fitness-coach-qlora-1.5b
+train_file: training/data/processed/train.jsonl
+eval_file: training/data/processed/eval_small.jsonl
+max_seq_length: 1024
+learning_rate: 0.0002
+num_train_epochs: 1
+max_steps: null
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+load_in_4bit: true
+bf16: true
+save_steps: 200
+eval_steps: 500
+logging_steps: 20

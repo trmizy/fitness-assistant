@@ -37,8 +37,55 @@ import {
   Plus,
   Loader2,
 } from "lucide-react";
+import { useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { inbodyService } from "../../services/api";
+import { AlertTriangle, CalendarClock, Flag } from "lucide-react";
+import { inbodyService, trainingCycleService } from "../../services/api";
+import { InBodySegmentalDiagram } from "../../components/InBodySegmentalDiagram";
+
+/** Compact current-cycle summary — links to the full Chu kỳ tập luyện page for details/actions. */
+function CurrentCycleWidget() {
+  const navigate = useNavigate();
+  const activeQuery = useQuery({
+    queryKey: ["training-cycle", "active"],
+    queryFn: trainingCycleService.getActive,
+    retry: false,
+  });
+
+  if (activeQuery.isLoading || !activeQuery.data?.cycle) return null;
+
+  const { cycle, summary } = activeQuery.data;
+  const daysElapsed = Math.floor((Date.now() - new Date(cycle.startDate).getTime()) / 86_400_000);
+  const pctElapsed = Math.min(100, Math.round((daysElapsed / cycle.durationDays) * 100));
+
+  return (
+    <button
+      type="button"
+      onClick={() => navigate("/client/workout")}
+      className="w-full text-left bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-xl border border-green-500/20 p-4 transition-all hover:border-green-500/40"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+          <Flag className="h-4 w-4 text-green-400" />
+          Chu kỳ #{cycle.cycleIndex} — {pctElapsed}% ({daysElapsed}/{cycle.durationDays} ngày)
+        </div>
+        <ArrowRight className="w-4 h-4 text-zinc-600" />
+      </div>
+      <div className="mt-2 flex items-center gap-4 text-xs text-zinc-400">
+        <span className="flex items-center gap-1">
+          <CalendarClock className="h-3.5 w-3.5" />
+          Tuân thủ {summary.adherence.percent}%
+        </span>
+        {summary.alerts.length > 0 && (
+          <span className="flex items-center gap-1 text-amber-400">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {summary.alerts.length} cảnh báo
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
 
 /* ── Types & config ──────────────────────────────────────── */
 type Tab = "overview" | "manual" | "upload" | "history" | "compare";
@@ -399,6 +446,8 @@ export function InBodyModule() {
       ══════════════════════════════════════ */}
       {tab === "overview" && (
         <div className="space-y-4">
+          <CurrentCycleWidget />
+
           {/* Two-method CTA banner */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
@@ -570,88 +619,32 @@ export function InBodyModule() {
           </div>
 
           {/* Segmental */}
-          <SectionCard title="Phân tích cơ bắp theo vùng">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[450px] text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-zinc-600 border-b border-zinc-800/60 uppercase tracking-wider">
-                    <th className="pb-2">Vùng cơ thể</th>
-                    <th className="pb-2">Cơ (kg)</th>
-                    <th className="pb-2">Bình thường</th>
-                    <th className="pb-2">Cân bằng</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    {
-                      label: "Tay phải",
-                      value: latest.rightArmMuscle,
-                      norm: 3.2,
-                    },
-                    {
-                      label: "Tay trái",
-                      value: latest.leftArmMuscle,
-                      norm: 3.2,
-                    },
-                    {
-                      label: "Thân mình",
-                      value: latest.trunkMuscle,
-                      norm: 24.0,
-                    },
-                    {
-                      label: "Chân phải",
-                      value: latest.rightLegMuscle,
-                      norm: 9.5,
-                    },
-                    {
-                      label: "Chân trái",
-                      value: latest.leftLegMuscle,
-                      norm: 9.5,
-                    },
-                  ].map(
-                    (s: {
-                      label: string;
-                      value: number | undefined;
-                      norm: number;
-                    }) => {
-                      const val = s.value || 0;
-                      const norm = s.norm;
-                      return (
-                        <tr
-                          key={s.label}
-                          className="border-b border-zinc-800/40 last:border-0 hover:bg-zinc-800/30 transition-colors"
-                        >
-                          <td className="py-2.5 font-semibold text-zinc-200">
-                            {s.label}
-                          </td>
-                          <td className="py-2.5 text-green-400 font-semibold">
-                            {val}
-                          </td>
-                          <td className="py-2.5 text-zinc-500">{norm}</td>
-                          <td className="py-2.5">
-                            <div className="flex items-center gap-1.5">
-                              <div className="flex-1 h-1.5 bg-zinc-800 rounded-full max-w-[80px]">
-                                <div
-                                  className="h-full bg-green-500 rounded-full"
-                                  style={{
-                                    width: `${Math.min(100, (val / norm) * 80)}%`,
-                                  }}
-                                />
-                              </div>
-                              <span
-                                className={`text-xs font-bold ${val >= norm ? "text-green-400" : "text-red-400"}`}
-                              >
-                                {val >= norm ? "+" : ""}
-                                {(((val - norm) / norm) * 100).toFixed(0)}%
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    },
-                  )}
-                </tbody>
-              </table>
+          <SectionCard title="Phân tích cơ thể theo vùng">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <InBodySegmentalDiagram
+                title="Cơ theo vùng (kg)"
+                tone="muscle"
+                values={{
+                  leftArm: latest.leftArmMuscle,
+                  rightArm: latest.rightArmMuscle,
+                  trunk: latest.trunkMuscle,
+                  leftLeg: latest.leftLegMuscle,
+                  rightLeg: latest.rightLegMuscle,
+                }}
+                norms={{ arm: 3.2, trunk: 24.0, leg: 9.5 }}
+              />
+              <InBodySegmentalDiagram
+                title="Mỡ theo vùng (kg)"
+                tone="fat"
+                values={{
+                  leftArm: latest.leftArmFat,
+                  rightArm: latest.rightArmFat,
+                  trunk: latest.trunkFat,
+                  leftLeg: latest.leftLegFat,
+                  rightLeg: latest.rightLegFat,
+                }}
+                norms={{ arm: 1.0, trunk: 8.0, leg: 2.3 }}
+              />
             </div>
           </SectionCard>
 

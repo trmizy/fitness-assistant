@@ -46,9 +46,22 @@ services:
     ports:
       - "5173:5173" # Vite dev server (not nginx)
     environment:
-      VITE_API_URL: http://127.0.0.1:3000
-      VITE_SOCKET_URL: http://127.0.0.1:3000
-      VITE_CHAT_WS_URL: http://127.0.0.1:3005
+      # VITE_API_URL / VITE_SOCKET_URL / VITE_CHAT_WS_URL are intentionally
+      # left unset — the frontend defaults to same-origin relative requests,
+      # which vite.config.ts proxies to the targets below over the Docker
+      # network. This is what makes login (and everything else) work both at
+      # http://localhost:5173 and through a Dev Tunnel/port-forwarded HTTPS
+      # URL: the browser only ever talks to one origin, so there's no CORS
+      # preflight and no https-page-calling-http mixed-content block — both
+      # of which broke login when this pointed at an absolute
+      # http://127.0.0.1:3000 (that address means "this machine", which is
+      # meaningless to whatever remote/tunneled browser opens the tunnel URL).
+      GATEWAY_PROXY_TARGET: http://api-gateway:3000
+      CHAT_PROXY_TARGET: http://chat-service:3005
+      # Extra Host headers Vite should accept beyond localhost and
+      # *.devtunnels.ms (always allowed, see vite.config.ts) — comma
+      # separated, for other tunnel providers. Empty by default.
+      VITE_EXTRA_ALLOWED_HOSTS: ${VITE_EXTRA_ALLOWED_HOSTS:-}
       CHOKIDAR_USEPOLLING: "true" # Required for Windows bind-mount file-watching
     volumes:
       # Bind-mount React source so Vite HMR picks up every save
@@ -134,6 +147,7 @@ services:
       - ../../.env
     volumes:
       - ../../backend/services/auth-service/src:/app/backend/services/auth-service/src
+      - ../../backend/services/auth-service/prisma:/app/backend/services/auth-service/prisma
       - ../../scripts:/app/scripts # Seed scripts — shared with db-seeder
     depends_on:
       postgres:
@@ -173,6 +187,7 @@ services:
     volumes:
       # TypeScript source — hot-reloaded by tsx watch
       - ../../backend/services/user-service/src:/app/backend/services/user-service/src
+      - ../../backend/services/user-service/prisma:/app/backend/services/user-service/prisma
       # Persist uploaded files across container restarts
       - user_uploads:/app/backend/services/user-service/uploads
     depends_on:
@@ -203,6 +218,15 @@ services:
       REDIS_PORT: 6379
       AUTH_SERVICE_URL: http://auth-service:3001
       AI_SERVICE_URL: http://ai-service:3003
+      USER_SERVICE_URL: http://user-service:3004
+      # Was missing here (unlike gateway/user-service, which already override
+      # it) — without this, fitness-service inherited the root .env's
+      # CHAT_SERVICE_URL=http://localhost:3005, which inside this container
+      # means itself, not chat-service. Needed for the new
+      # "assessment ready" notification push (Adaptive Training Cycle
+      # Evaluation, Phase 5).
+      CHAT_SERVICE_URL: http://chat-service:3005
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:
       - ../../.env
     volumes:
@@ -213,6 +237,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      user-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
@@ -241,16 +267,39 @@ services:
       QDRANT_PORT: 6333
       USER_SERVICE_URL: http://user-service:3004
       FITNESS_SERVICE_URL: http://fitness-service:3002
+      PAYMENT_SERVICE_URL: http://payment-service:3007
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
-      LLM_BASE_URL: http://ollama:11434
-      OLLAMA_BASE_URL: http://ollama:11434
-      LLM_MODEL: llama3.2:3b
+      # Default dev mode: Ollama runs directly on the dev laptop (not
+      # RunPod/tunnel). Start it with `OLLAMA_HOST=0.0.0.0:11434 ollama serve`
+      # — 0.0.0.0 so host.docker.internal can reach it from the container.
+      # For Docker-local Ollama instead, run with --profile local-ollama and
+      # set LLM_BASE_URL=http://ollama:11434.
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LLM_MODEL: ${LLM_MODEL:-fitness-coach-qwen2.5-1.5b:q4_K_M}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
-      LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-4096}
-      AI_PLAN_NUM_PREDICT: ${AI_PLAN_NUM_PREDICT:-650}
-      AI_PLAN_RETRY_NUM_PREDICT: ${AI_PLAN_RETRY_NUM_PREDICT:-450}
-      AI_PLAN_TIMEOUT_MS: ${AI_PLAN_TIMEOUT_MS:-60000}
-      AI_PLAN_RETRY_TIMEOUT_MS: ${AI_PLAN_RETRY_TIMEOUT_MS:-35000}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
+      EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
+      LLM_NUM_CTX: ${LLM_NUM_CTX:-8192}
+      LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-8192}
+      # Opt-in real Ollama tool-calling for the LLM-bound chat intents
+      # (search_exercise_library / get_user_fitness_data). Off by default —
+      # the existing regex-routed deterministic paths already score well on
+      # the retrieval eval, so this is additive, not a replacement.
+      ENABLE_TOOL_CALLING: ${ENABLE_TOOL_CALLING:-false}
+      # Leave AI_PLAN_NUM_PREDICT / AI_PLAN_RETRY_NUM_PREDICT unset by default so
+      # ai.worker.ts's own size-adaptive formula (scales with daysPerWeek x
+      # exercisesPerDay, clamped 650-1250) picks the token budget. A fixed
+      # override here previously forced every plan to 650 regardless of size,
+      # truncating anything bigger than a tiny plan and producing sparse,
+      # under-optimized schedules — especially with the larger qwen3 model's
+      # more verbose JSON output. Set AI_PLAN_NUM_PREDICT in .env only if you
+      # need to force a specific value.
+      AI_PLAN_NUM_PREDICT: ${AI_PLAN_NUM_PREDICT:-}
+      AI_PLAN_RETRY_NUM_PREDICT: ${AI_PLAN_RETRY_NUM_PREDICT:-}
+      AI_PLAN_TIMEOUT_MS: ${AI_PLAN_TIMEOUT_MS:-300000}
+      AI_PLAN_RETRY_TIMEOUT_MS: ${AI_PLAN_RETRY_TIMEOUT_MS:-120000}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       CHOKIDAR_USEPOLLING: "true"
     env_file:
@@ -266,10 +315,8 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
-      ollama:
+      payment-service:
         condition: service_healthy
-      ollama-model-puller:
-        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
       interval: 20s
@@ -278,6 +325,12 @@ services:
       start_period: 10m
     dns:
       - 8.8.8.8
+    extra_hosts:
+      # host.docker.internal is not reliably injected by the embedded DNS once
+      # `dns:` is overridden above (it forwards unknown names straight to
+      # 8.8.8.8, which has no route to it). Map it explicitly so Ollama
+      # running on the Windows host laptop is reachable from this container.
+      - "host.docker.internal:host-gateway"
 
   # ── Chat Service ─────────────────────────────────────────────────────────────
   knowledge-worker:
@@ -296,10 +349,18 @@ services:
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
-      LLM_BASE_URL: http://ollama:11434
-      OLLAMA_BASE_URL: http://ollama:11434
-      LLM_MODEL: llama3.2:3b
+      # Uses the same Ollama endpoint as ai-service — runs directly on the
+      # dev laptop by default; use --profile local-ollama plus env overrides
+      # to run against Docker-local Ollama instead.
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      LLM_MODEL: ${LLM_MODEL:-fitness-coach-qwen2.5-1.5b:q4_K_M}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
+      EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
+      LLM_NUM_CTX: ${LLM_NUM_CTX:-8192}
+      LLM_JSON_NUM_CTX: ${LLM_JSON_NUM_CTX:-8192}
       KNOWLEDGE_ENABLE_LLM_SAFETY_JUDGE: ${KNOWLEDGE_ENABLE_LLM_SAFETY_JUDGE:-false}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       CHOKIDAR_USEPOLLING: "true"
@@ -316,11 +377,11 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
-      ollama:
-        condition: service_healthy
     restart: "no"
     dns:
       - 8.8.8.8
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   chat-service:
     build:
@@ -343,6 +404,7 @@ services:
       - ../../.env
     volumes:
       - ../../backend/services/chat-service/src:/app/backend/services/chat-service/src
+      - ../../backend/services/chat-service/prisma:/app/backend/services/chat-service/prisma
     depends_on:
       postgres:
         condition: service_healthy
@@ -407,6 +469,8 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: gymcoach-ollama
+    profiles:
+      - local-ollama
     ports:
       - "11434:11434"
     volumes:
@@ -428,13 +492,15 @@ services:
   ollama-model-puller:
     image: curlimages/curl:latest
     container_name: gymcoach-ollama-puller
+    profiles:
+      - local-ollama
     depends_on:
       - ollama
     entrypoint:
       [
         "sh",
         "-c",
-        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "llama3.2:3b"}''; curl http://ollama:11434/api/pull -d ''{"name": "nomic-embed-text"}''',
+        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "${LOCAL_OLLAMA_CHAT_MODEL:-llama3.2:3b}"}''; curl http://ollama:11434/api/pull -d ''{"name": "${EMBEDDING_MODEL:-nomic-embed-text}"}''',
       ]
     networks:
       - default
@@ -590,6 +656,7 @@ services:
       NODE_ENV: development
       PORT: 3007
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_payment
+      AUTH_SERVICE_URL: http://auth-service:3001
       GYM_SERVICE_URL: http://gym-service:3006
       USER_SERVICE_URL: http://user-service:3004
       PLATFORM_COMMISSION_RATE: ${PLATFORM_COMMISSION_RATE:-0.10}
@@ -617,6 +684,7 @@ services:
       - ../../.env
     volumes:
       - ../../backend/services/payment-service/src:/app/backend/services/payment-service/src
+      - ../../backend/services/payment-service/prisma:/app/backend/services/payment-service/prisma
     depends_on:
       postgres:
         condition: service_healthy
@@ -641,12 +709,14 @@ services:
       NODE_ENV: development
       PORT: 3006
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_gym
+      AUTH_SERVICE_URL: http://auth-service:3001
       PAYMENT_SERVICE_URL: http://payment-service:3007
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:
       - ../../.env
     volumes:
       - ../../backend/services/gym-service/src:/app/backend/services/gym-service/src
+      - ../../backend/services/gym-service/prisma:/app/backend/services/gym-service/prisma
     depends_on:
       postgres:
         condition: service_healthy

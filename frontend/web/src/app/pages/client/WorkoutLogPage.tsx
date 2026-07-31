@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useNavigate, useSearchParams } from "react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Dumbbell,
   ChevronLeft,
@@ -32,6 +32,7 @@ import {
   PartyPopper,
   Search,
   SlidersHorizontal,
+  Loader2,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
@@ -48,9 +49,27 @@ import {
   CartesianGrid,
 } from "recharts";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
+import { RulerSlider } from "../../components/RulerSlider";
+import {
+  parseInitialWorkoutLogState,
+  resolveExerciseIndexFromId,
+  computeWorkoutLogSearchParams,
+} from "./workout-log-url.utils";
+import { mergeRealWorkoutData } from "./workout-log-completion-merge.utils";
+import {
+  computeMuscleGroupDistribution,
+  computeActivityTypeDistribution,
+} from "./workout-analytics.utils";
+import {
+  isScheduleDateApiValueLocked,
+  scheduledDateLabelFromApi,
+  calendarDateLabel,
+  APP_SCHEDULE_TIME_ZONE,
+} from "./schedule-lock.utils";
 import {
   workoutService,
   inbodyService,
+  trainingCycleService,
   type WorkoutScheduleRecord,
 } from "../../services/api";
 
@@ -179,7 +198,7 @@ const MUSCLE_FILTERS = [
   { label: "Tay trước", bodyPart: "", muscleGroup: "biceps" },
   { label: "Tay sau", bodyPart: "", muscleGroup: "triceps" },
   { label: "Core", bodyPart: "CORE", muscleGroup: "" },
-  { label: "Full Body", bodyPart: "FULL_BODY", muscleGroup: "" },
+  { label: "Toàn thân", bodyPart: "FULL_BODY", muscleGroup: "" },
 ];
 
 function labelizeEnum(value?: string | null) {
@@ -266,21 +285,26 @@ function mapProgramExercise(ex: any) {
   };
 }
 
-const muscleChartData = [
-  { name: "Chest", value: 25, color: "#22c55e" },
-  { name: "Back", value: 22, color: "#2dd4bf" },
-  { name: "Legs", value: 20, color: "#a3e635" },
-  { name: "Shoulders", value: 15, color: "#34d399" },
-  { name: "Arms", value: 12, color: "#86efac" },
-  { name: "Core", value: 6, color: "#5eead4" },
+// Fixed color palette assigned by rank (largest slice first) — colors are a
+// presentation detail, decoupled from the real computed percentages in
+// workout-analytics.utils.ts.
+const ANALYTICS_CHART_COLORS = [
+  "#22c55e",
+  "#2dd4bf",
+  "#a3e635",
+  "#34d399",
+  "#86efac",
+  "#5eead4",
 ];
 
-const exerciseTypeData = [
-  { name: "Compound", value: 45, color: "#22c55e" },
-  { name: "Isolation", value: 30, color: "#2dd4bf" },
-  { name: "Cardio", value: 15, color: "#a3e635" },
-  { name: "Stretch", value: 10, color: "#86efac" },
-];
+function withChartColors<T extends { name: string; value: number }>(
+  slices: T[],
+): (T & { color: string })[] {
+  return slices.map((s, i) => ({
+    ...s,
+    color: ANALYTICS_CHART_COLORS[i % ANALYTICS_CHART_COLORS.length],
+  }));
+}
 
 const DAYS_IN_APRIL = 30;
 const FIRST_DAY_OFFSET = 2;
@@ -477,6 +501,8 @@ type ManualBuilderDay = {
 type ActiveExerciseLog = {
   weightKg: string;
   noWeight: boolean;
+  rpe: number;
+  rir: number;
 };
 
 const MANUAL_WEEKDAYS = [
@@ -522,12 +548,12 @@ function exerciseUsesExternalWeight(exercise: any) {
 
 function scheduleProgressPercent(schedule?: WorkoutScheduleRecord | null) {
   if (!schedule) return 0;
-  if (
-    schedule.status === "COMPLETED" ||
-    schedule.workoutId ||
-    schedule.workout?.id
-  )
-    return 100;
+  // The mere existence of a linked workout/workoutId is NOT proof of
+  // completion — a workout row can exist while still IN_PROGRESS (or even
+  // for a future, not-yet-started session). Only the backend-decided
+  // `status` (driven by the actual set/exercise data, not by row existence)
+  // may claim 100%; otherwise fall back to the real progressPercent.
+  if (schedule.status === "COMPLETED") return 100;
   const progress = Number(schedule.progressPercent ?? 0);
   return Number.isFinite(progress) ? Math.max(0, Math.min(100, progress)) : 0;
 }
@@ -548,13 +574,135 @@ const G = {
   ringDark: "#064e3b",
 };
 
+function SessionFeedbackModal({
+  cycleId,
+  scheduleId,
+  onClose,
+}: {
+  cycleId: string;
+  scheduleId: string;
+  onClose: () => void;
+}) {
+  const [readinessScore, setReadinessScore] = useState(6);
+  const [sessionRpe, setSessionRpe] = useState(6);
+  const [painScore, setPainScore] = useState(0);
+  const [notes, setNotes] = useState("");
+
+  const submitMutation = useMutation({
+    mutationFn: () =>
+      trainingCycleService.submitSessionFeedback(cycleId, scheduleId, {
+        readinessScore,
+        sessionRpe,
+        painScore,
+        notes: notes.trim() || undefined,
+      }),
+    onSuccess: () => {
+      toast.success("Đã ghi nhận cảm nhận buổi tập");
+      onClose();
+    },
+    onError: () => {
+      toast.error("Không thể ghi nhận cảm nhận buổi tập");
+    },
+  });
+
+  const sliders: Array<{
+    label: string;
+    hint: string;
+    value: number;
+    setValue: (v: number) => void;
+    min: number;
+    max: number;
+    step: number;
+    formatValue?: (v: number) => string;
+  }> = [
+    { label: "Chất lượng buổi tập", hint: "1 = rất tệ, 10 = xuất sắc", value: readinessScore, setValue: setReadinessScore, min: 1, max: 10, step: 1 },
+    { label: "Mức độ gắng sức (RPE)", hint: "1 = rất nhẹ, 10 = tối đa", value: sessionRpe, setValue: setSessionRpe, min: 1, max: 10, step: 0.5, formatValue: (v) => `RPE ${v}` },
+    { label: "Mức độ đau/khó chịu", hint: "0 = không đau, 10 = đau dữ dội", value: painScore, setValue: setPainScore, min: 0, max: 10, step: 1 },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl">
+        <div className="flex items-center justify-between p-5 border-b border-zinc-800/60">
+          <h3 className="text-zinc-100 font-bold text-sm">Cảm nhận buổi tập này thế nào?</h3>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {sliders.map((s) => (
+            <div key={s.label}>
+              <RulerSlider
+                label={s.label}
+                min={s.min}
+                max={s.max}
+                step={s.step}
+                formatValue={s.formatValue}
+                value={s.value}
+                onChange={s.setValue}
+              />
+              <p className="text-[10px] text-zinc-600 mt-1">{s.hint}</p>
+            </div>
+          ))}
+
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Ghi chú thêm (không bắt buộc)"
+            rows={2}
+            className="w-full rounded-lg bg-zinc-800/60 border border-zinc-700/60 p-2.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50"
+          />
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-400 hover:bg-zinc-800 transition-all"
+            >
+              Bỏ qua
+            </button>
+            <button
+              type="button"
+              onClick={() => submitMutation.mutate()}
+              disabled={submitMutation.isPending}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 py-2.5 text-xs font-bold text-black transition-all"
+            >
+              {submitMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Lưu
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function WorkoutLogPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Restore navigation position from the URL on first mount — this is what
+  // survives a hard refresh (unlike component state or location.state, which
+  // are wiped when the page reloads). Read once via lazy initializers so the
+  // correct view renders on the very first paint instead of flashing "main"
+  // and then jumping. The `exercise` id gets resolved into an array index
+  // once program data has loaded (see the day-sync effect below); the write
+  // side that keeps the URL in sync as the user navigates lives in its own
+  // effect further down.
+  const initialWorkoutLogState = parseInitialWorkoutLogState(searchParams);
+  const initialExerciseIdFromUrl = initialWorkoutLogState.exerciseId;
+
+  const [tab, setTab] = useState<Tab>(initialWorkoutLogState.tab);
   const [muscleFilter, setMuscleFilter] = useState<TimeFilter>("week");
   const [exerciseFilter, setExerciseFilter] = useState<TimeFilter>("week");
-  const [planView, setPlanView] = useState<PlanView>("main");
-  const [selectedDay, setSelectedDay] = useState(1);
+  const [planView, setPlanView] = useState<PlanView>(initialWorkoutLogState.planView);
+  const [selectedDay, setSelectedDay] = useState(initialWorkoutLogState.day);
   const [dayExercises, setDayExercises] = useState<any[]>([]);
   const [currentWorkoutId, setCurrentWorkoutId] = useState<string | null>(null);
   const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
@@ -575,11 +723,32 @@ export function WorkoutLogPage() {
   const [workoutStats, setWorkoutStats] = useState<any>(null);
   const [currentProgram, setCurrentProgram] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  // Progressive disclosure per persona (see ExperienceLevel on UserProfile):
+  // an unset/unknown level defaults to showing the beginner hint too, since
+  // omitting a real explanation is worse than showing one extra time to
+  // someone who didn't need it. Intermediate/advanced users, who explicitly
+  // set their level, never see it. Dismissal is session-only (no backend
+  // field for "hint dismissed" exists, and adding one isn't warranted for a
+  // one-line hint) — it simply reappears on next visit, which is
+  // acceptable for a piece of educational copy, not a nag/blocking modal.
+  const isBeginnerProfile =
+    userProfile?.experienceLevel !== "INTERMEDIATE" &&
+    userProfile?.experienceLevel !== "ADVANCED";
+  const [showRpeRirHint, setShowRpeRirHint] = useState(true);
   const [daysSinceInBody, setDaysSinceInBody] = useState<number | null>(null);
   const [workoutCache, setWorkoutCache] = useState<Record<string, any>>({});
   const [aiSchedules, setAiSchedules] = useState<WorkoutScheduleRecord[]>([]);
-  // Track the actual calendar date being edited (not the plan day number)
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  // Track the actual calendar date being edited (not the plan day number) —
+  // restored from the URL's `date` param when present (see
+  // workout-log-url.utils.ts's doc comment on why `day` alone can't
+  // disambiguate which real calendar occurrence was being viewed before a
+  // reload), so a locked past session doesn't silently get reinterpreted as
+  // today's (unlocked) one after a hard refresh.
+  const [selectedDate, setSelectedDate] = useState<Date>(() =>
+    initialWorkoutLogState.date
+      ? parseApiDateOnly(initialWorkoutLogState.date)
+      : new Date(),
+  );
 
   const handlePrevMonth = () => {
     setCalendarMonth(
@@ -684,6 +853,9 @@ export function WorkoutLogPage() {
             description: we.exercise.instructions,
             muscles: we.exercise.muscleGroupsActivated || [],
             tips: [],
+            weight: we.weight ?? null,
+            rpe: we.workoutSets?.[0]?.rpe ?? null,
+            rir: we.workoutSets?.[0]?.rir ?? null,
           }));
           setDayExercises(mapped);
         } else {
@@ -724,16 +896,53 @@ export function WorkoutLogPage() {
       programDays.find((day: any) => day.dayNumber === selectedDay) ||
       programDays[0];
 
+    const mapped = (selected.exercises || []).map(mapProgramExercise);
+
+    // mapProgramExercise only knows the PLAN template (sets/reps prescribed,
+    // no actual numbers logged) — merge in the REAL weight/RPE/RIR from
+    // whatever was actually logged on the specific calendar date being
+    // viewed, when a workout exists for it. Without this, opening any day
+    // other than "today" (the one other place this data gets read — see the
+    // history-cache block in fetchAllData above) silently showed blank/
+    // template prescriptions instead of what was actually recorded, most
+    // visibly as "0 kg" on weighted exercises for a completed past day.
+    // Real completion state (which exercises actually have every set marked
+    // done) for the same date — computed alongside the weight/RPE/RIR merge
+    // above so the "Xong X/Y" progress ring and per-exercise checkmarks
+    // reflect history too, not just a freshly-reset live-session counter.
+    const cachedWorkout = workoutCache[selectedDate.toDateString()];
+    const { merged: mergedExercises, completedIndices: realCompletedIndices } =
+      mergeRealWorkoutData(mapped, cachedWorkout);
+
     setSelectedDay(selected.dayNumber);
     setSelectedProgramDayId(selected.id);
-    setDayExercises((selected.exercises || []).map(mapProgramExercise));
-    setEditExercises((selected.exercises || []).map(mapProgramExercise));
+    setDayExercises(mergedExercises);
+    setEditExercises(mergedExercises);
+    // Always resync completion state to what's really logged for this date —
+    // this effect only re-fires on day/program navigation (not on every set
+    // completed during a live session, which updates completedExercises
+    // directly via handleCompleteExercise), so this can't clobber in-progress
+    // live logging.
+    setCompletedExercises(realCompletedIndices);
     if (planView !== "activeExercise") {
-      setCompletedExercises(new Set());
       setActiveExerciseLogs({});
       setShowCompletion(false);
     }
-  }, [currentProgram, selectedDay, planView]);
+
+    // Resolve the exercise id captured from the URL at mount into an actual
+    // array index, exactly once per page load (never on later day/program
+    // switches the user makes by hand). A missing/stale id (exercise no
+    // longer in this day) falls back to the first exercise instead of
+    // crashing or looping — the URL-sync effect below then corrects the URL
+    // to match via replace.
+    if (!appliedPendingExerciseRef.current) {
+      appliedPendingExerciseRef.current = true;
+      if (pendingExerciseIdRef.current) {
+        setActiveExIdx(resolveExerciseIndexFromId(mapped, pendingExerciseIdRef.current));
+      }
+      pendingExerciseIdRef.current = null;
+    }
+  }, [currentProgram, selectedDay, planView, selectedDate, workoutCache]);
 
   // Calendar schedule modal
   const [showCalendarAdd, setShowCalendarAdd] = useState(false);
@@ -803,6 +1012,7 @@ export function WorkoutLogPage() {
           sourceType: s.programDay?.program?.sourceType,
           status: s.status,
           workoutId: s.workoutId || s.workout?.id || null,
+          isLocked: isScheduleDateApiValueLocked(s.date),
         });
         map.set(day, list);
       }
@@ -815,6 +1025,39 @@ export function WorkoutLogPage() {
   // Fallback flat markers for backward compat
   const calendarMarkers = Array.from(schedulesByDay.keys()).sort(
     (a, b) => a - b,
+  );
+
+  // "Buổi tập sắp tới" (Upcoming) must mean exactly that — today or a real
+  // future date, using the same Asia/Ho_Chi_Minh-aware comparison as the
+  // past-date lock, not just "the first N rows of whatever date range
+  // happens to be loaded" (which silently included already-past sessions
+  // whenever the loaded page/month started before today). Also excludes
+  // duplicate-date rows sharing a calendar day (kept the earliest-created
+  // one) so this list can't show the same day twice under two labels.
+  const upcomingSchedules = (() => {
+    const seenDates = new Set<string>();
+    return (aiSchedules || [])
+      .filter((s) => !isScheduleDateApiValueLocked(s.date))
+      .filter((s) => {
+        const label = scheduledDateLabelFromApi(s.date);
+        if (seenDates.has(label)) return false;
+        seenDates.add(label);
+        return true;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  })();
+
+  // Real muscle-group / activity-type distribution, computed from actual
+  // logged workout history in workoutCache — replaces what used to be two
+  // hardcoded, fabricated percentage arrays identical for every user (see
+  // workout-analytics.utils.ts's doc comment). Empty array is a real,
+  // honest "no data in this range" state, not something to paper over.
+  const loggedWorkoutsForAnalytics = Object.values(workoutCache);
+  const muscleChartData = withChartColors(
+    computeMuscleGroupDistribution(loggedWorkoutsForAnalytics as any, muscleFilter),
+  );
+  const exerciseTypeData = withChartColors(
+    computeActivityTypeDistribution(loggedWorkoutsForAnalytics as any, exerciseFilter),
   );
 
   // Log modal
@@ -860,6 +1103,17 @@ export function WorkoutLogPage() {
     }
     return findScheduleForDate(selectedDate);
   }, [aiSchedules, findScheduleForDate, selectedDate, selectedScheduleId]);
+
+  // Past-date lock (client-side hint only — see schedule-lock.utils.ts).
+  // The backend independently rejects any mutation for a locked day
+  // regardless of what this value says, so a stale/direct URL landing on
+  // planView=activeExercise for a past day still can't actually save
+  // anything even before this flag re-renders.
+  const isSelectedDayLocked = useMemo(() => {
+    const schedule = selectedSchedule();
+    const dateValue = schedule?.date ?? toApiDateTime(selectedDate);
+    return isScheduleDateApiValueLocked(dateValue);
+  }, [selectedSchedule, selectedDate]);
 
   const applyScheduleProgress = useCallback(
     (scheduleId: string, result: any) => {
@@ -1147,6 +1401,38 @@ export function WorkoutLogPage() {
 
   // Active workout state
   const [activeExIdx, setActiveExIdx] = useState(0);
+  // The exercise id read from the URL at mount, and whether we've already
+  // attempted to resolve it into an activeExIdx once dayExercises loaded —
+  // guarded so this only ever runs once per page load, never on later
+  // day/program switches the user makes by hand.
+  const pendingExerciseIdRef = useRef<string | null>(initialExerciseIdFromUrl);
+  const appliedPendingExerciseRef = useRef(false);
+
+  // Keep the URL in sync with in-app navigation (day / exercise / tab) so a
+  // hard refresh — or opening the same URL in a new tab — lands back on the
+  // exact same workout position. Deliberately NOT reactive to `searchParams`
+  // itself (only to the navigation state that should drive it), and always
+  // uses replace so switching exercises doesn't spam browser history.
+  useEffect(() => {
+    // Skip while the initial URL-driven exercise restoration is still
+    // pending — otherwise this would prematurely overwrite the just-read
+    // exercise id with index 0 before it's had a chance to resolve.
+    if (planView === "activeExercise" && !appliedPendingExerciseRef.current) return;
+
+    const next = computeWorkoutLogSearchParams({
+      tab,
+      planView,
+      selectedDay,
+      selectedDateLabel: planView === "main" ? null : toDateInputValue(selectedDate),
+      currentExerciseId: dayExercises[activeExIdx]?.id,
+    });
+    const nextStr = next.toString();
+    if (nextStr !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, planView, selectedDay, selectedDate, activeExIdx, dayExercises]);
+
   const [completedExercises, setCompletedExercises] = useState<Set<number>>(
     new Set(),
   );
@@ -1162,6 +1448,7 @@ export function WorkoutLogPage() {
   const [restTimerRunning, setRestTimerRunning] = useState(false);
   const [restSeconds, setRestSeconds] = useState(90);
   const [showCompletion, setShowCompletion] = useState(false);
+  const [feedbackPrompt, setFeedbackPrompt] = useState<{ cycleId: string; scheduleId: string } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const restRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -1536,6 +1823,8 @@ export function WorkoutLogPage() {
               ? Number(exercise.duration) || undefined
               : undefined,
           weight: Number.isFinite(weight) ? weight : undefined,
+          rpe: log?.rpe,
+          rir: log?.rir,
           notes: log?.noWeight ? "Không dùng tạ" : undefined,
         };
       }),
@@ -1551,6 +1840,10 @@ export function WorkoutLogPage() {
   };
 
   const handleCompleteExercise = async () => {
+    if (isSelectedDayLocked) {
+      toast.error("Ngày này đã qua nên không thể chỉnh sửa.");
+      return;
+    }
     const currentLog = activeExerciseLogs[activeExIdx];
     const needsWeight = exerciseUsesExternalWeight(dayExercises[activeExIdx]);
     if (needsWeight && !currentLog?.noWeight) {
@@ -1588,6 +1881,9 @@ export function WorkoutLogPage() {
           setTimerRunning(false);
           setTimerSeconds(0);
           setShowCompletion(true);
+          if (result.trainingCycleId) {
+            setFeedbackPrompt({ cycleId: result.trainingCycleId, scheduleId: scheduleForCompletion.id });
+          }
           setTimeout(() => fireConfetti(), 300);
           toast.success("Da luu hoan thanh buoi tap.");
           void refetchProgramAndSchedules();
@@ -1621,6 +1917,15 @@ export function WorkoutLogPage() {
       setRestTimerRunning(true);
       setActiveExIdx(activeExIdx + 1);
     }
+  };
+
+  const handleSkipExercise = () => {
+    if (activeExIdx >= dayExercises.length - 1) return;
+    setTimerRunning(false);
+    setTimerSeconds(0);
+    setRestSeconds(90);
+    setRestTimerRunning(true);
+    setActiveExIdx((index) => Math.min(index + 1, dayExercises.length - 1));
   };
 
   // Reset workout when leaving active view
@@ -1818,7 +2123,11 @@ export function WorkoutLogPage() {
                 value: `${workoutStats?.weeklyWorkouts || 0} / ${currentProgram?.daysPerWeek || 0} buổi`,
                 icon: Calendar,
               },
-              { label: "Streak", value: "0 ngày", icon: TrendingUp },
+              {
+                label: "Chuỗi ngày tập",
+                value: `${workoutStats?.currentStreakDays ?? 0} ngày`,
+                icon: TrendingUp,
+              },
             ].map((s) => (
               <div
                 key={s.label}
@@ -2009,8 +2318,8 @@ export function WorkoutLogPage() {
               icon={<Dumbbell className="w-4 h-4 text-emerald-400" />}
             >
               <div className="space-y-2.5">
-                {aiSchedules.length > 0 ? (
-                  aiSchedules.slice(0, 5).map((schedule) => {
+                {upcomingSchedules.length > 0 ? (
+                  upcomingSchedules.slice(0, 5).map((schedule) => {
                     const programDay = schedule.programDay;
                     const programName = programDay?.program?.name || "AI Plan";
                     const dayTitle =
@@ -2155,6 +2464,8 @@ export function WorkoutLogPage() {
                     setDayExercises(mapped);
                     setTab("plan");
                     setPlanView("dayDetail");
+                  } else if (isScheduleDateApiValueLocked(toApiDateTime(clickedDate))) {
+                    toast.error("Ngày này đã qua nên không thể tạo lịch tập mới.");
                   } else {
                     openScheduleModal(clickedDate);
                   }
@@ -2301,6 +2612,13 @@ export function WorkoutLogPage() {
                   value={muscleFilter}
                   onChange={setMuscleFilter}
                 />
+                {muscleChartData.length === 0 ? (
+                  <div className="mt-6 py-8 text-center">
+                    <p className="text-xs text-zinc-500">
+                      Chưa có dữ liệu buổi tập nào trong khoảng thời gian này.
+                    </p>
+                  </div>
+                ) : (
                 <div className="flex items-start gap-8 mt-6">
                   <div className="shrink-0" style={{ width: 180, height: 180 }}>
                     <div className="relative w-full h-full">
@@ -2354,7 +2672,7 @@ export function WorkoutLogPage() {
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="text-center">
-                          <span className="text-base text-white">6</span>
+                          <span className="text-base text-white">{muscleChartData.length}</span>
                           <p className="text-[9px] text-zinc-600 mt-0.5">
                             Nhóm
                           </p>
@@ -2394,6 +2712,7 @@ export function WorkoutLogPage() {
                     ))}
                   </div>
                 </div>
+                )}
               </div>
             </div>
 
@@ -2413,6 +2732,13 @@ export function WorkoutLogPage() {
                   value={exerciseFilter}
                   onChange={setExerciseFilter}
                 />
+                {exerciseTypeData.length === 0 ? (
+                  <div className="mt-6 py-8 text-center">
+                    <p className="text-xs text-zinc-500">
+                      Chưa có dữ liệu buổi tập nào trong khoảng thời gian này.
+                    </p>
+                  </div>
+                ) : (
                 <div className="flex items-start gap-8 mt-6">
                   <div className="shrink-0" style={{ width: 180, height: 180 }}>
                     <div className="relative w-full h-full">
@@ -2466,7 +2792,7 @@ export function WorkoutLogPage() {
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="text-center">
-                          <span className="text-base text-white">4</span>
+                          <span className="text-base text-white">{exerciseTypeData.length}</span>
                           <p className="text-[9px] text-zinc-600 mt-0.5">
                             Loại
                           </p>
@@ -2506,6 +2832,7 @@ export function WorkoutLogPage() {
                     ))}
                   </div>
                 </div>
+                )}
               </div>
             </div>
           </div>
@@ -2812,6 +3139,8 @@ export function WorkoutLogPage() {
                         if (scheduleForDay?.programDay?.dayNumber) {
                           setSelectedDay(scheduleForDay.programDay.dayNumber);
                           setPlanView("dayDetail");
+                        } else if (isScheduleDateApiValueLocked(toApiDateTime(clickedDate))) {
+                          toast.error("Ngày này đã qua nên không thể tạo lịch tập mới.");
                         } else {
                           openScheduleModal(clickedDate);
                         }
@@ -2835,6 +3164,18 @@ export function WorkoutLogPage() {
             programDays[0];
           const detailSchedule = selectedSchedule();
           const detailProgress = scheduleProgressPercent(detailSchedule);
+          // Guard against the exact flash-of-wrong-empty-state pattern this
+          // pass fixed elsewhere: `currentProgram` is only null while the
+          // initial fetch is still in flight (or failed) — without this
+          // check, deep-linking straight into a day view briefly claimed
+          // "you have no training days" before the real program arrived.
+          if (isLoading) {
+            return (
+              <div className="rounded-2xl border border-zinc-800/30 bg-zinc-900/20 p-8 flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin" />
+              </div>
+            );
+          }
           if (!wd) {
             return (
               <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-8 text-center">
@@ -2865,17 +3206,23 @@ export function WorkoutLogPage() {
                   </h2>
                   <p className="text-xs text-zinc-500">{wd.title}</p>
                 </div>
-                <button
-                  onClick={async () => {
-                    const title = window.prompt("Tên buổi tập", wd.title || "");
-                    if (!title || title === wd.title) return;
-                    await workoutService.updateProgramDay(wd.id, { title });
-                    await refetchProgramAndSchedules();
-                  }}
-                  className="ml-auto px-3 py-2 rounded-xl border border-zinc-700/40 text-xs text-zinc-300 hover:bg-zinc-800"
-                >
-                  Sửa tên buổi
-                </button>
+                {isSelectedDayLocked ? (
+                  <span className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/8 text-xs text-amber-300/80">
+                    <Lock className="w-3 h-3" /> Ngày đã qua — chỉ xem
+                  </span>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      const title = window.prompt("Tên buổi tập", wd.title || "");
+                      if (!title || title === wd.title) return;
+                      await workoutService.updateProgramDay(wd.id, { title });
+                      await refetchProgramAndSchedules();
+                    }}
+                    className="ml-auto px-3 py-2 rounded-xl border border-zinc-700/40 text-xs text-zinc-300 hover:bg-zinc-800"
+                  >
+                    Sửa tên buổi
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -2945,8 +3292,25 @@ export function WorkoutLogPage() {
                       </div>
                     </div>
 
+                    {(() => {
+                      const hasExistingSession = Boolean(
+                        detailSchedule?.workoutId || detailSchedule?.workout?.id,
+                      );
+                      // A locked day with no session ever started must not
+                      // let the user create new backdated log data. A locked
+                      // day that already HAS a session stays reachable —
+                      // read-only viewing of what was actually logged is
+                      // required even once a day is locked (the individual
+                      // log controls inside are separately disabled via
+                      // isSelectedDayLocked once there).
+                      const blockedByLock = isSelectedDayLocked && !hasExistingSession;
+                      return (
                     <button
                       onClick={async () => {
+                        if (blockedByLock) {
+                          toast.error("Ngày này đã qua nên không thể tạo buổi tập mới.");
+                          return;
+                        }
                         if (detailSchedule?.id) {
                           try {
                             const started = await workoutService.startSchedule(
@@ -2976,10 +3340,18 @@ export function WorkoutLogPage() {
                         }
                         setPlanView("activeExercise");
                       }}
-                      className="w-full py-3.5 rounded-xl bg-emerald-500 text-black text-sm tracking-wider transition-all hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-[0.98] flex items-center justify-center gap-2"
+                      disabled={blockedByLock}
+                      className="w-full py-3.5 rounded-xl bg-emerald-500 text-black text-sm tracking-wider transition-all hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-500 disabled:hover:shadow-none"
                     >
-                      <Play className="w-4 h-4" /> BẮT ĐẦU TẬP
+                      <Play className="w-4 h-4" />{" "}
+                      {blockedByLock
+                        ? "NGÀY ĐÃ QUA — KHÔNG THỂ TẠO"
+                        : isSelectedDayLocked
+                          ? "XEM LẠI (CHỈ XEM)"
+                          : "BẮT ĐẦU TẬP"}
                     </button>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -3019,6 +3391,10 @@ export function WorkoutLogPage() {
                           {isSaving ? "Đang lưu..." : "Lưu ngay"}
                         </button>
                       </div>
+                    ) : isSelectedDayLocked ? (
+                      <span className="flex items-center gap-1.5 text-[11px] text-amber-300/70 px-3 py-1.5 rounded-lg border border-amber-500/15 bg-amber-500/5">
+                        <Lock className="w-3 h-3" /> Đã khóa
+                      </span>
                     ) : (
                       <button
                         onClick={() => {
@@ -3058,7 +3434,7 @@ export function WorkoutLogPage() {
                               setDragIdx(null);
                             }}
                             onDragEnd={() => setDragIdx(null)}
-                            className={`rounded-2xl border p-4 flex items-center gap-4 transition-all ${
+                            className={`rounded-2xl border p-4 flex items-start gap-4 transition-all ${
                               dragIdx === i
                                 ? "border-emerald-500/30 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.08)]"
                                 : "border-zinc-800/30 bg-zinc-900/40 hover:border-zinc-700/40"
@@ -3088,36 +3464,31 @@ export function WorkoutLogPage() {
                               <p className="text-xs text-zinc-500 mt-0.5">
                                 {ex.prescription}
                               </p>
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {[
-                                  ["sets", "Sets"],
-                                  ["reps", "Reps"],
-                                  ["restSeconds", "Rest"],
-                                ].map(([key, label]) => (
-                                  <label
+                              <div className="mt-3 w-full max-w-xs space-y-3">
+                                {(
+                                  [
+                                    { key: "sets", label: "Số set", min: 1, max: 10, step: 1, fallback: 3, majorTickInterval: 5 },
+                                    { key: "reps", label: "Số reps", min: 1, max: 50, step: 1, fallback: 10, majorTickInterval: 5 },
+                                    { key: "restSeconds", label: "Nghỉ (giây)", min: 0, max: 300, step: 15, fallback: 90, majorTickInterval: 60 },
+                                  ] as const
+                                ).map(({ key, label, min, max, step, fallback, majorTickInterval }) => (
+                                  <RulerSlider
                                     key={key}
-                                    className="flex items-center gap-1 text-[10px] text-zinc-500"
-                                  >
-                                    {label}
-                                    <input
-                                      type="number"
-                                      min={key === "restSeconds" ? 0 : 1}
-                                      value={ex[key] ?? ""}
-                                      onChange={(event) => {
-                                        const next = [...editExercises];
-                                        next[i] = {
-                                          ...next[i],
-                                          [key]:
-                                            Number(event.target.value) ||
-                                            (key === "restSeconds" ? 0 : 1),
-                                        };
-                                        next[i].prescription =
-                                          `${next[i].sets ?? 3}×${next[i].reps ?? 10}${next[i].restSeconds ? ` · nghỉ ${next[i].restSeconds}s` : ""}`;
-                                        setEditExercises(next);
-                                      }}
-                                      className="w-14 rounded-md border border-zinc-700/50 bg-zinc-950/60 px-2 py-1 text-[10px] text-zinc-200 outline-none focus:border-emerald-500/40"
-                                    />
-                                  </label>
+                                    label={label}
+                                    min={min}
+                                    max={max}
+                                    step={step}
+                                    majorTickInterval={majorTickInterval}
+                                    unit={key === "restSeconds" ? "s" : undefined}
+                                    value={Number(ex[key]) || fallback}
+                                    onChange={(nextValue) => {
+                                      const next = [...editExercises];
+                                      next[i] = { ...next[i], [key]: nextValue };
+                                      next[i].prescription =
+                                        `${next[i].sets ?? 3}×${next[i].reps ?? 10}${next[i].restSeconds ? ` · nghỉ ${next[i].restSeconds}s` : ""}`;
+                                      setEditExercises(next);
+                                    }}
+                                  />
                                 ))}
                               </div>
                             </div>
@@ -3235,6 +3606,17 @@ export function WorkoutLogPage() {
         planView === "activeExercise" &&
         !showCompletion &&
         (() => {
+          if (isLoading) {
+            // Still fetching program data after a fresh mount/refresh — show
+            // a spinner instead of misreporting "this day has no exercises"
+            // (dayExercises is transiently empty while data loads) or
+            // flashing exercise #1 before jumping to the restored position.
+            return (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
+              </div>
+            );
+          }
           if (dayExercises.length === 0) {
             return (
               <div className="rounded-2xl border border-dashed border-zinc-700/30 bg-zinc-900/30 p-8 text-center">
@@ -3256,16 +3638,22 @@ export function WorkoutLogPage() {
             (completedExercises.size / dayExercises.length) * 100;
           const requiresExternalWeight = exerciseUsesExternalWeight(curEx);
           const activeLog = activeExerciseLogs[activeExIdx] || {
-            weightKg: "",
+            weightKg: curEx?.weight != null ? String(curEx.weight) : "",
             noWeight: !requiresExternalWeight,
+            rpe: curEx?.rpe ?? 7,
+            rir: curEx?.rir ?? 2,
           };
           const updateActiveLog = (patch: Partial<ActiveExerciseLog>) => {
             setActiveExerciseLogs((prev) => ({
               ...prev,
               [activeExIdx]: {
-                weightKg: prev[activeExIdx]?.weightKg ?? "",
+                weightKg:
+                  prev[activeExIdx]?.weightKg ??
+                  (curEx?.weight != null ? String(curEx.weight) : ""),
                 noWeight:
                   prev[activeExIdx]?.noWeight ?? !requiresExternalWeight,
+                rpe: prev[activeExIdx]?.rpe ?? curEx?.rpe ?? 7,
+                rir: prev[activeExIdx]?.rir ?? curEx?.rir ?? 2,
                 ...patch,
               },
             }));
@@ -3293,11 +3681,17 @@ export function WorkoutLogPage() {
                   </h2>
                   <p className="text-xs text-zinc-500">{curEx.prescription}</p>
                 </div>
-                {/* Timer button */}
+                {/* Timer button — no historical per-exercise duration is
+                    stored anywhere (only WorkoutSchedule.durationSeconds for
+                    the whole session, which this view doesn't read), so a
+                    past/locked day genuinely has no elapsed time to show;
+                    disabling the Start control here just stops it from
+                    inviting a live timer on content that's already done. */}
                 {!timerRunning ? (
                   <button
                     onClick={() => setTimerRunning(true)}
-                    className="px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-sm text-emerald-300 hover:bg-emerald-500/15 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)] transition-all flex items-center gap-2"
+                    disabled={isSelectedDayLocked}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/15 text-sm text-emerald-300 hover:bg-emerald-500/15 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)] transition-all flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-emerald-500/10 disabled:hover:shadow-none"
                   >
                     <Play className="w-4 h-4" />{" "}
                     {timerSeconds > 0 ? "Tiếp tục" : "Bắt giờ"}
@@ -3538,26 +3932,41 @@ export function WorkoutLogPage() {
                     <p className="text-xs text-zinc-600 uppercase tracking-wider">
                       Ghi chép
                     </p>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={activeLog.noWeight ? "" : activeLog.weightKg}
-                        onChange={(e) =>
+                    {isSelectedDayLocked && (
+                      <div
+                        role="status"
+                        className="flex items-center gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/8 p-3"
+                      >
+                        <Lock className="w-4 h-4 text-amber-400 shrink-0" />
+                        <p className="text-xs text-amber-200/90">
+                          Ngày này đã qua nên không thể chỉnh sửa. Dữ liệu bên dưới chỉ hiển thị để xem lại.
+                        </p>
+                      </div>
+                    )}
+                    <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                      <RulerSlider
+                        className="min-w-0 flex-1"
+                        label={curEx.type === "cardio" ? "Thời gian (phút)" : "Khối lượng tạ"}
+                        min={0}
+                        max={300}
+                        step={0.5}
+                        majorTickInterval={10}
+                        unit={curEx.type === "cardio" ? "phút" : "kg"}
+                        disabled={isSelectedDayLocked || activeLog.noWeight}
+                        value={activeLog.noWeight ? 0 : Number(activeLog.weightKg) || 0}
+                        onChange={(next) =>
                           updateActiveLog({
-                            weightKg: e.target.value,
+                            weightKg: String(next),
                             noWeight: false,
                           })
                         }
-                        disabled={activeLog.noWeight}
-                        placeholder={
-                          curEx.type === "cardio"
-                            ? "Nhập thời gian (phút)..."
-                            : "Nhập tạ (kg)..."
-                        }
-                        className="flex-1 px-5 py-4 rounded-xl bg-zinc-800/30 border border-zinc-700/25 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/25 focus:ring-1 focus:ring-emerald-500/10 focus:shadow-[0_0_12px_rgba(16,185,129,0.06)] transition-all"
                       />
+                      {/* h-16 matches RulerSlider's own track height exactly, so
+                          `sm:items-end` lines this button's bottom edge up with
+                          the track's bottom edge instead of floating vertically
+                          centered against the slider's full label+value+track
+                          block (which used to put it overlapping the value
+                          text and the top of the track — see git history). */}
                       <button
                         type="button"
                         onClick={() =>
@@ -3566,8 +3975,8 @@ export function WorkoutLogPage() {
                             weightKg: "",
                           })
                         }
-                        disabled={!requiresExternalWeight}
-                        className={`px-4 h-14 rounded-xl border text-sm font-medium transition-all ${
+                        disabled={isSelectedDayLocked || !requiresExternalWeight}
+                        className={`h-16 shrink-0 rounded-xl border px-4 text-sm font-medium transition-all ${
                           activeLog.noWeight
                             ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
                             : "border-zinc-700/40 bg-zinc-800/30 text-zinc-300 hover:bg-zinc-800"
@@ -3581,7 +3990,61 @@ export function WorkoutLogPage() {
                         Bắt buộc nhập tổng kg tạ trước khi hoàn thành bài này.
                       </p>
                     )}
-                    <button className="flex items-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 transition-colors">
+
+                    {isBeginnerProfile && showRpeRirHint && (
+                      <div className="flex items-start gap-2.5 rounded-xl border border-sky-500/20 bg-sky-500/8 p-3">
+                        <MessageSquare className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+                        <div className="flex-1 space-y-1">
+                          <p className="text-[11px] text-sky-100/90">
+                            <strong>RPE</strong> (mức độ gắng sức): tự đánh giá bài tập vừa rồi
+                            khó đến đâu, từ 1 (rất nhẹ) đến 10 (dùng hết sức). <strong>RIR</strong>{" "}
+                            (số reps còn có thể làm): nếu dừng lại còn làm thêm được bao nhiêu
+                            reps nữa thì mới thật sự kiệt sức — ví dụ RIR = 2 nghĩa là bạn có
+                            thể làm thêm 2 reps trước khi thất bại.
+                          </p>
+                          <p className="text-[10px] text-sky-300/70">
+                            Đây chỉ là tự đánh giá, không có câu trả lời "đúng/sai" — cứ ước
+                            lượng theo cảm nhận của bạn.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowRpeRirHint(false)}
+                          aria-label="Đóng giải thích RPE/RIR"
+                          className="text-sky-400/60 hover:text-sky-300 shrink-0"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                      <RulerSlider
+                        label="Mức độ gắng sức (RPE)"
+                        min={1}
+                        max={10}
+                        step={0.5}
+                        majorTickInterval={1}
+                        formatValue={(v) => `RPE ${v}`}
+                        disabled={isSelectedDayLocked}
+                        value={activeLog.rpe}
+                        onChange={(next) => updateActiveLog({ rpe: next })}
+                      />
+                      <RulerSlider
+                        label="Số reps còn có thể làm (RIR)"
+                        min={0}
+                        max={5}
+                        step={1}
+                        majorTickInterval={1}
+                        disabled={isSelectedDayLocked}
+                        value={activeLog.rir}
+                        onChange={(next) => updateActiveLog({ rir: next })}
+                      />
+                    </div>
+
+                    <button
+                      disabled={isSelectedDayLocked}
+                      className="flex items-center gap-2 text-xs text-zinc-500 hover:text-emerald-400 transition-colors disabled:opacity-40 disabled:hover:text-zinc-500 disabled:cursor-not-allowed"
+                    >
                       <MessageSquare className="w-3.5 h-3.5" /> Thêm ghi chú
                     </button>
                   </div>
@@ -3597,28 +4060,30 @@ export function WorkoutLogPage() {
                         }
                       }}
                       disabled={activeExIdx === 0}
-                      className="py-3.5 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="min-w-0 py-3.5 px-1 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 sm:gap-2"
                     >
-                      <ChevronLeft className="w-4 h-4" /> Trước
+                      <ChevronLeft className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Trước</span>
                     </button>
                     <button
                       onClick={handleCompleteExercise}
-                      disabled={isCompleted || isCompletingWorkout}
-                      className={`py-3.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 ${
-                        isCompleted || isCompletingWorkout
+                      disabled={isSelectedDayLocked || isCompleted || isCompletingWorkout}
+                      className={`min-w-0 py-3.5 px-1 rounded-xl text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
+                        isSelectedDayLocked || isCompleted || isCompletingWorkout
                           ? "bg-emerald-500/10 border border-emerald-500/15 text-emerald-500/50 cursor-not-allowed"
                           : "bg-emerald-500 text-black hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-[0.98]"
                       }`}
                     >
-                      <Check className="w-4 h-4" />{" "}
-                      {isCompleted ? "Xong" : "Hoàn thành"}
+                      <Check className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{isCompleted ? "Xong" : "Hoàn thành"}</span>
                     </button>
                     <button
                       onClick={handleSkipExercise}
-                      disabled={activeExIdx === dayExercises.length - 1}
-                      className="py-3.5 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      disabled={isSelectedDayLocked || activeExIdx === dayExercises.length - 1}
+                      className="min-w-0 py-3.5 px-1 rounded-xl bg-zinc-800/40 border border-zinc-700/25 text-sm text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 sm:gap-2"
                     >
-                      Bỏ qua <SkipForward className="w-4 h-4" />
+                      <span className="truncate">Bỏ qua</span>
+                      <SkipForward className="w-4 h-4 shrink-0" />
                     </button>
                   </div>
 
@@ -3749,6 +4214,14 @@ export function WorkoutLogPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {feedbackPrompt && (
+        <SessionFeedbackModal
+          cycleId={feedbackPrompt.cycleId}
+          scheduleId={feedbackPrompt.scheduleId}
+          onClose={() => setFeedbackPrompt(null)}
+        />
       )}
 
       {/* ═══════════════ EXERCISE DETAIL MODAL ═══════════════ */}
@@ -4833,6 +5306,11 @@ type CalendarDayInfo = {
   sourceType?: string | null;
   status?: WorkoutScheduleRecord["status"];
   workoutId?: string | null;
+  /** true when this day's calendar date is strictly before the user's
+   * current local day (Asia/Ho_Chi_Minh) — read-only in the UI. This is a
+   * client-side hint only; the backend independently enforces the same
+   * rule on every mutating endpoint regardless of what the UI shows. */
+  isLocked?: boolean;
 };
 
 function CalendarGrid({
@@ -4872,6 +5350,11 @@ function CalendarGrid({
   const isCurrentMonth =
     todayDate.getFullYear() === year && todayDate.getMonth() === monthIdx;
   const todayDay = isCurrentMonth ? todayDate.getDate() : -1;
+  // Locked-day styling uses the same Asia/Ho_Chi_Minh "today" label as the
+  // backend lock check (not just browser-local today/month), so a day cell
+  // never shows as unlocked when the corresponding schedule mutation would
+  // actually be rejected server-side.
+  const todayLabel = calendarDateLabel(new Date(), APP_SCHEDULE_TIME_ZONE);
 
   // Use schedulesByDay if available, else fall back to markers[]
   const hasSchedules = schedulesByDay && schedulesByDay.size > 0;
@@ -4889,6 +5372,7 @@ function CalendarGrid({
       <div className="flex items-center justify-center gap-6 mb-4">
         <button
           onClick={onPrevMonth}
+          aria-label="Tháng trước"
           className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors"
         >
           <ChevronLeft className="w-4 h-4 text-zinc-500" />
@@ -4898,6 +5382,7 @@ function CalendarGrid({
         </span>
         <button
           onClick={onNextMonth}
+          aria-label="Tháng sau"
           className="w-8 h-8 rounded-lg bg-zinc-800/40 border border-zinc-700/25 flex items-center justify-center hover:border-zinc-600 transition-colors"
         >
           <ChevronRight className="w-4 h-4 text-zinc-500" />
@@ -4921,36 +5406,78 @@ function CalendarGrid({
           const isToday = day === todayDay;
           const firstInfo = dayInfos[0];
           const extraCount = dayInfos.length > 1 ? dayInfos.length - 1 : 0;
+          // Locked and completed are independent booleans on purpose — a
+          // past day can be both (completed AND now read-only) or locked
+          // with nothing logged at all; collapsing them into one state
+          // would lose real information the calendar needs to show.
+          const cellDateLabel = `${year}-${String(monthIdx + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const isLocked = hasSchedules
+            ? dayInfos.some((info) => info.isLocked)
+            : cellDateLabel < todayLabel;
+          const isCompleted = dayInfos.some((info) => info.status === "COMPLETED");
 
           return (
             <div
               key={`d-${day}`}
               onClick={() => onDayClick(day)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onDayClick(day);
+                }
+              }}
+              role="button"
+              tabIndex={0}
               title={
                 firstInfo
-                  ? `${firstInfo.title}${firstInfo.exerciseCount ? ` · ${firstInfo.exerciseCount} bài` : ""}${firstInfo.programName ? `\n${firstInfo.programName}` : ""}`
-                  : undefined
+                  ? `${firstInfo.title}${firstInfo.exerciseCount ? ` · ${firstInfo.exerciseCount} bài` : ""}${firstInfo.programName ? `\n${firstInfo.programName}` : ""}${isLocked ? "\n(Đã khóa — ngày đã qua, chỉ xem)" : ""}`
+                  : isLocked
+                    ? "Ngày đã qua — chỉ xem"
+                    : undefined
               }
-              className={`relative w-full h-[52px] flex flex-col items-center pt-1.5 rounded-xl text-xs transition-all cursor-pointer overflow-hidden ${
+              aria-label={
                 isTraining
-                  ? "bg-emerald-500 text-black shadow-[0_0_14px_rgba(16,185,129,0.3)] hover:bg-emerald-400"
+                  ? `${firstInfo?.title ?? "Buổi tập"}, ngày ${day}${isLocked ? ", đã khóa vì ngày đã qua" : ""}${isCompleted ? ", đã hoàn thành" : ""}`
+                  : isToday
+                    ? `Hôm nay, ngày ${day}`
+                    : `Ngày ${day}`
+              }
+              className={`relative w-full h-[52px] flex flex-col items-center pt-1.5 rounded-xl text-xs transition-all cursor-pointer overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 ${
+                isTraining
+                  ? isLocked
+                    ? "bg-emerald-800/60 text-emerald-100/80 hover:bg-emerald-800/70"
+                    : "bg-emerald-500 text-black shadow-[0_0_14px_rgba(16,185,129,0.3)] hover:bg-emerald-400"
                   : isToday
                     ? "border border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
                     : "text-zinc-500 hover:bg-zinc-800/30 hover:text-zinc-400"
               }`}
             >
+              {isLocked && (
+                <Lock
+                  aria-hidden="true"
+                  className={`absolute top-1 right-1 w-2.5 h-2.5 ${isTraining ? "text-black/50" : "text-zinc-600"}`}
+                />
+              )}
               <span
-                className={`text-[11px] font-medium leading-none ${isTraining ? "text-black font-bold" : isToday ? "text-emerald-400" : ""}`}
+                className={`text-[11px] font-medium leading-none ${isTraining ? (isLocked ? "text-emerald-50" : "text-black font-bold") : isToday ? "text-emerald-400" : ""}`}
               >
                 {day}
               </span>
               {isTraining && firstInfo && (
-                <span className="mt-[3px] text-[7px] leading-tight text-black/80 truncate w-full text-center px-0.5">
+                <span
+                  className={`mt-[3px] text-[7px] leading-tight truncate w-full text-center px-0.5 ${isLocked ? "text-emerald-100/70" : "text-black/80"}`}
+                >
                   {shortTitle(firstInfo.title)}
                 </span>
               )}
               {isTraining && !firstInfo && (
                 <span className="mt-[5px] block w-1.5 h-1.5 rounded-full bg-black/60 shadow-[0_0_4px_rgba(0,0,0,0.2)]" />
+              )}
+              {isCompleted && (
+                <Check
+                  aria-hidden="true"
+                  className={`absolute bottom-1 left-1 w-2.5 h-2.5 ${isTraining ? "text-black/60" : "text-emerald-500"}`}
+                />
               )}
               {extraCount > 0 && isTraining && (
                 <span className="text-[6.5px] text-black/70 font-semibold leading-none mt-0.5">

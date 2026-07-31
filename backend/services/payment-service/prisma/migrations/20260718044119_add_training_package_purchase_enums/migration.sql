@@ -1,0 +1,8 @@
+-- AlterEnum
+ALTER TYPE "PartnerType" ADD VALUE 'CLIENT';
+
+-- AlterEnum
+ALTER TYPE "PurposeType" ADD VALUE 'TRAINING_PACKAGE_PURCHASE';
+
+-- AlterEnum
+ALTER TYPE "RelatedEntityType" ADD VALUE 'TRAINING_PACKAGE_PURCHASE';

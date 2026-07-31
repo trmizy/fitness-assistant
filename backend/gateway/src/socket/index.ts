@@ -8,23 +8,9 @@ import { registerChatHandlers } from "./handlers/chat.handlers";
 import { registerAiHandlers } from "./handlers/ai.handlers";
 import { registerDashboardHandlers } from "./handlers/dashboard.handlers";
 import { registerNotificationHandlers } from "./handlers/notification.handlers";
+import { isAllowedOrigin } from "../utils/corsOrigins";
 
 let io: Server | null = null;
-
-function parseCorsOrigins(): string[] {
-  const envOrigins = (process.env.CORS_ORIGIN || "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  return Array.from(
-    new Set([
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      ...envOrigins,
-    ]),
-  );
-}
 
 function emitPresence(userId: string, status: PresencePayload["status"]) {
   if (!io) return;
@@ -40,7 +26,9 @@ export function initializeSocketServer(server: HttpServer): Server {
 
   io = new Server(server, {
     cors: {
-      origin: parseCorsOrigins(),
+      origin: (origin, callback) => {
+        callback(null, isAllowedOrigin(origin));
+      },
       credentials: true,
     },
     maxHttpBufferSize: 1_000_000,

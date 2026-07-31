@@ -180,8 +180,16 @@ export const profileController = {
   /** Returns { summary: { [userId]: contractCount } } for all user IDs.
    *  Called by the API Gateway to enrich the admin User Management list.
    */
-  async adminContractsSummary(_req: AuthRequest, res: Response): Promise<void> {
+  async adminContractsSummary(req: AuthRequest, res: Response): Promise<void> {
     try {
+      // Defense in depth: the gateway also gates /profile/admin/* behind
+      // requireRoles("ADMIN"), but this service must never assume it's
+      // unreachable any other way (a misrouted proxy config, a future
+      // internal caller, ...) — verify independently.
+      if (req.user?.role !== "ADMIN") {
+        res.status(403).json({ error: "Forbidden: admin role required" });
+        return;
+      }
       // Fetch all contracts and group counts in the repository
       // We pass an empty array to get ALL users (repository handles it)
       const allContracts = await contractRepository.findAll(0, 10000);
@@ -200,8 +208,12 @@ export const profileController = {
   },
 
   /** Returns general system stats for the admin dashboard. */
-  async adminGetStats(_req: AuthRequest, res: Response): Promise<void> {
+  async adminGetStats(req: AuthRequest, res: Response): Promise<void> {
     try {
+      if (req.user?.role !== "ADMIN") {
+        res.status(403).json({ error: "Forbidden: admin role required" });
+        return;
+      }
       const activeContracts = await contractRepository.countActive();
 
       // Calculate OCR stats for the last 7 days

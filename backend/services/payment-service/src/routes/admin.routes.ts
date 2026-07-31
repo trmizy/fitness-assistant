@@ -6,6 +6,7 @@ import axios from 'axios';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { walletService } from '../services/wallet.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
+import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { Prisma } from '../generated/prisma';
 
 const GYM_SERVICE_URL = process.env.GYM_SERVICE_URL || 'http://localhost:3006';
@@ -14,20 +15,39 @@ const INTERNAL_SERVICE_SECRET =
   process.env.INTERNAL_SERVICE_SECRET || 'dev_internal_service_secret_change_in_production';
 
 const router = Router();
+// This router previously had NO auth of its own, relying entirely on the
+// gateway's requireRoles('ADMIN') gate for /admin/payments/*. Since
+// payment-service's port is published directly on the host in
+// docker-compose.dev.yml, that meant a caller who reached this service
+// directly — bypassing the gateway — could hit /admin/payments/:id/refund
+// (a REAL fund-reversing endpoint) with no authentication at all. Every
+// route in this file now requires a verified ADMIN token independently.
+router.use(extractUser, requireAuth, requireRoles('ADMIN'));
 
-// GET /admin/payments
-router.get('/', (_req, res) => {
-  res.json({ success: true, data: [] });
+// GET /admin/payments — real transaction list (was a hardcoded empty array
+// regardless of what data actually existed).
+router.get('/', async (_req: Request, res: Response) => {
+  const transactions = await transactionRepository.findRecent(200);
+  res.json({ success: true, data: transactions });
 });
 
-// GET /admin/payments/commissions
-router.get('/commissions', (_req, res) => {
-  res.json({ success: true, data: [] });
+// GET /admin/payments/commissions — real commission list (was a hardcoded
+// empty array).
+router.get('/commissions', async (_req: Request, res: Response) => {
+  const commissions = await transactionRepository.findRecentCommissions(200);
+  res.json({ success: true, data: commissions });
 });
 
-// PATCH /admin/payments/commissions/:id/settle
+// PATCH /admin/payments/commissions/:id/settle — genuinely not implemented
+// yet (no settlement state machine, no payout-transfer integration, no
+// audit trail for the actual bank/e-wallet payout). Returning 501 here is
+// the honest signal the frontend needs to keep this action disabled/hidden
+// rather than silently pretending to succeed — see PTWalletPage/admin
+// commission UI, which must not show this as a working button in the
+// meantime (§5.2's explicit requirement: no fake buttons for
+// unimplemented functionality).
 router.patch('/commissions/:id/settle', (_req, res) => {
-  res.status(501).json({ success: false, error: { code: 'NOT_IMPLEMENTED' } });
+  res.status(501).json({ success: false, error: { code: 'NOT_IMPLEMENTED', message: 'Commission settlement is not implemented yet' } });
 });
 
 const refundSchema = z.object({

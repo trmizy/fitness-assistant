@@ -37,4 +37,11 @@ COPY --from=builder /app/backend/services/fitness-service/package.json ./backend
 COPY --from=builder /app/backend/services/fitness-service/prisma ./backend/services/fitness-service/prisma
 WORKDIR /app/backend/services/fitness-service
 EXPOSE 3002
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/prisma db seed && node dist/server.js"]
+# `exec` replaces the shell with the node process instead of forking it as a
+# child — without it, Docker's SIGTERM (sent to the shell, PID 1) never
+# reaches node, so the app's own process.on("SIGTERM") handler never runs
+# and the container always hard-dies on the stop-grace-period SIGKILL
+# instead. Verified live (on a sibling service with the same pattern):
+# without exec, node stays running after SIGTERM reaches the wrapper shell;
+# with it, the shutdown handler fires and the process exits 0.
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && node_modules/.bin/prisma db seed && exec node dist/server.js"]

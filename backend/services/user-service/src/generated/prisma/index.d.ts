@@ -16584,6 +16584,8 @@ export namespace Prisma {
     bodyFat: number | null
     bodyFatPct: number | null
     muscleMass: number | null
+    visceralFat: number | null
+    bmr: number | null
     rightArmMuscle: number | null
     leftArmMuscle: number | null
     trunkMuscle: number | null
@@ -16603,6 +16605,8 @@ export namespace Prisma {
     bodyFat: number | null
     bodyFatPct: number | null
     muscleMass: number | null
+    visceralFat: number | null
+    bmr: number | null
     rightArmMuscle: number | null
     leftArmMuscle: number | null
     trunkMuscle: number | null
@@ -16626,6 +16630,8 @@ export namespace Prisma {
     bodyFat: number | null
     bodyFatPct: number | null
     muscleMass: number | null
+    visceralFat: number | null
+    bmr: number | null
     rightArmMuscle: number | null
     leftArmMuscle: number | null
     trunkMuscle: number | null
@@ -16653,6 +16659,8 @@ export namespace Prisma {
     bodyFat: number | null
     bodyFatPct: number | null
     muscleMass: number | null
+    visceralFat: number | null
+    bmr: number | null
     rightArmMuscle: number | null
     leftArmMuscle: number | null
     trunkMuscle: number | null
@@ -16680,6 +16688,8 @@ export namespace Prisma {
     bodyFat: number
     bodyFatPct: number
     muscleMass: number
+    visceralFat: number
+    bmr: number
     rightArmMuscle: number
     leftArmMuscle: number
     trunkMuscle: number
@@ -16705,6 +16715,8 @@ export namespace Prisma {
     bodyFat?: true
     bodyFatPct?: true
     muscleMass?: true
+    visceralFat?: true
+    bmr?: true
     rightArmMuscle?: true
     leftArmMuscle?: true
     trunkMuscle?: true
@@ -16724,6 +16736,8 @@ export namespace Prisma {
     bodyFat?: true
     bodyFatPct?: true
     muscleMass?: true
+    visceralFat?: true
+    bmr?: true
     rightArmMuscle?: true
     leftArmMuscle?: true
     trunkMuscle?: true
@@ -16747,6 +16761,8 @@ export namespace Prisma {
     bodyFat?: true
     bodyFatPct?: true
     muscleMass?: true
+    visceralFat?: true
+    bmr?: true
     rightArmMuscle?: true
     leftArmMuscle?: true
     trunkMuscle?: true
@@ -16774,6 +16790,8 @@ export namespace Prisma {
     bodyFat?: true
     bodyFatPct?: true
     muscleMass?: true
+    visceralFat?: true
+    bmr?: true
     rightArmMuscle?: true
     leftArmMuscle?: true
     trunkMuscle?: true
@@ -16801,6 +16819,8 @@ export namespace Prisma {
     bodyFat?: true
     bodyFatPct?: true
     muscleMass?: true
+    visceralFat?: true
+    bmr?: true
     rightArmMuscle?: true
     leftArmMuscle?: true
     trunkMuscle?: true
@@ -16915,6 +16935,8 @@ export namespace Prisma {
     bodyFat: number
     bodyFatPct: number | null
     muscleMass: number
+    visceralFat: number | null
+    bmr: number | null
     rightArmMuscle: number | null
     leftArmMuscle: number | null
     trunkMuscle: number | null
@@ -16961,6 +16983,8 @@ export namespace Prisma {
     bodyFat?: boolean
     bodyFatPct?: boolean
     muscleMass?: boolean
+    visceralFat?: boolean
+    bmr?: boolean
     rightArmMuscle?: boolean
     leftArmMuscle?: boolean
     trunkMuscle?: boolean
@@ -16988,6 +17012,8 @@ export namespace Prisma {
     bodyFat?: boolean
     bodyFatPct?: boolean
     muscleMass?: boolean
+    visceralFat?: boolean
+    bmr?: boolean
     rightArmMuscle?: boolean
     leftArmMuscle?: boolean
     trunkMuscle?: boolean
@@ -17015,6 +17041,8 @@ export namespace Prisma {
     bodyFat?: boolean
     bodyFatPct?: boolean
     muscleMass?: boolean
+    visceralFat?: boolean
+    bmr?: boolean
     rightArmMuscle?: boolean
     leftArmMuscle?: boolean
     trunkMuscle?: boolean
@@ -17046,6 +17074,8 @@ export namespace Prisma {
       bodyFat: number
       bodyFatPct: number | null
       muscleMass: number
+      visceralFat: number | null
+      bmr: number | null
       rightArmMuscle: number | null
       leftArmMuscle: number | null
       trunkMuscle: number | null
@@ -17463,6 +17493,8 @@ export namespace Prisma {
     readonly bodyFat: FieldRef<"InBodyEntry", 'Float'>
     readonly bodyFatPct: FieldRef<"InBodyEntry", 'Float'>
     readonly muscleMass: FieldRef<"InBodyEntry", 'Float'>
+    readonly visceralFat: FieldRef<"InBodyEntry", 'Float'>
+    readonly bmr: FieldRef<"InBodyEntry", 'Int'>
     readonly rightArmMuscle: FieldRef<"InBodyEntry", 'Float'>
     readonly leftArmMuscle: FieldRef<"InBodyEntry", 'Float'>
     readonly trunkMuscle: FieldRef<"InBodyEntry", 'Float'>
@@ -18076,6 +18108,8 @@ export namespace Prisma {
     bodyFat: 'bodyFat',
     bodyFatPct: 'bodyFatPct',
     muscleMass: 'muscleMass',
+    visceralFat: 'visceralFat',
+    bmr: 'bmr',
     rightArmMuscle: 'rightArmMuscle',
     leftArmMuscle: 'leftArmMuscle',
     trunkMuscle: 'trunkMuscle',
@@ -19903,6 +19937,8 @@ export namespace Prisma {
     bodyFat?: FloatFilter<"InBodyEntry"> | number
     bodyFatPct?: FloatNullableFilter<"InBodyEntry"> | number | null
     muscleMass?: FloatFilter<"InBodyEntry"> | number
+    visceralFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    bmr?: IntNullableFilter<"InBodyEntry"> | number | null
     rightArmMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
     leftArmMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
     trunkMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
@@ -19930,6 +19966,8 @@ export namespace Prisma {
     bodyFat?: SortOrder
     bodyFatPct?: SortOrderInput | SortOrder
     muscleMass?: SortOrder
+    visceralFat?: SortOrderInput | SortOrder
+    bmr?: SortOrderInput | SortOrder
     rightArmMuscle?: SortOrderInput | SortOrder
     leftArmMuscle?: SortOrderInput | SortOrder
     trunkMuscle?: SortOrderInput | SortOrder
@@ -19961,6 +19999,8 @@ export namespace Prisma {
     bodyFat?: FloatFilter<"InBodyEntry"> | number
     bodyFatPct?: FloatNullableFilter<"InBodyEntry"> | number | null
     muscleMass?: FloatFilter<"InBodyEntry"> | number
+    visceralFat?: FloatNullableFilter<"InBodyEntry"> | number | null
+    bmr?: IntNullableFilter<"InBodyEntry"> | number | null
     rightArmMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
     leftArmMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
     trunkMuscle?: FloatNullableFilter<"InBodyEntry"> | number | null
@@ -19988,6 +20028,8 @@ export namespace Prisma {
     bodyFat?: SortOrder
     bodyFatPct?: SortOrderInput | SortOrder
     muscleMass?: SortOrder
+    visceralFat?: SortOrderInput | SortOrder
+    bmr?: SortOrderInput | SortOrder
     rightArmMuscle?: SortOrderInput | SortOrder
     leftArmMuscle?: SortOrderInput | SortOrder
     trunkMuscle?: SortOrderInput | SortOrder
@@ -20023,6 +20065,8 @@ export namespace Prisma {
     bodyFat?: FloatWithAggregatesFilter<"InBodyEntry"> | number
     bodyFatPct?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
     muscleMass?: FloatWithAggregatesFilter<"InBodyEntry"> | number
+    visceralFat?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
+    bmr?: IntNullableWithAggregatesFilter<"InBodyEntry"> | number | null
     rightArmMuscle?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
     leftArmMuscle?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
     trunkMuscle?: FloatNullableWithAggregatesFilter<"InBodyEntry"> | number | null
@@ -21809,6 +21853,8 @@ export namespace Prisma {
     bodyFat: number
     bodyFatPct?: number | null
     muscleMass: number
+    visceralFat?: number | null
+    bmr?: number | null
     rightArmMuscle?: number | null
     leftArmMuscle?: number | null
     trunkMuscle?: number | null
@@ -21836,6 +21882,8 @@ export namespace Prisma {
     bodyFat: number
     bodyFatPct?: number | null
     muscleMass: number
+    visceralFat?: number | null
+    bmr?: number | null
     rightArmMuscle?: number | null
     leftArmMuscle?: number | null
     trunkMuscle?: number | null
@@ -21863,6 +21911,8 @@ export namespace Prisma {
     bodyFat?: FloatFieldUpdateOperationsInput | number
     bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
     muscleMass?: FloatFieldUpdateOperationsInput | number
+    visceralFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmr?: NullableIntFieldUpdateOperationsInput | number | null
     rightArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
     leftArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
     trunkMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -21890,6 +21940,8 @@ export namespace Prisma {
     bodyFat?: FloatFieldUpdateOperationsInput | number
     bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
     muscleMass?: FloatFieldUpdateOperationsInput | number
+    visceralFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmr?: NullableIntFieldUpdateOperationsInput | number | null
     rightArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
     leftArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
     trunkMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -21917,6 +21969,8 @@ export namespace Prisma {
     bodyFat: number
     bodyFatPct?: number | null
     muscleMass: number
+    visceralFat?: number | null
+    bmr?: number | null
     rightArmMuscle?: number | null
     leftArmMuscle?: number | null
     trunkMuscle?: number | null
@@ -21944,6 +21998,8 @@ export namespace Prisma {
     bodyFat?: FloatFieldUpdateOperationsInput | number
     bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
     muscleMass?: FloatFieldUpdateOperationsInput | number
+    visceralFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmr?: NullableIntFieldUpdateOperationsInput | number | null
     rightArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
     leftArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
     trunkMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -21971,6 +22027,8 @@ export namespace Prisma {
     bodyFat?: FloatFieldUpdateOperationsInput | number
     bodyFatPct?: NullableFloatFieldUpdateOperationsInput | number | null
     muscleMass?: FloatFieldUpdateOperationsInput | number
+    visceralFat?: NullableFloatFieldUpdateOperationsInput | number | null
+    bmr?: NullableIntFieldUpdateOperationsInput | number | null
     rightArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
     leftArmMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
     trunkMuscle?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -23483,6 +23541,8 @@ export namespace Prisma {
     bodyFat?: SortOrder
     bodyFatPct?: SortOrder
     muscleMass?: SortOrder
+    visceralFat?: SortOrder
+    bmr?: SortOrder
     rightArmMuscle?: SortOrder
     leftArmMuscle?: SortOrder
     trunkMuscle?: SortOrder
@@ -23506,6 +23566,8 @@ export namespace Prisma {
     bodyFat?: SortOrder
     bodyFatPct?: SortOrder
     muscleMass?: SortOrder
+    visceralFat?: SortOrder
+    bmr?: SortOrder
     rightArmMuscle?: SortOrder
     leftArmMuscle?: SortOrder
     trunkMuscle?: SortOrder
@@ -23529,6 +23591,8 @@ export namespace Prisma {
     bodyFat?: SortOrder
     bodyFatPct?: SortOrder
     muscleMass?: SortOrder
+    visceralFat?: SortOrder
+    bmr?: SortOrder
     rightArmMuscle?: SortOrder
     leftArmMuscle?: SortOrder
     trunkMuscle?: SortOrder
@@ -23556,6 +23620,8 @@ export namespace Prisma {
     bodyFat?: SortOrder
     bodyFatPct?: SortOrder
     muscleMass?: SortOrder
+    visceralFat?: SortOrder
+    bmr?: SortOrder
     rightArmMuscle?: SortOrder
     leftArmMuscle?: SortOrder
     trunkMuscle?: SortOrder
@@ -23579,6 +23645,8 @@ export namespace Prisma {
     bodyFat?: SortOrder
     bodyFatPct?: SortOrder
     muscleMass?: SortOrder
+    visceralFat?: SortOrder
+    bmr?: SortOrder
     rightArmMuscle?: SortOrder
     leftArmMuscle?: SortOrder
     trunkMuscle?: SortOrder

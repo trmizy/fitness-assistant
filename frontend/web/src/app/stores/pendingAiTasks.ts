@@ -4,6 +4,7 @@ import {
   coachService,
   type CoachEvidenceItem,
   type CoachStreamDonePayload,
+  type AiSessionMessage,
 } from "../services/api";
 
 export type PendingAiTaskKind = "plan-generate" | "plan-adjust" | "chat-ask";
@@ -49,8 +50,12 @@ export interface AiCoachSessionState {
 
 const TASK_STORAGE_PREFIX = "ai_pending_tasks_v1";
 const COACH_STORAGE_PREFIX = "ai_coach_session_v1";
+// Sentinel sessionKey prefix for a thread that hasn't been adopted by the
+// server yet (no real ChatSession row exists until the first message lands).
+const DRAFT_SESSION_PREFIX = "draft:";
 
 const taskTimers = new Map<string, ReturnType<typeof setInterval>>();
+// Keyed by `${userId}:${sessionKey}` — one entry per open chat thread, not per user.
 const coachRequests = new Map<string, { token: string; cancel: () => void }>();
 const taskCache = new Map<string, PendingAiTask[]>();
 const coachCache = new Map<string, AiCoachSessionState>();
@@ -75,8 +80,12 @@ function taskStorageKey(userId: string): string {
   return `${TASK_STORAGE_PREFIX}:${userId}`;
 }
 
-function coachStorageKey(userId: string): string {
-  return `${COACH_STORAGE_PREFIX}:${userId}`;
+function coachKey(userId: string, sessionKey: string): string {
+  return `${userId}:${sessionKey}`;
+}
+
+function coachStorageKey(userId: string, sessionKey: string): string {
+  return `${COACH_STORAGE_PREFIX}:${userId}:${sessionKey}`;
 }
 
 function emit(): void {
@@ -112,8 +121,11 @@ function persistTasks(userId: string): void {
   writeJson(taskStorageKey(userId), taskCache.get(userId) ?? []);
 }
 
-function persistCoach(userId: string): void {
-  writeJson(coachStorageKey(userId), coachCache.get(userId) ?? null);
+function persistCoach(userId: string, sessionKey: string): void {
+  writeJson(
+    coachStorageKey(userId, sessionKey),
+    coachCache.get(coachKey(userId, sessionKey)) ?? null,
+  );
 }
 
 function normalizeTask(task: PendingAiTask): PendingAiTask {
@@ -142,49 +154,49 @@ function setUserTasks(userId: string, tasks: PendingAiTask[]): void {
   emit();
 }
 
-function getCoachSession(userId?: string): AiCoachSessionState {
-  if (!userId) {
-    return {
-      messages: [],
-      status: "idle",
-      activeTaskId: null,
-      lastError: null,
-      updatedAt: nowIso(),
-    };
-  }
-
-  if (!coachCache.has(userId)) {
-    const persisted = readJson<AiCoachSessionState | null>(
-      coachStorageKey(userId),
-      null,
-    );
-    coachCache.set(
-      userId,
-      persisted ?? {
-        messages: [],
-        status: "idle",
-        activeTaskId: null,
-        lastError: null,
-        updatedAt: nowIso(),
-      },
-    );
-  }
-
-  return (
-    coachCache.get(userId) ?? {
-      messages: [],
-      status: "idle",
-      activeTaskId: null,
-      lastError: null,
-      updatedAt: nowIso(),
-    }
-  );
+function emptyCoachSession(): AiCoachSessionState {
+  return {
+    messages: [],
+    status: "idle",
+    activeTaskId: null,
+    lastError: null,
+    updatedAt: nowIso(),
+  };
 }
 
-function setCoachSession(userId: string, session: AiCoachSessionState): void {
-  coachCache.set(userId, session);
-  persistCoach(userId);
+function getCoachSession(
+  userId?: string,
+  sessionKey?: string,
+): AiCoachSessionState {
+  if (!userId || !sessionKey) return emptyCoachSession();
+
+  const key = coachKey(userId, sessionKey);
+  if (!coachCache.has(key)) {
+    const persisted = readJson<AiCoachSessionState | null>(
+      coachStorageKey(userId, sessionKey),
+      null,
+    );
+    coachCache.set(key, persisted ?? emptyCoachSession());
+  }
+
+  return coachCache.get(key) ?? emptyCoachSession();
+}
+
+function setCoachSession(
+  userId: string,
+  sessionKey: string,
+  session: AiCoachSessionState,
+): void {
+  coachCache.set(coachKey(userId, sessionKey), session);
+  persistCoach(userId, sessionKey);
   emit();
+}
+
+function deleteCoachSession(userId: string, sessionKey: string): void {
+  coachCache.delete(coachKey(userId, sessionKey));
+  if (isBrowser()) {
+    localStorage.removeItem(coachStorageKey(userId, sessionKey));
+  }
 }
 
 function isPendingStatus(status: PendingAiTaskStatus): boolean {
@@ -310,11 +322,29 @@ export function clearPendingAiState(userId: string): void {
     taskTimers.delete(timerKey);
   }
   taskCache.delete(userId);
-  coachCache.delete(userId);
-  coachRequests.delete(userId);
+
+  // coachCache/coachRequests are keyed `${userId}:${sessionKey}` — one entry
+  // per open chat thread, so sweep every entry belonging to this user rather
+  // than a single fixed key.
+  const prefix = `${userId}:`;
+  for (const key of Array.from(coachCache.keys())) {
+    if (key.startsWith(prefix)) coachCache.delete(key);
+  }
+  for (const key of Array.from(coachRequests.keys())) {
+    if (key.startsWith(prefix)) {
+      coachRequests.get(key)?.cancel?.();
+      coachRequests.delete(key);
+    }
+  }
+
   if (isBrowser()) {
     localStorage.removeItem(taskStorageKey(userId));
-    localStorage.removeItem(coachStorageKey(userId));
+    const coachPrefix = `${COACH_STORAGE_PREFIX}:${userId}:`;
+    for (const storageKey of Object.keys(localStorage)) {
+      if (storageKey.startsWith(coachPrefix)) {
+        localStorage.removeItem(storageKey);
+      }
+    }
   }
   emit();
 }
@@ -349,24 +379,59 @@ export function usePendingAiTasks(userId?: string) {
   };
 }
 
-export function useAiCoachSession(userId?: string) {
+/** Generates a fresh local placeholder key for a not-yet-adopted "New Chat" thread. */
+export function newDraftSessionKey(): string {
+  return `${DRAFT_SESSION_PREFIX}${safeUuid()}`;
+}
+
+function isDraftSessionKey(sessionKey: string): boolean {
+  return sessionKey.startsWith(DRAFT_SESSION_PREFIX);
+}
+
+/** Converts server-persisted turns (GET /ai/sessions/:id/messages) into the
+ * store's message shape. Seeds only when the target bucket is empty so a
+ * background refetch never clobbers a thread the user is actively typing in. */
+export function hydrateSessionMessages(
+  userId: string,
+  sessionId: string,
+  conversations: AiSessionMessage[],
+): void {
+  const current = getCoachSession(userId, sessionId);
+  if (current.messages.length > 0) return;
+
+  const messages: AiChatMessage[] = conversations.flatMap((c) => [
+    { id: `${c.id}-q`, from: "user" as const, text: c.question, time: c.createdAt },
+    {
+      id: `${c.id}-a`,
+      from: "ai" as const,
+      text: c.answer,
+      time: c.createdAt,
+      evidenceUsed: c.evidenceUsed,
+    },
+  ]);
+
+  setCoachSession(userId, sessionId, {
+    messages,
+    status: "idle",
+    activeTaskId: null,
+    lastError: null,
+    updatedAt: nowIso(),
+  });
+}
+
+export function useAiCoachSession(userId?: string, sessionKey?: string) {
+  const key = sessionKey ?? "";
   const session = useSyncExternalStore(
     subscribe,
-    () => getCoachSession(userId),
-    () => ({
-      messages: [],
-      status: "idle",
-      activeTaskId: null,
-      lastError: null,
-      updatedAt: nowIso(),
-    }),
+    () => getCoachSession(userId, key),
+    () => emptyCoachSession(),
   );
 
   const setInitialMessage = (message: AiChatMessage): void => {
-    if (!userId) return;
-    const current = getCoachSession(userId);
+    if (!userId || !key) return;
+    const current = getCoachSession(userId, key);
     if (current.messages.length > 0) return;
-    setCoachSession(userId, {
+    setCoachSession(userId, key, {
       ...current,
       messages: [message],
       status: "idle",
@@ -376,11 +441,18 @@ export function useAiCoachSession(userId?: string) {
     });
   };
 
-  const sendQuestion = (question: string): string | null => {
-    if (!userId || !question.trim()) return null;
+  const sendQuestion = (
+    question: string,
+    onSessionAdopted?: (sessionId: string) => void,
+  ): string | null => {
+    if (!userId || !key || !question.trim()) return null;
 
-    const current = getCoachSession(userId);
+    const current = getCoachSession(userId, key);
     if (current.status === "processing") return null;
+
+    // A draft thread has no real ChatSession row yet — don't send it to the
+    // backend as a sessionId, let the server auto-create one.
+    const outgoingSessionId = isDraftSessionKey(key) ? undefined : key;
 
     const taskId = safeUuid();
     const userMessage: AiChatMessage = {
@@ -405,7 +477,7 @@ export function useAiCoachSession(userId?: string) {
       error: null,
     });
 
-    setCoachSession(userId, {
+    setCoachSession(userId, key, {
       messages: [...current.messages, userMessage, placeholderMessage],
       status: "processing",
       activeTaskId: taskId,
@@ -413,13 +485,14 @@ export function useAiCoachSession(userId?: string) {
       updatedAt: nowIso(),
     });
 
+    const bucketKey = coachKey(userId, key);
     const requestToken = safeUuid();
-    coachRequests.set(userId, {
+    coachRequests.set(bucketKey, {
       token: requestToken,
       cancel: () => {
-        const active = coachRequests.get(userId);
+        const active = coachRequests.get(bucketKey);
         if (active?.token === requestToken) {
-          coachRequests.delete(userId);
+          coachRequests.delete(bucketKey);
         }
       },
     });
@@ -427,10 +500,10 @@ export function useAiCoachSession(userId?: string) {
     const applyIfCurrent = (
       updater: (session: AiCoachSessionState) => AiCoachSessionState,
     ) => {
-      const active = coachRequests.get(userId);
+      const active = coachRequests.get(bucketKey);
       if (!active || active.token !== requestToken) return;
-      const latest = getCoachSession(userId);
-      setCoachSession(userId, updater(latest));
+      const latest = getCoachSession(userId, key);
+      setCoachSession(userId, key, updater(latest));
     };
 
     const updateTaskState = (
@@ -445,13 +518,26 @@ export function useAiCoachSession(userId?: string) {
       });
     };
 
+    // If this thread just got its first server-assigned sessionId, migrate
+    // the draft bucket's state into the real bucket and let the page know so
+    // it can update the URL/active-session state in the same tick.
+    const adoptSessionIfNeeded = (newSessionId: string | undefined) => {
+      if (!newSessionId || !isDraftSessionKey(key) || newSessionId === key) {
+        return;
+      }
+      const finalState = getCoachSession(userId, key);
+      setCoachSession(userId, newSessionId, finalState);
+      deleteCoachSession(userId, key);
+      onSessionAdopted?.(newSessionId);
+    };
+
     let isFirstToken = true;
 
     const streamAvailable =
       typeof window !== "undefined" && "ReadableStream" in window;
     if (!streamAvailable) {
       void coachService
-        .chat(question.trim())
+        .chat(question.trim(), outgoingSessionId)
         .then((result) => {
           const replyText =
             result?.answer ||
@@ -480,6 +566,11 @@ export function useAiCoachSession(userId?: string) {
                 ? result.conversationId
                 : null,
           });
+          adoptSessionIfNeeded(
+            typeof result?.sessionId === "string"
+              ? result.sessionId
+              : undefined,
+          );
         })
         .catch(() => {
           const errorText = "AI trả lời thất bại, vui lòng thử lại.";
@@ -498,84 +589,93 @@ export function useAiCoachSession(userId?: string) {
           updateTaskState("FAILED", errorText);
         })
         .finally(() => {
-          coachRequests.delete(userId);
+          coachRequests.delete(bucketKey);
         });
 
       return taskId;
     }
 
-    const cancelStream = coachService.chatStream(question.trim(), {
-      onStatus: (status) => {
-        applyIfCurrent((sessionState) => ({
-          ...sessionState,
-          messages: sessionState.messages.map((message) =>
-            message.id === placeholderMessage.id
-              ? { ...message, text: status }
-              : message,
-          ),
-          updatedAt: nowIso(),
-        }));
-      },
-      onToken: (token) => {
-        applyIfCurrent((sessionState) => {
-          return {
+    const cancelStream = coachService.chatStream(
+      question.trim(),
+      {
+        onStatus: (status) => {
+          // Real tokens have already started streaming in — a late status event
+          // (e.g. the client-side 10s "slow model" notice) must not clobber the
+          // answer text that's already visible.
+          if (!isFirstToken) return;
+          applyIfCurrent((sessionState) => ({
             ...sessionState,
-            messages: sessionState.messages.map((message) => {
-              if (message.id !== placeholderMessage.id) return message;
-              if (isFirstToken) {
-                isFirstToken = false;
-                return { ...message, text: token };
-              }
-              return { ...message, text: `${message.text}${token}` };
-            }),
+            messages: sessionState.messages.map((message) =>
+              message.id === placeholderMessage.id
+                ? { ...message, text: status }
+                : message,
+            ),
             updatedAt: nowIso(),
-          };
-        });
+          }));
+        },
+        onToken: (token) => {
+          applyIfCurrent((sessionState) => {
+            return {
+              ...sessionState,
+              messages: sessionState.messages.map((message) => {
+                if (message.id !== placeholderMessage.id) return message;
+                if (isFirstToken) {
+                  isFirstToken = false;
+                  return { ...message, text: token };
+                }
+                return { ...message, text: `${message.text}${token}` };
+              }),
+              updatedAt: nowIso(),
+            };
+          });
+        },
+        onDone: (payload: CoachStreamDonePayload) => {
+          const evidenceUsed = Array.isArray(payload.evidenceUsed)
+            ? payload.evidenceUsed
+            : [];
+          applyIfCurrent((sessionState) => ({
+            ...sessionState,
+            messages: sessionState.messages.map((message) =>
+              message.id === placeholderMessage.id
+                ? { ...message, evidenceUsed }
+                : message,
+            ),
+            status: "completed",
+            activeTaskId: null,
+            lastError: null,
+            updatedAt: nowIso(),
+          }));
+          updateTaskState("COMPLETED", null, {
+            conversationId:
+              typeof payload.conversationId === "string"
+                ? payload.conversationId
+                : null,
+          });
+          coachRequests.delete(bucketKey);
+          adoptSessionIfNeeded(payload.sessionId);
+        },
+        onError: (message) => {
+          const errorText = message || "AI trả lời thất bại, vui lòng thử lại.";
+          applyIfCurrent((sessionState) => ({
+            ...sessionState,
+            messages: sessionState.messages.map((item) =>
+              item.id === placeholderMessage.id
+                ? { ...item, text: `⚠️ ${errorText}` }
+                : item,
+            ),
+            status: "failed",
+            activeTaskId: null,
+            lastError: errorText,
+            updatedAt: nowIso(),
+          }));
+          updateTaskState("FAILED", errorText);
+          coachRequests.delete(bucketKey);
+        },
       },
-      onDone: (payload: CoachStreamDonePayload) => {
-        const evidenceUsed = Array.isArray(payload.evidenceUsed)
-          ? payload.evidenceUsed
-          : [];
-        applyIfCurrent((sessionState) => ({
-          ...sessionState,
-          messages: sessionState.messages.map((message) =>
-            message.id === placeholderMessage.id
-              ? { ...message, evidenceUsed }
-              : message,
-          ),
-          status: "completed",
-          activeTaskId: null,
-          lastError: null,
-          updatedAt: nowIso(),
-        }));
-        updateTaskState("COMPLETED", null, {
-          conversationId:
-            typeof payload.conversationId === "string"
-              ? payload.conversationId
-              : null,
-        });
-        coachRequests.delete(userId);
-      },
-      onError: (message) => {
-        const errorText = message || "AI trả lời thất bại, vui lòng thử lại.";
-        applyIfCurrent((sessionState) => ({
-          ...sessionState,
-          messages: sessionState.messages.map((item) =>
-            item.id === placeholderMessage.id
-              ? { ...item, text: `⚠️ ${errorText}` }
-              : item,
-          ),
-          status: "failed",
-          activeTaskId: null,
-          lastError: errorText,
-          updatedAt: nowIso(),
-        }));
-        updateTaskState("FAILED", errorText);
-        coachRequests.delete(userId);
-      },
-    });
+      outgoingSessionId,
+    );
 
-    coachRequests.set(userId, {
+    coachRequests.set(bucketKey, {
       token: requestToken,
       cancel: cancelStream,
     });
@@ -583,15 +683,14 @@ export function useAiCoachSession(userId?: string) {
     return nextTask.id;
   };
 
+  /** Cancels any in-flight request and drops this thread's local cache
+   * (memory + localStorage) — e.g. after the thread has been archived. */
   const resetSession = (): void => {
-    if (!userId) return;
-    const active = coachRequests.get(userId);
-    active?.cancel?.();
-    coachRequests.delete(userId);
-    coachCache.delete(userId);
-    if (isBrowser()) {
-      localStorage.removeItem(coachStorageKey(userId));
-    }
+    if (!userId || !key) return;
+    const bucketKey = coachKey(userId, key);
+    coachRequests.get(bucketKey)?.cancel?.();
+    coachRequests.delete(bucketKey);
+    deleteCoachSession(userId, key);
     emit();
   };
 

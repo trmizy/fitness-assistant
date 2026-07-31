@@ -39,6 +39,17 @@ const dietPrefs = [
   "Ít tinh bột",
 ];
 
+// Explicit 4th "chưa xác định" option (maps to no value sent, i.e. UNKNOWN
+// on the backend) — never silently defaulted to BEGINNER/INTERMEDIATE.
+// This is what the training-cycle AI flow gates advanced-technique
+// suggestions on (see ai-service's cycle-analysis.service.ts).
+const experienceLevels: Array<{ key: string; label: string }> = [
+  { key: "", label: "Chưa xác định" },
+  { key: "BEGINNER", label: "Người mới (Beginner)" },
+  { key: "INTERMEDIATE", label: "Trung cấp (Intermediate)" },
+  { key: "ADVANCED", label: "Nâng cao (Advanced)" },
+];
+
 const inputClass =
   "w-full px-3 py-2 border border-zinc-700/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 bg-zinc-800/60 text-zinc-200 transition-all";
 const selectClass =
@@ -67,6 +78,7 @@ export function ProfilePage() {
   const [gender, setGender] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
+  const [experienceLevel, setExperienceLevel] = useState("");
 
   // Sync isPT from profile API into context/localStorage when user is approved
   useEffect(() => {
@@ -101,6 +113,7 @@ export function ProfilePage() {
       setHeight(profileData.heightCm?.toString() || "");
       setWeight(profileData.currentWeight?.toString() || "");
       if (profileData.dietaryPreference) setDiet(profileData.dietaryPreference);
+      setExperienceLevel(profileData.experienceLevel || "");
     }
   }, [profileData]);
 
@@ -158,6 +171,10 @@ export function ProfilePage() {
       heightCm: height ? parseFloat(height) : undefined,
       currentWeight: weight ? parseFloat(weight) : undefined,
       dietaryPreference: diet,
+      // Empty string means "chưa xác định" — sent as undefined, never
+      // silently coerced to a specific level. The backend/AI side already
+      // treats a missing value as an explicit UNKNOWN, not a default.
+      experienceLevel: experienceLevel || undefined,
     });
   };
 
@@ -356,6 +373,13 @@ export function ProfilePage() {
                     onChange={(e) => setGender(e.target.value)}
                     className={selectClass}
                   >
+                    {/* Without this option, a browser <select> with no
+                        matching value visually defaults to showing the
+                        FIRST option ("Nam") as selected — even though the
+                        underlying gender state is still "" (unset). That
+                        made an unset profile look like it had silently
+                        become "Nam" the moment edit mode opened. */}
+                    <option value="">Chưa thiết lập</option>
                     <option value="MALE">Nam</option>
                     <option value="FEMALE">Nữ</option>
                     <option value="OTHER">Khác</option>
@@ -425,6 +449,31 @@ export function ProfilePage() {
                     {activity}
                   </div>
                 )}
+              </div>
+              <div>
+                <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
+                  Trình độ tập luyện
+                </label>
+                {editing ? (
+                  <select
+                    value={experienceLevel}
+                    onChange={(e) => setExperienceLevel(e.target.value)}
+                    className={selectClass}
+                  >
+                    {experienceLevels.map((lvl) => (
+                      <option key={lvl.key} value={lvl.key}>
+                        {lvl.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="text-sm font-medium text-zinc-300 py-2">
+                    {experienceLevels.find((lvl) => lvl.key === experienceLevel)?.label ?? "Chưa xác định"}
+                  </div>
+                )}
+                <p className="text-[11px] text-zinc-600 mt-1">
+                  Dùng để AI không đề xuất kỹ thuật nâng cao khi trình độ chưa được xác nhận.
+                </p>
               </div>
               <div>
                 <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
