@@ -13,6 +13,16 @@ const HOME_EQUIPMENT = [
   "MEDICINE_BALL",
   "FOAM_ROLLER",
 ];
+// Fisher-Yates — used to de-bias candidate pools that were fetched in a
+// fixed sort order (see exercisesForAiPlans) before truncating to a limit.
+function shuffleInPlace<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 const MACHINE_ONLY_EQUIPMENT = ["MACHINE", "CABLE"];
 const MIXED_GYM_EQUIPMENT = [
   "MACHINE",
@@ -145,7 +155,18 @@ export const internalController = {
       }
 
       const result = await exerciseRepository.findMany(where);
-      let exercises = (result.data as any[]).slice(0, lim).map((ex) => ({
+      // exerciseRepository.findMany always orders by exerciseName ASC (the
+      // right default for a browsable catalog page). When a `where` filter
+      // matches more rows than `lim`, slicing straight off that alphabetical
+      // order used to hand the AI worker a candidate pool dominated by
+      // A/B-named exercises every time — the worker's own per-day scoring
+      // and the LLM's requested ordering can only work with what's in this
+      // pool, so an alphabetically-biased pool produced alphabetically-
+      // clustered plans regardless of how well those later steps worked.
+      // Shuffle before truncating so the candidate pool is a representative
+      // sample instead of a fixed alphabetical prefix.
+      const pool = shuffleInPlace([...(result.data as any[])]);
+      let exercises = pool.slice(0, lim).map((ex) => ({
         id: ex.id,
         exerciseName: ex.exerciseName,
         bodyPart: ex.bodyPart,

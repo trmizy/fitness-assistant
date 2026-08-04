@@ -203,6 +203,9 @@ importers:
 
   backend/services/ai-service:
     dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.36.3
+        version: 0.36.3
       '@gym-coach/shared':
         specifier: workspace:*
         version: link:../../shared

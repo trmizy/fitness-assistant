@@ -16,7 +16,7 @@ import {
   computeNewPRs,
 } from "./training-cycle-metrics.service";
 import { evaluateAlerts, type CycleAlert } from "./training-cycle-alerts.service";
-import { classifyProgress, type ProgressSignals } from "./training-cycle-classification.service";
+import type { ProgressSignals } from "./training-cycle-classification.service";
 import { cycleThresholds } from "../config/cycle-thresholds.config";
 import { computeCycleMetrics } from "./cycle-metrics.engine";
 import { evaluateCycle as runDecisionEngine, type CycleDecision, type ActionScope } from "./cycle-decision.engine";
@@ -335,16 +335,6 @@ export const trainingCycleService = {
     }
 
     const rolling = await buildRollingSummary(userId, cycle.planId, cycle.startDate, now, cycle.goal);
-    const startInBody = cycle.startInbodyId
-      ? await fetchInBodyById(userId, cycle.startInbodyId)
-      : null;
-    // Fetched fresh (not snapshotted at cycle start) since the user may only
-    // set this after the cycle began — always an explicit "UNKNOWN" to the
-    // AI-service prompt when unset, never silently defaulted to BEGINNER or
-    // inferred as INTERMEDIATE (see §3.8: advanced-technique suggestions must
-    // never be offered while experience level is unverified).
-    const profile = await fetchUserProfile(userId);
-    const experienceLevel = profile?.experienceLevel ?? "UNKNOWN";
 
     // Data-sufficiency gate — mirrors the newer /evaluate flow's
     // CYCLE_TOO_SHORT / TOO_FEW_COMPLETED_SESSIONS gates (cycle-decision.engine.ts),
@@ -377,24 +367,18 @@ export const trainingCycleService = {
       });
     }
 
-    const progressSignals: ProgressSignals = classifyProgress({
-      goal: cycle.goal,
-      startInBody,
-      endInBody,
-      volumeByWeek: rolling.volumeByWeek,
-      volumeChangePct: rolling.volumeChangePct,
-      newPRs: rolling.newPRs,
-      adherence: rolling.adherence,
-      rpeTrend: rolling.rpeTrend,
-      e1rmTrend: rolling.e1rmTrend,
-    });
-
-    const finalSummary = {
-      ...rolling,
-      progressSignals,
-      closedAt: now.toISOString(),
-    };
-
+    // Unified path (Phase 7): closing a cycle now runs the SAME Adaptive
+    // Decision Engine as POST /:id/evaluate (computeCycleMetrics ->
+    // runDecisionEngine -> assessCycleSafe explanation -> versioned
+    // CycleAssessment), instead of the old standalone
+    // classifyProgress()+analyzeCycleSafe() 3-way pipeline. This makes
+    // "close a cycle" and "evaluate a cycle" converge on one deterministic
+    // engine and one audit trail (RecommendationAudit), so a route/UI built
+    // against either endpoint sees consistent decisions. Legacy
+    // classifyProgress/runAnalysis/analyzeCycleSafe are kept (not deleted)
+    // since nothing else in this file calls completeCycle a second way, but
+    // they're no longer reachable from either production flow — see the
+    // deprecation note on runAnalysis below.
     const updated = await prisma.trainingCycle.update({
       where: { id: cycleId },
       data: {
@@ -402,18 +386,28 @@ export const trainingCycleService = {
         endDate: now,
         endInbodyId: endInBody?.id ?? null,
         lowConfidence,
-        summary: finalSummary as any,
       },
     });
 
-    // Fire-and-forget: do not await, the HTTP response returns immediately
-    // with status=COMPLETED. UI shows "đang phân tích" until this resolves.
-    void this.runAnalysis(updated.id, userId, updated, startInBody, endInBody, progressSignals, experienceLevel).catch(() => {});
+    const assessment = await this.runVersionedAssessment(updated, userId, clock);
 
-    return updated;
+    return prisma.trainingCycle.update({
+      where: { id: cycleId },
+      data: {
+        status: "ANALYZED",
+        decision: assessment.decision,
+        summary: { ...rolling, closedAt: now.toISOString(), unifiedAssessmentId: assessment.id } as any,
+      },
+    });
   },
 
-  /** Calls ai-service, then persists the decision. Exported for the fire-and-forget call above. */
+  /**
+   * @deprecated Superseded by runVersionedAssessment (the Adaptive Decision
+   * Engine), which completeCycle() now calls directly. Kept in place,
+   * unused by any route, only in case older analysis payloads/tests still
+   * reference this shape — do not wire this back into completeCycle().
+   * Calls ai-service, then persists the decision.
+   */
   async runAnalysis(
     cycleId: string,
     userId: string,
@@ -676,9 +670,11 @@ export const trainingCycleService = {
 
     const feedbackByScheduleId = new Map(feedbackRows.map((f) => [f.workoutScheduleId, f]));
     const completedSessions = schedules.filter((s) => s.status === "COMPLETED");
-    // "SKIPPED" is a valid status value but nothing in this codebase writes
-    // it today (see WorkoutSchedule.status doc comment) — a due, non-
-    // completed session in the past is treated as missed regardless.
+    // Any non-COMPLETED status (SKIPPED, CANCELLED, PARTIALLY_COMPLETED,
+    // NOT_STARTED/IN_PROGRESS left stale) for a session whose date has
+    // already passed counts as missed — deliberately not distinguishing
+    // *why* it wasn't completed, since the Decision Engine only needs
+    // "did the user do the planned session or not".
     const missedSessions = schedules.filter((s) => s.status !== "COMPLETED" && s.date < now);
     const upcomingSessions = schedules.filter((s) => s.status !== "COMPLETED" && s.date >= now);
 
@@ -864,7 +860,38 @@ export const trainingCycleService = {
     if (cycle.status === "DRAFT") {
       throw { status: 409, message: "Cannot evaluate a draft cycle before it is started" };
     }
+    return this.runVersionedAssessment(cycle, userId);
+  },
 
+  /**
+   * Shared Adaptive Decision Engine runner (Phase 7 unification) — the ONE
+   * place that calls computeCycleMetrics -> runDecisionEngine ->
+   * assessCycleSafe -> persists a versioned CycleAssessment + audit row.
+   * Called from both evaluateCycle() (POST /:id/evaluate, on an ACTIVE or
+   * already-closed cycle) and completeCycle() (POST /:id/complete, right
+   * after a cycle is closed) so "close a cycle" and "evaluate a cycle"
+   * always produce the exact same kind of decision, from the exact same
+   * engine, with the exact same audit trail — never two divergent
+   * classifiers for what is conceptually one decision.
+   */
+  async runVersionedAssessment(
+    cycle: {
+      id: string;
+      planId: string | null;
+      goal: string | null;
+      startDate: Date;
+      endDate: Date | null;
+      cycleIndex: number;
+      durationDays: number;
+      name: string | null;
+      configuration: unknown;
+      startInbodyId: string | null;
+      endInbodyId: string | null;
+    },
+    userId: string,
+    clock: Clock = systemClock,
+  ) {
+    const cycleId = cycle.id;
     const pending = await prisma.cycleAssessment.findFirst({
       where: { cycleId, status: "PENDING" },
       orderBy: { assessmentVersion: "desc" },
@@ -897,10 +924,8 @@ export const trainingCycleService = {
       const completedSessions = await prisma.workoutSchedule.count({
         where: { trainingCycleId: cycleId, status: "COMPLETED" },
       });
-      const cycleDurationDays = Math.max(
-        1,
-        Math.ceil((new Date().getTime() - cycle.startDate.getTime()) / 86_400_000),
-      );
+      const now = clock.now();
+      const cycleDurationDays = Math.max(1, Math.ceil((now.getTime() - cycle.startDate.getTime()) / 86_400_000));
       const priorityExercises = ((cycle.configuration as any)?.priorityExercises ?? []) as string[];
       const inBodyEntries = await this.collectCycleInBodyEntries(cycleId, userId, cycle);
 
@@ -910,18 +935,35 @@ export const trainingCycleService = {
         planId: cycle.planId,
         goal: cycle.goal,
         startDate: cycle.startDate,
-        asOf: new Date(),
+        asOf: now,
         inBodyEntries,
         priorityExercises,
       });
 
       const priorCycleDecisions = await this.getPriorCycleDecisions(userId, cycleId);
 
+      // Fetched fresh (not snapshotted at cycle start) since the user may
+      // only set this after the cycle began — always an explicit "UNKNOWN"
+      // to the Decision Engine/AI-service prompt when unset, never silently
+      // defaulted to BEGINNER or inferred as INTERMEDIATE (see
+      // docs/USER_LEVEL_PERSONALIZATION_PLAN.md §0: advanced-technique
+      // suggestions and progression-readiness calls must never be made
+      // while experience level is unverified).
+      const profile = await fetchUserProfile(userId);
+      const experienceLevel = (profile?.experienceLevel ?? "UNKNOWN") as
+        | "BEGINNER"
+        | "INTERMEDIATE"
+        | "ADVANCED"
+        | "UNKNOWN";
+      const competesInSport = profile?.competesInSport === true;
+
       const engineResult = runDecisionEngine({
         cycleDurationDays,
         completedSessions,
         metrics,
         priorCycleDecisions,
+        experienceLevel,
+        competesInSport,
       });
 
       const allowedChanges = ACTION_SCOPE_TO_ALLOWED_CHANGES[engineResult.recommendedActionScope];
@@ -934,7 +976,9 @@ export const trainingCycleService = {
           cycleIndex: cycle.cycleIndex,
           durationDays: cycle.durationDays,
           startDate: cycle.startDate,
-          endDate: cycle.endDate,
+          endDate: cycle.endDate ?? now,
+          experienceLevel,
+          competesInSport,
         },
         dataQuality: {
           dataQualityScore: metrics.dataQualityScore,
@@ -970,6 +1014,28 @@ export const trainingCycleService = {
         },
       });
       void pushCycleAssessmentNotification(userId, cycleId, engineResult.decision).catch(() => {});
+      // Awaited (unlike the notification push above): this is a fast,
+      // single-table local DB write, not a slow external call, and a caller
+      // querying GET /:id/audit right after this resolves must see the row
+      // — a race here would make the audit trail unreliable exactly when
+      // it's supposed to be authoritative. Still wrapped in try/catch so a
+      // write failure never fails the evaluation result itself.
+      try {
+        await prisma.recommendationAudit.create({
+          data: {
+            userId,
+            cycleId,
+            assessmentId: updated.id,
+            engineVersion: "adaptive-v1",
+            decision: engineResult.decision,
+            reasonCodes: engineResult.reasonCodes as any,
+            metricsSnapshot: metrics as any,
+            aiSummary: aiResult?.summary ?? null,
+          },
+        });
+      } catch (err) {
+        logger.warn({ err: (err as Error).message, cycleId }, "[training-cycle] recommendation audit write failed");
+      }
       return updated;
     } catch (err) {
       await prisma.cycleAssessment.update({ where: { id: assessmentRow.id }, data: { status: "FAILED" } });
@@ -1032,9 +1098,38 @@ export const trainingCycleService = {
     if (assessment.userDecision !== "PENDING") {
       throw { status: 409, message: "This recommendation has already been reviewed" };
     }
-    return prisma.cycleAssessment.update({
+    const reviewed = await prisma.cycleAssessment.update({
       where: { id: assessment.id },
       data: { userDecision, reviewedAt: new Date() },
+    });
+    // Awaited for the same reason as the create() in evaluateCycle — a
+    // caller checking the audit trail right after accepting/rejecting must
+    // see it reflected. Not every assessment necessarily has a matching
+    // RecommendationAudit row (e.g. one created before this feature
+    // existed), so this only updates if one is found rather than failing
+    // the whole review action.
+    try {
+      await prisma.recommendationAudit.updateMany({
+        where: { assessmentId: assessment.id, userAction: null },
+        data: {
+          userAction: userDecision === "ACCEPTED" ? "accepted" : "rejected",
+          userActionAt: new Date(),
+        },
+      });
+    } catch (err) {
+      logger.warn({ err: (err as Error).message, cycleId }, "[training-cycle] recommendation audit update failed");
+    }
+    return reviewed;
+  },
+
+  /** Read-only interaction log for a cycle's recommendations — see
+   * docs/TRAINING_CYCLE_DECISION_ENGINE.md §4. Ownership enforced via
+   * getCycle (404s if the cycle isn't the caller's). */
+  async listRecommendationAudits(cycleId: string, userId: string) {
+    await this.getCycle(cycleId, userId);
+    return prisma.recommendationAudit.findMany({
+      where: { cycleId },
+      orderBy: { presentedAt: "desc" },
     });
   },
 };

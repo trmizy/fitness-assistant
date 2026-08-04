@@ -15,6 +15,7 @@ export const exerciseController = {
         type,
         typeOfActivity,
         typeOfEquipment,
+        ids,
         page,
         limit,
       } = req.query as Record<string, string>;
@@ -27,6 +28,7 @@ export const exerciseController = {
         type,
         typeOfActivity,
         typeOfEquipment,
+        ids,
         page,
         limit,
       });

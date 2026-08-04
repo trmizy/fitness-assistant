@@ -28,6 +28,9 @@ function baseMetrics(overrides: Partial<CycleMetricsResult> = {}): CycleMetricsR
     workoutsPerWeek: 4,
     weeklyVolumeByMuscleGroup: [],
     volumeTrendPercent: 10,
+    volumeProgressionSlope: 2.5,
+    missedSessionCount: 2,
+    nutritionConsistencyScore: 0.8,
     exerciseProgression: [],
     estimated1RmTrend: [],
     strengthProgressScore: 0.75,
@@ -122,9 +125,11 @@ test("fixture: plateau (near-neutral composite score) with good adherence -> ADJ
         strengthProgressScore: 0.48,
         performanceConsistencyScore: 0.5,
         volumeTrendPercent: 0,
+        volumeProgressionSlope: 0, // neutral — this fixture is specifically about a plateau, not nutrition/volume-slope pulling the score elsewhere
         newPRs: [],
         fatigueScore: 0.4,
         recoveryScore: 0.6,
+        nutritionConsistencyScore: 0.5, // neutral, same reason
       }),
     }),
   );
@@ -176,11 +181,17 @@ test("high pain score alone (critical safety flag) combined with declining perfo
 
 // ── Fixture: hai chu kỳ liên tiếp không đạt mục tiêu → REBUILD ──────────────
 
+// Both REBUILD fixtures below explicitly set experienceLevel: "ADVANCED" —
+// since Phase 8, REBUILD never fires for BEGINNER/UNKNOWN (see the
+// level-aware tests further down), so these level-agnostic-looking fixtures
+// need a non-beginner level to actually exercise the REBUILD branch.
+
 test("fixture: two consecutive missed cycles despite otherwise-plateau data -> REBUILD", () => {
   const priorCycleDecisions: CycleDecision[] = ["ADJUST", "DELOAD"];
   const result = evaluateCycle(
     baseInput({
       priorCycleDecisions,
+      experienceLevel: "ADVANCED",
       metrics: baseMetrics({
         goalProgressScore: 0.45,
         strengthProgressScore: 0.4,
@@ -198,6 +209,7 @@ test("explicit goal/context change triggers REBUILD even with a fine score", () 
   const result = evaluateCycle(
     baseInput({
       goalOrContextChangedSincePriorCycle: true,
+      experienceLevel: "ADVANCED",
       metrics: baseMetrics({ goalProgressScore: 0.8, strengthProgressScore: 0.8 }),
     }),
   );
@@ -301,4 +313,119 @@ test("evaluateCycle is a pure function — identical input produces identical ou
   const a = evaluateCycle(input);
   const b = evaluateCycle(input);
   assert.deepEqual(a, b);
+});
+
+// ── Phase 8: level-aware behavior (docs/USER_LEVEL_PERSONALIZATION_PLAN.md) ──
+
+test("BEGINNER/UNKNOWN never triggers REBUILD even with two consecutive missed cycles — not enough cycle history to compare (plan doc §A)", () => {
+  const priorCycleDecisions: CycleDecision[] = ["ADJUST", "DELOAD"];
+  const metrics = baseMetrics({ goalProgressScore: 0.45, strengthProgressScore: 0.4, volumeTrendPercent: -2, newPRs: [] });
+  const advancedResult = evaluateCycle(baseInput({ priorCycleDecisions, metrics, experienceLevel: "ADVANCED" }));
+  const beginnerResult = evaluateCycle(baseInput({ priorCycleDecisions, metrics, experienceLevel: "BEGINNER" }));
+  const unknownResult = evaluateCycle(baseInput({ priorCycleDecisions, metrics, experienceLevel: "UNKNOWN" }));
+  assert.equal(advancedResult.decision, "REBUILD");
+  assert.notEqual(beginnerResult.decision, "REBUILD");
+  assert.notEqual(unknownResult.decision, "REBUILD");
+});
+
+test("BEGINNER: an explicit goal/context change does not force REBUILD either", () => {
+  const result = evaluateCycle(
+    baseInput({
+      goalOrContextChangedSincePriorCycle: true,
+      experienceLevel: "BEGINNER",
+      metrics: baseMetrics({ goalProgressScore: 0.8, strengthProgressScore: 0.8 }),
+    }),
+  );
+  assert.notEqual(result.decision, "REBUILD");
+});
+
+test("BEGINNER needs a much stronger fatigue/recovery signal than ADVANCED before DELOAD fires, for identical underlying data (plan doc §C)", () => {
+  const metrics = baseMetrics({
+    goalProgressScore: 0.2,
+    strengthProgressScore: 0.15,
+    performanceConsistencyScore: 0.3,
+    volumeTrendPercent: -10,
+    fatigueScore: 0.65,
+    recoveryScore: 0.4,
+    rpeTrend: "increasing",
+    adherenceRate: 0.9,
+  });
+  const beginnerResult = evaluateCycle(baseInput({ metrics, experienceLevel: "BEGINNER" }));
+  const advancedResult = evaluateCycle(baseInput({ metrics, experienceLevel: "ADVANCED" }));
+  assert.notEqual(beginnerResult.decision, "DELOAD", "0.65 fatigue / 0.4 recovery should not be enough to alarm a BEGINNER's more conservative thresholds");
+  assert.equal(advancedResult.decision, "DELOAD", "the same data should read as fatigued/under-recovered for an ADVANCED lifter's tighter thresholds");
+});
+
+test("PROFESSIONAL (ADVANCED + competesInSport) requires a stronger composite score than a recreational ADVANCED lifter before PROGRESS (plan doc §D)", () => {
+  const metrics = baseMetrics({
+    goalProgressScore: 0.65,
+    strengthProgressScore: 0.65,
+    performanceConsistencyScore: 0.65,
+    volumeTrendPercent: 5,
+  });
+  const recreational = evaluateCycle(baseInput({ metrics, experienceLevel: "ADVANCED", competesInSport: false }));
+  const professional = evaluateCycle(baseInput({ metrics, experienceLevel: "ADVANCED", competesInSport: true }));
+  assert.equal(recreational.decision, "PROGRESS");
+  assert.notEqual(professional.decision, "PROGRESS", "same score should not clear the stricter professional progress bar");
+});
+
+test("PROFESSIONAL athletes hit INSUFFICIENT_DATA at a data-quality bar a recreational ADVANCED lifter still clears (plan doc §D)", () => {
+  const metrics = baseMetrics({ dataQualityScore: 0.6 });
+  const recreational = evaluateCycle(baseInput({ metrics, experienceLevel: "ADVANCED", competesInSport: false }));
+  const professional = evaluateCycle(baseInput({ metrics, experienceLevel: "ADVANCED", competesInSport: true }));
+  assert.notEqual(recreational.decision, "INSUFFICIENT_DATA");
+  assert.equal(professional.decision, "INSUFFICIENT_DATA");
+  assert.ok(professional.reasonCodes.includes("PROFESSIONAL_REQUIRES_HIGHER_DATA_QUALITY"));
+});
+
+test("competesInSport has no effect unless experienceLevel is ADVANCED", () => {
+  const metrics = baseMetrics({ dataQualityScore: 0.6 });
+  const beginnerCompeting = evaluateCycle(baseInput({ metrics, experienceLevel: "BEGINNER", competesInSport: true }));
+  const intermediateCompeting = evaluateCycle(baseInput({ metrics, experienceLevel: "INTERMEDIATE", competesInSport: true }));
+  assert.notEqual(beginnerCompeting.decision, "INSUFFICIENT_DATA");
+  assert.notEqual(intermediateCompeting.decision, "INSUFFICIENT_DATA");
+});
+
+test("supportingMetrics records experienceLevel and competesInSport for audit", () => {
+  const result = evaluateCycle(baseInput({ experienceLevel: "ADVANCED", competesInSport: true }));
+  assert.equal(result.supportingMetrics.experienceLevel, "ADVANCED");
+  assert.equal(result.supportingMetrics.competesInSport, true);
+});
+
+// ── nutritionConsistencyScore / volumeProgressionSlope are genuinely read ──
+// (docs/CLOUDCODE_IMPLEMENTATION_AUDIT.md gap: these were computed by
+// cycle-metrics.engine.ts but never consumed by the Decision Engine)
+
+test("nutritionConsistencyScore measurably shifts the outcome for otherwise-identical training data", () => {
+  const goodNutrition = evaluateCycle(
+    baseInput({ metrics: baseMetrics({ goalProgressScore: 0.5, strengthProgressScore: 0.5, performanceConsistencyScore: 0.5, volumeTrendPercent: 0, volumeProgressionSlope: 0, newPRs: [], nutritionConsistencyScore: 0.95 }) }),
+  );
+  const poorNutrition = evaluateCycle(
+    baseInput({ metrics: baseMetrics({ goalProgressScore: 0.5, strengthProgressScore: 0.5, performanceConsistencyScore: 0.5, volumeTrendPercent: 0, volumeProgressionSlope: 0, newPRs: [], nutritionConsistencyScore: 0.05 }) }),
+  );
+  assert.notDeepEqual(goodNutrition, poorNutrition, "changing only nutritionConsistencyScore must change the engine's output");
+  assert.equal(poorNutrition.decision, "ADJUST", "poor nutrition consistency should be enough to pull an otherwise-plateau cycle to ADJUST rather than KEEP");
+  assert.equal(goodNutrition.decision, "KEEP", "strong nutrition consistency should be enough to lift an otherwise-plateau cycle to KEEP");
+});
+
+test("volumeProgressionSlope (regression-based) is read independently of volumeTrendPercent (naive first-vs-last)", () => {
+  const bothPositive = evaluateCycle(
+    baseInput({ metrics: baseMetrics({ goalProgressScore: 0.55, strengthProgressScore: 0.5, volumeTrendPercent: 10, volumeProgressionSlope: 10 }) }),
+  );
+  const slopeNegative = evaluateCycle(
+    baseInput({ metrics: baseMetrics({ goalProgressScore: 0.55, strengthProgressScore: 0.5, volumeTrendPercent: 10, volumeProgressionSlope: -20 }) }),
+  );
+  assert.ok(
+    slopeNegative.confidenceScore < bothPositive.confidenceScore || slopeNegative.decision !== bothPositive.decision,
+    "a negative volumeProgressionSlope should change the outcome even when volumeTrendPercent alone looks positive",
+  );
+});
+
+test("experienceLevel defaults to UNKNOWN (treated as BEGINNER) when the caller omits it entirely", () => {
+  const priorCycleDecisions: CycleDecision[] = ["ADJUST", "DELOAD"];
+  const result = evaluateCycle(
+    baseInput({ priorCycleDecisions, metrics: baseMetrics({ goalProgressScore: 0.45, strengthProgressScore: 0.4, volumeTrendPercent: -2, newPRs: [] }) }),
+  );
+  assert.equal(result.supportingMetrics.experienceLevel, "UNKNOWN");
+  assert.notEqual(result.decision, "REBUILD");
 });

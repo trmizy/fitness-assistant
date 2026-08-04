@@ -10,6 +10,7 @@ import { InBodyModule } from "./pages/client/InBodyModule";
 import { ContractPage } from "./pages/client/ContractPage";
 import { NutritionPage } from "./pages/client/NutritionPage";
 import { ProfilePage } from "./pages/client/ProfilePage";
+import { OnboardingWizardPage } from "./pages/client/OnboardingWizardPage";
 import { PTApplicationPage } from "./pages/client/PTApplicationPage";
 import { WalletPage } from "./pages/client/WalletPage";
 import { PaymentResultPage } from "./pages/client/PaymentResultPage";
@@ -50,6 +51,7 @@ import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import { RequireRole } from "./components/RequireRole";
+import { RequireOnboarding } from "./components/RequireOnboarding";
 import { CallProvider } from "./context/CallContext";
 import { SocketProvider } from "./context/SocketContext";
 
@@ -100,9 +102,14 @@ export const router = createBrowserRouter([
       // ── Client workspace ────────────────────────────────────────────────
       {
         path: "client",
-        Component: AppShell,
+        element: (
+          <RequireOnboarding>
+            <AppShell />
+          </RequireOnboarding>
+        ),
         children: [
           { index: true, element: <Navigate to="/client/dashboard" replace /> },
+          { path: "onboarding", Component: OnboardingWizardPage },
           { path: "dashboard", Component: ClientDashboard },
           { path: "inbody", Component: InBodyModule },
           { path: "plans", Component: PlansPage },

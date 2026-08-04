@@ -646,6 +646,39 @@ export function AIPlansPage() {
   );
   const hasMissingExerciseIds = missingExerciseIdCount > 0;
 
+  // Plan content only ever stores {exerciseId, order, name, sets, reps,
+  // restSeconds, note} — never muscle group/equipment. Resolve those by
+  // batch-fetching the referenced exercises from the catalog once per plan,
+  // rather than baking catalog fields into plan content (which would go
+  // stale the moment the catalog entry is edited).
+  const planExerciseIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const day of weeklySchedule ?? []) {
+      for (const exercise of day?.exercises ?? []) {
+        const id = exercise?.exerciseId;
+        if (typeof id === "string" && UUID_PATTERN.test(id.trim())) {
+          ids.add(id.trim());
+        }
+      }
+    }
+    return Array.from(ids);
+  }, [weeklySchedule]);
+
+  const { data: planExerciseCatalog } = useQuery({
+    queryKey: ["exercises-by-ids", planExerciseIds],
+    queryFn: () => workoutService.getExercisesByIds(planExerciseIds),
+    enabled: planExerciseIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const exerciseCatalogById = useMemo(() => {
+    const map = new Map<string, { muscleGroupsActivated?: string[]; typeOfEquipment?: string }>();
+    for (const ex of planExerciseCatalog ?? []) {
+      if (ex?.id) map.set(ex.id, ex);
+    }
+    return map;
+  }, [planExerciseCatalog]);
+
   useEffect(() => {
     setSaveOutcome(null);
     setShowSavePanel(false);
@@ -2316,7 +2349,15 @@ export function AIPlansPage() {
                                   </div>
                                 ) : (
                                   <div className="space-y-2">
-                                    {exercises.map((exercise, index) => (
+                                    {exercises.map((exercise, index) => {
+                                      const catalogEntry = exercise.exerciseId
+                                        ? exerciseCatalogById.get(exercise.exerciseId)
+                                        : undefined;
+                                      const muscleGroup = catalogEntry?.muscleGroupsActivated?.length
+                                        ? catalogEntry.muscleGroupsActivated.join(", ")
+                                        : "--";
+                                      const equipment = catalogEntry?.typeOfEquipment ?? "--";
+                                      return (
                                       <div
                                         key={`${exercise.name ?? "ex"}-${index}`}
                                         className="rounded-lg border border-zinc-800 bg-zinc-950 p-2.5"
@@ -2342,16 +2383,10 @@ export function AIPlansPage() {
                                             s
                                           </div>
                                           <div>
-                                            Intensity:{" "}
-                                            {exercise.intensity ?? "--"}
+                                            Muscle: {muscleGroup}
                                           </div>
                                           <div>
-                                            Muscle:{" "}
-                                            {exercise.muscleGroup ?? "--"}
-                                          </div>
-                                          <div>
-                                            Equipment:{" "}
-                                            {exercise.equipment ?? "--"}
+                                            Equipment: {equipment}
                                           </div>
                                           <div className="md:col-span-2">
                                             Note:{" "}
@@ -2363,7 +2398,8 @@ export function AIPlansPage() {
                                           </div>
                                         </div>
                                       </div>
-                                    ))}
+                                      );
+                                    })}
                                   </div>
                                 )}
                               </div>

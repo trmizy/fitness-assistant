@@ -53,6 +53,14 @@ model Exercise {
   muscleGroupsActivated String[]      @map("muscle_groups_activated")
   instructions          String
   videoUrl              String?       @map("video_url")
+  // Additive fields bringing the production schema closer to the richer
+  // curated catalog already in data/catalog/plans/gym_exercises.csv (see
+  // docs/TRAINING_KNOWLEDGE_BASE_PLAN.md §1) — free-text/taxonomy-driven
+  // rather than a hard Prisma enum since data/catalog/taxonomy/ref_*.csv
+  // is the evolving source of truth for allowed values, not this schema.
+  movementPattern       String?       @map("movement_pattern") // e.g. "horizontal_push", "hip_hinge" — see ref_movement_patterns.csv
+  mechanics             String? // "compound" | "isolation"
+  contraindications     String[]      @default([]) @map("contraindications")
   createdAt             DateTime      @default(now()) @map("created_at")
   updatedAt             DateTime      @updatedAt @map("updated_at")
 
@@ -306,7 +314,7 @@ model WorkoutSchedule {
   date               DateTime
   programDayId       String?   @map("program_day_id") // optional: which program day is scheduled
   workoutId          String?   @map("workout_id") // optional: completed workout
-  status             String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | SKIPPED
+  status             String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | PARTIALLY_COMPLETED | COMPLETED | SKIPPED | CANCELLED
   progressPercent    Int       @default(0) @map("progress_percent")
   startedAt          DateTime? @map("started_at")
   completedAt        DateTime? @map("completed_at")
@@ -448,6 +456,35 @@ model CycleAssessment {
   @@unique([cycleId, assessmentVersion])
   @@index([cycleId, createdAt])
   @@map("cycle_assessments")
+}
+
+// 🔍 Interaction log for Decision Engine output — distinct from
+// CycleAssessment (the computed RESULT of one /evaluate run) because a
+// single assessment can be presented/viewed multiple times before a user
+// acts on it. Answers operational questions CycleAssessment alone can't,
+// e.g. "what fraction of DELOAD recommendations do users actually reject?"
+// See docs/TRAINING_CYCLE_DECISION_ENGINE.md §4.
+model RecommendationAudit {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  cycleId         String    @map("cycle_id")
+  assessmentId    String?   @map("assessment_id") // null for the legacy /complete path
+  engineVersion   String    @map("engine_version") // "legacy-v2" | "adaptive-v1"
+  decision        String
+  reasonCodes     Json      @map("reason_codes")
+  // Full CycleMetricsResult (or the legacy summary) at decision time — a
+  // debuggable/replayable snapshot, not just the trimmed supportingMetrics
+  // already embedded in CycleAssessment.
+  metricsSnapshot Json      @map("metrics_snapshot")
+  aiSummary       String?   @map("ai_summary")
+  presentedAt     DateTime  @default(now()) @map("presented_at")
+  userAction      String?   @map("user_action") // "accepted" | "rejected" | null (not yet acted on)
+  userActionAt    DateTime? @map("user_action_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, cycleId])
+  @@index([cycleId, presentedAt])
+  @@map("recommendation_audits")
 }
 
 // 📝 Per-session subjective feedback (readiness/RPE/pain/notes) — kept

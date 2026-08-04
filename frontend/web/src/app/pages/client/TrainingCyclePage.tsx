@@ -66,7 +66,12 @@ const TREND_CONFIG: Record<string, { label: string; className: string; Icon: typ
   },
 };
 
-const DECISION_CONFIG: Record<CycleDecision, { label: string; className: string; buttonClassName: string }> = {
+// Partial (not a full Record) — this map only covers the 4 legacy-era
+// values. Since Phase 7's unification, TrainingCycle.decision can also hold
+// PROGRESS/DELOAD/REBUILD (the same 6-state CycleDecision engine now backs
+// both /complete and /evaluate) — those render via ADAPTIVE_DECISION_CONFIG
+// below instead, never by adding fake entries here.
+const DECISION_CONFIG: Partial<Record<CycleDecision, { label: string; className: string; buttonClassName: string }>> = {
   KEEP: {
     label: "Giữ nguyên lịch tập",
     className: "border-green-500/30 bg-green-500/5",
@@ -137,7 +142,10 @@ function ActiveCycleCard() {
     onMutate: () => setCompleting(true),
     onSettled: () => setCompleting(false),
     onSuccess: () => {
-      toast.success("Đã đóng chu kỳ — AI đang phân tích kết quả");
+      // Closing now runs the full Decision Engine + AI explanation
+      // synchronously (Phase 7 unification) — the result is already ready
+      // by the time this resolves, not still "in analysis".
+      toast.success("Đã đóng chu kỳ và có kết quả đánh giá");
       queryClient.invalidateQueries({ queryKey: ["training-cycle"] });
     },
     onError: (error: any) => {
@@ -377,10 +385,21 @@ function DecisionCard({ cycle }: { cycle: TrainingCycle }) {
     );
   }
 
+  // Since Phase 7's unification, an ANALYZED cycle almost always already
+  // has a real, versioned CycleAssessment (both /complete and /evaluate
+  // route through the same engine now) — AdaptiveAssessmentCard (6-state,
+  // safety flags, versioned) is strictly more capable than this legacy
+  // card, so defer to it instead of showing a second, redundant summary.
+  if (current.status === "ANALYZED" && latestAssessmentQuery.data) return null;
+
   if (current.status !== "ANALYZED" || !current.decision) return null;
 
   const decision = current.decision;
   const cfg = DECISION_CONFIG[decision];
+  // Belt-and-braces: a decision value outside the legacy 4 (PROGRESS/
+  // DELOAD/REBUILD) with no assessment fetched yet (race/fetch failure) —
+  // never crash, just defer silently rather than render with an undefined config.
+  if (!cfg) return null;
   const review = current.aiAnalysis?.cycleReview;
 
   return (
@@ -1058,8 +1077,8 @@ function CycleHistoryRow({ cycle }: { cycle: TrainingCycle }) {
             </span>
             {cycle.decision && (
               <span className="inline-flex items-center gap-1 text-xs text-zinc-400">
-                {cycle.decision === "KEEP" ? <TrendingUp className="h-3.5 w-3.5 text-green-400" /> : cycle.decision === "NEW_PLAN" ? <TrendingDown className="h-3.5 w-3.5 text-red-400" /> : null}
-                {DECISION_CONFIG[cycle.decision].label}
+                {cycle.decision === "KEEP" || cycle.decision === "PROGRESS" ? <TrendingUp className="h-3.5 w-3.5 text-green-400" /> : cycle.decision === "NEW_PLAN" || cycle.decision === "REBUILD" ? <TrendingDown className="h-3.5 w-3.5 text-red-400" /> : null}
+                {DECISION_CONFIG[cycle.decision]?.label ?? (ADAPTIVE_DECISION_CONFIG as Record<string, { label: string }>)[cycle.decision]?.label ?? cycle.decision}
               </span>
             )}
           </div>

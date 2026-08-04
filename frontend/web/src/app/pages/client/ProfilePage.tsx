@@ -79,6 +79,8 @@ export function ProfilePage() {
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
+  const [competesInSport, setCompetesInSport] = useState(false);
+  const [injuriesText, setInjuriesText] = useState("");
 
   // Sync isPT from profile API into context/localStorage when user is approved
   useEffect(() => {
@@ -114,6 +116,8 @@ export function ProfilePage() {
       setWeight(profileData.currentWeight?.toString() || "");
       if (profileData.dietaryPreference) setDiet(profileData.dietaryPreference);
       setExperienceLevel(profileData.experienceLevel || "");
+      setCompetesInSport(Boolean(profileData.competesInSport));
+      setInjuriesText(Array.isArray(profileData.injuries) ? profileData.injuries.join(", ") : "");
     }
   }, [profileData]);
 
@@ -175,6 +179,11 @@ export function ProfilePage() {
       // silently coerced to a specific level. The backend/AI side already
       // treats a missing value as an explicit UNKNOWN, not a default.
       experienceLevel: experienceLevel || undefined,
+      competesInSport,
+      injuries: injuriesText
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
     });
   };
 
@@ -475,6 +484,21 @@ export function ProfilePage() {
                   Dùng để AI không đề xuất kỹ thuật nâng cao khi trình độ chưa được xác nhận.
                 </p>
               </div>
+              <div className="sm:col-span-2">
+                <label className="flex items-center gap-2 text-sm text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={competesInSport}
+                    disabled={!editing}
+                    onChange={(e) => setCompetesInSport(e.target.checked)}
+                    className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 accent-green-500 disabled:opacity-60"
+                  />
+                  Tôi đang thi đấu thể hình/thể thao chuyên nghiệp
+                </label>
+                <p className="text-[11px] text-zinc-600 mt-1">
+                  Bật mục này để hệ thống áp dụng ngưỡng kiểm tra dữ liệu chặt chẽ hơn và không đưa lời khuyên đơn giản hoá.
+                </p>
+              </div>
               <div>
                 <label className="text-xs text-zinc-600 mb-1.5 block uppercase tracking-wider">
                   Chế độ ăn
@@ -502,12 +526,14 @@ export function ProfilePage() {
                 {editing ? (
                   <textarea
                     rows={2}
-                    placeholder="Chấn thương hoặc tình trạng sức khỏe cần lưu ý..."
+                    placeholder="Chấn thương hoặc tình trạng sức khỏe cần lưu ý, cách nhau bằng dấu phẩy..."
+                    value={injuriesText}
+                    onChange={(e) => setInjuriesText(e.target.value)}
                     className={`${inputClass} resize-none`}
                   />
                 ) : (
                   <div className="text-sm text-zinc-400 py-2">
-                    Không có chấn thương.
+                    {injuriesText || "Không có chấn thương."}
                   </div>
                 )}
               </div>

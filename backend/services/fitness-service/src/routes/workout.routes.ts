@@ -44,6 +44,16 @@ router.delete(
   authMiddleware,
   workoutController.deleteSchedule as any,
 );
+router.post(
+  "/schedules/:id/skip",
+  authMiddleware,
+  workoutController.skipSchedule as any,
+);
+router.post(
+  "/schedules/:id/cancel",
+  authMiddleware,
+  workoutController.cancelSchedule as any,
+);
 
 router.get(
   "/programs/current",

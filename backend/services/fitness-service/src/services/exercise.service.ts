@@ -75,12 +75,24 @@ export const exerciseService = {
     typeOfEquipment?: string;
     type?: string;
     search?: string;
+    ids?: string;
     page?: string | number;
     limit?: string | number;
   }) {
-    const page = boundedInt(filters.page, 1, 1, 10_000);
-    const limit = boundedInt(filters.limit, 30, 1, 100);
+    const idsFilter = filters.ids
+      ?.split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    // A batch-by-id lookup (e.g. AI plan display resolving exerciseId ->
+    // muscle/equipment metadata) is a different access pattern than
+    // browsing/searching the catalog — it wants every requested id back in
+    // one page, not the default 30/page browse limit.
+    const page = idsFilter?.length ? 1 : boundedInt(filters.page, 1, 1, 10_000);
+    const limit = idsFilter?.length
+      ? boundedInt(idsFilter.length, 30, 1, 100)
+      : boundedInt(filters.limit, 30, 1, 100);
     const and: any[] = [];
+    if (idsFilter?.length) and.push({ id: { in: idsFilter } });
     const bodyPart = normalizeEnum(filters.bodyPart);
     const equipment = normalizeEquipment(
       filters.equipment ?? filters.typeOfEquipment,

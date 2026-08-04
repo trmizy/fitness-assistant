@@ -2406,6 +2406,9 @@ export namespace Prisma {
     goal: $Enums.Goal | null
     activityLevel: $Enums.ActivityLevel | null
     experienceLevel: $Enums.ExperienceLevel | null
+    competesInSport: boolean | null
+    preferredSplit: string | null
+    hasCompletedOnboarding: boolean | null
     currentWeight: number | null
     targetWeight: number | null
     dietaryPreference: string | null
@@ -2428,6 +2431,9 @@ export namespace Prisma {
     goal: $Enums.Goal | null
     activityLevel: $Enums.ActivityLevel | null
     experienceLevel: $Enums.ExperienceLevel | null
+    competesInSport: boolean | null
+    preferredSplit: string | null
+    hasCompletedOnboarding: boolean | null
     currentWeight: number | null
     targetWeight: number | null
     dietaryPreference: string | null
@@ -2450,9 +2456,12 @@ export namespace Prisma {
     goal: number
     activityLevel: number
     experienceLevel: number
+    competesInSport: number
     preferredTrainingDays: number
     availableEquipment: number
     injuries: number
+    preferredSplit: number
+    hasCompletedOnboarding: number
     currentWeight: number
     targetWeight: number
     dietaryPreference: number
@@ -2495,6 +2504,9 @@ export namespace Prisma {
     goal?: true
     activityLevel?: true
     experienceLevel?: true
+    competesInSport?: true
+    preferredSplit?: true
+    hasCompletedOnboarding?: true
     currentWeight?: true
     targetWeight?: true
     dietaryPreference?: true
@@ -2517,6 +2529,9 @@ export namespace Prisma {
     goal?: true
     activityLevel?: true
     experienceLevel?: true
+    competesInSport?: true
+    preferredSplit?: true
+    hasCompletedOnboarding?: true
     currentWeight?: true
     targetWeight?: true
     dietaryPreference?: true
@@ -2539,9 +2554,12 @@ export namespace Prisma {
     goal?: true
     activityLevel?: true
     experienceLevel?: true
+    competesInSport?: true
     preferredTrainingDays?: true
     availableEquipment?: true
     injuries?: true
+    preferredSplit?: true
+    hasCompletedOnboarding?: true
     currentWeight?: true
     targetWeight?: true
     dietaryPreference?: true
@@ -2651,9 +2669,12 @@ export namespace Prisma {
     goal: $Enums.Goal | null
     activityLevel: $Enums.ActivityLevel | null
     experienceLevel: $Enums.ExperienceLevel | null
+    competesInSport: boolean
     preferredTrainingDays: number[]
     availableEquipment: string[]
     injuries: string[]
+    preferredSplit: string | null
+    hasCompletedOnboarding: boolean
     currentWeight: number | null
     targetWeight: number | null
     dietaryPreference: string | null
@@ -2695,9 +2716,12 @@ export namespace Prisma {
     goal?: boolean
     activityLevel?: boolean
     experienceLevel?: boolean
+    competesInSport?: boolean
     preferredTrainingDays?: boolean
     availableEquipment?: boolean
     injuries?: boolean
+    preferredSplit?: boolean
+    hasCompletedOnboarding?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
     dietaryPreference?: boolean
@@ -2723,9 +2747,12 @@ export namespace Prisma {
     goal?: boolean
     activityLevel?: boolean
     experienceLevel?: boolean
+    competesInSport?: boolean
     preferredTrainingDays?: boolean
     availableEquipment?: boolean
     injuries?: boolean
+    preferredSplit?: boolean
+    hasCompletedOnboarding?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
     dietaryPreference?: boolean
@@ -2748,9 +2775,12 @@ export namespace Prisma {
     goal?: boolean
     activityLevel?: boolean
     experienceLevel?: boolean
+    competesInSport?: boolean
     preferredTrainingDays?: boolean
     availableEquipment?: boolean
     injuries?: boolean
+    preferredSplit?: boolean
+    hasCompletedOnboarding?: boolean
     currentWeight?: boolean
     targetWeight?: boolean
     dietaryPreference?: boolean
@@ -2786,9 +2816,12 @@ export namespace Prisma {
       goal: $Enums.Goal | null
       activityLevel: $Enums.ActivityLevel | null
       experienceLevel: $Enums.ExperienceLevel | null
+      competesInSport: boolean
       preferredTrainingDays: number[]
       availableEquipment: string[]
       injuries: string[]
+      preferredSplit: string | null
+      hasCompletedOnboarding: boolean
       currentWeight: number | null
       targetWeight: number | null
       dietaryPreference: string | null
@@ -3203,9 +3236,12 @@ export namespace Prisma {
     readonly goal: FieldRef<"UserProfile", 'Goal'>
     readonly activityLevel: FieldRef<"UserProfile", 'ActivityLevel'>
     readonly experienceLevel: FieldRef<"UserProfile", 'ExperienceLevel'>
+    readonly competesInSport: FieldRef<"UserProfile", 'Boolean'>
     readonly preferredTrainingDays: FieldRef<"UserProfile", 'Int[]'>
     readonly availableEquipment: FieldRef<"UserProfile", 'String[]'>
     readonly injuries: FieldRef<"UserProfile", 'String[]'>
+    readonly preferredSplit: FieldRef<"UserProfile", 'String'>
+    readonly hasCompletedOnboarding: FieldRef<"UserProfile", 'Boolean'>
     readonly currentWeight: FieldRef<"UserProfile", 'Float'>
     readonly targetWeight: FieldRef<"UserProfile", 'Float'>
     readonly dietaryPreference: FieldRef<"UserProfile", 'String'>
@@ -17824,9 +17860,12 @@ export namespace Prisma {
     goal: 'goal',
     activityLevel: 'activityLevel',
     experienceLevel: 'experienceLevel',
+    competesInSport: 'competesInSport',
     preferredTrainingDays: 'preferredTrainingDays',
     availableEquipment: 'availableEquipment',
     injuries: 'injuries',
+    preferredSplit: 'preferredSplit',
+    hasCompletedOnboarding: 'hasCompletedOnboarding',
     currentWeight: 'currentWeight',
     targetWeight: 'targetWeight',
     dietaryPreference: 'dietaryPreference',
@@ -18474,9 +18513,12 @@ export namespace Prisma {
     goal?: EnumGoalNullableFilter<"UserProfile"> | $Enums.Goal | null
     activityLevel?: EnumActivityLevelNullableFilter<"UserProfile"> | $Enums.ActivityLevel | null
     experienceLevel?: EnumExperienceLevelNullableFilter<"UserProfile"> | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFilter<"UserProfile"> | boolean
     preferredTrainingDays?: IntNullableListFilter<"UserProfile">
     availableEquipment?: StringNullableListFilter<"UserProfile">
     injuries?: StringNullableListFilter<"UserProfile">
+    preferredSplit?: StringNullableFilter<"UserProfile"> | string | null
+    hasCompletedOnboarding?: BoolFilter<"UserProfile"> | boolean
     currentWeight?: FloatNullableFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableFilter<"UserProfile"> | number | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
@@ -18501,9 +18543,12 @@ export namespace Prisma {
     goal?: SortOrderInput | SortOrder
     activityLevel?: SortOrderInput | SortOrder
     experienceLevel?: SortOrderInput | SortOrder
+    competesInSport?: SortOrder
     preferredTrainingDays?: SortOrder
     availableEquipment?: SortOrder
     injuries?: SortOrder
+    preferredSplit?: SortOrderInput | SortOrder
+    hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrderInput | SortOrder
     targetWeight?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
@@ -18531,9 +18576,12 @@ export namespace Prisma {
     goal?: EnumGoalNullableFilter<"UserProfile"> | $Enums.Goal | null
     activityLevel?: EnumActivityLevelNullableFilter<"UserProfile"> | $Enums.ActivityLevel | null
     experienceLevel?: EnumExperienceLevelNullableFilter<"UserProfile"> | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFilter<"UserProfile"> | boolean
     preferredTrainingDays?: IntNullableListFilter<"UserProfile">
     availableEquipment?: StringNullableListFilter<"UserProfile">
     injuries?: StringNullableListFilter<"UserProfile">
+    preferredSplit?: StringNullableFilter<"UserProfile"> | string | null
+    hasCompletedOnboarding?: BoolFilter<"UserProfile"> | boolean
     currentWeight?: FloatNullableFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableFilter<"UserProfile"> | number | null
     dietaryPreference?: StringNullableFilter<"UserProfile"> | string | null
@@ -18558,9 +18606,12 @@ export namespace Prisma {
     goal?: SortOrderInput | SortOrder
     activityLevel?: SortOrderInput | SortOrder
     experienceLevel?: SortOrderInput | SortOrder
+    competesInSport?: SortOrder
     preferredTrainingDays?: SortOrder
     availableEquipment?: SortOrder
     injuries?: SortOrder
+    preferredSplit?: SortOrderInput | SortOrder
+    hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrderInput | SortOrder
     targetWeight?: SortOrderInput | SortOrder
     dietaryPreference?: SortOrderInput | SortOrder
@@ -18591,9 +18642,12 @@ export namespace Prisma {
     goal?: EnumGoalNullableWithAggregatesFilter<"UserProfile"> | $Enums.Goal | null
     activityLevel?: EnumActivityLevelNullableWithAggregatesFilter<"UserProfile"> | $Enums.ActivityLevel | null
     experienceLevel?: EnumExperienceLevelNullableWithAggregatesFilter<"UserProfile"> | $Enums.ExperienceLevel | null
+    competesInSport?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     preferredTrainingDays?: IntNullableListFilter<"UserProfile">
     availableEquipment?: StringNullableListFilter<"UserProfile">
     injuries?: StringNullableListFilter<"UserProfile">
+    preferredSplit?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
+    hasCompletedOnboarding?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     currentWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
     targetWeight?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
     dietaryPreference?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
@@ -20096,9 +20150,12 @@ export namespace Prisma {
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
     dietaryPreference?: string | null
@@ -20123,9 +20180,12 @@ export namespace Prisma {
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
     dietaryPreference?: string | null
@@ -20150,9 +20210,12 @@ export namespace Prisma {
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20177,9 +20240,12 @@ export namespace Prisma {
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20204,9 +20270,12 @@ export namespace Prisma {
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
     dietaryPreference?: string | null
@@ -20229,9 +20298,12 @@ export namespace Prisma {
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20254,9 +20326,12 @@ export namespace Prisma {
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22201,9 +22276,12 @@ export namespace Prisma {
     goal?: SortOrder
     activityLevel?: SortOrder
     experienceLevel?: SortOrder
+    competesInSport?: SortOrder
     preferredTrainingDays?: SortOrder
     availableEquipment?: SortOrder
     injuries?: SortOrder
+    preferredSplit?: SortOrder
+    hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
     dietaryPreference?: SortOrder
@@ -22235,6 +22313,9 @@ export namespace Prisma {
     goal?: SortOrder
     activityLevel?: SortOrder
     experienceLevel?: SortOrder
+    competesInSport?: SortOrder
+    preferredSplit?: SortOrder
+    hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
     dietaryPreference?: SortOrder
@@ -22257,6 +22338,9 @@ export namespace Prisma {
     goal?: SortOrder
     activityLevel?: SortOrder
     experienceLevel?: SortOrder
+    competesInSport?: SortOrder
+    preferredSplit?: SortOrder
+    hasCompletedOnboarding?: SortOrder
     currentWeight?: SortOrder
     targetWeight?: SortOrder
     dietaryPreference?: SortOrder
@@ -25321,9 +25405,12 @@ export namespace Prisma {
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
     dietaryPreference?: string | null
@@ -25347,9 +25434,12 @@ export namespace Prisma {
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
     dietaryPreference?: string | null
@@ -25449,9 +25539,12 @@ export namespace Prisma {
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
@@ -25475,9 +25568,12 @@ export namespace Prisma {
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
@@ -26970,9 +27066,12 @@ export namespace Prisma {
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
     dietaryPreference?: string | null
@@ -26996,9 +27095,12 @@ export namespace Prisma {
     goal?: $Enums.Goal | null
     activityLevel?: $Enums.ActivityLevel | null
     experienceLevel?: $Enums.ExperienceLevel | null
+    competesInSport?: boolean
     preferredTrainingDays?: UserProfileCreatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileCreateavailableEquipmentInput | string[]
     injuries?: UserProfileCreateinjuriesInput | string[]
+    preferredSplit?: string | null
+    hasCompletedOnboarding?: boolean
     currentWeight?: number | null
     targetWeight?: number | null
     dietaryPreference?: string | null
@@ -27108,9 +27210,12 @@ export namespace Prisma {
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27134,9 +27239,12 @@ export namespace Prisma {
     goal?: NullableEnumGoalFieldUpdateOperationsInput | $Enums.Goal | null
     activityLevel?: NullableEnumActivityLevelFieldUpdateOperationsInput | $Enums.ActivityLevel | null
     experienceLevel?: NullableEnumExperienceLevelFieldUpdateOperationsInput | $Enums.ExperienceLevel | null
+    competesInSport?: BoolFieldUpdateOperationsInput | boolean
     preferredTrainingDays?: UserProfileUpdatepreferredTrainingDaysInput | number[]
     availableEquipment?: UserProfileUpdateavailableEquipmentInput | string[]
     injuries?: UserProfileUpdateinjuriesInput | string[]
+    preferredSplit?: NullableStringFieldUpdateOperationsInput | string | null
+    hasCompletedOnboarding?: BoolFieldUpdateOperationsInput | boolean
     currentWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     targetWeight?: NullableFloatFieldUpdateOperationsInput | number | null
     dietaryPreference?: NullableStringFieldUpdateOperationsInput | string | null
