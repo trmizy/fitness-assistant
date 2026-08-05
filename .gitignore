@@ -113,3 +113,14 @@ training/llama.cpp/
 backend/services/ai-service/src/scripts/.output/
 *.safetensors
 *.gguf
+
+# ── Capacitor Android wrapper (frontend/web) ────────────────────────────────
+# Build outputs + machine-specific SDK path + signing keys are never committed.
+# The generated `android/` project itself IS committed (it carries the manifest
+# permissions and gradle config the APK build depends on).
+frontend/web/android/app/build/
+frontend/web/android/local.properties
+*.keystore
+*.jks
+# LAN-specific API endpoints for the APK build — differs per machine/network.
+frontend/web/.env.capacitor
