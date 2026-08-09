@@ -5,11 +5,26 @@ import { createServer } from "http";
 import app from "./app";
 import { logger } from "@gym-coach/shared";
 import { initializeSocketServer } from "./socket";
+import { chatSocketProxy } from "./routes/proxy.routes";
 
 const PORT = process.env.PORT || 3000;
 const server = createServer(app);
 
 const io = initializeSocketServer(server);
+
+// Chat's Socket.IO is proxied at "/chat-socket.io" (see proxy.routes.ts). Express
+// middleware only ever sees ordinary HTTP requests, so the WebSocket handshake — an
+// HTTP "upgrade" on the raw server — has to be forwarded here explicitly; without
+// this the client silently degrades to HTTP long-polling. The path check keeps this
+// off the gateway's OWN Socket.IO server, which handles "/socket.io" upgrades.
+server.on("upgrade", (req, socket, head) => {
+  if (req.url?.startsWith("/chat-socket.io")) {
+    // http-proxy-middleware types `upgrade` against Express's Request, but the raw
+    // "upgrade" event hands us a plain IncomingMessage — the proxy only reads url/
+    // headers off it, so the cast is safe.
+    chatSocketProxy.upgrade?.(req as never, socket as never, head);
+  }
+});
 
 server.listen(PORT, () => {
   logger.info(`API Gateway listening on port ${PORT}`);

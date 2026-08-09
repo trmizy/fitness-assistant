@@ -86,6 +86,15 @@ async function canBecomePT(_userId: string): Promise<boolean> {
   return true;
 }
 
+function computeAgeFromDob(dateOfBirth: string): number {
+  const dob = new Date(dateOfBirth);
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const m = now.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
+  return age;
+}
+
 export const profileService = {
   async getProfile(userId: string) {
     const profile = await profileRepository.findByUserId(userId);
@@ -93,7 +102,13 @@ export const profileService = {
   },
 
   async upsertProfile(userId: string, data: ProfileDto) {
-    const profile = await profileRepository.upsert(userId, data);
+    const payload: Record<string, any> = { ...data };
+    // If dateOfBirth is provided, derive age so downstream services stay consistent
+    if (data.dateOfBirth) {
+      payload.dateOfBirth = new Date(data.dateOfBirth);
+      payload.age = computeAgeFromDob(data.dateOfBirth);
+    }
+    const profile = await profileRepository.upsert(userId, payload);
     return { profile };
   },
 

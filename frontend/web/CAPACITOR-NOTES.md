@@ -53,6 +53,50 @@ New-NetFirewallRule -DisplayName "FitnessAssistant Chat 3005" -Direction Inbound
 
 ---
 
+## 1b. Dùng app KHÔNG cần chung WiFi — Cloudflare Tunnel
+
+Địa chỉ LAN ở mục 1 chỉ chạy khi điện thoại **cùng WiFi** với máy dev. Muốn dùng ở mạng bất kỳ
+(4G, WiFi khác), mở một **Cloudflare quick tunnel** — miễn phí, không cần tài khoản:
+
+```
+Nhấp đúp:  D:\FitnessAssistant\Khoi-dong-Tunnel.bat
+```
+
+Script tự kiểm tra gateway `:3000` còn sống rồi in ra URL công khai dạng
+`https://<ngau-nhien>.trycloudflare.com`. **Giữ cửa sổ đó mở** trong lúc dùng app.
+
+### Dán URL vào app (không cần build lại)
+
+Màn hình **Đăng nhập** → cuối trang bấm **"Cấu hình máy chủ"** → dán URL → **"Lưu và tải lại"**.
+Địa chỉ lưu trong `localStorage` (`config/serverUrl.ts`) và **thắng** giá trị build-time, nên mỗi lần
+tunnel đổi URL chỉ cần dán lại — **không phải build/cài lại APK**. Để trống rồi Lưu = quay về địa chỉ
+LAN mặc định của bản build.
+
+### Chỉ cần MỘT tunnel
+
+Gateway đã proxy luôn websocket của chat qua `/chat-socket.io` (xem `proxy.routes.ts` +
+`server.ts` forward sự kiện `upgrade`), nên một URL phục vụ tất cả. Đã kiểm chứng thật qua tunnel:
+
+| Đường | Kết quả |
+|---|---|
+| `GET /health` | ✅ 200 |
+| `POST /auth/login` | ✅ 200 + token |
+| `GET /me/wallet` (API có xác thực) | ✅ 200 |
+| `/chat-socket.io/` (chat realtime) | ✅ 200 + `sid` |
+| `/socket.io/` (socket của gateway) | ✅ 200 + `sid` |
+
+> **Bẫy đã gặp:** phải trỏ tunnel vào `http://127.0.0.1:3000`, **không** dùng `localhost`. Trên Windows
+> dual-stack, `localhost` phân giải ra IPv6 `::1` trước trong khi Docker chỉ publish IPv4 → cloudflared
+> trả 502 `dial tcp [::1]:3000 ... actively refused`. Script đã dùng `127.0.0.1`.
+
+> CORS: gateway đã cho phép sẵn origin `http://localhost` của app (`utils/corsOrigins.ts`), không phải sửa.
+
+### Khi lên thật
+Quick tunnel đổi URL mỗi lần chạy và không có SLA — chỉ hợp demo. Muốn URL cố định thì dùng
+**named tunnel** (cần tài khoản Cloudflare + domain), rồi nhúng thẳng vào `.env.capacitor`.
+
+---
+
 ## 2. Luồng thanh toán — chọn **Cách A**
 
 **Không sửa gì** ở `WalletPage.tsx`. Luồng nạp ví qua cổng ngoài (VNPay/ZaloPay) **không nằm trong

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const profileSchema = z.object({
+  dateOfBirth: z.string().optional(), // ISO date string e.g. "2000-01-15"
   age: z.number().int().min(13).max(120).optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   heightCm: z.number().positive().optional(),

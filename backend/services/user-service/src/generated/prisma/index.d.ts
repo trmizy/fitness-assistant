@@ -2400,6 +2400,7 @@ export namespace Prisma {
     lastName: string | null
     email: string | null
     isPT: boolean | null
+    dateOfBirth: Date | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -2422,6 +2423,7 @@ export namespace Prisma {
     lastName: string | null
     email: string | null
     isPT: boolean | null
+    dateOfBirth: Date | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -2444,6 +2446,7 @@ export namespace Prisma {
     lastName: number
     email: number
     isPT: number
+    dateOfBirth: number
     age: number
     gender: number
     heightCm: number
@@ -2489,6 +2492,7 @@ export namespace Prisma {
     lastName?: true
     email?: true
     isPT?: true
+    dateOfBirth?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -2511,6 +2515,7 @@ export namespace Prisma {
     lastName?: true
     email?: true
     isPT?: true
+    dateOfBirth?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -2533,6 +2538,7 @@ export namespace Prisma {
     lastName?: true
     email?: true
     isPT?: true
+    dateOfBirth?: true
     age?: true
     gender?: true
     heightCm?: true
@@ -2645,6 +2651,7 @@ export namespace Prisma {
     lastName: string | null
     email: string | null
     isPT: boolean
+    dateOfBirth: Date | null
     age: number | null
     gender: $Enums.Gender | null
     heightCm: number | null
@@ -2689,6 +2696,7 @@ export namespace Prisma {
     lastName?: boolean
     email?: boolean
     isPT?: boolean
+    dateOfBirth?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -2717,6 +2725,7 @@ export namespace Prisma {
     lastName?: boolean
     email?: boolean
     isPT?: boolean
+    dateOfBirth?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -2742,6 +2751,7 @@ export namespace Prisma {
     lastName?: boolean
     email?: boolean
     isPT?: boolean
+    dateOfBirth?: boolean
     age?: boolean
     gender?: boolean
     heightCm?: boolean
@@ -2780,6 +2790,7 @@ export namespace Prisma {
       lastName: string | null
       email: string | null
       isPT: boolean
+      dateOfBirth: Date | null
       age: number | null
       gender: $Enums.Gender | null
       heightCm: number | null
@@ -3197,6 +3208,7 @@ export namespace Prisma {
     readonly lastName: FieldRef<"UserProfile", 'String'>
     readonly email: FieldRef<"UserProfile", 'String'>
     readonly isPT: FieldRef<"UserProfile", 'Boolean'>
+    readonly dateOfBirth: FieldRef<"UserProfile", 'DateTime'>
     readonly age: FieldRef<"UserProfile", 'Int'>
     readonly gender: FieldRef<"UserProfile", 'Gender'>
     readonly heightCm: FieldRef<"UserProfile", 'Float'>
@@ -17818,6 +17830,7 @@ export namespace Prisma {
     lastName: 'lastName',
     email: 'email',
     isPT: 'isPT',
+    dateOfBirth: 'dateOfBirth',
     age: 'age',
     gender: 'gender',
     heightCm: 'heightCm',
@@ -18197,6 +18210,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'DateTime'
+   */
+  export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
+    
+
+
+  /**
+   * Reference to a field of type 'DateTime[]'
+   */
+  export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -18277,20 +18304,6 @@ export namespace Prisma {
    * Reference to a field of type 'ExperienceLevel[]'
    */
   export type ListEnumExperienceLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ExperienceLevel[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'DateTime'
-   */
-  export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
-    
-
-
-  /**
-   * Reference to a field of type 'DateTime[]'
-   */
-  export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
     
 
 
@@ -18468,6 +18481,7 @@ export namespace Prisma {
     lastName?: StringNullableFilter<"UserProfile"> | string | null
     email?: StringNullableFilter<"UserProfile"> | string | null
     isPT?: BoolFilter<"UserProfile"> | boolean
+    dateOfBirth?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableFilter<"UserProfile"> | number | null
@@ -18495,6 +18509,7 @@ export namespace Prisma {
     lastName?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
     isPT?: SortOrder
+    dateOfBirth?: SortOrderInput | SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     heightCm?: SortOrderInput | SortOrder
@@ -18525,6 +18540,7 @@ export namespace Prisma {
     lastName?: StringNullableFilter<"UserProfile"> | string | null
     email?: StringNullableFilter<"UserProfile"> | string | null
     isPT?: BoolFilter<"UserProfile"> | boolean
+    dateOfBirth?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableFilter<"UserProfile"> | number | null
@@ -18552,6 +18568,7 @@ export namespace Prisma {
     lastName?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
     isPT?: SortOrder
+    dateOfBirth?: SortOrderInput | SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     heightCm?: SortOrderInput | SortOrder
@@ -18585,6 +18602,7 @@ export namespace Prisma {
     lastName?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     email?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     isPT?: BoolWithAggregatesFilter<"UserProfile"> | boolean
+    dateOfBirth?: DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
     age?: IntNullableWithAggregatesFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableWithAggregatesFilter<"UserProfile"> | $Enums.Gender | null
     heightCm?: FloatNullableWithAggregatesFilter<"UserProfile"> | number | null
@@ -20090,6 +20108,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -20117,6 +20136,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -20144,6 +20164,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -20171,6 +20192,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -20198,6 +20220,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -20223,6 +20246,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -20248,6 +20272,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -22080,6 +22105,17 @@ export namespace Prisma {
     not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type IntNullableFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -22195,6 +22231,7 @@ export namespace Prisma {
     lastName?: SortOrder
     email?: SortOrder
     isPT?: SortOrder
+    dateOfBirth?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -22229,6 +22266,7 @@ export namespace Prisma {
     lastName?: SortOrder
     email?: SortOrder
     isPT?: SortOrder
+    dateOfBirth?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -22251,6 +22289,7 @@ export namespace Prisma {
     lastName?: SortOrder
     email?: SortOrder
     isPT?: SortOrder
+    dateOfBirth?: SortOrder
     age?: SortOrder
     gender?: SortOrder
     heightCm?: SortOrder
@@ -22317,6 +22356,20 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -22455,17 +22508,6 @@ export namespace Prisma {
     in?: $Enums.ServiceMode[] | ListEnumServiceModeFieldRefInput<$PrismaModel> | null
     notIn?: $Enums.ServiceMode[] | ListEnumServiceModeFieldRefInput<$PrismaModel> | null
     not?: NestedEnumServiceModeNullableFilter<$PrismaModel> | $Enums.ServiceMode | null
-  }
-
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type PTApplicationCertificateListRelationFilter = {
@@ -22714,20 +22756,6 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumServiceModeNullableFilter<$PrismaModel>
     _max?: NestedEnumServiceModeNullableFilter<$PrismaModel>
-  }
-
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type PTApplicationRelationFilter = {
@@ -23725,6 +23753,10 @@ export namespace Prisma {
     set?: boolean
   }
 
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
   export type NullableIntFieldUpdateOperationsInput = {
     set?: number | null
     increment?: number
@@ -23917,10 +23949,6 @@ export namespace Prisma {
   export type PTApplicationUpdateavailableDaysInput = {
     set?: string[]
     push?: string | string[]
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type PTApplicationCertificateUpdateManyWithoutApplicationNestedInput = {
@@ -24438,6 +24466,17 @@ export namespace Prisma {
     not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type NestedIntNullableFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -24550,6 +24589,20 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -24679,17 +24732,6 @@ export namespace Prisma {
     not?: NestedEnumServiceModeNullableFilter<$PrismaModel> | $Enums.ServiceMode | null
   }
 
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
   export type NestedEnumPTApplicationStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.PTApplicationStatus | EnumPTApplicationStatusFieldRefInput<$PrismaModel>
     in?: $Enums.PTApplicationStatus[] | ListEnumPTApplicationStatusFieldRefInput<$PrismaModel>
@@ -24730,20 +24772,6 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumServiceModeNullableFilter<$PrismaModel>
     _max?: NestedEnumServiceModeNullableFilter<$PrismaModel>
-  }
-
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumMediaGroupTypeFilter<$PrismaModel = never> = {
@@ -25315,6 +25343,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -25341,6 +25370,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -25443,6 +25473,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -25469,6 +25500,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -26964,6 +26996,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -26990,6 +27023,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
     heightCm?: number | null
@@ -27102,6 +27136,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null
@@ -27128,6 +27163,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     heightCm?: NullableFloatFieldUpdateOperationsInput | number | null

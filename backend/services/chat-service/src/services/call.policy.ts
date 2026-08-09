@@ -6,8 +6,9 @@ const USER_SERVICE_URL =
 
 /**
  * Chat-linked call: both users must be conversation participants,
- * and at least one user must be a PT OR an active contract must exist.
- * This matches the existing chat permission policy.
+ * and neither account may be deactivated/blocked.
+ * Contract is NOT required — any two users who can see each other in a
+ * conversation can call each other (same as the chat discovery policy).
  */
 export async function canInitiateCallFromChat(
   callerId: string,
@@ -15,7 +16,7 @@ export async function canInitiateCallFromChat(
   conversationId: string,
   authToken: string,
 ): Promise<{ allowed: boolean; reason?: string }> {
-  // 1. Both users are participants of the conversation
+  // Both users are participants of the conversation
   const [callerOk, calleeOk] = await Promise.all([
     chatRepository.isUserParticipant(conversationId, callerId),
     chatRepository.isUserParticipant(conversationId, calleeId),
@@ -27,7 +28,7 @@ export async function canInitiateCallFromChat(
     };
   }
 
-  // 2. Check relationship: at least one is PT OR active contract exists
+  // Check that neither account is deactivated/blocked via user-service
   try {
     const { data } = await axios.get(
       `${USER_SERVICE_URL}/contracts/check-relationship`,
@@ -37,15 +38,12 @@ export async function canInitiateCallFromChat(
         timeout: 3000,
       },
     );
-    if (!data.allowed) {
-      return {
-        allowed: false,
-        reason: "No PT relationship or active contract between users",
-      };
+    // allowed === false only means one account is inactive/blocked
+    if (data.blocked) {
+      return { allowed: false, reason: "One or both accounts are deactivated" };
     }
   } catch {
-    // If user-service is down, be permissive (same pattern as chat.policy.ts)
-    return { allowed: true };
+    // If user-service is down, be permissive
   }
 
   return { allowed: true };

@@ -1,4 +1,5 @@
 import { io, Socket } from "socket.io-client";
+import { chatSocketTarget } from "../config/serverUrl";
 
 // Empty string = same-origin (current page), proxied by Vite in dev under
 // "/chat-socket.io" (see vite.config.ts) to chat-service's real
@@ -8,8 +9,10 @@ import { io, Socket } from "socket.io-client";
 // Set VITE_CHAT_WS_URL to an absolute URL to bypass the proxy and connect
 // directly to chat-service, which still expects its own real "/socket.io"
 // path in that case.
-const CHAT_WS_URL = import.meta.env.VITE_CHAT_WS_URL || "";
-const CHAT_WS_PATH = CHAT_WS_URL ? "/socket.io" : "/chat-socket.io";
+// A stored runtime override (in-app "Cấu hình máy chủ") routes chat through the
+// gateway's "/chat-socket.io" proxy so the APK only needs ONE public URL — see
+// config/serverUrl.ts.
+const { url: CHAT_WS_URL, path: CHAT_WS_PATH } = chatSocketTarget();
 
 let socket: Socket | null = null;
 

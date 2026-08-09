@@ -6,6 +6,7 @@ export interface PlanExplanationResponse {
 }
 import axios from "axios";
 import { makeRefreshOnce } from "./refresh-once";
+import { apiBaseUrl } from "../config/serverUrl";
 
 // Defaults to a same-origin relative path, proxied by Vite's dev server to
 // the gateway (see vite.config.ts's "/api" proxy rule) — this is what makes
@@ -15,8 +16,10 @@ import { makeRefreshOnce } from "./refresh-once";
 // request. Set VITE_API_URL to an absolute URL only when the frontend must
 // reach a backend that ISN'T proxied same-origin (e.g. a production static
 // build served without an API-proxying reverse proxy in front of it).
-// @ts-ignore - ImportMeta.env is provided by Vite
-export const API_URL = import.meta.env.VITE_API_URL || "/api";
+// Resolved once at module load: a stored override (in-app "Cấu hình máy chủ", used by
+// the Capacitor APK behind a tunnel) wins over VITE_API_URL, which wins over the
+// same-origin "/api" default. Saving a new address reloads the app so this re-runs.
+export const API_URL = apiBaseUrl();
 
 const api = axios.create({
   baseURL: API_URL,

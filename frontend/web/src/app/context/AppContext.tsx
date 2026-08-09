@@ -4,6 +4,7 @@ import React, {
   useState,
   useCallback,
   useEffect,
+  useRef,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { User } from "../types";
@@ -64,10 +65,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const isPT = role === "pt";
   const isAdmin = role === "admin";
 
-  // Set default view based on role when user changes
+  // Set default view based on role ONLY on first load (not on every user change).
+  // AppShell syncs activeView from the actual URL path after that, so it is the
+  // authoritative source. Re-running this effect on every user change caused the
+  // view to reset back to "pt" even when the PT was browsing the client workspace.
+  const viewInitializedRef = useRef(false);
   useEffect(() => {
-    if (user) {
-      setActiveView(user.isPT || user.role === "PT" ? "pt" : "client");
+    if (user && !viewInitializedRef.current) {
+      viewInitializedRef.current = true;
+      const path = window.location.pathname;
+      // For PT users, use the current URL to determine the right default view
+      if (user.isPT || user.role === "PT") {
+        setActiveView(path.startsWith("/client") ? "client" : "pt");
+      } else {
+        setActiveView("client");
+      }
     }
   }, [user]);
 

@@ -1997,7 +1997,7 @@ router.use(
   }),
 );
 
-// Protected — Chat Service (REST only; Socket.IO connects directly to :3005)
+// Protected — Chat Service (REST). Socket.IO has its own mount below.
 router.use(
   "/chat",
   authMiddleware,
@@ -2007,6 +2007,25 @@ router.use(
     onError: serviceUnavailable("Chat service"),
   }),
 );
+
+// Chat Socket.IO over the gateway — mirrors the "/chat-socket.io" proxy in
+// frontend/web/vite.config.ts. chat-service runs a SEPARATE Socket.IO server from
+// the gateway's own, and both default to the same "/socket.io" path, so chat gets a
+// distinct prefix here that is rewritten back to the real path upstream.
+//
+// Why this exists: a client that can only reach ONE origin (the Capacitor APK behind
+// a single tunnel — see frontend/web/CAPACITOR-NOTES.md) cannot also open a direct
+// connection to chat-service on :3005. Routing chat's websocket through the gateway
+// keeps that setup down to one public URL. No authMiddleware: Socket.IO carries its
+// own token in the connection handshake, which chat-service verifies itself.
+export const chatSocketProxy = createProxyMiddleware({
+  target: CHAT_SERVICE_URL,
+  changeOrigin: true,
+  ws: true,
+  pathRewrite: { "^/chat-socket.io": "/socket.io" },
+  onError: serviceUnavailable("Chat service (socket)"),
+});
+router.use("/chat-socket.io", chatSocketProxy);
 
 // Public — Dropbox Sign webhook passthrough (no auth, Dropbox Sign posts here directly)
 router.post(

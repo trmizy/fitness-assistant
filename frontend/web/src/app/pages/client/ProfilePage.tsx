@@ -74,7 +74,7 @@ export function ProfilePage() {
   const [activity, setActivity] = useState("Vận động vừa");
   const [diet, setDiet] = useState("Nhiều protein");
 
-  const [age, setAge] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -108,7 +108,11 @@ export function ProfilePage() {
         };
         setActivity(activityMap[profileData.activityLevel] || "Vận động vừa");
       }
-      setAge(profileData.age?.toString() || "");
+      setDateOfBirth(
+        profileData.dateOfBirth
+          ? String(profileData.dateOfBirth).slice(0, 10)
+          : "",
+      );
       setGender(profileData.gender || "");
       setHeight(profileData.heightCm?.toString() || "");
       setWeight(profileData.currentWeight?.toString() || "");
@@ -166,14 +170,11 @@ export function ProfilePage() {
               : activity === "Năng động"
                 ? "VERY_ACTIVE"
                 : "EXTREMELY_ACTIVE",
-      age: age ? parseInt(age) : undefined,
+      dateOfBirth: dateOfBirth || undefined,
       gender: gender ? gender.toUpperCase() : undefined,
       heightCm: height ? parseFloat(height) : undefined,
       currentWeight: weight ? parseFloat(weight) : undefined,
       dietaryPreference: diet,
-      // Empty string means "chưa xác định" — sent as undefined, never
-      // silently coerced to a specific level. The backend/AI side already
-      // treats a missing value as an explicit UNKNOWN, not a default.
       experienceLevel: experienceLevel || undefined,
     });
   };
@@ -331,7 +332,13 @@ export function ProfilePage() {
                   value: user ? `${user.firstName} ${user.lastName}` : "",
                 },
                 { label: "Email", value: user?.email || "" },
-                { label: "Tuổi", value: age, setter: setAge, type: "number" },
+                {
+                  label: "Ngày sinh",
+                  value: dateOfBirth,
+                  setter: setDateOfBirth,
+                  type: "date",
+                  maxDate: new Date().toISOString().slice(0, 10),
+                },
                 {
                   label: "Chiều cao (cm)",
                   value: height,
@@ -353,6 +360,7 @@ export function ProfilePage() {
                     <input
                       type={f.type}
                       value={f.value}
+                      max={(f as any).maxDate}
                       onChange={(e) => f.setter(e.target.value)}
                       className={inputClass}
                     />

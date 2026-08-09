@@ -53,9 +53,10 @@ model UserProfile {
   isPT      Boolean  @default(false)
 
   // Demographics
-  age       Int?
-  gender    Gender?
-  heightCm  Float?
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
+  age         Int?      // derived from dateOfBirth; kept for AI-service compatibility
+  gender      Gender?
+  heightCm    Float?
   
   // Goals & Preferences
   goal              Goal?

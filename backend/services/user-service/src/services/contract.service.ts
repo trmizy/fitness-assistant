@@ -647,13 +647,15 @@ export const contractService = {
     return count;
   },
 
-  // ── Check relationship (BR-29: chat/call only with contract) ─────────
+  // ── Check relationship (for call permission) ─────────────────────
   async checkRelationship(userAId: string, userBId: string) {
-    const contract = await contractRepository.findRelationshipByPair(
-      userAId,
-      userBId,
-    );
-    return { allowed: !!contract };
+    // Calls no longer require a contract — only block if either account is deactivated.
+    const [aActive, bActive] = await Promise.all([
+      isUserActive(userAId),
+      isUserActive(userBId),
+    ]);
+    const blocked = aActive === false || bActive === false;
+    return { blocked };
   },
 
   /**
