@@ -7,7 +7,7 @@
     "build": "vite build",
     "dev": "vite",
     "app:build": "vite build --mode capacitor",
-    "app:sync": "pnpm run app:build && pnpm exec cap sync android"
+    "app:sync": "vite build --mode capacitor && cap sync android"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

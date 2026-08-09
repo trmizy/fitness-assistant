@@ -161,10 +161,28 @@ export function PTDiscoveryPage() {
       setMessagingPT(true);
       const data = await chatService.createDirectConversation(ptUserId);
       const conversationId = data?.id || data?.conversation?.id;
-      if (conversationId)
+      if (conversationId) {
         navigate(`/client/chat?conversationId=${conversationId}`);
-    } catch {
-      toast.error("Không thể bắt đầu cuộc hội thoại");
+      } else {
+        // 2xx but no id: previously this silently did nothing, leaving the button
+        // looking broken with no clue why.
+        toast.error("Máy chủ không trả về mã cuộc hội thoại");
+      }
+    } catch (err: any) {
+      // Surface the real reason — a bare "không thể" gives nothing to act on, and on a
+      // phone there is no console to check. Covers all three failure shapes: an HTTP
+      // error from the server, a transport failure (offline/timeout/wrong server
+      // address), and anything else.
+      const status = err?.response?.status;
+      const serverMsg =
+        err?.response?.data?.error?.message ??
+        err?.response?.data?.error ??
+        err?.response?.data?.message;
+      toast.error(
+        status
+          ? `Không thể bắt đầu cuộc hội thoại (${status}${serverMsg ? `: ${serverMsg}` : ""})`
+          : `Không thể kết nối máy chủ: ${err?.message ?? "lỗi không rõ"}`,
+      );
     } finally {
       setMessagingPT(false);
     }
