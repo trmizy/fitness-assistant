@@ -27,6 +27,19 @@ export function GymReviewsSection({ gymId }: { gymId: string }) {
     queryFn: () => gymService.getGymReviews(gymId),
   });
 
+  // Only someone who has bought a membership here may rate the gym; everyone else can read
+  // the reviews but gets no form. The server enforces this too (403 NOT_A_MEMBER) — showing
+  // the form to a non-member just invited a click that was always going to be rejected.
+  const { data: myMemberships = [] } = useQuery<any[]>({
+    queryKey: ["client-gym-memberships"],
+    queryFn: () => gymService.listMyMemberships(),
+  });
+  // ACTIVE = current member, EXPIRED = used to be one. Both count; a CANCELLED (refunded)
+  // membership does not, matching the server's rule.
+  const canReview = myMemberships.some(
+    (m) => m.gymId === gymId && ["ACTIVE", "EXPIRED"].includes(String(m.status)),
+  );
+
   const myReview = data?.reviews.find((r) => r.clientId === userId);
 
   // Prefill the form from an existing review once loaded.
@@ -78,7 +91,15 @@ export function GymReviewsSection({ gymId }: { gymId: string }) {
         )}
       </div>
 
-      {/* Write / edit form */}
+      {/* Write / edit form — members only; everyone else just reads. */}
+      {!canReview ? (
+        <div className="bg-zinc-900/60 rounded-xl border border-zinc-800/60 p-3">
+          <p className="text-xs text-zinc-500">
+            Chỉ hội viên đã mua gói tại phòng gym này mới được đánh giá. Bạn vẫn có thể xem
+            các đánh giá bên dưới.
+          </p>
+        </div>
+      ) : (
       <div className="bg-zinc-900 rounded-xl border border-zinc-800/60 p-4 space-y-3">
         <div className="text-xs text-zinc-500">{myReview ? "Chỉnh sửa đánh giá của bạn" : "Viết đánh giá"}</div>
         <div className="flex items-center gap-1.5">
@@ -117,6 +138,7 @@ export function GymReviewsSection({ gymId }: { gymId: string }) {
           )}
         </div>
       </div>
+      )}
 
       {/* Reviews list */}
       {isLoading ? (

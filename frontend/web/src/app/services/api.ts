@@ -1778,9 +1778,8 @@ export const coachService = {
             signal: controller.signal,
           });
 
-        let response = await sendStreamRequest(
-          localStorage.getItem("accessToken"),
-        );
+        const { value: accessToken } = await Preferences.get({ key: "accessToken" });
+        let response = await sendStreamRequest(accessToken);
 
         if (response.status === 401) {
           const newToken = await refreshOnce();
@@ -2677,18 +2676,22 @@ export const gymService = {
   },
 
   // ── Check-in (Phase 4) ──────────────────────────────────────────────
-  // Member: fetch a fresh short-lived QR token for one of their ACTIVE memberships.
-  getCheckinToken: async (membershipId: string) => {
-    const { data } = await api.get(`/me/gym-memberships/${membershipId}/checkin-token`);
+  // Gym owner: the QR to display at the front desk for members to scan.
+  getGymCheckinQr: async (gymId: string) => {
+    const { data } = await api.get(`/owner/gyms/${gymId}/checkin-qr`);
     return data?.data ?? data;
   },
-  // Gym owner: record a scanned member token as a check-in.
-  recordCheckin: async (gymId: string, token: string) => {
-    const { data } = await api.post(`/owner/gyms/${gymId}/checkins`, { token });
+  // Member: scanned the gym's QR — records the visit and returns what the desk verifies.
+  checkInByScan: async (token: string) => {
+    const { data } = await api.post(`/me/gym-checkins`, { token });
     return data?.data ?? data;
   },
   listCheckins: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/checkins`);
+    return data?.data ?? data;
+  },
+  listMyCheckins: async () => {
+    const { data } = await api.get(`/me/gym-checkins`);
     return data?.data ?? data;
   },
 

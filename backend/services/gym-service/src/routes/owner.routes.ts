@@ -37,8 +37,8 @@ router.patch('/gyms/:gymId/plans/:planId', asyncHandler(planController.update));
 
 router.get('/gyms/:gymId/memberships', asyncHandler(membershipController.listForOwner));
 
-// Phase 4 — gym scans a member's QR to record entry; owner sees recent check-ins.
-router.post('/gyms/:gymId/checkins', asyncHandler(checkinController.record));
+// Phase 4 — the gym displays this QR at the desk; members scan it to check themselves in.
+router.get('/gyms/:gymId/checkin-qr', asyncHandler(checkinController.getGymQr));
 router.get('/gyms/:gymId/checkins', asyncHandler(checkinController.listForGym));
 
 router.post('/gyms/:gymId/trainers', asyncHandler(affiliationController.invite));

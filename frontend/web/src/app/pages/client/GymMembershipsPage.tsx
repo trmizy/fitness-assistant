@@ -5,7 +5,7 @@ import { gymService } from "../../services/api";
 import { toast } from "sonner";
 import type { GymMembershipContract, GymMembershipContractStatus } from "../../types";
 import { formatVND } from "../../utils/currency";
-import { CheckinQrModal } from "../../components/gym/CheckinQrModal";
+import { CheckinScanModal } from "../../components/gym/CheckinScanModal";
 
 /** Client-side preview of the prorated refund (backend recomputes the authoritative amount). */
 function proratedEstimate(m: GymMembershipContract): { amount: number; days: number } {
@@ -31,7 +31,8 @@ function formatDate(d?: string | null) {
 
 export function GymMembershipsPage() {
   const queryClient = useQueryClient();
-  const [qrMembershipId, setQrMembershipId] = useState<string | null>(null);
+  // The gym shows the QR; the member scans it. One scanner sheet serves every membership.
+  const [scanning, setScanning] = useState(false);
   const [refundTarget, setRefundTarget] = useState<GymMembershipContract | null>(null);
 
   const { data: memberships = [], isLoading } = useQuery<GymMembershipContract[]>({
@@ -120,10 +121,10 @@ export function GymMembershipsPage() {
                   <div className="mt-3 flex gap-2">
                     <button
                       type="button"
-                      onClick={() => setQrMembershipId(m.id)}
+                      onClick={() => setScanning(true)}
                       className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
                     >
-                      <QrCode className="w-3.5 h-3.5" /> Mã check-in
+                      <QrCode className="w-3.5 h-3.5" /> Quét mã check-in
                     </button>
                     <button
                       type="button"
@@ -161,7 +162,7 @@ export function GymMembershipsPage() {
         </div>
       )}
 
-      {qrMembershipId && <CheckinQrModal membershipId={qrMembershipId} onClose={() => setQrMembershipId(null)} />}
+      {scanning && <CheckinScanModal onClose={() => setScanning(false)} />}
 
       {refundTarget && (() => {
         const est = proratedEstimate(refundTarget);

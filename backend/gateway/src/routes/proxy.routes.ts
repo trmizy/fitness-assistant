@@ -2273,6 +2273,13 @@ router.use(
   requireRoles('CUSTOMER', 'PT'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
+// Member scans the gym's front-desk QR to record their own visit.
+router.use(
+  '/me/gym-checkins',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
 
 // PT — gym affiliation invitations
 router.use(

@@ -1,159 +1,144 @@
-import { useEffect, useRef, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { QrCode, Camera, CameraOff, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import QRCode from "qrcode";
+import { QrCode, Loader2, Maximize2, X, RefreshCw } from "lucide-react";
 import { gymService } from "../../services/api";
-import type { CheckinResult, GymCheckIn } from "../../types";
-
-const ERR_MESSAGES: Record<string, string> = {
-  INVALID_TOKEN: "Mã không hợp lệ.",
-  TOKEN_EXPIRED: "Mã đã hết hạn — nhờ hội viên làm mới mã.",
-  WRONG_GYM: "Mã này không thuộc phòng gym của bạn.",
-  MEMBERSHIP_NOT_FOUND: "Không tìm thấy gói thành viên.",
-  NOT_ACTIVE: "Gói thành viên không còn hiệu lực.",
-  VISIT_LIMIT_REACHED: "Đã dùng hết số lượt của gói.",
-  TOO_SOON: "Vừa check-in xong — thử lại sau ít phút.",
-};
+import type { GymCheckIn } from "../../types";
 
 const shortId = (id: string) => `${id.slice(0, 8)}…`;
-const timeAgo = (iso: string) => new Date(iso).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+const timeAgo = (iso: string) =>
+  new Date(iso).toLocaleString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+  });
 
+/**
+ * The gym's front-desk check-in QR. The member scans it with their own phone, so the gym
+ * needs no scanner hardware and no camera permission — and the member's identity comes
+ * from their logged-in session rather than from anything encoded in this image.
+ */
 export function GymCheckinPanel({ gymId }: { gymId: string }) {
-  const queryClient = useQueryClient();
-  const [manual, setManual] = useState("");
-  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
-  const [scanning, setScanning] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const loopRef = useRef<number | null>(null);
+  const [dataUrl, setDataUrl] = useState("");
+  const [fullscreen, setFullscreen] = useState(false);
 
-  const supportsCamera = typeof window !== "undefined" && "BarcodeDetector" in window && !!navigator.mediaDevices;
+  const { data: qr, isLoading, refetch, isRefetching } = useQuery<{
+    token: string;
+    gymName: string;
+  }>({
+    queryKey: ["gym-checkin-qr", gymId],
+    queryFn: () => gymService.getGymCheckinQr(gymId),
+  });
 
   const { data: checkins = [] } = useQuery<GymCheckIn[]>({
     queryKey: ["gym-checkins", gymId],
+    // The desk watches this list to see arrivals appear as members scan.
+    refetchInterval: 10000,
     queryFn: () => gymService.listCheckins(gymId),
   });
 
-  const recordMutation = useMutation({
-    mutationFn: (token: string) => gymService.recordCheckin(gymId, token),
-    onSuccess: (r: CheckinResult) => {
-      const visits = r.totalVisits != null ? ` · lượt ${r.usedVisits}/${r.totalVisits}` : "";
-      setResult({ ok: true, text: `Check-in thành công: ${shortId(r.clientId)}${visits}` });
-      setManual("");
-      queryClient.invalidateQueries({ queryKey: ["gym-checkins", gymId] });
-      queryClient.invalidateQueries({ queryKey: ["owner-gym-memberships", gymId] });
-    },
-    onError: (err: any) => {
-      const code = err?.response?.data?.error?.code;
-      setResult({ ok: false, text: ERR_MESSAGES[code] || err?.response?.data?.error?.message || "Check-in thất bại." });
-    },
-  });
-
-  const stopCamera = () => {
-    if (loopRef.current) { window.clearInterval(loopRef.current); loopRef.current = null; }
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    setScanning(false);
-  };
-
-  const startCamera = async () => {
-    setResult(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setScanning(true);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const detector = new (window as any).BarcodeDetector({ formats: ["qr_code"] });
-      loopRef.current = window.setInterval(async () => {
-        if (!videoRef.current) return;
-        try {
-          const codes = await detector.detect(videoRef.current);
-          if (codes?.length) {
-            const value = codes[0].rawValue as string;
-            stopCamera();
-            recordMutation.mutate(value);
-          }
-        } catch {
-          /* transient detect errors are ignored */
-        }
-      }, 500);
-    } catch {
-      setResult({ ok: false, text: "Không mở được camera. Hãy nhập mã thủ công bên dưới." });
-      setScanning(false);
-    }
-  };
-
-  useEffect(() => stopCamera, []); // stop camera on unmount
+  useEffect(() => {
+    if (!qr?.token) return;
+    QRCode.toDataURL(qr.token, { width: 420, margin: 1 })
+      .then(setDataUrl)
+      .catch(() => setDataUrl(""));
+  }, [qr?.token]);
 
   return (
     <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5 space-y-4">
-      <div className="flex items-center gap-2">
-        <QrCode className="w-5 h-5 text-green-400" />
-        <h2 className="text-sm font-bold text-zinc-200">Check-in hội viên</h2>
-      </div>
-
-      {supportsCamera ? (
-        <div className="space-y-2">
-          <div className="relative rounded-xl overflow-hidden bg-black aspect-video max-w-sm">
-            <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
-            {!scanning && (
-              <div className="absolute inset-0 flex items-center justify-center text-zinc-500 text-xs">Camera đang tắt</div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={scanning ? stopCamera : startCamera}
-            className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
-          >
-            {scanning ? <><CameraOff className="w-3.5 h-3.5" /> Tắt camera</> : <><Camera className="w-3.5 h-3.5" /> Quét bằng camera</>}
-          </button>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <QrCode className="w-5 h-5 text-green-400" />
+          <h2 className="text-sm font-bold text-zinc-200">Mã QR check-in</h2>
         </div>
-      ) : (
-        <p className="text-xs text-zinc-500">Trình duyệt không hỗ trợ quét camera — dùng ô nhập mã bên dưới.</p>
-      )}
-
-      <div className="flex gap-2">
-        <input
-          value={manual}
-          onChange={(e) => setManual(e.target.value)}
-          placeholder="Dán/nhập mã check-in của hội viên"
-          className="flex-1 px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-        />
         <button
           type="button"
-          onClick={() => manual.trim() && recordMutation.mutate(manual.trim())}
-          disabled={recordMutation.isPending || !manual.trim()}
-          className="flex items-center gap-1.5 border border-green-500/30 text-green-400 hover:bg-green-500/10 disabled:opacity-50 px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
+          onClick={() => refetch()}
+          disabled={isRefetching}
+          className="flex items-center gap-1 text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors"
         >
-          {recordMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null} Check-in
+          <RefreshCw className={`w-3 h-3 ${isRefetching ? "animate-spin" : ""}`} /> Tạo lại
         </button>
       </div>
 
-      {result && (
-        <div className={`flex items-center gap-2 text-xs rounded-lg px-3 py-2 border ${result.ok ? "text-green-400 bg-green-500/10 border-green-500/20" : "text-red-400 bg-red-500/10 border-red-500/20"}`}>
-          {result.ok ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-          {result.text}
+      <p className="text-xs text-zinc-500">
+        In mã này và đặt tại quầy lễ tân. Hội viên mở app, quét mã, rồi đưa màn hình xác nhận
+        cho nhân viên kiểm tra.
+      </p>
+
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        <div className="relative">
+          {isLoading || !dataUrl ? (
+            <div className="w-[200px] h-[200px] rounded-xl bg-zinc-800/60 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
+            </div>
+          ) : (
+            <>
+              <img
+                src={dataUrl}
+                alt="Mã QR check-in của phòng gym"
+                className="rounded-xl bg-white p-3"
+                width={200}
+                height={200}
+              />
+              <button
+                type="button"
+                onClick={() => setFullscreen(true)}
+                className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-zinc-900/90 text-zinc-300 hover:text-green-400 border border-zinc-700/60"
+                aria-label="Phóng to mã QR"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="text-[11px] text-zinc-600 uppercase tracking-wide mb-2">
+            Check-in gần đây
+          </div>
+          {checkins.length === 0 ? (
+            <div className="text-xs text-zinc-600">Chưa có lượt check-in nào.</div>
+          ) : (
+            <div className="space-y-1">
+              {checkins.slice(0, 6).map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between text-xs text-zinc-400 bg-zinc-800/40 rounded px-2.5 py-1.5"
+                >
+                  <span>{shortId(c.clientId)}</span>
+                  <span className="text-zinc-600">{timeAgo(c.createdAt)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Blown up so a phone can read it from across the desk. */}
+      {fullscreen && dataUrl && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-6"
+          onClick={() => setFullscreen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setFullscreen(false)}
+            className="absolute top-5 right-5 text-zinc-400 hover:text-zinc-100"
+            aria-label="Đóng"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <div className="text-zinc-100 font-bold mb-4">{qr?.gymName}</div>
+          <img
+            src={dataUrl}
+            alt="Mã QR check-in"
+            className="rounded-2xl bg-white p-6 max-w-[80vw] max-h-[70vh]"
+          />
+          <p className="text-zinc-400 text-sm mt-4">Quét mã để check-in</p>
         </div>
       )}
-
-      <div>
-        <div className="text-[11px] text-zinc-600 uppercase tracking-wide mb-2">Check-in gần đây</div>
-        {checkins.length === 0 ? (
-          <div className="text-xs text-zinc-600">Chưa có lượt check-in nào.</div>
-        ) : (
-          <div className="space-y-1">
-            {checkins.slice(0, 8).map((c) => (
-              <div key={c.id} className="flex items-center justify-between text-xs text-zinc-400 bg-zinc-800/40 rounded px-2.5 py-1.5">
-                <span>{shortId(c.clientId)}</span>
-                <span className="text-zinc-600">{timeAgo(c.createdAt)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

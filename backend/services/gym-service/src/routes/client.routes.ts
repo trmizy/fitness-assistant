@@ -31,8 +31,9 @@ router.post('/me/gym-memberships/:id/refund', ...gate, asyncHandler(membershipCo
 router.get('/me/gym-memberships', ...gate, asyncHandler(membershipController.listForClient));
 router.get('/me/gym-memberships/:id', ...gate, asyncHandler(membershipController.getForClient));
 
-// Phase 4 — member's rotating QR check-in token for an ACTIVE membership.
-router.get('/me/gym-memberships/:id/checkin-token', ...gate, asyncHandler(checkinController.getToken));
+// Phase 4 — member scans the gym's front-desk QR to record their own visit.
+router.post('/me/gym-checkins', ...gate, asyncHandler(checkinController.checkInByScan));
+router.get('/me/gym-checkins', ...gate, asyncHandler(checkinController.listForClient));
 
 // Phase 4 — gym review (only members who paid can write; one review per client per gym).
 router.post('/gyms/:gymId/reviews', ...gate, asyncHandler(reviewController.submit));

@@ -6,35 +6,36 @@ import { checkinService } from '../services/checkin.service';
 const CODE_STATUS: Record<string, number> = {
   INVALID_TOKEN: 400,
   TOKEN_EXPIRED: 400,
-  WRONG_GYM: 400,
-  MEMBERSHIP_NOT_FOUND: 404,
+  NO_MEMBERSHIP: 403,
   NOT_ACTIVE: 409,
   VISIT_LIMIT_REACHED: 409,
   TOO_SOON: 429,
 };
 
 export const checkinController = {
-  async getToken(req: Request, res: Response) {
+  /** Owner: the QR to display at the front desk. */
+  async getGymQr(req: Request, res: Response) {
     try {
-      const clientId = req.user!.userId;
-      const data = await checkinService.issueToken(req.params.id, clientId);
-      res.json({ success: true, data });
+      const ownerId = req.user!.userId;
+      const data = await checkinService.getGymQr(req.params.gymId, ownerId);
+      return res.json({ success: true, data });
     } catch (e: any) {
-      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+      return res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }
   },
 
-  async record(req: Request, res: Response) {
+  /** Member: scanned the gym's QR — record the visit and hand back what the desk verifies. */
+  async checkInByScan(req: Request, res: Response) {
     try {
-      const ownerId = req.user!.userId;
+      const clientId = req.user!.userId;
       const { token } = req.body ?? {};
       if (!token) return res.status(400).json({ success: false, error: { code: 'INVALID_TOKEN' } });
-      const data = await checkinService.recordCheckIn(req.params.gymId, ownerId, token);
+      const data = await checkinService.checkInByGymToken(clientId, token);
       return res.status(201).json({ success: true, data });
     } catch (e: any) {
       const status = CODE_STATUS[e.message];
       if (status) return res.status(status).json({ success: false, error: { code: e.message } });
-      logger.error(e, 'checkin record error');
+      logger.error(e, 'checkin scan error');
       return res.status(e.status || 500).json({ success: false, error: { message: e.message } });
     }
   },
@@ -43,6 +44,15 @@ export const checkinController = {
     try {
       const ownerId = req.user!.userId;
       const list = await checkinService.listForGym(req.params.gymId, ownerId);
+      res.json({ success: true, data: list });
+    } catch (e: any) {
+      res.status(e.status || 500).json({ success: false, error: { message: e.message } });
+    }
+  },
+
+  async listForClient(req: Request, res: Response) {
+    try {
+      const list = await checkinService.listForClient(req.user!.userId);
       res.json({ success: true, data: list });
     } catch (e: any) {
       res.status(e.status || 500).json({ success: false, error: { message: e.message } });
