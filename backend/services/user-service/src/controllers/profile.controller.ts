@@ -7,6 +7,10 @@ import {
 } from "../services/profile.service";
 import { profileRepository, prisma } from "../repositories/profile.repository";
 import { contractRepository } from "../repositories/contract.repository";
+import {
+  ptReviewRepository,
+  attachPtRatings,
+} from "../repositories/ptReview.repository";
 import { adminPTStatusSchema, profileSchema } from "../models/profile.models";
 import type { AuthRequest } from "../middleware/auth.middleware";
 
@@ -108,6 +112,12 @@ export const profileController = {
         }
       }
 
+      // Rating order can't be expressed in findPTs' orderBy (the score is aggregated from
+      // session_reviews, not a column), so for that one mode we page in memory: fetch the
+      // whole filtered set, attach ratings, sort, then slice. Paging inside the DB and
+      // sorting afterwards would only order each page against itself.
+      const sortByRating = sortBy === "ratingDesc" || sortBy === "ratingAsc";
+
       const profiles = await profileRepository.findPTs({
         q: q?.trim() || undefined,
         minPrice,
@@ -115,14 +125,55 @@ export const profileController = {
         sessionMode,
         provinceCode,
         wardCode,
-        sortBy,
-        page,
-        limit,
+        sortBy: sortByRating ? undefined : sortBy,
+        page: sortByRating ? undefined : page,
+        limit: sortByRating ? 1000 : limit,
       });
       await enrichProfilesWithAuthNames(profiles as any[]);
-      res.json({ pts: profiles });
+
+      // One grouped query for the whole list, never one per PT.
+      let rated = await attachPtRatings(profiles as any[]);
+
+      if (sortByRating) {
+        const dir = sortBy === "ratingAsc" ? 1 : -1;
+        // Unrated PTs always sink to the bottom: they are "no rating yet", not "worst".
+        rated.sort((a, b) => {
+          if (a.avgRating === null && b.avgRating === null) return 0;
+          if (a.avgRating === null) return 1;
+          if (b.avgRating === null) return -1;
+          return (a.avgRating - b.avgRating) * dir;
+        });
+        const take = limit ?? 50;
+        const skip = page ? (page - 1) * take : 0;
+        rated = rated.slice(skip, skip + take);
+      }
+
+      res.json({ pts: rated });
     } catch (error) {
       logger.error(error, "List PTs error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  /** One PT's public profile, with their rating and the latest commented reviews. */
+  async getPTDetail(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const profile = await profileRepository.findByUserId(userId);
+      if (!profile || !(profile as any).isPT) {
+        res.status(404).json({ error: "PT not found" });
+        return;
+      }
+
+      await enrichProfilesWithAuthNames([profile] as any[]);
+      const [rating, recentReviews] = await Promise.all([
+        ptReviewRepository.aggregateForPt(userId),
+        ptReviewRepository.recentCommentsForPt(userId, 5),
+      ]);
+
+      res.json({ ...(profile as any), ...rating, recentReviews });
+    } catch (error) {
+      logger.error(error, "Get PT detail error");
       res.status(500).json({ error: "Internal server error" });
     }
   },

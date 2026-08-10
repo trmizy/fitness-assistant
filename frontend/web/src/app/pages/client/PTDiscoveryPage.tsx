@@ -24,6 +24,7 @@ import {
 } from "../../services/api";
 import { toast } from "sonner";
 import { formatVND } from "../../utils/currency";
+import { Stars } from "../../components/gym/Stars";
 
 const isValidPrice = (p: unknown): p is number =>
   typeof p === "number" && p > 0;
@@ -516,6 +517,23 @@ export function PTDiscoveryPage() {
                             </span>
                             <Award className="w-3.5 h-3.5 text-green-400" />
                           </div>
+                          {/* A PT with no reviews shows "Chưa có đánh giá", never 0 stars —
+                              an unrated trainer is unknown, not badly rated. */}
+                          <div className="flex items-center gap-1.5 text-xs mt-1">
+                            {pt.avgRating != null ? (
+                              <>
+                                <Stars value={pt.avgRating} size={13} />
+                                <span className="text-zinc-400 font-medium">
+                                  {pt.avgRating.toFixed(1)}
+                                </span>
+                                <span className="text-zinc-600">
+                                  ({pt.ratingCount})
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-zinc-600">Chưa có đánh giá</span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1 text-xs text-zinc-600 mt-0.5">
                             {locationText && (
                               <>
@@ -722,6 +740,19 @@ export function PTDiscoveryPage() {
                           <span className="flex items-center gap-1 text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full border border-green-500/20">
                             <Award className="w-3 h-3" /> Đã xác minh
                           </span>
+                          {selectedPT.avgRating != null ? (
+                            <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+                              <Stars value={selectedPT.avgRating} size={13} />
+                              {selectedPT.avgRating.toFixed(1)}
+                              <span className="text-zinc-600">
+                                ({selectedPT.ratingCount} đánh giá)
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-xs text-zinc-600">
+                              Chưa có đánh giá
+                            </span>
+                          )}
                         </div>
                         <button
                           type="button"

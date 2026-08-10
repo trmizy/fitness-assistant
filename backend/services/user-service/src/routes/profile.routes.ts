@@ -53,6 +53,12 @@ router.delete("/me", authMiddleware, profileController.deleteProfile as any);
 
 // Listing PT users — used by the chat-service to validate PT-client conversations
 router.get("/pts", authMiddleware, profileController.listPTs as any);
+// Declared after /pts so the literal path is never shadowed by this parameterised one.
+router.get(
+  "/pts/:userId",
+  authMiddleware,
+  profileController.getPTDetail as any,
+);
 router.patch(
   "/admin/users/:userId/pt-status",
   authMiddleware,
