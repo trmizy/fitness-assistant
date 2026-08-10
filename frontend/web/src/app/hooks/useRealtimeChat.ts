@@ -17,7 +17,10 @@ function normalizeMessage(message: RealtimeChatMessage) {
   };
 }
 
-export function useRealtimeChat(activeConversationId?: string | null) {
+export function useRealtimeChat(
+  activeConversationId?: string | null,
+  allConversationIds: string[] = [],
+) {
   const queryClient = useQueryClient();
   const { socket, status } = useSocket();
   const { user } = useApp();
@@ -67,18 +70,18 @@ export function useRealtimeChat(activeConversationId?: string | null) {
   }, [queryClient, socket, userScopeId]);
 
   useEffect(() => {
-    if (!socket || !activeConversationId) return;
+    if (!socket || allConversationIds.length === 0) return;
 
-    socket.emit(REALTIME_EVENTS.chatJoinConversation, {
-      conversationId: activeConversationId,
+    allConversationIds.forEach((conversationId) => {
+      socket.emit(REALTIME_EVENTS.chatJoinConversation, { conversationId });
     });
 
     return () => {
-      socket.emit(REALTIME_EVENTS.chatLeaveConversation, {
-        conversationId: activeConversationId,
+      allConversationIds.forEach((conversationId) => {
+        socket.emit(REALTIME_EVENTS.chatLeaveConversation, { conversationId });
       });
     };
-  }, [activeConversationId, socket]);
+  }, [socket, JSON.stringify(allConversationIds)]);
 
   const sendMessage = useCallback(
     (conversationId: string, content: string) => {

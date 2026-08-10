@@ -1,4 +1,5 @@
 import { io, Socket } from "socket.io-client";
+import { Preferences } from "@capacitor/preferences";
 import { gatewaySocketUrl } from "../config/serverUrl";
 
 // Empty string tells socket.io-client to connect to the CURRENT page origin
@@ -14,15 +15,15 @@ const SOCKET_URL = gatewaySocketUrl();
 
 let socket: Socket | null = null;
 
-function readAccessToken(): string | null {
-  const token = localStorage.getItem("accessToken");
+async function readAccessToken(): Promise<string | null> {
+  const { value: token } = await Preferences.get({ key: "accessToken" });
   return token && token !== "null" && token !== "undefined" ? token : null;
 }
 
 export function getSocket(): Socket {
   if (!socket) {
     socket = io(SOCKET_URL, {
-      auth: (cb) => cb({ token: readAccessToken() }),
+      auth: async (cb) => cb({ token: await readAccessToken() }),
       autoConnect: false,
       reconnection: true,
       reconnectionAttempts: 8,
@@ -38,7 +39,6 @@ export function getSocket(): Socket {
 
 export function connectSocket(): Socket {
   const current = getSocket();
-  current.auth = { token: readAccessToken() };
   if (!current.connected && !current.active) {
     current.connect();
   }

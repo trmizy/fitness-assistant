@@ -27,6 +27,7 @@ export function useWebRTC(
   const remoteStreamRef = useRef<MediaStream>(new MediaStream());
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream] = useState<MediaStream>(() => remoteStreamRef.current);
+  const iceQueueRef = useRef<RTCIceCandidateInit[]>([]);
 
   const onIceCandidateRef = useRef(onIceCandidate);
   onIceCandidateRef.current = onIceCandidate;
@@ -92,6 +93,11 @@ export function useWebRTC(
       const pc = pcRef.current;
       if (!pc) throw new Error("PeerConnection not initialized");
       await pc.setRemoteDescription(new RTCSessionDescription(offerSdp));
+      // Process queued candidates
+      for (const candidate of iceQueueRef.current) {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.error);
+      }
+      iceQueueRef.current = [];
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       return answer;
@@ -104,6 +110,11 @@ export function useWebRTC(
       const pc = pcRef.current;
       if (!pc) return;
       await pc.setRemoteDescription(new RTCSessionDescription(answerSdp));
+      // Process queued candidates
+      for (const candidate of iceQueueRef.current) {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.error);
+      }
+      iceQueueRef.current = [];
     },
     [],
   );
@@ -111,8 +122,11 @@ export function useWebRTC(
   const addIceCandidate = useCallback(
     async (candidate: RTCIceCandidateInit) => {
       const pc = pcRef.current;
-      if (!pc) return;
-      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      if (!pc || !pc.remoteDescription) {
+        iceQueueRef.current.push(candidate);
+        return;
+      }
+      await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.error);
     },
     [],
   );
@@ -143,6 +157,7 @@ export function useWebRTC(
       remoteStreamRef.current.removeTrack(t);
       t.stop();
     });
+    iceQueueRef.current = [];
   }, []);
 
   useEffect(

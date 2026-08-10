@@ -5,6 +5,7 @@ export interface PlanExplanationResponse {
   warnings: string[];
 }
 import axios from "axios";
+import { Preferences } from "@capacitor/preferences";
 import { makeRefreshOnce } from "./refresh-once";
 import { apiBaseUrl } from "../config/serverUrl";
 
@@ -89,10 +90,10 @@ function hasUsableToken(token: string | null): token is string {
   return !!token && token !== "null" && token !== "undefined";
 }
 
-function clearSessionAndRedirectToLogin() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("user");
+async function clearSessionAndRedirectToLogin() {
+  await Preferences.remove({ key: "accessToken" });
+  await Preferences.remove({ key: "refreshToken" });
+  await Preferences.remove({ key: "user" });
   if (
     window.location.pathname !== "/login" &&
     window.location.pathname !== "/register"
@@ -102,7 +103,7 @@ function clearSessionAndRedirectToLogin() {
 }
 
 async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = localStorage.getItem("refreshToken");
+  const { value: refreshToken } = await Preferences.get({ key: "refreshToken" });
   if (!hasUsableToken(refreshToken)) return null;
 
   try {
@@ -110,9 +111,9 @@ async function refreshAccessToken(): Promise<string | null> {
       refreshToken,
     });
     if (hasUsableToken(data?.accessToken)) {
-      localStorage.setItem("accessToken", data.accessToken);
+      await Preferences.set({ key: "accessToken", value: data.accessToken });
       if (hasUsableToken(data?.refreshToken)) {
-        localStorage.setItem("refreshToken", data.refreshToken);
+        await Preferences.set({ key: "refreshToken", value: data.refreshToken });
       }
       return data.accessToken;
     }
@@ -122,8 +123,8 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
+api.interceptors.request.use(async (config) => {
+  const { value: token } = await Preferences.get({ key: "accessToken" });
   if (hasUsableToken(token)) {
     config.headers.Authorization = `Bearer ${token}`;
   } else if (config.headers?.Authorization) {
@@ -178,8 +179,8 @@ export const authService = {
     const { data } = await api.post("/auth/login", { email, password });
     // Store tokens directly from auth service response
     if (data.accessToken) {
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      await Preferences.set({ key: "accessToken", value: data.accessToken });
+      await Preferences.set({ key: "refreshToken", value: data.refreshToken });
       return { success: true, user: data.user };
     }
     return { success: false };
@@ -203,19 +204,19 @@ export const authService = {
   verifyRegistration: async (email: string, otp: string) => {
     const { data } = await api.post("/auth/register/verify", { email, otp });
     if (data.accessToken) {
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      await Preferences.set({ key: "accessToken", value: data.accessToken });
+      await Preferences.set({ key: "refreshToken", value: data.refreshToken });
+      await Preferences.set({ key: "user", value: JSON.stringify(data.user) });
       return { success: true, user: data.user };
     }
     return { success: false };
   },
 
-  logout: () => {
+  logout: async () => {
     // Only clear session keys — keep theme, language and other non-session preferences.
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+    await Preferences.remove({ key: "accessToken" });
+    await Preferences.remove({ key: "refreshToken" });
+    await Preferences.remove({ key: "user" });
     window.location.href = "/login";
   },
 };

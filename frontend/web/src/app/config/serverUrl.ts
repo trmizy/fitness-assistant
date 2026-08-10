@@ -15,9 +15,18 @@ function env(key: string): string {
   return (import.meta.env?.[key] as string | undefined)?.trim() || "";
 }
 
-/** Strips a trailing slash so callers can concatenate paths safely. */
+/** Strips a trailing slash so callers can concatenate paths safely, and ensures a protocol exists. */
 function normalize(url: string): string {
-  return url.trim().replace(/\/+$/, "");
+  let clean = url.trim().replace(/\/+$/, "");
+  if (clean && !clean.startsWith("http://") && !clean.startsWith("https://")) {
+    // Local IPs/hostnames default to http, everything else (tunnels, prod) to https
+    if (/^(localhost|127\.0\.0\.1|10\.0\.2\.2|\d+\.\d+\.\d+\.\d+)/.test(clean)) {
+      clean = "http://" + clean;
+    } else {
+      clean = "https://" + clean;
+    }
+  }
+  return clean;
 }
 
 /** The user-provided server URL, or "" when none is stored. */

@@ -36,7 +36,6 @@ export function ChatPage() {
     searchParams.get("conversationId") ? "chat" : "list",
   );
   const bottomRef = useRef<HTMLDivElement>(null);
-  const realtimeChat = useRealtimeChat(activeConvId);
 
   // REST: initial conversation list
   const {
@@ -48,6 +47,11 @@ export function ChatPage() {
     queryFn: chatService.listConversations,
     refetchInterval: 10000, // light polling as fallback
   });
+
+  const realtimeChat = useRealtimeChat(
+    activeConvId,
+    conversations.map((c: any) => c.id),
+  );
 
   // A failed fetch used to fall back to [] and render the "no chats yet" empty state, so a
   // wrong server address, an expired session or a server error all looked identical to
@@ -241,35 +245,51 @@ export function ChatPage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-950">
               {messages.length > 0 ? (
                 messages.map((msg: any) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.authorId === user?.id ? "justify-end" : "justify-start"}`}
-                  >
-                    {msg.authorId !== user?.id && (
-                      <div className="w-7 h-7 bg-emerald-500/15 border border-emerald-500/20 rounded-full flex items-center justify-center text-xs font-bold text-emerald-400 mr-2 flex-shrink-0 mt-0.5">
-                        {activeConv.otherUser?.firstName?.charAt(0) || "PT"}
-                      </div>
-                    )}
-                    <div className={`max-w-[70%] sm:max-w-xs lg:max-w-sm`}>
-                      <div
-                        className={`px-4 py-2.5 rounded-2xl text-sm ${
-                          msg.authorId === user?.id
-                            ? "bg-green-500 text-black rounded-br-sm font-medium"
-                            : "bg-zinc-900 text-zinc-300 border border-zinc-800/60 rounded-bl-sm"
-                        }`}
-                      >
-                        {msg.content}
-                      </div>
-                      <div
-                        className={`text-xs mt-1 text-zinc-600 ${msg.authorId === user?.id ? "text-right" : ""}`}
-                      >
-                        {new Date(msg.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                  msg.authorId === "system" ? (
+                    <div key={msg.id} className="flex justify-center w-full my-2">
+                      <div className="bg-zinc-800/40 border border-zinc-700/50 rounded-full px-4 py-1.5 flex items-center gap-2 max-w-[90%]">
+                        <span className="text-xs text-zinc-400 text-center font-medium">
+                          {msg.content}
+                        </span>
+                        <span className="text-[10px] text-zinc-500">
+                          {new Date(msg.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.authorId === user?.id ? "justify-end" : "justify-start"}`}
+                    >
+                      {msg.authorId !== user?.id && (
+                        <div className="w-7 h-7 bg-emerald-500/15 border border-emerald-500/20 rounded-full flex items-center justify-center text-xs font-bold text-emerald-400 mr-2 flex-shrink-0 mt-0.5">
+                          {activeConv.otherUser?.firstName?.charAt(0) || "PT"}
+                        </div>
+                      )}
+                      <div className={`max-w-[70%] sm:max-w-xs lg:max-w-sm`}>
+                        <div
+                          className={`px-4 py-2.5 rounded-2xl text-sm ${
+                            msg.authorId === user?.id
+                              ? "bg-green-500 text-black rounded-br-sm font-medium"
+                              : "bg-zinc-900 text-zinc-300 border border-zinc-800/60 rounded-bl-sm"
+                          }`}
+                        >
+                          {msg.content}
+                        </div>
+                        <div
+                          className={`text-xs mt-1 text-zinc-600 ${msg.authorId === user?.id ? "text-right" : ""}`}
+                        >
+                          {new Date(msg.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-zinc-600">

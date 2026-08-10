@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Preferences } from "@capacitor/preferences";
 import { User } from "../types";
 import { authService } from "../services/api";
 import { clearPendingAiState } from "../stores/pendingAiTasks";
@@ -38,19 +39,33 @@ function hasUsableToken(token: string | null): token is string {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
-  const [isAuthenticated, setIsAuth] = useState(() =>
-    hasUsableToken(localStorage.getItem("accessToken")),
-  );
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isAuthenticated, setIsAuth] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("client");
-  const [user, setUser] = useState<User | null>(() => {
-    try {
-      const stored = localStorage.getItem("user");
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    async function loadAuth() {
+      try {
+        const [tokenRes, userRes] = await Promise.all([
+          Preferences.get({ key: "accessToken" }),
+          Preferences.get({ key: "user" })
+        ]);
+        if (hasUsableToken(tokenRes.value)) {
+          setIsAuth(true);
+          if (userRes.value) {
+            setUser(JSON.parse(userRes.value));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load auth state", err);
+      } finally {
+        setIsInitializing(false);
+      }
     }
-  });
+    loadAuth();
+  }, []);
 
   const role: UserRole =
     user?.role === "ADMIN"
@@ -88,7 +103,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const res = await authService.login(email, password);
       if (res.success && res.user) {
         queryClient.clear();
-        localStorage.setItem("user", JSON.stringify(res.user));
+        await Preferences.set({ key: "user", value: JSON.stringify(res.user) });
         setUser(res.user);
         setIsAuth(true);
         return true;
@@ -100,29 +115,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     if (user?.id) {
       clearPendingAiState(user.id);
     }
     queryClient.clear();
-    authService.logout(); // Clears localStorage and redirects to /login in the old code
-    // But since we want to handle it here too:
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+    await authService.logout(); // Clears Preferences and redirects to /login
     setIsAuth(false);
     setUser(null);
     setActiveView("client");
   };
 
-  const updateUser = useCallback((updates: Partial<User>) => {
-    setUser((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, ...updates };
-      localStorage.setItem("user", JSON.stringify(next));
-      return next;
-    });
-  }, []);
+  const updateUser = useCallback(async (updates: Partial<User>) => {
+    if (!user) return;
+    const next = { ...user, ...updates };
+    setUser(next);
+    await Preferences.set({ key: "user", value: JSON.stringify(next) });
+  }, [user]);
+
+  if (isInitializing) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black">
+        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <AppContext.Provider
