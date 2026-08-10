@@ -5,8 +5,12 @@ export interface JoinSessionState {
   reason?: string;
 }
 
-const JOIN_BEFORE_MS = 10 * 60 * 1000; // button appears 10 min before start
-const JOIN_AFTER_MS = 15 * 60 * 1000; // button disappears 15 min after end
+// Both sides have to be in the room at the same time, and neither clock is exact: a client
+// opening the app early or a trainer running over should not find the button dead. A wide
+// grace band on each side costs nothing — the server still refuses to mint a join token for
+// anything that isn't a CONFIRMED, ONLINE session the caller belongs to.
+const JOIN_BEFORE_MS = 30 * 60 * 1000; // button becomes usable 30 min before start
+const JOIN_AFTER_MS = 30 * 60 * 1000; // stays usable until 30 min after the end
 
 export function getJoinSessionState(
   session:
