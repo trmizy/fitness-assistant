@@ -104,6 +104,82 @@ export const bookingController = {
     }
   },
 
+  // Client confirms the session the PT reported (this is what consumes quota)
+  async clientConfirmSession(req: any, res: Response) {
+    try {
+      const clientUserId = req.headers["x-user-id"] as string;
+      const session = await bookingService.clientConfirmSession(
+        req.params.id,
+        clientUserId,
+      );
+      res.json(session);
+    } catch (error: any) {
+      logger.error(error, "Client confirm session error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to confirm session" });
+    }
+  },
+
+  // Client disputes what the PT reported — quota stays untouched
+  async disputeSession(req: any, res: Response) {
+    try {
+      const clientUserId = req.headers["x-user-id"] as string;
+      const { reason } = req.body ?? {};
+      const session = await bookingService.disputeSession(
+        req.params.id,
+        clientUserId,
+        reason,
+      );
+      res.json(session);
+    } catch (error: any) {
+      logger.error(error, "Dispute session error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to dispute session" });
+    }
+  },
+
+  // Sessions this client still has to confirm or dispute
+  async listPendingConfirmation(req: any, res: Response) {
+    try {
+      const clientUserId = req.headers["x-user-id"] as string;
+      res.json(await bookingService.listPendingConfirmation(clientUserId));
+    } catch (error: any) {
+      logger.error(error, "List pending-confirmation sessions error");
+      res.status(error.status || 500).json({ error: error.message });
+    }
+  },
+
+  // ── Admin ──────────────────────────────────────────────────────────
+  async listDisputed(_req: any, res: Response) {
+    try {
+      res.json(await bookingService.listDisputed());
+    } catch (error: any) {
+      logger.error(error, "List disputed sessions error");
+      res.status(error.status || 500).json({ error: error.message });
+    }
+  },
+
+  async resolveDispute(req: any, res: Response) {
+    try {
+      const adminId = req.headers["x-user-id"] as string;
+      const { resolution, note } = req.body ?? {};
+      const session = await bookingService.resolveDispute(
+        req.params.id,
+        adminId,
+        resolution,
+        note,
+      );
+      res.json(session);
+    } catch (error: any) {
+      logger.error(error, "Resolve dispute error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to resolve dispute" });
+    }
+  },
+
   // Cancel session (either party)
   async cancelSession(req: any, res: Response) {
     try {

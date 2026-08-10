@@ -15,6 +15,7 @@ import dropboxSignWebhookRouter from "./routes/dropboxSignWebhook.routes";
 import internalRoutes from "./routes/internal.routes";
 import locationRoutes from "./routes/location.routes";
 import trainingLocationRoutes from "./routes/training_location.routes";
+import adminRoutes from "./routes/admin.routes";
 
 const app = express();
 
@@ -74,6 +75,9 @@ app.use("/contracts", contractRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/sessions", sessionRoutes);
 app.use("/availability", availabilityRoutes);
+
+// Admin-only operations owned by this service (disputed sessions, …)
+app.use("/admin", adminRoutes);
 
 // Public location data (provinces/wards) — no auth required
 app.use("/locations", locationRoutes);

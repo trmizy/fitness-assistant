@@ -45,6 +45,45 @@ export const sessionRepository = {
       data: { status, ...extra },
     }),
 
+  /**
+   * Compare-and-swap on `sessionDeducted`: flips false → true and reports whether THIS
+   * call was the one that flipped it. The filter is what makes quota deduction safe under
+   * concurrency — a second confirm (or the auto-confirm sweep racing a manual confirm)
+   * matches zero rows and must not touch the contract counter.
+   */
+  claimDeduction: async (id: string): Promise<boolean> => {
+    const { count } = await prisma.session.updateMany({
+      where: { id, sessionDeducted: false },
+      data: { sessionDeducted: true },
+    });
+    return count === 1;
+  },
+
+  /** Sessions whose client-confirmation window has run out (drives the auto-confirm job). */
+  findExpiredPendingConfirmation: (now: Date, limit = 100) =>
+    prisma.session.findMany({
+      where: {
+        status: SessionStatus.PENDING_CLIENT_CONFIRMATION,
+        clientConfirmDeadline: { lte: now },
+      },
+      orderBy: { clientConfirmDeadline: "asc" },
+      take: limit,
+    }),
+
+  findByStatusForUser: (userId: string, statuses: SessionStatus[]) =>
+    prisma.session.findMany({
+      where: { clientUserId: userId, status: { in: statuses } },
+      orderBy: { scheduledStartAt: "desc" },
+      include: { contract: true },
+    }),
+
+  findDisputed: () =>
+    prisma.session.findMany({
+      where: { status: SessionStatus.DISPUTED },
+      orderBy: { disputedAt: "asc" },
+      include: { contract: true },
+    }),
+
   /** Count non-terminal sessions for a contract (to enforce session limit) */
   countActiveByContract: (contractId: string) =>
     prisma.session.count({

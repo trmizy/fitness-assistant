@@ -286,6 +286,13 @@ exports.Prisma.SessionScalarFieldEnum = {
   cancellationReason: 'cancellationReason',
   sessionDeducted: 'sessionDeducted',
   completedAt: 'completedAt',
+  clientConfirmDeadline: 'clientConfirmDeadline',
+  autoConfirmed: 'autoConfirmed',
+  disputeReason: 'disputeReason',
+  disputedAt: 'disputedAt',
+  resolvedBy: 'resolvedBy',
+  resolutionNote: 'resolutionNote',
+  resolvedAt: 'resolvedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -502,6 +509,8 @@ exports.ContractSource = exports.$Enums.ContractSource = {
 exports.SessionStatus = exports.$Enums.SessionStatus = {
   REQUESTED: 'REQUESTED',
   CONFIRMED: 'CONFIRMED',
+  PENDING_CLIENT_CONFIRMATION: 'PENDING_CLIENT_CONFIRMATION',
+  DISPUTED: 'DISPUTED',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
   NO_SHOW: 'NO_SHOW'

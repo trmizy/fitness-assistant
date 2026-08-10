@@ -4,11 +4,15 @@ dotenv.config();
 import app from "./app";
 import { prisma } from "./repositories/profile.repository";
 import { logger } from "@gym-coach/shared";
+import { startSessionAutoConfirmJob } from "./services/session-autoconfirm.service";
 
 const PORT = process.env.PORT || 3004;
 
 app.listen(PORT, () => {
   logger.info(`👤 User Service running on port ${PORT}`);
+  // Settles sessions the client never responded to, so a PT is not left uncredited
+  // forever by silence (see session-autoconfirm.service.ts).
+  startSessionAutoConfirmJob();
 });
 
 process.on("SIGTERM", async () => {

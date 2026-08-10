@@ -199,6 +199,8 @@ export type ContractSource = (typeof ContractSource)[keyof typeof ContractSource
 export const SessionStatus: {
   REQUESTED: 'REQUESTED',
   CONFIRMED: 'CONFIRMED',
+  PENDING_CLIENT_CONFIRMATION: 'PENDING_CLIENT_CONFIRMATION',
+  DISPUTED: 'DISPUTED',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
   NO_SHOW: 'NO_SHOW'
@@ -8607,6 +8609,13 @@ export namespace Prisma {
     cancellationReason: string | null
     sessionDeducted: boolean | null
     completedAt: Date | null
+    clientConfirmDeadline: Date | null
+    autoConfirmed: boolean | null
+    disputeReason: string | null
+    disputedAt: Date | null
+    resolvedBy: string | null
+    resolutionNote: string | null
+    resolvedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -8627,6 +8636,13 @@ export namespace Prisma {
     cancellationReason: string | null
     sessionDeducted: boolean | null
     completedAt: Date | null
+    clientConfirmDeadline: Date | null
+    autoConfirmed: boolean | null
+    disputeReason: string | null
+    disputedAt: Date | null
+    resolvedBy: string | null
+    resolutionNote: string | null
+    resolvedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -8647,6 +8663,13 @@ export namespace Prisma {
     cancellationReason: number
     sessionDeducted: number
     completedAt: number
+    clientConfirmDeadline: number
+    autoConfirmed: number
+    disputeReason: number
+    disputedAt: number
+    resolvedBy: number
+    resolutionNote: number
+    resolvedAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -8669,6 +8692,13 @@ export namespace Prisma {
     cancellationReason?: true
     sessionDeducted?: true
     completedAt?: true
+    clientConfirmDeadline?: true
+    autoConfirmed?: true
+    disputeReason?: true
+    disputedAt?: true
+    resolvedBy?: true
+    resolutionNote?: true
+    resolvedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -8689,6 +8719,13 @@ export namespace Prisma {
     cancellationReason?: true
     sessionDeducted?: true
     completedAt?: true
+    clientConfirmDeadline?: true
+    autoConfirmed?: true
+    disputeReason?: true
+    disputedAt?: true
+    resolvedBy?: true
+    resolutionNote?: true
+    resolvedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -8709,6 +8746,13 @@ export namespace Prisma {
     cancellationReason?: true
     sessionDeducted?: true
     completedAt?: true
+    clientConfirmDeadline?: true
+    autoConfirmed?: true
+    disputeReason?: true
+    disputedAt?: true
+    resolvedBy?: true
+    resolutionNote?: true
+    resolvedAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -8802,6 +8846,13 @@ export namespace Prisma {
     cancellationReason: string | null
     sessionDeducted: boolean
     completedAt: Date | null
+    clientConfirmDeadline: Date | null
+    autoConfirmed: boolean
+    disputeReason: string | null
+    disputedAt: Date | null
+    resolvedBy: string | null
+    resolutionNote: string | null
+    resolvedAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: SessionCountAggregateOutputType | null
@@ -8839,6 +8890,13 @@ export namespace Prisma {
     cancellationReason?: boolean
     sessionDeducted?: boolean
     completedAt?: boolean
+    clientConfirmDeadline?: boolean
+    autoConfirmed?: boolean
+    disputeReason?: boolean
+    disputedAt?: boolean
+    resolvedBy?: boolean
+    resolutionNote?: boolean
+    resolvedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     contract?: boolean | ContractDefaultArgs<ExtArgs>
@@ -8861,6 +8919,13 @@ export namespace Prisma {
     cancellationReason?: boolean
     sessionDeducted?: boolean
     completedAt?: boolean
+    clientConfirmDeadline?: boolean
+    autoConfirmed?: boolean
+    disputeReason?: boolean
+    disputedAt?: boolean
+    resolvedBy?: boolean
+    resolutionNote?: boolean
+    resolvedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     contract?: boolean | ContractDefaultArgs<ExtArgs>
@@ -8882,6 +8947,13 @@ export namespace Prisma {
     cancellationReason?: boolean
     sessionDeducted?: boolean
     completedAt?: boolean
+    clientConfirmDeadline?: boolean
+    autoConfirmed?: boolean
+    disputeReason?: boolean
+    disputedAt?: boolean
+    resolvedBy?: boolean
+    resolutionNote?: boolean
+    resolvedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -8916,6 +8988,13 @@ export namespace Prisma {
       cancellationReason: string | null
       sessionDeducted: boolean
       completedAt: Date | null
+      clientConfirmDeadline: Date | null
+      autoConfirmed: boolean
+      disputeReason: string | null
+      disputedAt: Date | null
+      resolvedBy: string | null
+      resolutionNote: string | null
+      resolvedAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["session"]>
@@ -9328,6 +9407,13 @@ export namespace Prisma {
     readonly cancellationReason: FieldRef<"Session", 'String'>
     readonly sessionDeducted: FieldRef<"Session", 'Boolean'>
     readonly completedAt: FieldRef<"Session", 'DateTime'>
+    readonly clientConfirmDeadline: FieldRef<"Session", 'DateTime'>
+    readonly autoConfirmed: FieldRef<"Session", 'Boolean'>
+    readonly disputeReason: FieldRef<"Session", 'String'>
+    readonly disputedAt: FieldRef<"Session", 'DateTime'>
+    readonly resolvedBy: FieldRef<"Session", 'String'>
+    readonly resolutionNote: FieldRef<"Session", 'String'>
+    readonly resolvedAt: FieldRef<"Session", 'DateTime'>
     readonly createdAt: FieldRef<"Session", 'DateTime'>
     readonly updatedAt: FieldRef<"Session", 'DateTime'>
   }
@@ -18002,6 +18088,13 @@ export namespace Prisma {
     cancellationReason: 'cancellationReason',
     sessionDeducted: 'sessionDeducted',
     completedAt: 'completedAt',
+    clientConfirmDeadline: 'clientConfirmDeadline',
+    autoConfirmed: 'autoConfirmed',
+    disputeReason: 'disputeReason',
+    disputedAt: 'disputedAt',
+    resolvedBy: 'resolvedBy',
+    resolutionNote: 'resolutionNote',
+    resolvedAt: 'resolvedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -19323,6 +19416,13 @@ export namespace Prisma {
     cancellationReason?: StringNullableFilter<"Session"> | string | null
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
+    autoConfirmed?: BoolFilter<"Session"> | boolean
+    disputeReason?: StringNullableFilter<"Session"> | string | null
+    disputedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"Session"> | string | null
+    resolutionNote?: StringNullableFilter<"Session"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     createdAt?: DateTimeFilter<"Session"> | Date | string
     updatedAt?: DateTimeFilter<"Session"> | Date | string
     contract?: XOR<ContractRelationFilter, ContractWhereInput>
@@ -19345,6 +19445,13 @@ export namespace Prisma {
     cancellationReason?: SortOrderInput | SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrderInput | SortOrder
+    clientConfirmDeadline?: SortOrderInput | SortOrder
+    autoConfirmed?: SortOrder
+    disputeReason?: SortOrderInput | SortOrder
+    disputedAt?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    resolutionNote?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     contract?: ContractOrderByWithRelationInput
@@ -19370,6 +19477,13 @@ export namespace Prisma {
     cancellationReason?: StringNullableFilter<"Session"> | string | null
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
+    autoConfirmed?: BoolFilter<"Session"> | boolean
+    disputeReason?: StringNullableFilter<"Session"> | string | null
+    disputedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"Session"> | string | null
+    resolutionNote?: StringNullableFilter<"Session"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     createdAt?: DateTimeFilter<"Session"> | Date | string
     updatedAt?: DateTimeFilter<"Session"> | Date | string
     contract?: XOR<ContractRelationFilter, ContractWhereInput>
@@ -19392,6 +19506,13 @@ export namespace Prisma {
     cancellationReason?: SortOrderInput | SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrderInput | SortOrder
+    clientConfirmDeadline?: SortOrderInput | SortOrder
+    autoConfirmed?: SortOrder
+    disputeReason?: SortOrderInput | SortOrder
+    disputedAt?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    resolutionNote?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: SessionCountOrderByAggregateInput
@@ -19418,6 +19539,13 @@ export namespace Prisma {
     cancellationReason?: StringNullableWithAggregatesFilter<"Session"> | string | null
     sessionDeducted?: BoolWithAggregatesFilter<"Session"> | boolean
     completedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    clientConfirmDeadline?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    autoConfirmed?: BoolWithAggregatesFilter<"Session"> | boolean
+    disputeReason?: StringNullableWithAggregatesFilter<"Session"> | string | null
+    disputedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    resolvedBy?: StringNullableWithAggregatesFilter<"Session"> | string | null
+    resolutionNote?: StringNullableWithAggregatesFilter<"Session"> | string | null
+    resolvedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
   }
@@ -21173,6 +21301,13 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     contract: ContractCreateNestedOneWithoutSessionsInput
@@ -21195,6 +21330,13 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     review?: SessionReviewUncheckedCreateNestedOneWithoutSessionInput
@@ -21215,6 +21357,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contract?: ContractUpdateOneRequiredWithoutSessionsNestedInput
@@ -21237,6 +21386,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     review?: SessionReviewUncheckedUpdateOneWithoutSessionNestedInput
@@ -21258,6 +21414,13 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -21277,6 +21440,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -21297,6 +21467,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -23124,6 +23301,13 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
+    clientConfirmDeadline?: SortOrder
+    autoConfirmed?: SortOrder
+    disputeReason?: SortOrder
+    disputedAt?: SortOrder
+    resolvedBy?: SortOrder
+    resolutionNote?: SortOrder
+    resolvedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -23144,6 +23328,13 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
+    clientConfirmDeadline?: SortOrder
+    autoConfirmed?: SortOrder
+    disputeReason?: SortOrder
+    disputedAt?: SortOrder
+    resolvedBy?: SortOrder
+    resolutionNote?: SortOrder
+    resolvedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -23164,6 +23355,13 @@ export namespace Prisma {
     cancellationReason?: SortOrder
     sessionDeducted?: SortOrder
     completedAt?: SortOrder
+    clientConfirmDeadline?: SortOrder
+    autoConfirmed?: SortOrder
+    disputeReason?: SortOrder
+    disputedAt?: SortOrder
+    resolvedBy?: SortOrder
+    resolutionNote?: SortOrder
+    resolvedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -26023,6 +26221,13 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     review?: SessionReviewCreateNestedOneWithoutSessionInput
@@ -26043,6 +26248,13 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     review?: SessionReviewUncheckedCreateNestedOneWithoutSessionInput
@@ -26121,6 +26333,13 @@ export namespace Prisma {
     cancellationReason?: StringNullableFilter<"Session"> | string | null
     sessionDeducted?: BoolFilter<"Session"> | boolean
     completedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    clientConfirmDeadline?: DateTimeNullableFilter<"Session"> | Date | string | null
+    autoConfirmed?: BoolFilter<"Session"> | boolean
+    disputeReason?: StringNullableFilter<"Session"> | string | null
+    disputedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"Session"> | string | null
+    resolutionNote?: StringNullableFilter<"Session"> | string | null
+    resolvedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     createdAt?: DateTimeFilter<"Session"> | Date | string
     updatedAt?: DateTimeFilter<"Session"> | Date | string
   }
@@ -26417,6 +26636,13 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     contract: ContractCreateNestedOneWithoutSessionsInput
@@ -26438,6 +26664,13 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -26568,6 +26801,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contract?: ContractUpdateOneRequiredWithoutSessionsNestedInput
@@ -26589,6 +26829,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -27334,6 +27581,13 @@ export namespace Prisma {
     cancellationReason?: string | null
     sessionDeducted?: boolean
     completedAt?: Date | string | null
+    clientConfirmDeadline?: Date | string | null
+    autoConfirmed?: boolean
+    disputeReason?: string | null
+    disputedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    resolvedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -27362,6 +27616,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     review?: SessionReviewUpdateOneWithoutSessionNestedInput
@@ -27382,6 +27643,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     review?: SessionReviewUncheckedUpdateOneWithoutSessionNestedInput
@@ -27402,6 +27670,13 @@ export namespace Prisma {
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
     sessionDeducted?: BoolFieldUpdateOperationsInput | boolean
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    clientConfirmDeadline?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoConfirmed?: BoolFieldUpdateOperationsInput | boolean
+    disputeReason?: NullableStringFieldUpdateOperationsInput | string | null
+    disputedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

@@ -245,7 +245,13 @@ enum PackageType {
 enum SessionStatus {
   REQUESTED // Client booked, awaiting PT confirmation
   CONFIRMED // PT confirmed
-  COMPLETED // PT marked complete
+  // PT says the session happened (or that the client didn't show). The client's quota is
+  // NOT touched yet: the PT alone used to be able to both declare the session delivered
+  // and charge the client for it, with no way to object. The client now confirms, disputes,
+  // or lets it auto-confirm after SESSION_AUTO_CONFIRM_DAYS.
+  PENDING_CLIENT_CONFIRMATION
+  DISPUTED // Client objected; quota stays untouched until an admin rules on it
+  COMPLETED // Session delivered and settled — the only state that consumes quota
   CANCELLED // Either party cancelled
   NO_SHOW // Client or PT did not attend
 }
@@ -372,8 +378,20 @@ model Session {
   ptNotes            String?   @map("pt_notes")
   cancelledBy        String?   @map("cancelled_by")
   cancellationReason String?   @map("cancellation_reason")
+  // The single source of truth for "this session has already consumed one of the
+  // contract's sessions". Every quota deduction flips it inside a guarded update, so a
+  // double confirm / retry can never charge the client twice.
   sessionDeducted    Boolean   @default(false) @map("session_deducted")
   completedAt        DateTime? @map("completed_at")
+
+  // ── Client confirmation (PENDING_CLIENT_CONFIRMATION → COMPLETED | DISPUTED) ──
+  clientConfirmDeadline DateTime? @map("client_confirm_deadline")
+  autoConfirmed         Boolean   @default(false) @map("auto_confirmed")
+  disputeReason         String?   @map("dispute_reason")
+  disputedAt            DateTime? @map("disputed_at")
+  resolvedBy            String?   @map("resolved_by")
+  resolutionNote        String?   @map("resolution_note")
+  resolvedAt            DateTime? @map("resolved_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -385,6 +403,8 @@ model Session {
   @@index([clientUserId])
   @@index([ptUserId])
   @@index([scheduledStartAt])
+  // Drives the auto-confirm sweep, which repeatedly asks for exactly this pair.
+  @@index([status, clientConfirmDeadline])
   @@map("sessions")
 }
 

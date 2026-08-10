@@ -28,6 +28,47 @@ function err(message: string, status: number) {
 
 const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+/** How long the client has to confirm or dispute before the session auto-confirms. */
+export const AUTO_CONFIRM_DAYS = Number(
+  process.env.SESSION_AUTO_CONFIRM_DAYS ?? "3",
+);
+const AUTO_CONFIRM_MS = AUTO_CONFIRM_DAYS * 24 * 60 * 60 * 1000;
+
+/** Collaborators of {@link deductQuotaOnce}, injectable so the once-only rule is testable. */
+export interface QuotaDeps {
+  claimDeduction: (sessionId: string) => Promise<boolean>;
+  incrementSession: (contractId: string) => Promise<unknown>;
+  checkAndCompleteContract: (contractId: string) => Promise<unknown>;
+}
+
+const defaultQuotaDeps: QuotaDeps = {
+  claimDeduction: (id) => sessionRepository.claimDeduction(id),
+  incrementSession: (id) => contractRepository.incrementSession(id),
+  checkAndCompleteContract: (id) => contractService.checkAndCompleteContract(id),
+};
+
+/**
+ * Consumes exactly one session of the contract's quota, once and only once.
+ *
+ * `claimDeduction` is a guarded update on `sessionDeducted` (false → true) that reports
+ * whether it actually claimed the row; the contract counter is incremented ONLY then. Two
+ * concurrent confirms, a retry, or a manual confirm racing the auto-confirm sweep therefore
+ * still cost the client a single session.
+ *
+ * Returns true when this call is the one that consumed the quota.
+ */
+export async function deductQuotaOnce(
+  sessionId: string,
+  contractId: string,
+  deps: QuotaDeps = defaultQuotaDeps,
+): Promise<boolean> {
+  const claimed = await deps.claimDeduction(sessionId);
+  if (!claimed) return false;
+  await deps.incrementSession(contractId);
+  await deps.checkAndCompleteContract(contractId);
+  return true;
+}
+
 export const bookingService = {
   // ── Client books a session ──────────────────────────────────────
   async bookSession(
@@ -208,7 +249,12 @@ export const bookingService = {
     return updated;
   },
 
-  // ── PT completes a session ──────────────────────────────────────
+  // ── PT reports the session as delivered ─────────────────────────
+  /**
+   * Moves the session to PENDING_CLIENT_CONFIRMATION instead of COMPLETED. The PT's word
+   * alone no longer consumes the client's quota — the client confirms, disputes, or the
+   * auto-confirm job settles it after AUTO_CONFIRM_DAYS.
+   */
   async completeSession(sessionId: string, ptUserId: string, ptNotes?: string) {
     const session = await sessionRepository.findById(sessionId);
     if (!session) throw err("Session not found", 404);
@@ -217,27 +263,21 @@ export const bookingService = {
       throw err(`Cannot complete session in ${session.status} status`, 400);
     }
 
+    const deadline = new Date(Date.now() + AUTO_CONFIRM_MS);
     const updated = await sessionRepository.updateStatus(
       sessionId,
-      SessionStatus.COMPLETED,
+      SessionStatus.PENDING_CLIENT_CONFIRMATION,
       {
-        completedAt: new Date(),
         ptNotes: ptNotes || undefined,
-        sessionDeducted: true,
+        clientConfirmDeadline: deadline,
       },
     );
-
-    // Increment usedSessions on contract
-    await contractRepository.incrementSession(session.contractId);
-
-    // Check if contract should auto-complete
-    await contractService.checkAndCompleteContract(session.contractId);
 
     await notificationService
       .create({
         userId: session.clientUserId,
-        text: "Session marked as completed",
-        eventType: "SESSION_COMPLETED",
+        text: `PT đã báo hoàn thành buổi tập. Vui lòng xác nhận trước ${deadline.toLocaleDateString("vi-VN")} — quá hạn hệ thống sẽ tự xác nhận.`,
+        eventType: "SESSION_PENDING_CONFIRMATION",
         entityType: "SESSION",
         entityId: sessionId,
         link: "/client/booking",
@@ -245,6 +285,138 @@ export const bookingService = {
       .catch(() => {});
 
     return updated;
+  },
+
+  // ── Client confirms the session actually happened ───────────────
+  async clientConfirmSession(sessionId: string, clientUserId: string) {
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+    if (session.clientUserId !== clientUserId) throw err("Not authorized", 403);
+    if (session.status !== SessionStatus.PENDING_CLIENT_CONFIRMATION) {
+      throw err(`Cannot confirm a session in ${session.status} status`, 400);
+    }
+
+    const deducted = await deductQuotaOnce(sessionId, session.contractId);
+    const updated = await sessionRepository.updateStatus(
+      sessionId,
+      SessionStatus.COMPLETED,
+      { completedAt: new Date() },
+    );
+
+    await notificationService
+      .create({
+        userId: session.ptUserId,
+        text: "Khách hàng đã xác nhận buổi tập",
+        eventType: "SESSION_COMPLETED",
+        entityType: "SESSION",
+        entityId: sessionId,
+        link: "/pt/schedule",
+      })
+      .catch(() => {});
+
+    return { ...updated, quotaDeducted: deducted };
+  },
+
+  // ── Client disputes what the PT reported ────────────────────────
+  async disputeSession(
+    sessionId: string,
+    clientUserId: string,
+    reason: string,
+  ) {
+    if (!reason?.trim()) throw err("Dispute reason is required", 400);
+
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+    if (session.clientUserId !== clientUserId) throw err("Not authorized", 403);
+    if (session.status !== SessionStatus.PENDING_CLIENT_CONFIRMATION) {
+      throw err(`Cannot dispute a session in ${session.status} status`, 400);
+    }
+
+    // Quota is deliberately left untouched — an admin decides in resolveDispute.
+    const updated = await sessionRepository.updateStatus(
+      sessionId,
+      SessionStatus.DISPUTED,
+      { disputeReason: reason.trim(), disputedAt: new Date() },
+    );
+
+    await notificationService
+      .create({
+        userId: session.ptUserId,
+        text: "Khách hàng đã khiếu nại buổi tập — chờ quản trị viên phân xử",
+        eventType: "SESSION_DISPUTED",
+        entityType: "SESSION",
+        entityId: sessionId,
+        link: "/pt/schedule",
+      })
+      .catch(() => {});
+
+    return updated;
+  },
+
+  // ── Admin rules on a disputed session ───────────────────────────
+  async resolveDispute(
+    sessionId: string,
+    adminId: string,
+    resolution: "COMPLETED" | "CANCELLED",
+    note: string,
+  ) {
+    if (!note?.trim()) throw err("Resolution note is required", 400);
+    if (resolution !== "COMPLETED" && resolution !== "CANCELLED") {
+      throw err("Resolution must be COMPLETED or CANCELLED", 400);
+    }
+
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+    if (session.status !== SessionStatus.DISPUTED) {
+      throw err(`Session is not disputed (status ${session.status})`, 400);
+    }
+
+    // Only a COMPLETED ruling costs the client a session.
+    const deducted =
+      resolution === "COMPLETED"
+        ? await deductQuotaOnce(sessionId, session.contractId)
+        : false;
+
+    const updated = await sessionRepository.updateStatus(
+      sessionId,
+      resolution === "COMPLETED"
+        ? SessionStatus.COMPLETED
+        : SessionStatus.CANCELLED,
+      {
+        resolvedBy: adminId,
+        resolutionNote: note.trim(),
+        resolvedAt: new Date(),
+        ...(resolution === "COMPLETED"
+          ? { completedAt: new Date() }
+          : { cancelledBy: "ADMIN", cancellationReason: note.trim() }),
+      },
+    );
+
+    for (const userId of [session.clientUserId, session.ptUserId]) {
+      await notificationService
+        .create({
+          userId,
+          text: `Quản trị viên đã phân xử buổi tập: ${resolution === "COMPLETED" ? "tính là đã hoàn thành" : "huỷ, không trừ buổi"}`,
+          eventType: "SESSION_DISPUTE_RESOLVED",
+          entityType: "SESSION",
+          entityId: sessionId,
+          link: userId === session.clientUserId ? "/client/booking" : "/pt/schedule",
+        })
+        .catch(() => {});
+    }
+
+    return { ...updated, quotaDeducted: deducted };
+  },
+
+  /** Sessions waiting on this client's confirmation (what the client must act on). */
+  async listPendingConfirmation(clientUserId: string) {
+    return sessionRepository.findByStatusForUser(clientUserId, [
+      SessionStatus.PENDING_CLIENT_CONFIRMATION,
+    ]);
+  },
+
+  async listDisputed() {
+    return sessionRepository.findDisputed();
   },
 
   // ── Cancel session (either party) ──────────────────────────────
@@ -330,43 +502,48 @@ export const bookingService = {
 
     const isClientNoShow = noShowBy === "CLIENT";
 
-    const updated = await sessionRepository.updateStatus(
-      sessionId,
-      SessionStatus.NO_SHOW,
-      {
-        sessionDeducted: isClientNoShow,
-        ptNotes: isClientNoShow ? "Client no-show" : "PT no-show",
-      },
-    );
-
-    if (isClientNoShow) {
-      // Client no-show: deduct session
-      await contractRepository.incrementSession(session.contractId);
-      await contractService.checkAndCompleteContract(session.contractId);
+    // A PT admitting their own absence is not a claim against anyone: settle it straight
+    // away as NO_SHOW with no quota cost. Accusing the CLIENT of not showing up DOES cost
+    // the client a session, so it goes through the same confirmation window as a completed
+    // session rather than being charged on the PT's say-so.
+    if (!isClientNoShow) {
+      const updated = await sessionRepository.updateStatus(
+        sessionId,
+        SessionStatus.NO_SHOW,
+        { sessionDeducted: false, ptNotes: "PT no-show" },
+      );
 
       await notificationService
         .create({
           userId: session.clientUserId,
-          text: "You were marked as no-show for a session",
-          eventType: "SESSION_NO_SHOW_CLIENT",
-          entityType: "SESSION",
-          entityId: sessionId,
-          link: "/client/booking",
-        })
-        .catch(() => {});
-    } else {
-      // PT no-show: no deduction, notify client
-      await notificationService
-        .create({
-          userId: session.clientUserId,
-          text: "Your trainer did not show up for the session. No session was deducted.",
+          text: "Huấn luyện viên vắng mặt. Buổi tập của bạn không bị trừ.",
           eventType: "SESSION_NO_SHOW_PT",
           entityType: "SESSION",
           entityId: sessionId,
           link: "/client/booking",
         })
         .catch(() => {});
+
+      return updated;
     }
+
+    const deadline = new Date(Date.now() + AUTO_CONFIRM_MS);
+    const updated = await sessionRepository.updateStatus(
+      sessionId,
+      SessionStatus.PENDING_CLIENT_CONFIRMATION,
+      { ptNotes: "Client no-show", clientConfirmDeadline: deadline },
+    );
+
+    await notificationService
+      .create({
+        userId: session.clientUserId,
+        text: `PT báo bạn vắng mặt. Nếu không đúng, hãy khiếu nại trước ${deadline.toLocaleDateString("vi-VN")} — quá hạn buổi tập sẽ bị trừ.`,
+        eventType: "SESSION_PENDING_CONFIRMATION",
+        entityType: "SESSION",
+        entityId: sessionId,
+        link: "/client/booking",
+      })
+      .catch(() => {});
 
     return updated;
   },
