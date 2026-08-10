@@ -226,6 +226,19 @@ export function BookingPage() {
     enabled: !!selectedContractId,
   });
 
+  // Days that already hold a session, so the calendar can mark them instead of looking
+  // identical to a free day — you could otherwise only discover an existing booking by
+  // clicking each date or switching tabs. Keyed by local Y-M-D because the timestamps are
+  // UTC and the calendar is drawn in the viewer's own timezone.
+  const bookedDays = new Set<string>(
+    ([...(upcomingSessions as Session[]), ...(contractSessions as Session[])] || [])
+      .filter((s) => s.status !== "CANCELLED")
+      .map((s) => {
+        const d = new Date(s.scheduledStartAt);
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      }),
+  );
+
   const pastSessions = (contractSessions as Session[]).filter(
     (s) =>
       s.status === "COMPLETED" ||
@@ -548,6 +561,9 @@ export function BookingPage() {
                         selectedContract?.endDate &&
                         dateObj > new Date(selectedContract.endDate);
                       const disabled = isPast || !!isPastEndDate;
+                      const hasSession = bookedDays.has(
+                        `${year}-${month}-${day}`,
+                      );
                       return (
                         <button
                           key={day}
@@ -556,21 +572,38 @@ export function BookingPage() {
                             setSelectedDate(day);
                             setSelectedSlot(null);
                           }}
-                          className={`aspect-square flex flex-col items-center justify-center rounded-xl text-xs transition-all font-medium ${
+                          title={hasSession ? "Đã có buổi tập trong ngày này" : undefined}
+                          className={`relative aspect-square flex flex-col items-center justify-center rounded-xl text-xs transition-all font-medium ${
                             selectedDate === day
                               ? "bg-green-500 text-black shadow-lg shadow-green-500/25"
-                              : isToday(day)
-                                ? "bg-green-500/15 text-green-400 border border-green-500/30"
-                                : disabled
-                                  ? "text-zinc-700 cursor-not-allowed"
-                                  : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+                              : hasSession
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
+                                : isToday(day)
+                                  ? "bg-green-500/15 text-green-400 border border-green-500/30"
+                                  : disabled
+                                    ? "text-zinc-700 cursor-not-allowed"
+                                    : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
                           }`}
                         >
                           {day}
+                          {/* Dot survives the selected state, where the fill colour is taken. */}
+                          {hasSession && (
+                            <span
+                              className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${
+                                selectedDate === day ? "bg-black/70" : "bg-emerald-400"
+                              }`}
+                            />
+                          )}
                         </button>
                       );
                     })}
                   </div>
+                  {bookedDays.size > 0 && (
+                    <div className="flex items-center gap-1.5 mt-3 text-[11px] text-zinc-500">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      Ngày đã có buổi tập
+                    </div>
+                  )}
                 </div>
 
                 {/* Time slots + booking form */}
