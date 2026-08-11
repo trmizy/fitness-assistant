@@ -110,6 +110,16 @@ export const profileController = {
           res.status(400).json({ error: "wardCode phải là số nguyên" });
           return;
         }
+        // A ward code is only meaningful inside a province — the same number is reused
+        // across provinces, so filtering on it alone quietly matches wards the caller never
+        // meant. The search form already pairs the two; enforcing it only there leaves the
+        // rule off entirely for any caller that is not the form.
+        if (provinceCode === undefined) {
+          res
+            .status(400)
+            .json({ error: "wardCode phải đi kèm provinceCode" });
+          return;
+        }
       }
 
       const searchCity = req.query.searchCity as string | undefined;
