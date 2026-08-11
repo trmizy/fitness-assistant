@@ -125,6 +125,15 @@ export type ContractStatus =
   | "REJECTED";
 export type PackageType = "PER_SESSION" | "PACKAGE";
 
+/** The other party on a contract, as attached by user-service (`ptProfile`/`clientProfile`). */
+export interface ContractPartyProfile {
+  userId: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  photoUrl?: string | null;
+}
+
 export interface Contract {
   id: string;
   ptUserId: string;
@@ -150,6 +159,10 @@ export interface Contract {
   createdAt: string;
   updatedAt: string;
   sessions?: Session[];
+  /** Attached on `/contracts/client` — who the trainer is. */
+  ptProfile?: ContractPartyProfile | null;
+  /** Attached on `/contracts/pt` — who the client is. */
+  clientProfile?: ContractPartyProfile | null;
 }
 
 // ── Session types ────────────────────────────────────────────────
@@ -291,11 +304,11 @@ export interface CallState {
 // ── Wallet types (Phase 4) ──────────────────────────────────────────
 export interface Wallet {
   id: string;
-  ownerType: 'CLIENT' | 'PT' | 'GYM' | 'PLATFORM';
+  ownerType: "CLIENT" | "PT" | "GYM" | "PLATFORM";
   ownerId: string;
   availableBalance: string;
   lockedBalance: string;
-  status: 'ACTIVE' | 'FROZEN' | 'CLOSED';
+  status: "ACTIVE" | "FROZEN" | "CLOSED";
   createdAt: string;
   updatedAt: string;
 }
@@ -304,7 +317,7 @@ export interface WalletLedgerEntry {
   id: string;
   walletId: string;
   transactionId: string;
-  entryType: 'DEBIT' | 'CREDIT';
+  entryType: "DEBIT" | "CREDIT";
   amount: string;
   balanceBefore: string;
   balanceAfter: string;
@@ -313,9 +326,17 @@ export interface WalletLedgerEntry {
 }
 
 // ── Gym marketplace types (Phase 4) ─────────────────────────────────
-export type GymStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
-export type GymMembershipPlanStatus = 'ACTIVE' | 'INACTIVE';
-export type GymMembershipContractStatus = 'PENDING_PAYMENT' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+export type GymStatus =
+  | "PENDING_REVIEW"
+  | "APPROVED"
+  | "REJECTED"
+  | "SUSPENDED";
+export type GymMembershipPlanStatus = "ACTIVE" | "INACTIVE";
+export type GymMembershipContractStatus =
+  | "PENDING_PAYMENT"
+  | "ACTIVE"
+  | "EXPIRED"
+  | "CANCELLED";
 
 export interface Gym {
   id: string;

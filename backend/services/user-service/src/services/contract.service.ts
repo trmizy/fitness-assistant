@@ -4,12 +4,41 @@ import { ContractStatus, PackageType, SessionMode } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
 import { profileRepository } from "../repositories/profile.repository";
+import { enrichProfilesWithAuthNames } from "./profile.service";
 import { notificationService } from "./notification.service";
 import { eSignService } from "./esign.service";
 import { generateContractPdf } from "./contractPdf.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
+}
+
+/**
+ * The other party on each contract, keyed by userId, always nameable.
+ *
+ * Two gaps have to be closed or the UI ends up showing a raw UUID where a person belongs:
+ * a UserProfile row is created lazily (a client who never opened the profile screen has
+ * none), and even an existing row usually has null firstName/lastName/email because the
+ * identity of record lives in auth-service. So stub the missing rows, then enrich the lot.
+ */
+async function counterpartyProfiles(
+  userIds: string[],
+): Promise<Map<string, any>> {
+  const ids = [...new Set(userIds)];
+  const rows = await profileRepository.findByUserIds(ids);
+  const byId = new Map<string, any>(rows.map((p) => [p.userId, p as any]));
+  for (const id of ids) {
+    if (!byId.has(id)) {
+      byId.set(id, {
+        userId: id,
+        firstName: null,
+        lastName: null,
+        email: null,
+      });
+    }
+  }
+  await enrichProfilesWithAuthNames([...byId.values()]);
+  return byId;
 }
 
 const AUTH_SERVICE_URL =
@@ -431,9 +460,9 @@ export const contractService = {
     const contracts = await contractRepository.findByPT(ptUserId, s);
     if (contracts.length === 0) return contracts;
 
-    const clientIds = [...new Set(contracts.map((c) => c.clientUserId))];
-    const profiles = await profileRepository.findByUserIds(clientIds);
-    const profileMap = new Map(profiles.map((p) => [p.userId, p]));
+    const profileMap = await counterpartyProfiles(
+      contracts.map((c) => c.clientUserId),
+    );
 
     return contracts.map((c) => ({
       ...c,
@@ -446,9 +475,9 @@ export const contractService = {
     const contracts = await contractRepository.findByClient(clientUserId, s);
     if (contracts.length === 0) return contracts;
 
-    const ptIds = [...new Set(contracts.map((c) => c.ptUserId))];
-    const profiles = await profileRepository.findByUserIds(ptIds);
-    const profileMap = new Map(profiles.map((p) => [p.userId, p]));
+    const profileMap = await counterpartyProfiles(
+      contracts.map((c) => c.ptUserId),
+    );
 
     return contracts.map((c) => ({
       ...c,
@@ -496,7 +525,11 @@ export const contractService = {
         },
         "Admin manually bypassed e-sign (contract moved to PENDING_PAYMENT, still requires payment)",
       );
-      return contractRepository.updateStatus(id, ContractStatus.PENDING_PAYMENT, {});
+      return contractRepository.updateStatus(
+        id,
+        ContractStatus.PENDING_PAYMENT,
+        {},
+      );
     }
 
     // PT accepts a PENDING_REVIEW contract → ACTIVE
@@ -735,15 +768,19 @@ export const contractService = {
   /** Client pays a PENDING_PAYMENT contract via wallet-transfer (client -> PT wallet). */
   async pay(contractId: string, clientUserId: string) {
     const contract = await contractRepository.findById(contractId);
-    if (!contract) throw err('Contract not found', 404);
-    if (contract.clientUserId !== clientUserId) throw err('Not authorized', 403);
-    if (contract.status === ContractStatus.ACTIVE || contract.paymentTransactionId) {
-      throw err('ALREADY_PAID', 409);
+    if (!contract) throw err("Contract not found", 404);
+    if (contract.clientUserId !== clientUserId)
+      throw err("Not authorized", 403);
+    if (
+      contract.status === ContractStatus.ACTIVE ||
+      contract.paymentTransactionId
+    ) {
+      throw err("ALREADY_PAID", 409);
     }
     if (contract.status !== ContractStatus.PENDING_PAYMENT) {
       throw err(`Cannot pay for contract in ${contract.status} status`, 400);
     }
-    if (!contract.price) throw err('Contract has no price set', 400);
+    if (!contract.price) throw err("Contract has no price set", 400);
 
     const attemptId = randomUUID();
     const idempotencyKey = `pt-contract:${contract.id}:attempt:${attemptId}`;
@@ -758,39 +795,66 @@ export const contractService = {
       ptId: contract.ptUserId,
     });
 
-    if (result.status === 'PAID') {
-      const activated = await contractRepository.activateIfPending(contract.id, result.transactionId);
+    if (result.status === "PAID") {
+      const activated = await contractRepository.activateIfPending(
+        contract.id,
+        result.transactionId,
+      );
       try {
         await paymentClient.markActivated(result.transactionId);
       } catch (e) {
-        logger.warn({ error: 'mark-activated callback failed, reconciliation will retry', contractId: contract.id, message: (e as Error).message });
+        logger.warn({
+          error: "mark-activated callback failed, reconciliation will retry",
+          contractId: contract.id,
+          message: (e as Error).message,
+        });
       }
       return { contract: activated, payment: result };
     }
 
-    return { contract: await contractRepository.findById(contract.id), payment: result };
+    return {
+      contract: await contractRepository.findById(contract.id),
+      payment: result,
+    };
   },
 
   /** Called by the internal /activate-after-payment endpoint — verifies the transaction first. */
   async activateAfterPayment(contractId: string, transactionId: string) {
     const txn = await paymentClient.getTransaction(transactionId);
-    if (!txn || txn.status !== 'PAID' || txn.relatedEntityType !== 'PT_CONTRACT' || txn.relatedEntityId !== contractId) {
-      throw err('Transaction verification failed', 400);
+    if (
+      !txn ||
+      txn.status !== "PAID" ||
+      txn.relatedEntityType !== "PT_CONTRACT" ||
+      txn.relatedEntityId !== contractId
+    ) {
+      throw err("Transaction verification failed", 400);
     }
     return contractRepository.activateIfPending(contractId, transactionId);
   },
 
   /** Called by the internal /cancel-after-refund endpoint — verifies both transactions first. */
-  async cancelAfterRefund(contractId: string, originalTransactionId: string, refundTransactionId: string) {
+  async cancelAfterRefund(
+    contractId: string,
+    originalTransactionId: string,
+    refundTransactionId: string,
+  ) {
     const [original, refund] = await Promise.all([
       paymentClient.getTransaction(originalTransactionId),
       paymentClient.getTransaction(refundTransactionId),
     ]);
-    if (!original || original.status !== 'REFUNDED' || original.relatedEntityId !== contractId) {
-      throw err('Original transaction verification failed', 400);
+    if (
+      !original ||
+      original.status !== "REFUNDED" ||
+      original.relatedEntityId !== contractId
+    ) {
+      throw err("Original transaction verification failed", 400);
     }
-    if (!refund || refund.status !== 'PAID' || refund.refundOfTransactionId !== originalTransactionId) {
-      throw err('Refund transaction verification failed', 400);
+    if (
+      !refund ||
+      refund.status !== "PAID" ||
+      refund.refundOfTransactionId !== originalTransactionId
+    ) {
+      throw err("Refund transaction verification failed", 400);
     }
     return contractRepository.cancelAfterRefund(contractId);
   },
