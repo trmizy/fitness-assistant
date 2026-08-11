@@ -115,6 +115,18 @@ export const sessionRepository = {
       },
     }),
 
+  /** The single open reschedule proposal for a session, if any (VĐ4: at most one). */
+  findOpenRescheduleRequest: (sessionId: string) =>
+    prisma.sessionRescheduleRequest.findFirst({
+      where: { sessionId, status: "PENDING" },
+    }),
+
+  /** Moves already spent on this session, counting proposals from either side. */
+  countAcceptedReschedules: (sessionId: string) =>
+    prisma.sessionRescheduleRequest.count({
+      where: { sessionId, status: "ACCEPTED" },
+    }),
+
   /** Find all non-terminal sessions for a PT on a given date range */
   findConflictsByDate: (ptUserId: string, dayStart: Date, dayEnd: Date) =>
     prisma.session.findMany({

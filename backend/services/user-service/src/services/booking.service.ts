@@ -81,6 +81,50 @@ export async function deductQuotaOnce(
   return true;
 }
 
+/**
+ * The slot rules a booking must satisfy: inside the trainer's published hours, not on a
+ * blocked date, and not overlapping another session.
+ *
+ * Extracted so rescheduling enforces exactly what booking does. Two copies of these checks
+ * would drift, and the drift would show up as a double-booked trainer.
+ */
+async function assertSlotBookable(
+  ptUserId: string,
+  startAt: Date,
+  endAt: Date,
+  excludeSessionId?: string,
+): Promise<void> {
+  const conflict = await sessionRepository.findConflict(
+    ptUserId,
+    startAt,
+    endAt,
+    excludeSessionId,
+  );
+  if (conflict) throw err("Khung giờ này trùng với một buổi tập khác", 409);
+
+  const ptAvailability = await availabilityRepository.findByPT(ptUserId);
+  if (ptAvailability.length === 0) return; // no published hours = no constraint
+
+  const dayOfWeek = DAY_MAP[startAt.getDay()];
+  const hhmm = (d: Date) =>
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const slot = ptAvailability.find(
+    (a) =>
+      a.dayOfWeek === dayOfWeek &&
+      a.isActive &&
+      a.startTime <= hhmm(startAt) &&
+      a.endTime >= hhmm(endAt),
+  );
+  if (!slot) throw err("Thời gian này nằm ngoài khung giờ rảnh của huấn luyện viên", 400);
+
+  const dayStart = new Date(startAt);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(startAt);
+  dayEnd.setHours(23, 59, 59, 999);
+  const exceptions = await availabilityRepository.findExceptions(ptUserId, dayStart, dayEnd);
+  if (exceptions.length > 0) throw err("Huấn luyện viên nghỉ vào ngày này", 400);
+}
+
 export const bookingService = {
   // ── Client books a session ──────────────────────────────────────
   async bookSession(
@@ -708,24 +752,63 @@ export const bookingService = {
     const isPT = session.ptUserId === userId;
     if (!isClient && !isPT) throw err("Not authorized", 403);
 
-    if (
-      session.status !== SessionStatus.REQUESTED &&
-      session.status !== SessionStatus.CONFIRMED
-    ) {
-      throw err("Only REQUESTED or CONFIRMED sessions can be rescheduled", 400);
+    // VĐ4: only a CONFIRMED session. A REQUESTED one has not been agreed yet — there is
+    // nothing to move, and the PT can simply confirm it at a different time.
+    if (session.status !== SessionStatus.CONFIRMED) {
+      throw err("Chỉ buổi tập đã xác nhận (CONFIRMED) mới được dời lịch", 400);
     }
 
     const now = new Date();
+    if (session.scheduledStartAt.getTime() <= now.getTime()) {
+      throw err("Không thể dời lịch sau khi buổi tập đã bắt đầu", 400);
+    }
     const timeUntilStart = session.scheduledStartAt.getTime() - now.getTime();
     if (timeUntilStart < 12 * 60 * 60 * 1000) {
-      throw err("Cannot reschedule less than 12 hours before the session", 400);
+      throw err("Không thể dời lịch trong vòng 12 giờ trước buổi tập", 400);
+    }
+
+    if (!data.reason || !data.reason.trim()) {
+      throw err("Phải nêu lý do dời lịch", 400);
+    }
+    if (data.reason.length > 500) {
+      throw err("Lý do dời lịch tối đa 500 ký tự", 400);
+    }
+
+    // Only one open request per session. Without this both sides can have a proposal in
+    // flight at once, and whichever is accepted second silently overwrites the first.
+    const open = await sessionRepository.findOpenRescheduleRequest(sessionId);
+    if (open) {
+      throw err("Buổi tập này đang có một yêu cầu dời lịch chờ phản hồi", 409);
+    }
+
+    // At most two moves per session, counting both sides. Past that the honest option is to
+    // cancel rather than keep pushing the booking around.
+    const usedMoves = await sessionRepository.countAcceptedReschedules(sessionId);
+    if (usedMoves >= 2) {
+      throw err("Buổi tập này đã dời 2 lần — chỉ còn cách huỷ", 409);
     }
 
     const proposedStart = new Date(data.proposedStartAt);
     const proposedEnd = new Date(data.proposedEndAt);
-    if (proposedStart >= proposedEnd) {
-      throw err("Start time must be before end time", 400);
+    if (isNaN(proposedStart.getTime()) || isNaN(proposedEnd.getTime())) {
+      throw err("Thời gian đề xuất không hợp lệ", 400);
     }
+    if (proposedStart >= proposedEnd) {
+      throw err("Giờ bắt đầu phải trước giờ kết thúc", 400);
+    }
+    if (proposedStart <= now) {
+      throw err("Thời gian đề xuất phải ở tương lai", 400);
+    }
+
+    // The proposed slot has to survive the SAME checks a fresh booking does. Skipping this
+    // was the real hole: a reschedule could put the trainer in two places at once, or outside
+    // the hours they published, with no error at all.
+    await assertSlotBookable(
+      session.ptUserId,
+      proposedStart,
+      proposedEnd,
+      sessionId,
+    );
 
     const request = await sessionRepository.createRescheduleRequest({
       sessionId,
@@ -738,13 +821,14 @@ export const bookingService = {
       status: "PENDING",
     });
 
-    // We can cast because RESCHEDULE_PENDING might not be in the enum if it wasn't added yet?
-    // Wait, let's assume it's in the SessionStatus enum, the backend plan says:
-    // "Trạng thái Session: cập nhật thành RESCHEDULE_PENDING."
-    await sessionRepository.updateStatus(
-      sessionId,
-      "RESCHEDULE_PENDING" as SessionStatus
-    );
+    // The session deliberately stays CONFIRMED. A proposal is an offer, not a change: until
+    // the other side accepts, the original booking is still what both parties owe each other,
+    // and the old time is still the time to turn up at.
+    //
+    // The previous code cast "RESCHEDULE_PENDING" to SessionStatus with a comment hoping the
+    // value existed. It does not, so every valid proposal died on a 500 from the status
+    // update — after the request row had already been written, which is why the "only one
+    // open request" rule appeared to work while nothing else did.
 
     const targetUserId = isClient ? session.ptUserId : session.clientUserId;
     notificationService.create({
