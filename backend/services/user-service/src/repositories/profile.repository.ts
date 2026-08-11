@@ -89,13 +89,29 @@ export const profileRepository = {
     }
 
     // Compose UserProfile where
+    //
+    // `isPT` is the approval marker — it is set when an admin approves the application, and
+    // it is what every other part of the system checks. Discovery used to ALSO require an
+    // APPROVED PTApplication row to exist, which is an inner join on paperwork rather than on
+    // status: lose those rows and every trainer vanishes from search while still looking
+    // perfectly approved everywhere else. That is exactly what happened on 2026-08-11.
+    //
+    // The application filters below still apply when they narrow something (service mode,
+    // price band), but as an OPTIONAL relation — a trainer without the paperwork row is
+    // discoverable, a trainer whose paperwork contradicts the filter is not.
     const profileWhere: any = {
       isPT: true,
       // A suspended trainer (account disabled by an admin) must not be discoverable —
       // their contracts have already been unwound and refunded.
       ptSuspended: false,
-      ptApplication: { is: ptApplicationWhere },
     };
+
+    // Only constrain on the application when the caller actually asked for something it
+    // holds; `{ status: 'APPROVED' }` alone is not a narrowing filter, it is the join.
+    const hasApplicationFilter = Object.keys(ptApplicationWhere).length > 1;
+    if (hasApplicationFilter) {
+      profileWhere.ptApplication = { is: ptApplicationWhere };
+    }
 
     // q: search by firstName OR lastName or search fields
     if (filters.q) {
