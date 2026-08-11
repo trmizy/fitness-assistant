@@ -115,7 +115,12 @@ export const profileRepository = {
 
     // q: search by firstName OR lastName or search fields
     if (filters.q) {
+      // VĐ5.3: `q` must reach specialties, gym names and addresses too, not just the name.
+      // The extra ids are resolved in one accent-insensitive SQL pass (see
+      // findPtUserIdsMatchingText) and folded into the same OR, so paging stays correct.
+      const textMatchIds = await findPtUserIdsMatchingText(filters.q);
       profileWhere.OR = [
+        ...(textMatchIds.length > 0 ? [{ userId: { in: textMatchIds } }] : []),
         { firstName: { contains: filters.q, mode: "insensitive" } },
         { lastName: { contains: filters.q, mode: "insensitive" } },
         { firstNameNormalized: { contains: filters.q, mode: "insensitive" } },
@@ -263,3 +268,41 @@ export const profileRepository = {
   deleteByUserId: (userId: string) =>
     prisma.userProfile.delete({ where: { userId } }),
 };
+
+/**
+ * userIds whose specialty, gym name or address matches a free-text query, ignoring
+ * Vietnamese diacritics.
+ *
+ * Done in SQL rather than in JS because the fields live in three places — a String[] column
+ * on the profile and two columns on the training-location rows — and pulling every trainer
+ * into memory to filter them is exactly the mistake VĐ5.2 was raised to fix.
+ *
+ * `translate()` strips the accents. Postgres ships `unaccent` for this, but it is an
+ * extension that has to be installed on every environment, and a missing extension here
+ * would silently return nothing rather than fail loudly. translate() is built in.
+ */
+const VN_FROM = "áàảãạăắằẳẵặâấầẩẫậđéèẻẽẹêếềểễệíìỉĩịóòỏõọôốồổỗộơớờởỡợúùủũụưứừửữựýỳỷỹỵ";
+const VN_TO = "aaaaaaaaaaaaaaaaadeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyy";
+
+export async function findPtUserIdsMatchingText(q: string): Promise<string[]> {
+  const needle = `%${q
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .toLowerCase()
+    .trim()}%`;
+
+  const rows = await prisma.$queryRaw<{ userId: string }[]>`
+    SELECT DISTINCT p."userId"
+    FROM user_profiles p
+    LEFT JOIN pt_training_locations l ON l.pt_user_id = p."userId"
+    WHERE
+      EXISTS (
+        SELECT 1 FROM unnest(COALESCE(p.specialties, ARRAY[]::text[])) s
+        WHERE translate(lower(s), ${VN_FROM}, ${VN_TO}) LIKE ${needle}
+      )
+      OR translate(lower(COALESCE(l.gym_name, '')),    ${VN_FROM}, ${VN_TO}) LIKE ${needle}
+      OR translate(lower(COALESCE(l.address_line, '')), ${VN_FROM}, ${VN_TO}) LIKE ${needle}`;
+
+  return rows.map((r) => r.userId);
+}
