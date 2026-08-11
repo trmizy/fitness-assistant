@@ -11,6 +11,7 @@ import {
   ptReviewRepository,
   attachPtRatings,
 } from "../repositories/ptReview.repository";
+import { enrichForDiscovery } from "../services/pt-discovery.service";
 import { adminPTStatusSchema, profileSchema } from "../models/profile.models";
 import type { AuthRequest } from "../middleware/auth.middleware";
 
@@ -183,7 +184,14 @@ export const profileController = {
         rated = rated.slice(skip, skip + take);
       }
 
-      res.json({ pts: rated });
+      // Phase 1 layer 2 + Phase 2 VĐ6: the two fields the buying UI needs. Both are computed
+      // for the whole page at once — one grouped slot query and one membership lookup — so
+      // the query count does not grow with the number of trainers returned.
+      // The viewer comes from the verified token, never from a query parameter — otherwise
+      // anyone could ask "rank this list as if I were that user" and read their gym membership.
+      const enriched = await enrichForDiscovery(rated, req.user?.id, !sortBy);
+
+      res.json({ pts: enriched });
     } catch (error) {
       logger.error(error, "List PTs error");
       res.status(500).json({ error: "Internal server error" });
