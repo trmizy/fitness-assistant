@@ -2,7 +2,6 @@ import { logger } from '@gym-coach/shared';
 import { webhookRepository } from '../repositories/webhook.repository';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { PaymentProviderType, Prisma } from '../generated/prisma';
-import { setWebhookHandler } from '../providers/mock.provider';
 import { walletService } from './wallet.service';
 
 interface IncomingWebhookEvent {
@@ -12,9 +11,6 @@ interface IncomingWebhookEvent {
   payload: Record<string, unknown>;
   status: 'PAID' | 'FAILED';
 }
-
-// Register mock provider handler to avoid circular import
-setWebhookHandler((event) => handleEvent(event));
 
 /**
  * Handles provider webhooks for WALLET_TOPUP transactions only — gym-membership and
@@ -57,9 +53,9 @@ export async function handleEvent(event: IncomingWebhookEvent): Promise<void> {
   }
 
   // Provider match: the webhook's provider MUST equal the transaction's own provider. Without this,
-  // an unauthenticated MOCK webhook (mock skips signature verification) could complete a real
-  // VNPay/ZaloPay transaction if the attacker learns its providerTransactionId — crediting a wallet
-  // with no real money. Never credit across providers.
+  // a webhook accepted under the weakest gateway's verification could complete a real VNPay/ZaloPay
+  // transaction if the attacker learns its providerTransactionId — crediting a wallet with no real
+  // money. Never credit across providers.
   if (String(event.provider).toUpperCase() !== String(txn.provider).toUpperCase()) {
     logger.warn(`[WebhookService] Provider mismatch for txn ${txn.id}: event=${event.provider} txn=${txn.provider} — rejecting`);
     await webhookRepository.markProcessed(webhookRecord.id);

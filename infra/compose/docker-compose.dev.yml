@@ -661,7 +661,9 @@ services:
       USER_SERVICE_URL: http://user-service:3004
       PLATFORM_COMMISSION_RATE: ${PLATFORM_COMMISSION_RATE:-0.10}
       TOPUP_STALE_MINUTES: ${TOPUP_STALE_MINUTES:-60}
-      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-MOCK}
+      # Sandbox gateways only — the MOCK provider was removed. This is just the fallback
+      # when the top-up request does not name one; the UI always sends an explicit choice.
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-VNPAY}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       MOMO_PARTNER_CODE: ${MOMO_PARTNER_CODE:-}
       MOMO_ACCESS_KEY: ${MOMO_ACCESS_KEY:-}

@@ -4,11 +4,13 @@
  *
  * 1. `getProvider('MOCK')` was allowed unconditionally — any authenticated
  *    caller could top up a real wallet via the MOCK provider (which
- *    auto-completes to PAID with no real money moving) in production.
+ *    auto-completes to PAID with no real money moving) in production. The
+ *    provider has since been deleted outright; the tests below now assert it
+ *    cannot be obtained in ANY environment, including via PAYMENT_PROVIDER.
  * 2. `handleEvent()` looked up a transaction by `providerTransactionId` alone,
  *    with NO check that the webhook's `provider` matched the transaction's
- *    real `provider` — a forged MOCK webhook citing a real VNPay/MoMo
- *    transaction's id could fraudulently mark it PAID and credit the wallet.
+ *    real `provider` — a forged webhook citing a real transaction's id from a
+ *    different gateway could fraudulently mark it PAID and credit the wallet.
  *
  * Runs against a real (test-only) Postgres database — no mocking of the
  * DB layer — gated the same way fitness-service's integration tests are:
@@ -62,7 +64,7 @@ test.after(async () => {
 
 async function seedWalletAndTxn(
   db: PrismaClientLike,
-  opts: { provider: 'MOCK' | 'VNPAY' | 'MOMO'; providerTransactionId: string; amount: number; payerId: string },
+  opts: { provider: 'VNPAY' | 'MOMO' | 'ZALOPAY'; providerTransactionId: string; amount: number; payerId: string },
 ) {
   const wallet = await db.wallet.upsert({
     where: { ownerType_ownerId: { ownerType: 'CLIENT', ownerId: opts.payerId } },
@@ -101,7 +103,7 @@ async function cleanup(db: PrismaClientLike, payerId: string) {
 }
 
 test(
-  'SECURITY: a MOCK webhook cannot complete a transaction that was really created under a different provider (VNPAY)',
+  'SECURITY: a MOMO webhook cannot complete a transaction that was really created under a different provider (VNPAY)',
   skipOpts,
   async () => {
     const { prisma: db, handleEvent: handle } = await loadModules();
@@ -116,9 +118,9 @@ test(
         payerId,
       });
 
-      // Attacker forges a MOCK webhook citing the REAL VNPay transaction's id.
+      // Attacker forges a MoMo webhook citing the REAL VNPay transaction's id.
       await handle({
-        provider: 'MOCK',
+        provider: 'MOMO',
         providerEventId: `forged_${randomUUID()}`,
         providerTransactionId,
         payload: { forged: true },
@@ -179,16 +181,16 @@ test(
     const payerId = `webhook-sec-test-dup-${Date.now()}`;
     await cleanup(db, payerId);
     try {
-      const providerTransactionId = `mock_${randomUUID()}`;
+      const providerTransactionId = `zalopay_${randomUUID()}`;
       const { txn } = await seedWalletAndTxn(db, {
-        provider: 'MOCK',
+        provider: 'ZALOPAY',
         providerTransactionId,
         amount: 200_000,
         payerId,
       });
       const eventId = `evt_${randomUUID()}`;
       const event = {
-        provider: 'MOCK',
+        provider: 'ZALOPAY',
         providerEventId: eventId,
         providerTransactionId,
         payload: {},
@@ -215,9 +217,9 @@ test(
     const payerId = `webhook-sec-test-concurrent-${Date.now()}`;
     await cleanup(db, payerId);
     try {
-      const providerTransactionId = `mock_${randomUUID()}`;
+      const providerTransactionId = `zalopay_${randomUUID()}`;
       const { txn } = await seedWalletAndTxn(db, {
-        provider: 'MOCK',
+        provider: 'ZALOPAY',
         providerTransactionId,
         amount: 300_000,
         payerId,
@@ -227,14 +229,14 @@ test(
       // racing to credit the SAME underlying transaction concurrently.
       await Promise.all([
         handle({
-          provider: 'MOCK',
+          provider: 'ZALOPAY',
           providerEventId: `evt_a_${randomUUID()}`,
           providerTransactionId,
           payload: {},
           status: 'PAID',
         }),
         handle({
-          provider: 'MOCK',
+          provider: 'ZALOPAY',
           providerEventId: `evt_b_${randomUUID()}`,
           providerTransactionId,
           payload: {},
@@ -250,36 +252,51 @@ test(
   },
 );
 
-test('SECURITY: getProvider("MOCK") is rejected when NODE_ENV=production', async () => {
+// The MOCK provider used to be reachable outside production, which made "is it disabled in
+// prod?" the interesting question. It has since been removed outright, so the guarantee is
+// now stronger and environment-independent: no environment can obtain it.
+for (const env of ['production', 'development', 'test']) {
+  test(`SECURITY: getProvider("MOCK") is rejected with NODE_ENV=${env}`, async () => {
+    const { paymentService } = await loadModules();
+    const original = process.env.NODE_ENV;
+    process.env.NODE_ENV = env;
+    try {
+      assert.throws(() => paymentService.getProvider('MOCK'), /has been removed/);
+    } finally {
+      process.env.NODE_ENV = original;
+    }
+  });
+
+  test(`SECURITY: providerConfigStatus("MOCK") reports not-configured with NODE_ENV=${env}`, async () => {
+    const { paymentService } = await loadModules();
+    const original = process.env.NODE_ENV;
+    process.env.NODE_ENV = env;
+    try {
+      const status = paymentService.providerConfigStatus('MOCK');
+      assert.equal(status.configured, false);
+      assert.match(status.missing.join(' '), /has been removed/);
+    } finally {
+      process.env.NODE_ENV = original;
+    }
+  });
+}
+
+// PAYMENT_PROVIDER is operator-controlled; a stale MOCK there must not resurrect it.
+test('SECURITY: a stale PAYMENT_PROVIDER=MOCK env does not resurrect the mock provider', async () => {
   const { paymentService } = await loadModules();
-  const original = process.env.NODE_ENV;
-  process.env.NODE_ENV = 'production';
+  const original = process.env.PAYMENT_PROVIDER;
+  process.env.PAYMENT_PROVIDER = 'MOCK';
   try {
-    assert.throws(() => paymentService.getProvider('MOCK'), /not permitted in production/);
+    assert.throws(() => paymentService.getProvider(), /has been removed/);
   } finally {
-    process.env.NODE_ENV = original;
+    if (original === undefined) delete process.env.PAYMENT_PROVIDER;
+    else process.env.PAYMENT_PROVIDER = original;
   }
 });
 
-test('SECURITY: getProvider("MOCK") still works outside production (dev/test)', async () => {
+test('the sandbox gateways are still constructible', async () => {
   const { paymentService } = await loadModules();
-  const original = process.env.NODE_ENV;
-  process.env.NODE_ENV = 'test';
-  try {
-    assert.doesNotThrow(() => paymentService.getProvider('MOCK'));
-  } finally {
-    process.env.NODE_ENV = original;
-  }
-});
-
-test('SECURITY: providerConfigStatus("MOCK") reports not-configured in production', async () => {
-  const { paymentService } = await loadModules();
-  const original = process.env.NODE_ENV;
-  process.env.NODE_ENV = 'production';
-  try {
-    const status = paymentService.providerConfigStatus('MOCK');
-    assert.equal(status.configured, false);
-  } finally {
-    process.env.NODE_ENV = original;
+  for (const name of ['VNPAY', 'ZALOPAY', 'PAYOS', 'MOMO']) {
+    assert.doesNotThrow(() => paymentService.getProvider(name), `${name} must still resolve`);
   }
 });

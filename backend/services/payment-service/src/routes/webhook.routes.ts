@@ -34,8 +34,8 @@ router.post('/:provider', async (req: Request, res: Response) => {
   const providerName = req.params.provider.toUpperCase();
   const rawBody = req.body as Buffer;
 
-  // MoMo/Mock: fire-and-forget with the immediate 204 MoMo requires.
-  if (providerName === 'MOMO' || providerName === 'MOCK') {
+  // MoMo: fire-and-forget with the immediate 204 it requires.
+  if (providerName === 'MOMO') {
     res.status(204).send();
     void processWebhook(providerName, rawBody);
     return;
@@ -75,17 +75,12 @@ async function processWebhook(providerName: string, rawBody: Buffer): Promise<bo
       return true;
     }
 
+    // Only MoMo still reports through `payload`; everything else fills `normalized` above.
+    // A provider that verifies but hands back neither is a bug, not a payment — do not
+    // invent an event from the unverified request body.
     if (!payload) {
-      // MockProvider: payload not in verifyWebhookSignature result — parse separately
-      const parsed = JSON.parse(rawBody.toString('utf-8'));
-      await handleEvent({
-        provider: providerName,
-        providerEventId: parsed.providerEventId ?? `evt_${Date.now()}`,
-        providerTransactionId: parsed.providerTransactionId,
-        payload: parsed,
-        status: parsed.status === 'PAID' ? 'PAID' : 'FAILED',
-      });
-      return true;
+      logger.warn(`[Webhook] ${providerName} verified but returned no payload — ignoring`);
+      return false;
     }
 
     // MoMo IPN: resultCode=0 = PAID, resultCode=9000 = authorized (pending capture) — skip

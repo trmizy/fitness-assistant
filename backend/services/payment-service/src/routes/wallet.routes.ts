@@ -6,7 +6,7 @@ import { extractUser, requireAuth } from '../middleware/auth.middleware';
 import { walletService } from '../services/wallet.service';
 import { walletRepository } from '../repositories/wallet.repository';
 import { transactionRepository } from '../repositories/transaction.repository';
-import { getProvider, providerConfigStatus } from '../services/payment.service';
+import { getProvider, providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
 import { handleEvent } from '../services/webhook.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
 import { PaymentProviderType, Prisma } from '../generated/prisma';
@@ -32,10 +32,11 @@ const topupSchema = z.object({
   // VND has no minor unit; integer keeps ×100 math exact for gateway providers.
   amount: z.number().int().positive(),
   clientRequestId: z.string().min(1),
-  // Per-request gateway choice; omitted → PAYMENT_PROVIDER env (default MOCK).
-  // ZALOPAY/PAYOS are accepted so the request reaches the config guard and returns a
-  // clear 400 PROVIDER_NOT_CONFIGURED (skeletons), not a zod validation error.
-  provider: z.enum(['MOCK', 'VNPAY', 'MOMO', 'ZALOPAY', 'PAYOS']).optional(),
+  // Per-request gateway choice; omitted → PAYMENT_PROVIDER env (default VNPAY).
+  // Every value here is a real gateway running against its sandbox; MOMO/PAYOS are accepted
+  // so an unconfigured one reaches the config guard and returns a clear 400
+  // PROVIDER_NOT_CONFIGURED rather than a zod validation error.
+  provider: z.enum(['VNPAY', 'MOMO', 'ZALOPAY', 'PAYOS']).optional(),
 });
 
 // POST /me/wallet/topup — clientRequestId is required (not optional): the frontend
@@ -53,7 +54,7 @@ router.post('/wallet/topup', async (req: Request, res: Response) => {
 
   // Resolve + validate the gateway BEFORE any DB work: a missing credential must be a
   // clear 400 (PROVIDER_NOT_CONFIGURED), never a mid-request 500.
-  const providerName = (parsed.data.provider ?? process.env.PAYMENT_PROVIDER ?? 'MOCK').toUpperCase();
+  const providerName = (parsed.data.provider ?? process.env.PAYMENT_PROVIDER ?? DEFAULT_PROVIDER).toUpperCase();
   const providerConfig = providerConfigStatus(providerName);
   if (!providerConfig.configured) {
     return res.status(400).json({
@@ -128,6 +129,17 @@ router.post('/wallet/topup/:transactionId/sync', async (req: Request, res: Respo
 
   if (txn.status === 'PAID' || txn.status === 'REFUNDED') {
     return res.json({ success: true, data: { id: txn.id, status: txn.status, provider: txn.provider } });
+  }
+
+  // A transaction created under a provider we no longer ship (MOCK) can still be sitting
+  // PENDING in the table. There is nobody left to ask about it — say so plainly instead of
+  // failing the sync as if the gateway were down.
+  const legacy = providerConfigStatus(txn.provider);
+  if (!legacy.configured && legacy.missing.some((m) => m.includes('has been removed'))) {
+    return res.json({
+      success: true,
+      data: { id: txn.id, status: txn.status, provider: txn.provider, note: legacy.missing[0] },
+    });
   }
 
   try {

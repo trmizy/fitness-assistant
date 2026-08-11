@@ -14,7 +14,8 @@ export function WalletPage() {
   const queryClient = useQueryClient();
   const [showTopup, setShowTopup] = useState(false);
   const [amount, setAmount] = useState("");
-  const [provider, setProvider] = useState("MOCK");
+  // Sandbox gateways only — the mock "auto-paid" method was removed from the product.
+  const [provider, setProvider] = useState("VNPAY");
 
   const { data: wallet, isLoading: walletLoading } = useQuery<Wallet>({
     queryKey: ["client-wallet"],
@@ -142,13 +143,17 @@ export function WalletPage() {
                 onChange={(e) => setProvider(e.target.value)}
                 className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
               >
-                <option value="MOCK">Mô phỏng (Mock)</option>
-                <option value="VNPAY">VNPay</option>
-                <option value="ZALOPAY">ZaloPay</option>
+                <option value="VNPAY">VNPay (sandbox)</option>
+                <option value="ZALOPAY">ZaloPay (sandbox)</option>
                 {/* PayOS ẩn tạm khỏi UI (VietQR — cần tiền thật, không có sandbox tiền giả).
                     Backend vẫn giữ nguyên PayOSProvider + factory + guard; thêm lại option này
                     là bật lại được khi có PAYOS_CLIENT_ID/API_KEY/CHECKSUM_KEY trong .env. */}
               </select>
+              <p className="text-[11px] text-zinc-600 leading-snug">
+                {provider === "VNPAY"
+                  ? "Sẽ chuyển sang trang VNPay sandbox — dùng thẻ thử NCB, không mất tiền thật."
+                  : "Sẽ hiện mã QR ZaloPay sandbox — quét bằng app ZaloPay sandbox, không mất tiền thật."}
+              </p>
               <label htmlFor="topup-amount" className="text-xs font-semibold text-zinc-400 block">Amount (VND)</label>
               <input
                 id="topup-amount"

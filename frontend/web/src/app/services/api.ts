@@ -2583,7 +2583,7 @@ export const walletService = {
     const { data } = await api.post('/me/wallet/topup', {
       amount,
       clientRequestId,
-      ...(provider && provider !== 'MOCK' ? { provider } : {}),
+      ...(provider ? { provider } : {}),
     });
     return data?.data ?? data;
   },
