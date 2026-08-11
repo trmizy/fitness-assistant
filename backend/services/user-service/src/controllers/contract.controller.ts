@@ -3,6 +3,10 @@ import fs from "fs";
 import { Response } from "express";
 import { logger } from "@gym-coach/shared";
 import { contractService } from "../services/contract.service";
+import {
+  moneyBreakdown,
+  terminateContractMoney,
+} from '../services/contract-payout.service';
 import { contractRepository } from "../repositories/contract.repository";
 import { ContractStatus } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
@@ -445,6 +449,82 @@ export const contractController = {
       }
       logger.error(error, 'Contract pay error');
       res.status(error.status || 500).json({ error: error.message || 'Failed to pay contract' });
+    }
+  },
+
+  // Money view of a contract — either party may read it, nobody else.
+  async moneyBreakdown(req: any, res: Response) {
+    try {
+      const userId = req.headers['x-user-id'] as string;
+      const role = req.headers['x-user-role'] as string;
+      const contract = await contractService.getById(req.params.id);
+      if (!contract) {
+        res.status(404).json({ error: 'Contract not found' });
+        return;
+      }
+      const isParty = contract.clientUserId === userId || contract.ptUserId === userId;
+      if (!isParty && role !== 'ADMIN') {
+        res.status(403).json({ error: 'Not authorized' });
+        return;
+      }
+      const data = await moneyBreakdown(req.params.id);
+      if (!data) {
+        res.status(400).json({ error: 'Contract has no price or sessions to break down' });
+        return;
+      }
+      res.json(data);
+    } catch (error: any) {
+      logger.error(error, 'Money breakdown error');
+      res.status(error.status || 500).json({ error: error.message || 'Failed to load breakdown' });
+    }
+  },
+
+  /**
+   * End a contract and settle the money for good.
+   *
+   * The reason decides who bears the cost, so it is never taken from the caller at face
+   * value: a client may only ever declare their own cancellation, a PT only their own
+   * withdrawal, and only an admin can invoke the reasons that carry no penalty. Letting a
+   * PT self-report MUTUAL would hand them a way to dodge the cancellation fee.
+   */
+  async terminate(req: any, res: Response) {
+    try {
+      const userId = req.headers['x-user-id'] as string;
+      const role = req.headers['x-user-role'] as string;
+      const reason = String(req.body?.reason ?? '').toUpperCase();
+
+      const contract = await contractService.getById(req.params.id);
+      if (!contract) {
+        res.status(404).json({ error: 'Contract not found' });
+        return;
+      }
+
+      const isClient = contract.clientUserId === userId;
+      const isPt = contract.ptUserId === userId;
+      const isAdmin = role === 'ADMIN';
+
+      const allowed: Record<string, boolean> = {
+        CLIENT_CANCELLED: isClient || isAdmin,
+        PT_CANCELLED: isPt || isAdmin,
+        PT_BANNED: isAdmin,
+        MUTUAL: isAdmin,
+        EXPIRED: isAdmin,
+        COMPLETED: isAdmin,
+      };
+      if (!(reason in allowed)) {
+        res.status(400).json({ error: `Unknown termination reason: ${reason}` });
+        return;
+      }
+      if (!allowed[reason]) {
+        res.status(403).json({ error: `You may not terminate this contract as ${reason}` });
+        return;
+      }
+
+      const result = await terminateContractMoney(req.params.id, reason as any);
+      res.json({ contractId: req.params.id, reason, settlement: result });
+    } catch (error: any) {
+      logger.error(error, 'Contract terminate error');
+      res.status(error.status || 500).json({ error: error.message || 'Failed to terminate contract' });
     }
   },
 

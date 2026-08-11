@@ -81,4 +81,20 @@ router.post(
 // Phase 4 — client pays a PENDING_PAYMENT contract via wallet
 router.post("/:id/pay", authMiddleware, contractController.pay as any);
 
+// Money view of a contract: what has been released, what is still pending, and what the
+// client would get back if they cancelled right now. Read-only, both parties may see it.
+router.get(
+  "/:id/money-breakdown",
+  authMiddleware,
+  contractController.moneyBreakdown as any,
+);
+
+// End a contract and settle everyone. The reason selects the refund formula — see
+// docs/money-flow.md — so it is required and validated server-side.
+router.post(
+  "/:id/terminate",
+  authMiddleware,
+  contractController.terminate as any,
+);
+
 export default router;

@@ -12,7 +12,7 @@ import { deductQuotaOnce, type QuotaDeps } from "../services/booking.service";
 
 /** Stand-in for the DB flag, so a "claim" can only succeed once across all callers. */
 function makeDeps(alreadyDeducted = false) {
-  const calls = { claim: 0, increment: 0, checkComplete: 0 };
+  const calls = { claim: 0, increment: 0, checkComplete: 0, release: 0 };
   let deducted = alreadyDeducted;
   const deps: QuotaDeps = {
     claimDeduction: async () => {
@@ -27,6 +27,11 @@ function makeDeps(alreadyDeducted = false) {
     checkAndCompleteContract: async () => {
       calls.checkComplete++;
     },
+    // Paying the PT hangs off the same claim as the quota deduction: quota and payout are
+    // two views of one fact, "this session was delivered".
+    releaseMoney: async () => {
+      calls.release++;
+    },
   };
   return { deps, calls };
 }
@@ -38,6 +43,7 @@ test("charges the contract exactly once on the first deduction", async () => {
 
   assert.strictEqual(claimed, true);
   assert.strictEqual(calls.increment, 1, "contract counter must move exactly once");
+  assert.strictEqual(calls.release, 1, "the PT must be paid for the session exactly once");
   assert.strictEqual(calls.checkComplete, 1);
 });
 

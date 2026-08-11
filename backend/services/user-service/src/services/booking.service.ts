@@ -7,6 +7,10 @@ import {
 } from "../generated/prisma";
 import { sessionRepository } from "../repositories/session.repository";
 import { contractRepository } from "../repositories/contract.repository";
+import {
+  releaseSessionMoney,
+  compensateNoShowMoney,
+} from "./contract-payout.service";
 import { availabilityRepository } from "../repositories/availability.repository";
 import { profileRepository } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
@@ -39,21 +43,28 @@ export interface QuotaDeps {
   claimDeduction: (sessionId: string) => Promise<boolean>;
   incrementSession: (contractId: string) => Promise<unknown>;
   checkAndCompleteContract: (contractId: string) => Promise<unknown>;
+  releaseMoney: (contractId: string, sessionId: string) => Promise<void>;
 }
 
 const defaultQuotaDeps: QuotaDeps = {
   claimDeduction: (id) => sessionRepository.claimDeduction(id),
   incrementSession: (id) => contractRepository.incrementSession(id),
   checkAndCompleteContract: (id) => contractService.checkAndCompleteContract(id),
+  releaseMoney: (contractId, sessionId) => releaseSessionMoney(contractId, sessionId),
 };
 
 /**
- * Consumes exactly one session of the contract's quota, once and only once.
+ * Consumes exactly one session of the contract's quota, once and only once, and pays out that
+ * session's share of the money.
  *
  * `claimDeduction` is a guarded update on `sessionDeducted` (false → true) that reports
  * whether it actually claimed the row; the contract counter is incremented ONLY then. Two
  * concurrent confirms, a retry, or a manual confirm racing the auto-confirm sweep therefore
  * still cost the client a single session.
+ *
+ * The money release hangs off the same claim. Quota and payout are two views of one fact —
+ * "this session was delivered" — so gating both on the single compare-and-swap is what stops
+ * a retry from paying the PT twice for one session.
  *
  * Returns true when this call is the one that consumed the quota.
  */
@@ -65,6 +76,7 @@ export async function deductQuotaOnce(
   const claimed = await deps.claimDeduction(sessionId);
   if (!claimed) return false;
   await deps.incrementSession(contractId);
+  await deps.releaseMoney(contractId, sessionId);
   await deps.checkAndCompleteContract(contractId);
   return true;
 }
@@ -519,14 +531,19 @@ export const bookingService = {
         { sessionDeducted: false, ptNotes: "PT no-show" },
       );
 
+      // The client is owed one session's value in cash, charged back to the three parties.
+      // Not caught: if this fails the client is silently short-changed, which is worse than
+      // surfacing the error to the PT who is admitting the absence.
+      await compensateNoShowMoney(session.contractId, sessionId);
+
       await notificationService
         .create({
           userId: session.clientUserId,
-          text: "Huấn luyện viên vắng mặt. Buổi tập của bạn không bị trừ.",
+          text: "Huấn luyện viên vắng mặt. Bạn được hoàn tiền một buổi vào ví và buổi tập không bị trừ.",
           eventType: "SESSION_NO_SHOW_PT",
           entityType: "SESSION",
           entityId: sessionId,
-          link: "/client/booking",
+          link: "/client/wallet",
         })
         .catch(() => {});
 
