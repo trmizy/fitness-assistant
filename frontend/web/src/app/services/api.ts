@@ -2366,8 +2366,9 @@ export const contractService = {
   },
   getPdfUrl: (contractId: string) => `${API_URL}/contracts/${contractId}/pdf`,
   // Phase 4 — pay a PENDING_PAYMENT contract via wallet
-  pay: async (contractId: string) => {
-    const { data } = await api.post(`/contracts/${contractId}/pay`);
+  // Starts a gateway checkout; the response carries a redirectUrl, not a settled payment.
+  pay: async (contractId: string, provider?: string) => {
+    const { data } = await api.post(`/contracts/${contractId}/pay`, provider ? { provider } : {});
     return data;
   },
 };
@@ -2569,6 +2570,17 @@ export const trainingLocationService = {
 };
 
 // ── Wallet (Phase 4) ─────────────────────────────────────────────────
+export const paymentService = {
+  /**
+   * Which gateways this deployment can actually take money through. Server-decided: the set
+   * depends on which credentials are configured, so the UI must not carry its own list.
+   */
+  getMethods: async () => {
+    const { data } = await api.get('/me/payments/methods');
+    return data?.data ?? data;
+  },
+};
+
 export const walletService = {
   // Always the CLIENT (buyer) wallet, regardless of the user's other roles.
   getWallet: async () => {

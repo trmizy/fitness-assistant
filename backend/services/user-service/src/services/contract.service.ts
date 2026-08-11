@@ -1,6 +1,11 @@
 import { randomUUID } from "crypto";
 import { logger } from "@gym-coach/shared";
-import { ContractStatus, PackageType, SessionMode } from "../generated/prisma";
+import {
+  ContractStatus,
+  PackageType,
+  SessionMode,
+  Prisma,
+} from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
 import { profileRepository } from "../repositories/profile.repository";
@@ -254,8 +259,9 @@ export const contractService = {
         contractId,
         packageName: contract.packageName,
         totalSessions: contract.totalSessions,
-        price: contract.price ?? null,
-        pricePerSession: contract.pricePerSession ?? null,
+        // The PDF generator formats numbers; money is Decimal in the DB.
+        price: contract.price != null ? Number(contract.price) : null,
+        pricePerSession: contract.pricePerSession != null ? Number(contract.pricePerSession) : null,
         startDate: contract.startDate ?? null,
         endDate: contract.endDate ?? null,
         terms: contract.terms ?? null,
@@ -751,8 +757,11 @@ export const contractService = {
     const active = contracts.filter((c) => c.status === "ACTIVE");
     const completed = contracts.filter((c) => c.status === "COMPLETED");
 
-    const totalEarned = completed.reduce((sum, c) => sum + (c.price || 0), 0);
-    const activeRevenue = active.reduce((sum, c) => sum + (c.price || 0), 0);
+    // Summed as Decimal — these are money totals shown to a PT, and floats drift.
+    const sumPrice = (list: typeof contracts) =>
+      list.reduce((sum, c) => sum.plus(c.price ?? 0), new Prisma.Decimal(0));
+    const totalEarned = Number(sumPrice(completed));
+    const activeRevenue = Number(sumPrice(active));
 
     return {
       totalContracts: contracts.length,
@@ -766,7 +775,15 @@ export const contractService = {
   // ── Payment gate (Phase 4) ──────────────────────────────────────────
 
   /** Client pays a PENDING_PAYMENT contract via wallet-transfer (client -> PT wallet). */
-  async pay(contractId: string, clientUserId: string) {
+  /**
+   * Start payment for a contract at the payer's chosen gateway.
+   *
+   * Returns a redirect rather than a completed payment: the client settles with the gateway,
+   * and the contract only goes ACTIVE once payment-service receives the signed webhook and
+   * has split the price into escrow and the parties' pending buckets. Nothing here touches
+   * money — that would mean trusting the browser's word for it.
+   */
+  async pay(contractId: string, clientUserId: string, provider?: string) {
     const contract = await contractRepository.findById(contractId);
     if (!contract) throw err("Contract not found", 404);
     if (contract.clientUserId !== clientUserId)
@@ -782,35 +799,29 @@ export const contractService = {
     }
     if (!contract.price) throw err("Contract has no price set", 400);
 
+    // Each attempt gets its own key: an abandoned checkout must not block a fresh one, and
+    // the gateway itself dedupes a genuine double-submit by transaction id.
     const attemptId = randomUUID();
     const idempotencyKey = `pt-contract:${contract.id}:attempt:${attemptId}`;
 
-    const result = await paymentClient.walletTransfer({
-      payerOwnerId: clientUserId,
-      receiverPtId: contract.ptUserId,
-      amount: contract.price,
+    const result = await paymentClient.checkout({
       relatedEntityId: contract.id,
+      amount: Number(contract.price),
+      rates: {
+        platformRate: contract.platformRate.toString(),
+        ptRate: contract.ptRate.toString(),
+        gymRate: contract.gymRate.toString(),
+      },
+      parties: {
+        ptUserId: contract.ptUserId,
+        gymId: contract.gymId,
+        clientUserId,
+      },
       idempotencyKey,
       initiatedBy: clientUserId,
-      ptId: contract.ptUserId,
+      provider,
+      orderInfo: `Hop dong PT ${contract.packageName}`.slice(0, 100),
     });
-
-    if (result.status === "PAID") {
-      const activated = await contractRepository.activateIfPending(
-        contract.id,
-        result.transactionId,
-      );
-      try {
-        await paymentClient.markActivated(result.transactionId);
-      } catch (e) {
-        logger.warn({
-          error: "mark-activated callback failed, reconciliation will retry",
-          contractId: contract.id,
-          message: (e as Error).message,
-        });
-      }
-      return { contract: activated, payment: result };
-    }
 
     return {
       contract: await contractRepository.findById(contract.id),

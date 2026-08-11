@@ -196,6 +196,18 @@ export const ContractSource: {
 export type ContractSource = (typeof ContractSource)[keyof typeof ContractSource]
 
 
+export const TerminationReason: {
+  CLIENT_CANCELLED: 'CLIENT_CANCELLED',
+  PT_BANNED: 'PT_BANNED',
+  PT_CANCELLED: 'PT_CANCELLED',
+  MUTUAL: 'MUTUAL',
+  EXPIRED: 'EXPIRED',
+  COMPLETED: 'COMPLETED'
+};
+
+export type TerminationReason = (typeof TerminationReason)[keyof typeof TerminationReason]
+
+
 export const SessionStatus: {
   REQUESTED: 'REQUESTED',
   CONFIRMED: 'CONFIRMED',
@@ -290,6 +302,10 @@ export const SessionMode: typeof $Enums.SessionMode
 export type ContractSource = $Enums.ContractSource
 
 export const ContractSource: typeof $Enums.ContractSource
+
+export type TerminationReason = $Enums.TerminationReason
+
+export const TerminationReason: typeof $Enums.TerminationReason
 
 export type SessionStatus = $Enums.SessionStatus
 
@@ -2402,6 +2418,7 @@ export namespace Prisma {
     lastName: string | null
     email: string | null
     isPT: boolean | null
+    ptSuspended: boolean | null
     dateOfBirth: Date | null
     age: number | null
     gender: $Enums.Gender | null
@@ -2425,6 +2442,7 @@ export namespace Prisma {
     lastName: string | null
     email: string | null
     isPT: boolean | null
+    ptSuspended: boolean | null
     dateOfBirth: Date | null
     age: number | null
     gender: $Enums.Gender | null
@@ -2448,6 +2466,7 @@ export namespace Prisma {
     lastName: number
     email: number
     isPT: number
+    ptSuspended: number
     dateOfBirth: number
     age: number
     gender: number
@@ -2494,6 +2513,7 @@ export namespace Prisma {
     lastName?: true
     email?: true
     isPT?: true
+    ptSuspended?: true
     dateOfBirth?: true
     age?: true
     gender?: true
@@ -2517,6 +2537,7 @@ export namespace Prisma {
     lastName?: true
     email?: true
     isPT?: true
+    ptSuspended?: true
     dateOfBirth?: true
     age?: true
     gender?: true
@@ -2540,6 +2561,7 @@ export namespace Prisma {
     lastName?: true
     email?: true
     isPT?: true
+    ptSuspended?: true
     dateOfBirth?: true
     age?: true
     gender?: true
@@ -2653,6 +2675,7 @@ export namespace Prisma {
     lastName: string | null
     email: string | null
     isPT: boolean
+    ptSuspended: boolean
     dateOfBirth: Date | null
     age: number | null
     gender: $Enums.Gender | null
@@ -2698,6 +2721,7 @@ export namespace Prisma {
     lastName?: boolean
     email?: boolean
     isPT?: boolean
+    ptSuspended?: boolean
     dateOfBirth?: boolean
     age?: boolean
     gender?: boolean
@@ -2727,6 +2751,7 @@ export namespace Prisma {
     lastName?: boolean
     email?: boolean
     isPT?: boolean
+    ptSuspended?: boolean
     dateOfBirth?: boolean
     age?: boolean
     gender?: boolean
@@ -2753,6 +2778,7 @@ export namespace Prisma {
     lastName?: boolean
     email?: boolean
     isPT?: boolean
+    ptSuspended?: boolean
     dateOfBirth?: boolean
     age?: boolean
     gender?: boolean
@@ -2792,6 +2818,7 @@ export namespace Prisma {
       lastName: string | null
       email: string | null
       isPT: boolean
+      ptSuspended: boolean
       dateOfBirth: Date | null
       age: number | null
       gender: $Enums.Gender | null
@@ -3210,6 +3237,7 @@ export namespace Prisma {
     readonly lastName: FieldRef<"UserProfile", 'String'>
     readonly email: FieldRef<"UserProfile", 'String'>
     readonly isPT: FieldRef<"UserProfile", 'Boolean'>
+    readonly ptSuspended: FieldRef<"UserProfile", 'Boolean'>
     readonly dateOfBirth: FieldRef<"UserProfile", 'DateTime'>
     readonly age: FieldRef<"UserProfile", 'Int'>
     readonly gender: FieldRef<"UserProfile", 'Gender'>
@@ -7142,8 +7170,14 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
-    price: number | null
-    pricePerSession: number | null
+    price: Decimal | null
+    pricePerSession: Decimal | null
+    platformRate: Decimal | null
+    ptRate: Decimal | null
+    gymRate: Decimal | null
+    releasedToPt: Decimal | null
+    releasedToGym: Decimal | null
+    releasedToPlatform: Decimal | null
   }
 
   export type ContractSumAggregateOutputType = {
@@ -7151,8 +7185,14 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
-    price: number | null
-    pricePerSession: number | null
+    price: Decimal | null
+    pricePerSession: Decimal | null
+    platformRate: Decimal | null
+    ptRate: Decimal | null
+    gymRate: Decimal | null
+    releasedToPt: Decimal | null
+    releasedToGym: Decimal | null
+    releasedToPlatform: Decimal | null
   }
 
   export type ContractMinAggregateOutputType = {
@@ -7168,8 +7208,8 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
-    price: number | null
-    pricePerSession: number | null
+    price: Decimal | null
+    pricePerSession: Decimal | null
     startDate: Date | null
     endDate: Date | null
     completedAt: Date | null
@@ -7195,6 +7235,14 @@ export namespace Prisma {
     gymId: string | null
     source: $Enums.ContractSource | null
     paymentTransactionId: string | null
+    platformRate: Decimal | null
+    ptRate: Decimal | null
+    gymRate: Decimal | null
+    terminationReason: $Enums.TerminationReason | null
+    terminatedAt: Date | null
+    releasedToPt: Decimal | null
+    releasedToGym: Decimal | null
+    releasedToPlatform: Decimal | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7212,8 +7260,8 @@ export namespace Prisma {
     extraSessions: number | null
     totalSessions: number | null
     usedSessions: number | null
-    price: number | null
-    pricePerSession: number | null
+    price: Decimal | null
+    pricePerSession: Decimal | null
     startDate: Date | null
     endDate: Date | null
     completedAt: Date | null
@@ -7239,6 +7287,14 @@ export namespace Prisma {
     gymId: string | null
     source: $Enums.ContractSource | null
     paymentTransactionId: string | null
+    platformRate: Decimal | null
+    ptRate: Decimal | null
+    gymRate: Decimal | null
+    terminationReason: $Enums.TerminationReason | null
+    terminatedAt: Date | null
+    releasedToPt: Decimal | null
+    releasedToGym: Decimal | null
+    releasedToPlatform: Decimal | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7283,6 +7339,14 @@ export namespace Prisma {
     gymId: number
     source: number
     paymentTransactionId: number
+    platformRate: number
+    ptRate: number
+    gymRate: number
+    terminationReason: number
+    terminatedAt: number
+    releasedToPt: number
+    releasedToGym: number
+    releasedToPlatform: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -7296,6 +7360,12 @@ export namespace Prisma {
     usedSessions?: true
     price?: true
     pricePerSession?: true
+    platformRate?: true
+    ptRate?: true
+    gymRate?: true
+    releasedToPt?: true
+    releasedToGym?: true
+    releasedToPlatform?: true
   }
 
   export type ContractSumAggregateInputType = {
@@ -7305,6 +7375,12 @@ export namespace Prisma {
     usedSessions?: true
     price?: true
     pricePerSession?: true
+    platformRate?: true
+    ptRate?: true
+    gymRate?: true
+    releasedToPt?: true
+    releasedToGym?: true
+    releasedToPlatform?: true
   }
 
   export type ContractMinAggregateInputType = {
@@ -7347,6 +7423,14 @@ export namespace Prisma {
     gymId?: true
     source?: true
     paymentTransactionId?: true
+    platformRate?: true
+    ptRate?: true
+    gymRate?: true
+    terminationReason?: true
+    terminatedAt?: true
+    releasedToPt?: true
+    releasedToGym?: true
+    releasedToPlatform?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7391,6 +7475,14 @@ export namespace Prisma {
     gymId?: true
     source?: true
     paymentTransactionId?: true
+    platformRate?: true
+    ptRate?: true
+    gymRate?: true
+    terminationReason?: true
+    terminatedAt?: true
+    releasedToPt?: true
+    releasedToGym?: true
+    releasedToPlatform?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7435,6 +7527,14 @@ export namespace Prisma {
     gymId?: true
     source?: true
     paymentTransactionId?: true
+    platformRate?: true
+    ptRate?: true
+    gymRate?: true
+    terminationReason?: true
+    terminatedAt?: true
+    releasedToPt?: true
+    releasedToGym?: true
+    releasedToPlatform?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -7539,8 +7639,8 @@ export namespace Prisma {
     extraSessions: number
     totalSessions: number
     usedSessions: number
-    price: number | null
-    pricePerSession: number | null
+    price: Decimal | null
+    pricePerSession: Decimal | null
     startDate: Date | null
     endDate: Date | null
     completedAt: Date | null
@@ -7566,6 +7666,14 @@ export namespace Prisma {
     gymId: string | null
     source: $Enums.ContractSource
     paymentTransactionId: string | null
+    platformRate: Decimal
+    ptRate: Decimal
+    gymRate: Decimal
+    terminationReason: $Enums.TerminationReason | null
+    terminatedAt: Date | null
+    releasedToPt: Decimal
+    releasedToGym: Decimal
+    releasedToPlatform: Decimal
     createdAt: Date
     updatedAt: Date
     _count: ContractCountAggregateOutputType | null
@@ -7629,6 +7737,14 @@ export namespace Prisma {
     gymId?: boolean
     source?: boolean
     paymentTransactionId?: boolean
+    platformRate?: boolean
+    ptRate?: boolean
+    gymRate?: boolean
+    terminationReason?: boolean
+    terminatedAt?: boolean
+    releasedToPt?: boolean
+    releasedToGym?: boolean
+    releasedToPlatform?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     sessions?: boolean | Contract$sessionsArgs<ExtArgs>
@@ -7676,6 +7792,14 @@ export namespace Prisma {
     gymId?: boolean
     source?: boolean
     paymentTransactionId?: boolean
+    platformRate?: boolean
+    ptRate?: boolean
+    gymRate?: boolean
+    terminationReason?: boolean
+    terminatedAt?: boolean
+    releasedToPt?: boolean
+    releasedToGym?: boolean
+    releasedToPlatform?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["contract"]>
@@ -7720,6 +7844,14 @@ export namespace Prisma {
     gymId?: boolean
     source?: boolean
     paymentTransactionId?: boolean
+    platformRate?: boolean
+    ptRate?: boolean
+    gymRate?: boolean
+    terminationReason?: boolean
+    terminatedAt?: boolean
+    releasedToPt?: boolean
+    releasedToGym?: boolean
+    releasedToPlatform?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -7750,8 +7882,8 @@ export namespace Prisma {
       extraSessions: number
       totalSessions: number
       usedSessions: number
-      price: number | null
-      pricePerSession: number | null
+      price: Prisma.Decimal | null
+      pricePerSession: Prisma.Decimal | null
       startDate: Date | null
       endDate: Date | null
       completedAt: Date | null
@@ -7777,6 +7909,19 @@ export namespace Prisma {
       gymId: string | null
       source: $Enums.ContractSource
       paymentTransactionId: string | null
+      platformRate: Prisma.Decimal
+      ptRate: Prisma.Decimal
+      gymRate: Prisma.Decimal
+      terminationReason: $Enums.TerminationReason | null
+      terminatedAt: Date | null
+      /**
+       * Money already moved out of the pending buckets for this contract, per party. Lets
+       * termination top each party up to their final entitlement instead of double-paying the
+       * part already released session by session.
+       */
+      releasedToPt: Prisma.Decimal
+      releasedToGym: Prisma.Decimal
+      releasedToPlatform: Prisma.Decimal
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["contract"]>
@@ -8186,8 +8331,8 @@ export namespace Prisma {
     readonly extraSessions: FieldRef<"Contract", 'Int'>
     readonly totalSessions: FieldRef<"Contract", 'Int'>
     readonly usedSessions: FieldRef<"Contract", 'Int'>
-    readonly price: FieldRef<"Contract", 'Float'>
-    readonly pricePerSession: FieldRef<"Contract", 'Float'>
+    readonly price: FieldRef<"Contract", 'Decimal'>
+    readonly pricePerSession: FieldRef<"Contract", 'Decimal'>
     readonly startDate: FieldRef<"Contract", 'DateTime'>
     readonly endDate: FieldRef<"Contract", 'DateTime'>
     readonly completedAt: FieldRef<"Contract", 'DateTime'>
@@ -8213,6 +8358,14 @@ export namespace Prisma {
     readonly gymId: FieldRef<"Contract", 'String'>
     readonly source: FieldRef<"Contract", 'ContractSource'>
     readonly paymentTransactionId: FieldRef<"Contract", 'String'>
+    readonly platformRate: FieldRef<"Contract", 'Decimal'>
+    readonly ptRate: FieldRef<"Contract", 'Decimal'>
+    readonly gymRate: FieldRef<"Contract", 'Decimal'>
+    readonly terminationReason: FieldRef<"Contract", 'TerminationReason'>
+    readonly terminatedAt: FieldRef<"Contract", 'DateTime'>
+    readonly releasedToPt: FieldRef<"Contract", 'Decimal'>
+    readonly releasedToGym: FieldRef<"Contract", 'Decimal'>
+    readonly releasedToPlatform: FieldRef<"Contract", 'Decimal'>
     readonly createdAt: FieldRef<"Contract", 'DateTime'>
     readonly updatedAt: FieldRef<"Contract", 'DateTime'>
   }
@@ -17916,6 +18069,7 @@ export namespace Prisma {
     lastName: 'lastName',
     email: 'email',
     isPT: 'isPT',
+    ptSuspended: 'ptSuspended',
     dateOfBirth: 'dateOfBirth',
     age: 'age',
     gender: 'gender',
@@ -18065,6 +18219,14 @@ export namespace Prisma {
     gymId: 'gymId',
     source: 'source',
     paymentTransactionId: 'paymentTransactionId',
+    platformRate: 'platformRate',
+    ptRate: 'ptRate',
+    gymRate: 'gymRate',
+    terminationReason: 'terminationReason',
+    terminatedAt: 'terminatedAt',
+    releasedToPt: 'releasedToPt',
+    releasedToGym: 'releasedToGym',
+    releasedToPlatform: 'releasedToPlatform',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -18492,6 +18654,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Decimal'
+   */
+  export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
+    
+
+
+  /**
+   * Reference to a field of type 'Decimal[]'
+   */
+  export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
+    
+
+
+  /**
    * Reference to a field of type 'ContractSource'
    */
   export type EnumContractSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContractSource'>
@@ -18502,6 +18678,20 @@ export namespace Prisma {
    * Reference to a field of type 'ContractSource[]'
    */
   export type ListEnumContractSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ContractSource[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'TerminationReason'
+   */
+  export type EnumTerminationReasonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TerminationReason'>
+    
+
+
+  /**
+   * Reference to a field of type 'TerminationReason[]'
+   */
+  export type ListEnumTerminationReasonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TerminationReason[]'>
     
 
 
@@ -18574,6 +18764,7 @@ export namespace Prisma {
     lastName?: StringNullableFilter<"UserProfile"> | string | null
     email?: StringNullableFilter<"UserProfile"> | string | null
     isPT?: BoolFilter<"UserProfile"> | boolean
+    ptSuspended?: BoolFilter<"UserProfile"> | boolean
     dateOfBirth?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
@@ -18602,6 +18793,7 @@ export namespace Prisma {
     lastName?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
     isPT?: SortOrder
+    ptSuspended?: SortOrder
     dateOfBirth?: SortOrderInput | SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
@@ -18633,6 +18825,7 @@ export namespace Prisma {
     lastName?: StringNullableFilter<"UserProfile"> | string | null
     email?: StringNullableFilter<"UserProfile"> | string | null
     isPT?: BoolFilter<"UserProfile"> | boolean
+    ptSuspended?: BoolFilter<"UserProfile"> | boolean
     dateOfBirth?: DateTimeNullableFilter<"UserProfile"> | Date | string | null
     age?: IntNullableFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableFilter<"UserProfile"> | $Enums.Gender | null
@@ -18661,6 +18854,7 @@ export namespace Prisma {
     lastName?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
     isPT?: SortOrder
+    ptSuspended?: SortOrder
     dateOfBirth?: SortOrderInput | SortOrder
     age?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
@@ -18695,6 +18889,7 @@ export namespace Prisma {
     lastName?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     email?: StringNullableWithAggregatesFilter<"UserProfile"> | string | null
     isPT?: BoolWithAggregatesFilter<"UserProfile"> | boolean
+    ptSuspended?: BoolWithAggregatesFilter<"UserProfile"> | boolean
     dateOfBirth?: DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
     age?: IntNullableWithAggregatesFilter<"UserProfile"> | number | null
     gender?: EnumGenderNullableWithAggregatesFilter<"UserProfile"> | $Enums.Gender | null
@@ -19173,8 +19368,8 @@ export namespace Prisma {
     extraSessions?: IntFilter<"Contract"> | number
     totalSessions?: IntFilter<"Contract"> | number
     usedSessions?: IntFilter<"Contract"> | number
-    price?: FloatNullableFilter<"Contract"> | number | null
-    pricePerSession?: FloatNullableFilter<"Contract"> | number | null
+    price?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     startDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     endDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     completedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
@@ -19200,6 +19395,14 @@ export namespace Prisma {
     gymId?: StringNullableFilter<"Contract"> | string | null
     source?: EnumContractSourceFilter<"Contract"> | $Enums.ContractSource
     paymentTransactionId?: StringNullableFilter<"Contract"> | string | null
+    platformRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    terminationReason?: EnumTerminationReasonNullableFilter<"Contract"> | $Enums.TerminationReason | null
+    terminatedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    releasedToPt?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFilter<"Contract"> | Date | string
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
     sessions?: SessionListRelationFilter
@@ -19246,6 +19449,14 @@ export namespace Prisma {
     gymId?: SortOrderInput | SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrderInput | SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    terminationReason?: SortOrderInput | SortOrder
+    terminatedAt?: SortOrderInput | SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     sessions?: SessionOrderByRelationAggregateInput
@@ -19268,8 +19479,8 @@ export namespace Prisma {
     extraSessions?: IntFilter<"Contract"> | number
     totalSessions?: IntFilter<"Contract"> | number
     usedSessions?: IntFilter<"Contract"> | number
-    price?: FloatNullableFilter<"Contract"> | number | null
-    pricePerSession?: FloatNullableFilter<"Contract"> | number | null
+    price?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: DecimalNullableFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     startDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     endDate?: DateTimeNullableFilter<"Contract"> | Date | string | null
     completedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
@@ -19295,6 +19506,14 @@ export namespace Prisma {
     gymId?: StringNullableFilter<"Contract"> | string | null
     source?: EnumContractSourceFilter<"Contract"> | $Enums.ContractSource
     paymentTransactionId?: StringNullableFilter<"Contract"> | string | null
+    platformRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    terminationReason?: EnumTerminationReasonNullableFilter<"Contract"> | $Enums.TerminationReason | null
+    terminatedAt?: DateTimeNullableFilter<"Contract"> | Date | string | null
+    releasedToPt?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFilter<"Contract"> | Date | string
     updatedAt?: DateTimeFilter<"Contract"> | Date | string
     sessions?: SessionListRelationFilter
@@ -19341,6 +19560,14 @@ export namespace Prisma {
     gymId?: SortOrderInput | SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrderInput | SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    terminationReason?: SortOrderInput | SortOrder
+    terminatedAt?: SortOrderInput | SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ContractCountOrderByAggregateInput
@@ -19366,8 +19593,8 @@ export namespace Prisma {
     extraSessions?: IntWithAggregatesFilter<"Contract"> | number
     totalSessions?: IntWithAggregatesFilter<"Contract"> | number
     usedSessions?: IntWithAggregatesFilter<"Contract"> | number
-    price?: FloatNullableWithAggregatesFilter<"Contract"> | number | null
-    pricePerSession?: FloatNullableWithAggregatesFilter<"Contract"> | number | null
+    price?: DecimalNullableWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: DecimalNullableWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string | null
     startDate?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
     endDate?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
     completedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
@@ -19393,6 +19620,14 @@ export namespace Prisma {
     gymId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
     source?: EnumContractSourceWithAggregatesFilter<"Contract"> | $Enums.ContractSource
     paymentTransactionId?: StringNullableWithAggregatesFilter<"Contract"> | string | null
+    platformRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    terminationReason?: EnumTerminationReasonNullableWithAggregatesFilter<"Contract"> | $Enums.TerminationReason | null
+    terminatedAt?: DateTimeNullableWithAggregatesFilter<"Contract"> | Date | string | null
+    releasedToPt?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalWithAggregatesFilter<"Contract"> | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeWithAggregatesFilter<"Contract"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Contract"> | Date | string
   }
@@ -20236,6 +20471,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
     dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
@@ -20264,6 +20500,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
     dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
@@ -20292,6 +20529,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
@@ -20320,6 +20558,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
@@ -20348,6 +20587,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
     dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
@@ -20374,6 +20614,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
@@ -20400,6 +20641,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
@@ -20983,8 +21225,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -21010,6 +21252,14 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutContractInput
@@ -21029,8 +21279,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -21056,6 +21306,14 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
@@ -21075,8 +21333,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21102,6 +21360,14 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutContractNestedInput
@@ -21121,8 +21387,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21148,6 +21414,14 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
@@ -21167,8 +21441,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -21194,6 +21468,14 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -21211,8 +21493,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21238,6 +21520,14 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -21255,8 +21545,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -21282,6 +21572,14 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -22408,6 +22706,7 @@ export namespace Prisma {
     lastName?: SortOrder
     email?: SortOrder
     isPT?: SortOrder
+    ptSuspended?: SortOrder
     dateOfBirth?: SortOrder
     age?: SortOrder
     gender?: SortOrder
@@ -22443,6 +22742,7 @@ export namespace Prisma {
     lastName?: SortOrder
     email?: SortOrder
     isPT?: SortOrder
+    ptSuspended?: SortOrder
     dateOfBirth?: SortOrder
     age?: SortOrder
     gender?: SortOrder
@@ -22466,6 +22766,7 @@ export namespace Prisma {
     lastName?: SortOrder
     email?: SortOrder
     isPT?: SortOrder
+    ptSuspended?: SortOrder
     dateOfBirth?: SortOrder
     age?: SortOrder
     gender?: SortOrder
@@ -23044,11 +23345,40 @@ export namespace Prisma {
     not?: NestedEnumSessionModeNullableFilter<$PrismaModel> | $Enums.SessionMode | null
   }
 
+  export type DecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
   export type EnumContractSourceFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
     in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
     notIn?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
     not?: NestedEnumContractSourceFilter<$PrismaModel> | $Enums.ContractSource
+  }
+
+  export type DecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+  }
+
+  export type EnumTerminationReasonNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.TerminationReason | EnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    in?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumTerminationReasonNullableFilter<$PrismaModel> | $Enums.TerminationReason | null
   }
 
   export type SessionListRelationFilter = {
@@ -23111,6 +23441,14 @@ export namespace Prisma {
     gymId?: SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    terminationReason?: SortOrder
+    terminatedAt?: SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -23122,6 +23460,12 @@ export namespace Prisma {
     usedSessions?: SortOrder
     price?: SortOrder
     pricePerSession?: SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
   }
 
   export type ContractMaxOrderByAggregateInput = {
@@ -23164,6 +23508,14 @@ export namespace Prisma {
     gymId?: SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    terminationReason?: SortOrder
+    terminatedAt?: SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -23208,6 +23560,14 @@ export namespace Prisma {
     gymId?: SortOrder
     source?: SortOrder
     paymentTransactionId?: SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    terminationReason?: SortOrder
+    terminatedAt?: SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -23219,6 +23579,12 @@ export namespace Prisma {
     usedSessions?: SortOrder
     price?: SortOrder
     pricePerSession?: SortOrder
+    platformRate?: SortOrder
+    ptRate?: SortOrder
+    gymRate?: SortOrder
+    releasedToPt?: SortOrder
+    releasedToGym?: SortOrder
+    releasedToPlatform?: SortOrder
   }
 
   export type EnumContractStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -23251,6 +23617,22 @@ export namespace Prisma {
     _max?: NestedEnumSessionModeNullableFilter<$PrismaModel>
   }
 
+  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
   export type EnumContractSourceWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
     in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
@@ -23259,6 +23641,32 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumContractSourceFilter<$PrismaModel>
     _max?: NestedEnumContractSourceFilter<$PrismaModel>
+  }
+
+  export type DecimalWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedDecimalFilter<$PrismaModel>
+    _sum?: NestedDecimalFilter<$PrismaModel>
+    _min?: NestedDecimalFilter<$PrismaModel>
+    _max?: NestedDecimalFilter<$PrismaModel>
+  }
+
+  export type EnumTerminationReasonNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TerminationReason | EnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    in?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumTerminationReasonNullableWithAggregatesFilter<$PrismaModel> | $Enums.TerminationReason | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumTerminationReasonNullableFilter<$PrismaModel>
+    _max?: NestedEnumTerminationReasonNullableFilter<$PrismaModel>
   }
 
   export type EnumSessionStatusFilter<$PrismaModel = never> = {
@@ -24285,8 +24693,28 @@ export namespace Prisma {
     set?: $Enums.SessionMode | null
   }
 
+  export type NullableDecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string | null
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
   export type EnumContractSourceFieldUpdateOperationsInput = {
     set?: $Enums.ContractSource
+  }
+
+  export type DecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
+  export type NullableEnumTerminationReasonFieldUpdateOperationsInput = {
+    set?: $Enums.TerminationReason | null
   }
 
   export type SessionUpdateManyWithoutContractNestedInput = {
@@ -25010,11 +25438,40 @@ export namespace Prisma {
     not?: NestedEnumSessionModeNullableFilter<$PrismaModel> | $Enums.SessionMode | null
   }
 
+  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
   export type NestedEnumContractSourceFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
     in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
     notIn?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
     not?: NestedEnumContractSourceFilter<$PrismaModel> | $Enums.ContractSource
+  }
+
+  export type NestedDecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+  }
+
+  export type NestedEnumTerminationReasonNullableFilter<$PrismaModel = never> = {
+    equals?: $Enums.TerminationReason | EnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    in?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumTerminationReasonNullableFilter<$PrismaModel> | $Enums.TerminationReason | null
   }
 
   export type NestedEnumContractStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -25047,6 +25504,22 @@ export namespace Prisma {
     _max?: NestedEnumSessionModeNullableFilter<$PrismaModel>
   }
 
+  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
   export type NestedEnumContractSourceWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.ContractSource | EnumContractSourceFieldRefInput<$PrismaModel>
     in?: $Enums.ContractSource[] | ListEnumContractSourceFieldRefInput<$PrismaModel>
@@ -25055,6 +25528,32 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumContractSourceFilter<$PrismaModel>
     _max?: NestedEnumContractSourceFilter<$PrismaModel>
+  }
+
+  export type NestedDecimalWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedDecimalFilter<$PrismaModel>
+    _sum?: NestedDecimalFilter<$PrismaModel>
+    _min?: NestedDecimalFilter<$PrismaModel>
+    _max?: NestedDecimalFilter<$PrismaModel>
+  }
+
+  export type NestedEnumTerminationReasonNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TerminationReason | EnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    in?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    notIn?: $Enums.TerminationReason[] | ListEnumTerminationReasonFieldRefInput<$PrismaModel> | null
+    not?: NestedEnumTerminationReasonNullableWithAggregatesFilter<$PrismaModel> | $Enums.TerminationReason | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedEnumTerminationReasonNullableFilter<$PrismaModel>
+    _max?: NestedEnumTerminationReasonNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumSessionStatusFilter<$PrismaModel = never> = {
@@ -25541,6 +26040,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
     dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
@@ -25568,6 +26068,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
     dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
@@ -25671,6 +26172,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
@@ -25698,6 +26200,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
@@ -26386,8 +26889,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -26413,6 +26916,14 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: SessionReviewCreateNestedManyWithoutContractInput
@@ -26431,8 +26942,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -26458,6 +26969,14 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: SessionReviewUncheckedCreateNestedManyWithoutContractInput
@@ -26515,8 +27034,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -26542,6 +27061,14 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: SessionReviewUpdateManyWithoutContractNestedInput
@@ -26560,8 +27087,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -26587,6 +27114,14 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: SessionReviewUncheckedUpdateManyWithoutContractNestedInput
@@ -26693,8 +27228,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -26720,6 +27255,14 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutContractInput
@@ -26738,8 +27281,8 @@ export namespace Prisma {
     extraSessions?: number
     totalSessions: number
     usedSessions?: number
-    price?: number | null
-    pricePerSession?: number | null
+    price?: Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: Decimal | DecimalJsLike | number | string | null
     startDate?: Date | string | null
     endDate?: Date | string | null
     completedAt?: Date | string | null
@@ -26765,6 +27308,14 @@ export namespace Prisma {
     gymId?: string | null
     source?: $Enums.ContractSource
     paymentTransactionId?: string | null
+    platformRate?: Decimal | DecimalJsLike | number | string
+    ptRate?: Decimal | DecimalJsLike | number | string
+    gymRate?: Decimal | DecimalJsLike | number | string
+    terminationReason?: $Enums.TerminationReason | null
+    terminatedAt?: Date | string | null
+    releasedToPt?: Decimal | DecimalJsLike | number | string
+    releasedToGym?: Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutContractInput
@@ -26864,8 +27415,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -26891,6 +27442,14 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutContractNestedInput
@@ -26909,8 +27468,8 @@ export namespace Prisma {
     extraSessions?: IntFieldUpdateOperationsInput | number
     totalSessions?: IntFieldUpdateOperationsInput | number
     usedSessions?: IntFieldUpdateOperationsInput | number
-    price?: NullableFloatFieldUpdateOperationsInput | number | null
-    pricePerSession?: NullableFloatFieldUpdateOperationsInput | number | null
+    price?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    pricePerSession?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -26936,6 +27495,14 @@ export namespace Prisma {
     gymId?: NullableStringFieldUpdateOperationsInput | string | null
     source?: EnumContractSourceFieldUpdateOperationsInput | $Enums.ContractSource
     paymentTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    ptRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    gymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    terminationReason?: NullableEnumTerminationReasonFieldUpdateOperationsInput | $Enums.TerminationReason | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    releasedToPt?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToGym?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    releasedToPlatform?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutContractNestedInput
@@ -27243,6 +27810,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
     dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
@@ -27270,6 +27838,7 @@ export namespace Prisma {
     lastName?: string | null
     email?: string | null
     isPT?: boolean
+    ptSuspended?: boolean
     dateOfBirth?: Date | string | null
     age?: number | null
     gender?: $Enums.Gender | null
@@ -27383,6 +27952,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
@@ -27410,6 +27980,7 @@ export namespace Prisma {
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     isPT?: BoolFieldUpdateOperationsInput | boolean
+    ptSuspended?: BoolFieldUpdateOperationsInput | boolean
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     age?: NullableIntFieldUpdateOperationsInput | number | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null

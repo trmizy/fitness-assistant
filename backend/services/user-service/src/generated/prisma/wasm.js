@@ -129,6 +129,7 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   lastName: 'lastName',
   email: 'email',
   isPT: 'isPT',
+  ptSuspended: 'ptSuspended',
   dateOfBirth: 'dateOfBirth',
   age: 'age',
   gender: 'gender',
@@ -266,6 +267,14 @@ exports.Prisma.ContractScalarFieldEnum = {
   gymId: 'gymId',
   source: 'source',
   paymentTransactionId: 'paymentTransactionId',
+  platformRate: 'platformRate',
+  ptRate: 'ptRate',
+  gymRate: 'gymRate',
+  terminationReason: 'terminationReason',
+  terminatedAt: 'terminatedAt',
+  releasedToPt: 'releasedToPt',
+  releasedToGym: 'releasedToGym',
+  releasedToPlatform: 'releasedToPlatform',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -504,6 +513,15 @@ exports.SessionMode = exports.$Enums.SessionMode = {
 exports.ContractSource = exports.$Enums.ContractSource = {
   INDEPENDENT: 'INDEPENDENT',
   GYM: 'GYM'
+};
+
+exports.TerminationReason = exports.$Enums.TerminationReason = {
+  CLIENT_CANCELLED: 'CLIENT_CANCELLED',
+  PT_BANNED: 'PT_BANNED',
+  PT_CANCELLED: 'PT_CANCELLED',
+  MUTUAL: 'MUTUAL',
+  EXPIRED: 'EXPIRED',
+  COMPLETED: 'COMPLETED'
 };
 
 exports.SessionStatus = exports.$Enums.SessionStatus = {

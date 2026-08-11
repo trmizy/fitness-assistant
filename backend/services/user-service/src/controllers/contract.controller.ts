@@ -426,15 +426,21 @@ export const contractController = {
     }
   },
 
-  // Client pays a PENDING_PAYMENT contract via wallet-transfer
+  // Client starts payment for a PENDING_PAYMENT contract at their chosen gateway.
+  // Responds with a redirect URL; the contract activates on the webhook, not here.
   async pay(req: any, res: Response) {
     try {
       const clientUserId = req.headers['x-user-id'] as string;
-      const result = await contractService.pay(req.params.id, clientUserId);
+      const provider = typeof req.body?.provider === 'string' ? req.body.provider.toUpperCase() : undefined;
+      const result = await contractService.pay(req.params.id, clientUserId, provider);
       res.json(result);
     } catch (error: any) {
       if (error.message === 'ALREADY_PAID') {
         res.status(409).json({ error: error.message });
+        return;
+      }
+      if (error.code === 'PROVIDER_NOT_CONFIGURED') {
+        res.status(400).json({ error: error.message, code: error.code });
         return;
       }
       logger.error(error, 'Contract pay error');

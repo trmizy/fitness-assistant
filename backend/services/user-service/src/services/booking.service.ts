@@ -91,6 +91,12 @@ export const bookingService = {
       throw err("Not authorized", 403);
     }
 
+    // A suspended PT has had their contracts unwound and refunded — no new sessions on top.
+    const ptProfile = await profileRepository.findByUserId(contract.ptUserId);
+    if ((ptProfile as any)?.ptSuspended) {
+      throw err("Huấn luyện viên hiện không nhận lịch mới", 409);
+    }
+
     // Contract must be ACTIVE
     if (contract.status !== ContractStatus.ACTIVE) {
       throw err("Contract is not active", 400);

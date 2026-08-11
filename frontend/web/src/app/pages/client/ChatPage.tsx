@@ -105,7 +105,7 @@ export function ChatPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex bg-zinc-950">
+    <div className="h-full flex bg-zinc-950">
       {/* Conversation list */}
       <div
         className={`${mobileView === "chat" ? "hidden" : "flex"} lg:flex flex-col w-full lg:w-80 bg-zinc-900 border-r border-zinc-800/60 flex-shrink-0`}

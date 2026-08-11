@@ -25,6 +25,7 @@ import type {
   ContractStatus,
 } from "../../types";
 import { formatVND } from "../../utils/currency";
+import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
 
 const statusConfig: Record<
   ContractStatus,
@@ -128,6 +129,8 @@ export function ContractPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  // The contract awaiting a gateway choice; null while the picker is closed.
+  const [payTarget, setPayTarget] = useState<Contract | null>(null);
 
   // The contract id is the reference number a client has to quote when reporting a problem,
   // so it needs to leave the page intact — no hand-transcribing a UUID.
@@ -161,22 +164,33 @@ export function ContractPage() {
     },
   });
 
-  // Phase 4 — pay a PENDING_PAYMENT contract via wallet
+  /**
+   * Pay a PENDING_PAYMENT contract at the gateway the client picked.
+   *
+   * The response is a redirect, not a completed payment — the contract activates only once
+   * the gateway's signed webhook reaches payment-service. Showing success here would be
+   * taking the browser's word for whether money moved.
+   */
   const payMutation = useMutation({
-    mutationFn: (id: string) => contractService.pay(id),
+    mutationFn: ({ id, provider }: { id: string; provider: string }) =>
+      contractService.pay(id, provider),
     onSuccess: (result: any) => {
-      if (result?.payment?.status === "PAID") {
-        toast.success("Payment successful — contract is now active!");
-      } else {
-        toast.error(
-          result?.payment?.failureReason ||
-            "Payment failed — check your wallet balance",
-        );
+      const url = result?.payment?.redirectUrl;
+      if (url) {
+        window.location.href = url;
+        return;
       }
+      setPayTarget(null);
+      toast.error(
+        result?.payment?.failureReason ||
+          "Cổng thanh toán không trả về liên kết — thử lại hoặc chọn cổng khác",
+      );
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.error || "Failed to pay");
+      toast.error(
+        err?.response?.data?.error || err?.response?.data?.code || "Không tạo được giao dịch",
+      );
     },
   });
 
@@ -503,7 +517,7 @@ export function ContractPage() {
               <div className="flex flex-wrap gap-2">
                 {selected.status === "PENDING_PAYMENT" && (
                   <button
-                    onClick={() => payMutation.mutate(selected.id)}
+                    onClick={() => setPayTarget(selected)}
                     disabled={payMutation.isPending}
                     className="flex items-center gap-2 bg-orange-500 hover:bg-orange-400 disabled:opacity-60 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-orange-500/20"
                   >
@@ -538,6 +552,15 @@ export function ContractPage() {
             </div>
           )}
         </div>
+      )}
+
+      {payTarget && (
+        <PaymentMethodDialog
+          amount={Number(payTarget.price ?? 0)}
+          isSubmitting={payMutation.isPending}
+          onClose={() => setPayTarget(null)}
+          onConfirm={(provider) => payMutation.mutate({ id: payTarget.id, provider })}
+        />
       )}
 
       {/* Cancel Dialog */}

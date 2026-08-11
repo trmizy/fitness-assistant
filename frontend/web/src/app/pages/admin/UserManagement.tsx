@@ -9,6 +9,8 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
+import { Button } from "../ui/button";
+import { Preferences } from "@capacitor/preferences";
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -46,7 +48,7 @@ export function UserManagement() {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("accessToken");
+      const { value: token } = await Preferences.get({ key: "accessToken" });
       const { data } = await axios.get(`${API_BASE}/admin/users`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });

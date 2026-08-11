@@ -23,8 +23,8 @@ export function TabbedPage({
   const activeTab = tabs.find((t) => t.value === active) ?? tabs[0];
 
   return (
-    <div>
-      <div className="flex gap-2 overflow-x-auto px-4 md:px-6 pt-4 pb-2">
+    <div className="flex flex-col h-full">
+      <div className="flex-none flex gap-2 overflow-x-auto px-4 md:px-6 pt-4 pb-2">
         {tabs.map((t) => (
           <button
             key={t.value}
@@ -41,7 +41,9 @@ export function TabbedPage({
           </button>
         ))}
       </div>
-      {activeTab?.content}
+      <div className="flex-1 min-h-0">
+        {activeTab?.content}
+      </div>
     </div>
   );
 }

@@ -78,6 +78,9 @@ export const profileRepository = {
     // Compose UserProfile where
     const profileWhere: any = {
       isPT: true,
+      // A suspended trainer (account disabled by an admin) must not be discoverable —
+      // their contracts have already been unwound and refunded.
+      ptSuspended: false,
       ptApplication: { is: ptApplicationWhere },
     };
 

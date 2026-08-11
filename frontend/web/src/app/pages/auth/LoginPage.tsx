@@ -13,7 +13,9 @@ import {
   Brain,
   ServerCog,
 } from "lucide-react";
+
 import { getServerOverride, setServerOverride } from "../../config/serverUrl";
+import { Preferences } from "@capacitor/preferences";
 
 const features = [
   { icon: Activity, text: "Phân tích thành phần cơ thể InBody" },
@@ -44,7 +46,8 @@ export function LoginPage() {
     try {
       const success = await login(email, password);
       if (success) {
-        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        const { value: userStr } = await Preferences.get({ key: "user" });
+        const storedUser = JSON.parse(userStr || "{}");
         // Normalize casing — role may be stored in different cases.
         const rawRole = String(storedUser.role || "").toUpperCase();
 

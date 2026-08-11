@@ -1,5 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import { chatSocketTarget } from "../config/serverUrl";
+import { Preferences } from "@capacitor/preferences";
 
 // Empty string = same-origin (current page), proxied by Vite in dev under
 // "/chat-socket.io" (see vite.config.ts) to chat-service's real
@@ -20,7 +21,10 @@ export function getSocket(): Socket {
   if (!socket) {
     socket = io(CHAT_WS_URL, {
       path: CHAT_WS_PATH,
-      auth: (cb) => cb({ token: localStorage.getItem("accessToken") }),
+      auth: async (cb) => {
+        const { value: token } = await Preferences.get({ key: "accessToken" });
+        cb({ token });
+      },
       autoConnect: false,
       // Voice/video call signaling still runs on chat-service until the call
       // service is moved behind the gateway socket.

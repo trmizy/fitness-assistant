@@ -1,13 +1,60 @@
 import { Router } from "express";
+import { logger } from "@gym-coach/shared";
 import { serviceSecretMiddleware } from "../middleware/serviceSecret.middleware";
 import { contractController } from "../controllers/contract.controller";
 import { profileService } from "../services/profile.service";
 import { inbodyService } from "../services/inbody.service";
+import { ptDeactivationService } from "../services/pt-deactivation.service";
 
 const router = Router();
 
 // All routes under /internal are protected by service-secret. Not exposed to public via the gateway.
 router.use(serviceSecretMiddleware);
+
+/**
+ * auth-service calls this right after an admin disables a PT's account: disabling only
+ * blocked the login, leaving live contracts, booked sessions and a searchable profile
+ * behind. Unwinds every open contract with a prorated refund and hides the PT.
+ */
+router.post("/pt/:ptUserId/deactivate", async (req, res) => {
+  try {
+    const { adminId, reason } = req.body ?? {};
+    const result = await ptDeactivationService.deactivatePT(
+      req.params.ptUserId,
+      adminId || "SYSTEM",
+      reason,
+    );
+    res.json(result);
+  } catch (error: any) {
+    logger.error(error, "PT deactivation failed");
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/** Re-enabling the account lifts the discovery/booking block. Contracts are NOT restored. */
+router.post("/pt/:ptUserId/reactivate", async (req, res) => {
+  try {
+    const found = await ptDeactivationService.setPtSuspended(
+      req.params.ptUserId,
+      false,
+    );
+    res.json({ reactivated: found });
+  } catch (error: any) {
+    logger.error(error, "PT reactivation failed");
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/** Contracts that would block winding a PT down — powers the resign-PT precondition. */
+router.get("/pt/:ptUserId/blocking-contracts", async (req, res) => {
+  try {
+    res.json(
+      await ptDeactivationService.findBlockingContracts(req.params.ptUserId),
+    );
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Chat-service calls this to decide whether a (from, to) pair can chat.
 // Implements BR-29 (loosened): client → APPROVED PT discovery chat is allowed even without contract.

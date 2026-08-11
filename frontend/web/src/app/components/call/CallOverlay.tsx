@@ -108,13 +108,13 @@ function ActiveCallUI() {
     <div className="fixed inset-0 z-[100] flex flex-col bg-zinc-950">
       {/* Video area */}
       {isVideo ? (
-        <div className="flex-1 relative bg-black">
+        <div className="flex-1 min-h-0 relative bg-black">
           {/* Remote video (full) */}
           <video
             ref={remoteVideoRef}
             autoPlay
             playsInline
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
           {state.remoteVideoOff && (
             <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">

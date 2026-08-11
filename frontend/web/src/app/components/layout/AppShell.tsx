@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useApp } from "../../context/AppContext";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { BottomNav } from "./BottomNav";
 import { CallOverlay } from "../call/CallOverlay";
 import bgGym from "../../../assets/bg-gym.jpg";
 
@@ -55,6 +56,11 @@ export function AppShell() {
 
 function AppShellInner() {
   const { sidebarOpen, setSidebarOpen } = useApp();
+  const location = useLocation();
+
+  const searchParams = new URLSearchParams(location.search);
+  const isChatView =
+    location.pathname.includes("/chat") && searchParams.has("conversationId");
 
   return (
     <div
@@ -84,20 +90,26 @@ function AppShellInner() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden z-10 relative">
         <Topbar />
-        <main className="flex-1 overflow-y-auto bg-transparent relative z-10 overflow-x-hidden">
+        <main
+          className={`flex-1 overflow-y-auto bg-transparent relative z-10 overflow-x-hidden ${
+            isChatView ? "" : "pb-16 lg:pb-0"
+          }`}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              initial={{ clipPath: "circle(0% at 100% 50%)", opacity: 0 }}
+              animate={{ clipPath: "circle(150% at 50% 50%)", opacity: 1 }}
+              exit={{ clipPath: "circle(0% at 0% 50%)", opacity: 0 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
               className="h-full"
             >
               <Outlet />
             </motion.div>
           </AnimatePresence>
         </main>
+        
+        {!isChatView && <BottomNav />}
       </div>
     </div>
   );
