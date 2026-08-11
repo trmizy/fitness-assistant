@@ -15,7 +15,17 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
 
 /**
  * Model Wallet
+ * Two-bucket wallet.
  * 
+ * `pendingBalance` is money already attributed to the owner but not yet earned — it backs
+ * the sessions of a contract that have not happened yet, and is exactly the pot a refund
+ * draws from. `availableBalance` is money the owner may withdraw.
+ * 
+ * Two PLATFORM wallets exist, distinguished by ownerId (see PLATFORM_ESCROW_ID /
+ * PLATFORM_REVENUE_ID): ESCROW holds every đồng the platform is custodian of, REVENUE
+ * holds commission the platform has actually earned. Keeping them apart is what makes the
+ * reconciliation invariant checkable — a single mixed wallet has no interpretable balance
+ * once several contracts run at once.
  */
 export type Wallet = $Result.DefaultSelection<Prisma.$WalletPayload>
 /**
@@ -68,6 +78,14 @@ export const LedgerEntryType: {
 };
 
 export type LedgerEntryType = (typeof LedgerEntryType)[keyof typeof LedgerEntryType]
+
+
+export const LedgerBucket: {
+  PENDING: 'PENDING',
+  AVAILABLE: 'AVAILABLE'
+};
+
+export type LedgerBucket = (typeof LedgerBucket)[keyof typeof LedgerBucket]
 
 
 export const PurposeType: {
@@ -157,6 +175,10 @@ export const WalletStatus: typeof $Enums.WalletStatus
 export type LedgerEntryType = $Enums.LedgerEntryType
 
 export const LedgerEntryType: typeof $Enums.LedgerEntryType
+
+export type LedgerBucket = $Enums.LedgerBucket
+
+export const LedgerBucket: typeof $Enums.LedgerBucket
 
 export type PurposeType = $Enums.PurposeType
 
@@ -1418,11 +1440,13 @@ export namespace Prisma {
 
   export type WalletAvgAggregateOutputType = {
     availableBalance: Decimal | null
+    pendingBalance: Decimal | null
     lockedBalance: Decimal | null
   }
 
   export type WalletSumAggregateOutputType = {
     availableBalance: Decimal | null
+    pendingBalance: Decimal | null
     lockedBalance: Decimal | null
   }
 
@@ -1431,6 +1455,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType | null
     ownerId: string | null
     availableBalance: Decimal | null
+    pendingBalance: Decimal | null
     lockedBalance: Decimal | null
     status: $Enums.WalletStatus | null
     createdAt: Date | null
@@ -1442,6 +1467,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType | null
     ownerId: string | null
     availableBalance: Decimal | null
+    pendingBalance: Decimal | null
     lockedBalance: Decimal | null
     status: $Enums.WalletStatus | null
     createdAt: Date | null
@@ -1453,6 +1479,7 @@ export namespace Prisma {
     ownerType: number
     ownerId: number
     availableBalance: number
+    pendingBalance: number
     lockedBalance: number
     status: number
     createdAt: number
@@ -1463,11 +1490,13 @@ export namespace Prisma {
 
   export type WalletAvgAggregateInputType = {
     availableBalance?: true
+    pendingBalance?: true
     lockedBalance?: true
   }
 
   export type WalletSumAggregateInputType = {
     availableBalance?: true
+    pendingBalance?: true
     lockedBalance?: true
   }
 
@@ -1476,6 +1505,7 @@ export namespace Prisma {
     ownerType?: true
     ownerId?: true
     availableBalance?: true
+    pendingBalance?: true
     lockedBalance?: true
     status?: true
     createdAt?: true
@@ -1487,6 +1517,7 @@ export namespace Prisma {
     ownerType?: true
     ownerId?: true
     availableBalance?: true
+    pendingBalance?: true
     lockedBalance?: true
     status?: true
     createdAt?: true
@@ -1498,6 +1529,7 @@ export namespace Prisma {
     ownerType?: true
     ownerId?: true
     availableBalance?: true
+    pendingBalance?: true
     lockedBalance?: true
     status?: true
     createdAt?: true
@@ -1596,6 +1628,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance: Decimal
+    pendingBalance: Decimal
     lockedBalance: Decimal
     status: $Enums.WalletStatus
     createdAt: Date
@@ -1626,6 +1659,7 @@ export namespace Prisma {
     ownerType?: boolean
     ownerId?: boolean
     availableBalance?: boolean
+    pendingBalance?: boolean
     lockedBalance?: boolean
     status?: boolean
     createdAt?: boolean
@@ -1639,6 +1673,7 @@ export namespace Prisma {
     ownerType?: boolean
     ownerId?: boolean
     availableBalance?: boolean
+    pendingBalance?: boolean
     lockedBalance?: boolean
     status?: boolean
     createdAt?: boolean
@@ -1650,6 +1685,7 @@ export namespace Prisma {
     ownerType?: boolean
     ownerId?: boolean
     availableBalance?: boolean
+    pendingBalance?: boolean
     lockedBalance?: boolean
     status?: boolean
     createdAt?: boolean
@@ -1672,6 +1708,7 @@ export namespace Prisma {
       ownerType: $Enums.WalletOwnerType
       ownerId: string
       availableBalance: Prisma.Decimal
+      pendingBalance: Prisma.Decimal
       lockedBalance: Prisma.Decimal
       status: $Enums.WalletStatus
       createdAt: Date
@@ -2074,6 +2111,7 @@ export namespace Prisma {
     readonly ownerType: FieldRef<"Wallet", 'WalletOwnerType'>
     readonly ownerId: FieldRef<"Wallet", 'String'>
     readonly availableBalance: FieldRef<"Wallet", 'Decimal'>
+    readonly pendingBalance: FieldRef<"Wallet", 'Decimal'>
     readonly lockedBalance: FieldRef<"Wallet", 'Decimal'>
     readonly status: FieldRef<"Wallet", 'WalletStatus'>
     readonly createdAt: FieldRef<"Wallet", 'DateTime'>
@@ -2455,6 +2493,7 @@ export namespace Prisma {
     walletId: string | null
     transactionId: string | null
     entryType: $Enums.LedgerEntryType | null
+    bucket: $Enums.LedgerBucket | null
     amount: Decimal | null
     balanceBefore: Decimal | null
     balanceAfter: Decimal | null
@@ -2467,6 +2506,7 @@ export namespace Prisma {
     walletId: string | null
     transactionId: string | null
     entryType: $Enums.LedgerEntryType | null
+    bucket: $Enums.LedgerBucket | null
     amount: Decimal | null
     balanceBefore: Decimal | null
     balanceAfter: Decimal | null
@@ -2479,6 +2519,7 @@ export namespace Prisma {
     walletId: number
     transactionId: number
     entryType: number
+    bucket: number
     amount: number
     balanceBefore: number
     balanceAfter: number
@@ -2505,6 +2546,7 @@ export namespace Prisma {
     walletId?: true
     transactionId?: true
     entryType?: true
+    bucket?: true
     amount?: true
     balanceBefore?: true
     balanceAfter?: true
@@ -2517,6 +2559,7 @@ export namespace Prisma {
     walletId?: true
     transactionId?: true
     entryType?: true
+    bucket?: true
     amount?: true
     balanceBefore?: true
     balanceAfter?: true
@@ -2529,6 +2572,7 @@ export namespace Prisma {
     walletId?: true
     transactionId?: true
     entryType?: true
+    bucket?: true
     amount?: true
     balanceBefore?: true
     balanceAfter?: true
@@ -2628,6 +2672,7 @@ export namespace Prisma {
     walletId: string
     transactionId: string
     entryType: $Enums.LedgerEntryType
+    bucket: $Enums.LedgerBucket
     amount: Decimal
     balanceBefore: Decimal
     balanceAfter: Decimal
@@ -2659,6 +2704,7 @@ export namespace Prisma {
     walletId?: boolean
     transactionId?: boolean
     entryType?: boolean
+    bucket?: boolean
     amount?: boolean
     balanceBefore?: boolean
     balanceAfter?: boolean
@@ -2673,6 +2719,7 @@ export namespace Prisma {
     walletId?: boolean
     transactionId?: boolean
     entryType?: boolean
+    bucket?: boolean
     amount?: boolean
     balanceBefore?: boolean
     balanceAfter?: boolean
@@ -2687,6 +2734,7 @@ export namespace Prisma {
     walletId?: boolean
     transactionId?: boolean
     entryType?: boolean
+    bucket?: boolean
     amount?: boolean
     balanceBefore?: boolean
     balanceAfter?: boolean
@@ -2714,6 +2762,11 @@ export namespace Prisma {
       walletId: string
       transactionId: string
       entryType: $Enums.LedgerEntryType
+      /**
+       * Which balance moved. balanceBefore/balanceAfter are that bucket's running total, so a
+       * wallet's two buckets each form their own unbroken chain.
+       */
+      bucket: $Enums.LedgerBucket
       amount: Prisma.Decimal
       balanceBefore: Prisma.Decimal
       balanceAfter: Prisma.Decimal
@@ -3118,6 +3171,7 @@ export namespace Prisma {
     readonly walletId: FieldRef<"WalletLedgerEntry", 'String'>
     readonly transactionId: FieldRef<"WalletLedgerEntry", 'String'>
     readonly entryType: FieldRef<"WalletLedgerEntry", 'LedgerEntryType'>
+    readonly bucket: FieldRef<"WalletLedgerEntry", 'LedgerBucket'>
     readonly amount: FieldRef<"WalletLedgerEntry", 'Decimal'>
     readonly balanceBefore: FieldRef<"WalletLedgerEntry", 'Decimal'>
     readonly balanceAfter: FieldRef<"WalletLedgerEntry", 'Decimal'>
@@ -6811,6 +6865,7 @@ export namespace Prisma {
     ownerType: 'ownerType',
     ownerId: 'ownerId',
     availableBalance: 'availableBalance',
+    pendingBalance: 'pendingBalance',
     lockedBalance: 'lockedBalance',
     status: 'status',
     createdAt: 'createdAt',
@@ -6825,6 +6880,7 @@ export namespace Prisma {
     walletId: 'walletId',
     transactionId: 'transactionId',
     entryType: 'entryType',
+    bucket: 'bucket',
     amount: 'amount',
     balanceBefore: 'balanceBefore',
     balanceAfter: 'balanceAfter',
@@ -7043,6 +7099,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'LedgerBucket'
+   */
+  export type EnumLedgerBucketFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerBucket'>
+    
+
+
+  /**
+   * Reference to a field of type 'LedgerBucket[]'
+   */
+  export type ListEnumLedgerBucketFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LedgerBucket[]'>
+    
+
+
+  /**
    * Reference to a field of type 'PurposeType'
    */
   export type EnumPurposeTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PurposeType'>
@@ -7186,6 +7256,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFilter<"Wallet"> | $Enums.WalletOwnerType
     ownerId?: StringFilter<"Wallet"> | string
     availableBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFilter<"Wallet"> | $Enums.WalletStatus
     createdAt?: DateTimeFilter<"Wallet"> | Date | string
@@ -7198,6 +7269,7 @@ export namespace Prisma {
     ownerType?: SortOrder
     ownerId?: SortOrder
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -7214,6 +7286,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFilter<"Wallet"> | $Enums.WalletOwnerType
     ownerId?: StringFilter<"Wallet"> | string
     availableBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFilter<"Wallet"> | $Enums.WalletStatus
     createdAt?: DateTimeFilter<"Wallet"> | Date | string
@@ -7226,6 +7299,7 @@ export namespace Prisma {
     ownerType?: SortOrder
     ownerId?: SortOrder
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -7245,6 +7319,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeWithAggregatesFilter<"Wallet"> | $Enums.WalletOwnerType
     ownerId?: StringWithAggregatesFilter<"Wallet"> | string
     availableBalance?: DecimalWithAggregatesFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalWithAggregatesFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalWithAggregatesFilter<"Wallet"> | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusWithAggregatesFilter<"Wallet"> | $Enums.WalletStatus
     createdAt?: DateTimeWithAggregatesFilter<"Wallet"> | Date | string
@@ -7259,6 +7334,7 @@ export namespace Prisma {
     walletId?: StringFilter<"WalletLedgerEntry"> | string
     transactionId?: StringFilter<"WalletLedgerEntry"> | string
     entryType?: EnumLedgerEntryTypeFilter<"WalletLedgerEntry"> | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFilter<"WalletLedgerEntry"> | $Enums.LedgerBucket
     amount?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
@@ -7273,6 +7349,7 @@ export namespace Prisma {
     walletId?: SortOrder
     transactionId?: SortOrder
     entryType?: SortOrder
+    bucket?: SortOrder
     amount?: SortOrder
     balanceBefore?: SortOrder
     balanceAfter?: SortOrder
@@ -7290,6 +7367,7 @@ export namespace Prisma {
     walletId?: StringFilter<"WalletLedgerEntry"> | string
     transactionId?: StringFilter<"WalletLedgerEntry"> | string
     entryType?: EnumLedgerEntryTypeFilter<"WalletLedgerEntry"> | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFilter<"WalletLedgerEntry"> | $Enums.LedgerBucket
     amount?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
@@ -7304,6 +7382,7 @@ export namespace Prisma {
     walletId?: SortOrder
     transactionId?: SortOrder
     entryType?: SortOrder
+    bucket?: SortOrder
     amount?: SortOrder
     balanceBefore?: SortOrder
     balanceAfter?: SortOrder
@@ -7324,6 +7403,7 @@ export namespace Prisma {
     walletId?: StringWithAggregatesFilter<"WalletLedgerEntry"> | string
     transactionId?: StringWithAggregatesFilter<"WalletLedgerEntry"> | string
     entryType?: EnumLedgerEntryTypeWithAggregatesFilter<"WalletLedgerEntry"> | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketWithAggregatesFilter<"WalletLedgerEntry"> | $Enums.LedgerBucket
     amount?: DecimalWithAggregatesFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalWithAggregatesFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalWithAggregatesFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
@@ -7693,6 +7773,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
@@ -7705,6 +7786,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
@@ -7717,6 +7799,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -7729,6 +7812,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -7741,6 +7825,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
@@ -7752,6 +7837,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -7763,6 +7849,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -7772,6 +7859,7 @@ export namespace Prisma {
   export type WalletLedgerEntryCreateInput = {
     id?: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -7786,6 +7874,7 @@ export namespace Prisma {
     walletId: string
     transactionId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -7796,6 +7885,7 @@ export namespace Prisma {
   export type WalletLedgerEntryUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -7810,6 +7900,7 @@ export namespace Prisma {
     walletId?: StringFieldUpdateOperationsInput | string
     transactionId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -7822,6 +7913,7 @@ export namespace Prisma {
     walletId: string
     transactionId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -7832,6 +7924,7 @@ export namespace Prisma {
   export type WalletLedgerEntryUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -7844,6 +7937,7 @@ export namespace Prisma {
     walletId?: StringFieldUpdateOperationsInput | string
     transactionId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -8356,6 +8450,7 @@ export namespace Prisma {
     ownerType?: SortOrder
     ownerId?: SortOrder
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -8364,6 +8459,7 @@ export namespace Prisma {
 
   export type WalletAvgOrderByAggregateInput = {
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
   }
 
@@ -8372,6 +8468,7 @@ export namespace Prisma {
     ownerType?: SortOrder
     ownerId?: SortOrder
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -8383,6 +8480,7 @@ export namespace Prisma {
     ownerType?: SortOrder
     ownerId?: SortOrder
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -8391,6 +8489,7 @@ export namespace Prisma {
 
   export type WalletSumOrderByAggregateInput = {
     availableBalance?: SortOrder
+    pendingBalance?: SortOrder
     lockedBalance?: SortOrder
   }
 
@@ -8469,6 +8568,13 @@ export namespace Prisma {
     not?: NestedEnumLedgerEntryTypeFilter<$PrismaModel> | $Enums.LedgerEntryType
   }
 
+  export type EnumLedgerBucketFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerBucket | EnumLedgerBucketFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerBucketFilter<$PrismaModel> | $Enums.LedgerBucket
+  }
+
   export type StringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -8504,6 +8610,7 @@ export namespace Prisma {
     walletId?: SortOrder
     transactionId?: SortOrder
     entryType?: SortOrder
+    bucket?: SortOrder
     amount?: SortOrder
     balanceBefore?: SortOrder
     balanceAfter?: SortOrder
@@ -8522,6 +8629,7 @@ export namespace Prisma {
     walletId?: SortOrder
     transactionId?: SortOrder
     entryType?: SortOrder
+    bucket?: SortOrder
     amount?: SortOrder
     balanceBefore?: SortOrder
     balanceAfter?: SortOrder
@@ -8534,6 +8642,7 @@ export namespace Prisma {
     walletId?: SortOrder
     transactionId?: SortOrder
     entryType?: SortOrder
+    bucket?: SortOrder
     amount?: SortOrder
     balanceBefore?: SortOrder
     balanceAfter?: SortOrder
@@ -8555,6 +8664,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumLedgerEntryTypeFilter<$PrismaModel>
     _max?: NestedEnumLedgerEntryTypeFilter<$PrismaModel>
+  }
+
+  export type EnumLedgerBucketWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerBucket | EnumLedgerBucketFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerBucketWithAggregatesFilter<$PrismaModel> | $Enums.LedgerBucket
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerBucketFilter<$PrismaModel>
+    _max?: NestedEnumLedgerBucketFilter<$PrismaModel>
   }
 
   export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -9148,6 +9267,10 @@ export namespace Prisma {
     set?: $Enums.LedgerEntryType
   }
 
+  export type EnumLedgerBucketFieldUpdateOperationsInput = {
+    set?: $Enums.LedgerBucket
+  }
+
   export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null
   }
@@ -9441,6 +9564,13 @@ export namespace Prisma {
     not?: NestedEnumLedgerEntryTypeFilter<$PrismaModel> | $Enums.LedgerEntryType
   }
 
+  export type NestedEnumLedgerBucketFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerBucket | EnumLedgerBucketFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerBucketFilter<$PrismaModel> | $Enums.LedgerBucket
+  }
+
   export type NestedStringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -9463,6 +9593,16 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumLedgerEntryTypeFilter<$PrismaModel>
     _max?: NestedEnumLedgerEntryTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumLedgerBucketWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.LedgerBucket | EnumLedgerBucketFieldRefInput<$PrismaModel>
+    in?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    notIn?: $Enums.LedgerBucket[] | ListEnumLedgerBucketFieldRefInput<$PrismaModel>
+    not?: NestedEnumLedgerBucketWithAggregatesFilter<$PrismaModel> | $Enums.LedgerBucket
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumLedgerBucketFilter<$PrismaModel>
+    _max?: NestedEnumLedgerBucketFilter<$PrismaModel>
   }
 
   export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -9711,6 +9851,7 @@ export namespace Prisma {
   export type WalletLedgerEntryCreateWithoutWalletInput = {
     id?: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -9723,6 +9864,7 @@ export namespace Prisma {
     id?: string
     transactionId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -9764,6 +9906,7 @@ export namespace Prisma {
     walletId?: StringFilter<"WalletLedgerEntry"> | string
     transactionId?: StringFilter<"WalletLedgerEntry"> | string
     entryType?: EnumLedgerEntryTypeFilter<"WalletLedgerEntry"> | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFilter<"WalletLedgerEntry"> | $Enums.LedgerBucket
     amount?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFilter<"WalletLedgerEntry"> | Decimal | DecimalJsLike | number | string
@@ -9776,6 +9919,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
@@ -9787,6 +9931,7 @@ export namespace Prisma {
     ownerType: $Enums.WalletOwnerType
     ownerId: string
     availableBalance?: Decimal | DecimalJsLike | number | string
+    pendingBalance?: Decimal | DecimalJsLike | number | string
     lockedBalance?: Decimal | DecimalJsLike | number | string
     status?: $Enums.WalletStatus
     createdAt?: Date | string
@@ -9891,6 +10036,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -9902,6 +10048,7 @@ export namespace Prisma {
     ownerType?: EnumWalletOwnerTypeFieldUpdateOperationsInput | $Enums.WalletOwnerType
     ownerId?: StringFieldUpdateOperationsInput | string
     availableBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    pendingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     lockedBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: EnumWalletStatusFieldUpdateOperationsInput | $Enums.WalletStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -10030,6 +10177,7 @@ export namespace Prisma {
   export type WalletLedgerEntryCreateWithoutTransactionInput = {
     id?: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -10042,6 +10190,7 @@ export namespace Prisma {
     id?: string
     walletId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -10272,6 +10421,7 @@ export namespace Prisma {
     id?: string
     transactionId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -10282,6 +10432,7 @@ export namespace Prisma {
   export type WalletLedgerEntryUpdateWithoutWalletInput = {
     id?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -10294,6 +10445,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     transactionId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -10305,6 +10457,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     transactionId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -10329,6 +10482,7 @@ export namespace Prisma {
     id?: string
     walletId: string
     entryType: $Enums.LedgerEntryType
+    bucket?: $Enums.LedgerBucket
     amount: Decimal | DecimalJsLike | number | string
     balanceBefore: Decimal | DecimalJsLike | number | string
     balanceAfter: Decimal | DecimalJsLike | number | string
@@ -10378,6 +10532,7 @@ export namespace Prisma {
   export type WalletLedgerEntryUpdateWithoutTransactionInput = {
     id?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -10390,6 +10545,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     walletId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -10401,6 +10557,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     walletId?: StringFieldUpdateOperationsInput | string
     entryType?: EnumLedgerEntryTypeFieldUpdateOperationsInput | $Enums.LedgerEntryType
+    bucket?: EnumLedgerBucketFieldUpdateOperationsInput | $Enums.LedgerBucket
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceBefore?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     balanceAfter?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string

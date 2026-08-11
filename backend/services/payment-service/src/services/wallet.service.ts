@@ -16,7 +16,17 @@ export class WalletNotActiveError extends Error {
   }
 }
 
-const PLATFORM_OWNER_ID = 'PLATFORM';
+/**
+ * The two system wallets. Both are ownerType PLATFORM; only ownerId tells them apart.
+ *
+ * ESCROW is custodial: every đồng that entered through a gateway and has not been paid out
+ * lives here, which is what makes the reconciliation invariant (see reconcile.service)
+ * checkable. REVENUE is the platform's own earned commission.
+ */
+export const PLATFORM_ESCROW_ID = 'ESCROW';
+export const PLATFORM_REVENUE_ID = 'REVENUE';
+
+export type Bucket = 'PENDING' | 'AVAILABLE';
 
 type TxClient = Prisma.TransactionClient;
 
@@ -25,6 +35,7 @@ interface WalletRow {
   owner_type: string;
   owner_id: string;
   available_balance: string;
+  pending_balance: string;
   locked_balance: string;
   status: string;
 }
@@ -41,22 +52,43 @@ async function lockWallets(tx: TxClient, walletIds: string[]): Promise<Map<strin
   return locked;
 }
 
+/**
+ * The locked row carries the balances read under FOR UPDATE, but a single DB transaction
+ * often touches one wallet's bucket several times (release, then top up, then settle). Reading
+ * the row again would miss the earlier writes, so the running value is tracked on the row
+ * itself and every entry chains off it.
+ */
+function readBucket(wallet: WalletRow, bucket: Bucket): Prisma.Decimal {
+  return new Prisma.Decimal(bucket === 'PENDING' ? wallet.pending_balance : wallet.available_balance);
+}
+
+function writeBucket(wallet: WalletRow, bucket: Bucket, value: Prisma.Decimal): void {
+  if (bucket === 'PENDING') wallet.pending_balance = value.toString();
+  else wallet.available_balance = value.toString();
+}
+
 async function applyDebit(
   tx: TxClient,
   wallet: WalletRow,
   amount: Prisma.Decimal,
   transactionId: string,
   description: string,
+  bucket: Bucket = 'AVAILABLE',
 ): Promise<void> {
-  const before = new Prisma.Decimal(wallet.available_balance);
+  const before = readBucket(wallet, bucket);
   if (before.lessThan(amount)) throw new InsufficientBalanceError(wallet.id);
   const after = before.minus(amount);
-  await tx.wallet.update({ where: { id: wallet.id }, data: { availableBalance: after } });
+  await tx.wallet.update({
+    where: { id: wallet.id },
+    data: bucket === 'PENDING' ? { pendingBalance: after } : { availableBalance: after },
+  });
+  writeBucket(wallet, bucket, after);
   await tx.walletLedgerEntry.create({
     data: {
       walletId: wallet.id,
       transactionId,
       entryType: 'DEBIT',
+      bucket,
       amount,
       balanceBefore: before,
       balanceAfter: after,
@@ -71,21 +103,42 @@ async function applyCredit(
   amount: Prisma.Decimal,
   transactionId: string,
   description: string,
+  bucket: Bucket = 'AVAILABLE',
 ): Promise<void> {
-  const before = new Prisma.Decimal(wallet.available_balance);
+  const before = readBucket(wallet, bucket);
   const after = before.plus(amount);
-  await tx.wallet.update({ where: { id: wallet.id }, data: { availableBalance: after } });
+  await tx.wallet.update({
+    where: { id: wallet.id },
+    data: bucket === 'PENDING' ? { pendingBalance: after } : { availableBalance: after },
+  });
+  writeBucket(wallet, bucket, after);
   await tx.walletLedgerEntry.create({
     data: {
       walletId: wallet.id,
       transactionId,
       entryType: 'CREDIT',
+      bucket,
       amount,
       balanceBefore: before,
       balanceAfter: after,
       description,
     },
   });
+}
+
+/**
+ * Debit/credit against a set of wallets already locked FOR UPDATE inside one DB transaction.
+ *
+ * Contract money movements touch up to five wallets and several buckets at once. Handing the
+ * caller these bound operations — rather than letting it lock and write on its own — is what
+ * keeps every flow on the same lock ordering and the same ledger-writing code.
+ */
+export interface LedgerOps {
+  debit(walletId: string, amount: Prisma.Decimal, description: string, bucket?: Bucket): Promise<void>;
+  credit(walletId: string, amount: Prisma.Decimal, description: string, bucket?: Bucket): Promise<void>;
+  /** Current value of a bucket, reflecting writes already made in this transaction. */
+  balance(walletId: string, bucket: Bucket): Prisma.Decimal;
+  tx: TxClient;
 }
 
 export const walletService = {
@@ -97,8 +150,53 @@ export const walletService = {
     });
   },
 
+  /** Custodial wallet: holds every đồng taken in and not yet paid out. */
+  async getEscrowWallet() {
+    return this.getOrCreateWallet('PLATFORM', PLATFORM_ESCROW_ID);
+  },
+
+  /** The platform's own earned commission. */
+  async getRevenueWallet() {
+    return this.getOrCreateWallet('PLATFORM', PLATFORM_REVENUE_ID);
+  },
+
+  /**
+   * Legacy alias kept for the pre-existing wallet-to-wallet transfer/refund paths, which
+   * credit and claw back commission — that is revenue, never custodial money.
+   */
   async getOrCreatePlatformWallet() {
-    return this.getOrCreateWallet('PLATFORM', PLATFORM_OWNER_ID);
+    return this.getRevenueWallet();
+  },
+
+  /**
+   * Runs `fn` inside one DB transaction with every listed wallet locked in ascending-id
+   * order. Anything the callback throws rolls the whole movement back, so a money split can
+   * never land half-applied.
+   */
+  async withWallets<T>(
+    walletIds: string[],
+    transactionId: string,
+    fn: (ops: LedgerOps) => Promise<T>,
+  ): Promise<T> {
+    return prisma.$transaction(async (tx) => {
+      const locked = await lockWallets(tx, walletIds);
+      for (const [id, w] of locked) {
+        if (w.status !== 'ACTIVE') throw new WalletNotActiveError(id);
+      }
+      const need = (walletId: string): WalletRow => {
+        const w = locked.get(walletId);
+        if (!w) throw new Error(`Wallet ${walletId} was not locked for this operation`);
+        return w;
+      };
+      return fn({
+        tx,
+        balance: (walletId, bucket) => readBucket(need(walletId), bucket),
+        debit: (walletId, amount, description, bucket = 'AVAILABLE') =>
+          applyDebit(tx, need(walletId), amount, transactionId, description, bucket),
+        credit: (walletId, amount, description, bucket = 'AVAILABLE') =>
+          applyCredit(tx, need(walletId), amount, transactionId, description, bucket),
+      });
+    });
   },
 
   /**

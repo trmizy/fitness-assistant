@@ -127,6 +127,7 @@ exports.Prisma.WalletScalarFieldEnum = {
   ownerType: 'ownerType',
   ownerId: 'ownerId',
   availableBalance: 'availableBalance',
+  pendingBalance: 'pendingBalance',
   lockedBalance: 'lockedBalance',
   status: 'status',
   createdAt: 'createdAt',
@@ -138,6 +139,7 @@ exports.Prisma.WalletLedgerEntryScalarFieldEnum = {
   walletId: 'walletId',
   transactionId: 'transactionId',
   entryType: 'entryType',
+  bucket: 'bucket',
   amount: 'amount',
   balanceBefore: 'balanceBefore',
   balanceAfter: 'balanceAfter',
@@ -251,6 +253,11 @@ exports.WalletStatus = exports.$Enums.WalletStatus = {
 exports.LedgerEntryType = exports.$Enums.LedgerEntryType = {
   DEBIT: 'DEBIT',
   CREDIT: 'CREDIT'
+};
+
+exports.LedgerBucket = exports.$Enums.LedgerBucket = {
+  PENDING: 'PENDING',
+  AVAILABLE: 'AVAILABLE'
 };
 
 exports.PurposeType = exports.$Enums.PurposeType = {
