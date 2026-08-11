@@ -12,7 +12,66 @@ export interface WalletTransferResult {
   failureReason?: string;
 }
 
+export interface CheckoutResult {
+  transactionId: string;
+  status: string;
+  redirectUrl: string | null;
+  qrCodeUrl: string | null;
+  provider: string;
+}
+
 export const paymentClient = {
+  /**
+   * Start a gateway checkout for a membership. The client pays the gateway directly; the
+   * membership activates on the signed webhook, never on this response.
+   *
+   * A membership has no PT side, so the split is gym versus platform. `ptUserId` still has to
+   * be filled because the ledger keys every contract's pending buckets by party — the gym's
+   * own id stands in, which keeps the rate table's PT share at zero without a special case.
+   */
+  async checkout(params: {
+    membershipId: string;
+    gymId: string;
+    clientId: string;
+    amount: number;
+    platformRate: string;
+    idempotencyKey: string;
+    provider?: string;
+    orderInfo?: string;
+  }): Promise<CheckoutResult> {
+    const platform = Number(params.platformRate);
+    try {
+      const { data } = await axios.post(
+        `${PAYMENT_SERVICE_URL}/internal/payments/checkout`,
+        {
+          purpose: 'GYM_MEMBERSHIP',
+          relatedEntityType: 'GYM_MEMBERSHIP',
+          relatedEntityId: params.membershipId,
+          amount: params.amount,
+          rates: {
+            platformRate: params.platformRate,
+            ptRate: '0',
+            gymRate: (1 - platform).toFixed(4),
+          },
+          parties: { ptUserId: params.gymId, gymId: params.gymId, clientUserId: params.clientId },
+          idempotencyKey: params.idempotencyKey,
+          initiatedBy: params.clientId,
+          sourceService: 'gym-service',
+          provider: params.provider,
+          orderInfo: params.orderInfo,
+        },
+        { headers, timeout: 20_000 },
+      );
+      return data.data as CheckoutResult;
+    } catch (e: any) {
+      const code = e?.response?.data?.error?.code || 'CHECKOUT_FAILED';
+      throw Object.assign(new Error(e?.response?.data?.error?.message || code), {
+        code,
+        status: e?.response?.status || 502,
+      });
+    }
+  },
+
   async walletTransfer(params: {
     payerOwnerId: string;
     receiverOwnerId: string;

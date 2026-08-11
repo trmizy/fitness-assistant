@@ -9,42 +9,49 @@ function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
-/** Shared payment-attempt logic for both first purchase and retry-pay (plan §2.3). */
-async function attemptPayment(contract: { id: string; gymId: string; priceAtPurchase: any; status: string; paymentTxnId: string | null }, clientId: string) {
+/** The platform's cut of a membership. Floored at 10%, same as PT contracts. */
+const PLATFORM_RATE = (() => {
+  const raw = Number(process.env.PLATFORM_COMMISSION_RATE ?? '0.10');
+  return (Number.isFinite(raw) && raw >= 0.1 && raw <= 1 ? raw : 0.1).toFixed(4);
+})();
+
+/**
+ * Start payment for a membership at the payer's chosen gateway.
+ *
+ * Returns a redirect rather than a settled payment. The membership activates only once
+ * payment-service receives the gateway's signed webhook and has put the price into escrow —
+ * activating on this response would mean trusting the browser about whether money moved.
+ */
+async function attemptPayment(
+  contract: { id: string; gymId: string; priceAtPurchase: any; status: string; paymentTxnId: string | null },
+  clientId: string,
+  provider?: string,
+) {
   if (contract.status === 'ACTIVE' || contract.paymentTxnId) {
     throw err('ALREADY_PAID', 409);
   }
 
+  // A fresh key per attempt: an abandoned checkout must not block the client trying again.
   const attemptId = randomUUID();
   const idempotencyKey = `gym-membership:${contract.id}:attempt:${attemptId}`;
 
-  const result = await paymentClient.walletTransfer({
-    payerOwnerId: clientId,
-    receiverOwnerId: contract.gymId,
-    amount: Number(contract.priceAtPurchase),
-    relatedEntityId: contract.id,
-    idempotencyKey,
-    initiatedBy: clientId,
+  const result = await paymentClient.checkout({
+    membershipId: contract.id,
     gymId: contract.gymId,
+    clientId,
+    amount: Number(contract.priceAtPurchase),
+    platformRate: PLATFORM_RATE,
+    idempotencyKey,
+    provider,
+    orderInfo: `Goi hoi vien ${contract.id}`.slice(0, 100),
   });
 
-  if (result.status === 'PAID') {
-    const { contract: activated } = await membershipRepository.activateIfPending(contract.id, result.transactionId);
-    try {
-      await paymentClient.markActivated(result.transactionId);
-    } catch (e) {
-      // Local activation already succeeded; payment-service's reconciliation job will
-      // retry the mark-activated callback and/or the activate endpoint itself.
-      logger.warn({ error: 'mark-activated callback failed, reconciliation will retry', membershipId: contract.id, message: (e as Error).message });
-    }
-    return { membership: activated, payment: result };
-  }
-
+  logger.info(`[Membership] Checkout started for ${contract.id} via ${result.provider}`);
   return { membership: await membershipRepository.findById(contract.id), payment: result };
 }
 
 export const membershipService = {
-  async purchase(gymId: string, planId: string, clientId: string) {
+  async purchase(gymId: string, planId: string, clientId: string, provider?: string) {
     const plan = await planRepository.findById(planId);
     if (!plan || plan.gymId !== gymId || plan.status !== 'ACTIVE') throw err('Plan not found or inactive', 404);
 
@@ -77,16 +84,16 @@ export const membershipService = {
       throw err('ALREADY_HAS_OPEN_MEMBERSHIP', 409);
     }
 
-    return attemptPayment(contract, clientId);
+    return attemptPayment(contract, clientId, provider);
   },
 
-  async retryPay(membershipId: string, clientId: string) {
+  async retryPay(membershipId: string, clientId: string, provider?: string) {
     const contract = await membershipRepository.findById(membershipId);
     if (!contract) throw err('Membership not found', 404);
     if (contract.clientId !== clientId) throw err('Not authorized', 403);
     if (contract.status === 'ACTIVE' || contract.paymentTxnId) throw err('ALREADY_PAID', 409);
     if (contract.status !== 'PENDING_PAYMENT') throw err(`Cannot pay for membership in ${contract.status} status`, 400);
-    return attemptPayment(contract, clientId);
+    return attemptPayment(contract, clientId, provider);
   },
 
   async cancelPending(membershipId: string, clientId: string) {

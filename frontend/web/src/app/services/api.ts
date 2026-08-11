@@ -2636,12 +2636,19 @@ export const gymService = {
     return data?.data ?? data;
   },
   // Client
-  buyMembership: async (gymId: string, planId: string) => {
-    const { data } = await api.post(`/gyms/${gymId}/memberships`, { planId });
+  buyMembership: async (gymId: string, planId: string, provider?: string) => {
+    const { data } = await api.post(`/gyms/${gymId}/memberships`, {
+      planId,
+      ...(provider ? { provider } : {}),
+    });
     return data;
   },
-  payMembership: async (membershipId: string) => {
-    const { data } = await api.post(`/me/gym-memberships/${membershipId}/pay`);
+  // Starts a gateway checkout; the response carries a redirectUrl, not a settled payment.
+  payMembership: async (membershipId: string, provider?: string) => {
+    const { data } = await api.post(
+      `/me/gym-memberships/${membershipId}/pay`,
+      provider ? { provider } : {},
+    );
     return data?.data ?? data;
   },
   cancelMembership: async (membershipId: string) => {

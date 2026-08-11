@@ -7,7 +7,8 @@ export const membershipController = {
     try {
       const clientId = req.user!.userId;
       const { planId } = req.body;
-      const result = await membershipService.purchase(req.params.gymId, planId, clientId);
+      const provider = typeof req.body?.provider === 'string' ? req.body.provider.toUpperCase() : undefined;
+      const result = await membershipService.purchase(req.params.gymId, planId, clientId, provider);
       return res.status(201).json({ success: true, data: result });
     } catch (e: any) {
       if (e.message === 'ALREADY_HAS_PENDING_MEMBERSHIP') {
@@ -27,7 +28,8 @@ export const membershipController = {
   async pay(req: Request, res: Response) {
     try {
       const clientId = req.user!.userId;
-      const result = await membershipService.retryPay(req.params.id, clientId);
+      const provider = typeof req.body?.provider === 'string' ? req.body.provider.toUpperCase() : undefined;
+      const result = await membershipService.retryPay(req.params.id, clientId, provider);
       return res.json({ success: true, data: result });
     } catch (e: any) {
       if (e.message === 'ALREADY_PAID') {

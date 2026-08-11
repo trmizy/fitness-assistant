@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { GymMembershipContract, GymMembershipContractStatus } from "../../types";
 import { formatVND } from "../../utils/currency";
 import { CheckinScanModal } from "../../components/gym/CheckinScanModal";
+import { PaymentMethodDialog } from "../../components/payment/PaymentMethodDialog";
 
 /** Client-side preview of the prorated refund (backend recomputes the authoritative amount). */
 function proratedEstimate(m: GymMembershipContract): { amount: number; days: number } {
@@ -34,23 +35,36 @@ export function GymMembershipsPage() {
   // The gym shows the QR; the member scans it. One scanner sheet serves every membership.
   const [scanning, setScanning] = useState(false);
   const [refundTarget, setRefundTarget] = useState<GymMembershipContract | null>(null);
+  // The membership awaiting a gateway choice; null while the picker is closed.
+  const [payTarget, setPayTarget] = useState<GymMembershipContract | null>(null);
 
   const { data: memberships = [], isLoading } = useQuery<GymMembershipContract[]>({
     queryKey: ["client-gym-memberships"],
     queryFn: () => gymService.listMyMemberships(),
   });
 
+  /**
+   * Pay at the chosen gateway. The response is a redirect, not a completed payment — the
+   * membership activates on the gateway's signed webhook, never on the browser's word.
+   */
   const payMutation = useMutation({
-    mutationFn: (id: string) => gymService.payMembership(id),
+    mutationFn: ({ id, provider }: { id: string; provider: string }) =>
+      gymService.payMembership(id, provider),
     onSuccess: (result: any) => {
-      if (result?.payment?.status === "PAID") {
-        toast.success("Payment successful — membership is now active!");
-      } else {
-        toast.error(result?.payment?.failureReason || "Payment failed — check your wallet balance");
+      const url = result?.payment?.redirectUrl;
+      if (url) {
+        window.location.href = url;
+        return;
       }
+      setPayTarget(null);
+      toast.error(
+        result?.payment?.failureReason ||
+          "Cổng thanh toán không trả về liên kết — thử lại hoặc chọn cổng khác",
+      );
       queryClient.invalidateQueries({ queryKey: ["client-gym-memberships"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.code || "Failed to pay"),
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.error?.code || "Không tạo được giao dịch"),
   });
 
   const cancelMutation = useMutation({
@@ -139,7 +153,7 @@ export function GymMembershipsPage() {
                   <div className="flex gap-2 mt-3">
                     <button
                       type="button"
-                      onClick={() => payMutation.mutate(m.id)}
+                      onClick={() => setPayTarget(m)}
                       disabled={payMutation.isPending}
                       className="flex items-center gap-1.5 bg-orange-500 hover:bg-orange-400 disabled:opacity-60 text-black px-3 py-2 rounded-lg text-xs font-bold transition-all"
                     >
@@ -163,6 +177,16 @@ export function GymMembershipsPage() {
       )}
 
       {scanning && <CheckinScanModal onClose={() => setScanning(false)} />}
+
+      {payTarget && (
+        <PaymentMethodDialog
+          amount={Number(payTarget.priceAtPurchase)}
+          title="Chọn phương thức thanh toán gói tập"
+          isSubmitting={payMutation.isPending}
+          onClose={() => setPayTarget(null)}
+          onConfirm={(provider) => payMutation.mutate({ id: payTarget.id, provider })}
+        />
+      )}
 
       {refundTarget && (() => {
         const est = proratedEstimate(refundTarget);
