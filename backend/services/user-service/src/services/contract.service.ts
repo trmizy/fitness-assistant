@@ -143,6 +143,11 @@ export const contractService = {
     },
   ) {
     // 1. Load the package (source of truth for price/sessions/mode)
+    //
+    // Guard the id before it reaches Prisma: findUnique({ where: { id: undefined } }) is a
+    // validation error, not a miss, so a request that simply forgot packageId surfaced as a
+    // 500 with a raw Prisma stack instead of telling the caller what was wrong.
+    if (!data.packageId) throw err("Thiếu packageId — hãy chọn gói dịch vụ", 400);
     const pkg = await ptServicePackageRepository.findById(data.packageId);
     if (!pkg) throw err("Gói dịch vụ không tồn tại", 404);
     if (!pkg.isActive || pkg.archivedAt) throw err("Gói dịch vụ này đã ngừng bán", 422);
