@@ -8,6 +8,7 @@ import { walletService } from '../services/wallet.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { Prisma } from '../generated/prisma';
+import { buildReconciliationReport } from '../services/reconcile.service';
 
 const GYM_SERVICE_URL = process.env.GYM_SERVICE_URL || 'http://localhost:3006';
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
@@ -33,6 +34,18 @@ router.get('/', async (_req: Request, res: Response) => {
 
 // GET /admin/payments/commissions — real commission list (was a hardcoded
 // empty array).
+/**
+ * GET /admin/payments/reconciliation — does the money add up?
+ *
+ * Reports escrow against the sum of every claim on it. `balanced: false` means the ledger has
+ * created or destroyed money somewhere and needs investigating before anything else is
+ * trusted; `negativeWallets` should always be empty.
+ */
+router.get('/reconciliation', async (_req: Request, res: Response) => {
+  const report = await buildReconciliationReport();
+  return res.status(report.balanced ? 200 : 409).json({ success: report.balanced, data: report });
+});
+
 router.get('/commissions', async (_req: Request, res: Response) => {
   const commissions = await transactionRepository.findRecentCommissions(200);
   res.json({ success: true, data: commissions });

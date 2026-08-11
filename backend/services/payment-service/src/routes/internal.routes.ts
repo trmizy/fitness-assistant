@@ -1,11 +1,15 @@
 import { Router, Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { logger } from '@gym-coach/shared';
 import { serviceSecretMiddleware } from '../middleware/serviceSecret.middleware';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { walletService, InsufficientBalanceError, WalletNotActiveError } from '../services/wallet.service';
+import { getProvider, providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
+import { assertRatesValid, buildMoneyBreakdown, type RateTable } from '../services/contract-money';
+import { compensateNoShow, releaseSession, terminateContract } from '../services/contract-ledger.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
-import { WalletOwnerType, PartnerType, Prisma } from '../generated/prisma';
+import { WalletOwnerType, PartnerType, PaymentProviderType, Prisma } from '../generated/prisma';
 
 const router = Router();
 router.use(serviceSecretMiddleware);
@@ -233,6 +237,282 @@ router.post('/payments/:id/refund', async (req: Request, res: Response) => {
   await transactionRepository.markActivated(refundTxn.id);
   return res.json({ success: true, data: { transactionId: refundTxn.id, status: 'PAID', refundAmount, commissionAmount, netToReceiver } });
 });
+
+// ── Direct-to-gateway contract money (money-flow redesign) ───────────────────
+
+const rateSchema = z.object({
+  platformRate: z.string().min(1),
+  ptRate: z.string().min(1),
+  gymRate: z.string().min(1),
+});
+
+const partiesSchema = z.object({
+  ptUserId: z.string().min(1),
+  gymId: z.string().nullish(),
+  clientUserId: z.string().min(1),
+});
+
+function toRates(r: z.infer<typeof rateSchema>): RateTable {
+  const rates = {
+    platformRate: new Prisma.Decimal(r.platformRate),
+    ptRate: new Prisma.Decimal(r.ptRate),
+    gymRate: new Prisma.Decimal(r.gymRate),
+  };
+  assertRatesValid(rates);
+  return rates;
+}
+
+function ratesFromMetadata(metadata: unknown): RateTable {
+  const m = (metadata ?? {}) as Record<string, unknown>;
+  const r = m.rates as Record<string, string> | undefined;
+  if (!r) throw new Error('transaction carries no rate snapshot');
+  return toRates(rateSchema.parse(r));
+}
+
+const checkoutSchema = z.object({
+  purpose: z.enum(['PT_CONTRACT', 'GYM_MEMBERSHIP', 'TRAINING_PACKAGE_PURCHASE']),
+  relatedEntityType: z.enum(['PT_CONTRACT', 'GYM_MEMBERSHIP', 'TRAINING_PACKAGE_PURCHASE']),
+  relatedEntityId: z.string().min(1),
+  amount: z.number().positive(),
+  rates: rateSchema,
+  parties: partiesSchema,
+  idempotencyKey: z.string().min(1),
+  initiatedBy: z.string().min(1),
+  sourceService: z.string().min(1),
+  provider: z.enum(['VNPAY', 'MOMO', 'ZALOPAY', 'PAYOS']).optional(),
+  orderInfo: z.string().optional(),
+});
+
+/**
+ * POST /internal/payments/checkout — start a purchase at a payment gateway.
+ *
+ * Replaces the old wallet-to-wallet transfer. The client pays the gateway directly; nothing
+ * moves in the ledger until the signed webhook confirms it (see handleContractSettlement).
+ *
+ * The rate table and the parties are frozen into the transaction's metadata here rather than
+ * looked up at settlement time. Settlement can arrive minutes later — or be replayed days
+ * later during reconciliation — and it must split the money on the terms that were in force
+ * when the client agreed to pay, not whatever the collaboration says by then.
+ */
+router.post('/payments/checkout', async (req: Request, res: Response) => {
+  const parsed = checkoutSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+
+  let rates: RateTable;
+  try {
+    rates = toRates(d.rates);
+  } catch (e) {
+    return res.status(400).json({ success: false, error: { code: 'INVALID_RATE_TABLE', message: (e as Error).message } });
+  }
+  if (rates.gymRate.greaterThan(0) && !d.parties.gymId) {
+    return res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_RATE_TABLE', message: 'gymRate > 0 but no gymId was supplied' },
+    });
+  }
+
+  const providerName = (d.provider ?? process.env.PAYMENT_PROVIDER ?? DEFAULT_PROVIDER).toUpperCase();
+  const providerConfig = providerConfigStatus(providerName);
+  if (!providerConfig.configured) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'PROVIDER_NOT_CONFIGURED',
+        message: `Payment provider ${providerName} is not configured — missing env: ${providerConfig.missing.join(', ')}`,
+      },
+    });
+  }
+
+  const fingerprint = computeFingerprint({
+    amount: d.amount, currency: 'VND', purpose: d.purpose,
+    relatedEntityType: d.relatedEntityType, relatedEntityId: d.relatedEntityId,
+    payerId: d.parties.clientUserId,
+  });
+  const check = await checkIdempotency(d.idempotencyKey, fingerprint);
+  if (check.kind === 'CONFLICT') return res.status(409).json({ success: false, error: { code: 'IDEMPOTENCY_KEY_CONFLICT' } });
+  if (check.kind === 'REPLAY') {
+    const t = check.transaction as { id: string; status: string; metadata?: unknown };
+    const meta = (t.metadata ?? {}) as Record<string, unknown>;
+    return res.json({
+      success: true,
+      data: { transactionId: t.id, status: t.status, redirectUrl: meta.redirectUrl ?? null, qrCodeUrl: meta.qrCodeUrl ?? null },
+    });
+  }
+
+  const txnId = randomUUID();
+  try {
+    const provider = getProvider(providerName);
+    const intent = await provider.createPaymentIntent({
+      transactionId: txnId,
+      amount: Math.round(d.amount),
+      orderInfo: d.orderInfo ?? `${d.purpose} ${d.relatedEntityId}`,
+    });
+
+    const txn = await transactionRepository.create({
+      id: txnId,
+      payerId: d.parties.clientUserId,
+      purpose: d.purpose,
+      gymId: d.parties.gymId ?? undefined,
+      ptId: d.parties.ptUserId,
+      ptContractId: d.purpose === 'PT_CONTRACT' ? d.relatedEntityId : undefined,
+      membershipId: d.purpose === 'GYM_MEMBERSHIP' ? d.relatedEntityId : undefined,
+      amount: d.amount,
+      currency: 'VND',
+      status: 'PENDING',
+      provider: providerName as PaymentProviderType,
+      providerTransactionId: intent.providerTransactionId,
+      idempotencyKey: d.idempotencyKey,
+      requestFingerprint: fingerprint,
+      relatedEntityType: d.relatedEntityType,
+      relatedEntityId: d.relatedEntityId,
+      activationStatus: 'PENDING',
+      initiatedBy: d.initiatedBy,
+      sourceService: d.sourceService,
+      metadata: {
+        ...(intent.metadata ?? {}),
+        rates: { platformRate: rates.platformRate.toString(), ptRate: rates.ptRate.toString(), gymRate: rates.gymRate.toString() },
+        parties: { ptUserId: d.parties.ptUserId, gymId: d.parties.gymId ?? null, clientUserId: d.parties.clientUserId },
+        redirectUrl: intent.redirectUrl,
+        qrCodeUrl: intent.qrCodeUrl,
+      } as Prisma.InputJsonValue,
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: { transactionId: txn.id, status: txn.status, redirectUrl: intent.redirectUrl, qrCodeUrl: intent.qrCodeUrl, provider: providerName },
+    });
+  } catch (err) {
+    logger.error({ error: 'checkout failed', relatedEntityId: d.relatedEntityId, message: (err as Error).message });
+    return res.status(502).json({ success: false, error: { code: 'GATEWAY_ERROR', message: (err as Error).message } });
+  }
+});
+
+const releaseSchema = z.object({
+  transactionId: z.string().min(1),
+  price: z.string().min(1),
+  totalSessions: z.number().int().positive(),
+  rates: rateSchema,
+  parties: partiesSchema,
+  label: z.string().min(1),
+});
+
+// POST /internal/contracts/release-session — one confirmed session's worth of money moves
+// from every party's pending bucket to their available bucket.
+router.post('/contracts/release-session', async (req: Request, res: Response) => {
+  const parsed = releaseSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await releaseSession({
+      transactionId: d.transactionId,
+      price: new Prisma.Decimal(d.price),
+      totalSessions: d.totalSessions,
+      rates: toRates(d.rates),
+      parties: d.parties,
+      label: d.label,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    logger.error({ error: 'release-session failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'RELEASE_FAILED', message: (err as Error).message } });
+  }
+});
+
+// POST /internal/contracts/no-show — the PT missed a session; compensate the client one
+// session's value, charged to the three parties in proportion.
+router.post('/contracts/no-show', async (req: Request, res: Response) => {
+  const parsed = releaseSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await compensateNoShow({
+      transactionId: d.transactionId,
+      price: new Prisma.Decimal(d.price),
+      totalSessions: d.totalSessions,
+      rates: toRates(d.rates),
+      parties: d.parties,
+      label: d.label,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    logger.error({ error: 'no-show compensation failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'COMPENSATION_FAILED', message: (err as Error).message } });
+  }
+});
+
+const terminateSchema = releaseSchema.extend({
+  usedSessions: z.number().int().min(0),
+  reason: z.enum(['CLIENT_CANCELLED', 'PT_BANNED', 'PT_CANCELLED', 'MUTUAL', 'EXPIRED', 'COMPLETED']),
+  alreadyReleased: z.object({ pt: z.string(), gym: z.string(), platform: z.string() }),
+});
+
+// POST /internal/contracts/terminate — settle everyone to their final entitlement and refund
+// the client per the reason's formula.
+router.post('/contracts/terminate', async (req: Request, res: Response) => {
+  const parsed = terminateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await terminateContract({
+      transactionId: d.transactionId,
+      price: new Prisma.Decimal(d.price),
+      totalSessions: d.totalSessions,
+      usedSessions: d.usedSessions,
+      rates: toRates(d.rates),
+      reason: d.reason,
+      alreadyReleased: {
+        pt: new Prisma.Decimal(d.alreadyReleased.pt),
+        gym: new Prisma.Decimal(d.alreadyReleased.gym),
+        platform: new Prisma.Decimal(d.alreadyReleased.platform),
+      },
+      parties: d.parties,
+      label: d.label,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    logger.error({ error: 'termination failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'TERMINATION_FAILED', message: (err as Error).message } });
+  }
+});
+
+// POST /internal/contracts/money-breakdown — pure calculation, no side effects. Lets a caller
+// preview what a cancellation would cost before committing to it.
+router.post('/contracts/money-breakdown', async (req: Request, res: Response) => {
+  const schema = z.object({
+    price: z.string().min(1),
+    totalSessions: z.number().int().positive(),
+    usedSessions: z.number().int().min(0),
+    rates: rateSchema,
+  });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  try {
+    return res.json({
+      success: true,
+      data: buildMoneyBreakdown({
+        price: new Prisma.Decimal(parsed.data.price),
+        totalSessions: parsed.data.totalSessions,
+        usedSessions: parsed.data.usedSessions,
+        rates: toRates(parsed.data.rates),
+      }),
+    });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: (err as Error).message } });
+  }
+});
+
+export { ratesFromMetadata };
 
 // POST /internal/payments/:transactionId/mark-activated
 router.post('/payments/:transactionId/mark-activated', async (req: Request, res: Response) => {

@@ -7,9 +7,14 @@
  * (escrow = the sum of all claims on it) still holds. A formula that is right on paper and
  * wrong in the wallets is worth nothing.
  *
- * Run:
+ * Run THIS FILE ALONE:
  *   DATABASE_URL="postgresql://gymcoach:gymcoach_password@localhost:5433/gymcoach_payment_test" \
  *     npx tsx --test src/__tests__/contract-ledger.integration.test.ts
+ *
+ * Not alongside the other integration file. The invariant is a property of the entire
+ * database, so each scenario TRUNCATEs the ledger first — and node:test runs separate files
+ * concurrently, which would have this suite wiping tables out from under the other one. The
+ * resulting failures look exactly like real money bugs and are not.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';

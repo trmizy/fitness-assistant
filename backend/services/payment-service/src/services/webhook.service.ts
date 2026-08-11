@@ -3,6 +3,7 @@ import { webhookRepository } from '../repositories/webhook.repository';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { PaymentProviderType, Prisma } from '../generated/prisma';
 import { walletService } from './wallet.service';
+import { settleContractPayment } from './contract-ledger.service';
 
 interface IncomingWebhookEvent {
   provider: string;
@@ -62,8 +63,23 @@ export async function handleEvent(event: IncomingWebhookEvent): Promise<void> {
     return;
   }
 
+  // Purchases pay the gateway directly now, so a webhook can be settling a contract rather
+  // than a top-up. Both funnel through this one idempotent handler; only the allocation
+  // differs. (WALLET_TOPUP survives for historical rows — the top-up flow itself is gone.)
   if (txn.purpose !== 'WALLET_TOPUP') {
-    logger.warn(`[WebhookService] Transaction ${txn.id} is not a WALLET_TOPUP (purpose=${txn.purpose}) — ignoring webhook`);
+    if (txn.status === 'PAID') {
+      logger.info(`[WebhookService] Transaction ${txn.id} already settled — skipping`);
+      await webhookRepository.markProcessed(webhookRecord.id);
+      return;
+    }
+    try {
+      await settlePurchase(txn);
+    } catch (err) {
+      logger.error({ error: '[WebhookService] purchase settlement failed', transactionId: txn.id, message: (err as Error).message });
+      // Leave the webhook unprocessed so the reconciliation sweep retries it: a purchase the
+      // client actually paid for must not be dropped because one allocation attempt failed.
+      throw err;
+    }
     await webhookRepository.markProcessed(webhookRecord.id);
     return;
   }
@@ -93,5 +109,61 @@ export async function handleEvent(event: IncomingWebhookEvent): Promise<void> {
     await webhookRepository.incrementRetry(webhookRecord.id);
     logger.error({ error: '[WebhookService] Failed to credit wallet for top-up', txnId: txn.id, message: (err as Error).message });
     throw err;
+  }
+}
+
+/**
+ * A purchase the client paid for at the gateway: put the price into escrow and attribute it
+ * to the three parties' pending buckets, then tell the owning service to activate.
+ *
+ * The rate table and the parties are read back from the transaction's own metadata, frozen
+ * there when checkout started. Re-deriving them now would apply whatever terms happen to be
+ * current, which is wrong on two counts: the client agreed to the old ones, and a webhook
+ * replayed during reconciliation days later would allocate differently from the original.
+ */
+async function settlePurchase(txn: {
+  id: string;
+  amount: Prisma.Decimal;
+  purpose: string;
+  relatedEntityType: string | null;
+  relatedEntityId: string | null;
+  metadata: unknown;
+}): Promise<void> {
+  const meta = (txn.metadata ?? {}) as Record<string, any>;
+  if (!meta.rates || !meta.parties) {
+    throw new Error(`transaction ${txn.id} has no frozen rate/party snapshot — cannot allocate`);
+  }
+  const rates = {
+    platformRate: new Prisma.Decimal(meta.rates.platformRate),
+    ptRate: new Prisma.Decimal(meta.rates.ptRate),
+    gymRate: new Prisma.Decimal(meta.rates.gymRate),
+  };
+
+  const result = await settleContractPayment({
+    transactionId: txn.id,
+    price: new Prisma.Decimal(txn.amount),
+    rates,
+    parties: {
+      ptUserId: meta.parties.ptUserId,
+      gymId: meta.parties.gymId ?? null,
+      clientUserId: meta.parties.clientUserId,
+    },
+    label: `${txn.purpose} ${txn.relatedEntityId ?? txn.id}`,
+  });
+
+  logger.info(
+    `[WebhookService] Settled ${txn.purpose} ${txn.id}: escrow=${result.escrowAfter} pending pt=${result.pending.pt} gym=${result.pending.gym} platform=${result.pending.platform}`,
+  );
+
+  // Activation is the owning service's job (activate the contract, the membership, …) and is
+  // retried by the reconciliation sweep if it fails, so a hiccup there never unwinds money
+  // that has genuinely been received.
+  try {
+    const { callActivateEndpoint } = await import('./reconciliation.service');
+    const fresh = await transactionRepository.findById(txn.id);
+    if (fresh) await callActivateEndpoint(fresh);
+    await transactionRepository.markActivated(txn.id);
+  } catch (e) {
+    logger.warn({ error: 'activation callback failed; reconciliation will retry', transactionId: txn.id, message: (e as Error).message });
   }
 }

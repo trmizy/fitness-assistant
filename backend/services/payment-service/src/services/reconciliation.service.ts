@@ -67,7 +67,12 @@ async function reconcilePendingActivations(): Promise<void> {
   }
 }
 
-async function callActivateEndpoint(txn: PaymentTransaction): Promise<void> {
+/**
+ * Tell the owning service its purchase is paid for. Exported so the webhook path calls the
+ * same endpoints the retry sweep does — two copies of this routing would eventually disagree
+ * about which service owns which entity type.
+ */
+export async function callActivateEndpoint(txn: PaymentTransaction): Promise<void> {
   const body = { transactionId: txn.id };
   const headers = { 'x-service-secret': INTERNAL_SERVICE_SECRET };
 
