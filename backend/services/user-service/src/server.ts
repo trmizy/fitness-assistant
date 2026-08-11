@@ -5,6 +5,7 @@ import app from "./app";
 import { prisma } from "./repositories/profile.repository";
 import { logger } from "@gym-coach/shared";
 import { startSessionAutoConfirmJob } from "./services/session-autoconfirm.service";
+import { startRescheduleExpiryJob } from "./services/reschedule-expiry.service";
 
 const PORT = process.env.PORT || 3004;
 
@@ -13,6 +14,7 @@ app.listen(PORT, () => {
   // Settles sessions the client never responded to, so a PT is not left uncredited
   // forever by silence (see session-autoconfirm.service.ts).
   startSessionAutoConfirmJob();
+  startRescheduleExpiryJob();
 });
 
 process.on("SIGTERM", async () => {
