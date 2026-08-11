@@ -209,6 +209,31 @@ model PlatformCommission {
   @@map("platform_commissions")
 }
 
+/// Money a partner owes back to the platform.
+///
+/// Raised when a client had to be made whole but the partner's buckets could not cover their
+/// share — a PT who missed enough sessions to exhaust their pending balance, typically. The
+/// platform fronts the cash so the client is never short-changed, and books the difference
+/// here. Without this row the shortfall would either push a wallet negative or silently break
+/// the reconciliation invariant; instead it stays visible and recoverable.
+model PartnerReceivable {
+  id            String      @id @default(uuid())
+  partnerType   PartnerType @map("partner_type")
+  partnerId     String      @map("partner_id")
+  amount        Decimal     @db.Decimal(14, 2)
+  /// Recovered so far, by withholding from the partner's later credits.
+  recovered     Decimal     @default(0) @db.Decimal(14, 2)
+  reason        String
+  contractId    String?     @map("contract_id")
+  transactionId String?     @map("transaction_id")
+  settledAt     DateTime?   @map("settled_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@index([partnerType, partnerId, settledAt])
+  @@map("partner_receivables")
+}
+
 model PaymentWebhookEvent {
   id                    String              @id @default(uuid())
   provider              PaymentProviderType

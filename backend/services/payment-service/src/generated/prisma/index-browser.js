@@ -196,6 +196,20 @@ exports.Prisma.PlatformCommissionScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.PartnerReceivableScalarFieldEnum = {
+  id: 'id',
+  partnerType: 'partnerType',
+  partnerId: 'partnerId',
+  amount: 'amount',
+  recovered: 'recovered',
+  reason: 'reason',
+  contractId: 'contractId',
+  transactionId: 'transactionId',
+  settledAt: 'settledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.PaymentWebhookEventScalarFieldEnum = {
   id: 'id',
   provider: 'provider',
@@ -319,6 +333,7 @@ exports.Prisma.ModelName = {
   WalletLedgerEntry: 'WalletLedgerEntry',
   PaymentTransaction: 'PaymentTransaction',
   PlatformCommission: 'PlatformCommission',
+  PartnerReceivable: 'PartnerReceivable',
   PaymentWebhookEvent: 'PaymentWebhookEvent'
 };
 

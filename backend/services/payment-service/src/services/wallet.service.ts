@@ -142,12 +142,24 @@ export interface LedgerOps {
 }
 
 export const walletService = {
+  /**
+   * Prisma's upsert is not atomic against a concurrent insert: it reads, misses, then
+   * inserts, and two callers racing on a wallet that does not exist yet both reach the
+   * insert and one dies on the unique constraint. That is not hypothetical here — a gateway
+   * return and its IPN arrive together, and both resolve the same PT's wallet before it has
+   * ever been used. Treat the constraint violation as proof someone else won and re-read.
+   */
   async getOrCreateWallet(ownerType: WalletOwnerType, ownerId: string) {
-    return prisma.wallet.upsert({
-      where: { ownerType_ownerId: { ownerType, ownerId } },
-      create: { ownerType, ownerId },
-      update: {},
-    });
+    try {
+      return await prisma.wallet.upsert({
+        where: { ownerType_ownerId: { ownerType, ownerId } },
+        create: { ownerType, ownerId },
+        update: {},
+      });
+    } catch (err) {
+      if ((err as { code?: string }).code !== 'P2002') throw err;
+      return prisma.wallet.findUniqueOrThrow({ where: { ownerType_ownerId: { ownerType, ownerId } } });
+    }
   },
 
   /** Custodial wallet: holds every đồng taken in and not yet paid out. */

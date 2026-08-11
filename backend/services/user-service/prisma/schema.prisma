@@ -51,6 +51,11 @@ model UserProfile {
   // - ptApplicationStatus: NONE | PENDING | APPROVED | REJECTED (enum)
   // - ptCertificateUrl, ptBio, ptSpecialties, etc.
   isPT      Boolean  @default(false)
+  // Set when an admin disables the account (auth-service drives it via /internal). Kept
+  // separate from `isPT` so the trainer identity, application and reviews survive a
+  // suspension and can be restored by simply re-enabling the account. While true the PT
+  // is hidden from discovery and cannot take new bookings.
+  ptSuspended Boolean @default(false) @map("pt_suspended")
 
   // Demographics
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
@@ -237,6 +242,18 @@ enum ContractSource {
   GYM         // PT hired via gym affiliation (schema-ready; enforcement is a follow-up phase)
 }
 
+/// Why a contract stopped. Each value selects one refund formula — see computeTermination.
+/// Fault matters: a client who walks away forfeits a slice of the unused value, a client
+/// whose trainer was banned or who cancelled on them does not.
+enum TerminationReason {
+  CLIENT_CANCELLED // client walked away — forfeits (1 − CLIENT_CANCEL_REFUND_RATE) of the unused value
+  PT_BANNED        // trainer suspended by an admin — client refunded in full, no fee
+  PT_CANCELLED     // trainer pulled out — client refunded in full, the same slice fined to the PT side
+  MUTUAL           // both sides agreed — full refund of the unused value, nobody penalised
+  EXPIRED          // ran past its end date with sessions unused — nothing refunded
+  COMPLETED        // quota fully used — nothing to refund
+}
+
 enum PackageType {
   PER_SESSION // Pay per session
   PACKAGE     // Fixed number of sessions bundle
@@ -308,8 +325,10 @@ model Contract {
   extraSessions      Int            @default(0) @map("extra_sessions")
   totalSessions      Int            @map("total_sessions")
   usedSessions       Int            @default(0) @map("used_sessions")
-  price              Float?
-  pricePerSession    Float?         @map("price_per_session")
+  // Money is Decimal(14,2), never a float: these figures are split three ways and the split
+  // has to reconcile to the đồng. Binary floating point cannot promise that.
+  price              Decimal?       @db.Decimal(14, 2)
+  pricePerSession    Decimal?       @db.Decimal(14, 2) @map("price_per_session")
 
   // Timeline
   startDate          DateTime?      @map("start_date")
@@ -346,6 +365,27 @@ model Contract {
   gymId              String?        @map("gym_id")
   source             ContractSource @default(INDEPENDENT)
   paymentTransactionId String?      @map("payment_transaction_id")
+
+  // ── Revenue split, frozen at signing ──────────────────────────────────────
+  // A snapshot, not a lookup. Every later calculation — releasing a session, refunding,
+  // compensating a no-show — reads these three columns and never re-queries the current
+  // PT↔gym collaboration. If the two sides renegotiate tomorrow, contracts already signed
+  // keep the terms their parties agreed to. The three must sum to exactly 1 and
+  // platformRate may not fall below MIN_PLATFORM_RATE; both are enforced in
+  // contract-money.ts before a contract is written.
+  platformRate       Decimal        @default("0.10") @db.Decimal(6, 4) @map("platform_rate")
+  ptRate             Decimal        @default("0.90") @db.Decimal(6, 4) @map("pt_rate")
+  gymRate            Decimal        @default("0")    @db.Decimal(6, 4) @map("gym_rate")
+
+  // Why the contract stopped. Drives which refund formula applies (see docs/money-flow.md).
+  terminationReason  TerminationReason? @map("termination_reason")
+  terminatedAt       DateTime?          @map("terminated_at")
+  /// Money already moved out of the pending buckets for this contract, per party. Lets
+  /// termination top each party up to their final entitlement instead of double-paying the
+  /// part already released session by session.
+  releasedToPt       Decimal        @default(0) @db.Decimal(14, 2) @map("released_to_pt")
+  releasedToGym      Decimal        @default(0) @db.Decimal(14, 2) @map("released_to_gym")
+  releasedToPlatform Decimal        @default(0) @db.Decimal(14, 2) @map("released_to_platform")
 
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
