@@ -32,6 +32,13 @@ export const availabilityController = {
     try {
       const ptUserId = req.headers["x-user-id"] as string;
       const { slots } = req.body;
+      // A body without `slots` is a caller mistake, not a server fault. Without this the
+      // request reached the service and died on `slots is not iterable` — a 500 that reads
+      // like an outage and tells the caller nothing about the field they got wrong.
+      if (!Array.isArray(slots)) {
+        res.status(400).json({ error: "slots phải là một mảng khung giờ" });
+        return;
+      }
       const result = await availabilityService.setAvailability(ptUserId, slots);
       res.json(result);
     } catch (error: any) {
