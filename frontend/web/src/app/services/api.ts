@@ -2631,6 +2631,57 @@ export const walletService = {
 };
 
 // ── Gym marketplace (Phase 4) ────────────────────────────────────────
+/**
+ * PT ↔ gym revenue-share partnerships.
+ *
+ * The two sides hit different paths for the same actions — gym-service mounts the owner
+ * router under /owner — because the actor is derived from the route rather than taken from
+ * the request body. Taking it from the body would let a caller claim to be the other party.
+ */
+export const collaborationService = {
+  /** Gyms this PT has an accepted partnership with — the client's gym picker reads this. */
+  listGymsForPt: async (ptUserId: string) => {
+    const { data } = await api.get(`/pt/${ptUserId}/gyms`);
+    return data?.data ?? data;
+  },
+
+  listMine: async () => {
+    const { data } = await api.get('/me/collaborations');
+    return data?.data ?? data;
+  },
+
+  listForOwner: async () => {
+    const { data } = await api.get('/owner/collaborations');
+    return data?.data ?? data;
+  },
+
+  proposeAsPt: async (gymId: string, body: { ptRate: string; gymRate: string; platformRate?: string; note?: string }) => {
+    const { data } = await api.post(`/gyms/${gymId}/collaborations`, body);
+    return data?.data ?? data;
+  },
+
+  proposeAsGym: async (gymId: string, body: { ptUserId: string; ptRate: string; gymRate: string; platformRate?: string; note?: string }) => {
+    const { data } = await api.post(`/owner/gyms/${gymId}/collaborations`, body);
+    return data?.data ?? data;
+  },
+
+  respond: async (
+    id: string,
+    as: 'PT' | 'GYM',
+    body: { action: 'ACCEPT' | 'REJECT' | 'COUNTER'; ptRate?: string; gymRate?: string; platformRate?: string; note?: string },
+  ) => {
+    const path = as === 'GYM' ? `/owner/collaborations/${id}` : `/collaborations/${id}`;
+    const { data } = await api.patch(path, body);
+    return data?.data ?? data;
+  },
+
+  terminate: async (id: string, as: 'PT' | 'GYM') => {
+    const path = as === 'GYM' ? `/owner/collaborations/${id}` : `/collaborations/${id}`;
+    const { data } = await api.delete(path);
+    return data?.data ?? data;
+  },
+};
+
 export const gymService = {
   // Public
   listGyms: async () => {

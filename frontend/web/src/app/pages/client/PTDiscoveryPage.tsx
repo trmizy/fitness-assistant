@@ -22,6 +22,7 @@ import {
   contractService,
   locationService,
   ptServicePackageService,
+  collaborationService,
 } from "../../services/api";
 import { toast } from "sonner";
 import { formatVND } from "../../utils/currency";
@@ -117,6 +118,10 @@ export function PTDiscoveryPage() {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [requestMessage, setRequestMessage] = useState("");
+  // Which partner gym the sessions run at. "" means independent — the PT keeps the gym's
+  // share. This choice sets the contract's revenue split, so it is asked explicitly rather
+  // than guessed from the trainer's listed locations.
+  const [selectedGymId, setSelectedGymId] = useState("");
   const [lowAvailabilityData, setLowAvailabilityData] = useState<{ availableSlots: number; packageSessions: number } | null>(null);
 
   useEffect(() => {
@@ -192,6 +197,7 @@ export function PTDiscoveryPage() {
       setShowRequestModal(false);
       setRequestMessage("");
       setSelectedPackage(null);
+      setSelectedGymId("");
       setLowAvailabilityData(null);
       queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
     },
@@ -219,9 +225,9 @@ export function PTDiscoveryPage() {
   const submitRequest = (acknowledgedLowAvailability = false) => {
     if (!selectedPT || !selectedPackage) return;
     
-    // Auto-select the primary gym for OFFLINE packages (same behavior as old code)
-    const primaryLoc = selectedPT.trainingLocations?.find((l: any) => l.isPrimary) ?? selectedPT.trainingLocations?.[0];
-    const gymId = selectedPackage.sessionMode === "OFFLINE" ? primaryLoc?.gymId : undefined;
+    // Only an offline package can run at a gym; an online one never carries a gym share.
+    const gymId =
+      selectedPackage.sessionMode === "OFFLINE" && selectedGymId ? selectedGymId : undefined;
 
     requestMutation.mutate({
       ptUserId: selectedPT.userId,
@@ -231,6 +237,17 @@ export function PTDiscoveryPage() {
       acknowledgedLowAvailability,
     });
   };
+
+  /**
+   * Gyms this trainer has an ACCEPTED partnership with. Only these may be picked: the split
+   * has to come from terms both sides agreed to, and the server refuses a gymId with no
+   * accepted collaboration rather than quietly falling back to the independent rate.
+   */
+  const { data: partnerGyms = [] } = useQuery<any[]>({
+    queryKey: ["pt-partner-gyms", selectedId],
+    queryFn: () => collaborationService.listGymsForPt(selectedId!),
+    enabled: !!selectedId && showRequestModal,
+  });
 
   const { data: packagesData, isLoading: packagesLoading } = useQuery({
     queryKey: ["pt-packages", selectedId],
@@ -1039,6 +1056,43 @@ export function PTDiscoveryPage() {
                       {formatVND(Number(selectedPackage?.price || 0))}
                     </span>
                   </div>
+                </div>
+              )}
+
+              {selectedPackage?.sessionMode === "OFFLINE" && (
+                <div>
+                  <label
+                    htmlFor="contract-gym"
+                    className="text-xs font-semibold text-zinc-400 mb-1.5 block"
+                  >
+                    Tập tại phòng gym nào?
+                  </label>
+                  <select
+                    id="contract-gym"
+                    value={selectedGymId}
+                    onChange={(e) => setSelectedGymId(e.target.value)}
+                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
+                  >
+                    <option value="">Không qua phòng gym</option>
+                    {partnerGyms.map((g: any) => (
+                      <option key={g.gym.id} value={g.gym.id}>
+                        {g.gym.name}
+                        {g.gym.city ? ` — ${g.gym.city}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-zinc-600 mt-1.5 leading-snug">
+                    {selectedGymId
+                      ? (() => {
+                          const g = partnerGyms.find((x: any) => x.gym.id === selectedGymId);
+                          return g
+                            ? `Chia doanh thu: PT ${Math.round(Number(g.ptRate) * 100)}% · phòng gym ${Math.round(Number(g.gymRate) * 100)}% · nền tảng ${Math.round(Number(g.platformRate) * 100)}%.`
+                            : "";
+                        })()
+                      : partnerGyms.length > 0
+                        ? "Chọn phòng gym nếu bạn tập tại đó — phòng gym sẽ được chia một phần doanh thu."
+                        : "Huấn luyện viên này chưa hợp tác với phòng gym nào."}
+                  </p>
                 </div>
               )}
 
