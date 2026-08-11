@@ -22,7 +22,10 @@ import {
 } from "../../services/api";
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  DRAFT: { label: "Nháp", className: "text-zinc-400 bg-zinc-800 border-zinc-700" },
+  DRAFT: {
+    label: "Nháp",
+    className: "text-zinc-400 bg-zinc-800 border-zinc-700",
+  },
   SUBMITTED: {
     label: "Chờ duyệt",
     className: "text-blue-400 bg-blue-500/10 border-blue-500/30",
@@ -53,7 +56,10 @@ const TABS = [
   { value: "browse", label: "Khám phá" },
   { value: "mine", label: "Kế hoạch của tôi" },
   { value: "buy-packages", label: "Mua gói tập" },
-  { value: "sell-packages", label: "Bán gói tập" },
+  // "Kế hoạch" not "gói": this marketplace sells written training plans, while a PT's
+  // service package sells coaching sessions. Two different products, and the old label made
+  // them read as the same one.
+  { value: "sell-packages", label: "Bán kế hoạch tập" },
 ] as const;
 type TabValue = (typeof TABS)[number]["value"];
 
@@ -111,7 +117,8 @@ function DetailPanel({ id }: { id: string }) {
   });
 
   const reviewMutation = useMutation({
-    mutationFn: () => marketplaceService.submitReview(id, rating, comment || undefined),
+    mutationFn: () =>
+      marketplaceService.submitReview(id, rating, comment || undefined),
     onSuccess: () => {
       toast.success("Đã gửi đánh giá");
       setComment("");
@@ -161,8 +168,8 @@ function DetailPanel({ id }: { id: string }) {
           Đánh giá của bạn
         </h3>
         <p className="mb-3 text-xs text-zinc-600">
-          Bạn cần hoàn thành một chu kỳ tập luyện theo lịch tập gốc của kế
-          hoạch này trước khi có thể đánh giá.
+          Bạn cần hoàn thành một chu kỳ tập luyện theo lịch tập gốc của kế hoạch
+          này trước khi có thể đánh giá.
         </p>
         <StarRating value={rating} onChange={setRating} size={22} />
         <textarea
@@ -399,7 +406,8 @@ function MineTab() {
                     </p>
                   )}
                 <p className="mt-1 text-xs text-zinc-600">
-                  {listing.avgRating.toFixed(1)}★ ({listing.ratingCount} đánh giá)
+                  {listing.avgRating.toFixed(1)}★ ({listing.ratingCount} đánh
+                  giá)
                 </p>
               </div>
               <button
