@@ -1,4 +1,4 @@
-import { ContractStatus, PackageType, SessionMode } from "../generated/prisma";
+import { ContractStatus, ContractSource, PackageType, SessionMode, Prisma } from "../generated/prisma";
 import { prisma } from "./profile.repository";
 
 export const contractRepository = {
@@ -20,6 +20,14 @@ export const contractRepository = {
     clientMessage?: string;
     terms?: string;
     notes?: string;
+    // Revenue split, frozen at signing (money-flow plan §1.4) — see docs/money-flow.md §12
+    // for why this is a snapshot rather than a lookup. Omitted → schema defaults
+    // (0.10/0.90/0, source INDEPENDENT) apply, which is correct for a PT hired directly.
+    gymId?: string;
+    source?: ContractSource;
+    platformRate?: Prisma.Decimal | string;
+    ptRate?: Prisma.Decimal | string;
+    gymRate?: Prisma.Decimal | string;
   }) => prisma.contract.create({ data }),
 
   findById: (id: string) => prisma.contract.findUnique({ where: { id } }),

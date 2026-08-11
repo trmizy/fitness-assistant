@@ -171,8 +171,24 @@ export type SessionStatus =
   | "CONFIRMED"
   | "COMPLETED"
   | "CANCELLED"
-  | "NO_SHOW";
+  | "NO_SHOW"
+  | "RESCHEDULE_PENDING";
 export type SessionMode = "ONLINE" | "OFFLINE" | "HYBRID";
+
+export interface SessionRescheduleRequest {
+  id: string;
+  sessionId: string;
+  requestedBy: "CLIENT" | "PT";
+  originalStartAt: string;
+  originalEndAt: string;
+  proposedStartAt: string;
+  proposedEndAt: string;
+  reason: string;
+  status: "PENDING" | "ACCEPTED" | "REJECTED";
+  respondedAt: string | null;
+  responseNote: string | null;
+  createdAt: string;
+}
 
 export interface Session {
   id: string;
@@ -193,6 +209,7 @@ export interface Session {
   createdAt: string;
   updatedAt: string;
   review?: SessionReview;
+  rescheduleRequests?: SessionRescheduleRequest[];
 }
 
 export interface SessionReview {

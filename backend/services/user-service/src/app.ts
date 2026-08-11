@@ -16,6 +16,7 @@ import internalRoutes from "./routes/internal.routes";
 import locationRoutes from "./routes/location.routes";
 import trainingLocationRoutes from "./routes/training_location.routes";
 import adminRoutes from "./routes/admin.routes";
+import ptServicePackageRoutes from "./routes/pt_service_package.routes";
 
 const app = express();
 
@@ -88,5 +89,8 @@ app.use("/pt/training-locations", trainingLocationRoutes);
 // Service-to-service only. Protected by serviceSecretMiddleware inside the router.
 // NOT exposed via gateway public routing.
 app.use("/internal", internalRoutes);
+
+// PT Service Package management — /me/service-packages (PT) and /pts/:ptUserId/service-packages (client)
+app.use("/me/service-packages", ptServicePackageRoutes);
 
 export default app;

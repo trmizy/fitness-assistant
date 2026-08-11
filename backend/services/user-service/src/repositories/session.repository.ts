@@ -133,4 +133,47 @@ export const sessionRepository = {
     rating: number;
     comment?: string;
   }) => prisma.sessionReview.create({ data }),
+
+  /**
+   * Batch: all booked sessions (REQUESTED|CONFIRMED) for multiple PTs within a date range.
+   * Used by countAvailableSlotsForPTs to avoid N+1 queries when rendering a PT list.
+   */
+  findBookedByPTsAndRange: (ptUserIds: string[], from: Date, to: Date) =>
+    prisma.session.findMany({
+      where: {
+        ptUserId: { in: ptUserIds },
+        status: { in: [SessionStatus.REQUESTED, SessionStatus.CONFIRMED] },
+        scheduledStartAt: { gte: from },
+        scheduledEndAt: { lte: to },
+      },
+      select: { ptUserId: true, scheduledStartAt: true, scheduledEndAt: true },
+    }),
+
+  // ── Reschedule Request ──────────────────────────────────────────
+
+  createRescheduleRequest: (data: any) =>
+    prisma.sessionRescheduleRequest.create({ data }),
+
+  findRescheduleRequestById: (id: string) =>
+    prisma.sessionRescheduleRequest.findUnique({ where: { id }, include: { session: true } }),
+
+  getRescheduleRequestsBySessionId: (sessionId: string) =>
+    prisma.sessionRescheduleRequest.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: "desc" },
+    }),
+
+  updateRescheduleRequestStatus: (
+    id: string,
+    status: string,
+    responseNote?: string,
+  ) =>
+    prisma.sessionRescheduleRequest.update({
+      where: { id },
+      data: {
+        status: status as any,
+        respondedAt: new Date(),
+        responseNote,
+      },
+    }),
 };

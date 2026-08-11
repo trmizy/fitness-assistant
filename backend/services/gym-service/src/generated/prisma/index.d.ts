@@ -43,6 +43,31 @@ export type GymCheckIn = $Result.DefaultSelection<Prisma.$GymCheckInPayload>
  * 
  */
 export type GymReview = $Result.DefaultSelection<Prisma.$GymReviewPayload>
+/**
+ * Model GymPtCollaboration
+ * A revenue-share agreement between a trainer and a gym.
+ * 
+ * A PT affiliated with a gym trains clients on the gym's floor and checks in free; in return
+ * the gym takes a cut of the contracts that PT signs there. Both sides have to agree on the
+ * split, so this row carries the negotiation as well as the outcome — each counter-offer
+ * overwrites the proposed rates and flips `proposedBy`, so whose turn it is is never
+ * ambiguous.
+ * 
+ * The rates here are a TEMPLATE, not the source of truth for any contract. When a contract is
+ * signed it copies them onto itself (see docs/money-flow.md §12); renegotiating afterwards
+ * leaves existing contracts on the terms their parties actually agreed to.
+ */
+export type GymPtCollaboration = $Result.DefaultSelection<Prisma.$GymPtCollaborationPayload>
+/**
+ * Model GymMembershipReferral
+ * Commission owed to a PT for introducing a client who bought a gym membership.
+ * 
+ * Paid out of the GYM's share, never the platform's — the platform did no introducing. The
+ * `clawedBack` column exists because a refunded membership must reverse the commission in
+ * proportion; a referral system that pays on purchase but forgets to reclaim on refund leaks
+ * money on every cancellation.
+ */
+export type GymMembershipReferral = $Result.DefaultSelection<Prisma.$GymMembershipReferralPayload>
 
 /**
  * Enums
@@ -102,6 +127,26 @@ export const GymTrainerVisibility: {
 
 export type GymTrainerVisibility = (typeof GymTrainerVisibility)[keyof typeof GymTrainerVisibility]
 
+
+export const CollaborationStatus: {
+  PENDING: 'PENDING',
+  COUNTERED: 'COUNTERED',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED',
+  TERMINATED: 'TERMINATED'
+};
+
+export type CollaborationStatus = (typeof CollaborationStatus)[keyof typeof CollaborationStatus]
+
+
+export const CollaborationParty: {
+  PT: 'PT',
+  GYM: 'GYM'
+};
+
+export type CollaborationParty = (typeof CollaborationParty)[keyof typeof CollaborationParty]
+
 }
 
 export type GymStatus = $Enums.GymStatus
@@ -127,6 +172,14 @@ export const AffiliationEmployment: typeof $Enums.AffiliationEmployment
 export type GymTrainerVisibility = $Enums.GymTrainerVisibility
 
 export const GymTrainerVisibility: typeof $Enums.GymTrainerVisibility
+
+export type CollaborationStatus = $Enums.CollaborationStatus
+
+export const CollaborationStatus: typeof $Enums.CollaborationStatus
+
+export type CollaborationParty = $Enums.CollaborationParty
+
+export const CollaborationParty: typeof $Enums.CollaborationParty
 
 /**
  * ##  Prisma Client ʲˢ
@@ -310,6 +363,26 @@ export class PrismaClient<
     * ```
     */
   get gymReview(): Prisma.GymReviewDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymPtCollaboration`: Exposes CRUD operations for the **GymPtCollaboration** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymPtCollaborations
+    * const gymPtCollaborations = await prisma.gymPtCollaboration.findMany()
+    * ```
+    */
+  get gymPtCollaboration(): Prisma.GymPtCollaborationDelegate<ExtArgs>;
+
+  /**
+   * `prisma.gymMembershipReferral`: Exposes CRUD operations for the **GymMembershipReferral** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymMembershipReferrals
+    * const gymMembershipReferrals = await prisma.gymMembershipReferral.findMany()
+    * ```
+    */
+  get gymMembershipReferral(): Prisma.GymMembershipReferralDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -756,7 +829,9 @@ export namespace Prisma {
     GymMembershipContract: 'GymMembershipContract',
     GymTrainerAffiliation: 'GymTrainerAffiliation',
     GymCheckIn: 'GymCheckIn',
-    GymReview: 'GymReview'
+    GymReview: 'GymReview',
+    GymPtCollaboration: 'GymPtCollaboration',
+    GymMembershipReferral: 'GymMembershipReferral'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -772,7 +847,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview"
+      modelProps: "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymMembershipReferral"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1196,6 +1271,146 @@ export namespace Prisma {
           }
         }
       }
+      GymPtCollaboration: {
+        payload: Prisma.$GymPtCollaborationPayload<ExtArgs>
+        fields: Prisma.GymPtCollaborationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymPtCollaborationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCollaborationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymPtCollaborationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCollaborationPayload>
+          }
+          findFirst: {
+            args: Prisma.GymPtCollaborationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCollaborationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymPtCollaborationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCollaborationPayload>
+          }
+          findMany: {
+            args: Prisma.GymPtCollaborationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCollaborationPayload>[]
+          }
+          create: {
+            args: Prisma.GymPtCollaborationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCollaborationPayload>
+          }
+          createMany: {
+            args: Prisma.GymPtCollaborationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymPtCollaborationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCollaborationPayload>[]
+          }
+          delete: {
+            args: Prisma.GymPtCollaborationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCollaborationPayload>
+          }
+          update: {
+            args: Prisma.GymPtCollaborationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCollaborationPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymPtCollaborationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymPtCollaborationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymPtCollaborationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymPtCollaborationPayload>
+          }
+          aggregate: {
+            args: Prisma.GymPtCollaborationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymPtCollaboration>
+          }
+          groupBy: {
+            args: Prisma.GymPtCollaborationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymPtCollaborationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymPtCollaborationCountArgs<ExtArgs>
+            result: $Utils.Optional<GymPtCollaborationCountAggregateOutputType> | number
+          }
+        }
+      }
+      GymMembershipReferral: {
+        payload: Prisma.$GymMembershipReferralPayload<ExtArgs>
+        fields: Prisma.GymMembershipReferralFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymMembershipReferralFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymMembershipReferralPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymMembershipReferralFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymMembershipReferralPayload>
+          }
+          findFirst: {
+            args: Prisma.GymMembershipReferralFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymMembershipReferralPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymMembershipReferralFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymMembershipReferralPayload>
+          }
+          findMany: {
+            args: Prisma.GymMembershipReferralFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymMembershipReferralPayload>[]
+          }
+          create: {
+            args: Prisma.GymMembershipReferralCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymMembershipReferralPayload>
+          }
+          createMany: {
+            args: Prisma.GymMembershipReferralCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymMembershipReferralCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymMembershipReferralPayload>[]
+          }
+          delete: {
+            args: Prisma.GymMembershipReferralDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymMembershipReferralPayload>
+          }
+          update: {
+            args: Prisma.GymMembershipReferralUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymMembershipReferralPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymMembershipReferralDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymMembershipReferralUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymMembershipReferralUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymMembershipReferralPayload>
+          }
+          aggregate: {
+            args: Prisma.GymMembershipReferralAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymMembershipReferral>
+          }
+          groupBy: {
+            args: Prisma.GymMembershipReferralGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymMembershipReferralGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymMembershipReferralCountArgs<ExtArgs>
+            result: $Utils.Optional<GymMembershipReferralCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1361,6 +1576,7 @@ export namespace Prisma {
     memberships: number
     affiliations: number
     reviews: number
+    collaborations: number
   }
 
   export type GymCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -1368,6 +1584,7 @@ export namespace Prisma {
     memberships?: boolean | GymCountOutputTypeCountMembershipsArgs
     affiliations?: boolean | GymCountOutputTypeCountAffiliationsArgs
     reviews?: boolean | GymCountOutputTypeCountReviewsArgs
+    collaborations?: boolean | GymCountOutputTypeCountCollaborationsArgs
   }
 
   // Custom InputTypes
@@ -1407,6 +1624,13 @@ export namespace Prisma {
    */
   export type GymCountOutputTypeCountReviewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: GymReviewWhereInput
+  }
+
+  /**
+   * GymCountOutputType without action
+   */
+  export type GymCountOutputTypeCountCollaborationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymPtCollaborationWhereInput
   }
 
 
@@ -1692,6 +1916,7 @@ export namespace Prisma {
     memberships?: boolean | Gym$membershipsArgs<ExtArgs>
     affiliations?: boolean | Gym$affiliationsArgs<ExtArgs>
     reviews?: boolean | Gym$reviewsArgs<ExtArgs>
+    collaborations?: boolean | Gym$collaborationsArgs<ExtArgs>
     _count?: boolean | GymCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gym"]>
 
@@ -1728,6 +1953,7 @@ export namespace Prisma {
     memberships?: boolean | Gym$membershipsArgs<ExtArgs>
     affiliations?: boolean | Gym$affiliationsArgs<ExtArgs>
     reviews?: boolean | Gym$reviewsArgs<ExtArgs>
+    collaborations?: boolean | Gym$collaborationsArgs<ExtArgs>
     _count?: boolean | GymCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type GymIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -1739,6 +1965,7 @@ export namespace Prisma {
       memberships: Prisma.$GymMembershipContractPayload<ExtArgs>[]
       affiliations: Prisma.$GymTrainerAffiliationPayload<ExtArgs>[]
       reviews: Prisma.$GymReviewPayload<ExtArgs>[]
+      collaborations: Prisma.$GymPtCollaborationPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2120,6 +2347,7 @@ export namespace Prisma {
     memberships<T extends Gym$membershipsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$membershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymMembershipContractPayload<ExtArgs>, T, "findMany"> | Null>
     affiliations<T extends Gym$affiliationsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$affiliationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymTrainerAffiliationPayload<ExtArgs>, T, "findMany"> | Null>
     reviews<T extends Gym$reviewsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymReviewPayload<ExtArgs>, T, "findMany"> | Null>
+    collaborations<T extends Gym$collaborationsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$collaborationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2551,6 +2779,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: GymReviewScalarFieldEnum | GymReviewScalarFieldEnum[]
+  }
+
+  /**
+   * Gym.collaborations
+   */
+  export type Gym$collaborationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+    where?: GymPtCollaborationWhereInput
+    orderBy?: GymPtCollaborationOrderByWithRelationInput | GymPtCollaborationOrderByWithRelationInput[]
+    cursor?: GymPtCollaborationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymPtCollaborationScalarFieldEnum | GymPtCollaborationScalarFieldEnum[]
   }
 
   /**
@@ -3668,6 +3916,8 @@ export namespace Prisma {
     durationDaysSnapshot: number | null
     totalVisits: number | null
     usedVisits: number | null
+    payoutReleasedAt: Date | null
+    multiGymWarned: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -3685,6 +3935,8 @@ export namespace Prisma {
     durationDaysSnapshot: number | null
     totalVisits: number | null
     usedVisits: number | null
+    payoutReleasedAt: Date | null
+    multiGymWarned: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -3702,6 +3954,8 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits: number
     usedVisits: number
+    payoutReleasedAt: number
+    multiGymWarned: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -3735,6 +3989,8 @@ export namespace Prisma {
     durationDaysSnapshot?: true
     totalVisits?: true
     usedVisits?: true
+    payoutReleasedAt?: true
+    multiGymWarned?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3752,6 +4008,8 @@ export namespace Prisma {
     durationDaysSnapshot?: true
     totalVisits?: true
     usedVisits?: true
+    payoutReleasedAt?: true
+    multiGymWarned?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3769,6 +4027,8 @@ export namespace Prisma {
     durationDaysSnapshot?: true
     totalVisits?: true
     usedVisits?: true
+    payoutReleasedAt?: true
+    multiGymWarned?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -3873,6 +4133,8 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits: number | null
     usedVisits: number
+    payoutReleasedAt: Date | null
+    multiGymWarned: boolean
     createdAt: Date
     updatedAt: Date
     _count: GymMembershipContractCountAggregateOutputType | null
@@ -3909,11 +4171,14 @@ export namespace Prisma {
     durationDaysSnapshot?: boolean
     totalVisits?: boolean
     usedVisits?: boolean
+    payoutReleasedAt?: boolean
+    multiGymWarned?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
     plan?: boolean | GymMembershipPlanDefaultArgs<ExtArgs>
     checkIns?: boolean | GymMembershipContract$checkInsArgs<ExtArgs>
+    referral?: boolean | GymMembershipContract$referralArgs<ExtArgs>
     _count?: boolean | GymMembershipContractCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["gymMembershipContract"]>
 
@@ -3930,6 +4195,8 @@ export namespace Prisma {
     durationDaysSnapshot?: boolean
     totalVisits?: boolean
     usedVisits?: boolean
+    payoutReleasedAt?: boolean
+    multiGymWarned?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
@@ -3949,6 +4216,8 @@ export namespace Prisma {
     durationDaysSnapshot?: boolean
     totalVisits?: boolean
     usedVisits?: boolean
+    payoutReleasedAt?: boolean
+    multiGymWarned?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -3957,6 +4226,7 @@ export namespace Prisma {
     gym?: boolean | GymDefaultArgs<ExtArgs>
     plan?: boolean | GymMembershipPlanDefaultArgs<ExtArgs>
     checkIns?: boolean | GymMembershipContract$checkInsArgs<ExtArgs>
+    referral?: boolean | GymMembershipContract$referralArgs<ExtArgs>
     _count?: boolean | GymMembershipContractCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type GymMembershipContractIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3970,6 +4240,7 @@ export namespace Prisma {
       gym: Prisma.$GymPayload<ExtArgs>
       plan: Prisma.$GymMembershipPlanPayload<ExtArgs>
       checkIns: Prisma.$GymCheckInPayload<ExtArgs>[]
+      referral: Prisma.$GymMembershipReferralPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -3984,6 +4255,19 @@ export namespace Prisma {
       durationDaysSnapshot: number
       totalVisits: number | null
       usedVisits: number
+      /**
+       * Stamped once the pending-bucket payout (gym + platform + any un-clawed referral
+       * commission) has been released to AVAILABLE. Set by the payout sweep on natural
+       * expiry, or immediately on client self-cancel / admin refund — see docs/money-flow.md.
+       * Guards membership-release against double-releasing the same membership.
+       */
+      payoutReleasedAt: Date | null
+      /**
+       * True when the client confirmed purchase after being shown a warning that they already
+       * hold an active membership at a different gym — evidence against "I didn't know I still
+       * had one elsewhere" disputes.
+       */
+      multiGymWarned: boolean
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["gymMembershipContract"]>
@@ -4353,6 +4637,7 @@ export namespace Prisma {
     gym<T extends GymDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymDefaultArgs<ExtArgs>>): Prisma__GymClient<$Result.GetResult<Prisma.$GymPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     plan<T extends GymMembershipPlanDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymMembershipPlanDefaultArgs<ExtArgs>>): Prisma__GymMembershipPlanClient<$Result.GetResult<Prisma.$GymMembershipPlanPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     checkIns<T extends GymMembershipContract$checkInsArgs<ExtArgs> = {}>(args?: Subset<T, GymMembershipContract$checkInsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymCheckInPayload<ExtArgs>, T, "findMany"> | Null>
+    referral<T extends GymMembershipContract$referralArgs<ExtArgs> = {}>(args?: Subset<T, GymMembershipContract$referralArgs<ExtArgs>>): Prisma__GymMembershipReferralClient<$Result.GetResult<Prisma.$GymMembershipReferralPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4394,6 +4679,8 @@ export namespace Prisma {
     readonly durationDaysSnapshot: FieldRef<"GymMembershipContract", 'Int'>
     readonly totalVisits: FieldRef<"GymMembershipContract", 'Int'>
     readonly usedVisits: FieldRef<"GymMembershipContract", 'Int'>
+    readonly payoutReleasedAt: FieldRef<"GymMembershipContract", 'DateTime'>
+    readonly multiGymWarned: FieldRef<"GymMembershipContract", 'Boolean'>
     readonly createdAt: FieldRef<"GymMembershipContract", 'DateTime'>
     readonly updatedAt: FieldRef<"GymMembershipContract", 'DateTime'>
   }
@@ -4731,6 +5018,21 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: GymCheckInScalarFieldEnum | GymCheckInScalarFieldEnum[]
+  }
+
+  /**
+   * GymMembershipContract.referral
+   */
+  export type GymMembershipContract$referralArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralInclude<ExtArgs> | null
+    where?: GymMembershipReferralWhereInput
   }
 
   /**
@@ -7724,6 +8026,2182 @@ export namespace Prisma {
 
 
   /**
+   * Model GymPtCollaboration
+   */
+
+  export type AggregateGymPtCollaboration = {
+    _count: GymPtCollaborationCountAggregateOutputType | null
+    _avg: GymPtCollaborationAvgAggregateOutputType | null
+    _sum: GymPtCollaborationSumAggregateOutputType | null
+    _min: GymPtCollaborationMinAggregateOutputType | null
+    _max: GymPtCollaborationMaxAggregateOutputType | null
+  }
+
+  export type GymPtCollaborationAvgAggregateOutputType = {
+    proposedPtRate: Decimal | null
+    proposedGymRate: Decimal | null
+    platformRate: Decimal | null
+    round: number | null
+  }
+
+  export type GymPtCollaborationSumAggregateOutputType = {
+    proposedPtRate: Decimal | null
+    proposedGymRate: Decimal | null
+    platformRate: Decimal | null
+    round: number | null
+  }
+
+  export type GymPtCollaborationMinAggregateOutputType = {
+    id: string | null
+    gymId: string | null
+    ptUserId: string | null
+    proposedPtRate: Decimal | null
+    proposedGymRate: Decimal | null
+    platformRate: Decimal | null
+    status: $Enums.CollaborationStatus | null
+    proposedBy: $Enums.CollaborationParty | null
+    round: number | null
+    expiresAt: Date | null
+    acceptedAt: Date | null
+    terminatedAt: Date | null
+    terminatedBy: string | null
+    note: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymPtCollaborationMaxAggregateOutputType = {
+    id: string | null
+    gymId: string | null
+    ptUserId: string | null
+    proposedPtRate: Decimal | null
+    proposedGymRate: Decimal | null
+    platformRate: Decimal | null
+    status: $Enums.CollaborationStatus | null
+    proposedBy: $Enums.CollaborationParty | null
+    round: number | null
+    expiresAt: Date | null
+    acceptedAt: Date | null
+    terminatedAt: Date | null
+    terminatedBy: string | null
+    note: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymPtCollaborationCountAggregateOutputType = {
+    id: number
+    gymId: number
+    ptUserId: number
+    proposedPtRate: number
+    proposedGymRate: number
+    platformRate: number
+    status: number
+    proposedBy: number
+    round: number
+    expiresAt: number
+    acceptedAt: number
+    terminatedAt: number
+    terminatedBy: number
+    note: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type GymPtCollaborationAvgAggregateInputType = {
+    proposedPtRate?: true
+    proposedGymRate?: true
+    platformRate?: true
+    round?: true
+  }
+
+  export type GymPtCollaborationSumAggregateInputType = {
+    proposedPtRate?: true
+    proposedGymRate?: true
+    platformRate?: true
+    round?: true
+  }
+
+  export type GymPtCollaborationMinAggregateInputType = {
+    id?: true
+    gymId?: true
+    ptUserId?: true
+    proposedPtRate?: true
+    proposedGymRate?: true
+    platformRate?: true
+    status?: true
+    proposedBy?: true
+    round?: true
+    expiresAt?: true
+    acceptedAt?: true
+    terminatedAt?: true
+    terminatedBy?: true
+    note?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymPtCollaborationMaxAggregateInputType = {
+    id?: true
+    gymId?: true
+    ptUserId?: true
+    proposedPtRate?: true
+    proposedGymRate?: true
+    platformRate?: true
+    status?: true
+    proposedBy?: true
+    round?: true
+    expiresAt?: true
+    acceptedAt?: true
+    terminatedAt?: true
+    terminatedBy?: true
+    note?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymPtCollaborationCountAggregateInputType = {
+    id?: true
+    gymId?: true
+    ptUserId?: true
+    proposedPtRate?: true
+    proposedGymRate?: true
+    platformRate?: true
+    status?: true
+    proposedBy?: true
+    round?: true
+    expiresAt?: true
+    acceptedAt?: true
+    terminatedAt?: true
+    terminatedBy?: true
+    note?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type GymPtCollaborationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymPtCollaboration to aggregate.
+     */
+    where?: GymPtCollaborationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtCollaborations to fetch.
+     */
+    orderBy?: GymPtCollaborationOrderByWithRelationInput | GymPtCollaborationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymPtCollaborationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtCollaborations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtCollaborations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymPtCollaborations
+    **/
+    _count?: true | GymPtCollaborationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: GymPtCollaborationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymPtCollaborationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymPtCollaborationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymPtCollaborationMaxAggregateInputType
+  }
+
+  export type GetGymPtCollaborationAggregateType<T extends GymPtCollaborationAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymPtCollaboration]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymPtCollaboration[P]>
+      : GetScalarType<T[P], AggregateGymPtCollaboration[P]>
+  }
+
+
+
+
+  export type GymPtCollaborationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymPtCollaborationWhereInput
+    orderBy?: GymPtCollaborationOrderByWithAggregationInput | GymPtCollaborationOrderByWithAggregationInput[]
+    by: GymPtCollaborationScalarFieldEnum[] | GymPtCollaborationScalarFieldEnum
+    having?: GymPtCollaborationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymPtCollaborationCountAggregateInputType | true
+    _avg?: GymPtCollaborationAvgAggregateInputType
+    _sum?: GymPtCollaborationSumAggregateInputType
+    _min?: GymPtCollaborationMinAggregateInputType
+    _max?: GymPtCollaborationMaxAggregateInputType
+  }
+
+  export type GymPtCollaborationGroupByOutputType = {
+    id: string
+    gymId: string
+    ptUserId: string
+    proposedPtRate: Decimal
+    proposedGymRate: Decimal
+    platformRate: Decimal
+    status: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round: number
+    expiresAt: Date
+    acceptedAt: Date | null
+    terminatedAt: Date | null
+    terminatedBy: string | null
+    note: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: GymPtCollaborationCountAggregateOutputType | null
+    _avg: GymPtCollaborationAvgAggregateOutputType | null
+    _sum: GymPtCollaborationSumAggregateOutputType | null
+    _min: GymPtCollaborationMinAggregateOutputType | null
+    _max: GymPtCollaborationMaxAggregateOutputType | null
+  }
+
+  type GetGymPtCollaborationGroupByPayload<T extends GymPtCollaborationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymPtCollaborationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymPtCollaborationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymPtCollaborationGroupByOutputType[P]>
+            : GetScalarType<T[P], GymPtCollaborationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymPtCollaborationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    gymId?: boolean
+    ptUserId?: boolean
+    proposedPtRate?: boolean
+    proposedGymRate?: boolean
+    platformRate?: boolean
+    status?: boolean
+    proposedBy?: boolean
+    round?: boolean
+    expiresAt?: boolean
+    acceptedAt?: boolean
+    terminatedAt?: boolean
+    terminatedBy?: boolean
+    note?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymPtCollaboration"]>
+
+  export type GymPtCollaborationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    gymId?: boolean
+    ptUserId?: boolean
+    proposedPtRate?: boolean
+    proposedGymRate?: boolean
+    platformRate?: boolean
+    status?: boolean
+    proposedBy?: boolean
+    round?: boolean
+    expiresAt?: boolean
+    acceptedAt?: boolean
+    terminatedAt?: boolean
+    terminatedBy?: boolean
+    note?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymPtCollaboration"]>
+
+  export type GymPtCollaborationSelectScalar = {
+    id?: boolean
+    gymId?: boolean
+    ptUserId?: boolean
+    proposedPtRate?: boolean
+    proposedGymRate?: boolean
+    platformRate?: boolean
+    status?: boolean
+    proposedBy?: boolean
+    round?: boolean
+    expiresAt?: boolean
+    acceptedAt?: boolean
+    terminatedAt?: boolean
+    terminatedBy?: boolean
+    note?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type GymPtCollaborationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+  }
+  export type GymPtCollaborationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    gym?: boolean | GymDefaultArgs<ExtArgs>
+  }
+
+  export type $GymPtCollaborationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymPtCollaboration"
+    objects: {
+      gym: Prisma.$GymPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      gymId: string
+      ptUserId: string
+      /**
+       * Currently on the table. Must satisfy proposedPtRate + proposedGymRate + platformRate = 1.
+       */
+      proposedPtRate: Prisma.Decimal
+      proposedGymRate: Prisma.Decimal
+      /**
+       * Stored so the accepted row is a complete snapshot rather than half a rate table.
+       */
+      platformRate: Prisma.Decimal
+      status: $Enums.CollaborationStatus
+      /**
+       * Who made the offer currently on the table — i.e. whose turn it is NOT.
+       */
+      proposedBy: $Enums.CollaborationParty
+      /**
+       * Counter-offers so far. Capped so a negotiation cannot run forever.
+       */
+      round: number
+      expiresAt: Date
+      acceptedAt: Date | null
+      terminatedAt: Date | null
+      terminatedBy: string | null
+      note: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["gymPtCollaboration"]>
+    composites: {}
+  }
+
+  type GymPtCollaborationGetPayload<S extends boolean | null | undefined | GymPtCollaborationDefaultArgs> = $Result.GetResult<Prisma.$GymPtCollaborationPayload, S>
+
+  type GymPtCollaborationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymPtCollaborationFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymPtCollaborationCountAggregateInputType | true
+    }
+
+  export interface GymPtCollaborationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymPtCollaboration'], meta: { name: 'GymPtCollaboration' } }
+    /**
+     * Find zero or one GymPtCollaboration that matches the filter.
+     * @param {GymPtCollaborationFindUniqueArgs} args - Arguments to find a GymPtCollaboration
+     * @example
+     * // Get one GymPtCollaboration
+     * const gymPtCollaboration = await prisma.gymPtCollaboration.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymPtCollaborationFindUniqueArgs>(args: SelectSubset<T, GymPtCollaborationFindUniqueArgs<ExtArgs>>): Prisma__GymPtCollaborationClient<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymPtCollaboration that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymPtCollaborationFindUniqueOrThrowArgs} args - Arguments to find a GymPtCollaboration
+     * @example
+     * // Get one GymPtCollaboration
+     * const gymPtCollaboration = await prisma.gymPtCollaboration.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymPtCollaborationFindUniqueOrThrowArgs>(args: SelectSubset<T, GymPtCollaborationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymPtCollaborationClient<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymPtCollaboration that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCollaborationFindFirstArgs} args - Arguments to find a GymPtCollaboration
+     * @example
+     * // Get one GymPtCollaboration
+     * const gymPtCollaboration = await prisma.gymPtCollaboration.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymPtCollaborationFindFirstArgs>(args?: SelectSubset<T, GymPtCollaborationFindFirstArgs<ExtArgs>>): Prisma__GymPtCollaborationClient<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymPtCollaboration that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCollaborationFindFirstOrThrowArgs} args - Arguments to find a GymPtCollaboration
+     * @example
+     * // Get one GymPtCollaboration
+     * const gymPtCollaboration = await prisma.gymPtCollaboration.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymPtCollaborationFindFirstOrThrowArgs>(args?: SelectSubset<T, GymPtCollaborationFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymPtCollaborationClient<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymPtCollaborations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCollaborationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymPtCollaborations
+     * const gymPtCollaborations = await prisma.gymPtCollaboration.findMany()
+     * 
+     * // Get first 10 GymPtCollaborations
+     * const gymPtCollaborations = await prisma.gymPtCollaboration.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymPtCollaborationWithIdOnly = await prisma.gymPtCollaboration.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymPtCollaborationFindManyArgs>(args?: SelectSubset<T, GymPtCollaborationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymPtCollaboration.
+     * @param {GymPtCollaborationCreateArgs} args - Arguments to create a GymPtCollaboration.
+     * @example
+     * // Create one GymPtCollaboration
+     * const GymPtCollaboration = await prisma.gymPtCollaboration.create({
+     *   data: {
+     *     // ... data to create a GymPtCollaboration
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymPtCollaborationCreateArgs>(args: SelectSubset<T, GymPtCollaborationCreateArgs<ExtArgs>>): Prisma__GymPtCollaborationClient<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymPtCollaborations.
+     * @param {GymPtCollaborationCreateManyArgs} args - Arguments to create many GymPtCollaborations.
+     * @example
+     * // Create many GymPtCollaborations
+     * const gymPtCollaboration = await prisma.gymPtCollaboration.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymPtCollaborationCreateManyArgs>(args?: SelectSubset<T, GymPtCollaborationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymPtCollaborations and returns the data saved in the database.
+     * @param {GymPtCollaborationCreateManyAndReturnArgs} args - Arguments to create many GymPtCollaborations.
+     * @example
+     * // Create many GymPtCollaborations
+     * const gymPtCollaboration = await prisma.gymPtCollaboration.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymPtCollaborations and only return the `id`
+     * const gymPtCollaborationWithIdOnly = await prisma.gymPtCollaboration.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymPtCollaborationCreateManyAndReturnArgs>(args?: SelectSubset<T, GymPtCollaborationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymPtCollaboration.
+     * @param {GymPtCollaborationDeleteArgs} args - Arguments to delete one GymPtCollaboration.
+     * @example
+     * // Delete one GymPtCollaboration
+     * const GymPtCollaboration = await prisma.gymPtCollaboration.delete({
+     *   where: {
+     *     // ... filter to delete one GymPtCollaboration
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymPtCollaborationDeleteArgs>(args: SelectSubset<T, GymPtCollaborationDeleteArgs<ExtArgs>>): Prisma__GymPtCollaborationClient<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymPtCollaboration.
+     * @param {GymPtCollaborationUpdateArgs} args - Arguments to update one GymPtCollaboration.
+     * @example
+     * // Update one GymPtCollaboration
+     * const gymPtCollaboration = await prisma.gymPtCollaboration.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymPtCollaborationUpdateArgs>(args: SelectSubset<T, GymPtCollaborationUpdateArgs<ExtArgs>>): Prisma__GymPtCollaborationClient<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymPtCollaborations.
+     * @param {GymPtCollaborationDeleteManyArgs} args - Arguments to filter GymPtCollaborations to delete.
+     * @example
+     * // Delete a few GymPtCollaborations
+     * const { count } = await prisma.gymPtCollaboration.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymPtCollaborationDeleteManyArgs>(args?: SelectSubset<T, GymPtCollaborationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymPtCollaborations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCollaborationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymPtCollaborations
+     * const gymPtCollaboration = await prisma.gymPtCollaboration.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymPtCollaborationUpdateManyArgs>(args: SelectSubset<T, GymPtCollaborationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymPtCollaboration.
+     * @param {GymPtCollaborationUpsertArgs} args - Arguments to update or create a GymPtCollaboration.
+     * @example
+     * // Update or create a GymPtCollaboration
+     * const gymPtCollaboration = await prisma.gymPtCollaboration.upsert({
+     *   create: {
+     *     // ... data to create a GymPtCollaboration
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymPtCollaboration we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymPtCollaborationUpsertArgs>(args: SelectSubset<T, GymPtCollaborationUpsertArgs<ExtArgs>>): Prisma__GymPtCollaborationClient<$Result.GetResult<Prisma.$GymPtCollaborationPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymPtCollaborations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCollaborationCountArgs} args - Arguments to filter GymPtCollaborations to count.
+     * @example
+     * // Count the number of GymPtCollaborations
+     * const count = await prisma.gymPtCollaboration.count({
+     *   where: {
+     *     // ... the filter for the GymPtCollaborations we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymPtCollaborationCountArgs>(
+      args?: Subset<T, GymPtCollaborationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymPtCollaborationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymPtCollaboration.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCollaborationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymPtCollaborationAggregateArgs>(args: Subset<T, GymPtCollaborationAggregateArgs>): Prisma.PrismaPromise<GetGymPtCollaborationAggregateType<T>>
+
+    /**
+     * Group by GymPtCollaboration.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymPtCollaborationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymPtCollaborationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymPtCollaborationGroupByArgs['orderBy'] }
+        : { orderBy?: GymPtCollaborationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymPtCollaborationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymPtCollaborationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymPtCollaboration model
+   */
+  readonly fields: GymPtCollaborationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymPtCollaboration.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymPtCollaborationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    gym<T extends GymDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymDefaultArgs<ExtArgs>>): Prisma__GymClient<$Result.GetResult<Prisma.$GymPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymPtCollaboration model
+   */ 
+  interface GymPtCollaborationFieldRefs {
+    readonly id: FieldRef<"GymPtCollaboration", 'String'>
+    readonly gymId: FieldRef<"GymPtCollaboration", 'String'>
+    readonly ptUserId: FieldRef<"GymPtCollaboration", 'String'>
+    readonly proposedPtRate: FieldRef<"GymPtCollaboration", 'Decimal'>
+    readonly proposedGymRate: FieldRef<"GymPtCollaboration", 'Decimal'>
+    readonly platformRate: FieldRef<"GymPtCollaboration", 'Decimal'>
+    readonly status: FieldRef<"GymPtCollaboration", 'CollaborationStatus'>
+    readonly proposedBy: FieldRef<"GymPtCollaboration", 'CollaborationParty'>
+    readonly round: FieldRef<"GymPtCollaboration", 'Int'>
+    readonly expiresAt: FieldRef<"GymPtCollaboration", 'DateTime'>
+    readonly acceptedAt: FieldRef<"GymPtCollaboration", 'DateTime'>
+    readonly terminatedAt: FieldRef<"GymPtCollaboration", 'DateTime'>
+    readonly terminatedBy: FieldRef<"GymPtCollaboration", 'String'>
+    readonly note: FieldRef<"GymPtCollaboration", 'String'>
+    readonly createdAt: FieldRef<"GymPtCollaboration", 'DateTime'>
+    readonly updatedAt: FieldRef<"GymPtCollaboration", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymPtCollaboration findUnique
+   */
+  export type GymPtCollaborationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPtCollaboration to fetch.
+     */
+    where: GymPtCollaborationWhereUniqueInput
+  }
+
+  /**
+   * GymPtCollaboration findUniqueOrThrow
+   */
+  export type GymPtCollaborationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPtCollaboration to fetch.
+     */
+    where: GymPtCollaborationWhereUniqueInput
+  }
+
+  /**
+   * GymPtCollaboration findFirst
+   */
+  export type GymPtCollaborationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPtCollaboration to fetch.
+     */
+    where?: GymPtCollaborationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtCollaborations to fetch.
+     */
+    orderBy?: GymPtCollaborationOrderByWithRelationInput | GymPtCollaborationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymPtCollaborations.
+     */
+    cursor?: GymPtCollaborationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtCollaborations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtCollaborations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymPtCollaborations.
+     */
+    distinct?: GymPtCollaborationScalarFieldEnum | GymPtCollaborationScalarFieldEnum[]
+  }
+
+  /**
+   * GymPtCollaboration findFirstOrThrow
+   */
+  export type GymPtCollaborationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPtCollaboration to fetch.
+     */
+    where?: GymPtCollaborationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtCollaborations to fetch.
+     */
+    orderBy?: GymPtCollaborationOrderByWithRelationInput | GymPtCollaborationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymPtCollaborations.
+     */
+    cursor?: GymPtCollaborationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtCollaborations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtCollaborations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymPtCollaborations.
+     */
+    distinct?: GymPtCollaborationScalarFieldEnum | GymPtCollaborationScalarFieldEnum[]
+  }
+
+  /**
+   * GymPtCollaboration findMany
+   */
+  export type GymPtCollaborationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+    /**
+     * Filter, which GymPtCollaborations to fetch.
+     */
+    where?: GymPtCollaborationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymPtCollaborations to fetch.
+     */
+    orderBy?: GymPtCollaborationOrderByWithRelationInput | GymPtCollaborationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymPtCollaborations.
+     */
+    cursor?: GymPtCollaborationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymPtCollaborations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymPtCollaborations.
+     */
+    skip?: number
+    distinct?: GymPtCollaborationScalarFieldEnum | GymPtCollaborationScalarFieldEnum[]
+  }
+
+  /**
+   * GymPtCollaboration create
+   */
+  export type GymPtCollaborationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymPtCollaboration.
+     */
+    data: XOR<GymPtCollaborationCreateInput, GymPtCollaborationUncheckedCreateInput>
+  }
+
+  /**
+   * GymPtCollaboration createMany
+   */
+  export type GymPtCollaborationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymPtCollaborations.
+     */
+    data: GymPtCollaborationCreateManyInput | GymPtCollaborationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymPtCollaboration createManyAndReturn
+   */
+  export type GymPtCollaborationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymPtCollaborations.
+     */
+    data: GymPtCollaborationCreateManyInput | GymPtCollaborationCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymPtCollaboration update
+   */
+  export type GymPtCollaborationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymPtCollaboration.
+     */
+    data: XOR<GymPtCollaborationUpdateInput, GymPtCollaborationUncheckedUpdateInput>
+    /**
+     * Choose, which GymPtCollaboration to update.
+     */
+    where: GymPtCollaborationWhereUniqueInput
+  }
+
+  /**
+   * GymPtCollaboration updateMany
+   */
+  export type GymPtCollaborationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymPtCollaborations.
+     */
+    data: XOR<GymPtCollaborationUpdateManyMutationInput, GymPtCollaborationUncheckedUpdateManyInput>
+    /**
+     * Filter which GymPtCollaborations to update
+     */
+    where?: GymPtCollaborationWhereInput
+  }
+
+  /**
+   * GymPtCollaboration upsert
+   */
+  export type GymPtCollaborationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymPtCollaboration to update in case it exists.
+     */
+    where: GymPtCollaborationWhereUniqueInput
+    /**
+     * In case the GymPtCollaboration found by the `where` argument doesn't exist, create a new GymPtCollaboration with this data.
+     */
+    create: XOR<GymPtCollaborationCreateInput, GymPtCollaborationUncheckedCreateInput>
+    /**
+     * In case the GymPtCollaboration was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymPtCollaborationUpdateInput, GymPtCollaborationUncheckedUpdateInput>
+  }
+
+  /**
+   * GymPtCollaboration delete
+   */
+  export type GymPtCollaborationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+    /**
+     * Filter which GymPtCollaboration to delete.
+     */
+    where: GymPtCollaborationWhereUniqueInput
+  }
+
+  /**
+   * GymPtCollaboration deleteMany
+   */
+  export type GymPtCollaborationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymPtCollaborations to delete
+     */
+    where?: GymPtCollaborationWhereInput
+  }
+
+  /**
+   * GymPtCollaboration without action
+   */
+  export type GymPtCollaborationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymPtCollaboration
+     */
+    select?: GymPtCollaborationSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymPtCollaborationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model GymMembershipReferral
+   */
+
+  export type AggregateGymMembershipReferral = {
+    _count: GymMembershipReferralCountAggregateOutputType | null
+    _avg: GymMembershipReferralAvgAggregateOutputType | null
+    _sum: GymMembershipReferralSumAggregateOutputType | null
+    _min: GymMembershipReferralMinAggregateOutputType | null
+    _max: GymMembershipReferralMaxAggregateOutputType | null
+  }
+
+  export type GymMembershipReferralAvgAggregateOutputType = {
+    rate: Decimal | null
+    amount: Decimal | null
+    clawedBack: Decimal | null
+  }
+
+  export type GymMembershipReferralSumAggregateOutputType = {
+    rate: Decimal | null
+    amount: Decimal | null
+    clawedBack: Decimal | null
+  }
+
+  export type GymMembershipReferralMinAggregateOutputType = {
+    id: string | null
+    membershipContractId: string | null
+    gymId: string | null
+    referrerPtUserId: string | null
+    rate: Decimal | null
+    amount: Decimal | null
+    clawedBack: Decimal | null
+    status: string | null
+    releasedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymMembershipReferralMaxAggregateOutputType = {
+    id: string | null
+    membershipContractId: string | null
+    gymId: string | null
+    referrerPtUserId: string | null
+    rate: Decimal | null
+    amount: Decimal | null
+    clawedBack: Decimal | null
+    status: string | null
+    releasedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymMembershipReferralCountAggregateOutputType = {
+    id: number
+    membershipContractId: number
+    gymId: number
+    referrerPtUserId: number
+    rate: number
+    amount: number
+    clawedBack: number
+    status: number
+    releasedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type GymMembershipReferralAvgAggregateInputType = {
+    rate?: true
+    amount?: true
+    clawedBack?: true
+  }
+
+  export type GymMembershipReferralSumAggregateInputType = {
+    rate?: true
+    amount?: true
+    clawedBack?: true
+  }
+
+  export type GymMembershipReferralMinAggregateInputType = {
+    id?: true
+    membershipContractId?: true
+    gymId?: true
+    referrerPtUserId?: true
+    rate?: true
+    amount?: true
+    clawedBack?: true
+    status?: true
+    releasedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymMembershipReferralMaxAggregateInputType = {
+    id?: true
+    membershipContractId?: true
+    gymId?: true
+    referrerPtUserId?: true
+    rate?: true
+    amount?: true
+    clawedBack?: true
+    status?: true
+    releasedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymMembershipReferralCountAggregateInputType = {
+    id?: true
+    membershipContractId?: true
+    gymId?: true
+    referrerPtUserId?: true
+    rate?: true
+    amount?: true
+    clawedBack?: true
+    status?: true
+    releasedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type GymMembershipReferralAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymMembershipReferral to aggregate.
+     */
+    where?: GymMembershipReferralWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymMembershipReferrals to fetch.
+     */
+    orderBy?: GymMembershipReferralOrderByWithRelationInput | GymMembershipReferralOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymMembershipReferralWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymMembershipReferrals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymMembershipReferrals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymMembershipReferrals
+    **/
+    _count?: true | GymMembershipReferralCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: GymMembershipReferralAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: GymMembershipReferralSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymMembershipReferralMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymMembershipReferralMaxAggregateInputType
+  }
+
+  export type GetGymMembershipReferralAggregateType<T extends GymMembershipReferralAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymMembershipReferral]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymMembershipReferral[P]>
+      : GetScalarType<T[P], AggregateGymMembershipReferral[P]>
+  }
+
+
+
+
+  export type GymMembershipReferralGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymMembershipReferralWhereInput
+    orderBy?: GymMembershipReferralOrderByWithAggregationInput | GymMembershipReferralOrderByWithAggregationInput[]
+    by: GymMembershipReferralScalarFieldEnum[] | GymMembershipReferralScalarFieldEnum
+    having?: GymMembershipReferralScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymMembershipReferralCountAggregateInputType | true
+    _avg?: GymMembershipReferralAvgAggregateInputType
+    _sum?: GymMembershipReferralSumAggregateInputType
+    _min?: GymMembershipReferralMinAggregateInputType
+    _max?: GymMembershipReferralMaxAggregateInputType
+  }
+
+  export type GymMembershipReferralGroupByOutputType = {
+    id: string
+    membershipContractId: string
+    gymId: string
+    referrerPtUserId: string
+    rate: Decimal
+    amount: Decimal
+    clawedBack: Decimal
+    status: string
+    releasedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: GymMembershipReferralCountAggregateOutputType | null
+    _avg: GymMembershipReferralAvgAggregateOutputType | null
+    _sum: GymMembershipReferralSumAggregateOutputType | null
+    _min: GymMembershipReferralMinAggregateOutputType | null
+    _max: GymMembershipReferralMaxAggregateOutputType | null
+  }
+
+  type GetGymMembershipReferralGroupByPayload<T extends GymMembershipReferralGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymMembershipReferralGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymMembershipReferralGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymMembershipReferralGroupByOutputType[P]>
+            : GetScalarType<T[P], GymMembershipReferralGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymMembershipReferralSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    membershipContractId?: boolean
+    gymId?: boolean
+    referrerPtUserId?: boolean
+    rate?: boolean
+    amount?: boolean
+    clawedBack?: boolean
+    status?: boolean
+    releasedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    membershipContract?: boolean | GymMembershipContractDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymMembershipReferral"]>
+
+  export type GymMembershipReferralSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    membershipContractId?: boolean
+    gymId?: boolean
+    referrerPtUserId?: boolean
+    rate?: boolean
+    amount?: boolean
+    clawedBack?: boolean
+    status?: boolean
+    releasedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    membershipContract?: boolean | GymMembershipContractDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymMembershipReferral"]>
+
+  export type GymMembershipReferralSelectScalar = {
+    id?: boolean
+    membershipContractId?: boolean
+    gymId?: boolean
+    referrerPtUserId?: boolean
+    rate?: boolean
+    amount?: boolean
+    clawedBack?: boolean
+    status?: boolean
+    releasedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type GymMembershipReferralInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    membershipContract?: boolean | GymMembershipContractDefaultArgs<ExtArgs>
+  }
+  export type GymMembershipReferralIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    membershipContract?: boolean | GymMembershipContractDefaultArgs<ExtArgs>
+  }
+
+  export type $GymMembershipReferralPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymMembershipReferral"
+    objects: {
+      membershipContract: Prisma.$GymMembershipContractPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      membershipContractId: string
+      gymId: string
+      referrerPtUserId: string
+      rate: Prisma.Decimal
+      /**
+       * Gross commission earned at purchase time.
+       */
+      amount: Prisma.Decimal
+      /**
+       * Reversed so far, following partial refunds of the membership.
+       */
+      clawedBack: Prisma.Decimal
+      status: string
+      releasedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["gymMembershipReferral"]>
+    composites: {}
+  }
+
+  type GymMembershipReferralGetPayload<S extends boolean | null | undefined | GymMembershipReferralDefaultArgs> = $Result.GetResult<Prisma.$GymMembershipReferralPayload, S>
+
+  type GymMembershipReferralCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymMembershipReferralFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymMembershipReferralCountAggregateInputType | true
+    }
+
+  export interface GymMembershipReferralDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymMembershipReferral'], meta: { name: 'GymMembershipReferral' } }
+    /**
+     * Find zero or one GymMembershipReferral that matches the filter.
+     * @param {GymMembershipReferralFindUniqueArgs} args - Arguments to find a GymMembershipReferral
+     * @example
+     * // Get one GymMembershipReferral
+     * const gymMembershipReferral = await prisma.gymMembershipReferral.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymMembershipReferralFindUniqueArgs>(args: SelectSubset<T, GymMembershipReferralFindUniqueArgs<ExtArgs>>): Prisma__GymMembershipReferralClient<$Result.GetResult<Prisma.$GymMembershipReferralPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymMembershipReferral that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymMembershipReferralFindUniqueOrThrowArgs} args - Arguments to find a GymMembershipReferral
+     * @example
+     * // Get one GymMembershipReferral
+     * const gymMembershipReferral = await prisma.gymMembershipReferral.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymMembershipReferralFindUniqueOrThrowArgs>(args: SelectSubset<T, GymMembershipReferralFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymMembershipReferralClient<$Result.GetResult<Prisma.$GymMembershipReferralPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymMembershipReferral that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymMembershipReferralFindFirstArgs} args - Arguments to find a GymMembershipReferral
+     * @example
+     * // Get one GymMembershipReferral
+     * const gymMembershipReferral = await prisma.gymMembershipReferral.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymMembershipReferralFindFirstArgs>(args?: SelectSubset<T, GymMembershipReferralFindFirstArgs<ExtArgs>>): Prisma__GymMembershipReferralClient<$Result.GetResult<Prisma.$GymMembershipReferralPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymMembershipReferral that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymMembershipReferralFindFirstOrThrowArgs} args - Arguments to find a GymMembershipReferral
+     * @example
+     * // Get one GymMembershipReferral
+     * const gymMembershipReferral = await prisma.gymMembershipReferral.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymMembershipReferralFindFirstOrThrowArgs>(args?: SelectSubset<T, GymMembershipReferralFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymMembershipReferralClient<$Result.GetResult<Prisma.$GymMembershipReferralPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymMembershipReferrals that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymMembershipReferralFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymMembershipReferrals
+     * const gymMembershipReferrals = await prisma.gymMembershipReferral.findMany()
+     * 
+     * // Get first 10 GymMembershipReferrals
+     * const gymMembershipReferrals = await prisma.gymMembershipReferral.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymMembershipReferralWithIdOnly = await prisma.gymMembershipReferral.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymMembershipReferralFindManyArgs>(args?: SelectSubset<T, GymMembershipReferralFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymMembershipReferralPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymMembershipReferral.
+     * @param {GymMembershipReferralCreateArgs} args - Arguments to create a GymMembershipReferral.
+     * @example
+     * // Create one GymMembershipReferral
+     * const GymMembershipReferral = await prisma.gymMembershipReferral.create({
+     *   data: {
+     *     // ... data to create a GymMembershipReferral
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymMembershipReferralCreateArgs>(args: SelectSubset<T, GymMembershipReferralCreateArgs<ExtArgs>>): Prisma__GymMembershipReferralClient<$Result.GetResult<Prisma.$GymMembershipReferralPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymMembershipReferrals.
+     * @param {GymMembershipReferralCreateManyArgs} args - Arguments to create many GymMembershipReferrals.
+     * @example
+     * // Create many GymMembershipReferrals
+     * const gymMembershipReferral = await prisma.gymMembershipReferral.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymMembershipReferralCreateManyArgs>(args?: SelectSubset<T, GymMembershipReferralCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymMembershipReferrals and returns the data saved in the database.
+     * @param {GymMembershipReferralCreateManyAndReturnArgs} args - Arguments to create many GymMembershipReferrals.
+     * @example
+     * // Create many GymMembershipReferrals
+     * const gymMembershipReferral = await prisma.gymMembershipReferral.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymMembershipReferrals and only return the `id`
+     * const gymMembershipReferralWithIdOnly = await prisma.gymMembershipReferral.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymMembershipReferralCreateManyAndReturnArgs>(args?: SelectSubset<T, GymMembershipReferralCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymMembershipReferralPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymMembershipReferral.
+     * @param {GymMembershipReferralDeleteArgs} args - Arguments to delete one GymMembershipReferral.
+     * @example
+     * // Delete one GymMembershipReferral
+     * const GymMembershipReferral = await prisma.gymMembershipReferral.delete({
+     *   where: {
+     *     // ... filter to delete one GymMembershipReferral
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymMembershipReferralDeleteArgs>(args: SelectSubset<T, GymMembershipReferralDeleteArgs<ExtArgs>>): Prisma__GymMembershipReferralClient<$Result.GetResult<Prisma.$GymMembershipReferralPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymMembershipReferral.
+     * @param {GymMembershipReferralUpdateArgs} args - Arguments to update one GymMembershipReferral.
+     * @example
+     * // Update one GymMembershipReferral
+     * const gymMembershipReferral = await prisma.gymMembershipReferral.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymMembershipReferralUpdateArgs>(args: SelectSubset<T, GymMembershipReferralUpdateArgs<ExtArgs>>): Prisma__GymMembershipReferralClient<$Result.GetResult<Prisma.$GymMembershipReferralPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymMembershipReferrals.
+     * @param {GymMembershipReferralDeleteManyArgs} args - Arguments to filter GymMembershipReferrals to delete.
+     * @example
+     * // Delete a few GymMembershipReferrals
+     * const { count } = await prisma.gymMembershipReferral.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymMembershipReferralDeleteManyArgs>(args?: SelectSubset<T, GymMembershipReferralDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymMembershipReferrals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymMembershipReferralUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymMembershipReferrals
+     * const gymMembershipReferral = await prisma.gymMembershipReferral.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymMembershipReferralUpdateManyArgs>(args: SelectSubset<T, GymMembershipReferralUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymMembershipReferral.
+     * @param {GymMembershipReferralUpsertArgs} args - Arguments to update or create a GymMembershipReferral.
+     * @example
+     * // Update or create a GymMembershipReferral
+     * const gymMembershipReferral = await prisma.gymMembershipReferral.upsert({
+     *   create: {
+     *     // ... data to create a GymMembershipReferral
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymMembershipReferral we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymMembershipReferralUpsertArgs>(args: SelectSubset<T, GymMembershipReferralUpsertArgs<ExtArgs>>): Prisma__GymMembershipReferralClient<$Result.GetResult<Prisma.$GymMembershipReferralPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymMembershipReferrals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymMembershipReferralCountArgs} args - Arguments to filter GymMembershipReferrals to count.
+     * @example
+     * // Count the number of GymMembershipReferrals
+     * const count = await prisma.gymMembershipReferral.count({
+     *   where: {
+     *     // ... the filter for the GymMembershipReferrals we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymMembershipReferralCountArgs>(
+      args?: Subset<T, GymMembershipReferralCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymMembershipReferralCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymMembershipReferral.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymMembershipReferralAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymMembershipReferralAggregateArgs>(args: Subset<T, GymMembershipReferralAggregateArgs>): Prisma.PrismaPromise<GetGymMembershipReferralAggregateType<T>>
+
+    /**
+     * Group by GymMembershipReferral.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymMembershipReferralGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymMembershipReferralGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymMembershipReferralGroupByArgs['orderBy'] }
+        : { orderBy?: GymMembershipReferralGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymMembershipReferralGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymMembershipReferralGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymMembershipReferral model
+   */
+  readonly fields: GymMembershipReferralFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymMembershipReferral.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymMembershipReferralClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    membershipContract<T extends GymMembershipContractDefaultArgs<ExtArgs> = {}>(args?: Subset<T, GymMembershipContractDefaultArgs<ExtArgs>>): Prisma__GymMembershipContractClient<$Result.GetResult<Prisma.$GymMembershipContractPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymMembershipReferral model
+   */ 
+  interface GymMembershipReferralFieldRefs {
+    readonly id: FieldRef<"GymMembershipReferral", 'String'>
+    readonly membershipContractId: FieldRef<"GymMembershipReferral", 'String'>
+    readonly gymId: FieldRef<"GymMembershipReferral", 'String'>
+    readonly referrerPtUserId: FieldRef<"GymMembershipReferral", 'String'>
+    readonly rate: FieldRef<"GymMembershipReferral", 'Decimal'>
+    readonly amount: FieldRef<"GymMembershipReferral", 'Decimal'>
+    readonly clawedBack: FieldRef<"GymMembershipReferral", 'Decimal'>
+    readonly status: FieldRef<"GymMembershipReferral", 'String'>
+    readonly releasedAt: FieldRef<"GymMembershipReferral", 'DateTime'>
+    readonly createdAt: FieldRef<"GymMembershipReferral", 'DateTime'>
+    readonly updatedAt: FieldRef<"GymMembershipReferral", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymMembershipReferral findUnique
+   */
+  export type GymMembershipReferralFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralInclude<ExtArgs> | null
+    /**
+     * Filter, which GymMembershipReferral to fetch.
+     */
+    where: GymMembershipReferralWhereUniqueInput
+  }
+
+  /**
+   * GymMembershipReferral findUniqueOrThrow
+   */
+  export type GymMembershipReferralFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralInclude<ExtArgs> | null
+    /**
+     * Filter, which GymMembershipReferral to fetch.
+     */
+    where: GymMembershipReferralWhereUniqueInput
+  }
+
+  /**
+   * GymMembershipReferral findFirst
+   */
+  export type GymMembershipReferralFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralInclude<ExtArgs> | null
+    /**
+     * Filter, which GymMembershipReferral to fetch.
+     */
+    where?: GymMembershipReferralWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymMembershipReferrals to fetch.
+     */
+    orderBy?: GymMembershipReferralOrderByWithRelationInput | GymMembershipReferralOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymMembershipReferrals.
+     */
+    cursor?: GymMembershipReferralWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymMembershipReferrals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymMembershipReferrals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymMembershipReferrals.
+     */
+    distinct?: GymMembershipReferralScalarFieldEnum | GymMembershipReferralScalarFieldEnum[]
+  }
+
+  /**
+   * GymMembershipReferral findFirstOrThrow
+   */
+  export type GymMembershipReferralFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralInclude<ExtArgs> | null
+    /**
+     * Filter, which GymMembershipReferral to fetch.
+     */
+    where?: GymMembershipReferralWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymMembershipReferrals to fetch.
+     */
+    orderBy?: GymMembershipReferralOrderByWithRelationInput | GymMembershipReferralOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymMembershipReferrals.
+     */
+    cursor?: GymMembershipReferralWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymMembershipReferrals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymMembershipReferrals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymMembershipReferrals.
+     */
+    distinct?: GymMembershipReferralScalarFieldEnum | GymMembershipReferralScalarFieldEnum[]
+  }
+
+  /**
+   * GymMembershipReferral findMany
+   */
+  export type GymMembershipReferralFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralInclude<ExtArgs> | null
+    /**
+     * Filter, which GymMembershipReferrals to fetch.
+     */
+    where?: GymMembershipReferralWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymMembershipReferrals to fetch.
+     */
+    orderBy?: GymMembershipReferralOrderByWithRelationInput | GymMembershipReferralOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymMembershipReferrals.
+     */
+    cursor?: GymMembershipReferralWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymMembershipReferrals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymMembershipReferrals.
+     */
+    skip?: number
+    distinct?: GymMembershipReferralScalarFieldEnum | GymMembershipReferralScalarFieldEnum[]
+  }
+
+  /**
+   * GymMembershipReferral create
+   */
+  export type GymMembershipReferralCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymMembershipReferral.
+     */
+    data: XOR<GymMembershipReferralCreateInput, GymMembershipReferralUncheckedCreateInput>
+  }
+
+  /**
+   * GymMembershipReferral createMany
+   */
+  export type GymMembershipReferralCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymMembershipReferrals.
+     */
+    data: GymMembershipReferralCreateManyInput | GymMembershipReferralCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymMembershipReferral createManyAndReturn
+   */
+  export type GymMembershipReferralCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymMembershipReferrals.
+     */
+    data: GymMembershipReferralCreateManyInput | GymMembershipReferralCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * GymMembershipReferral update
+   */
+  export type GymMembershipReferralUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymMembershipReferral.
+     */
+    data: XOR<GymMembershipReferralUpdateInput, GymMembershipReferralUncheckedUpdateInput>
+    /**
+     * Choose, which GymMembershipReferral to update.
+     */
+    where: GymMembershipReferralWhereUniqueInput
+  }
+
+  /**
+   * GymMembershipReferral updateMany
+   */
+  export type GymMembershipReferralUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymMembershipReferrals.
+     */
+    data: XOR<GymMembershipReferralUpdateManyMutationInput, GymMembershipReferralUncheckedUpdateManyInput>
+    /**
+     * Filter which GymMembershipReferrals to update
+     */
+    where?: GymMembershipReferralWhereInput
+  }
+
+  /**
+   * GymMembershipReferral upsert
+   */
+  export type GymMembershipReferralUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymMembershipReferral to update in case it exists.
+     */
+    where: GymMembershipReferralWhereUniqueInput
+    /**
+     * In case the GymMembershipReferral found by the `where` argument doesn't exist, create a new GymMembershipReferral with this data.
+     */
+    create: XOR<GymMembershipReferralCreateInput, GymMembershipReferralUncheckedCreateInput>
+    /**
+     * In case the GymMembershipReferral was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymMembershipReferralUpdateInput, GymMembershipReferralUncheckedUpdateInput>
+  }
+
+  /**
+   * GymMembershipReferral delete
+   */
+  export type GymMembershipReferralDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralInclude<ExtArgs> | null
+    /**
+     * Filter which GymMembershipReferral to delete.
+     */
+    where: GymMembershipReferralWhereUniqueInput
+  }
+
+  /**
+   * GymMembershipReferral deleteMany
+   */
+  export type GymMembershipReferralDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymMembershipReferrals to delete
+     */
+    where?: GymMembershipReferralWhereInput
+  }
+
+  /**
+   * GymMembershipReferral without action
+   */
+  export type GymMembershipReferralDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymMembershipReferral
+     */
+    select?: GymMembershipReferralSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymMembershipReferralInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -7783,6 +10261,8 @@ export namespace Prisma {
     durationDaysSnapshot: 'durationDaysSnapshot',
     totalVisits: 'totalVisits',
     usedVisits: 'usedVisits',
+    payoutReleasedAt: 'payoutReleasedAt',
+    multiGymWarned: 'multiGymWarned',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -7830,6 +10310,45 @@ export namespace Prisma {
   };
 
   export type GymReviewScalarFieldEnum = (typeof GymReviewScalarFieldEnum)[keyof typeof GymReviewScalarFieldEnum]
+
+
+  export const GymPtCollaborationScalarFieldEnum: {
+    id: 'id',
+    gymId: 'gymId',
+    ptUserId: 'ptUserId',
+    proposedPtRate: 'proposedPtRate',
+    proposedGymRate: 'proposedGymRate',
+    platformRate: 'platformRate',
+    status: 'status',
+    proposedBy: 'proposedBy',
+    round: 'round',
+    expiresAt: 'expiresAt',
+    acceptedAt: 'acceptedAt',
+    terminatedAt: 'terminatedAt',
+    terminatedBy: 'terminatedBy',
+    note: 'note',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type GymPtCollaborationScalarFieldEnum = (typeof GymPtCollaborationScalarFieldEnum)[keyof typeof GymPtCollaborationScalarFieldEnum]
+
+
+  export const GymMembershipReferralScalarFieldEnum: {
+    id: 'id',
+    membershipContractId: 'membershipContractId',
+    gymId: 'gymId',
+    referrerPtUserId: 'referrerPtUserId',
+    rate: 'rate',
+    amount: 'amount',
+    clawedBack: 'clawedBack',
+    status: 'status',
+    releasedAt: 'releasedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type GymMembershipReferralScalarFieldEnum = (typeof GymMembershipReferralScalarFieldEnum)[keyof typeof GymMembershipReferralScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -7960,6 +10479,13 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
    * Reference to a field of type 'AffiliationStatus'
    */
   export type EnumAffiliationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AffiliationStatus'>
@@ -8002,6 +10528,34 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'CollaborationStatus'
+   */
+  export type EnumCollaborationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CollaborationStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'CollaborationStatus[]'
+   */
+  export type ListEnumCollaborationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CollaborationStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CollaborationParty'
+   */
+  export type EnumCollaborationPartyFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CollaborationParty'>
+    
+
+
+  /**
+   * Reference to a field of type 'CollaborationParty[]'
+   */
+  export type ListEnumCollaborationPartyFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CollaborationParty[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Float'
    */
   export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -8037,6 +10591,7 @@ export namespace Prisma {
     memberships?: GymMembershipContractListRelationFilter
     affiliations?: GymTrainerAffiliationListRelationFilter
     reviews?: GymReviewListRelationFilter
+    collaborations?: GymPtCollaborationListRelationFilter
   }
 
   export type GymOrderByWithRelationInput = {
@@ -8055,6 +10610,7 @@ export namespace Prisma {
     memberships?: GymMembershipContractOrderByRelationAggregateInput
     affiliations?: GymTrainerAffiliationOrderByRelationAggregateInput
     reviews?: GymReviewOrderByRelationAggregateInput
+    collaborations?: GymPtCollaborationOrderByRelationAggregateInput
   }
 
   export type GymWhereUniqueInput = Prisma.AtLeast<{
@@ -8076,6 +10632,7 @@ export namespace Prisma {
     memberships?: GymMembershipContractListRelationFilter
     affiliations?: GymTrainerAffiliationListRelationFilter
     reviews?: GymReviewListRelationFilter
+    collaborations?: GymPtCollaborationListRelationFilter
   }, "id">
 
   export type GymOrderByWithAggregationInput = {
@@ -8213,11 +10770,14 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFilter<"GymMembershipContract"> | number
     totalVisits?: IntNullableFilter<"GymMembershipContract"> | number | null
     usedVisits?: IntFilter<"GymMembershipContract"> | number
+    payoutReleasedAt?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
+    multiGymWarned?: BoolFilter<"GymMembershipContract"> | boolean
     createdAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
     plan?: XOR<GymMembershipPlanRelationFilter, GymMembershipPlanWhereInput>
     checkIns?: GymCheckInListRelationFilter
+    referral?: XOR<GymMembershipReferralNullableRelationFilter, GymMembershipReferralWhereInput> | null
   }
 
   export type GymMembershipContractOrderByWithRelationInput = {
@@ -8233,11 +10793,14 @@ export namespace Prisma {
     durationDaysSnapshot?: SortOrder
     totalVisits?: SortOrderInput | SortOrder
     usedVisits?: SortOrder
+    payoutReleasedAt?: SortOrderInput | SortOrder
+    multiGymWarned?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     gym?: GymOrderByWithRelationInput
     plan?: GymMembershipPlanOrderByWithRelationInput
     checkIns?: GymCheckInOrderByRelationAggregateInput
+    referral?: GymMembershipReferralOrderByWithRelationInput
   }
 
   export type GymMembershipContractWhereUniqueInput = Prisma.AtLeast<{
@@ -8256,11 +10819,14 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFilter<"GymMembershipContract"> | number
     totalVisits?: IntNullableFilter<"GymMembershipContract"> | number | null
     usedVisits?: IntFilter<"GymMembershipContract"> | number
+    payoutReleasedAt?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
+    multiGymWarned?: BoolFilter<"GymMembershipContract"> | boolean
     createdAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
     plan?: XOR<GymMembershipPlanRelationFilter, GymMembershipPlanWhereInput>
     checkIns?: GymCheckInListRelationFilter
+    referral?: XOR<GymMembershipReferralNullableRelationFilter, GymMembershipReferralWhereInput> | null
   }, "id">
 
   export type GymMembershipContractOrderByWithAggregationInput = {
@@ -8276,6 +10842,8 @@ export namespace Prisma {
     durationDaysSnapshot?: SortOrder
     totalVisits?: SortOrderInput | SortOrder
     usedVisits?: SortOrder
+    payoutReleasedAt?: SortOrderInput | SortOrder
+    multiGymWarned?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymMembershipContractCountOrderByAggregateInput
@@ -8301,6 +10869,8 @@ export namespace Prisma {
     durationDaysSnapshot?: IntWithAggregatesFilter<"GymMembershipContract"> | number
     totalVisits?: IntNullableWithAggregatesFilter<"GymMembershipContract"> | number | null
     usedVisits?: IntWithAggregatesFilter<"GymMembershipContract"> | number
+    payoutReleasedAt?: DateTimeNullableWithAggregatesFilter<"GymMembershipContract"> | Date | string | null
+    multiGymWarned?: BoolWithAggregatesFilter<"GymMembershipContract"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymMembershipContract"> | Date | string
   }
@@ -8521,6 +11091,205 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"GymReview"> | Date | string
   }
 
+  export type GymPtCollaborationWhereInput = {
+    AND?: GymPtCollaborationWhereInput | GymPtCollaborationWhereInput[]
+    OR?: GymPtCollaborationWhereInput[]
+    NOT?: GymPtCollaborationWhereInput | GymPtCollaborationWhereInput[]
+    id?: StringFilter<"GymPtCollaboration"> | string
+    gymId?: StringFilter<"GymPtCollaboration"> | string
+    ptUserId?: StringFilter<"GymPtCollaboration"> | string
+    proposedPtRate?: DecimalFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFilter<"GymPtCollaboration"> | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFilter<"GymPtCollaboration"> | $Enums.CollaborationParty
+    round?: IntFilter<"GymPtCollaboration"> | number
+    expiresAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
+    acceptedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
+    terminatedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
+    terminatedBy?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    note?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    createdAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
+    updatedAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
+    gym?: XOR<GymRelationFilter, GymWhereInput>
+  }
+
+  export type GymPtCollaborationOrderByWithRelationInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    ptUserId?: SortOrder
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    status?: SortOrder
+    proposedBy?: SortOrder
+    round?: SortOrder
+    expiresAt?: SortOrder
+    acceptedAt?: SortOrderInput | SortOrder
+    terminatedAt?: SortOrderInput | SortOrder
+    terminatedBy?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    gym?: GymOrderByWithRelationInput
+  }
+
+  export type GymPtCollaborationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymPtCollaborationWhereInput | GymPtCollaborationWhereInput[]
+    OR?: GymPtCollaborationWhereInput[]
+    NOT?: GymPtCollaborationWhereInput | GymPtCollaborationWhereInput[]
+    gymId?: StringFilter<"GymPtCollaboration"> | string
+    ptUserId?: StringFilter<"GymPtCollaboration"> | string
+    proposedPtRate?: DecimalFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFilter<"GymPtCollaboration"> | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFilter<"GymPtCollaboration"> | $Enums.CollaborationParty
+    round?: IntFilter<"GymPtCollaboration"> | number
+    expiresAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
+    acceptedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
+    terminatedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
+    terminatedBy?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    note?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    createdAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
+    updatedAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
+    gym?: XOR<GymRelationFilter, GymWhereInput>
+  }, "id">
+
+  export type GymPtCollaborationOrderByWithAggregationInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    ptUserId?: SortOrder
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    status?: SortOrder
+    proposedBy?: SortOrder
+    round?: SortOrder
+    expiresAt?: SortOrder
+    acceptedAt?: SortOrderInput | SortOrder
+    terminatedAt?: SortOrderInput | SortOrder
+    terminatedBy?: SortOrderInput | SortOrder
+    note?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: GymPtCollaborationCountOrderByAggregateInput
+    _avg?: GymPtCollaborationAvgOrderByAggregateInput
+    _max?: GymPtCollaborationMaxOrderByAggregateInput
+    _min?: GymPtCollaborationMinOrderByAggregateInput
+    _sum?: GymPtCollaborationSumOrderByAggregateInput
+  }
+
+  export type GymPtCollaborationScalarWhereWithAggregatesInput = {
+    AND?: GymPtCollaborationScalarWhereWithAggregatesInput | GymPtCollaborationScalarWhereWithAggregatesInput[]
+    OR?: GymPtCollaborationScalarWhereWithAggregatesInput[]
+    NOT?: GymPtCollaborationScalarWhereWithAggregatesInput | GymPtCollaborationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymPtCollaboration"> | string
+    gymId?: StringWithAggregatesFilter<"GymPtCollaboration"> | string
+    ptUserId?: StringWithAggregatesFilter<"GymPtCollaboration"> | string
+    proposedPtRate?: DecimalWithAggregatesFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalWithAggregatesFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalWithAggregatesFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusWithAggregatesFilter<"GymPtCollaboration"> | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyWithAggregatesFilter<"GymPtCollaboration"> | $Enums.CollaborationParty
+    round?: IntWithAggregatesFilter<"GymPtCollaboration"> | number
+    expiresAt?: DateTimeWithAggregatesFilter<"GymPtCollaboration"> | Date | string
+    acceptedAt?: DateTimeNullableWithAggregatesFilter<"GymPtCollaboration"> | Date | string | null
+    terminatedAt?: DateTimeNullableWithAggregatesFilter<"GymPtCollaboration"> | Date | string | null
+    terminatedBy?: StringNullableWithAggregatesFilter<"GymPtCollaboration"> | string | null
+    note?: StringNullableWithAggregatesFilter<"GymPtCollaboration"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"GymPtCollaboration"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"GymPtCollaboration"> | Date | string
+  }
+
+  export type GymMembershipReferralWhereInput = {
+    AND?: GymMembershipReferralWhereInput | GymMembershipReferralWhereInput[]
+    OR?: GymMembershipReferralWhereInput[]
+    NOT?: GymMembershipReferralWhereInput | GymMembershipReferralWhereInput[]
+    id?: StringFilter<"GymMembershipReferral"> | string
+    membershipContractId?: StringFilter<"GymMembershipReferral"> | string
+    gymId?: StringFilter<"GymMembershipReferral"> | string
+    referrerPtUserId?: StringFilter<"GymMembershipReferral"> | string
+    rate?: DecimalFilter<"GymMembershipReferral"> | Decimal | DecimalJsLike | number | string
+    amount?: DecimalFilter<"GymMembershipReferral"> | Decimal | DecimalJsLike | number | string
+    clawedBack?: DecimalFilter<"GymMembershipReferral"> | Decimal | DecimalJsLike | number | string
+    status?: StringFilter<"GymMembershipReferral"> | string
+    releasedAt?: DateTimeNullableFilter<"GymMembershipReferral"> | Date | string | null
+    createdAt?: DateTimeFilter<"GymMembershipReferral"> | Date | string
+    updatedAt?: DateTimeFilter<"GymMembershipReferral"> | Date | string
+    membershipContract?: XOR<GymMembershipContractRelationFilter, GymMembershipContractWhereInput>
+  }
+
+  export type GymMembershipReferralOrderByWithRelationInput = {
+    id?: SortOrder
+    membershipContractId?: SortOrder
+    gymId?: SortOrder
+    referrerPtUserId?: SortOrder
+    rate?: SortOrder
+    amount?: SortOrder
+    clawedBack?: SortOrder
+    status?: SortOrder
+    releasedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    membershipContract?: GymMembershipContractOrderByWithRelationInput
+  }
+
+  export type GymMembershipReferralWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    membershipContractId?: string
+    AND?: GymMembershipReferralWhereInput | GymMembershipReferralWhereInput[]
+    OR?: GymMembershipReferralWhereInput[]
+    NOT?: GymMembershipReferralWhereInput | GymMembershipReferralWhereInput[]
+    gymId?: StringFilter<"GymMembershipReferral"> | string
+    referrerPtUserId?: StringFilter<"GymMembershipReferral"> | string
+    rate?: DecimalFilter<"GymMembershipReferral"> | Decimal | DecimalJsLike | number | string
+    amount?: DecimalFilter<"GymMembershipReferral"> | Decimal | DecimalJsLike | number | string
+    clawedBack?: DecimalFilter<"GymMembershipReferral"> | Decimal | DecimalJsLike | number | string
+    status?: StringFilter<"GymMembershipReferral"> | string
+    releasedAt?: DateTimeNullableFilter<"GymMembershipReferral"> | Date | string | null
+    createdAt?: DateTimeFilter<"GymMembershipReferral"> | Date | string
+    updatedAt?: DateTimeFilter<"GymMembershipReferral"> | Date | string
+    membershipContract?: XOR<GymMembershipContractRelationFilter, GymMembershipContractWhereInput>
+  }, "id" | "membershipContractId">
+
+  export type GymMembershipReferralOrderByWithAggregationInput = {
+    id?: SortOrder
+    membershipContractId?: SortOrder
+    gymId?: SortOrder
+    referrerPtUserId?: SortOrder
+    rate?: SortOrder
+    amount?: SortOrder
+    clawedBack?: SortOrder
+    status?: SortOrder
+    releasedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: GymMembershipReferralCountOrderByAggregateInput
+    _avg?: GymMembershipReferralAvgOrderByAggregateInput
+    _max?: GymMembershipReferralMaxOrderByAggregateInput
+    _min?: GymMembershipReferralMinOrderByAggregateInput
+    _sum?: GymMembershipReferralSumOrderByAggregateInput
+  }
+
+  export type GymMembershipReferralScalarWhereWithAggregatesInput = {
+    AND?: GymMembershipReferralScalarWhereWithAggregatesInput | GymMembershipReferralScalarWhereWithAggregatesInput[]
+    OR?: GymMembershipReferralScalarWhereWithAggregatesInput[]
+    NOT?: GymMembershipReferralScalarWhereWithAggregatesInput | GymMembershipReferralScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymMembershipReferral"> | string
+    membershipContractId?: StringWithAggregatesFilter<"GymMembershipReferral"> | string
+    gymId?: StringWithAggregatesFilter<"GymMembershipReferral"> | string
+    referrerPtUserId?: StringWithAggregatesFilter<"GymMembershipReferral"> | string
+    rate?: DecimalWithAggregatesFilter<"GymMembershipReferral"> | Decimal | DecimalJsLike | number | string
+    amount?: DecimalWithAggregatesFilter<"GymMembershipReferral"> | Decimal | DecimalJsLike | number | string
+    clawedBack?: DecimalWithAggregatesFilter<"GymMembershipReferral"> | Decimal | DecimalJsLike | number | string
+    status?: StringWithAggregatesFilter<"GymMembershipReferral"> | string
+    releasedAt?: DateTimeNullableWithAggregatesFilter<"GymMembershipReferral"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"GymMembershipReferral"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"GymMembershipReferral"> | Date | string
+  }
+
   export type GymCreateInput = {
     id?: string
     ownerId: string
@@ -8537,6 +11306,7 @@ export namespace Prisma {
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateInput = {
@@ -8555,6 +11325,7 @@ export namespace Prisma {
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
     reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymUpdateInput = {
@@ -8573,6 +11344,7 @@ export namespace Prisma {
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateInput = {
@@ -8591,6 +11363,7 @@ export namespace Prisma {
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymCreateManyInput = {
@@ -8740,11 +11513,14 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits?: number | null
     usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutMembershipsInput
     plan: GymMembershipPlanCreateNestedOneWithoutMembershipsInput
     checkIns?: GymCheckInCreateNestedManyWithoutMembershipInput
+    referral?: GymMembershipReferralCreateNestedOneWithoutMembershipContractInput
   }
 
   export type GymMembershipContractUncheckedCreateInput = {
@@ -8760,9 +11536,12 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits?: number | null
     usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
+    referral?: GymMembershipReferralUncheckedCreateNestedOneWithoutMembershipContractInput
   }
 
   export type GymMembershipContractUpdateInput = {
@@ -8776,11 +11555,14 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
     plan?: GymMembershipPlanUpdateOneRequiredWithoutMembershipsNestedInput
     checkIns?: GymCheckInUpdateManyWithoutMembershipNestedInput
+    referral?: GymMembershipReferralUpdateOneWithoutMembershipContractNestedInput
   }
 
   export type GymMembershipContractUncheckedUpdateInput = {
@@ -8796,9 +11578,12 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
+    referral?: GymMembershipReferralUncheckedUpdateOneWithoutMembershipContractNestedInput
   }
 
   export type GymMembershipContractCreateManyInput = {
@@ -8814,6 +11599,8 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits?: number | null
     usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -8829,6 +11616,8 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -8846,6 +11635,8 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9078,6 +11869,235 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type GymPtCollaborationCreateInput = {
+    id?: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gym: GymCreateNestedOneWithoutCollaborationsInput
+  }
+
+  export type GymPtCollaborationUncheckedCreateInput = {
+    id?: string
+    gymId: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymPtCollaborationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gym?: GymUpdateOneRequiredWithoutCollaborationsNestedInput
+  }
+
+  export type GymPtCollaborationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPtCollaborationCreateManyInput = {
+    id?: string
+    gymId: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymPtCollaborationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPtCollaborationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymMembershipReferralCreateInput = {
+    id?: string
+    gymId: string
+    referrerPtUserId: string
+    rate: Decimal | DecimalJsLike | number | string
+    amount: Decimal | DecimalJsLike | number | string
+    clawedBack?: Decimal | DecimalJsLike | number | string
+    status?: string
+    releasedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    membershipContract: GymMembershipContractCreateNestedOneWithoutReferralInput
+  }
+
+  export type GymMembershipReferralUncheckedCreateInput = {
+    id?: string
+    membershipContractId: string
+    gymId: string
+    referrerPtUserId: string
+    rate: Decimal | DecimalJsLike | number | string
+    amount: Decimal | DecimalJsLike | number | string
+    clawedBack?: Decimal | DecimalJsLike | number | string
+    status?: string
+    releasedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymMembershipReferralUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    referrerPtUserId?: StringFieldUpdateOperationsInput | string
+    rate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    clawedBack?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: StringFieldUpdateOperationsInput | string
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    membershipContract?: GymMembershipContractUpdateOneRequiredWithoutReferralNestedInput
+  }
+
+  export type GymMembershipReferralUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    membershipContractId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    referrerPtUserId?: StringFieldUpdateOperationsInput | string
+    rate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    clawedBack?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: StringFieldUpdateOperationsInput | string
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymMembershipReferralCreateManyInput = {
+    id?: string
+    membershipContractId: string
+    gymId: string
+    referrerPtUserId: string
+    rate: Decimal | DecimalJsLike | number | string
+    amount: Decimal | DecimalJsLike | number | string
+    clawedBack?: Decimal | DecimalJsLike | number | string
+    status?: string
+    releasedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymMembershipReferralUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    referrerPtUserId?: StringFieldUpdateOperationsInput | string
+    rate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    clawedBack?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: StringFieldUpdateOperationsInput | string
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymMembershipReferralUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    membershipContractId?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    referrerPtUserId?: StringFieldUpdateOperationsInput | string
+    rate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    clawedBack?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: StringFieldUpdateOperationsInput | string
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -9150,6 +12170,12 @@ export namespace Prisma {
     none?: GymReviewWhereInput
   }
 
+  export type GymPtCollaborationListRelationFilter = {
+    every?: GymPtCollaborationWhereInput
+    some?: GymPtCollaborationWhereInput
+    none?: GymPtCollaborationWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -9168,6 +12194,10 @@ export namespace Prisma {
   }
 
   export type GymReviewOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymPtCollaborationOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -9445,6 +12475,11 @@ export namespace Prisma {
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type GymMembershipPlanRelationFilter = {
     is?: GymMembershipPlanWhereInput
     isNot?: GymMembershipPlanWhereInput
@@ -9454,6 +12489,11 @@ export namespace Prisma {
     every?: GymCheckInWhereInput
     some?: GymCheckInWhereInput
     none?: GymCheckInWhereInput
+  }
+
+  export type GymMembershipReferralNullableRelationFilter = {
+    is?: GymMembershipReferralWhereInput | null
+    isNot?: GymMembershipReferralWhereInput | null
   }
 
   export type GymCheckInOrderByRelationAggregateInput = {
@@ -9473,6 +12513,8 @@ export namespace Prisma {
     durationDaysSnapshot?: SortOrder
     totalVisits?: SortOrder
     usedVisits?: SortOrder
+    payoutReleasedAt?: SortOrder
+    multiGymWarned?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -9497,6 +12539,8 @@ export namespace Prisma {
     durationDaysSnapshot?: SortOrder
     totalVisits?: SortOrder
     usedVisits?: SortOrder
+    payoutReleasedAt?: SortOrder
+    multiGymWarned?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -9514,6 +12558,8 @@ export namespace Prisma {
     durationDaysSnapshot?: SortOrder
     totalVisits?: SortOrder
     usedVisits?: SortOrder
+    payoutReleasedAt?: SortOrder
+    multiGymWarned?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -9547,6 +12593,14 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type EnumAffiliationStatusFilter<$PrismaModel = never> = {
@@ -9757,6 +12811,165 @@ export namespace Prisma {
     rating?: SortOrder
   }
 
+  export type EnumCollaborationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.CollaborationStatus | EnumCollaborationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CollaborationStatus[] | ListEnumCollaborationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CollaborationStatus[] | ListEnumCollaborationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCollaborationStatusFilter<$PrismaModel> | $Enums.CollaborationStatus
+  }
+
+  export type EnumCollaborationPartyFilter<$PrismaModel = never> = {
+    equals?: $Enums.CollaborationParty | EnumCollaborationPartyFieldRefInput<$PrismaModel>
+    in?: $Enums.CollaborationParty[] | ListEnumCollaborationPartyFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CollaborationParty[] | ListEnumCollaborationPartyFieldRefInput<$PrismaModel>
+    not?: NestedEnumCollaborationPartyFilter<$PrismaModel> | $Enums.CollaborationParty
+  }
+
+  export type GymPtCollaborationCountOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    ptUserId?: SortOrder
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    status?: SortOrder
+    proposedBy?: SortOrder
+    round?: SortOrder
+    expiresAt?: SortOrder
+    acceptedAt?: SortOrder
+    terminatedAt?: SortOrder
+    terminatedBy?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymPtCollaborationAvgOrderByAggregateInput = {
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    round?: SortOrder
+  }
+
+  export type GymPtCollaborationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    ptUserId?: SortOrder
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    status?: SortOrder
+    proposedBy?: SortOrder
+    round?: SortOrder
+    expiresAt?: SortOrder
+    acceptedAt?: SortOrder
+    terminatedAt?: SortOrder
+    terminatedBy?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymPtCollaborationMinOrderByAggregateInput = {
+    id?: SortOrder
+    gymId?: SortOrder
+    ptUserId?: SortOrder
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    status?: SortOrder
+    proposedBy?: SortOrder
+    round?: SortOrder
+    expiresAt?: SortOrder
+    acceptedAt?: SortOrder
+    terminatedAt?: SortOrder
+    terminatedBy?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymPtCollaborationSumOrderByAggregateInput = {
+    proposedPtRate?: SortOrder
+    proposedGymRate?: SortOrder
+    platformRate?: SortOrder
+    round?: SortOrder
+  }
+
+  export type EnumCollaborationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CollaborationStatus | EnumCollaborationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CollaborationStatus[] | ListEnumCollaborationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CollaborationStatus[] | ListEnumCollaborationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCollaborationStatusWithAggregatesFilter<$PrismaModel> | $Enums.CollaborationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCollaborationStatusFilter<$PrismaModel>
+    _max?: NestedEnumCollaborationStatusFilter<$PrismaModel>
+  }
+
+  export type EnumCollaborationPartyWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CollaborationParty | EnumCollaborationPartyFieldRefInput<$PrismaModel>
+    in?: $Enums.CollaborationParty[] | ListEnumCollaborationPartyFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CollaborationParty[] | ListEnumCollaborationPartyFieldRefInput<$PrismaModel>
+    not?: NestedEnumCollaborationPartyWithAggregatesFilter<$PrismaModel> | $Enums.CollaborationParty
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCollaborationPartyFilter<$PrismaModel>
+    _max?: NestedEnumCollaborationPartyFilter<$PrismaModel>
+  }
+
+  export type GymMembershipReferralCountOrderByAggregateInput = {
+    id?: SortOrder
+    membershipContractId?: SortOrder
+    gymId?: SortOrder
+    referrerPtUserId?: SortOrder
+    rate?: SortOrder
+    amount?: SortOrder
+    clawedBack?: SortOrder
+    status?: SortOrder
+    releasedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymMembershipReferralAvgOrderByAggregateInput = {
+    rate?: SortOrder
+    amount?: SortOrder
+    clawedBack?: SortOrder
+  }
+
+  export type GymMembershipReferralMaxOrderByAggregateInput = {
+    id?: SortOrder
+    membershipContractId?: SortOrder
+    gymId?: SortOrder
+    referrerPtUserId?: SortOrder
+    rate?: SortOrder
+    amount?: SortOrder
+    clawedBack?: SortOrder
+    status?: SortOrder
+    releasedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymMembershipReferralMinOrderByAggregateInput = {
+    id?: SortOrder
+    membershipContractId?: SortOrder
+    gymId?: SortOrder
+    referrerPtUserId?: SortOrder
+    rate?: SortOrder
+    amount?: SortOrder
+    clawedBack?: SortOrder
+    status?: SortOrder
+    releasedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymMembershipReferralSumOrderByAggregateInput = {
+    rate?: SortOrder
+    amount?: SortOrder
+    clawedBack?: SortOrder
+  }
+
   export type GymMembershipPlanCreateNestedManyWithoutGymInput = {
     create?: XOR<GymMembershipPlanCreateWithoutGymInput, GymMembershipPlanUncheckedCreateWithoutGymInput> | GymMembershipPlanCreateWithoutGymInput[] | GymMembershipPlanUncheckedCreateWithoutGymInput[]
     connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutGymInput | GymMembershipPlanCreateOrConnectWithoutGymInput[]
@@ -9785,6 +12998,13 @@ export namespace Prisma {
     connect?: GymReviewWhereUniqueInput | GymReviewWhereUniqueInput[]
   }
 
+  export type GymPtCollaborationCreateNestedManyWithoutGymInput = {
+    create?: XOR<GymPtCollaborationCreateWithoutGymInput, GymPtCollaborationUncheckedCreateWithoutGymInput> | GymPtCollaborationCreateWithoutGymInput[] | GymPtCollaborationUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymPtCollaborationCreateOrConnectWithoutGymInput | GymPtCollaborationCreateOrConnectWithoutGymInput[]
+    createMany?: GymPtCollaborationCreateManyGymInputEnvelope
+    connect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+  }
+
   export type GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput = {
     create?: XOR<GymMembershipPlanCreateWithoutGymInput, GymMembershipPlanUncheckedCreateWithoutGymInput> | GymMembershipPlanCreateWithoutGymInput[] | GymMembershipPlanUncheckedCreateWithoutGymInput[]
     connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutGymInput | GymMembershipPlanCreateOrConnectWithoutGymInput[]
@@ -9811,6 +13031,13 @@ export namespace Prisma {
     connectOrCreate?: GymReviewCreateOrConnectWithoutGymInput | GymReviewCreateOrConnectWithoutGymInput[]
     createMany?: GymReviewCreateManyGymInputEnvelope
     connect?: GymReviewWhereUniqueInput | GymReviewWhereUniqueInput[]
+  }
+
+  export type GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput = {
+    create?: XOR<GymPtCollaborationCreateWithoutGymInput, GymPtCollaborationUncheckedCreateWithoutGymInput> | GymPtCollaborationCreateWithoutGymInput[] | GymPtCollaborationUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymPtCollaborationCreateOrConnectWithoutGymInput | GymPtCollaborationCreateOrConnectWithoutGymInput[]
+    createMany?: GymPtCollaborationCreateManyGymInputEnvelope
+    connect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -9885,6 +13112,20 @@ export namespace Prisma {
     deleteMany?: GymReviewScalarWhereInput | GymReviewScalarWhereInput[]
   }
 
+  export type GymPtCollaborationUpdateManyWithoutGymNestedInput = {
+    create?: XOR<GymPtCollaborationCreateWithoutGymInput, GymPtCollaborationUncheckedCreateWithoutGymInput> | GymPtCollaborationCreateWithoutGymInput[] | GymPtCollaborationUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymPtCollaborationCreateOrConnectWithoutGymInput | GymPtCollaborationCreateOrConnectWithoutGymInput[]
+    upsert?: GymPtCollaborationUpsertWithWhereUniqueWithoutGymInput | GymPtCollaborationUpsertWithWhereUniqueWithoutGymInput[]
+    createMany?: GymPtCollaborationCreateManyGymInputEnvelope
+    set?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    disconnect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    delete?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    connect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    update?: GymPtCollaborationUpdateWithWhereUniqueWithoutGymInput | GymPtCollaborationUpdateWithWhereUniqueWithoutGymInput[]
+    updateMany?: GymPtCollaborationUpdateManyWithWhereWithoutGymInput | GymPtCollaborationUpdateManyWithWhereWithoutGymInput[]
+    deleteMany?: GymPtCollaborationScalarWhereInput | GymPtCollaborationScalarWhereInput[]
+  }
+
   export type GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput = {
     create?: XOR<GymMembershipPlanCreateWithoutGymInput, GymMembershipPlanUncheckedCreateWithoutGymInput> | GymMembershipPlanCreateWithoutGymInput[] | GymMembershipPlanUncheckedCreateWithoutGymInput[]
     connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutGymInput | GymMembershipPlanCreateOrConnectWithoutGymInput[]
@@ -9939,6 +13180,20 @@ export namespace Prisma {
     update?: GymReviewUpdateWithWhereUniqueWithoutGymInput | GymReviewUpdateWithWhereUniqueWithoutGymInput[]
     updateMany?: GymReviewUpdateManyWithWhereWithoutGymInput | GymReviewUpdateManyWithWhereWithoutGymInput[]
     deleteMany?: GymReviewScalarWhereInput | GymReviewScalarWhereInput[]
+  }
+
+  export type GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput = {
+    create?: XOR<GymPtCollaborationCreateWithoutGymInput, GymPtCollaborationUncheckedCreateWithoutGymInput> | GymPtCollaborationCreateWithoutGymInput[] | GymPtCollaborationUncheckedCreateWithoutGymInput[]
+    connectOrCreate?: GymPtCollaborationCreateOrConnectWithoutGymInput | GymPtCollaborationCreateOrConnectWithoutGymInput[]
+    upsert?: GymPtCollaborationUpsertWithWhereUniqueWithoutGymInput | GymPtCollaborationUpsertWithWhereUniqueWithoutGymInput[]
+    createMany?: GymPtCollaborationCreateManyGymInputEnvelope
+    set?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    disconnect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    delete?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    connect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
+    update?: GymPtCollaborationUpdateWithWhereUniqueWithoutGymInput | GymPtCollaborationUpdateWithWhereUniqueWithoutGymInput[]
+    updateMany?: GymPtCollaborationUpdateManyWithWhereWithoutGymInput | GymPtCollaborationUpdateManyWithWhereWithoutGymInput[]
+    deleteMany?: GymPtCollaborationScalarWhereInput | GymPtCollaborationScalarWhereInput[]
   }
 
   export type GymCreateNestedOneWithoutPlansInput = {
@@ -10044,11 +13299,23 @@ export namespace Prisma {
     connect?: GymCheckInWhereUniqueInput | GymCheckInWhereUniqueInput[]
   }
 
+  export type GymMembershipReferralCreateNestedOneWithoutMembershipContractInput = {
+    create?: XOR<GymMembershipReferralCreateWithoutMembershipContractInput, GymMembershipReferralUncheckedCreateWithoutMembershipContractInput>
+    connectOrCreate?: GymMembershipReferralCreateOrConnectWithoutMembershipContractInput
+    connect?: GymMembershipReferralWhereUniqueInput
+  }
+
   export type GymCheckInUncheckedCreateNestedManyWithoutMembershipInput = {
     create?: XOR<GymCheckInCreateWithoutMembershipInput, GymCheckInUncheckedCreateWithoutMembershipInput> | GymCheckInCreateWithoutMembershipInput[] | GymCheckInUncheckedCreateWithoutMembershipInput[]
     connectOrCreate?: GymCheckInCreateOrConnectWithoutMembershipInput | GymCheckInCreateOrConnectWithoutMembershipInput[]
     createMany?: GymCheckInCreateManyMembershipInputEnvelope
     connect?: GymCheckInWhereUniqueInput | GymCheckInWhereUniqueInput[]
+  }
+
+  export type GymMembershipReferralUncheckedCreateNestedOneWithoutMembershipContractInput = {
+    create?: XOR<GymMembershipReferralCreateWithoutMembershipContractInput, GymMembershipReferralUncheckedCreateWithoutMembershipContractInput>
+    connectOrCreate?: GymMembershipReferralCreateOrConnectWithoutMembershipContractInput
+    connect?: GymMembershipReferralWhereUniqueInput
   }
 
   export type EnumGymMembershipContractStatusFieldUpdateOperationsInput = {
@@ -10057,6 +13324,10 @@ export namespace Prisma {
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
     set?: Date | string | null
+  }
+
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
   }
 
   export type GymUpdateOneRequiredWithoutMembershipsNestedInput = {
@@ -10089,6 +13360,16 @@ export namespace Prisma {
     deleteMany?: GymCheckInScalarWhereInput | GymCheckInScalarWhereInput[]
   }
 
+  export type GymMembershipReferralUpdateOneWithoutMembershipContractNestedInput = {
+    create?: XOR<GymMembershipReferralCreateWithoutMembershipContractInput, GymMembershipReferralUncheckedCreateWithoutMembershipContractInput>
+    connectOrCreate?: GymMembershipReferralCreateOrConnectWithoutMembershipContractInput
+    upsert?: GymMembershipReferralUpsertWithoutMembershipContractInput
+    disconnect?: GymMembershipReferralWhereInput | boolean
+    delete?: GymMembershipReferralWhereInput | boolean
+    connect?: GymMembershipReferralWhereUniqueInput
+    update?: XOR<XOR<GymMembershipReferralUpdateToOneWithWhereWithoutMembershipContractInput, GymMembershipReferralUpdateWithoutMembershipContractInput>, GymMembershipReferralUncheckedUpdateWithoutMembershipContractInput>
+  }
+
   export type GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput = {
     create?: XOR<GymCheckInCreateWithoutMembershipInput, GymCheckInUncheckedCreateWithoutMembershipInput> | GymCheckInCreateWithoutMembershipInput[] | GymCheckInUncheckedCreateWithoutMembershipInput[]
     connectOrCreate?: GymCheckInCreateOrConnectWithoutMembershipInput | GymCheckInCreateOrConnectWithoutMembershipInput[]
@@ -10101,6 +13382,16 @@ export namespace Prisma {
     update?: GymCheckInUpdateWithWhereUniqueWithoutMembershipInput | GymCheckInUpdateWithWhereUniqueWithoutMembershipInput[]
     updateMany?: GymCheckInUpdateManyWithWhereWithoutMembershipInput | GymCheckInUpdateManyWithWhereWithoutMembershipInput[]
     deleteMany?: GymCheckInScalarWhereInput | GymCheckInScalarWhereInput[]
+  }
+
+  export type GymMembershipReferralUncheckedUpdateOneWithoutMembershipContractNestedInput = {
+    create?: XOR<GymMembershipReferralCreateWithoutMembershipContractInput, GymMembershipReferralUncheckedCreateWithoutMembershipContractInput>
+    connectOrCreate?: GymMembershipReferralCreateOrConnectWithoutMembershipContractInput
+    upsert?: GymMembershipReferralUpsertWithoutMembershipContractInput
+    disconnect?: GymMembershipReferralWhereInput | boolean
+    delete?: GymMembershipReferralWhereInput | boolean
+    connect?: GymMembershipReferralWhereUniqueInput
+    update?: XOR<XOR<GymMembershipReferralUpdateToOneWithWhereWithoutMembershipContractInput, GymMembershipReferralUpdateWithoutMembershipContractInput>, GymMembershipReferralUncheckedUpdateWithoutMembershipContractInput>
   }
 
   export type GymCreateNestedOneWithoutAffiliationsInput = {
@@ -10163,6 +13454,42 @@ export namespace Prisma {
     upsert?: GymUpsertWithoutReviewsInput
     connect?: GymWhereUniqueInput
     update?: XOR<XOR<GymUpdateToOneWithWhereWithoutReviewsInput, GymUpdateWithoutReviewsInput>, GymUncheckedUpdateWithoutReviewsInput>
+  }
+
+  export type GymCreateNestedOneWithoutCollaborationsInput = {
+    create?: XOR<GymCreateWithoutCollaborationsInput, GymUncheckedCreateWithoutCollaborationsInput>
+    connectOrCreate?: GymCreateOrConnectWithoutCollaborationsInput
+    connect?: GymWhereUniqueInput
+  }
+
+  export type EnumCollaborationStatusFieldUpdateOperationsInput = {
+    set?: $Enums.CollaborationStatus
+  }
+
+  export type EnumCollaborationPartyFieldUpdateOperationsInput = {
+    set?: $Enums.CollaborationParty
+  }
+
+  export type GymUpdateOneRequiredWithoutCollaborationsNestedInput = {
+    create?: XOR<GymCreateWithoutCollaborationsInput, GymUncheckedCreateWithoutCollaborationsInput>
+    connectOrCreate?: GymCreateOrConnectWithoutCollaborationsInput
+    upsert?: GymUpsertWithoutCollaborationsInput
+    connect?: GymWhereUniqueInput
+    update?: XOR<XOR<GymUpdateToOneWithWhereWithoutCollaborationsInput, GymUpdateWithoutCollaborationsInput>, GymUncheckedUpdateWithoutCollaborationsInput>
+  }
+
+  export type GymMembershipContractCreateNestedOneWithoutReferralInput = {
+    create?: XOR<GymMembershipContractCreateWithoutReferralInput, GymMembershipContractUncheckedCreateWithoutReferralInput>
+    connectOrCreate?: GymMembershipContractCreateOrConnectWithoutReferralInput
+    connect?: GymMembershipContractWhereUniqueInput
+  }
+
+  export type GymMembershipContractUpdateOneRequiredWithoutReferralNestedInput = {
+    create?: XOR<GymMembershipContractCreateWithoutReferralInput, GymMembershipContractUncheckedCreateWithoutReferralInput>
+    connectOrCreate?: GymMembershipContractCreateOrConnectWithoutReferralInput
+    upsert?: GymMembershipContractUpsertWithoutReferralInput
+    connect?: GymMembershipContractWhereUniqueInput
+    update?: XOR<XOR<GymMembershipContractUpdateToOneWithWhereWithoutReferralInput, GymMembershipContractUpdateWithoutReferralInput>, GymMembershipContractUncheckedUpdateWithoutReferralInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -10407,6 +13734,11 @@ export namespace Prisma {
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type NestedEnumGymMembershipContractStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.GymMembershipContractStatus | EnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
     in?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
@@ -10429,6 +13761,14 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type NestedEnumAffiliationStatusFilter<$PrismaModel = never> = {
@@ -10509,6 +13849,40 @@ export namespace Prisma {
     _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
+  export type NestedEnumCollaborationStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.CollaborationStatus | EnumCollaborationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CollaborationStatus[] | ListEnumCollaborationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CollaborationStatus[] | ListEnumCollaborationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCollaborationStatusFilter<$PrismaModel> | $Enums.CollaborationStatus
+  }
+
+  export type NestedEnumCollaborationPartyFilter<$PrismaModel = never> = {
+    equals?: $Enums.CollaborationParty | EnumCollaborationPartyFieldRefInput<$PrismaModel>
+    in?: $Enums.CollaborationParty[] | ListEnumCollaborationPartyFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CollaborationParty[] | ListEnumCollaborationPartyFieldRefInput<$PrismaModel>
+    not?: NestedEnumCollaborationPartyFilter<$PrismaModel> | $Enums.CollaborationParty
+  }
+
+  export type NestedEnumCollaborationStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CollaborationStatus | EnumCollaborationStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CollaborationStatus[] | ListEnumCollaborationStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CollaborationStatus[] | ListEnumCollaborationStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCollaborationStatusWithAggregatesFilter<$PrismaModel> | $Enums.CollaborationStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCollaborationStatusFilter<$PrismaModel>
+    _max?: NestedEnumCollaborationStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCollaborationPartyWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CollaborationParty | EnumCollaborationPartyFieldRefInput<$PrismaModel>
+    in?: $Enums.CollaborationParty[] | ListEnumCollaborationPartyFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CollaborationParty[] | ListEnumCollaborationPartyFieldRefInput<$PrismaModel>
+    not?: NestedEnumCollaborationPartyWithAggregatesFilter<$PrismaModel> | $Enums.CollaborationParty
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCollaborationPartyFilter<$PrismaModel>
+    _max?: NestedEnumCollaborationPartyFilter<$PrismaModel>
+  }
+
   export type GymMembershipPlanCreateWithoutGymInput = {
     id?: string
     name: string
@@ -10556,10 +13930,13 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits?: number | null
     usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     plan: GymMembershipPlanCreateNestedOneWithoutMembershipsInput
     checkIns?: GymCheckInCreateNestedManyWithoutMembershipInput
+    referral?: GymMembershipReferralCreateNestedOneWithoutMembershipContractInput
   }
 
   export type GymMembershipContractUncheckedCreateWithoutGymInput = {
@@ -10574,9 +13951,12 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits?: number | null
     usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
+    referral?: GymMembershipReferralUncheckedCreateNestedOneWithoutMembershipContractInput
   }
 
   export type GymMembershipContractCreateOrConnectWithoutGymInput = {
@@ -10653,6 +14033,52 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type GymPtCollaborationCreateWithoutGymInput = {
+    id?: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymPtCollaborationUncheckedCreateWithoutGymInput = {
+    id?: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    note?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymPtCollaborationCreateOrConnectWithoutGymInput = {
+    where: GymPtCollaborationWhereUniqueInput
+    create: XOR<GymPtCollaborationCreateWithoutGymInput, GymPtCollaborationUncheckedCreateWithoutGymInput>
+  }
+
+  export type GymPtCollaborationCreateManyGymInputEnvelope = {
+    data: GymPtCollaborationCreateManyGymInput | GymPtCollaborationCreateManyGymInput[]
+    skipDuplicates?: boolean
+  }
+
   export type GymMembershipPlanUpsertWithWhereUniqueWithoutGymInput = {
     where: GymMembershipPlanWhereUniqueInput
     update: XOR<GymMembershipPlanUpdateWithoutGymInput, GymMembershipPlanUncheckedUpdateWithoutGymInput>
@@ -10717,6 +14143,8 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFilter<"GymMembershipContract"> | number
     totalVisits?: IntNullableFilter<"GymMembershipContract"> | number | null
     usedVisits?: IntFilter<"GymMembershipContract"> | number
+    payoutReleasedAt?: DateTimeNullableFilter<"GymMembershipContract"> | Date | string | null
+    multiGymWarned?: BoolFilter<"GymMembershipContract"> | boolean
     createdAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipContract"> | Date | string
   }
@@ -10783,6 +14211,44 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"GymReview"> | Date | string
   }
 
+  export type GymPtCollaborationUpsertWithWhereUniqueWithoutGymInput = {
+    where: GymPtCollaborationWhereUniqueInput
+    update: XOR<GymPtCollaborationUpdateWithoutGymInput, GymPtCollaborationUncheckedUpdateWithoutGymInput>
+    create: XOR<GymPtCollaborationCreateWithoutGymInput, GymPtCollaborationUncheckedCreateWithoutGymInput>
+  }
+
+  export type GymPtCollaborationUpdateWithWhereUniqueWithoutGymInput = {
+    where: GymPtCollaborationWhereUniqueInput
+    data: XOR<GymPtCollaborationUpdateWithoutGymInput, GymPtCollaborationUncheckedUpdateWithoutGymInput>
+  }
+
+  export type GymPtCollaborationUpdateManyWithWhereWithoutGymInput = {
+    where: GymPtCollaborationScalarWhereInput
+    data: XOR<GymPtCollaborationUpdateManyMutationInput, GymPtCollaborationUncheckedUpdateManyWithoutGymInput>
+  }
+
+  export type GymPtCollaborationScalarWhereInput = {
+    AND?: GymPtCollaborationScalarWhereInput | GymPtCollaborationScalarWhereInput[]
+    OR?: GymPtCollaborationScalarWhereInput[]
+    NOT?: GymPtCollaborationScalarWhereInput | GymPtCollaborationScalarWhereInput[]
+    id?: StringFilter<"GymPtCollaboration"> | string
+    gymId?: StringFilter<"GymPtCollaboration"> | string
+    ptUserId?: StringFilter<"GymPtCollaboration"> | string
+    proposedPtRate?: DecimalFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFilter<"GymPtCollaboration"> | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFilter<"GymPtCollaboration"> | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFilter<"GymPtCollaboration"> | $Enums.CollaborationParty
+    round?: IntFilter<"GymPtCollaboration"> | number
+    expiresAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
+    acceptedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
+    terminatedAt?: DateTimeNullableFilter<"GymPtCollaboration"> | Date | string | null
+    terminatedBy?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    note?: StringNullableFilter<"GymPtCollaboration"> | string | null
+    createdAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
+    updatedAt?: DateTimeFilter<"GymPtCollaboration"> | Date | string
+  }
+
   export type GymCreateWithoutPlansInput = {
     id?: string
     ownerId: string
@@ -10798,6 +14264,7 @@ export namespace Prisma {
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutPlansInput = {
@@ -10815,6 +14282,7 @@ export namespace Prisma {
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
     reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutPlansInput = {
@@ -10833,10 +14301,13 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits?: number | null
     usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutMembershipsInput
     checkIns?: GymCheckInCreateNestedManyWithoutMembershipInput
+    referral?: GymMembershipReferralCreateNestedOneWithoutMembershipContractInput
   }
 
   export type GymMembershipContractUncheckedCreateWithoutPlanInput = {
@@ -10851,9 +14322,12 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits?: number | null
     usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
+    referral?: GymMembershipReferralUncheckedCreateNestedOneWithoutMembershipContractInput
   }
 
   export type GymMembershipContractCreateOrConnectWithoutPlanInput = {
@@ -10892,6 +14366,7 @@ export namespace Prisma {
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutPlansInput = {
@@ -10909,6 +14384,7 @@ export namespace Prisma {
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymMembershipContractUpsertWithWhereUniqueWithoutPlanInput = {
@@ -10942,6 +14418,7 @@ export namespace Prisma {
     plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutMembershipsInput = {
@@ -10959,6 +14436,7 @@ export namespace Prisma {
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
     reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutMembershipsInput = {
@@ -11023,6 +14501,37 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type GymMembershipReferralCreateWithoutMembershipContractInput = {
+    id?: string
+    gymId: string
+    referrerPtUserId: string
+    rate: Decimal | DecimalJsLike | number | string
+    amount: Decimal | DecimalJsLike | number | string
+    clawedBack?: Decimal | DecimalJsLike | number | string
+    status?: string
+    releasedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymMembershipReferralUncheckedCreateWithoutMembershipContractInput = {
+    id?: string
+    gymId: string
+    referrerPtUserId: string
+    rate: Decimal | DecimalJsLike | number | string
+    amount: Decimal | DecimalJsLike | number | string
+    clawedBack?: Decimal | DecimalJsLike | number | string
+    status?: string
+    releasedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymMembershipReferralCreateOrConnectWithoutMembershipContractInput = {
+    where: GymMembershipReferralWhereUniqueInput
+    create: XOR<GymMembershipReferralCreateWithoutMembershipContractInput, GymMembershipReferralUncheckedCreateWithoutMembershipContractInput>
+  }
+
   export type GymUpsertWithoutMembershipsInput = {
     update: XOR<GymUpdateWithoutMembershipsInput, GymUncheckedUpdateWithoutMembershipsInput>
     create: XOR<GymCreateWithoutMembershipsInput, GymUncheckedCreateWithoutMembershipsInput>
@@ -11049,6 +14558,7 @@ export namespace Prisma {
     plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutMembershipsInput = {
@@ -11066,6 +14576,7 @@ export namespace Prisma {
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymMembershipPlanUpsertWithoutMembershipsInput = {
@@ -11133,6 +14644,43 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"GymCheckIn"> | Date | string
   }
 
+  export type GymMembershipReferralUpsertWithoutMembershipContractInput = {
+    update: XOR<GymMembershipReferralUpdateWithoutMembershipContractInput, GymMembershipReferralUncheckedUpdateWithoutMembershipContractInput>
+    create: XOR<GymMembershipReferralCreateWithoutMembershipContractInput, GymMembershipReferralUncheckedCreateWithoutMembershipContractInput>
+    where?: GymMembershipReferralWhereInput
+  }
+
+  export type GymMembershipReferralUpdateToOneWithWhereWithoutMembershipContractInput = {
+    where?: GymMembershipReferralWhereInput
+    data: XOR<GymMembershipReferralUpdateWithoutMembershipContractInput, GymMembershipReferralUncheckedUpdateWithoutMembershipContractInput>
+  }
+
+  export type GymMembershipReferralUpdateWithoutMembershipContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    referrerPtUserId?: StringFieldUpdateOperationsInput | string
+    rate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    clawedBack?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: StringFieldUpdateOperationsInput | string
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymMembershipReferralUncheckedUpdateWithoutMembershipContractInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    referrerPtUserId?: StringFieldUpdateOperationsInput | string
+    rate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    clawedBack?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: StringFieldUpdateOperationsInput | string
+    releasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type GymCreateWithoutAffiliationsInput = {
     id?: string
     ownerId: string
@@ -11148,6 +14696,7 @@ export namespace Prisma {
     plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutAffiliationsInput = {
@@ -11165,6 +14714,7 @@ export namespace Prisma {
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
     reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutAffiliationsInput = {
@@ -11198,6 +14748,7 @@ export namespace Prisma {
     plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutAffiliationsInput = {
@@ -11215,6 +14766,7 @@ export namespace Prisma {
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
   }
 
   export type GymMembershipContractCreateWithoutCheckInsInput = {
@@ -11228,10 +14780,13 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits?: number | null
     usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutMembershipsInput
     plan: GymMembershipPlanCreateNestedOneWithoutMembershipsInput
+    referral?: GymMembershipReferralCreateNestedOneWithoutMembershipContractInput
   }
 
   export type GymMembershipContractUncheckedCreateWithoutCheckInsInput = {
@@ -11247,8 +14802,11 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits?: number | null
     usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    referral?: GymMembershipReferralUncheckedCreateNestedOneWithoutMembershipContractInput
   }
 
   export type GymMembershipContractCreateOrConnectWithoutCheckInsInput = {
@@ -11278,10 +14836,13 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
     plan?: GymMembershipPlanUpdateOneRequiredWithoutMembershipsNestedInput
+    referral?: GymMembershipReferralUpdateOneWithoutMembershipContractNestedInput
   }
 
   export type GymMembershipContractUncheckedUpdateWithoutCheckInsInput = {
@@ -11297,8 +14858,11 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    referral?: GymMembershipReferralUncheckedUpdateOneWithoutMembershipContractNestedInput
   }
 
   export type GymCreateWithoutReviewsInput = {
@@ -11316,6 +14880,7 @@ export namespace Prisma {
     plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
   }
 
   export type GymUncheckedCreateWithoutReviewsInput = {
@@ -11333,6 +14898,7 @@ export namespace Prisma {
     plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
   }
 
   export type GymCreateOrConnectWithoutReviewsInput = {
@@ -11366,6 +14932,7 @@ export namespace Prisma {
     plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
   }
 
   export type GymUncheckedUpdateWithoutReviewsInput = {
@@ -11383,6 +14950,191 @@ export namespace Prisma {
     plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
+  }
+
+  export type GymCreateWithoutCollaborationsInput = {
+    id?: string
+    ownerId: string
+    name: string
+    description?: string | null
+    address: string
+    city?: string | null
+    phone?: string | null
+    email?: string | null
+    status?: $Enums.GymStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
+    memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
+    affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
+    reviews?: GymReviewCreateNestedManyWithoutGymInput
+  }
+
+  export type GymUncheckedCreateWithoutCollaborationsInput = {
+    id?: string
+    ownerId: string
+    name: string
+    description?: string | null
+    address: string
+    city?: string | null
+    phone?: string | null
+    email?: string | null
+    status?: $Enums.GymStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
+    memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
+    affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
+    reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
+  }
+
+  export type GymCreateOrConnectWithoutCollaborationsInput = {
+    where: GymWhereUniqueInput
+    create: XOR<GymCreateWithoutCollaborationsInput, GymUncheckedCreateWithoutCollaborationsInput>
+  }
+
+  export type GymUpsertWithoutCollaborationsInput = {
+    update: XOR<GymUpdateWithoutCollaborationsInput, GymUncheckedUpdateWithoutCollaborationsInput>
+    create: XOR<GymCreateWithoutCollaborationsInput, GymUncheckedCreateWithoutCollaborationsInput>
+    where?: GymWhereInput
+  }
+
+  export type GymUpdateToOneWithWhereWithoutCollaborationsInput = {
+    where?: GymWhereInput
+    data: XOR<GymUpdateWithoutCollaborationsInput, GymUncheckedUpdateWithoutCollaborationsInput>
+  }
+
+  export type GymUpdateWithoutCollaborationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
+    memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
+    affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
+    reviews?: GymReviewUpdateManyWithoutGymNestedInput
+  }
+
+  export type GymUncheckedUpdateWithoutCollaborationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
+    memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
+    affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
+    reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
+  }
+
+  export type GymMembershipContractCreateWithoutReferralInput = {
+    id?: string
+    clientId: string
+    status?: $Enums.GymMembershipContractStatus
+    paymentTxnId?: string | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    priceAtPurchase: Decimal | DecimalJsLike | number | string
+    durationDaysSnapshot: number
+    totalVisits?: number | null
+    usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    gym: GymCreateNestedOneWithoutMembershipsInput
+    plan: GymMembershipPlanCreateNestedOneWithoutMembershipsInput
+    checkIns?: GymCheckInCreateNestedManyWithoutMembershipInput
+  }
+
+  export type GymMembershipContractUncheckedCreateWithoutReferralInput = {
+    id?: string
+    gymId: string
+    planId: string
+    clientId: string
+    status?: $Enums.GymMembershipContractStatus
+    paymentTxnId?: string | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    priceAtPurchase: Decimal | DecimalJsLike | number | string
+    durationDaysSnapshot: number
+    totalVisits?: number | null
+    usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    checkIns?: GymCheckInUncheckedCreateNestedManyWithoutMembershipInput
+  }
+
+  export type GymMembershipContractCreateOrConnectWithoutReferralInput = {
+    where: GymMembershipContractWhereUniqueInput
+    create: XOR<GymMembershipContractCreateWithoutReferralInput, GymMembershipContractUncheckedCreateWithoutReferralInput>
+  }
+
+  export type GymMembershipContractUpsertWithoutReferralInput = {
+    update: XOR<GymMembershipContractUpdateWithoutReferralInput, GymMembershipContractUncheckedUpdateWithoutReferralInput>
+    create: XOR<GymMembershipContractCreateWithoutReferralInput, GymMembershipContractUncheckedCreateWithoutReferralInput>
+    where?: GymMembershipContractWhereInput
+  }
+
+  export type GymMembershipContractUpdateToOneWithWhereWithoutReferralInput = {
+    where?: GymMembershipContractWhereInput
+    data: XOR<GymMembershipContractUpdateWithoutReferralInput, GymMembershipContractUncheckedUpdateWithoutReferralInput>
+  }
+
+  export type GymMembershipContractUpdateWithoutReferralInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    priceAtPurchase?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
+    usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
+    plan?: GymMembershipPlanUpdateOneRequiredWithoutMembershipsNestedInput
+    checkIns?: GymCheckInUpdateManyWithoutMembershipNestedInput
+  }
+
+  export type GymMembershipContractUncheckedUpdateWithoutReferralInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    gymId?: StringFieldUpdateOperationsInput | string
+    planId?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    status?: EnumGymMembershipContractStatusFieldUpdateOperationsInput | $Enums.GymMembershipContractStatus
+    paymentTxnId?: NullableStringFieldUpdateOperationsInput | string | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    priceAtPurchase?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
+    totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
+    usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
   }
 
   export type GymMembershipPlanCreateManyGymInput = {
@@ -11409,6 +15161,8 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits?: number | null
     usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -11431,6 +15185,24 @@ export namespace Prisma {
     clientId: string
     rating: number
     comment?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymPtCollaborationCreateManyGymInput = {
+    id?: string
+    ptUserId: string
+    proposedPtRate: Decimal | DecimalJsLike | number | string
+    proposedGymRate: Decimal | DecimalJsLike | number | string
+    platformRate?: Decimal | DecimalJsLike | number | string
+    status?: $Enums.CollaborationStatus
+    proposedBy: $Enums.CollaborationParty
+    round?: number
+    expiresAt: Date | string
+    acceptedAt?: Date | string | null
+    terminatedAt?: Date | string | null
+    terminatedBy?: string | null
+    note?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -11484,10 +15256,13 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     plan?: GymMembershipPlanUpdateOneRequiredWithoutMembershipsNestedInput
     checkIns?: GymCheckInUpdateManyWithoutMembershipNestedInput
+    referral?: GymMembershipReferralUpdateOneWithoutMembershipContractNestedInput
   }
 
   export type GymMembershipContractUncheckedUpdateWithoutGymInput = {
@@ -11502,9 +15277,12 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
+    referral?: GymMembershipReferralUncheckedUpdateOneWithoutMembershipContractNestedInput
   }
 
   export type GymMembershipContractUncheckedUpdateManyWithoutGymInput = {
@@ -11519,6 +15297,8 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -11589,6 +15369,60 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type GymPtCollaborationUpdateWithoutGymInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPtCollaborationUncheckedUpdateWithoutGymInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymPtCollaborationUncheckedUpdateManyWithoutGymInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ptUserId?: StringFieldUpdateOperationsInput | string
+    proposedPtRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    proposedGymRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    platformRate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    status?: EnumCollaborationStatusFieldUpdateOperationsInput | $Enums.CollaborationStatus
+    proposedBy?: EnumCollaborationPartyFieldUpdateOperationsInput | $Enums.CollaborationParty
+    round?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    acceptedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type GymMembershipContractCreateManyPlanInput = {
     id?: string
     gymId: string
@@ -11601,6 +15435,8 @@ export namespace Prisma {
     durationDaysSnapshot: number
     totalVisits?: number | null
     usedVisits?: number
+    payoutReleasedAt?: Date | string | null
+    multiGymWarned?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -11616,10 +15452,13 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutMembershipsNestedInput
     checkIns?: GymCheckInUpdateManyWithoutMembershipNestedInput
+    referral?: GymMembershipReferralUpdateOneWithoutMembershipContractNestedInput
   }
 
   export type GymMembershipContractUncheckedUpdateWithoutPlanInput = {
@@ -11634,9 +15473,12 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
+    referral?: GymMembershipReferralUncheckedUpdateOneWithoutMembershipContractNestedInput
   }
 
   export type GymMembershipContractUncheckedUpdateManyWithoutPlanInput = {
@@ -11651,6 +15493,8 @@ export namespace Prisma {
     durationDaysSnapshot?: IntFieldUpdateOperationsInput | number
     totalVisits?: NullableIntFieldUpdateOperationsInput | number | null
     usedVisits?: IntFieldUpdateOperationsInput | number
+    payoutReleasedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    multiGymWarned?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -11728,6 +15572,14 @@ export namespace Prisma {
      * @deprecated Use GymReviewDefaultArgs instead
      */
     export type GymReviewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymReviewDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymPtCollaborationDefaultArgs instead
+     */
+    export type GymPtCollaborationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymPtCollaborationDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymMembershipReferralDefaultArgs instead
+     */
+    export type GymMembershipReferralArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymMembershipReferralDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

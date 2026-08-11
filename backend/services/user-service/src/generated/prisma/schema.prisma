@@ -50,12 +50,16 @@ model UserProfile {
   // - role: CLIENT | PT | ADMIN (enum)
   // - ptApplicationStatus: NONE | PENDING | APPROVED | REJECTED (enum)
   // - ptCertificateUrl, ptBio, ptSpecialties, etc.
-  isPT        Boolean @default(false)
+  isPT         Boolean @default(false)
   // Set when an admin disables the account (auth-service drives it via /internal). Kept
   // separate from `isPT` so the trainer identity, application and reviews survive a
   // suspension and can be restored by simply re-enabling the account. While true the PT
   // is hidden from discovery and cannot take new bookings.
-  ptSuspended Boolean @default(false) @map("pt_suspended")
+  ptSuspended  Boolean @default(false) @map("pt_suspended")
+  // Short human-typeable code a client enters when buying a gym membership to credit this
+  // PT with the referral commission (money-flow plan §2.1). Assigned once, at PT approval —
+  // never regenerated, so a code a PT has already shared never goes stale.
+  referralCode String? @unique @map("referral_code")
 
   // Demographics
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
@@ -83,11 +87,29 @@ model UserProfile {
 
   sessionDurationMinutes Int @default(60) @map("session_duration_minutes")
 
+  // ── PT Acceptance status ────────────────────────────────────────────────
+  // PT tự bật/tắt nhận khách mới. Khi false: ẩn nút mua gói, xếp cuối danh sách.
+  // Không ảnh hưởng hợp đồng đang chạy.
+  isAcceptingClients Boolean @default(true) @map("is_accepting_clients")
+  notAcceptingReason String? @map("not_accepting_reason")
+
+  // ── Normalized search columns (dùng cho tìm kiếm không dấu) ──────────
+  // Cập nhật song song mỗi khi ghi firstName/lastName/mainSpecialties ở PTApplication.
+  // Có tiền lệ trong repo: FoodAlias.aliasNormalized.
+  firstNameNormalized String?  @map("first_name_normalized")
+  lastNameNormalized  String?  @map("last_name_normalized")
+  searchCity          String?  @map("search_city")
+  searchDistrict      String?  @map("search_district")
+  searchWard          String?  @map("search_ward")
+  gymId               String?  @map("gym_id")
+  specialties         String[] @map("specialties")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   ptApplication     PTApplication?
   trainingLocations PTTrainingLocation[]
+  servicePackages   PTServicePackage[]
 
   @@map("user_profiles")
 }
@@ -300,11 +322,28 @@ enum NotificationEventType {
   SESSION_CANCELLED
   SESSION_NO_SHOW_CLIENT
   SESSION_NO_SHOW_PT
+  SESSION_RESCHEDULE_REQUESTED
+  SESSION_RESCHEDULE_ACCEPTED
+  SESSION_RESCHEDULE_REJECTED
+  SESSION_RESCHEDULE_EXPIRED
 }
 
 enum NotificationEntityType {
   CONTRACT
   SESSION
+}
+
+enum RescheduleStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum RescheduleRequestedBy {
+  CLIENT
+  PT
 }
 
 // ─── Contract ─────────────────────────────────────────────────────
@@ -387,6 +426,19 @@ model Contract {
   releasedToGym      Decimal            @default(0) @map("released_to_gym") @db.Decimal(14, 2)
   releasedToPlatform Decimal            @default(0) @map("released_to_platform") @db.Decimal(14, 2)
 
+  // ── PT Service Package snapshot (Phase 1) ────────────────────────────────
+  // Snapshot at signing time — same principle as revenue split above.
+  // packageId is for audit trail only; price/totalSessions/sessionMode are the truth.
+  packageId              String? @map("package_id")
+  packageSourceName      String? @map("package_source_name") // ảnh chụp tên gói
+  sessionDurationMinutes Int?    @map("session_duration_minutes") // ảnh chụp thời lượng buổi
+
+  // ── Slot availability warning (Phase 1) ─────────────────────────────────
+  // Evidence that the client was warned about low availability before purchasing.
+  // Used for dispute resolution if the client later complains they cannot book sessions.
+  lowAvailabilityWarned Boolean @default(false) @map("low_availability_warned")
+  slotsAtPurchase       Int?    @map("slots_at_purchase")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -436,8 +488,9 @@ model Session {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  contract Contract       @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  review   SessionReview?
+  contract           Contract                   @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  review             SessionReview?
+  rescheduleRequests SessionRescheduleRequest[]
 
   @@index([contractId])
   @@index([clientUserId])
@@ -564,8 +617,14 @@ model PTTrainingLocation {
   provinceCode       Int      @map("province_code")
   wardCode           Int?     @map("ward_code")
   gymName            String?  @map("gym_name")
+  // Normalized (no diacritics) version of gymName for accent-insensitive search.
+  // Updated whenever gymName is written.
+  gymNameNormalized  String?  @map("gym_name_normalized")
   addressLine        String?  @map("address_line")
   legacyDistrictName String?  @map("legacy_district_name")
+  // FK to gym-service Gym.id — nullable because many gyms are not on the platform yet.
+  // When present, used to prioritise PTs who work at the same gym as the client.
+  gymId              String?  @map("gym_id")
   isPrimary          Boolean  @default(false) @map("is_primary")
   isActive           Boolean  @default(true) @map("is_active")
   note               String?
@@ -580,7 +639,66 @@ model PTTrainingLocation {
   @@index([provinceCode])
   @@index([wardCode])
   @@index([isActive])
+  @@index([gymId])
   @@map("pt_training_locations")
+}
+
+// ─── PT Service Package ───────────────────────────────────────────
+// A coaching service sold by a PT: a fixed number of PT-supervised sessions.
+// This is DIFFERENT from TrainingPackage in ai-service (which sells workout plans/content).
+// When a client purchases a PTServicePackage, the contract SNAPSHOTS the key fields
+// (price, sessionCount, sessionMode, sessionDurationMinutes) — same principle as
+// the revenue-split snapshot on Contract. PT can change or archive the package later
+// without affecting existing contracts.
+
+model PTServicePackage {
+  id                     String      @id @default(uuid())
+  ptUserId               String      @map("pt_user_id")
+  name                   String
+  description            String?
+  sessionCount           Int         @map("session_count") // >= 1
+  price                  Decimal     @db.Decimal(14, 2) // > 0
+  sessionMode            SessionMode @map("session_mode") // ONLINE or OFFLINE (not HYBRID)
+  sessionDurationMinutes Int         @default(60) @map("session_duration_minutes")
+  validityDays           Int?        @map("validity_days") // null = no expiry
+  isActive               Boolean     @default(true) @map("is_active")
+  // Soft-delete: never hard-delete because existing contracts reference this package id.
+  // archivedAt non-null means the package is no longer sold but historical data is intact.
+  archivedAt             DateTime?   @map("archived_at")
+  createdAt              DateTime    @default(now()) @map("created_at")
+  updatedAt              DateTime    @updatedAt @map("updated_at")
+
+  ptProfile UserProfile @relation(fields: [ptUserId], references: [userId], onDelete: Cascade)
+
+  @@index([ptUserId, isActive])
+  @@map("pt_service_packages")
+}
+
+// ─── Session Reschedule Request ───────────────────────────────────
+// Either party (PT or client) can propose a new time for a CONFIRMED session.
+// The other party must accept or reject. A session can be rescheduled at most twice.
+// See docs/pt-scheduling-and-discovery.md for the full state machine and business rules.
+
+model SessionRescheduleRequest {
+  id              String                @id @default(uuid())
+  sessionId       String                @map("session_id")
+  requestedBy     RescheduleRequestedBy @map("requested_by")
+  // Snapshot of the original schedule, for audit purposes.
+  originalStartAt DateTime              @map("original_start_at")
+  originalEndAt   DateTime              @map("original_end_at")
+  // The proposed new time window.
+  proposedStartAt DateTime              @map("proposed_start_at")
+  proposedEndAt   DateTime              @map("proposed_end_at")
+  reason          String // required, max 500 chars
+  status          RescheduleStatus      @default(PENDING)
+  respondedAt     DateTime?             @map("responded_at")
+  responseNote    String?               @map("response_note")
+  createdAt       DateTime              @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, status])
+  @@map("session_reschedule_requests")
 }
 
 model InBodyEntry {

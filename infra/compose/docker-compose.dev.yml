@@ -178,6 +178,11 @@ services:
       # Without this the client falls back to localhost:3007 → ECONNREFUSED inside Docker
       # → "Pay Now" on a PENDING_PAYMENT contract fails with 500 (BUG-USERSVC-PAYMENT-URL).
       PAYMENT_SERVICE_URL: http://payment-service:3007
+      # money-flow plan §1.4: requestContract asks gym-service for the frozen rate table of
+      # an accepted PT↔gym collaboration when a contract names a gymId. Without this,
+      # gym.client.ts would fall back to localhost:3006 → ECONNREFUSED inside Docker on
+      # every gym-affiliated PT contract request.
+      GYM_SERVICE_URL: http://gym-service:3006
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
       INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
       CHAT_SERVICE_URL: http://chat-service:3005
@@ -714,6 +719,10 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-gymcoach}:${POSTGRES_PASSWORD:-gymcoach_password}@postgres:5432/gymcoach_gym
       AUTH_SERVICE_URL: http://auth-service:3001
       PAYMENT_SERVICE_URL: http://payment-service:3007
+      # money-flow plan §2.5: resolving a client's typed referral code to a PT userId is
+      # user-service's job (it owns UserProfile.referralCode). Without this gym-service falls
+      # back to localhost:3004 → ECONNREFUSED inside Docker on every referral-code purchase.
+      USER_SERVICE_URL: http://user-service:3004
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev_internal_service_secret_change_in_production}
     env_file:
       - ../../.env

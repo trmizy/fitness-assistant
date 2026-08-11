@@ -130,6 +130,7 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   email: 'email',
   isPT: 'isPT',
   ptSuspended: 'ptSuspended',
+  referralCode: 'referralCode',
   dateOfBirth: 'dateOfBirth',
   age: 'age',
   gender: 'gender',
@@ -145,6 +146,15 @@ exports.Prisma.UserProfileScalarFieldEnum = {
   dietaryPreference: 'dietaryPreference',
   photoUrl: 'photoUrl',
   sessionDurationMinutes: 'sessionDurationMinutes',
+  isAcceptingClients: 'isAcceptingClients',
+  notAcceptingReason: 'notAcceptingReason',
+  firstNameNormalized: 'firstNameNormalized',
+  lastNameNormalized: 'lastNameNormalized',
+  searchCity: 'searchCity',
+  searchDistrict: 'searchDistrict',
+  searchWard: 'searchWard',
+  gymId: 'gymId',
+  specialties: 'specialties',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -275,6 +285,11 @@ exports.Prisma.ContractScalarFieldEnum = {
   releasedToPt: 'releasedToPt',
   releasedToGym: 'releasedToGym',
   releasedToPlatform: 'releasedToPlatform',
+  packageId: 'packageId',
+  packageSourceName: 'packageSourceName',
+  sessionDurationMinutes: 'sessionDurationMinutes',
+  lowAvailabilityWarned: 'lowAvailabilityWarned',
+  slotsAtPurchase: 'slotsAtPurchase',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -377,13 +392,46 @@ exports.Prisma.PTTrainingLocationScalarFieldEnum = {
   provinceCode: 'provinceCode',
   wardCode: 'wardCode',
   gymName: 'gymName',
+  gymNameNormalized: 'gymNameNormalized',
   addressLine: 'addressLine',
   legacyDistrictName: 'legacyDistrictName',
+  gymId: 'gymId',
   isPrimary: 'isPrimary',
   isActive: 'isActive',
   note: 'note',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PTServicePackageScalarFieldEnum = {
+  id: 'id',
+  ptUserId: 'ptUserId',
+  name: 'name',
+  description: 'description',
+  sessionCount: 'sessionCount',
+  price: 'price',
+  sessionMode: 'sessionMode',
+  sessionDurationMinutes: 'sessionDurationMinutes',
+  validityDays: 'validityDays',
+  isActive: 'isActive',
+  archivedAt: 'archivedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SessionRescheduleRequestScalarFieldEnum = {
+  id: 'id',
+  sessionId: 'sessionId',
+  requestedBy: 'requestedBy',
+  originalStartAt: 'originalStartAt',
+  originalEndAt: 'originalEndAt',
+  proposedStartAt: 'proposedStartAt',
+  proposedEndAt: 'proposedEndAt',
+  reason: 'reason',
+  status: 'status',
+  respondedAt: 'respondedAt',
+  responseNote: 'responseNote',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.InBodyEntryScalarFieldEnum = {
@@ -544,7 +592,11 @@ exports.NotificationEventType = exports.$Enums.NotificationEventType = {
   SESSION_COMPLETED: 'SESSION_COMPLETED',
   SESSION_CANCELLED: 'SESSION_CANCELLED',
   SESSION_NO_SHOW_CLIENT: 'SESSION_NO_SHOW_CLIENT',
-  SESSION_NO_SHOW_PT: 'SESSION_NO_SHOW_PT'
+  SESSION_NO_SHOW_PT: 'SESSION_NO_SHOW_PT',
+  SESSION_RESCHEDULE_REQUESTED: 'SESSION_RESCHEDULE_REQUESTED',
+  SESSION_RESCHEDULE_ACCEPTED: 'SESSION_RESCHEDULE_ACCEPTED',
+  SESSION_RESCHEDULE_REJECTED: 'SESSION_RESCHEDULE_REJECTED',
+  SESSION_RESCHEDULE_EXPIRED: 'SESSION_RESCHEDULE_EXPIRED'
 };
 
 exports.NotificationEntityType = exports.$Enums.NotificationEntityType = {
@@ -562,6 +614,19 @@ exports.DayOfWeek = exports.$Enums.DayOfWeek = {
   SUNDAY: 'SUNDAY'
 };
 
+exports.RescheduleRequestedBy = exports.$Enums.RescheduleRequestedBy = {
+  CLIENT: 'CLIENT',
+  PT: 'PT'
+};
+
+exports.RescheduleStatus = exports.$Enums.RescheduleStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED',
+  CANCELLED: 'CANCELLED'
+};
+
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
   PTApplication: 'PTApplication',
@@ -576,6 +641,8 @@ exports.Prisma.ModelName = {
   VietnamProvince: 'VietnamProvince',
   VietnamWard: 'VietnamWard',
   PTTrainingLocation: 'PTTrainingLocation',
+  PTServicePackage: 'PTServicePackage',
+  SessionRescheduleRequest: 'SessionRescheduleRequest',
   InBodyEntry: 'InBodyEntry'
 };
 

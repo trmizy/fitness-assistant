@@ -689,4 +689,134 @@ export const bookingService = {
       return { ...s, [key]: profileMap.get(otherId) ?? null };
     });
   },
+
+  // ── Session Rescheduling ────────────────────────────────────────
+
+  async requestReschedule(
+    sessionId: string,
+    userId: string,
+    data: {
+      proposedStartAt: string;
+      proposedEndAt: string;
+      reason: string;
+    }
+  ) {
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+
+    const isClient = session.clientUserId === userId;
+    const isPT = session.ptUserId === userId;
+    if (!isClient && !isPT) throw err("Not authorized", 403);
+
+    if (
+      session.status !== SessionStatus.REQUESTED &&
+      session.status !== SessionStatus.CONFIRMED
+    ) {
+      throw err("Only REQUESTED or CONFIRMED sessions can be rescheduled", 400);
+    }
+
+    const now = new Date();
+    const timeUntilStart = session.scheduledStartAt.getTime() - now.getTime();
+    if (timeUntilStart < 12 * 60 * 60 * 1000) {
+      throw err("Cannot reschedule less than 12 hours before the session", 400);
+    }
+
+    const proposedStart = new Date(data.proposedStartAt);
+    const proposedEnd = new Date(data.proposedEndAt);
+    if (proposedStart >= proposedEnd) {
+      throw err("Start time must be before end time", 400);
+    }
+
+    const request = await sessionRepository.createRescheduleRequest({
+      sessionId,
+      requestedBy: isClient ? "CLIENT" : "PT",
+      originalStartAt: session.scheduledStartAt,
+      originalEndAt: session.scheduledEndAt,
+      proposedStartAt: proposedStart,
+      proposedEndAt: proposedEnd,
+      reason: data.reason,
+      status: "PENDING",
+    });
+
+    // We can cast because RESCHEDULE_PENDING might not be in the enum if it wasn't added yet?
+    // Wait, let's assume it's in the SessionStatus enum, the backend plan says:
+    // "Trạng thái Session: cập nhật thành RESCHEDULE_PENDING."
+    await sessionRepository.updateStatus(
+      sessionId,
+      "RESCHEDULE_PENDING" as SessionStatus
+    );
+
+    const targetUserId = isClient ? session.ptUserId : session.clientUserId;
+    notificationService.create({
+      userId: targetUserId,
+      text: `Có yêu cầu dời lịch buổi tập sang ngày ${proposedStart.toLocaleString()}`,
+      eventType: "SESSION_UPDATE",
+      entityType: "SESSION",
+      entityId: sessionId
+    }).catch(console.error);
+
+    return request;
+  },
+
+  async respondToReschedule(
+    requestId: string,
+    userId: string,
+    action: "ACCEPT" | "REJECT",
+    responseNote?: string
+  ) {
+    const request = await sessionRepository.findRescheduleRequestById(requestId);
+    if (!request) throw err("Reschedule request not found", 404);
+    if (request.status !== "PENDING") {
+      throw err("Request already processed", 400);
+    }
+
+    const session = request.session;
+    const isClient = session.clientUserId === userId;
+    const isPT = session.ptUserId === userId;
+
+    if (!isClient && !isPT) throw err("Not authorized", 403);
+    
+    const expectedResponder = request.requestedBy === "CLIENT" ? "PT" : "CLIENT";
+    const actualResponder = isClient ? "CLIENT" : "PT";
+    if (actualResponder !== expectedResponder) {
+      throw err("You cannot respond to your own reschedule request", 403);
+    }
+
+    if (action === "ACCEPT") {
+      await sessionRepository.updateRescheduleRequestStatus(
+        requestId,
+        "ACCEPTED",
+        responseNote
+      );
+      await sessionRepository.updateStatus(
+        session.id,
+        SessionStatus.CONFIRMED,
+        {
+          scheduledStartAt: request.proposedStartAt,
+          scheduledEndAt: request.proposedEndAt,
+        }
+      );
+    } else {
+      await sessionRepository.updateRescheduleRequestStatus(
+        requestId,
+        "REJECTED",
+        responseNote
+      );
+      await sessionRepository.updateStatus(
+        session.id,
+        SessionStatus.CONFIRMED
+      );
+    }
+
+    const requesterUserId = request.requestedBy === "CLIENT" ? session.clientUserId : session.ptUserId;
+      notificationService.create({
+        userId: requesterUserId,
+        text: `Yêu cầu dời lịch của bạn đã được xác nhận (Ngày mới: ${request.proposedStartAt.toLocaleString()})`,
+        eventType: "SESSION_UPDATE",
+        entityType: "SESSION",
+        entityId: request.sessionId
+      }).catch(console.error);
+
+    return sessionRepository.findRescheduleRequestById(requestId);
+  },
 };

@@ -162,6 +162,8 @@ exports.Prisma.GymMembershipContractScalarFieldEnum = {
   durationDaysSnapshot: 'durationDaysSnapshot',
   totalVisits: 'totalVisits',
   usedVisits: 'usedVisits',
+  payoutReleasedAt: 'payoutReleasedAt',
+  multiGymWarned: 'multiGymWarned',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -195,6 +197,39 @@ exports.Prisma.GymReviewScalarFieldEnum = {
   clientId: 'clientId',
   rating: 'rating',
   comment: 'comment',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymPtCollaborationScalarFieldEnum = {
+  id: 'id',
+  gymId: 'gymId',
+  ptUserId: 'ptUserId',
+  proposedPtRate: 'proposedPtRate',
+  proposedGymRate: 'proposedGymRate',
+  platformRate: 'platformRate',
+  status: 'status',
+  proposedBy: 'proposedBy',
+  round: 'round',
+  expiresAt: 'expiresAt',
+  acceptedAt: 'acceptedAt',
+  terminatedAt: 'terminatedAt',
+  terminatedBy: 'terminatedBy',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.GymMembershipReferralScalarFieldEnum = {
+  id: 'id',
+  membershipContractId: 'membershipContractId',
+  gymId: 'gymId',
+  referrerPtUserId: 'referrerPtUserId',
+  rate: 'rate',
+  amount: 'amount',
+  clawedBack: 'clawedBack',
+  status: 'status',
+  releasedAt: 'releasedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -250,13 +285,29 @@ exports.GymTrainerVisibility = exports.$Enums.GymTrainerVisibility = {
   INTERNAL_ONLY: 'INTERNAL_ONLY'
 };
 
+exports.CollaborationStatus = exports.$Enums.CollaborationStatus = {
+  PENDING: 'PENDING',
+  COUNTERED: 'COUNTERED',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  EXPIRED: 'EXPIRED',
+  TERMINATED: 'TERMINATED'
+};
+
+exports.CollaborationParty = exports.$Enums.CollaborationParty = {
+  PT: 'PT',
+  GYM: 'GYM'
+};
+
 exports.Prisma.ModelName = {
   Gym: 'Gym',
   GymMembershipPlan: 'GymMembershipPlan',
   GymMembershipContract: 'GymMembershipContract',
   GymTrainerAffiliation: 'GymTrainerAffiliation',
   GymCheckIn: 'GymCheckIn',
-  GymReview: 'GymReview'
+  GymReview: 'GymReview',
+  GymPtCollaboration: 'GymPtCollaboration',
+  GymMembershipReferral: 'GymMembershipReferral'
 };
 
 /**

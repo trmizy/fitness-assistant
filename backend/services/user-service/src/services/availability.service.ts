@@ -124,12 +124,37 @@ export const availabilityService = {
     }));
 
     await availabilityRepository.replaceAll(ptUserId, typed);
-    return availabilityRepository.findByPT(ptUserId);
+    const savedBlocks = await availabilityRepository.findByPT(ptUserId);
+
+    // Find affected sessions (future sessions that no longer fit in the new availability)
+    const futureSessions = await prisma.session.findMany({
+      where: {
+        ptUserId,
+        scheduledStartAt: { gte: new Date() },
+        status: { in: ["REQUESTED", "CONFIRMED"] },
+      },
+    });
+
+    const affectedSessions = futureSessions.filter((session) => {
+      const dayOfWeek = DAY_MAP[session.scheduledStartAt.getDay()];
+      const startTime = `${String(session.scheduledStartAt.getHours()).padStart(2, "0")}:${String(session.scheduledStartAt.getMinutes()).padStart(2, "0")}`;
+      const endTime = `${String(session.scheduledEndAt.getHours()).padStart(2, "0")}:${String(session.scheduledEndAt.getMinutes()).padStart(2, "0")}`;
+
+      // Check if this session fits entirely within at least one of the new blocks
+      const fits = typed.some(
+        (b) =>
+          b.dayOfWeek === dayOfWeek &&
+          b.startTime <= startTime &&
+          b.endTime >= endTime,
+      );
+      return !fits;
+    });
+
+    return { saved: true, savedBlocks, affectedSessions };
   },
 
   /**
-   * One-time seeding from PTApplication to PTAvailability and UserProfile.
-   * Idempotent check: won't overwrite PTAvailability if records already exist unless force=true.
+   * @deprecated Used for one-time seeding from PTApplication to PTAvailability. Do not use for new flows.
    */
   async seedInitialAvailability(ptUserId: string, force = false) {
     const application =
@@ -274,5 +299,124 @@ export const availabilityService = {
     }
 
     return allSlots.filter((s) => !bookedStarts.has(s));
+  },
+
+  // ─── Slot counting for purchase warnings and PT list display ─────────────
+  //
+  // SLOT_LOOKAHEAD_DAYS: the look-ahead window used when estimating how many
+  // sessions a client can book in the near term. Chosen as 4 weeks — long enough
+  // to give a meaningful signal, short enough that PT schedules are reasonably stable.
+  // Exposed as a constant so tests can pin it without monkey-patching.
+  SLOT_LOOKAHEAD_DAYS: 28,
+
+  /**
+   * Batch-count available slots for multiple PTs over a date window.
+   * Fetches PTAvailability, PTScheduleException, and Session data in 3 queries
+   * (not 3N), then calculates everything in memory.
+   *
+   * No Redis cache. At current scale the 3-query batch is fast enough.
+   * If profiling shows otherwise, a short-lived cache can be added without
+   * changing the public interface. (see docs/pt-scheduling-and-discovery.md)
+   */
+  async countAvailableSlotsForPTs(
+    ptUserIds: string[],
+    fromDate: Date,
+    toDate: Date,
+    sessionDurationMinutes = 60,
+  ): Promise<Record<string, number>> {
+    if (ptUserIds.length === 0) return {};
+
+    // 1. Three batch queries — not N queries.
+    const [availabilities, exceptions, bookedSessions] = await Promise.all([
+      availabilityRepository.findByPTs(ptUserIds),
+      availabilityRepository.findExceptionsByPTsAndRange(ptUserIds, fromDate, toDate),
+      sessionRepository.findBookedByPTsAndRange(ptUserIds, fromDate, toDate),
+    ]);
+
+    // Index exceptions: ptUserId -> Set of date strings (YYYY-MM-DD)
+    const exceptionsByPT: Record<string, Set<string>> = {};
+    for (const ex of exceptions) {
+      if (!exceptionsByPT[ex.ptUserId]) exceptionsByPT[ex.ptUserId] = new Set();
+      // Normalize to local date string for comparison
+      const d = new Date(ex.date);
+      exceptionsByPT[ex.ptUserId].add(d.toISOString().slice(0, 10));
+    }
+
+    // Index booked slots: ptUserId -> Set of "HH:MM@YYYY-MM-DD"
+    const bookedByPT: Record<string, Set<string>> = {};
+    for (const s of bookedSessions) {
+      if (!bookedByPT[s.ptUserId]) bookedByPT[s.ptUserId] = new Set();
+      const start = new Date(s.scheduledStartAt);
+      const h = String(start.getHours()).padStart(2, "0");
+      const m = String(start.getMinutes()).padStart(2, "0");
+      const dateKey = start.toISOString().slice(0, 10);
+      bookedByPT[s.ptUserId].add(`${h}:${m}@${dateKey}`);
+    }
+
+    // Group availability records by PT
+    const availByPT: Record<string, typeof availabilities> = {};
+    for (const a of availabilities) {
+      if (!availByPT[a.ptUserId]) availByPT[a.ptUserId] = [];
+      availByPT[a.ptUserId].push(a);
+    }
+
+    const result: Record<string, number> = {};
+
+    for (const ptUserId of ptUserIds) {
+      const ptAvail = availByPT[ptUserId] ?? [];
+      const ptExceptions = exceptionsByPT[ptUserId] ?? new Set<string>();
+      const ptBooked = bookedByPT[ptUserId] ?? new Set<string>();
+
+      let slotCount = 0;
+      // Iterate each day in the window
+      const current = new Date(fromDate);
+      while (current <= toDate) {
+        const dateStr = current.toISOString().slice(0, 10);
+        const dayOfWeek = DAY_MAP[current.getDay()];
+
+        // Skip excepted days
+        if (!ptExceptions.has(dateStr)) {
+          // Get blocks for this day of week
+          const blocks = ptAvail.filter(
+            (a) => a.dayOfWeek === dayOfWeek && a.isActive,
+          );
+          for (const block of blocks) {
+            let cur = timeToMinutes(block.startTime);
+            const end = timeToMinutes(block.endTime);
+            while (cur + sessionDurationMinutes <= end) {
+              const h = Math.floor(cur / 60);
+              const mi = cur % 60;
+              const timeStr = `${String(h).padStart(2, "0")}:${String(mi).padStart(2, "0")}@${dateStr}`;
+              if (!ptBooked.has(timeStr)) slotCount++;
+              cur += sessionDurationMinutes;
+            }
+          }
+        }
+
+        current.setDate(current.getDate() + 1);
+      }
+
+      result[ptUserId] = slotCount;
+    }
+
+    return result;
+  },
+
+  /**
+   * Single-PT convenience wrapper — used in the contract request flow.
+   */
+  async countAvailableSlotsForPT(
+    ptUserId: string,
+    sessionDurationMinutes = 60,
+    lookaheadDays?: number,
+  ): Promise<number> {
+    const days = lookaheadDays ?? this.SLOT_LOOKAHEAD_DAYS;
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+    const to = new Date(from);
+    to.setDate(to.getDate() + days - 1);
+    to.setHours(23, 59, 59, 999);
+    const counts = await this.countAvailableSlotsForPTs([ptUserId], from, to, sessionDurationMinutes);
+    return counts[ptUserId] ?? 0;
   },
 };

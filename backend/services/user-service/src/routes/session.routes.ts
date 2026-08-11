@@ -59,5 +59,16 @@ router.post(
   authMiddleware,
   bookingController.reviewSession as any,
 );
+router.post(
+  "/:id/reschedule",
+  authMiddleware,
+  bookingController.requestReschedule as any,
+);
+// This handles responding to a reschedule request (we use the reschedule request ID here)
+router.post(
+  "/reschedules/:id/respond",
+  authMiddleware,
+  bookingController.respondToReschedule as any,
+);
 
 export default router;

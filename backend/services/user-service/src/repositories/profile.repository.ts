@@ -9,6 +9,9 @@ export const profileRepository = {
   findByUserIds: (userIds: string[]) =>
     prisma.userProfile.findMany({ where: { userId: { in: userIds } } }),
 
+  findByReferralCode: (code: string) =>
+    prisma.userProfile.findUnique({ where: { referralCode: code } }),
+
   upsert: (userId: string, data: Record<string, any>) =>
     prisma.userProfile.upsert({
       where: { userId },
@@ -30,6 +33,12 @@ export const profileRepository = {
       create: { userId, isPT },
     }),
 
+  updateAcceptingClients: (userId: string, isAcceptingClients: boolean, notAcceptingReason?: string) =>
+    prisma.userProfile.update({
+      where: { userId },
+      data: { isAcceptingClients, notAcceptingReason: isAcceptingClients ? null : notAcceptingReason },
+    }),
+
   /** List approved PTs with optional filters */
   findPTs: async (
     filters: {
@@ -39,6 +48,10 @@ export const profileRepository = {
       sessionMode?: string;
       provinceCode?: number;
       wardCode?: number;
+      searchCity?: string;
+      searchDistrict?: string;
+      gymId?: string;
+      specialties?: string[];
       sortBy?: string;
       page?: number;
       limit?: number;
@@ -84,21 +97,31 @@ export const profileRepository = {
       ptApplication: { is: ptApplicationWhere },
     };
 
-    // q: search by firstName OR lastName
+    // q: search by firstName OR lastName or search fields
     if (filters.q) {
       profileWhere.OR = [
         { firstName: { contains: filters.q, mode: "insensitive" } },
         { lastName: { contains: filters.q, mode: "insensitive" } },
+        { firstNameNormalized: { contains: filters.q, mode: "insensitive" } },
+        { lastNameNormalized: { contains: filters.q, mode: "insensitive" } },
       ];
     }
 
+    if (filters.searchCity) {
+      profileWhere.searchCity = filters.searchCity;
+    }
+    if (filters.searchDistrict) {
+      profileWhere.searchDistrict = filters.searchDistrict;
+    }
+    if (filters.gymId) {
+      profileWhere.gymId = filters.gymId;
+    }
+    if (filters.specialties && filters.specialties.length > 0) {
+      profileWhere.specialties = { hasSome: filters.specialties };
+    }
+
     // Location filter via trainingLocations relation
-    if (
-      filters.provinceCode ||
-      filters.wardCode ||
-      filters.sessionMode === "OFFLINE" ||
-      filters.sessionMode === "HYBRID"
-    ) {
+    if (filters.provinceCode || filters.wardCode) {
       const locWhere: any = { isActive: true };
       if (filters.provinceCode) locWhere.provinceCode = filters.provinceCode;
       if (filters.wardCode) locWhere.wardCode = filters.wardCode;

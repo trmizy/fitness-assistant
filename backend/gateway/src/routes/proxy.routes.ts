@@ -2254,6 +2254,13 @@ router.post(
   requireRoles('CUSTOMER', 'PT'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
+// A4: checked before the purchase-confirmation dialog (money-flow plan §2.6).
+router.get(
+  '/gyms/:gymId/membership-warnings',
+  authMiddleware,
+  requireRoles('CUSTOMER', 'PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
 // Gym review write/delete — only a logged-in buyer (gym-service verifies they actually purchased).
 router.post(
   '/gyms/:gymId/reviews',
@@ -2295,9 +2302,50 @@ router.use(
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
 
+// PT ↔ gym revenue-share negotiation (money-flow plan §1.3/F3). PT-initiated side.
+router.post(
+  '/gyms/:gymId/collaborations',
+  authMiddleware,
+  requireRoles('PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.patch(
+  '/collaborations/:id',
+  authMiddleware,
+  requireRoles('PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+router.delete(
+  '/collaborations/:id',
+  authMiddleware,
+  requireRoles('PT'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// Shared by PT and GYM_OWNER — gym-service dispatches on the caller's own role.
+router.get(
+  '/me/collaborations',
+  authMiddleware,
+  requireRoles('PT', 'GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// Public — which gyms a trainer has an accepted partnership with.
+router.get(
+  '/pt/:ptUserId/gyms',
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+
 // Owner — gym/plan/membership/wallet management (gym-service verifies per-row ownership)
 router.use(
   '/owner/gyms',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
+// `/owner/gyms/:gymId/collaborations` (invite a PT) is already covered by the blanket
+// `/owner/gyms` proxy above. `/owner/collaborations/:id` (respond/terminate) is a sibling
+// path outside that prefix and needs its own declaration (money-flow plan §1.3/F3).
+router.use(
+  '/owner/collaborations',
   authMiddleware,
   requireRoles('GYM_OWNER'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
@@ -2306,6 +2354,15 @@ router.use(
 // Admin — gym approval
 router.use(
   '/admin/gyms',
+  authMiddleware,
+  requireRoles('ADMIN'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),
+);
+
+// Admin — exceptional membership refund (money-flow plan §2.4). Separate prefix from
+// /admin/gyms above, needs its own declaration.
+router.use(
+  '/admin/gym-memberships',
   authMiddleware,
   requireRoles('ADMIN'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service (admin)') }),

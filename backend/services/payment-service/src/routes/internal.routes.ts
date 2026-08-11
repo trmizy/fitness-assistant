@@ -8,6 +8,11 @@ import { walletService, InsufficientBalanceError, WalletNotActiveError } from '.
 import { getProvider, providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
 import { assertRatesValid, buildMoneyBreakdown, type RateTable } from '../services/contract-money';
 import { compensateNoShow, releaseSession, terminateContract } from '../services/contract-ledger.service';
+import {
+  settleMembershipReferral,
+  clawbackMembershipReferral,
+  releaseMembershipPending,
+} from '../services/membership-ledger.service';
 import { computeFingerprint, checkIdempotency } from '../utils/idempotency';
 import { WalletOwnerType, PartnerType, PaymentProviderType, Prisma } from '../generated/prisma';
 
@@ -513,6 +518,108 @@ router.post('/contracts/money-breakdown', async (req: Request, res: Response) =>
 });
 
 export { ratesFromMetadata };
+
+// ── Gym membership referral commission (money-flow plan §2.2) ────────────────
+
+const referralSettleSchema = z.object({
+  transactionId: z.string().min(1),
+  gymId: z.string().min(1),
+  ptUserId: z.string().min(1),
+  amount: z.string().min(1),
+  label: z.string().min(1),
+});
+
+// POST /internal/contracts/referral — ① move a referral commission from the gym's pending
+// bucket to the referring PT's pending bucket. Called once, at membership activation.
+router.post('/contracts/referral', async (req: Request, res: Response) => {
+  const parsed = referralSettleSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await settleMembershipReferral({
+      transactionId: d.transactionId,
+      gymId: d.gymId,
+      ptUserId: d.ptUserId,
+      amount: new Prisma.Decimal(d.amount),
+      label: d.label,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    logger.error({ error: 'referral settlement failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'REFERRAL_SETTLE_FAILED', message: (err as Error).message } });
+  }
+});
+
+// POST /internal/contracts/referral/clawback — ② an admin refund is reversing part of a
+// membership; reclaim the matching share of referral commission from the PT.
+router.post('/contracts/referral/clawback', async (req: Request, res: Response) => {
+  const parsed = referralSettleSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await clawbackMembershipReferral({
+      transactionId: d.transactionId,
+      gymId: d.gymId,
+      ptUserId: d.ptUserId,
+      amount: new Prisma.Decimal(d.amount),
+      label: d.label,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    logger.error({ error: 'referral clawback failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'REFERRAL_CLAWBACK_FAILED', message: (err as Error).message } });
+  }
+});
+
+const membershipReleaseSchema = z.object({
+  transactionId: z.string().min(1),
+  gymId: z.string().min(1),
+  clientId: z.string().min(1),
+  ptUserId: z.string().nullish(),
+  refundToClient: z.string().default('0'),
+  // F4: the caller must explicitly state which terminal state justifies this release. Both
+  // endpoints below fix their own literal value — a gym-service bug that calls this while a
+  // membership is still ACTIVE would have to lie about the state to get past this, which is
+  // the backstop the plan's F4 asked for (payment-service cannot see gym-service's own DB).
+  membershipStatus: z.enum(['CANCELLED', 'EXPIRED']),
+  label: z.string().min(1),
+});
+
+async function handleMembershipRelease(req: Request, res: Response) {
+  const parsed = membershipReleaseSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', details: parsed.error.flatten() } });
+  }
+  const d = parsed.data;
+  try {
+    const result = await releaseMembershipPending({
+      transactionId: d.transactionId,
+      gymId: d.gymId,
+      clientId: d.clientId,
+      ptUserId: d.ptUserId,
+      refundToClient: new Prisma.Decimal(d.refundToClient),
+      label: d.label,
+    });
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    logger.error({ error: 'membership release failed', message: (err as Error).message });
+    return res.status(500).json({ success: false, error: { code: 'MEMBERSHIP_RELEASE_FAILED', message: (err as Error).message } });
+  }
+}
+
+// POST /internal/contracts/membership-release — ③ natural expiry (refundToClient=0) or the
+// tail end of an admin refund (called after ② clawback, refundToClient = the admin's
+// proration). Only CANCELLED/EXPIRED memberships may reach here (F4).
+router.post('/contracts/membership-release', handleMembershipRelease);
+
+// POST /internal/contracts/membership-cancel-forfeit — ④ the client cancelled their own
+// membership. Same underlying release, always refundToClient=0 (money-flow plan §2.4: no
+// money moves to the client on a self-cancel), and no referral clawback ever precedes it.
+router.post('/contracts/membership-cancel-forfeit', handleMembershipRelease);
 
 // POST /internal/payments/:transactionId/mark-activated
 router.post('/payments/:transactionId/mark-activated', async (req: Request, res: Response) => {

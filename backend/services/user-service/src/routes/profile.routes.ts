@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import multer from "multer";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { profileController } from "../controllers/profile.controller";
+import { ptServicePackageController } from "../controllers/pt_service_package.controller";
 
 const router = Router();
 
@@ -49,6 +50,11 @@ router.patch(
   authMiddleware,
   profileController.becomePT as any,
 );
+router.patch(
+  "/me/accepting-clients",
+  authMiddleware,
+  profileController.toggleAcceptingClients as any,
+);
 router.delete("/me", authMiddleware, profileController.deleteProfile as any);
 
 // Listing PT users — used by the chat-service to validate PT-client conversations
@@ -64,6 +70,14 @@ router.patch(
   authMiddleware,
   profileController.adminSetPTStatus as any,
 );
+
+// PT's active service packages visible to clients (active, non-archived, isPT=true)
+router.get(
+  "/pts/:ptUserId/service-packages",
+  authMiddleware,
+  ptServicePackageController.getPackagesForPT as any,
+);
+
 
 // Admin: contract count summary — used by API Gateway to enrich user list
 router.get(

@@ -107,6 +107,56 @@ export const paymentClient = {
     await axios.post(`${PAYMENT_SERVICE_URL}/internal/payments/${transactionId}/mark-activated`, {}, { headers, timeout: 10_000 });
   },
 
+  /** ① Move a referral commission from the gym's pending bucket into the referring PT's. */
+  async settleReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string }) {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/referral`, body, { headers, timeout: 15_000 });
+    return data.data as { moved: string; shortfall: string };
+  },
+
+  /** ② Reclaim a proportional share of a referral commission when an admin refunds a membership. */
+  async clawbackReferral(body: { transactionId: string; gymId: string; ptUserId: string; amount: string; label: string }) {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/referral/clawback`, body, { headers, timeout: 15_000 });
+    return data.data as { recovered: string; shortfall: string };
+  },
+
+  /** ③ Release a terminal membership's remaining pending to gym/platform/referral-PT available. */
+  async releaseMembershipPending(body: {
+    transactionId: string;
+    gymId: string;
+    clientId: string;
+    ptUserId?: string | null;
+    refundToClient?: string;
+    membershipStatus: 'CANCELLED' | 'EXPIRED';
+    label: string;
+  }) {
+    const { data } = await axios.post(`${PAYMENT_SERVICE_URL}/internal/contracts/membership-release`, body, { headers, timeout: 20_000 });
+    return data.data as {
+      released: { gym: string; platform: string; ptReferral: string };
+      refundedToClient: string;
+      shortfall: string;
+    };
+  },
+
+  /** ④ Client self-cancelled — forfeit everything to the parties immediately, no client credit. */
+  async forfeitMembershipOnCancel(body: {
+    transactionId: string;
+    gymId: string;
+    clientId: string;
+    ptUserId?: string | null;
+    label: string;
+  }) {
+    const { data } = await axios.post(
+      `${PAYMENT_SERVICE_URL}/internal/contracts/membership-cancel-forfeit`,
+      { ...body, membershipStatus: 'CANCELLED' as const },
+      { headers, timeout: 20_000 },
+    );
+    return data.data as {
+      released: { gym: string; platform: string; ptReferral: string };
+      refundedToClient: string;
+      shortfall: string;
+    };
+  },
+
   /** Prorated (partial) refund of a membership's original purchase transaction. */
   async refund(params: {
     originalTransactionId: string;

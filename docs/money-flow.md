@@ -277,8 +277,9 @@ ngăn chờ vẫn hoàn đủ cho khách.
 | `CONTRACT_CLIENT_CANCEL_REFUND_RATE` | `0.90` | Phần khách nhận lại khi tự huỷ |
 | `MIN_PLATFORM_RATE` | `0.10` | Sàn hoa hồng nền tảng — hợp đồng dưới mức này bị từ chối |
 | `PLATFORM_COMMISSION_RATE` | `0.10` | Hoa hồng nền tảng cho gói hội viên gym |
-| `GYM_MEMBERSHIP_REFERRAL_RATE` | `0.10` | Hoa hồng PT giới thiệu hội viên — **CHƯA CÀI**, xem §11 |
-| `MAX_COLLABORATION_ROUNDS` | `5` | Số vòng thương thảo tối đa — **CHƯA CÀI**, xem §11 |
+| `GYM_MEMBERSHIP_REFERRAL_RATE` | `0.10` | Hoa hồng PT giới thiệu hội viên (xem §13.5–13.6) |
+| `MAX_COLLABORATION_ROUNDS` | `5` | Số vòng thương thảo tối đa (§14.1) |
+| `COLLABORATION_OFFER_TTL_DAYS` | `7` | Số ngày một đề xuất cộng tác còn hiệu lực (§14.1) |
 | `PAYMENT_PROVIDER` | `VNPAY` | Cổng dự phòng khi yêu cầu không nêu rõ |
 | `SESSION_AUTO_CONFIRM_DAYS` | `3` | Số ngày trước khi buổi tập tự duyệt |
 
@@ -294,14 +295,192 @@ Liệt kê thẳng để không ai tưởng đã xong:
   chỉ tăng, chưa có đường ra.
 - **Trừ tự động `PartnerReceivable`.** Bản ghi công nợ được tạo và ghi log cảnh báo, nhưng
   chưa tự trừ vào các lần ghi có sau của PT. Hiện phải xử lý tay.
-- **Cộng tác PT–phòng gym (§5.1–5.4 đề bài).** Model `GymPtCollaboration`, luồng thương thảo
-  `PENDING → COUNTERED → ACCEPTED`, và việc khách chọn phòng gym khi thuê PT — **chưa làm**.
-  Hiện tỷ lệ trên hợp đồng dùng mặc định 0.10/0.90/0 và phải sửa tay nếu muốn chia ba bên.
-- **Hoa hồng giới thiệu hội viên (§5.5).** Model `GymMembershipReferral` và **cơ chế thu hồi
-  khi gói bị hoàn tiền** — chưa làm. Phần thu hồi là chỗ rất dễ bỏ sót, đừng cài phần cộng
-  tiền mà quên phần trừ lại.
 - **Ký kết điện tử cho hợp đồng cộng tác.**
 - **Giao diện hiển thị hai ngăn ví.** API `/me/wallet` đã trả cả hai, trang ví chưa vẽ.
+- **Giải phóng tiền gói hội viên theo ngày.** Hiện giữ toàn bộ tới khi gói kết thúc — xem §13
+  để biết vì sao và vì sao cách đó không thực tế lâu dài.
+
+---
+
+## 13. Gói hội viên: huỷ, hoàn tiền, và giải phóng ngăn chờ
+
+### 13.1 Chính sách huỷ và hoàn tiền
+
+| Ai khởi xướng | Được làm gì | Tiền |
+|---|---|---|
+| **Khách hàng** | Huỷ gói bất cứ lúc nào | **Không hoàn tiền.** Phần chưa dùng bị mất |
+| **Quản trị viên** | Hoàn tiền, chỉ trong tình huống ngoại lệ | Hoàn theo tỉ lệ số ngày còn lại |
+
+**Ba tình huống duy nhất được hoàn tiền:**
+
+1. Phòng tập **vi phạm và bị khoá**
+2. Phòng tập **ngừng hoạt động / đóng cửa** khi khách còn hạn
+3. **Lỗi giao dịch** — thanh toán thành công nhưng kích hoạt thất bại vĩnh viễn, hoặc giao
+   dịch sai cần huỷ
+
+Cài đặt: `membershipService.cancelByClient` (chỉ đổi trạng thái, **không chuyển một đồng nào**
+cho khách) và `membershipService.refundByAdmin` (bắt buộc nhập lý do thuộc ba tình huống trên).
+Tuyến hoàn tiền **đã bỏ khỏi phía khách**, chuyển sang nhóm tuyến quản trị viên.
+
+Giao diện **phải nói rõ trước khi khách xác nhận huỷ**: *"Bạn sẽ không được hoàn lại số tiền
+của phần thời gian chưa sử dụng."* Không được để khách bấm huỷ mà tưởng sẽ có tiền về ví.
+
+### 13.2 Vì sao khách tự huỷ thì KHÔNG thu hồi hoa hồng giới thiệu
+
+Thu hồi hoa hồng **chỉ chạy khi quản trị viên hoàn tiền**. Khách tự huỷ thì PT **giữ trọn**
+hoa hồng: gói đã được bán và kích hoạt hợp lệ, việc khách bỏ ngang **không phải lỗi của PT**.
+Tuyệt đối không nối thu hồi vào luồng khách tự huỷ.
+
+### 13.3 Ba tình huống kích hoạt giải phóng ngăn chờ
+
+| Tình huống | Giải phóng bao nhiêu |
+|---|---|
+| Gói **hết hạn tự nhiên** | Toàn bộ phần còn lại trong ngăn chờ |
+| **Khách tự huỷ** (không hoàn tiền) | **Toàn bộ** phần còn lại, giải phóng **ngay**, không đợi ngày hết hạn — gói đã chấm dứt, không còn khả năng phát sinh hoàn tiền |
+| **Quản trị viên hoàn tiền** | Hoàn cho khách trước, phần còn lại quy thuộc gói đó mới được giải phóng |
+
+Hai ràng buộc áp dụng cho **cả ba** tình huống:
+
+- **Release gồm BA phần**: phòng gym, nền tảng, và **hoa hồng giới thiệu của PT chưa bị thu
+  hồi**. Sót phần thứ ba thì hoa hồng của PT **kẹt trong ngăn chờ vĩnh viễn** — gói hết hạn,
+  gym và nền tảng rút được tiền, PT thì không.
+- **Release đúng bằng phần ngăn chờ CÒN LẠI quy thuộc gói đó**, đọc từ các bút toán đã ghi cho
+  `transactionId` ấy — **không tính lại từ `rate × P`**. Ở kịch bản hoàn tiền, một phần tiền đã
+  rời ngăn chờ để trả cho khách; tính lại từ giá gốc sẽ **giải phóng thừa** và phá bất biến §6.
+
+**Ràng buộc trạng thái:** `membership-release` **chỉ được chạy khi gói đã huỷ hoặc đã hết
+hạn**. Còn hiệu lực thì còn khả năng phát sinh hoàn tiền, nên release lúc đó là sai. Kiểm tra
+ngay đầu endpoint, trả lỗi rõ ràng nếu bị gọi sai lúc.
+
+### 13.4 Vì sao giữ tiền trong ngăn chờ tới khi gói kết thúc
+
+Phòng tập có thể **rút tiền rồi mới vi phạm hoặc đóng cửa** — lúc đó không còn nguồn nào để
+hoàn cho khách. Giữ trong ngăn chờ bảo đảm tình huống hoàn tiền ngoại lệ **hầu như luôn có đủ
+nguồn**. Nếu vẫn không đủ, dùng `PartnerReceivable` ghi nợ phòng gym; **khách vẫn nhận đủ**.
+
+> ⚠️ **Đây là đánh đổi có chủ đích, không phải thiết kế cuối cùng.** Phòng gym bán gói 12 tháng
+> phải chờ hết 12 tháng mới rút được tiền — **không thực tế trong vận hành thương mại**. Phương
+> án vận hành thật nên **giải phóng dần theo ngày**: số tiền tối đa có thể phải hoàn tại mọi
+> thời điểm là `giá × số ngày còn lại / tổng số ngày`, nên phần ứng với những ngày đã trôi qua
+> giải phóng ra là **an toàn tuyệt đối**. Chưa làm.
+
+### 13.5 Điều kiện hợp lệ của mã giới thiệu
+
+Mã của PT **chỉ dùng được khi PT đó có cộng tác `ACCEPTED` với đúng phòng gym đang bán gói**,
+và **chỉ cho gói hội viên đầu tiên** của khách tại phòng gym đó. Mã sai, PT không cộng tác, hay
+khách đã từng là hội viên ở đây — cả ba đều **từ chối kèm thông báo riêng**, không im lặng bỏ qua.
+
+Ba lý do:
+
+1. Hoa hồng trừ vào phần của phòng gym. Không giới hạn thì PT có thể phát tán mã công khai và
+   ăn hoa hồng ở **mọi** phòng gym trên nền tảng, kể cả nơi chưa từng có quan hệ. **Bên trả
+   tiền phải là bên có quyền đồng ý.**
+2. Ràng buộc này tự nó chặn lạm dụng → **không cần** giới hạn số lần dùng, hạn dùng mã, hay cơ
+   chế phát hiện gian lận.
+3. Nó biến cộng tác thành **cánh cổng duy nhất** cho mọi dòng tiền giữa PT và phòng gym.
+
+Guard "gói đầu tiên" là để PT không đưa mã cho những người **vốn đã sắp gia hạn** — không giới
+thiệu gì mà vẫn hưởng hoa hồng.
+
+### 13.6 Cơ sở tính hoa hồng giới thiệu: giá GỘP của gói
+
+Gói 1.000.000đ, nền tảng thu 10% → nền tảng 100.000, phòng gym 900.000.
+
+| Cơ sở tính | Phép tính | PT nhận | Phòng gym còn lại |
+|---|---|---|---|
+| **Giá gộp (đang dùng)** | 10% × 1.000.000 | 100.000 | 800.000 |
+| Phần của phòng gym | 10% × 900.000 | 90.000 | 810.000 |
+
+Khác biệt nhỏ khi tỷ lệ nền tảng là 10%, nhưng **lộ ra khi tỷ lệ đó đổi**: nền tảng thu 30% thì
+phòng gym chỉ còn 700.000, hoa hồng 100.000 tính theo giá gộp tương đương **14,3%** doanh thu
+thật của phòng gym thay vì 10%. Chọn giá gộp vì dễ giải thích cho người dùng — *"PT nhận 10%
+giá trị gói"* — và tỷ lệ nền tảng cho gói hội viên đang cố định.
+
+### 13.7 Cảnh báo khi đăng ký nhiều phòng gym
+
+**Cảnh báo, không chặn.** Khách có quyền là hội viên nhiều phòng tập cùng lúc. Khi khách mua
+gói mà đang có ít nhất một gói còn hiệu lực ở phòng tập **khác**, hiện hộp thoại liệt kê tên
+từng phòng tập và ngày hết hạn, kèm câu hỏi xác nhận.
+
+Cột `GymMembershipContract.multiGymWarned` ghi lại bằng chứng đã cảnh báo, dùng khi có tranh
+chấp kiểu *"tôi không biết mình đang còn gói ở chỗ khác"*.
+
+Không ảnh hưởng check-in: bản ghi check-in vốn gắn với một gói cụ thể.
+
+---
+
+## 14. Cộng tác PT ↔ phòng gym
+
+PT liên kết phòng gym được check-in miễn phí; đổi lại phòng gym hưởng một phần hoa hồng từ
+hợp đồng PT ký với khách **tại phòng gym đó**.
+
+### 14.1 Luồng thương thảo
+
+`PENDING → COUNTERED → ACCEPTED / REJECTED / EXPIRED / TERMINATED`
+
+- Mỗi lần đề xuất lại **ghi đè tỷ lệ đang có và đảo `proposedBy`**, nên "lượt của ai" không
+  bao giờ mơ hồ. Bên vừa đề xuất **không tự accept được đề xuất của chính mình** — nếu không
+  họ có thể ràng buộc bên kia vào điều khoản chưa từng được đồng ý.
+- Tối đa `MAX_COLLABORATION_ROUNDS` vòng (mặc định 5), quá thì tự chuyển `EXPIRED`.
+- Mỗi đề xuất sống `COLLABORATION_OFFER_TTL_DAYS` ngày (mặc định 7) tính từ lần đề xuất gần nhất.
+- Mỗi cặp (gym, PT) chỉ có **tối đa một** bản ghi `ACCEPTED` tại một thời điểm.
+- Chấm dứt cộng tác: **hợp đồng đang chạy giữ nguyên tỷ lệ cũ**, chỉ hợp đồng mới không còn áp
+  dụng — vì tỷ lệ là ảnh chụp trên hợp đồng, không phải tra cứu vào bảng này (xem §12).
+
+### 14.2 Bảng đường dẫn đầy đủ
+
+`gym-service/src/app.ts` mount `ownerRoutes` tại `/owner` và `ptRoutes` tại `/`, nên hai phía
+có đường dẫn khác nhau dù cùng một controller — `actor` suy ra từ route, **không nhận từ thân
+yêu cầu** (nhận từ body là để người gọi tự nhận mình là bên kia).
+
+| Bên | Đường dẫn thật |
+|---|---|
+| PT đề xuất | `POST /gyms/:gymId/collaborations` |
+| PT phản hồi (accept/reject/counter) | `PATCH /collaborations/:id` |
+| PT chấm dứt | `DELETE /collaborations/:id` |
+| **Chủ gym mời PT** | `POST /owner/gyms/:gymId/collaborations` |
+| **Chủ gym phản hồi** | `PATCH /owner/collaborations/:id` |
+| **Chủ gym chấm dứt** | `DELETE /owner/collaborations/:id` |
+| Danh sách của PT | `GET /me/collaborations` |
+| Danh sách của chủ gym | `GET /owner/collaborations` |
+| Gym mà PT có cộng tác (công khai) | `GET /pt/:ptUserId/gyms` |
+| Nội bộ — user-service lấy tỷ lệ | `GET /internal/collaborations/active?gymId=&ptUserId=` |
+
+⚠️ Gateway khai `/gyms` bằng `router.get` tường minh, nên **POST không tự đi qua** — cả hai
+tuyến `/gyms/:gymId/collaborations` và `/owner/...` đều phải khai riêng ở
+`backend/gateway/src/routes/proxy.routes.ts`.
+
+### 14.3 Lấy tỷ lệ khi tạo hợp đồng — phải phân biệt 400 với 503
+
+| Tình huống | Phản hồi |
+|---|---|
+| Không gửi `gymId` | 90/10/0, `source = INDEPENDENT` |
+| Có `gymId`, gọi được, **có** cộng tác `ACCEPTED` | Sao chép ba tỷ lệ, `source = GYM` |
+| Có `gymId`, gọi được, **không** có cộng tác | **400** — chưa có thoả thuận cộng tác |
+| Có `gymId`, **gọi không được** (timeout / gym-service chết) | **503**, log mức `error`, **không tạo hợp đồng** |
+| Có `gymId` nhưng `sessionMode = ONLINE` | **400** báo lỗi tường minh |
+
+**Tuyệt đối không** rơi về tỷ lệ độc lập ở hai dòng cuối. Bắt lỗi chung rồi coi như "không có
+cộng tác" sẽ khiến phòng gym **mất phần chia một cách âm thầm** — loại lỗi khó phát hiện nhất
+vì hệ thống vẫn chạy bình thường, chỉ sai tiền. Timeout đặt 3 giây vì chưa có circuit breaker.
+
+Dòng cuối cũng không im lặng: khách tưởng đã chọn phòng gym mà thực tế không, và tỷ lệ chia
+khác hẳn thứ họ nhìn thấy lúc đặt.
+
+---
+
+## 15. Quyết định phát sinh
+
+Ghi lại những quyết định khác với tài liệu yêu cầu ban đầu, kèm lý do — **không sửa lặng lẽ**.
+
+**Thu hồi hoa hồng ưu tiên cao hơn yêu cầu rút tiền đang chờ.** Nếu số dư khả dụng sau khi thu
+hồi không còn đủ cho một yêu cầu rút đang treo, phải giảm số tiền yêu cầu đó hoặc chuyển nó
+sang trạng thái cần xem xét lại và báo PT. Không được để cả hai cùng trừ vào một khoản tiền.
+**Chưa cài** — model `WithdrawalRequest` chưa tồn tại (VĐ1). Hàm thu hồi được viết sao cho chèn
+được bước kiểm tra này khi model ra đời, không phải sửa lõi. Ca kiểm thử tương ứng **hoãn tới
+VĐ1**, không giả vờ đã phủ.
+
+**Bất biến đối soát khác đề bài** — xem ghi chú ở §6.
 
 ---
 

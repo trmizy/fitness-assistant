@@ -155,6 +155,30 @@ export const ptApplicationRepository = {
         },
       });
 
+      // Sync search fields to UserProfile
+      const profileUpdate: any = {};
+      if (baseData.mainSpecialties) {
+        profileUpdate.specialties = baseData.mainSpecialties;
+      }
+      
+      const locs = baseData.applicationTrainingLocations;
+      if (locs && Array.isArray(locs) && locs.length > 0) {
+        const primary = locs.find((l: any) => l.isPrimary) || locs[0];
+        if (primary) {
+          if (primary.provinceCode) profileUpdate.searchCity = primary.provinceCode.toString();
+          if (primary.wardCode) profileUpdate.searchWard = primary.wardCode.toString();
+          if (primary.legacyDistrictName) profileUpdate.searchDistrict = primary.legacyDistrictName;
+          if (primary.gymId) profileUpdate.gymId = primary.gymId;
+        }
+      }
+
+      if (Object.keys(profileUpdate).length > 0) {
+        await tx.userProfile.update({
+          where: { id: userProfileId },
+          data: profileUpdate,
+        });
+      }
+
       // Handle certificates if provided
       if (certificates) {
         await tx.pTApplicationCertificate.deleteMany({

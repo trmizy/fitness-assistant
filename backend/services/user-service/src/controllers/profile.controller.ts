@@ -112,23 +112,48 @@ export const profileController = {
         }
       }
 
+      const searchCity = req.query.searchCity as string | undefined;
+      const searchDistrict = req.query.searchDistrict as string | undefined;
+      const gymId = req.query.gymId as string | undefined;
+      let specialties: string[] | undefined;
+      if (req.query.specialties) {
+        if (Array.isArray(req.query.specialties)) {
+          specialties = req.query.specialties as string[];
+        } else {
+          specialties = (req.query.specialties as string).split(",");
+        }
+      }
+
       // Rating order can't be expressed in findPTs' orderBy (the score is aggregated from
       // session_reviews, not a column), so for that one mode we page in memory: fetch the
       // whole filtered set, attach ratings, sort, then slice. Paging inside the DB and
       // sorting afterwards would only order each page against itself.
       const sortByRating = sortBy === "ratingDesc" || sortBy === "ratingAsc";
 
-      const profiles = await profileRepository.findPTs({
+      let profiles = await profileRepository.findPTs({
         q: q?.trim() || undefined,
         minPrice,
         maxPrice,
         sessionMode,
         provinceCode,
         wardCode,
+        searchCity,
+        searchDistrict,
+        gymId,
+        specialties,
         sortBy: sortByRating ? undefined : sortBy,
         page: sortByRating ? undefined : page,
         limit: sortByRating ? 1000 : limit,
       });
+
+      // B10b. Ưu tiên gymId: Nếu có gymId, đưa các PT có cùng gymId lên đầu danh sách
+      if (gymId) {
+        profiles.sort((a, b) => {
+          if (a.gymId === gymId && b.gymId !== gymId) return -1;
+          if (b.gymId === gymId && a.gymId !== gymId) return 1;
+          return 0;
+        });
+      }
       await enrichProfilesWithAuthNames(profiles as any[]);
 
       // One grouped query for the whole list, never one per PT.
@@ -290,6 +315,21 @@ export const profileController = {
       res.json({ activeContracts, ocrStats });
     } catch (error) {
       logger.error(error, "Admin get stats error");
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  async toggleAcceptingClients(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const { isAcceptingClients, notAcceptingReason } = req.body;
+      const { profile } = await profileService.toggleAcceptingClients(
+        req.user!.id,
+        isAcceptingClients,
+        notAcceptingReason
+      );
+      res.json({ profile });
+    } catch (error) {
+      logger.error(error, "Toggle accepting clients error");
       res.status(500).json({ error: "Internal server error" });
     }
   },

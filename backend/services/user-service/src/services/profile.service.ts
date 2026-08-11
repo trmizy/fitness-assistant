@@ -1,6 +1,5 @@
 import axios from "axios";
 import { profileRepository } from "../repositories/profile.repository";
-import { availabilityService } from "./availability.service";
 import type { ProfileDto } from "../models/profile.models";
 
 const AUTH_SERVICE_URL =
@@ -128,6 +127,19 @@ export const profileService = {
       payload.dateOfBirth = new Date(data.dateOfBirth);
       payload.age = computeAgeFromDob(data.dateOfBirth);
     }
+    
+    // Normalize names for search
+    if ((data as any).firstName !== undefined) {
+      payload.firstNameNormalized = (data as any).firstName 
+        ? (data as any).firstName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() 
+        : null;
+    }
+    if ((data as any).lastName !== undefined) {
+      payload.lastNameNormalized = (data as any).lastName 
+        ? (data as any).lastName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() 
+        : null;
+    }
+
     const profile = await profileRepository.upsert(userId, payload);
     return { profile };
   },
@@ -167,11 +179,11 @@ export const profileService = {
     await syncRole(userId, targetRole);
     const profile = await profileRepository.setIsPTByUserId(userId, isPT);
 
-    // If becoming PT, seed initial availability from application
-    if (isPT) {
-      await availabilityService.seedInitialAvailability(userId);
-    }
+    return { profile };
+  },
 
+  async toggleAcceptingClients(userId: string, isAccepting: boolean, reason?: string) {
+    const profile = await profileRepository.updateAcceptingClients(userId, isAccepting, reason);
     return { profile };
   },
 };

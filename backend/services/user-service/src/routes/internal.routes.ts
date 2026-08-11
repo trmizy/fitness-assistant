@@ -3,6 +3,7 @@ import { logger } from "@gym-coach/shared";
 import { serviceSecretMiddleware } from "../middleware/serviceSecret.middleware";
 import { contractController } from "../controllers/contract.controller";
 import { profileService } from "../services/profile.service";
+import { profileRepository } from "../repositories/profile.repository";
 import { inbodyService } from "../services/inbody.service";
 import { ptDeactivationService } from "../services/pt-deactivation.service";
 
@@ -77,6 +78,18 @@ router.get("/profile/:userId", async (req, res) => {
 router.get("/inbody/:userId", async (req, res) => {
   const history = await inbodyService.getHistory(req.params.userId);
   res.json(history);
+});
+
+// gym-service resolves a client's typed referral code to a PT userId here at membership
+// purchase time (money-flow plan §2.1). A miss is a plain 404, not an error — an invalid
+// code is an ordinary user-input case the caller must surface, not fail on.
+router.get("/profile/by-referral-code/:code", async (req, res) => {
+  const profile = await profileRepository.findByReferralCode(req.params.code);
+  if (!profile) {
+    res.status(404).json({ error: "REFERRAL_CODE_NOT_FOUND" });
+    return;
+  }
+  res.json({ userId: profile.userId });
 });
 
 // Phase 4 — payment-service calls these after wallet-transfer PAID / refund reversal.

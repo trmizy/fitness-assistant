@@ -5,6 +5,7 @@ import { planController } from '../controllers/plan.controller';
 import { membershipController } from '../controllers/membership.controller';
 import { affiliationController } from '../controllers/affiliation.controller';
 import { checkinController } from '../controllers/checkin.controller';
+import { collaborationController } from '../controllers/collaboration.controller';
 import { paymentClient } from '../clients/payment.client';
 import { gymService } from '../services/gym.service';
 import { asyncHandler } from '../middleware/asyncHandler';
@@ -42,5 +43,13 @@ router.get('/gyms/:gymId/checkin-qr', asyncHandler(checkinController.getGymQr));
 router.get('/gyms/:gymId/checkins', asyncHandler(checkinController.listForGym));
 
 router.post('/gyms/:gymId/trainers', asyncHandler(affiliationController.invite));
+
+// Gym-owner-initiated side of a revenue-share negotiation (plan §1.2/F3). Note this router
+// is mounted at /owner, so `POST /owner/gyms/:gymId/collaborations` and
+// `PATCH|DELETE /owner/collaborations/:id` are the real paths — kept distinct from the PT
+// side's identical-looking `/gyms/:gymId/collaborations` in pt.routes.ts (mounted at '/').
+router.post('/gyms/:gymId/collaborations', asyncHandler(collaborationController.proposeAsGym));
+router.patch('/collaborations/:id', asyncHandler(collaborationController.respondAsGym));
+router.delete('/collaborations/:id', asyncHandler(collaborationController.terminateAsGym));
 
 export default router;

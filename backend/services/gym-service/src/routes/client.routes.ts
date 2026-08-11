@@ -25,8 +25,14 @@ router.post('/me/gym-memberships/:id/pay', ...gate, asyncHandler(membershipContr
 // while one is still PENDING_PAYMENT).
 router.post('/me/gym-memberships/:id/cancel', ...gate, asyncHandler(membershipController.cancel));
 
-// Client cancels an ACTIVE membership → prorated refund (unused days) to their wallet.
-router.post('/me/gym-memberships/:id/refund', ...gate, asyncHandler(membershipController.refund));
+// Client cancels their own ACTIVE membership — forfeits the unused portion, no refund
+// (money-flow plan §2.4). A prorated refund is now an admin-only exceptional action, see
+// POST /admin/gym-memberships/:id/refund in admin.routes.ts.
+router.post('/me/gym-memberships/:id/cancel-membership', ...gate, asyncHandler(membershipController.cancelActive));
+
+// A4: does the client already hold an active membership at a different gym? The UI calls
+// this before the final purchase confirmation to show the warning.
+router.get('/gyms/:gymId/membership-warnings', ...gate, asyncHandler(membershipController.warnOtherActiveMemberships));
 
 router.get('/me/gym-memberships', ...gate, asyncHandler(membershipController.listForClient));
 router.get('/me/gym-memberships/:id', ...gate, asyncHandler(membershipController.getForClient));

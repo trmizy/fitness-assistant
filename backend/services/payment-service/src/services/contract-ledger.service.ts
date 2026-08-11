@@ -262,7 +262,7 @@ export async function compensateNoShow(params: {
     // books as a debt. Fronting it is what keeps claims equal to escrow; leaving the gap open
     // would mean the client holds a claim nobody funded.
     if (shortfall.greaterThan(0)) {
-      await coverShortfall(ops, wallets, shortfall, {
+      await coverShortfall(ops, wallets.revenueId, shortfall, {
         partnerType: 'PT',
         partnerId: parties.ptUserId,
         reason: `PT no-show compensation shortfall (${label})`,
@@ -291,19 +291,19 @@ export async function compensateNoShow(params: {
  * indistinguishable from theft when someone comes to audit it. If even revenue cannot cover
  * the gap, the whole movement is refused: better a failed operation than untraceable money.
  */
-async function coverShortfall(
+export async function coverShortfall(
   ops: LedgerOps,
-  wallets: ResolvedWallets,
+  revenueWalletId: string,
   shortfall: Prisma.Decimal,
   debt: { partnerType: 'PT' | 'GYM'; partnerId: string; reason: string; transactionId: string },
 ): Promise<void> {
-  const revenueHeld = ops.balance(wallets.revenueId, 'AVAILABLE');
+  const revenueHeld = ops.balance(revenueWalletId, 'AVAILABLE');
   if (revenueHeld.lessThan(shortfall)) {
     throw new Error(
       `[ContractLedger] cannot fund ${shortfall.toString()} shortfall: platform revenue holds only ${revenueHeld.toString()}`,
     );
   }
-  await ops.debit(wallets.revenueId, shortfall, `${debt.reason} — fronted by the platform`, 'AVAILABLE');
+  await ops.debit(revenueWalletId, shortfall, `${debt.reason} — fronted by the platform`, 'AVAILABLE');
   await ops.tx.partnerReceivable.create({
     data: {
       partnerType: debt.partnerType,
@@ -425,7 +425,7 @@ export async function terminateContract(params: {
     } else if (residue.lessThan(0)) {
       // Drained less than the refund: the pending buckets were already short. The platform
       // funds the difference and books it against the PT, exactly as for a no-show.
-      await coverShortfall(ops, wallets, residue.abs(), {
+      await coverShortfall(ops, wallets.revenueId, residue.abs(), {
         partnerType: 'PT',
         partnerId: parties.ptUserId,
         reason: `Termination refund shortfall (${label}, ${reason})`,

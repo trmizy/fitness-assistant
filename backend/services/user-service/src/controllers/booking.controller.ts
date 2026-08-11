@@ -252,4 +252,43 @@ export const bookingController = {
         .json({ error: error.message || "Failed to review session" });
     }
   },
+
+  // ── Session Rescheduling ────────────────────────────────────────
+
+  async requestReschedule(req: any, res: Response) {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      const { proposedStartAt, proposedEndAt, reason } = req.body;
+      const result = await bookingService.requestReschedule(
+        req.params.id,
+        userId,
+        { proposedStartAt, proposedEndAt, reason }
+      );
+      res.json(result);
+    } catch (error: any) {
+      logger.error(error, "Request reschedule error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to request reschedule" });
+    }
+  },
+
+  async respondToReschedule(req: any, res: Response) {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      const { action, responseNote } = req.body;
+      const result = await bookingService.respondToReschedule(
+        req.params.id,
+        userId,
+        action,
+        responseNote
+      );
+      res.json(result);
+    } catch (error: any) {
+      logger.error(error, "Respond to reschedule error");
+      res
+        .status(error.status || 500)
+        .json({ error: error.message || "Failed to respond to reschedule" });
+    }
+  },
 };

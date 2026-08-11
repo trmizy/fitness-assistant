@@ -2,17 +2,21 @@ import { randomUUID } from "crypto";
 import { logger } from "@gym-coach/shared";
 import {
   ContractStatus,
+  ContractSource,
   PackageType,
   SessionMode,
   Prisma,
 } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
+import { gymClient, GymServiceUnavailableError } from "../clients/gym.client";
 import { profileRepository } from "../repositories/profile.repository";
 import { enrichProfilesWithAuthNames } from "./profile.service";
 import { notificationService } from "./notification.service";
 import { eSignService } from "./esign.service";
 import { generateContractPdf } from "./contractPdf.service";
+import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
+import { availabilityService } from "./availability.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -118,88 +122,131 @@ async function isUserActive(userId: string): Promise<boolean> {
 
 export const contractService = {
   // ── Client requests a contract with a PT ─────────────────────────
+  //
+  // SECURITY: price and totalSessions are NOT accepted from the client.
+  // They are read from PTServicePackage and snapshotted into the contract.
+  // Accepting these from the client is a classic price-manipulation vulnerability.
   async requestContract(
     clientUserId: string,
     data: {
       ptUserId: string;
-      packageType?: string;
-      packageName: string;
-      description?: string;
-      packageQuantity?: number;
-      extraSessions?: number;
-      totalSessions?: number; // Ignored if calculations are performed
-      price?: number; // Ignored if calculations are performed
-      pricePerSession?: number;
-      sessionMode?: string;
-      startDate?: string;
-      endDate?: string;
-      message?: string;
-      terms?: string;
-      notes?: string;
+      /** ID of the PTServicePackage the client selected. Replaces the old price/totalSessions fields. */
+      packageId: string;
+      clientMessage?: string;
+      /** The gym the client picked on the "where do you train?" step, if any. */
+      gymId?: string;
+      /**
+       * When true, the client has seen and acknowledged the low-availability warning.
+       * Required when availableSlotsNext28Days < package.sessionCount.
+       */
+      acknowledgedLowAvailability?: boolean;
     },
   ) {
-    // 1. Fetch PT Application for pricing rules
-    const app = await profileRepository.findPTApplicationByUserId(
+    // 1. Load the package (source of truth for price/sessions/mode)
+    const pkg = await ptServicePackageRepository.findById(data.packageId);
+    if (!pkg) throw err("Gói dịch vụ không tồn tại", 404);
+    if (!pkg.isActive || pkg.archivedAt) throw err("Gói dịch vụ này đã ngừng bán", 422);
+    if (pkg.ptUserId !== data.ptUserId)
+      throw err("Gói dịch vụ không thuộc PT này", 400);
+
+    // 2. Check PT profile
+    const ptProfile = await profileRepository.findByUserId(data.ptUserId);
+    if (!ptProfile || !ptProfile.isPT)
+      throw err("PT không tồn tại hoặc chưa được duyệt", 404);
+    if (ptProfile.ptSuspended)
+      throw err("PT đang bị tạm ngưng, không thể tạo hợp đồng", 422);
+    if (!(ptProfile as any).isAcceptingClients)
+      throw err("PT hiện đang tạm ngưng nhận khách mới", 422);
+
+    // 3. Slot availability warning (L3 from plan)
+    //    Count available slots; if fewer than package.sessionCount, require acknowledgement.
+    const availableSlots = await availabilityService.countAvailableSlotsForPT(
       data.ptUserId,
+      pkg.sessionDurationMinutes,
     );
-    if (!app) throw err("PT profile or pricing not found", 404);
-
-    let finalSessions = 0;
-    let finalPrice = 0;
-    let unitPrice = 0;
-
-    const packQty = Math.max(1, data.packageQuantity || 1);
-    const extra = Math.max(0, data.extraSessions || 0);
-
-    if (data.packageType === "PACKAGE") {
-      const sessPerPack = app.sessionsPerPackage || 10;
-      const basePrice = app.packagePrice || 0;
-
-      finalSessions = sessPerPack * packQty + extra;
-      unitPrice = sessPerPack > 0 ? basePrice / sessPerPack : 0;
-      finalPrice = basePrice * packQty + extra * unitPrice;
-    } else {
-      // PER_SESSION logic
-      finalSessions = Math.max(1, data.totalSessions || 1);
-      unitPrice = app.desiredSessionPrice || 0;
-      finalPrice = finalSessions * unitPrice;
-    }
-
-    // BR-27: no duplicate active/pending contract with same PT
-    const existing = await contractRepository.findActiveByPair(
-      data.ptUserId,
-      clientUserId,
-    );
-    if (existing) {
-      throw err(
-        "You already have an active or pending contract with this PT",
-        409,
+    if (availableSlots < pkg.sessionCount && !data.acknowledgedLowAvailability) {
+      // Return 409 with machine-readable code — NOT a successful contract creation.
+      // The client UI shows a warning dialog and re-submits with acknowledgedLowAvailability=true.
+      throw Object.assign(
+        new Error("LOW_AVAILABILITY"),
+        {
+          status: 409,
+          code: "LOW_AVAILABILITY",
+          availableSlots,
+          packageSessions: pkg.sessionCount,
+        },
       );
     }
 
+    // 4. Resolve revenue split BEFORE any DB write — money-flow plan §1.4/B1.
+    let rates: { platformRate: string; ptRate: string; gymRate: string };
+    let source: ContractSource = ContractSource.INDEPENDENT;
+    if (data.gymId) {
+      if (pkg.sessionMode === SessionMode.ONLINE) {
+        throw err(
+          "Buổi tập trực tuyến không thể gắn với phòng gym cụ thể — chọn hình thức Offline hoặc bỏ chọn phòng gym",
+          400,
+        );
+      }
+      let collab;
+      try {
+        collab = await gymClient.getActiveCollaboration(data.gymId, data.ptUserId);
+      } catch (e) {
+        if (e instanceof GymServiceUnavailableError) {
+          throw err(
+            "Không thể xác nhận thoả thuận hợp tác với phòng gym lúc này, vui lòng thử lại",
+            503,
+          );
+        }
+        throw e;
+      }
+      if (!collab) {
+        throw err(
+          "PT chưa có thoả thuận hợp tác với phòng gym này — không thể tạo hợp đồng qua phòng gym",
+          400,
+        );
+      }
+      rates = { platformRate: collab.platformRate, ptRate: collab.ptRate, gymRate: collab.gymRate };
+      source = ContractSource.GYM;
+    } else {
+      rates = { platformRate: "0.10", ptRate: "0.90", gymRate: "0" };
+    }
+
+    // 5. No duplicate active/pending contract with same PT (BR-27)
+    const existing = await contractRepository.findActiveByPair(data.ptUserId, clientUserId);
+    if (existing) {
+      throw err("You already have an active or pending contract with this PT", 409);
+    }
+
+    // 6. Create contract — price/sessions/mode come from the PACKAGE SNAPSHOT, not from
+    //    the client request. This is the security-critical step.
     const contract = await contractRepository.create({
       ptUserId: data.ptUserId,
       clientUserId,
       status: ContractStatus.PENDING_REVIEW,
-      packageType: (data.packageType as PackageType) || PackageType.PACKAGE,
-      packageName: data.packageName,
-      description: data.description,
-      packageQuantity: data.packageType === "PACKAGE" ? packQty : 1,
-      extraSessions: data.packageType === "PACKAGE" ? extra : 0,
-      totalSessions: finalSessions,
-      price: finalPrice,
-      pricePerSession: unitPrice,
-      sessionMode: data.sessionMode
-        ? (data.sessionMode as SessionMode)
-        : undefined,
-      startDate: data.startDate ? new Date(data.startDate) : undefined,
-      endDate: data.endDate ? new Date(data.endDate) : undefined,
-      clientMessage: data.message,
-      terms: data.terms,
-      notes: data.notes,
+      packageType: PackageType.PACKAGE,
+      // Snapshot fields — same principle as revenue split above
+      packageName: pkg.name,
+      totalSessions: pkg.sessionCount,
+      price: Number(pkg.price),
+      sessionMode: pkg.sessionMode,
+      clientMessage: data.clientMessage,
+      gymId: data.gymId,
+      source,
+      platformRate: rates.platformRate,
+      ptRate: rates.ptRate,
+      gymRate: rates.gymRate,
+      // Package audit trail + slot warning evidence
+      ...({
+        packageId: pkg.id,
+        packageSourceName: pkg.name,
+        sessionDurationMinutes: pkg.sessionDurationMinutes,
+        lowAvailabilityWarned: availableSlots < pkg.sessionCount,
+        slotsAtPurchase: availableSlots < pkg.sessionCount ? availableSlots : undefined,
+      } as any),
     });
 
-    // Notify PT
+    // 7. Notify PT
     await notificationService
       .create({
         userId: data.ptUserId,

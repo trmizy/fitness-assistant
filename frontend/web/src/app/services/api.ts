@@ -261,8 +261,8 @@ export const profileService = {
     return data;
   },
 
-  listPTs: async () => {
-    const { data } = await api.get("/profile/pts");
+  listPTs: async (params?: Record<string, any>) => {
+    const { data } = await api.get("/profile/pts", { params });
     return data;
   },
 };
@@ -2286,22 +2286,21 @@ export const nutritionService = {
   },
 };
 
+export const ptServicePackageService = {
+  getPackagesForPT: async (ptUserId: string) => {
+    const { data } = await api.get(`/profile/pts/${ptUserId}/service-packages`);
+    return data;
+  },
+};
+
 export const contractService = {
   // New contract request flow
   requestContract: async (requestData: {
     ptUserId: string;
-    packageType: string;
-    packageName: string;
-    description?: string;
-    totalSessions?: number;
-    packageQuantity?: number;
-    extraSessions?: number;
-    price?: number;
-    pricePerSession?: number;
-    sessionMode?: "ONLINE" | "OFFLINE";
-    startDate?: string;
-    endDate?: string;
-    message?: string;
+    packageId: string;
+    clientMessage?: string;
+    gymId?: string;
+    acknowledgedLowAvailability?: boolean;
   }) => {
     const { data } = await api.post("/contracts/request", requestData);
     return data;
@@ -2419,6 +2418,21 @@ export const sessionService = {
     const { data } = await api.post(`/sessions/${id}/review`, {
       rating,
       comment,
+    });
+    return data;
+  },
+  requestReschedule: async (id: string, proposedStartAt: string, proposedEndAt: string, reason: string) => {
+    const { data } = await api.post(`/sessions/${id}/reschedule`, {
+      proposedStartAt,
+      proposedEndAt,
+      reason,
+    });
+    return data;
+  },
+  respondToReschedule: async (requestId: string, action: "ACCEPT" | "REJECT", responseNote?: string) => {
+    const { data } = await api.post(`/sessions/reschedules/${requestId}/respond`, {
+      action,
+      responseNote,
     });
     return data;
   },
