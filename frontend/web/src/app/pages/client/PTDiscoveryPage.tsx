@@ -26,6 +26,7 @@ import {
 } from "../../services/api";
 import { toast } from "sonner";
 import { formatVND } from "../../utils/currency";
+import { QUICK_FILTERS } from "../../constants/specialties";
 import { Stars } from "../../components/gym/Stars";
 
 const isValidPrice = (p: unknown): p is number =>
@@ -79,24 +80,10 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-const filters = [
-  "Tất cả",
-  "Fat Loss",
-  "Muscle Gain",
-  "Strength",
-  "Yoga",
-  "HIIT",
-  "Powerlifting",
-];
-const filterValues = [
-  "All",
-  "Fat Loss",
-  "Muscle Gain",
-  "Strength",
-  "Yoga",
-  "HIIT",
-  "Powerlifting",
-];
+// Chips and their filter values are the same strings now — the two arrays used to be kept
+// in step by hand, which is how "Strength" ended up in one and not the other.
+const filters = ["Tất cả", ...QUICK_FILTERS];
+const filterValues = ["All", ...QUICK_FILTERS];
 
 export function PTDiscoveryPage() {
   const navigate = useNavigate();

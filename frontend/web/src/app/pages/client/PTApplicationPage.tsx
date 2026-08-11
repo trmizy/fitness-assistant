@@ -36,6 +36,7 @@ import {
 } from "../../services/ptApplicationService";
 import { formatVND } from "../../utils/currency";
 import { locationService } from "../../services/api";
+import { SPECIALTIES } from "../../constants/specialties";
 
 const inp =
   "w-full px-3 py-2.5 bg-zinc-800/60 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-green-500/40 focus:border-green-500/50 placeholder-zinc-600 transition-all";
@@ -53,22 +54,7 @@ const steps = [
   { key: "review", label: "Xem lại & Nộp", icon: CheckCircle },
 ];
 
-const specialtyOptions = [
-  "Muscle Gain",
-  "Fat Loss",
-  "Powerlifting",
-  "Bodybuilding",
-  "Calisthenics",
-  "Yoga",
-  "Rehabilitation",
-  "Sports Nutrition",
-  "HIIT",
-  "Functional Training",
-  "Endurance",
-  "Flexibility & Mobility",
-  "Sports Performance",
-  "Boxing & MMA",
-];
+const specialtyOptions = SPECIALTIES;
 const targetOptions = [
   "Beginners",
   "Weight-loss clients",
