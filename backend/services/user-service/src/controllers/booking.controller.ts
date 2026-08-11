@@ -273,6 +273,30 @@ export const bookingController = {
     }
   },
 
+  // VĐ4: the requester withdraws their own still-open proposal.
+  async cancelReschedule(req: any, res: Response) {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      const result = await bookingService.cancelRescheduleRequest(req.params.id, userId);
+      res.json(result);
+    } catch (error: any) {
+      logger.error(error, "Cancel reschedule error");
+      res.status(error.status || 500).json({ error: error.message || "Failed to cancel" });
+    }
+  },
+
+  // VĐ4: every proposal ever made on a session — for dispute resolution.
+  async rescheduleHistory(req: any, res: Response) {
+    try {
+      const userId = req.headers["x-user-id"] as string;
+      const result = await bookingService.getRescheduleHistory(req.params.id, userId);
+      res.json(result);
+    } catch (error: any) {
+      logger.error(error, "Reschedule history error");
+      res.status(error.status || 500).json({ error: error.message || "Failed to load history" });
+    }
+  },
+
   async respondToReschedule(req: any, res: Response) {
     try {
       const userId = req.headers["x-user-id"] as string;

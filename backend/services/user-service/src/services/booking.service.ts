@@ -842,6 +842,40 @@ export const bookingService = {
     return request;
   },
 
+  /**
+   * The requester withdraws their own proposal. Only they may do it, and only while it is
+   * still open — once the other side has answered, the answer stands.
+   */
+  async cancelRescheduleRequest(requestId: string, userId: string) {
+    const request = await sessionRepository.findRescheduleRequestById(requestId);
+    if (!request) throw err("Không tìm thấy yêu cầu dời lịch", 404);
+    if (request.status !== "PENDING") {
+      throw err("Yêu cầu đã được xử lý, không thể rút lại", 409);
+    }
+
+    const session = request.session;
+    const requesterId =
+      request.requestedBy === "CLIENT" ? session.clientUserId : session.ptUserId;
+    if (requesterId !== userId) {
+      throw err("Chỉ người gửi mới được rút lại yêu cầu", 403);
+    }
+
+    return sessionRepository.updateRescheduleRequestStatus(requestId, "CANCELLED");
+  },
+
+  /**
+   * Every proposal ever made on a session, newest first. Exists for dispute resolution —
+   * "who moved this, when, and why" has to be answerable after the fact.
+   */
+  async getRescheduleHistory(sessionId: string, userId: string) {
+    const session = await sessionRepository.findById(sessionId);
+    if (!session) throw err("Session not found", 404);
+    if (session.clientUserId !== userId && session.ptUserId !== userId) {
+      throw err("Not authorized", 403);
+    }
+    return sessionRepository.findRescheduleRequestsBySession(sessionId);
+  },
+
   async respondToReschedule(
     requestId: string,
     userId: string,
@@ -895,7 +929,12 @@ export const bookingService = {
     const requesterUserId = request.requestedBy === "CLIENT" ? session.clientUserId : session.ptUserId;
       notificationService.create({
         userId: requesterUserId,
-        text: `Yêu cầu dời lịch của bạn đã được xác nhận (Ngày mới: ${request.proposedStartAt.toLocaleString()})`,
+        // The wording used to say "đã được xác nhận" on both branches, so a rejected
+        // request told the requester their session had moved. It had not.
+        text:
+          action === "ACCEPT"
+            ? `Yêu cầu dời lịch đã được chấp nhận. Giờ mới: ${request.proposedStartAt.toLocaleString("vi-VN")}`
+            : `Yêu cầu dời lịch đã bị từ chối. Buổi tập giữ nguyên giờ cũ.`,
         eventType: "SESSION_UPDATE",
         entityType: "SESSION",
         entityId: request.sessionId

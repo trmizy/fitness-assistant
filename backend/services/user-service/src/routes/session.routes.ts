@@ -71,4 +71,18 @@ router.post(
   bookingController.respondToReschedule as any,
 );
 
+// The requester withdraws their own proposal (VĐ4).
+router.delete(
+  "/reschedules/:id",
+  authMiddleware,
+  bookingController.cancelReschedule as any,
+);
+
+// Full proposal history for a session — who moved it, when, and why.
+router.get(
+  "/:id/reschedule-history",
+  authMiddleware,
+  bookingController.rescheduleHistory as any,
+);
+
 export default router;

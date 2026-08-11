@@ -115,6 +115,13 @@ export const sessionRepository = {
       },
     }),
 
+  /** Full proposal history for one session, newest first — for dispute resolution. */
+  findRescheduleRequestsBySession: (sessionId: string) =>
+    prisma.sessionRescheduleRequest.findMany({
+      where: { sessionId },
+      orderBy: { createdAt: "desc" },
+    }),
+
   /** The single open reschedule proposal for a session, if any (VĐ4: at most one). */
   findOpenRescheduleRequest: (sessionId: string) =>
     prisma.sessionRescheduleRequest.findFirst({
