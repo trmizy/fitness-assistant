@@ -115,9 +115,10 @@ export const profileRepository = {
 
     // q: search by firstName OR lastName or search fields
     if (filters.q) {
-      // VĐ5.3: `q` must reach specialties, gym names and addresses too, not just the name.
-      // The extra ids are resolved in one accent-insensitive SQL pass (see
-      // findPtUserIdsMatchingText) and folded into the same OR, so paging stays correct.
+      // `q` reaches the trainer's name, and the gym/address they work at. Specialty is left
+      // to the chips beside the box — see findPtUserIdsMatchingText. The extra ids are
+      // resolved in one accent-insensitive SQL pass and folded into the same OR, so paging
+      // stays correct.
       const textMatchIds = await findPtUserIdsMatchingText(filters.q);
       profileWhere.OR = [
         ...(textMatchIds.length > 0 ? [{ userId: { in: textMatchIds } }] : []),
@@ -270,12 +271,16 @@ export const profileRepository = {
 };
 
 /**
- * userIds whose specialty, gym name or address matches a free-text query, ignoring
- * Vietnamese diacritics.
+ * userIds whose gym name or address matches a free-text query, ignoring Vietnamese diacritics.
  *
- * Done in SQL rather than in JS because the fields live in three places — a String[] column
- * on the profile and two columns on the training-location rows — and pulling every trainer
- * into memory to filter them is exactly the mistake VĐ5.2 was raised to fix.
+ * Deliberately NOT specialties, even though VĐ5.3 lists them: the discovery page puts a row
+ * of specialty chips directly beside this box, so typing one is a slower way to do what a
+ * click already does, and a search box that quietly matches on several fields makes its own
+ * results hard to explain. Gym name and address stay because no filter covers them — "the
+ * trainer at California Fitness" has nowhere else to be expressed.
+ *
+ * Done in SQL rather than in JS because pulling every trainer into memory to filter them is
+ * exactly the mistake VĐ5.2 was raised to fix.
  *
  * `translate()` strips the accents. Postgres ships `unaccent` for this, but it is an
  * extension that has to be installed on every environment, and a missing extension here
@@ -297,11 +302,7 @@ export async function findPtUserIdsMatchingText(q: string): Promise<string[]> {
     FROM user_profiles p
     LEFT JOIN pt_training_locations l ON l.pt_user_id = p."userId"
     WHERE
-      EXISTS (
-        SELECT 1 FROM unnest(COALESCE(p.specialties, ARRAY[]::text[])) s
-        WHERE translate(lower(s), ${VN_FROM}, ${VN_TO}) LIKE ${needle}
-      )
-      OR translate(lower(COALESCE(l.gym_name, '')),    ${VN_FROM}, ${VN_TO}) LIKE ${needle}
+      translate(lower(COALESCE(l.gym_name, '')),    ${VN_FROM}, ${VN_TO}) LIKE ${needle}
       OR translate(lower(COALESCE(l.address_line, '')), ${VN_FROM}, ${VN_TO}) LIKE ${needle}`;
 
   return rows.map((r) => r.userId);
