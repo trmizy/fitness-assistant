@@ -167,6 +167,70 @@ export function countSlotsFromRows(input: {
   return result;
 }
 
+/**
+ * The single nearest bookable slot, instead of a count. Walks the same day-by-day,
+ * block-by-block arithmetic as countSlotsFromRows and stops at the first opening — used to
+ * tell a client "PT is booked solid this week, but has an opening on the 14th" instead of
+ * just a bare low-availability warning with no next step.
+ *
+ * Split out as a pure function for the same reason countSlotsFromRows is: the day/hour
+ * arithmetic is exactly the kind of thing that silently breaks (see the timezone bug fixed
+ * above) and deserves tests pinned to fixed rows, not just "did the UI look right once".
+ */
+export function findEarliestSlotFromRows(input: {
+  ptUserId: string;
+  availabilities: SlotAvailabilityRow[];
+  exceptions: SlotExceptionRow[];
+  bookedSessions: SlotBookedRow[];
+  fromDate: Date;
+  toDate: Date;
+  sessionDurationMinutes: number;
+}): { date: string; startTime: string } | null {
+  const { ptUserId, availabilities, exceptions, bookedSessions, fromDate, toDate, sessionDurationMinutes } = input;
+
+  const exceptionDates = new Set(
+    exceptions.filter((e) => e.ptUserId === ptUserId).map((e) => localDateKey(new Date(e.date))),
+  );
+
+  const booked = new Set<string>();
+  for (const s of bookedSessions) {
+    if (s.ptUserId !== ptUserId) continue;
+    const start = new Date(s.scheduledStartAt);
+    const h = String(start.getHours()).padStart(2, "0");
+    const m = String(start.getMinutes()).padStart(2, "0");
+    booked.add(`${h}:${m}@${localDateKey(start)}`);
+  }
+
+  const ptAvail = availabilities.filter((a) => a.ptUserId === ptUserId && a.isActive);
+
+  const current = new Date(fromDate);
+  while (current <= toDate) {
+    const dateStr = localDateKey(current);
+    if (!exceptionDates.has(dateStr)) {
+      const dayOfWeek = DAY_MAP[current.getDay()];
+      // A day can have several blocks (e.g. morning + evening); check them in start-time
+      // order so "earliest" really means earliest, not just first-declared.
+      const blocks = ptAvail
+        .filter((a) => a.dayOfWeek === dayOfWeek)
+        .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+      for (const block of blocks) {
+        let cur = timeToMinutes(block.startTime);
+        const end = timeToMinutes(block.endTime);
+        while (cur + sessionDurationMinutes <= end) {
+          const slotKey = `${minutesToTime(cur)}@${dateStr}`;
+          if (!booked.has(slotKey)) {
+            return { date: dateStr, startTime: minutesToTime(cur) };
+          }
+          cur += sessionDurationMinutes;
+        }
+      }
+    }
+    current.setDate(current.getDate() + 1);
+  }
+
+  return null;
+}
+
 export const availabilityService = {
   // Validate blocks: no overlap, startTime < endTime
   validateAvailabilityBlocks(
@@ -464,5 +528,44 @@ export const availabilityService = {
     to.setHours(23, 59, 59, 999);
     const counts = await this.countAvailableSlotsForPTs([ptUserId], from, to, sessionDurationMinutes);
     return counts[ptUserId] ?? 0;
+  },
+
+  /**
+   * The nearest date/time a client could actually book this PT — the fallback the
+   * low-availability warning offers instead of leaving the client to guess. Searches a wider
+   * window than the 28-day purchase-warning count (EARLIEST_SLOT_SEARCH_DAYS): a PT who is
+   * booked solid for the next four weeks may still have an opening five weeks out, and "no
+   * suggestion at all" is a worse answer than one slightly outside the usual lookahead.
+   * Returns null if genuinely nothing opens up within that window.
+   */
+  EARLIEST_SLOT_SEARCH_DAYS: 60,
+
+  async findEarliestAvailableSlot(
+    ptUserId: string,
+    sessionDurationMinutes = 60,
+    searchDays?: number,
+  ): Promise<{ date: string; startTime: string } | null> {
+    const days = searchDays ?? this.EARLIEST_SLOT_SEARCH_DAYS;
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+    const to = new Date(from);
+    to.setDate(to.getDate() + days - 1);
+    to.setHours(23, 59, 59, 999);
+
+    const [availabilities, exceptions, bookedSessions] = await Promise.all([
+      availabilityRepository.findByPTs([ptUserId]),
+      availabilityRepository.findExceptionsByPTsAndRange([ptUserId], from, to),
+      sessionRepository.findBookedByPTsAndRange([ptUserId], from, to),
+    ]);
+
+    return findEarliestSlotFromRows({
+      ptUserId,
+      availabilities,
+      exceptions,
+      bookedSessions,
+      fromDate: from,
+      toDate: to,
+      sessionDurationMinutes,
+    });
   },
 };

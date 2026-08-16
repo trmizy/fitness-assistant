@@ -245,6 +245,12 @@ export const contractService = {
       pkg.sessionDurationMinutes,
     );
     if (availableSlots < pkg.sessionCount && !data.acknowledgedLowAvailability) {
+      // Nearest opening, so the warning has a next step instead of just a number. Only
+      // computed on this already-slow-path — the happy path above never pays for it.
+      const nearestAvailableSlot = await availabilityService.findEarliestAvailableSlot(
+        data.ptUserId,
+        pkg.sessionDurationMinutes,
+      );
       // Return 409 with machine-readable code — NOT a successful contract creation.
       // The client UI shows a warning dialog and re-submits with acknowledgedLowAvailability=true.
       throw Object.assign(
@@ -254,6 +260,7 @@ export const contractService = {
           code: "LOW_AVAILABILITY",
           availableSlots,
           packageSessions: pkg.sessionCount,
+          nearestAvailableSlot,
         },
       );
     }

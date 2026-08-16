@@ -109,7 +109,11 @@ export function PTDiscoveryPage() {
   // share. This choice sets the contract's revenue split, so it is asked explicitly rather
   // than guessed from the trainer's listed locations.
   const [selectedGymId, setSelectedGymId] = useState("");
-  const [lowAvailabilityData, setLowAvailabilityData] = useState<{ availableSlots: number; packageSessions: number } | null>(null);
+  const [lowAvailabilityData, setLowAvailabilityData] = useState<{
+    availableSlots: number;
+    packageSessions: number;
+    nearestAvailableSlot: { date: string; startTime: string } | null;
+  } | null>(null);
 
   useEffect(() => {
     locationService
@@ -196,6 +200,7 @@ export function PTDiscoveryPage() {
         setLowAvailabilityData({
           availableSlots: err.response.data.availableSlots,
           packageSessions: err.response.data.packageSessions,
+          nearestAvailableSlot: err.response.data.nearestAvailableSlot ?? null,
         });
       } else {
         toast.error(err?.response?.data?.error || "Không thể gửi yêu cầu");
@@ -1014,9 +1019,37 @@ export function PTDiscoveryPage() {
                   <p className="text-xs mb-3">
                     Lịch của huấn luyện viên hiện tại có khá ít slot trống (
                     {lowAvailabilityData.availableSlots} slot) so với số buổi
-                    của gói tập ({lowAvailabilityData.packageSessions} buổi). 
+                    của gói tập ({lowAvailabilityData.packageSessions} buổi).
                     Bạn có chắc chắn muốn mua gói này?
                   </p>
+                  {lowAvailabilityData.nearestAvailableSlot ? (
+                    <p className="text-xs mb-3">
+                      Lịch trống gần nhất:{" "}
+                      <span className="font-semibold">
+                        {/* Built from the "YYYY-MM-DD"+"HH:MM" pair as local wall-clock values
+                            (not parsed as a UTC instant) — the same reasoning as
+                            localDateKey() server-side: this date already IS the local day the
+                            slot falls on, so re-interpreting it through a UTC-then-shift-back
+                            round trip risks landing on the wrong day for the reader. */}
+                        {(() => {
+                          const [y, m, d] = lowAvailabilityData.nearestAvailableSlot.date
+                            .split("-")
+                            .map(Number);
+                          return new Date(y, m - 1, d).toLocaleDateString("vi-VN", {
+                            weekday: "long",
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          });
+                        })()}{" "}
+                        lúc {lowAvailabilityData.nearestAvailableSlot.startTime}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-xs mb-3">
+                      Không tìm thấy lịch trống nào trong 60 ngày tới.
+                    </p>
+                  )}
                   <button
                     onClick={() => submitRequest(true)}
                     disabled={requestMutation.isPending}

@@ -24,9 +24,21 @@ export const contractController = {
       res.status(201).json(contract);
     } catch (error: any) {
       logger.error(error, "Request contract error");
-      res
-        .status(error.status || 500)
-        .json({ error: error.message || "Failed to request contract" });
+      // LOW_AVAILABILITY carries the fields the client UI's warning dialog needs
+      // (availableSlots, packageSessions, nearestAvailableSlot) — a plain
+      // { error: message } here was silently swallowing all three, so the dialog's
+      // `code === "LOW_AVAILABILITY"` check could never match and it never rendered.
+      res.status(error.status || 500).json({
+        error: error.message || "Failed to request contract",
+        ...(error.code === "LOW_AVAILABILITY"
+          ? {
+              code: error.code,
+              availableSlots: error.availableSlots,
+              packageSessions: error.packageSessions,
+              nearestAvailableSlot: error.nearestAvailableSlot,
+            }
+          : {}),
+      });
     }
   },
 
