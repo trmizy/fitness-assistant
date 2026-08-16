@@ -19,6 +19,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 import express from "express";
+import { prisma } from "../repositories/prisma";
+import { transactionRepository } from "../repositories/transaction.repository";
+
+// Mock database call to prevent Prisma from hanging on connection in the 6th test
+transactionRepository.findRecent = async () => [];
 
 process.env.AUTH_SERVICE_URL = "http://127.0.0.1:4031";
 
@@ -64,6 +69,7 @@ test.before(async () => {
 test.after(async () => {
   await new Promise<void>((resolve, reject) => testApp.close((err) => (err ? reject(err) : resolve())));
   await new Promise<void>((resolve, reject) => authServer.close((err) => (err ? reject(err) : resolve())));
+  await prisma.$disconnect();
 });
 
 test("SECURITY: POST /admin/payments/:id/refund with NO auth at all is rejected — this is the exact bug (a real fund-reversing endpoint had zero auth)", async () => {

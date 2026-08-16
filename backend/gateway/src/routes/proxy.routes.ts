@@ -2176,6 +2176,21 @@ router.use(
   }),
 );
 
+// Protected — PT's own training-location CRUD (Phase 2 discovery/scheduling).
+// Same gap as above: user-service mounts this at the top level
+// (app.use("/pt/training-locations", ...)), so it needs its own explicit proxy
+// route. PTProfilePage.tsx already calls it — it was 404ing in the running app.
+router.use(
+  "/pt/training-locations",
+  authMiddleware,
+  requireRoles("PT"),
+  createProxyMiddleware({
+    target: USER_SERVICE_URL,
+    changeOrigin: true,
+    onError: serviceUnavailable("User service"),
+  }),
+);
+
 // ── Payment Service proxy routes ─────────────────────────────────────────────
 
 // Payment: client history (auth required)

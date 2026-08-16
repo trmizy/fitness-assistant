@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { logger } from "@gym-coach/shared";
 import {
+  AuditEntityType,
   ContractStatus,
   ContractSource,
   PackageType,
@@ -17,9 +18,83 @@ import { eSignService } from "./esign.service";
 import { generateContractPdf } from "./contractPdf.service";
 import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
 import { availabilityService } from "./availability.service";
+import { auditService } from "./audit.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
+}
+
+/** The subset of a PTServicePackage a contract copies. */
+export interface SnapshotSource {
+  id: string;
+  name: string;
+  sessionCount: number;
+  price: Prisma.Decimal | number | string;
+  sessionMode: SessionMode;
+  sessionDurationMinutes: number;
+}
+
+export interface PackageSnapshot {
+  packageId: string;
+  packageName: string;
+  packageSourceName: string;
+  totalSessions: number;
+  price: number;
+  sessionMode: SessionMode;
+  sessionDurationMinutes: number;
+}
+
+/**
+ * Copy a package's commercial terms onto a contract.
+ *
+ * Takes ONLY the package. That is the security property, not a style choice: the client's
+ * request body is the one place these values must never come from, because a caller who can
+ * name their own `price` buys a ten-session package for a đồng. Keeping the request out of
+ * this function's signature means no future edit can quietly start trusting it.
+ *
+ * It is also a copy, not a reference. The PT may reprice or archive the package tomorrow;
+ * a contract already signed is unaffected — the same rule the revenue split follows
+ * (docs/money-flow.md §12).
+ *
+ * `price` is narrowed to a JS number because that is what the contract repository takes.
+ * Safe here rather than by luck: the column is Decimal(14,2), so the largest representable
+ * value is 10^12 with two decimals — 10^14 in minor units, well inside the 2^53 integers a
+ * double represents exactly. Arithmetic on money still belongs in payment-service, in
+ * Decimal; this is a verbatim carry-across, not a calculation.
+ */
+export function buildPackageSnapshot(pkg: SnapshotSource): PackageSnapshot {
+  return {
+    packageId: pkg.id,
+    packageName: pkg.name,
+    packageSourceName: pkg.name,
+    totalSessions: pkg.sessionCount,
+    price: Number(pkg.price),
+    sessionMode: pkg.sessionMode,
+    sessionDurationMinutes: pkg.sessionDurationMinutes,
+  };
+}
+
+/**
+ * Record a contract changing state, with the state it came from.
+ *
+ * The "from" half is what makes the row useful: "cancelled" alone leaves open whether the
+ * client walked away from an active contract they had paid for or declined one that was
+ * still awaiting signature — two very different arguments to settle.
+ */
+async function auditContractStatus(
+  actorUserId: string,
+  contractId: string,
+  from: ContractStatus,
+  to: ContractStatus,
+  extra?: Record<string, unknown>,
+): Promise<void> {
+  await auditService.record({
+    actorUserId,
+    action: `CONTRACT_${to}`,
+    entityType: AuditEntityType.CONTRACT,
+    entityId: contractId,
+    metadata: { from, to, ...extra },
+  });
 }
 
 /**
@@ -225,16 +300,18 @@ export const contractService = {
 
     // 6. Create contract — price/sessions/mode come from the PACKAGE SNAPSHOT, not from
     //    the client request. This is the security-critical step.
+    const snapshot = buildPackageSnapshot(pkg);
     const contract = await contractRepository.create({
       ptUserId: data.ptUserId,
       clientUserId,
       status: ContractStatus.PENDING_REVIEW,
       packageType: PackageType.PACKAGE,
-      // Snapshot fields — same principle as revenue split above
-      packageName: pkg.name,
-      totalSessions: pkg.sessionCount,
-      price: Number(pkg.price),
-      sessionMode: pkg.sessionMode,
+      // Snapshot fields — same principle as the revenue split above. Note what is NOT here:
+      // anything out of `data`. Price and session count come from the package alone.
+      packageName: snapshot.packageName,
+      totalSessions: snapshot.totalSessions,
+      price: snapshot.price,
+      sessionMode: snapshot.sessionMode,
       clientMessage: data.clientMessage,
       gymId: data.gymId,
       source,
@@ -243,9 +320,9 @@ export const contractService = {
       gymRate: rates.gymRate,
       // Package audit trail + slot warning evidence
       ...({
-        packageId: pkg.id,
-        packageSourceName: pkg.name,
-        sessionDurationMinutes: pkg.sessionDurationMinutes,
+        packageId: snapshot.packageId,
+        packageSourceName: snapshot.packageSourceName,
+        sessionDurationMinutes: snapshot.sessionDurationMinutes,
         lowAvailabilityWarned: availableSlots < pkg.sessionCount,
         slotsAtPurchase: availableSlots < pkg.sessionCount ? availableSlots : undefined,
       } as any),
@@ -379,6 +456,8 @@ export const contractService = {
         .catch(() => {});
     }
 
+    await auditContractStatus(ptUserId, contractId, contract.status, ContractStatus.PENDING_SIGNATURE);
+
     // 5. Notify client
     await notificationService
       .create({
@@ -412,6 +491,10 @@ export const contractService = {
         rejectionReason: reason.trim(),
       },
     );
+
+    await auditContractStatus(ptUserId, contractId, contract.status, ContractStatus.REJECTED, {
+      reason: reason.trim(),
+    });
 
     await notificationService
       .create({
@@ -452,6 +535,11 @@ export const contractService = {
         cancellationReason: reason.trim(),
       },
     );
+
+    await auditContractStatus(userId, contractId, contract.status, ContractStatus.CANCELLED, {
+      reason: reason.trim(),
+      cancelledBy: userId === contract.ptUserId ? "PT" : "CLIENT",
+    });
 
     // Notify the other party
     const otherUserId =

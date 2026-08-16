@@ -1,13 +1,29 @@
 import { Decimal } from "@prisma/client/runtime/library";
-import { SessionMode } from "../generated/prisma";
+import { AuditEntityType, SessionMode } from "../generated/prisma";
 import { ptServicePackageRepository } from "../repositories/pt_service_package.repository";
 import { profileRepository } from "../repositories/profile.repository";
+import { auditService } from "./audit.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
 }
 
 const MAX_PACKAGES_PER_PT = 10;
+
+/**
+ * Fields whose change a client could later dispute ("the package said 10 sessions when I
+ * bought it"). Contracts snapshot these at signing, so the log is what proves the
+ * snapshot was correct at the time rather than merely different from today.
+ */
+const AUDITED_PACKAGE_FIELDS = [
+  "name",
+  "sessionCount",
+  "price",
+  "sessionMode",
+  "sessionDurationMinutes",
+  "validityDays",
+  "isActive",
+] as const;
 
 export const ptServicePackageService = {
   /**
@@ -77,6 +93,19 @@ export const ptServicePackageService = {
       validityDays: data.validityDays,
     });
 
+    await auditService.record({
+      actorUserId: ptUserId,
+      action: "SERVICE_PACKAGE_CREATED",
+      entityType: AuditEntityType.SERVICE_PACKAGE,
+      entityId: pkg.id,
+      metadata: {
+        name: pkg.name,
+        price: pkg.price.toString(),
+        sessionCount: pkg.sessionCount,
+        sessionMode: pkg.sessionMode,
+      },
+    });
+
     return { package: pkg };
   },
 
@@ -114,6 +143,27 @@ export const ptServicePackageService = {
     if (data.price !== undefined) updateData.price = new Decimal(data.price);
 
     const updated = await ptServicePackageRepository.update(packageId, updateData);
+
+    // Only the fields that actually moved. Logging the whole row on every edit would bury
+    // a price change among a dozen unchanged values.
+    const changes: Record<string, { before: string; after: string }> = {};
+    for (const field of AUDITED_PACKAGE_FIELDS) {
+      const before = pkg[field];
+      const after = updated[field];
+      if (String(before) !== String(after)) {
+        changes[field] = { before: String(before), after: String(after) };
+      }
+    }
+    if (Object.keys(changes).length > 0) {
+      await auditService.record({
+        actorUserId: ptUserId,
+        action: "SERVICE_PACKAGE_UPDATED",
+        entityType: AuditEntityType.SERVICE_PACKAGE,
+        entityId: packageId,
+        metadata: { changes },
+      });
+    }
+
     return { package: updated };
   },
 
@@ -128,6 +178,14 @@ export const ptServicePackageService = {
 
     const hasActiveContracts = await ptServicePackageRepository.hasActiveContracts(packageId);
     await ptServicePackageRepository.archive(packageId);
+
+    await auditService.record({
+      actorUserId: ptUserId,
+      action: "SERVICE_PACKAGE_ARCHIVED",
+      entityType: AuditEntityType.SERVICE_PACKAGE,
+      entityId: packageId,
+      metadata: { name: pkg.name, hasActiveContracts },
+    });
 
     return {
       archived: true,

@@ -1,5 +1,7 @@
 import { logger } from "@gym-coach/shared";
+import { AuditEntityType } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
+import { auditService, SYSTEM_ACTOR } from "./audit.service";
 
 const INTERVAL_MS = Number(
   process.env.RESCHEDULE_EXPIRY_INTERVAL_MS ?? 10 * 60 * 1000,
@@ -61,6 +63,28 @@ export async function runRescheduleExpiry(): Promise<{ expired: number }> {
 
     if (count > 0) {
       logger.info(`[RescheduleExpiry] Expired ${count} unanswered reschedule request(s)`);
+      // Audit only the rows this sweep actually flipped. A candidate that lost the race was
+      // answered by a person, and respondToReschedule already logged that — recording it
+      // here too would show the same request both answered and expired.
+      const expired = await prisma.sessionRescheduleRequest.findMany({
+        where: { id: { in: stale.map((r) => r.id) }, status: "EXPIRED" },
+        select: { id: true, sessionId: true, requestedBy: true, originalStartAt: true, proposedStartAt: true },
+      });
+      for (const r of expired) {
+        await auditService.record({
+          actorUserId: SYSTEM_ACTOR,
+          action: "SESSION_RESCHEDULE_EXPIRED",
+          entityType: AuditEntityType.SESSION,
+          entityId: r.sessionId,
+          metadata: {
+            requestId: r.id,
+            requestedBy: r.requestedBy,
+            proposedStartAt: r.proposedStartAt.toISOString(),
+            // The session did not move; its time is still the original one.
+            effectiveStartAt: r.originalStartAt.toISOString(),
+          },
+        });
+      }
     }
     return { expired: count };
   } catch (err) {

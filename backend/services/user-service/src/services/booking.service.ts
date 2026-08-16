@@ -1,5 +1,6 @@
 import { createHmac } from "crypto";
 import {
+  AuditEntityType,
   SessionStatus,
   SessionMode,
   ContractStatus,
@@ -15,6 +16,7 @@ import { availabilityRepository } from "../repositories/availability.repository"
 import { profileRepository } from "../repositories/profile.repository";
 import { notificationService } from "./notification.service";
 import { contractService } from "./contract.service";
+import { auditService } from "./audit.service";
 
 const DAY_MAP: Record<number, DayOfWeek> = {
   0: DayOfWeek.SUNDAY,
@@ -830,11 +832,30 @@ export const bookingService = {
     // update — after the request row had already been written, which is why the "only one
     // open request" rule appeared to work while nothing else did.
 
+    await auditService.record({
+      actorUserId: userId,
+      action: "SESSION_RESCHEDULE_REQUESTED",
+      entityType: AuditEntityType.SESSION,
+      entityId: sessionId,
+      metadata: {
+        requestId: request.id,
+        requestedBy: isClient ? "CLIENT" : "PT",
+        originalStartAt: session.scheduledStartAt.toISOString(),
+        proposedStartAt: proposedStart.toISOString(),
+        proposedEndAt: proposedEnd.toISOString(),
+        reason: data.reason,
+        movesUsed: usedMoves,
+      },
+    });
+
     const targetUserId = isClient ? session.ptUserId : session.clientUserId;
     notificationService.create({
       userId: targetUserId,
       text: `Có yêu cầu dời lịch buổi tập sang ngày ${proposedStart.toLocaleString()}`,
-      eventType: "SESSION_UPDATE",
+      // "SESSION_UPDATE" is not a NotificationEventType, so Prisma rejected every one of
+      // these and the .catch swallowed it: the other party was never told a proposal had
+      // been made. The enum has had the right value all along.
+      eventType: "SESSION_RESCHEDULE_REQUESTED",
       entityType: "SESSION",
       entityId: sessionId
     }).catch(console.error);
@@ -860,7 +881,24 @@ export const bookingService = {
       throw err("Chỉ người gửi mới được rút lại yêu cầu", 403);
     }
 
-    return sessionRepository.updateRescheduleRequestStatus(requestId, "CANCELLED");
+    const withdrawn = await sessionRepository.updateRescheduleRequestStatus(
+      requestId,
+      "CANCELLED",
+    );
+
+    await auditService.record({
+      actorUserId: userId,
+      action: "SESSION_RESCHEDULE_WITHDRAWN",
+      entityType: AuditEntityType.SESSION,
+      entityId: request.sessionId,
+      metadata: {
+        requestId,
+        requestedBy: request.requestedBy,
+        proposedStartAt: request.proposedStartAt.toISOString(),
+      },
+    });
+
+    return withdrawn;
   },
 
   /**
@@ -926,6 +964,32 @@ export const bookingService = {
       );
     }
 
+    // The session's time changing is the single most disputed fact in this flow — "I was
+    // never told it moved" is answered here, with who accepted and what the time was before.
+    await auditService.record({
+      actorUserId: userId,
+      action:
+        action === "ACCEPT"
+          ? "SESSION_RESCHEDULE_ACCEPTED"
+          : "SESSION_RESCHEDULE_REJECTED",
+      entityType: AuditEntityType.SESSION,
+      entityId: session.id,
+      metadata: {
+        requestId,
+        requestedBy: request.requestedBy,
+        respondedBy: isClient ? "CLIENT" : "PT",
+        originalStartAt: request.originalStartAt.toISOString(),
+        proposedStartAt: request.proposedStartAt.toISOString(),
+        // On a rejection the session keeps its original time; spell that out rather than
+        // leaving the reader to infer it from the action name.
+        effectiveStartAt:
+          action === "ACCEPT"
+            ? request.proposedStartAt.toISOString()
+            : session.scheduledStartAt.toISOString(),
+        responseNote: responseNote ?? null,
+      },
+    });
+
     const requesterUserId = request.requestedBy === "CLIENT" ? session.clientUserId : session.ptUserId;
       notificationService.create({
         userId: requesterUserId,
@@ -935,7 +999,13 @@ export const bookingService = {
           action === "ACCEPT"
             ? `Yêu cầu dời lịch đã được chấp nhận. Giờ mới: ${request.proposedStartAt.toLocaleString("vi-VN")}`
             : `Yêu cầu dời lịch đã bị từ chối. Buổi tập giữ nguyên giờ cũ.`,
-        eventType: "SESSION_UPDATE",
+        // Same invalid enum value as on the request side — the answer never reached the
+        // person who had asked. The event type has to match the branch, or an acceptance
+        // and a rejection arrive looking identical to anything that filters on it.
+        eventType:
+          action === "ACCEPT"
+            ? "SESSION_RESCHEDULE_ACCEPTED"
+            : "SESSION_RESCHEDULE_REJECTED",
         entityType: "SESSION",
         entityId: request.sessionId
       }).catch(console.error);

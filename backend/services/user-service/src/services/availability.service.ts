@@ -63,6 +63,110 @@ function minutesToTime(minutes: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+/**
+ * "YYYY-MM-DD" in the process timezone, which the containers set to Asia/Ho_Chi_Minh.
+ *
+ * `toISOString().slice(0, 10)` was used for this and is wrong east of Greenwich: local
+ * midnight on the 12th is 17:00 UTC on the 11th, so the day the loop was walking and the
+ * day a booked session was keyed under never matched. Booked slots and days off were
+ * therefore never subtracted — the count was just "every slot the PT publishes". Anything
+ * that compares a wall-clock day has to read the same clock `getDay()` and `getHours()` do.
+ */
+function localDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export interface SlotAvailabilityRow {
+  ptUserId: string;
+  dayOfWeek: DayOfWeek;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+}
+export interface SlotExceptionRow {
+  ptUserId: string;
+  date: Date;
+}
+export interface SlotBookedRow {
+  ptUserId: string;
+  scheduledStartAt: Date;
+}
+
+/**
+ * The slot arithmetic on its own, with the database already read.
+ *
+ * Split out from countAvailableSlotsForPTs so it can be tested against fixed rows: the
+ * number this produces drives the purchase warning a client is shown, and until it was
+ * pinned by tests it was silently ignoring every booking and day off.
+ */
+export function countSlotsFromRows(input: {
+  ptUserIds: string[];
+  availabilities: SlotAvailabilityRow[];
+  exceptions: SlotExceptionRow[];
+  bookedSessions: SlotBookedRow[];
+  fromDate: Date;
+  toDate: Date;
+  sessionDurationMinutes: number;
+}): Record<string, number> {
+  const { ptUserIds, availabilities, exceptions, bookedSessions, fromDate, toDate, sessionDurationMinutes } = input;
+
+  // ptUserId -> set of local date strings the PT is unavailable
+  const exceptionsByPT: Record<string, Set<string>> = {};
+  for (const ex of exceptions) {
+    if (!exceptionsByPT[ex.ptUserId]) exceptionsByPT[ex.ptUserId] = new Set();
+    exceptionsByPT[ex.ptUserId].add(localDateKey(new Date(ex.date)));
+  }
+
+  // ptUserId -> set of "HH:MM@YYYY-MM-DD" already taken
+  const bookedByPT: Record<string, Set<string>> = {};
+  for (const s of bookedSessions) {
+    if (!bookedByPT[s.ptUserId]) bookedByPT[s.ptUserId] = new Set();
+    const start = new Date(s.scheduledStartAt);
+    const h = String(start.getHours()).padStart(2, "0");
+    const m = String(start.getMinutes()).padStart(2, "0");
+    bookedByPT[s.ptUserId].add(`${h}:${m}@${localDateKey(start)}`);
+  }
+
+  const availByPT: Record<string, SlotAvailabilityRow[]> = {};
+  for (const a of availabilities) {
+    if (!availByPT[a.ptUserId]) availByPT[a.ptUserId] = [];
+    availByPT[a.ptUserId].push(a);
+  }
+
+  const result: Record<string, number> = {};
+
+  for (const ptUserId of ptUserIds) {
+    const ptAvail = availByPT[ptUserId] ?? [];
+    const ptExceptions = exceptionsByPT[ptUserId] ?? new Set<string>();
+    const ptBooked = bookedByPT[ptUserId] ?? new Set<string>();
+
+    let slotCount = 0;
+    const current = new Date(fromDate);
+    while (current <= toDate) {
+      const dateStr = localDateKey(current);
+      const dayOfWeek = DAY_MAP[current.getDay()];
+
+      if (!ptExceptions.has(dateStr)) {
+        const blocks = ptAvail.filter((a) => a.dayOfWeek === dayOfWeek && a.isActive);
+        for (const block of blocks) {
+          let cur = timeToMinutes(block.startTime);
+          const end = timeToMinutes(block.endTime);
+          while (cur + sessionDurationMinutes <= end) {
+            if (!ptBooked.has(`${minutesToTime(cur)}@${dateStr}`)) slotCount++;
+            cur += sessionDurationMinutes;
+          }
+        }
+      }
+
+      current.setDate(current.getDate() + 1);
+    }
+
+    result[ptUserId] = slotCount;
+  }
+
+  return result;
+}
+
 export const availabilityService = {
   // Validate blocks: no overlap, startTime < endTime
   validateAvailabilityBlocks(
@@ -326,80 +430,22 @@ export const availabilityService = {
   ): Promise<Record<string, number>> {
     if (ptUserIds.length === 0) return {};
 
-    // 1. Three batch queries — not N queries.
+    // Three batch queries — not 3N.
     const [availabilities, exceptions, bookedSessions] = await Promise.all([
       availabilityRepository.findByPTs(ptUserIds),
       availabilityRepository.findExceptionsByPTsAndRange(ptUserIds, fromDate, toDate),
       sessionRepository.findBookedByPTsAndRange(ptUserIds, fromDate, toDate),
     ]);
 
-    // Index exceptions: ptUserId -> Set of date strings (YYYY-MM-DD)
-    const exceptionsByPT: Record<string, Set<string>> = {};
-    for (const ex of exceptions) {
-      if (!exceptionsByPT[ex.ptUserId]) exceptionsByPT[ex.ptUserId] = new Set();
-      // Normalize to local date string for comparison
-      const d = new Date(ex.date);
-      exceptionsByPT[ex.ptUserId].add(d.toISOString().slice(0, 10));
-    }
-
-    // Index booked slots: ptUserId -> Set of "HH:MM@YYYY-MM-DD"
-    const bookedByPT: Record<string, Set<string>> = {};
-    for (const s of bookedSessions) {
-      if (!bookedByPT[s.ptUserId]) bookedByPT[s.ptUserId] = new Set();
-      const start = new Date(s.scheduledStartAt);
-      const h = String(start.getHours()).padStart(2, "0");
-      const m = String(start.getMinutes()).padStart(2, "0");
-      const dateKey = start.toISOString().slice(0, 10);
-      bookedByPT[s.ptUserId].add(`${h}:${m}@${dateKey}`);
-    }
-
-    // Group availability records by PT
-    const availByPT: Record<string, typeof availabilities> = {};
-    for (const a of availabilities) {
-      if (!availByPT[a.ptUserId]) availByPT[a.ptUserId] = [];
-      availByPT[a.ptUserId].push(a);
-    }
-
-    const result: Record<string, number> = {};
-
-    for (const ptUserId of ptUserIds) {
-      const ptAvail = availByPT[ptUserId] ?? [];
-      const ptExceptions = exceptionsByPT[ptUserId] ?? new Set<string>();
-      const ptBooked = bookedByPT[ptUserId] ?? new Set<string>();
-
-      let slotCount = 0;
-      // Iterate each day in the window
-      const current = new Date(fromDate);
-      while (current <= toDate) {
-        const dateStr = current.toISOString().slice(0, 10);
-        const dayOfWeek = DAY_MAP[current.getDay()];
-
-        // Skip excepted days
-        if (!ptExceptions.has(dateStr)) {
-          // Get blocks for this day of week
-          const blocks = ptAvail.filter(
-            (a) => a.dayOfWeek === dayOfWeek && a.isActive,
-          );
-          for (const block of blocks) {
-            let cur = timeToMinutes(block.startTime);
-            const end = timeToMinutes(block.endTime);
-            while (cur + sessionDurationMinutes <= end) {
-              const h = Math.floor(cur / 60);
-              const mi = cur % 60;
-              const timeStr = `${String(h).padStart(2, "0")}:${String(mi).padStart(2, "0")}@${dateStr}`;
-              if (!ptBooked.has(timeStr)) slotCount++;
-              cur += sessionDurationMinutes;
-            }
-          }
-        }
-
-        current.setDate(current.getDate() + 1);
-      }
-
-      result[ptUserId] = slotCount;
-    }
-
-    return result;
+    return countSlotsFromRows({
+      ptUserIds,
+      availabilities,
+      exceptions,
+      bookedSessions,
+      fromDate,
+      toDate,
+      sessionDurationMinutes,
+    });
   },
 
   /**

@@ -7,8 +7,9 @@ import {
   moneyBreakdown,
   terminateContractMoney,
 } from '../services/contract-payout.service';
+import { auditService, auditMeta } from "../services/audit.service";
 import { contractRepository } from "../repositories/contract.repository";
-import { ContractStatus } from "../generated/prisma";
+import { AuditEntityType, ContractStatus } from "../generated/prisma";
 import { prisma } from "../repositories/profile.repository";
 
 export const contractController = {
@@ -521,6 +522,24 @@ export const contractController = {
       }
 
       const result = await terminateContractMoney(req.params.id, reason as any);
+
+      // The reason decides who pays, so record who declared it and under what authority.
+      // "The admin ended it as MUTUAL" and "the PT ended it as MUTUAL" settle differently,
+      // and only the log can tell them apart afterwards.
+      await auditService.record({
+        actorUserId: userId,
+        action: "CONTRACT_TERMINATED",
+        entityType: AuditEntityType.CONTRACT,
+        entityId: req.params.id,
+        metadata: {
+          reason,
+          actorRole: isAdmin ? "ADMIN" : isPt ? "PT" : isClient ? "CLIENT" : "UNKNOWN",
+          refund: result?.refund ?? null,
+          statusBefore: contract.status,
+        },
+        ...auditMeta(req),
+      });
+
       res.json({ contractId: req.params.id, reason, settlement: result });
     } catch (error: any) {
       logger.error(error, 'Contract terminate error');

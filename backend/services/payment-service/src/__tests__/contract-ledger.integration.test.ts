@@ -491,3 +491,190 @@ test('a PT with an exhausted pending bucket still leaves the client whole', skip
   const report = await m.reconcile.assertInvariant('S complete');
   assert.equal(report.negativeWallets.length, 0, 'no wallet went negative');
 });
+
+// ── Receivable recovery (money-flow §3.9) ────────────────────────────────────
+//
+// coverShortfall books the debt; these prove the other half — that it is actually taken back
+// out of what the partner earns next, instead of sitting in the table forever waiting for an
+// admin to notice it by hand.
+
+/** A debt the platform has already fronted for this fixture's PT. */
+async function seedReceivable(m: Mods, f: Fixture, amount: number) {
+  return m.prisma.partnerReceivable.create({
+    data: {
+      partnerType: 'PT',
+      partnerId: f.parties.ptUserId,
+      amount,
+      reason: 'seeded debt',
+      transactionId: f.txnId,
+    },
+  });
+}
+
+test('a debt is withheld from the next session the PT earns', skipOpts, async () => {
+  const m = await load();
+  await resetLedger(m);
+  const f = await seedContract(m, { price: 1_000_000, totalSessions: 10, rates: rateTable(m, '0.10', '0.90', '0') });
+
+  await m.ledger.settleContractPayment({
+    transactionId: f.txnId, price: f.price, rates: f.rates, parties: f.parties, label: 'R1',
+  });
+  const debt = await seedReceivable(m, f, 50_000);
+
+  // One session earns the PT 90.000. The debt is smaller, so it clears in a single pass.
+  await m.ledger.releaseSession({
+    transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
+    rates: f.rates, parties: f.parties, label: 'R1 session 1',
+  });
+
+  const b = await balances(m, f);
+  assert.equal(b.ptAvailable, '40000.00', 'PT keeps the 90.000 earned minus the 50.000 owed');
+  assert.equal(b.platformRevenue, '60000.00', 'platform gets its 10.000 commission plus the 50.000 back');
+  assert.equal(b.escrow, '1000000.00', 'escrow untouched — no cash left the platform');
+
+  const after = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debt.id } });
+  assert.equal(after.recovered.toFixed(2), '50000.00', 'the whole debt is marked recovered');
+  assert.ok(after.settledAt, 'and the row is settled');
+
+  await m.reconcile.assertInvariant('R1 complete');
+});
+
+test('a debt larger than one session recovers gradually and never overdraws', skipOpts, async () => {
+  const m = await load();
+  await resetLedger(m);
+  const f = await seedContract(m, { price: 1_000_000, totalSessions: 10, rates: rateTable(m, '0.10', '0.90', '0') });
+
+  await m.ledger.settleContractPayment({
+    transactionId: f.txnId, price: f.price, rates: f.rates, parties: f.parties, label: 'R2',
+  });
+  // Bigger than a single session's 90.000, so it cannot clear in one go.
+  const debt = await seedReceivable(m, f, 200_000);
+
+  await m.ledger.releaseSession({
+    transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
+    rates: f.rates, parties: f.parties, label: 'R2 session 1',
+  });
+
+  let b = await balances(m, f);
+  assert.equal(b.ptAvailable, '0.00', 'the whole session went to the debt, but no further');
+  assert.equal(b.ptPending, '810000.00', 'pending is untouched — only the credit that just landed is at risk');
+  let row = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debt.id } });
+  assert.equal(row.recovered.toFixed(2), '90000.00', 'one session recovered');
+  assert.equal(row.settledAt, null, 'still owing, so not settled');
+  await m.reconcile.assertInvariant('R2 after session 1');
+
+  // Two more sessions: 90.000 then 110.000 clears the rest, and the surplus stays with the PT.
+  for (let i = 2; i <= 3; i++) {
+    await m.ledger.releaseSession({
+      transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
+      rates: f.rates, parties: f.parties, label: `R2 session ${i}`,
+    });
+    await m.reconcile.assertInvariant(`R2 after session ${i}`);
+  }
+
+  b = await balances(m, f);
+  assert.equal(b.ptAvailable, '70000.00', 'three sessions earned 270.000, of which 200.000 went to the debt');
+  assert.equal(b.platformRevenue, '230000.00', '30.000 commission plus the 200.000 recovered');
+  row = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debt.id } });
+  assert.equal(row.recovered.toFixed(2), '200000.00', 'fully recovered');
+  assert.ok(row.settledAt, 'and now settled');
+
+  // A fourth session, with nothing left owing, reaches the PT untouched.
+  await m.ledger.releaseSession({
+    transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
+    rates: f.rates, parties: f.parties, label: 'R2 session 4',
+  });
+  b = await balances(m, f);
+  assert.equal(b.ptAvailable, '160000.00', 'once the debt is settled the PT is paid in full again');
+  await m.reconcile.assertInvariant('R2 complete');
+});
+
+test('older debts are recovered before newer ones', skipOpts, async () => {
+  const m = await load();
+  await resetLedger(m);
+  const f = await seedContract(m, { price: 1_000_000, totalSessions: 10, rates: rateTable(m, '0.10', '0.90', '0') });
+
+  await m.ledger.settleContractPayment({
+    transactionId: f.txnId, price: f.price, rates: f.rates, parties: f.parties, label: 'R3',
+  });
+  const older = await seedReceivable(m, f, 60_000);
+  // Two rows created in the same millisecond would make the ordering a coin toss; pin the
+  // age difference the test is actually about.
+  await m.prisma.partnerReceivable.update({
+    where: { id: older.id },
+    data: { createdAt: new Date(Date.now() - 60_000) },
+  });
+  const newer = await seedReceivable(m, f, 60_000);
+
+  await m.ledger.releaseSession({
+    transactionId: f.txnId, price: f.price, totalSessions: f.totalSessions,
+    rates: f.rates, parties: f.parties, label: 'R3 session 1',
+  });
+
+  const o = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: older.id } });
+  const n = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: newer.id } });
+  assert.equal(o.recovered.toFixed(2), '60000.00', 'the older debt is cleared first');
+  assert.ok(o.settledAt, 'and settled');
+  assert.equal(n.recovered.toFixed(2), '30000.00', 'the remaining 30.000 goes to the newer one');
+  assert.equal(n.settledAt, null, 'which is still outstanding');
+  await m.reconcile.assertInvariant('R3 complete');
+});
+
+test('a shortfall the platform fronts comes back out of the PT later earnings', skipOpts, async () => {
+  const m = await load();
+  await resetLedger(m);
+
+  // A healthy contract first, purely to give REVENUE the funds to front with. Without it
+  // coverShortfall refuses outright, which is its own separately-tested behaviour.
+  const funder = await seedContract(m, { price: 1_000_000, totalSessions: 10, rates: rateTable(m, '0.10', '0.90', '0') });
+  await m.ledger.settleContractPayment({
+    transactionId: funder.txnId, price: funder.price, rates: funder.rates, parties: funder.parties, label: 'R4 funder',
+  });
+  for (let i = 0; i < 10; i++) {
+    await m.ledger.releaseSession({
+      transactionId: funder.txnId, price: funder.price, totalSessions: funder.totalSessions,
+      rates: funder.rates, parties: funder.parties, label: `R4 funder session ${i + 1}`,
+    });
+  }
+
+  const f = await seedContract(m, { price: 300_000, totalSessions: 3, rates: rateTable(m, '0.10', '0.90', '0') });
+  await m.ledger.settleContractPayment({
+    transactionId: f.txnId, price: f.price, rates: f.rates, parties: f.parties, label: 'R4',
+  });
+
+  // Four no-shows against a three-session contract: the fourth finds no pending or available
+  // left to charge, so the platform funds the client's compensation and books the debt.
+  for (let i = 0; i < 4; i++) {
+    await m.ledger.compensateNoShow({
+      transactionId: await nextTxn(m, f), price: f.price, totalSessions: f.totalSessions,
+      rates: f.rates, parties: f.parties, label: `R4 no-show ${i + 1}`,
+    });
+    await m.reconcile.assertInvariant(`R4 after no-show ${i + 1}`);
+  }
+
+  const debts = await m.prisma.partnerReceivable.findMany({
+    where: { partnerType: 'PT', partnerId: f.parties.ptUserId },
+  });
+  assert.equal(debts.length, 1, 'the platform booked exactly one debt');
+  assert.equal(debts[0].recovered.toFixed(2), '0.00', 'nothing recovered yet — the PT has earned nothing since');
+
+  // The same PT signs a new contract and delivers a session. That earning is where the debt
+  // gets collected, with no admin doing it by hand.
+  const next = await seedContract(m, { price: 1_000_000, totalSessions: 10, rates: rateTable(m, '0.10', '0.90', '0') });
+  next.parties.ptUserId = f.parties.ptUserId;
+  await m.ledger.settleContractPayment({
+    transactionId: next.txnId, price: next.price, rates: next.rates, parties: next.parties, label: 'R4 next',
+  });
+  await m.ledger.releaseSession({
+    transactionId: next.txnId, price: next.price, totalSessions: next.totalSessions,
+    rates: next.rates, parties: next.parties, label: 'R4 next session 1',
+  });
+
+  const collected = await m.prisma.partnerReceivable.findUniqueOrThrow({ where: { id: debts[0].id } });
+  assert.ok(collected.recovered.greaterThan(0), 'the session the PT delivered went against the debt');
+  const b = await balances(m, next);
+  assert.equal(b.ptAvailable, '0.00', 'so none of that session reached the PT');
+
+  const report = await m.reconcile.assertInvariant('R4 complete');
+  assert.equal(report.negativeWallets.length, 0, 'no wallet went negative');
+});

@@ -12,6 +12,8 @@ import {
   attachPtRatings,
 } from "../repositories/ptReview.repository";
 import { enrichForDiscovery } from "../services/pt-discovery.service";
+import { auditService, auditMeta } from "../services/audit.service";
+import { AuditEntityType } from "../generated/prisma";
 import { adminPTStatusSchema, profileSchema } from "../models/profile.models";
 import type { AuthRequest } from "../middleware/auth.middleware";
 
@@ -345,6 +347,20 @@ export const profileController = {
         isAcceptingClients,
         notAcceptingReason
       );
+
+      // Closing the door hides the buy button, so a client who was mid-purchase and a PT
+      // who says "I never stopped taking clients" need a dated record of the switch.
+      await auditService.record({
+        actorUserId: req.user!.id,
+        action: isAcceptingClients
+          ? "PT_ACCEPTING_CLIENTS_ON"
+          : "PT_ACCEPTING_CLIENTS_OFF",
+        entityType: AuditEntityType.PT_PROFILE,
+        entityId: req.user!.id,
+        metadata: { notAcceptingReason: notAcceptingReason ?? null },
+        ...auditMeta(req),
+      });
+
       res.json({ profile });
     } catch (error) {
       logger.error(error, "Toggle accepting clients error");

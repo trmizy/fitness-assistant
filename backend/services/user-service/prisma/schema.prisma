@@ -742,3 +742,46 @@ model InBodyEntry {
   @@index([userId, date])
   @@map("inbody_entries")
 }
+
+// ─── Audit Log ────────────────────────────────────────────────────
+// An append-only record of who changed what, kept for dispute resolution: a client who
+// says "I never agreed to that time" and a PT who says "she cancelled, not me" are both
+// answered from here rather than from whoever shouts loudest.
+//
+// Two deliberate differences from auth-service's AuditLog, which this follows otherwise:
+//
+//  · No foreign key to UserProfile. auth-service relates its log to User with
+//    onDelete: Cascade, which is right for login history but wrong here — deleting a
+//    profile would erase exactly the evidence a dispute about that profile needs. The
+//    actor is a plain id, resolved for display only when someone reads the log.
+//  · An entity pair (type + id) instead of a bare userId, because what is being audited
+//    is a contract, a session or a package, not a person.
+//
+// Writes must never break the operation being audited: see auditService.record.
+
+enum AuditEntityType {
+  CONTRACT
+  SESSION
+  SERVICE_PACKAGE
+  PT_PROFILE
+}
+
+model AuditLog {
+  id           String          @id @default(uuid())
+  /// Who performed the action. Not an FK — see the note above.
+  actorUserId  String          @map("actor_user_id")
+  /// Verb in SCREAMING_SNAKE, e.g. CONTRACT_ACCEPTED, SESSION_RESCHEDULE_ACCEPTED.
+  action       String
+  entityType   AuditEntityType @map("entity_type")
+  entityId     String          @map("entity_id")
+  /// Before/after values and any context worth keeping. Shape varies by action.
+  metadata     Json?
+  ipAddress    String?         @map("ip_address")
+  userAgent    String?         @map("user_agent")
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  // Reading the history of one contract or session is the query this table exists for.
+  @@index([entityType, entityId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("audit_logs")
+}

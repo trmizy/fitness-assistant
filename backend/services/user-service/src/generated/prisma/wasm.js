@@ -463,6 +463,18 @@ exports.Prisma.InBodyEntryScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.AuditLogScalarFieldEnum = {
+  id: 'id',
+  actorUserId: 'actorUserId',
+  action: 'action',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  metadata: 'metadata',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -627,6 +639,13 @@ exports.RescheduleStatus = exports.$Enums.RescheduleStatus = {
   CANCELLED: 'CANCELLED'
 };
 
+exports.AuditEntityType = exports.$Enums.AuditEntityType = {
+  CONTRACT: 'CONTRACT',
+  SESSION: 'SESSION',
+  SERVICE_PACKAGE: 'SERVICE_PACKAGE',
+  PT_PROFILE: 'PT_PROFILE'
+};
+
 exports.Prisma.ModelName = {
   UserProfile: 'UserProfile',
   PTApplication: 'PTApplication',
@@ -643,7 +662,8 @@ exports.Prisma.ModelName = {
   PTTrainingLocation: 'PTTrainingLocation',
   PTServicePackage: 'PTServicePackage',
   SessionRescheduleRequest: 'SessionRescheduleRequest',
-  InBodyEntry: 'InBodyEntry'
+  InBodyEntry: 'InBodyEntry',
+  AuditLog: 'AuditLog'
 };
 
 /**

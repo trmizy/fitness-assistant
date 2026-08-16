@@ -547,7 +547,7 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     environment:
-      TZ: Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
+      - TZ=Asia/Ho_Chi_Minh   # giờ Việt Nam — xem ghi chú ở api-gateway
       - QDRANT__SERVICE__GRPC_PORT=6334
       - QDRANT__SERVICE__ENABLE_UI=true
 

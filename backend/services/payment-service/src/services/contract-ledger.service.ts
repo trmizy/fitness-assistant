@@ -172,7 +172,12 @@ export async function releaseSession(params: {
   assertGymConsistency(wallets, rel.gym);
 
   return walletService.withWallets(wallets.all, transactionId, async (ops) => {
-    const move = async (walletId: string, amount: Prisma.Decimal, who: string) => {
+    const move = async (
+      walletId: string,
+      amount: Prisma.Decimal,
+      who: string,
+      debtor?: { partnerType: 'PT' | 'GYM'; partnerId: string },
+    ) => {
       if (amount.lessThanOrEqualTo(0)) return;
       // Clamp to what is actually there. A contract whose pending bucket has already been
       // drained (PT no-shows, an earlier partial refund) must not push a bucket negative;
@@ -185,10 +190,26 @@ export async function releaseSession(params: {
       }
       await ops.debit(walletId, moving, `${label} — release to available`, 'PENDING');
       await ops.credit(walletId, moving, `${label} — session earned`, 'AVAILABLE');
+
+      // A partner who owes the platform works the debt off out of what they just earned,
+      // before it becomes withdrawable. The platform is never a debtor to itself, so the
+      // revenue wallet is not passed a debtor.
+      if (debtor) {
+        await recoverReceivables({
+          ops,
+          walletId,
+          revenueWalletId: wallets.revenueId,
+          ...debtor,
+          justCredited: moving,
+          label,
+        });
+      }
     };
 
-    await move(wallets.ptId, rel.pt, 'PT');
-    if (wallets.gymId) await move(wallets.gymId, rel.gym, 'Gym');
+    await move(wallets.ptId, rel.pt, 'PT', { partnerType: 'PT', partnerId: parties.ptUserId });
+    if (wallets.gymId) {
+      await move(wallets.gymId, rel.gym, 'Gym', { partnerType: 'GYM', partnerId: parties.gymId! });
+    }
     await move(wallets.revenueId, rel.platform, 'Platform');
 
     return {
@@ -316,6 +337,84 @@ export async function coverShortfall(
   logger.warn(`[ContractLedger] platform fronted ${shortfall.toString()} owed by ${debt.partnerType} ${debt.partnerId}`);
 }
 
+/**
+ * The other half of coverShortfall: take the fronted money back out of what the partner
+ * earns next (money-flow §3.9, "khoản phải thu này bị trừ vào các lần ghi có sau").
+ *
+ * Called immediately after a partner's AVAILABLE bucket is credited, and withholds from
+ * that credit before the partner can withdraw it. Three deliberate limits:
+ *
+ *  · Never more than the credit that just landed. The debt is recovered out of *subsequent
+ *    earnings*, not by raiding a balance the partner built up before the debt arose — that
+ *    would be a seizure, and it would surprise someone who had already been told a figure.
+ *  · Oldest debt first, so a long-standing receivable cannot be starved by newer ones.
+ *  · The recovered money goes back to REVENUE, which is where coverShortfall took it from.
+ *    Escrow does not move: the partner's claim shrinks and the platform's grows by the same
+ *    amount, so the §6 invariant holds without a compensating entry.
+ *
+ * Partial recovery is normal — a large debt is worked off over several sessions. The row
+ * only settles when `recovered` reaches `amount`.
+ *
+ * Not yet interacting with withdrawal requests: money-flow §15 rules that recovery outranks
+ * a pending withdrawal, but WithdrawalRequest does not exist yet (VĐ1). When it does, the
+ * check belongs here, before the debit.
+ */
+export async function recoverReceivables(params: {
+  ops: LedgerOps;
+  walletId: string;
+  revenueWalletId: string;
+  partnerType: 'PT' | 'GYM';
+  partnerId: string;
+  /** Ceiling for this pass: the amount just credited to the partner's AVAILABLE bucket. */
+  justCredited: Prisma.Decimal;
+  label: string;
+}): Promise<Prisma.Decimal> {
+  const { ops, walletId, revenueWalletId, partnerType, partnerId, justCredited, label } = params;
+  if (justCredited.lessThanOrEqualTo(0)) return ZERO;
+
+  const debts = await ops.tx.partnerReceivable.findMany({
+    where: { partnerType, partnerId, settledAt: null },
+    orderBy: { createdAt: 'asc' },
+  });
+  if (debts.length === 0) return ZERO;
+
+  // Cap by what is actually in the bucket as well. These should agree, but a bucket that is
+  // somehow short must not be pushed negative — that breaks the invariant this whole file
+  // exists to protect.
+  const held = ops.balance(walletId, 'AVAILABLE');
+  let budget = justCredited.lessThan(held) ? justCredited : held;
+  let recoveredTotal = ZERO;
+
+  for (const debt of debts) {
+    if (budget.lessThanOrEqualTo(0)) break;
+    const outstanding = new Prisma.Decimal(debt.amount).minus(debt.recovered);
+    if (outstanding.lessThanOrEqualTo(0)) continue;
+
+    const take = outstanding.lessThan(budget) ? outstanding : budget;
+    const nowRecovered = new Prisma.Decimal(debt.recovered).plus(take);
+    const settled = nowRecovered.greaterThanOrEqualTo(debt.amount);
+
+    await ops.tx.partnerReceivable.update({
+      where: { id: debt.id },
+      data: { recovered: nowRecovered, settledAt: settled ? new Date() : null },
+    });
+
+    budget = budget.minus(take);
+    recoveredTotal = recoveredTotal.plus(take);
+    logger.info(
+      `[ContractLedger] recovered ${take.toString()} of receivable ${debt.id} from ${partnerType} ${partnerId}` +
+        (settled ? ' — settled in full' : ` — ${outstanding.minus(take).toString()} still owed`),
+    );
+  }
+
+  if (recoveredTotal.greaterThan(0)) {
+    await ops.debit(walletId, recoveredTotal, `${label} — withheld against outstanding debt`, 'AVAILABLE');
+    await ops.credit(revenueWalletId, recoveredTotal, `${label} — debt recovered`, 'AVAILABLE');
+  }
+
+  return recoveredTotal;
+}
+
 export interface TerminationLedgerResult {
   reason: TerminationReason;
   refund: string;
@@ -368,6 +467,7 @@ export async function terminateContract(params: {
       entitlement: Prisma.Decimal,
       released: Prisma.Decimal,
       key: 'pt' | 'gym' | 'platform',
+      debtor?: { partnerType: 'PT' | 'GYM'; partnerId: string },
     ) => {
       if (!walletId) return;
       const gap = entitlement.minus(released);
@@ -378,6 +478,18 @@ export async function terminateContract(params: {
           await ops.debit(walletId, moving, `${label} — final settlement`, 'PENDING');
           await ops.credit(walletId, moving, `${label} — final settlement`, 'AVAILABLE');
           topUp[key] = moving;
+          // Last chance to recover: after this the contract is closed and this partner has
+          // no further credits from it to withhold against.
+          if (debtor) {
+            await recoverReceivables({
+              ops,
+              walletId,
+              revenueWalletId: wallets.revenueId,
+              ...debtor,
+              justCredited: moving,
+              label,
+            });
+          }
         }
         shortfall = shortfall.plus(gap.minus(moving));
       } else if (gap.lessThan(0)) {
@@ -393,8 +505,12 @@ export async function terminateContract(params: {
       }
     };
 
-    await settleParty(wallets.ptId, outcome.entitlement.pt, alreadyReleased.pt, 'pt');
-    await settleParty(wallets.gymId, outcome.entitlement.gym, alreadyReleased.gym, 'gym');
+    await settleParty(wallets.ptId, outcome.entitlement.pt, alreadyReleased.pt, 'pt', {
+      partnerType: 'PT',
+      partnerId: parties.ptUserId,
+    });
+    await settleParty(wallets.gymId, outcome.entitlement.gym, alreadyReleased.gym, 'gym',
+      parties.gymId ? { partnerType: 'GYM', partnerId: parties.gymId } : undefined);
     await settleParty(wallets.revenueId, outcome.entitlement.platform, alreadyReleased.platform, 'platform');
 
     // Drain whatever is left in the three pending buckets — that residue is exactly the
