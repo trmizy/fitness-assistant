@@ -221,6 +221,11 @@ services:
       INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
       CHAT_SERVICE_URL: http://chat-service:3005
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET:-dev_internal_api_secret_change_in_production}
+      # TEMPORARY (requested to unblock local testing): this dev environment has no public
+      # tunnel for Dropbox Sign's webhook to reach, so a contract can never observe a real
+      # signature here. Skips straight to PENDING_PAYMENT on PT-accept; the Dropbox Sign
+      # integration itself is untouched. Flip to "true" (or remove) to re-require e-sign.
+      REQUIRE_CONTRACT_ESIGN: "false"
     env_file:
       - ../../.env
     volumes:

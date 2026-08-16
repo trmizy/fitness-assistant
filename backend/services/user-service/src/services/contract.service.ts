@@ -129,6 +129,26 @@ const AUTH_SERVICE_URL =
   process.env.AUTH_SERVICE_URL || "http://localhost:3001";
 const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || "";
 
+// Temporary bypass (requested to unblock testing where the Dropbox Sign webhook can't reach
+// this environment — see docs/money-flow.md's deviations log). Defaults to true, i.e. the
+// original required-e-sign behavior, so nothing changes unless this is explicitly set.
+// The Dropbox Sign integration itself is untouched — flip this back to re-require it.
+const REQUIRE_CONTRACT_ESIGN = process.env.REQUIRE_CONTRACT_ESIGN !== "false";
+
+/** Fire-and-forget: a notification email must never fail the flow that triggered it. */
+async function sendConfirmationEmail(to: string, subject: string, text: string): Promise<void> {
+  try {
+    const { default: axios } = await import("axios");
+    await axios.post(
+      `${AUTH_SERVICE_URL}/auth/internal/send-email`,
+      { to, subject, text },
+      { headers: { "x-service-secret": INTERNAL_SERVICE_SECRET }, timeout: 5000 },
+    );
+  } catch (e: any) {
+    logger.error({ to, err: e?.message }, "Failed to send contract confirmation email");
+  }
+}
+
 async function getUserInfo(userId: string): Promise<{
   email: string;
   firstName: string | null;
@@ -372,16 +392,22 @@ export const contractService = {
     const ptName = fullName(ptInfo, "Personal Trainer");
     const clientName = fullName(clientInfo, "Client");
 
-    // 2. Atomic claim: PENDING_REVIEW → PENDING_SIGNATURE (BEFORE generating PDF)
+    // 2. Atomic claim: PENDING_REVIEW → PENDING_SIGNATURE (BEFORE generating PDF), or
+    // straight to PENDING_PAYMENT when e-sign is bypassed — same target as the webhook
+    // reaches once both parties actually sign (see dropboxSignWebhook.service.ts).
     // Prevents double PDF generation on concurrent requests. No startDate — not ACTIVE yet.
+    const claimTarget = REQUIRE_CONTRACT_ESIGN
+      ? ContractStatus.PENDING_SIGNATURE
+      : ContractStatus.PENDING_PAYMENT;
     const affected = await contractRepository.updateWhereStatus(
       contractId,
       ContractStatus.PENDING_REVIEW,
-      ContractStatus.PENDING_SIGNATURE,
+      claimTarget,
       {
         clientSignerEmail: clientInfo.email,
         ptSignerEmail: ptInfo.email,
         eSignTestMode: process.env.DROPBOX_SIGN_TEST_MODE === "true",
+        ...(REQUIRE_CONTRACT_ESIGN ? {} : { eSignStatus: "SKIPPED" }),
       },
     );
     if (affected.count === 0) {
@@ -425,51 +451,57 @@ export const contractService = {
       throw err("Failed to generate contract PDF", 500);
     }
 
-    // 4. Send e-sign (fail-safe: stays PENDING_SIGNATURE, eSignStatus=ERROR if send fails)
-    try {
-      const result = await eSignService.send({
-        contractId,
-        title: `Coaching Contract - ${contract.packageName}`,
-        subject: "Please sign your coaching contract",
-        message:
-          "Your coaching contract is ready. Please review and sign to activate.",
-        testMode: process.env.DROPBOX_SIGN_TEST_MODE === "true",
-        signers: [
-          { name: ptName, email: ptInfo.email, role: "pt" },
-          { name: clientName, email: clientInfo.email, role: "client" },
-        ],
-        pdfPath: relativePdfPath,
-      });
-      await contractRepository.update(contractId, {
-        eSignProvider: result.provider,
-        eSignRequestId: result.requestId,
-        eSignStatus: "SENT",
-        eSignSentAt: new Date(),
-        eSignError: null,
-      });
-    } catch (e: any) {
-      const shortMsg = (e?.message || "unknown e-sign error")
-        .toString()
-        .slice(0, 240);
-      logger.error(
-        { contractId, message: shortMsg },
-        "e-sign send failed in acceptContract",
-      );
-      await contractRepository
-        .update(contractId, {
-          eSignStatus: "ERROR",
-          eSignError: shortMsg,
-        })
-        .catch(() => {});
+    // 4. Send e-sign (fail-safe: stays PENDING_SIGNATURE, eSignStatus=ERROR if send fails).
+    // Skipped entirely while REQUIRE_CONTRACT_ESIGN=false — the contract already claimed
+    // PENDING_PAYMENT in step 2, so there is nothing to wait on here.
+    if (REQUIRE_CONTRACT_ESIGN) {
+      try {
+        const result = await eSignService.send({
+          contractId,
+          title: `Coaching Contract - ${contract.packageName}`,
+          subject: "Please sign your coaching contract",
+          message:
+            "Your coaching contract is ready. Please review and sign to activate.",
+          testMode: process.env.DROPBOX_SIGN_TEST_MODE === "true",
+          signers: [
+            { name: ptName, email: ptInfo.email, role: "pt" },
+            { name: clientName, email: clientInfo.email, role: "client" },
+          ],
+          pdfPath: relativePdfPath,
+        });
+        await contractRepository.update(contractId, {
+          eSignProvider: result.provider,
+          eSignRequestId: result.requestId,
+          eSignStatus: "SENT",
+          eSignSentAt: new Date(),
+          eSignError: null,
+        });
+      } catch (e: any) {
+        const shortMsg = (e?.message || "unknown e-sign error")
+          .toString()
+          .slice(0, 240);
+        logger.error(
+          { contractId, message: shortMsg },
+          "e-sign send failed in acceptContract",
+        );
+        await contractRepository
+          .update(contractId, {
+            eSignStatus: "ERROR",
+            eSignError: shortMsg,
+          })
+          .catch(() => {});
+      }
     }
 
-    await auditContractStatus(ptUserId, contractId, contract.status, ContractStatus.PENDING_SIGNATURE);
+    await auditContractStatus(ptUserId, contractId, contract.status, claimTarget);
 
     // 5. Notify client
     await notificationService
       .create({
         userId: contract.clientUserId,
-        text: "Your coaching request was accepted! Please check your email to sign the contract.",
+        text: REQUIRE_CONTRACT_ESIGN
+          ? "Your coaching request was accepted! Please check your email to sign the contract."
+          : "Your coaching request was accepted! You can proceed to payment.",
         eventType: "CONTRACT_ACCEPTED",
         entityType: "CONTRACT",
         entityId: contractId,
@@ -987,7 +1019,39 @@ export const contractService = {
     ) {
       throw err("Transaction verification failed", 400);
     }
-    return contractRepository.activateIfPending(contractId, transactionId);
+    const before = await contractRepository.findById(contractId);
+    const wasAlreadyActive = before?.status === ContractStatus.ACTIVE;
+    const activated = await contractRepository.activateIfPending(contractId, transactionId);
+
+    // Payment confirmation is where the two parties currently have the least confirmation
+    // they've actually got a deal — send the notice here rather than at signing, since
+    // signing may itself be bypassed (REQUIRE_CONTRACT_ESIGN). Only on the transition that
+    // actually just happened: activateIfPending is called again on webhook retries, and a
+    // retry must not re-email both parties.
+    if (activated && !wasAlreadyActive && activated.status === ContractStatus.ACTIVE) {
+      const [ptInfo, clientInfo] = await Promise.all([
+        getUserInfo(activated.ptUserId),
+        getUserInfo(activated.clientUserId),
+      ]);
+      const subject = `Hợp đồng "${activated.packageName}" đã được kích hoạt`;
+      const body = (name: string) =>
+        [
+          `Chào ${name},`,
+          "",
+          `Hợp đồng "${activated.packageName}" (${activated.totalSessions} buổi) đã thanh toán thành công và chính thức có hiệu lực.`,
+          `Số tiền: ${Number(activated.price).toLocaleString("vi-VN")}đ.`,
+          "",
+          "Hai bên có thể bắt đầu đặt lịch buổi tập.",
+        ].join("\n");
+      if (clientInfo?.email) {
+        await sendConfirmationEmail(clientInfo.email, subject, body(fullName(clientInfo, "bạn")));
+      }
+      if (ptInfo?.email) {
+        await sendConfirmationEmail(ptInfo.email, subject, body(fullName(ptInfo, "bạn")));
+      }
+    }
+
+    return activated;
   },
 
   /** Called by the internal /cancel-after-refund endpoint — verifies both transactions first. */

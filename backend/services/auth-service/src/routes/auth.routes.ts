@@ -19,6 +19,7 @@ router.patch("/users/:userId/disable", authController.setUserActive);
 router.patch("/users/:userId/enable", authController.setUserActive);
 router.post("/internal/users/batch", authController.batchGetUsersInternal);
 router.get("/internal/users/:userId", authController.getUserInternal);
+router.post("/internal/send-email", authController.sendEmailInternal);
 router.patch(
   "/internal/users/:userId/role",
   authController.updateUserRoleInternal,
