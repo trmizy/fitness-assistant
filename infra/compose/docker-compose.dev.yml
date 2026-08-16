@@ -368,6 +368,7 @@ services:
     volumes:
       - ../../backend/services/ai-service/src:/app/backend/services/ai-service/src
       - ../../backend/services/ai-service/prisma:/app/backend/services/ai-service/prisma
+      - ../../backend/services/ai-service/data:/app/backend/services/ai-service/data
       - ../../data:/app/data
     depends_on:
       postgres:
@@ -441,6 +442,7 @@ services:
     volumes:
       - ../../backend/services/ai-service/src:/app/backend/services/ai-service/src
       - ../../backend/services/ai-service/prisma:/app/backend/services/ai-service/prisma
+      - ../../backend/services/ai-service/data:/app/backend/services/ai-service/data
       - ../../data:/app/data
     depends_on:
       ai-service:

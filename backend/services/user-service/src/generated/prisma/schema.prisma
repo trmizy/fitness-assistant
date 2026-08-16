@@ -71,11 +71,32 @@ model UserProfile {
   goal            Goal?
   activityLevel   ActivityLevel?
   experienceLevel ExperienceLevel?
+  // Distinguishes a competing/professional athlete from an ADVANCED
+  // recreational lifter — deliberately NOT a 5th experienceLevel enum value,
+  // since ACSM's progression-model guidance (the evidence backing this
+  // enum) only distinguishes 3 levels; the real difference for "pro" users
+  // is stricter data-sufficiency gating and no simplified fallback advice,
+  // not a different training-load formula. See
+  // docs/USER_LEVEL_PERSONALIZATION_PLAN.md §0.
+  competesInSport Boolean          @default(false) @map("competes_in_sport")
 
   // Training preferences
   preferredTrainingDays Int[] // [1, 3, 5] = Mon, Wed, Fri
   availableEquipment    String[] // ["barbell", "dumbbells", "machines"]
   injuries              String[] // ["lower back", "left knee"]
+  // Free-text template name (e.g. "Full Body", "Upper/Lower", "Push/Pull/Legs",
+  // "Bro Split") — deliberately not an enum: the catalog of real split names
+  // (data/catalog/plans/gym_workout_plans.csv) is bigger and looser than a
+  // fixed set, and this is advisory/UI-only (never read by the Decision
+  // Engine, which reasons about actual logged sessions, not a stated intent).
+  preferredSplit        String?  @map("preferred_split")
+
+  // Onboarding wizard (frontend/web/src/app/pages/client/OnboardingWizardPage.tsx)
+  // completion flag. Distinct from "has any profile fields set at all" —
+  // a user can partially fill the profile via ProfilePage without ever
+  // finishing the guided wizard; this flag is only ever set true by the
+  // wizard's own final submit step.
+  hasCompletedOnboarding Boolean @default(false) @map("has_completed_onboarding")
 
   // Calculated fields (can be denormalized from InBody service)
   currentWeight Float?

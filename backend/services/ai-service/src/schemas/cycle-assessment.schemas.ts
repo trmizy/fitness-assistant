@@ -12,6 +12,14 @@ export const AssessCycleRequestSchema = z.object({
     durationDays: z.number().int(),
     startDate: z.union([z.string(), z.date()]),
     endDate: z.union([z.string(), z.date()]),
+    /** UserProfile.experienceLevel — drives whether the explanation may
+     * mention advanced techniques (FST-7/Mountain Dog style finishers,
+     * mechanical drop-sets etc.) at all. Absent/UNKNOWN is treated exactly
+     * like BEGINNER (see docs/USER_LEVEL_PERSONALIZATION_PLAN.md §0). */
+    experienceLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED", "UNKNOWN"]).optional(),
+    /** UserProfile.competesInSport — ADVANCED + this flag reads as a
+     * professional/competing athlete, not a 5th experienceLevel value. */
+    competesInSport: z.boolean().optional(),
   }),
   dataQuality: z.object({
     dataQualityScore: z.number(),
@@ -41,7 +49,7 @@ export type AssessCycleRequest = z.infer<typeof AssessCycleRequestSchema>;
 // generated as a bare JSON number by the model — coerce rather than reject.
 const stringOrNumber = z.union([z.string(), z.number()]).transform((v) => String(v));
 
-const ProposedChangeSchema = z.object({
+export const ProposedChangeSchema = z.object({
   type: z.enum(["VOLUME", "LOAD", "REPS", "EXERCISE", "FREQUENCY", "DELOAD"]),
   target: z.string(),
   currentValue: stringOrNumber,

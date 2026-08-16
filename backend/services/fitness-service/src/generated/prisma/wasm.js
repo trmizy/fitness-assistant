@@ -132,6 +132,9 @@ exports.Prisma.ExerciseScalarFieldEnum = {
   muscleGroupsActivated: 'muscleGroupsActivated',
   instructions: 'instructions',
   videoUrl: 'videoUrl',
+  movementPattern: 'movementPattern',
+  mechanics: 'mechanics',
+  contraindications: 'contraindications',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -358,6 +361,22 @@ exports.Prisma.CycleAssessmentScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.RecommendationAuditScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  cycleId: 'cycleId',
+  assessmentId: 'assessmentId',
+  engineVersion: 'engineVersion',
+  decision: 'decision',
+  reasonCodes: 'reasonCodes',
+  metricsSnapshot: 'metricsSnapshot',
+  aiSummary: 'aiSummary',
+  presentedAt: 'presentedAt',
+  userAction: 'userAction',
+  userActionAt: 'userActionAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.CycleSessionFeedbackScalarFieldEnum = {
   id: 'id',
   cycleId: 'cycleId',
@@ -469,6 +488,10 @@ exports.Prisma.NullableJsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -534,6 +557,7 @@ exports.Prisma.ModelName = {
   WorkoutSchedule: 'WorkoutSchedule',
   TrainingCycle: 'TrainingCycle',
   CycleAssessment: 'CycleAssessment',
+  RecommendationAudit: 'RecommendationAudit',
   CycleSessionFeedback: 'CycleSessionFeedback',
   CycleInBodyLink: 'CycleInBodyLink',
   NutritionProgram: 'NutritionProgram',

@@ -261,11 +261,20 @@ async function recomputeScheduleProgress(
   );
   const percent = progressPercent(completedExercises, totalExercises);
   const completed = totalExercises > 0 && completedExercises === totalExercises;
+  // PARTIALLY_COMPLETED distinguishes "some exercises actually logged" from
+  // "session started but nothing done yet" — previously both read as
+  // IN_PROGRESS, so a session 1-of-4 exercises in was indistinguishable
+  // from one just opened. See docs/CLOUDCODE_IMPLEMENTATION_AUDIT.md G2 /
+  // docs/workout-log-audit.md's Known Gaps. The external API contract
+  // (sessionStatus/dayStatus below) still maps this to "in_progress" —
+  // only the persisted WorkoutSchedule.status gains the finer distinction.
   const status = completed
     ? "COMPLETED"
-    : schedule.workoutId || schedule.startedAt || completedExercises > 0
-      ? "IN_PROGRESS"
-      : "NOT_STARTED";
+    : completedExercises > 0
+      ? "PARTIALLY_COMPLETED"
+      : schedule.workoutId || schedule.startedAt
+        ? "IN_PROGRESS"
+        : "NOT_STARTED";
   const completedAt = completed ? schedule.completedAt || new Date() : null;
 
   await tx.workoutSchedule.update({
@@ -303,12 +312,12 @@ async function recomputeScheduleProgress(
     progressPercent: percent,
     sessionStatus: completed
       ? "completed"
-      : status === "IN_PROGRESS"
+      : status === "IN_PROGRESS" || status === "PARTIALLY_COMPLETED"
         ? "in_progress"
         : "not_started",
     dayStatus: completed
       ? "completed"
-      : status === "IN_PROGRESS"
+      : status === "IN_PROGRESS" || status === "PARTIALLY_COMPLETED"
         ? "in_progress"
         : "not_started",
     completedAt,
@@ -1189,6 +1198,55 @@ export const workoutService = {
     }
     assertScheduleDateEditable(existing.date);
     return prisma.workoutSchedule.delete({ where: { id } });
+  },
+
+  /**
+   * Explicit "I'm not doing this session" — writes SKIPPED, a status value
+   * that has existed in the schema/comment all along but that no code path
+   * ever set (see docs/workout-log-audit.md's Known Gaps / G1 in
+   * docs/CLOUDCODE_IMPLEMENTATION_AUDIT.md). Before this, a due session
+   * that was never started just stayed NOT_STARTED forever, with "missed"
+   * only ever inferred ad hoc per call site (e.g. cycle adherence treating
+   * any past non-COMPLETED schedule as missed) rather than being a
+   * first-class, directly queryable state.
+   *
+   * assertScheduleDateEditable already restricts this to "today" under the
+   * current lock policy (past is locked — already effectively missed with
+   * no action needed; future is locked — nothing to skip yet).
+   */
+  async skipSchedule(id: string, userId: string, notes?: string) {
+    const existing = await prisma.workoutSchedule.findFirst({ where: { id, userId } });
+    if (!existing) throw { status: 404, message: "Schedule not found" };
+    if (existing.workoutId) {
+      throw { status: 409, message: "Cannot skip a schedule that already has a logged workout" };
+    }
+    assertScheduleDateEditable(existing.date);
+    return prisma.workoutSchedule.update({
+      where: { id },
+      data: { status: "SKIPPED", notes: notes ?? existing.notes },
+    });
+  },
+
+  /**
+   * Explicit cancellation with a mandatory reason — distinct from SKIPPED
+   * (a normal "didn't do it today") in that it represents an operator-level
+   * decision to void the session entirely (e.g. plan changed, injury). No
+   * coach/admin role exists yet for workout schedules (see
+   * docs/workout-log-audit.md Known Gaps), so this is currently
+   * self-service only — the "audit log when coach/admin overrides"
+   * requirement doesn't yet apply since there is no such override actor.
+   */
+  async cancelSchedule(id: string, userId: string, reason: string) {
+    const existing = await prisma.workoutSchedule.findFirst({ where: { id, userId } });
+    if (!existing) throw { status: 404, message: "Schedule not found" };
+    if (existing.workoutId) {
+      throw { status: 409, message: "Cannot cancel a schedule that already has a logged workout" };
+    }
+    assertScheduleDateEditable(existing.date);
+    return prisma.workoutSchedule.update({
+      where: { id },
+      data: { status: "CANCELLED", notes: reason },
+    });
   },
 
   async importAiPlanToSchedule(userId: string, input: ImportAiPlanDto) {

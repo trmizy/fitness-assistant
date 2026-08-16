@@ -187,6 +187,15 @@ test(
         where: { cycleId: cycle.id, assessmentVersion: 1 },
       });
       assert.equal(versionOnes.length, 1, "exactly one assessment for version 1, no duplicates");
+
+      // RecommendationAudit: evaluateCycle must write one interaction-log
+      // row per real evaluation, distinct from the CycleAssessment result
+      // row itself (see docs/TRAINING_CYCLE_DECISION_ENGINE.md §4).
+      const audits = await db.recommendationAudit.findMany({ where: { cycleId: cycle.id } });
+      assert.equal(audits.length, 1, "expected exactly one audit row for this evaluate() call");
+      assert.equal(audits[0].engineVersion, "adaptive-v1");
+      assert.equal(audits[0].decision, assessment.decision);
+      assert.equal(audits[0].userAction, null, "not yet accepted/rejected");
     });
 
     let assessmentId: string;
@@ -204,6 +213,11 @@ test(
       const accepted = await service.acceptRecommendation(cycle.id, TEST_USER_ID, assessmentId);
       assert.equal(accepted.userDecision, "ACCEPTED");
       assert.ok(accepted.reviewedAt);
+
+      const audits = await db.recommendationAudit.findMany({ where: { cycleId: cycle.id, assessmentId } });
+      assert.equal(audits.length, 1);
+      assert.equal(audits[0].userAction, "accepted", "accepting a recommendation must update its audit row");
+      assert.ok(audits[0].userActionAt);
 
       // A second accept on the same assessment must be rejected (409), not silently succeed twice.
       await assert.rejects(

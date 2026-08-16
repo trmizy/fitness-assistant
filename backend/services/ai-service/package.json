@@ -26,6 +26,8 @@
     "data:validate": "tsx src/datasets/seed/validateNhanes.ts",
     "data:ingest": "tsx src/datasets/seed/ingestEvidence.ts",
     "data:ingest:nhanes": "tsx src/datasets/seed/ingestEvidence.ts -- --nhanes",
+    "ingest:training-methods": "tsx src/datasets/seed/ingestTrainingMethods.ts",
+    "ai:test:training-methods": "tsx src/datasets/seed/testTrainingMethodsIntegration.ts",
     "knowledge:pipeline": "tsx src/scripts/runKnowledgePipeline.ts",
     "knowledge:enqueue": "tsx src/scripts/enqueueKnowledgePipeline.ts",
     "knowledge:pubmed": "tsx src/scripts/runPubMedPipeline.ts",
@@ -59,6 +61,7 @@
     "knowledge:research:scheduler": "tsx src/scripts/researchScheduler.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.3",
     "@gym-coach/shared": "workspace:*",
     "@prisma/client": "^5.22.0",
     "@qdrant/js-client-rest": "^1.9.0",

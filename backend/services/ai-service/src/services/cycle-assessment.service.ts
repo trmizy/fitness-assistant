@@ -8,6 +8,7 @@ import {
   type AssessCycleOutput,
 } from "../schemas/cycle-assessment.schemas";
 import type { EvidenceUsed } from "../llm/types";
+import { validateProposedChanges } from "../llm/proposed-change-validator";
 
 export interface AssessCycleResult extends AssessCycleOutput {
   citations: EvidenceUsed[];
@@ -37,9 +38,21 @@ function buildRagQueries(req: AssessCycleRequest): string[] {
 
 function buildAssessmentPrompt(req: AssessCycleRequest, evidenceText: string): string {
   const decision = req.decision.value;
+  const level = req.cycle.experienceLevel ?? "UNKNOWN";
+  const isBeginner = level === "BEGINNER" || level === "UNKNOWN";
+  const isProfessional = level === "ADVANCED" && req.cycle.competesInSport === true;
+  const levelGuidance = isBeginner
+    ? "Người dùng ở trình độ MỚI BẮT ĐẦU (beginner/chưa rõ). TUYỆT ĐỐI KHÔNG đề xuất kỹ thuật nâng cao (drop-set, FST-7 finisher, mechanical drop-set, rest-pause...), KHÔNG đề xuất tăng khối lượng/cường độ lớn — chỉ những thay đổi nhỏ, an toàn, ưu tiên kỹ thuật đúng."
+    : isProfessional
+      ? "Người dùng là VẬN ĐỘNG VIÊN THI ĐẤU (ADVANCED + competesInSport). Hãy đề cập đến việc cần giám sát chặt chẽ hơn, ưu tiên hiệu suất/thi đấu, và nhấn mạnh việc xác nhận với HLV/chuyên gia trước khi áp dụng thay đổi lớn."
+      : level === "ADVANCED"
+        ? "Người dùng ở trình độ NÂNG CAO — có thể đề cập kỹ thuật nâng cao (nếu allowedChanges cho phép) nhưng vẫn phải theo đúng constraints an toàn."
+        : "Người dùng ở trình độ TRUNG BÌNH (đã biết tập) — có thể đề xuất tăng tải dựa trên progressive overload nhưng chưa mở khóa kỹ thuật nâng cao dạng FST-7/Mountain Dog.";
   return `Bạn là một huấn luyện viên thể hình giàu kinh nghiệm. Một hệ thống tính toán (Decision Engine) đã PHÂN TÍCH XONG chu kỳ tập luyện này và đưa ra quyết định — nhiệm vụ của bạn CHỈ là GIẢI THÍCH quyết định đó bằng tiếng Việt dễ hiểu, KHÔNG được tự tính lại số liệu, KHÔNG được đổi quyết định.
 
 QUYẾT ĐỊNH ĐÃ CHỐT (không được thay đổi): "${decision}" (${DECISION_LABEL[decision]})
+
+Trình độ người dùng: ${level}${req.cycle.competesInSport ? " (competesInSport=true)" : ""}. ${levelGuidance}
 
 Nhiệm vụ của bạn:
 - Giải thích quyết định trên bằng ngôn ngữ dễ hiểu, dựa trên reasonCodes và computedMetrics bên dưới.
@@ -149,6 +162,22 @@ export const cycleAssessmentService = {
         "[cycle-assessment] LLM proposed change type(s) outside allowedChanges — dropping them",
       );
       output.proposedChanges = filteredChanges;
+    }
+
+    // Semantic check on the surviving changes' actual values (target/
+    // currentValue/proposedValue) — the allowedChanges filter above only
+    // checks the change TYPE is permitted, not that the magnitude is
+    // plausible for a single-cycle recommendation. See
+    // proposed-change-validator.ts's doc comment.
+    const level = req.cycle.experienceLevel ?? "UNKNOWN";
+    const isBeginner = level === "BEGINNER" || level === "UNKNOWN";
+    const { valid, dropped } = validateProposedChanges(output.proposedChanges, { isBeginner });
+    if (dropped.length > 0) {
+      logger.warn(
+        { userId: req.userId, dropped: dropped.map((d) => d.reason) },
+        "[cycle-assessment] proposedChanges failed semantic validation — dropping them",
+      );
+      output.proposedChanges = valid;
     }
 
     return { ...output, citations };

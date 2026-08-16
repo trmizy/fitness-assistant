@@ -370,6 +370,16 @@ export const workoutService = {
     return data;
   },
 
+  // Batch lookup by id — used to resolve muscle/equipment metadata for
+  // exercises referenced (by exerciseId) from AI-generated plan content,
+  // which only ever stores {exerciseId, order, name, sets, reps,
+  // restSeconds, note} and never the catalog's own descriptive fields.
+  getExercisesByIds: async (ids: string[]) => {
+    if (ids.length === 0) return [];
+    const { data } = await api.get(`/exercises?ids=${ids.map(encodeURIComponent).join(",")}`);
+    return data?.data?.exercises ?? (Array.isArray(data) ? data : []);
+  },
+
   getStats: async () => {
     const { data } = await api.get("/stats/workouts");
     return data;
@@ -526,7 +536,12 @@ export const workoutService = {
   },
 };
 
-export type CycleDecision = "KEEP" | "ADJUST" | "NEW_PLAN" | "INSUFFICIENT_DATA";
+// Widened (Phase 7 unification) — completeCycle() now writes the same
+// 6-state decision as evaluate() for any cycle with sufficient data (only
+// the INSUFFICIENT_DATA / legacy NEW_PLAN values are exclusively-legacy
+// today). PROGRESS/DELOAD/REBUILD/ADJUST/KEEP overlap with AdaptiveCycleDecision
+// below by design — same underlying CycleDecision engine enum.
+export type CycleDecision = "KEEP" | "ADJUST" | "NEW_PLAN" | "INSUFFICIENT_DATA" | "PROGRESS" | "DELOAD" | "REBUILD";
 export type OverallTrend = "PROGRESSING" | "PLATEAU" | "DECLINING";
 
 export interface CycleAlert {
@@ -787,9 +802,16 @@ export const trainingCycleService = {
   },
 
   complete: async (id: string, endInbodyId?: string) => {
+    // Closing a cycle now runs the same synchronous Adaptive Decision
+    // Engine + LLM explanation call as evaluate() below (Phase 7
+    // unification — completeCycle() no longer fires the old analysis
+    // off in the background). Needs the same 120s override for the same
+    // reason: the shared `api` instance's flat 10s default would abort
+    // this call client-side before the server-side LLM round-trip finishes.
     const { data } = await api.post<TrainingCycle>(
       `/training-cycles/${id}/complete`,
       endInbodyId ? { endInbodyId } : {},
+      { timeout: 120000 },
     );
     return data;
   },
@@ -1198,7 +1220,7 @@ export interface WorkoutScheduleRecord {
   notes?: string | null;
   workoutId?: string | null;
   workoutLogId?: string | null;
-  status?: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED";
+  status?: "NOT_STARTED" | "IN_PROGRESS" | "PARTIALLY_COMPLETED" | "COMPLETED" | "SKIPPED" | "CANCELLED";
   progressPercent?: number;
   completedAt?: string | null;
   canStart?: boolean;

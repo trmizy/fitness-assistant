@@ -30,6 +30,12 @@ export interface UserProfileSnapshot {
    * literal "UNKNOWN" the AI-service prompt gates advanced-technique
    * suggestions on). */
   experienceLevel?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | null;
+  /** Distinguishes a competing/professional athlete from a recreational
+   * ADVANCED lifter — only meaningful combined with experienceLevel ===
+   * "ADVANCED" (see docs/USER_LEVEL_PERSONALIZATION_PLAN.md §0). Defaults to
+   * false server-side, so this is never null/undefined in practice, but
+   * still coalesced defensively here since it crosses a service boundary. */
+  competesInSport?: boolean;
 }
 
 export interface InBodyEntrySnapshot {
@@ -61,6 +67,7 @@ export async function fetchUserProfile(
       targetWeight: profile.targetWeight ?? null,
       currentWeight: profile.currentWeight ?? null,
       experienceLevel: profile.experienceLevel ?? null,
+      competesInSport: profile.competesInSport === true,
     };
   } catch (error) {
     logger.warn(

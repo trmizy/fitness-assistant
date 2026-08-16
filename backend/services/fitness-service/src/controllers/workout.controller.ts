@@ -453,4 +453,38 @@ export const workoutController = {
       res.status(500).json({ error: "Failed to delete schedule" });
     }
   },
+
+  async skipSchedule(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const notes = typeof req.body?.notes === "string" ? req.body.notes : undefined;
+      const result = await workoutService.skipSchedule(req.params.id, req.user!.id, notes);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error skipping schedule");
+      res.status(500).json({ error: "Failed to skip schedule" });
+    }
+  },
+
+  async cancelSchedule(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+      if (!reason) {
+        res.status(400).json({ error: "A cancellation reason is required" });
+        return;
+      }
+      const result = await workoutService.cancelSchedule(req.params.id, req.user!.id, reason);
+      res.json(result);
+    } catch (error: any) {
+      if (error.status) {
+        res.status(error.status).json({ error: error.message });
+        return;
+      }
+      logger.error({ err: error }, "Error cancelling schedule");
+      res.status(500).json({ error: "Failed to cancel schedule" });
+    }
+  },
 };

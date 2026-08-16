@@ -73,6 +73,29 @@ export const researchSources: ResearchSource[] = [
       "Metadata and abstract inverted index when available. Set RESEARCH_CONTACT_EMAIL for polite pool.",
   },
   {
+    id: "issn_position_stands",
+    name: "ISSN (International Society of Sports Nutrition) Position Stands",
+    // No dedicated ISSN API exists — JISSN (the society's journal) is a
+    // fully open-access, PMC-indexed journal, so its Position Stand
+    // articles (protein, creatine, caffeine, diets/body composition, etc.)
+    // are actually retrieved through the existing pmc/pubmed connectors
+    // above by PMID/DOI, not a separate scraper. This entry exists so the
+    // allowlist explicitly documents ISSN as an in-scope publisher/topic
+    // (see docs/TRAINING_KNOWLEDGE_BASE_PLAN.md §2.1), rather than relying
+    // on an implicit assumption that "PubMed already covers everything".
+    type: "manual_dataset",
+    enabled: true,
+    base_url: "manual://issn-jissn-position-stands",
+    topics: ["nutrition", "supplements", "body_composition", "training"],
+    trust_level: "high",
+    rate_limit_per_minute: 0,
+    requires_api_key: false,
+    robots_policy_required: false,
+    allowed_content: "manual_summary",
+    notes:
+      "Position stands are peer-reviewed JISSN articles retrieved via the pubmed/pmc connectors by PMID/DOI. Manual summaries only when full text isn't open access.",
+  },
+  {
     id: "official_guidelines_manual",
     name: "Official guideline pages and manual curated sources",
     type: "manual_dataset",

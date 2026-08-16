@@ -25,6 +25,7 @@ router.post("/:id/recommendation/reject", authMiddleware, trainingCycleControlle
 router.post("/:id/inbody-links", authMiddleware, trainingCycleController.linkInBodyEntry as any);
 router.post("/:id/sessions/:scheduleId/feedback", authMiddleware, trainingCycleController.submitSessionFeedback as any);
 router.get("/:id/report", authMiddleware, trainingCycleController.report as any);
+router.get("/:id/audit", authMiddleware, trainingCycleController.listRecommendationAudits as any);
 router.delete("/:id", authMiddleware, trainingCycleController.remove as any);
 
 router.get("/:id", authMiddleware, trainingCycleController.getById as any);

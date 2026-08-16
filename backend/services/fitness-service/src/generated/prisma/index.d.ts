@@ -89,6 +89,11 @@ export type TrainingCycle = $Result.DefaultSelection<Prisma.$TrainingCyclePayloa
  */
 export type CycleAssessment = $Result.DefaultSelection<Prisma.$CycleAssessmentPayload>
 /**
+ * Model RecommendationAudit
+ * 
+ */
+export type RecommendationAudit = $Result.DefaultSelection<Prisma.$RecommendationAuditPayload>
+/**
  * Model CycleSessionFeedback
  * 
  */
@@ -463,6 +468,16 @@ export class PrismaClient<
     * ```
     */
   get cycleAssessment(): Prisma.CycleAssessmentDelegate<ExtArgs>;
+
+  /**
+   * `prisma.recommendationAudit`: Exposes CRUD operations for the **RecommendationAudit** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RecommendationAudits
+    * const recommendationAudits = await prisma.recommendationAudit.findMany()
+    * ```
+    */
+  get recommendationAudit(): Prisma.RecommendationAuditDelegate<ExtArgs>;
 
   /**
    * `prisma.cycleSessionFeedback`: Exposes CRUD operations for the **CycleSessionFeedback** model.
@@ -989,6 +1004,7 @@ export namespace Prisma {
     WorkoutSchedule: 'WorkoutSchedule',
     TrainingCycle: 'TrainingCycle',
     CycleAssessment: 'CycleAssessment',
+    RecommendationAudit: 'RecommendationAudit',
     CycleSessionFeedback: 'CycleSessionFeedback',
     CycleInBodyLink: 'CycleInBodyLink',
     NutritionProgram: 'NutritionProgram',
@@ -1011,7 +1027,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule" | "trainingCycle" | "cycleAssessment" | "cycleSessionFeedback" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion"
+      modelProps: "exercise" | "workout" | "workoutExercise" | "workoutSet" | "food" | "foodAlias" | "nutritionLog" | "nutritionGoal" | "bodyMetrics" | "workoutProgram" | "workoutProgramDay" | "workoutProgramExercise" | "workoutSchedule" | "trainingCycle" | "cycleAssessment" | "recommendationAudit" | "cycleSessionFeedback" | "cycleInBodyLink" | "nutritionProgram" | "nutritionProgramDay" | "nutritionProgramMeal" | "nutritionProgramMealItem" | "nutritionMealCompletion"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2062,6 +2078,76 @@ export namespace Prisma {
           count: {
             args: Prisma.CycleAssessmentCountArgs<ExtArgs>
             result: $Utils.Optional<CycleAssessmentCountAggregateOutputType> | number
+          }
+        }
+      }
+      RecommendationAudit: {
+        payload: Prisma.$RecommendationAuditPayload<ExtArgs>
+        fields: Prisma.RecommendationAuditFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.RecommendationAuditFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecommendationAuditPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.RecommendationAuditFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecommendationAuditPayload>
+          }
+          findFirst: {
+            args: Prisma.RecommendationAuditFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecommendationAuditPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.RecommendationAuditFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecommendationAuditPayload>
+          }
+          findMany: {
+            args: Prisma.RecommendationAuditFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecommendationAuditPayload>[]
+          }
+          create: {
+            args: Prisma.RecommendationAuditCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecommendationAuditPayload>
+          }
+          createMany: {
+            args: Prisma.RecommendationAuditCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.RecommendationAuditCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecommendationAuditPayload>[]
+          }
+          delete: {
+            args: Prisma.RecommendationAuditDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecommendationAuditPayload>
+          }
+          update: {
+            args: Prisma.RecommendationAuditUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecommendationAuditPayload>
+          }
+          deleteMany: {
+            args: Prisma.RecommendationAuditDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.RecommendationAuditUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.RecommendationAuditUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RecommendationAuditPayload>
+          }
+          aggregate: {
+            args: Prisma.RecommendationAuditAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRecommendationAudit>
+          }
+          groupBy: {
+            args: Prisma.RecommendationAuditGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RecommendationAuditGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.RecommendationAuditCountArgs<ExtArgs>
+            result: $Utils.Optional<RecommendationAuditCountAggregateOutputType> | number
           }
         }
       }
@@ -3116,6 +3202,8 @@ export namespace Prisma {
     type: $Enums.MovementType | null
     instructions: string | null
     videoUrl: string | null
+    movementPattern: string | null
+    mechanics: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -3129,6 +3217,8 @@ export namespace Prisma {
     type: $Enums.MovementType | null
     instructions: string | null
     videoUrl: string | null
+    movementPattern: string | null
+    mechanics: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -3143,6 +3233,9 @@ export namespace Prisma {
     muscleGroupsActivated: number
     instructions: number
     videoUrl: number
+    movementPattern: number
+    mechanics: number
+    contraindications: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -3158,6 +3251,8 @@ export namespace Prisma {
     type?: true
     instructions?: true
     videoUrl?: true
+    movementPattern?: true
+    mechanics?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3171,6 +3266,8 @@ export namespace Prisma {
     type?: true
     instructions?: true
     videoUrl?: true
+    movementPattern?: true
+    mechanics?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3185,6 +3282,9 @@ export namespace Prisma {
     muscleGroupsActivated?: true
     instructions?: true
     videoUrl?: true
+    movementPattern?: true
+    mechanics?: true
+    contraindications?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -3272,6 +3372,9 @@ export namespace Prisma {
     muscleGroupsActivated: string[]
     instructions: string
     videoUrl: string | null
+    movementPattern: string | null
+    mechanics: string | null
+    contraindications: string[]
     createdAt: Date
     updatedAt: Date
     _count: ExerciseCountAggregateOutputType | null
@@ -3303,6 +3406,9 @@ export namespace Prisma {
     muscleGroupsActivated?: boolean
     instructions?: boolean
     videoUrl?: boolean
+    movementPattern?: boolean
+    mechanics?: boolean
+    contraindications?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     workoutExercises?: boolean | Exercise$workoutExercisesArgs<ExtArgs>
@@ -3320,6 +3426,9 @@ export namespace Prisma {
     muscleGroupsActivated?: boolean
     instructions?: boolean
     videoUrl?: boolean
+    movementPattern?: boolean
+    mechanics?: boolean
+    contraindications?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["exercise"]>
@@ -3334,6 +3443,9 @@ export namespace Prisma {
     muscleGroupsActivated?: boolean
     instructions?: boolean
     videoUrl?: boolean
+    movementPattern?: boolean
+    mechanics?: boolean
+    contraindications?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -3361,6 +3473,9 @@ export namespace Prisma {
       muscleGroupsActivated: string[]
       instructions: string
       videoUrl: string | null
+      movementPattern: string | null
+      mechanics: string | null
+      contraindications: string[]
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["exercise"]>
@@ -3767,6 +3882,9 @@ export namespace Prisma {
     readonly muscleGroupsActivated: FieldRef<"Exercise", 'String[]'>
     readonly instructions: FieldRef<"Exercise", 'String'>
     readonly videoUrl: FieldRef<"Exercise", 'String'>
+    readonly movementPattern: FieldRef<"Exercise", 'String'>
+    readonly mechanics: FieldRef<"Exercise", 'String'>
+    readonly contraindications: FieldRef<"Exercise", 'String[]'>
     readonly createdAt: FieldRef<"Exercise", 'DateTime'>
     readonly updatedAt: FieldRef<"Exercise", 'DateTime'>
   }
@@ -19261,6 +19379,972 @@ export namespace Prisma {
 
 
   /**
+   * Model RecommendationAudit
+   */
+
+  export type AggregateRecommendationAudit = {
+    _count: RecommendationAuditCountAggregateOutputType | null
+    _min: RecommendationAuditMinAggregateOutputType | null
+    _max: RecommendationAuditMaxAggregateOutputType | null
+  }
+
+  export type RecommendationAuditMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    cycleId: string | null
+    assessmentId: string | null
+    engineVersion: string | null
+    decision: string | null
+    aiSummary: string | null
+    presentedAt: Date | null
+    userAction: string | null
+    userActionAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type RecommendationAuditMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    cycleId: string | null
+    assessmentId: string | null
+    engineVersion: string | null
+    decision: string | null
+    aiSummary: string | null
+    presentedAt: Date | null
+    userAction: string | null
+    userActionAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type RecommendationAuditCountAggregateOutputType = {
+    id: number
+    userId: number
+    cycleId: number
+    assessmentId: number
+    engineVersion: number
+    decision: number
+    reasonCodes: number
+    metricsSnapshot: number
+    aiSummary: number
+    presentedAt: number
+    userAction: number
+    userActionAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type RecommendationAuditMinAggregateInputType = {
+    id?: true
+    userId?: true
+    cycleId?: true
+    assessmentId?: true
+    engineVersion?: true
+    decision?: true
+    aiSummary?: true
+    presentedAt?: true
+    userAction?: true
+    userActionAt?: true
+    createdAt?: true
+  }
+
+  export type RecommendationAuditMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    cycleId?: true
+    assessmentId?: true
+    engineVersion?: true
+    decision?: true
+    aiSummary?: true
+    presentedAt?: true
+    userAction?: true
+    userActionAt?: true
+    createdAt?: true
+  }
+
+  export type RecommendationAuditCountAggregateInputType = {
+    id?: true
+    userId?: true
+    cycleId?: true
+    assessmentId?: true
+    engineVersion?: true
+    decision?: true
+    reasonCodes?: true
+    metricsSnapshot?: true
+    aiSummary?: true
+    presentedAt?: true
+    userAction?: true
+    userActionAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type RecommendationAuditAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RecommendationAudit to aggregate.
+     */
+    where?: RecommendationAuditWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RecommendationAudits to fetch.
+     */
+    orderBy?: RecommendationAuditOrderByWithRelationInput | RecommendationAuditOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: RecommendationAuditWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RecommendationAudits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RecommendationAudits.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned RecommendationAudits
+    **/
+    _count?: true | RecommendationAuditCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RecommendationAuditMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RecommendationAuditMaxAggregateInputType
+  }
+
+  export type GetRecommendationAuditAggregateType<T extends RecommendationAuditAggregateArgs> = {
+        [P in keyof T & keyof AggregateRecommendationAudit]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRecommendationAudit[P]>
+      : GetScalarType<T[P], AggregateRecommendationAudit[P]>
+  }
+
+
+
+
+  export type RecommendationAuditGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RecommendationAuditWhereInput
+    orderBy?: RecommendationAuditOrderByWithAggregationInput | RecommendationAuditOrderByWithAggregationInput[]
+    by: RecommendationAuditScalarFieldEnum[] | RecommendationAuditScalarFieldEnum
+    having?: RecommendationAuditScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RecommendationAuditCountAggregateInputType | true
+    _min?: RecommendationAuditMinAggregateInputType
+    _max?: RecommendationAuditMaxAggregateInputType
+  }
+
+  export type RecommendationAuditGroupByOutputType = {
+    id: string
+    userId: string
+    cycleId: string
+    assessmentId: string | null
+    engineVersion: string
+    decision: string
+    reasonCodes: JsonValue
+    metricsSnapshot: JsonValue
+    aiSummary: string | null
+    presentedAt: Date
+    userAction: string | null
+    userActionAt: Date | null
+    createdAt: Date
+    _count: RecommendationAuditCountAggregateOutputType | null
+    _min: RecommendationAuditMinAggregateOutputType | null
+    _max: RecommendationAuditMaxAggregateOutputType | null
+  }
+
+  type GetRecommendationAuditGroupByPayload<T extends RecommendationAuditGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RecommendationAuditGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RecommendationAuditGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RecommendationAuditGroupByOutputType[P]>
+            : GetScalarType<T[P], RecommendationAuditGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type RecommendationAuditSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    cycleId?: boolean
+    assessmentId?: boolean
+    engineVersion?: boolean
+    decision?: boolean
+    reasonCodes?: boolean
+    metricsSnapshot?: boolean
+    aiSummary?: boolean
+    presentedAt?: boolean
+    userAction?: boolean
+    userActionAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["recommendationAudit"]>
+
+  export type RecommendationAuditSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    cycleId?: boolean
+    assessmentId?: boolean
+    engineVersion?: boolean
+    decision?: boolean
+    reasonCodes?: boolean
+    metricsSnapshot?: boolean
+    aiSummary?: boolean
+    presentedAt?: boolean
+    userAction?: boolean
+    userActionAt?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["recommendationAudit"]>
+
+  export type RecommendationAuditSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    cycleId?: boolean
+    assessmentId?: boolean
+    engineVersion?: boolean
+    decision?: boolean
+    reasonCodes?: boolean
+    metricsSnapshot?: boolean
+    aiSummary?: boolean
+    presentedAt?: boolean
+    userAction?: boolean
+    userActionAt?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $RecommendationAuditPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "RecommendationAudit"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      cycleId: string
+      assessmentId: string | null
+      engineVersion: string
+      decision: string
+      reasonCodes: Prisma.JsonValue
+      metricsSnapshot: Prisma.JsonValue
+      aiSummary: string | null
+      presentedAt: Date
+      userAction: string | null
+      userActionAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["recommendationAudit"]>
+    composites: {}
+  }
+
+  type RecommendationAuditGetPayload<S extends boolean | null | undefined | RecommendationAuditDefaultArgs> = $Result.GetResult<Prisma.$RecommendationAuditPayload, S>
+
+  type RecommendationAuditCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<RecommendationAuditFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: RecommendationAuditCountAggregateInputType | true
+    }
+
+  export interface RecommendationAuditDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['RecommendationAudit'], meta: { name: 'RecommendationAudit' } }
+    /**
+     * Find zero or one RecommendationAudit that matches the filter.
+     * @param {RecommendationAuditFindUniqueArgs} args - Arguments to find a RecommendationAudit
+     * @example
+     * // Get one RecommendationAudit
+     * const recommendationAudit = await prisma.recommendationAudit.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends RecommendationAuditFindUniqueArgs>(args: SelectSubset<T, RecommendationAuditFindUniqueArgs<ExtArgs>>): Prisma__RecommendationAuditClient<$Result.GetResult<Prisma.$RecommendationAuditPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one RecommendationAudit that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {RecommendationAuditFindUniqueOrThrowArgs} args - Arguments to find a RecommendationAudit
+     * @example
+     * // Get one RecommendationAudit
+     * const recommendationAudit = await prisma.recommendationAudit.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends RecommendationAuditFindUniqueOrThrowArgs>(args: SelectSubset<T, RecommendationAuditFindUniqueOrThrowArgs<ExtArgs>>): Prisma__RecommendationAuditClient<$Result.GetResult<Prisma.$RecommendationAuditPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first RecommendationAudit that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecommendationAuditFindFirstArgs} args - Arguments to find a RecommendationAudit
+     * @example
+     * // Get one RecommendationAudit
+     * const recommendationAudit = await prisma.recommendationAudit.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends RecommendationAuditFindFirstArgs>(args?: SelectSubset<T, RecommendationAuditFindFirstArgs<ExtArgs>>): Prisma__RecommendationAuditClient<$Result.GetResult<Prisma.$RecommendationAuditPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first RecommendationAudit that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecommendationAuditFindFirstOrThrowArgs} args - Arguments to find a RecommendationAudit
+     * @example
+     * // Get one RecommendationAudit
+     * const recommendationAudit = await prisma.recommendationAudit.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends RecommendationAuditFindFirstOrThrowArgs>(args?: SelectSubset<T, RecommendationAuditFindFirstOrThrowArgs<ExtArgs>>): Prisma__RecommendationAuditClient<$Result.GetResult<Prisma.$RecommendationAuditPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more RecommendationAudits that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecommendationAuditFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all RecommendationAudits
+     * const recommendationAudits = await prisma.recommendationAudit.findMany()
+     * 
+     * // Get first 10 RecommendationAudits
+     * const recommendationAudits = await prisma.recommendationAudit.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const recommendationAuditWithIdOnly = await prisma.recommendationAudit.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends RecommendationAuditFindManyArgs>(args?: SelectSubset<T, RecommendationAuditFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RecommendationAuditPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a RecommendationAudit.
+     * @param {RecommendationAuditCreateArgs} args - Arguments to create a RecommendationAudit.
+     * @example
+     * // Create one RecommendationAudit
+     * const RecommendationAudit = await prisma.recommendationAudit.create({
+     *   data: {
+     *     // ... data to create a RecommendationAudit
+     *   }
+     * })
+     * 
+     */
+    create<T extends RecommendationAuditCreateArgs>(args: SelectSubset<T, RecommendationAuditCreateArgs<ExtArgs>>): Prisma__RecommendationAuditClient<$Result.GetResult<Prisma.$RecommendationAuditPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many RecommendationAudits.
+     * @param {RecommendationAuditCreateManyArgs} args - Arguments to create many RecommendationAudits.
+     * @example
+     * // Create many RecommendationAudits
+     * const recommendationAudit = await prisma.recommendationAudit.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends RecommendationAuditCreateManyArgs>(args?: SelectSubset<T, RecommendationAuditCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many RecommendationAudits and returns the data saved in the database.
+     * @param {RecommendationAuditCreateManyAndReturnArgs} args - Arguments to create many RecommendationAudits.
+     * @example
+     * // Create many RecommendationAudits
+     * const recommendationAudit = await prisma.recommendationAudit.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many RecommendationAudits and only return the `id`
+     * const recommendationAuditWithIdOnly = await prisma.recommendationAudit.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends RecommendationAuditCreateManyAndReturnArgs>(args?: SelectSubset<T, RecommendationAuditCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RecommendationAuditPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a RecommendationAudit.
+     * @param {RecommendationAuditDeleteArgs} args - Arguments to delete one RecommendationAudit.
+     * @example
+     * // Delete one RecommendationAudit
+     * const RecommendationAudit = await prisma.recommendationAudit.delete({
+     *   where: {
+     *     // ... filter to delete one RecommendationAudit
+     *   }
+     * })
+     * 
+     */
+    delete<T extends RecommendationAuditDeleteArgs>(args: SelectSubset<T, RecommendationAuditDeleteArgs<ExtArgs>>): Prisma__RecommendationAuditClient<$Result.GetResult<Prisma.$RecommendationAuditPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one RecommendationAudit.
+     * @param {RecommendationAuditUpdateArgs} args - Arguments to update one RecommendationAudit.
+     * @example
+     * // Update one RecommendationAudit
+     * const recommendationAudit = await prisma.recommendationAudit.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends RecommendationAuditUpdateArgs>(args: SelectSubset<T, RecommendationAuditUpdateArgs<ExtArgs>>): Prisma__RecommendationAuditClient<$Result.GetResult<Prisma.$RecommendationAuditPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more RecommendationAudits.
+     * @param {RecommendationAuditDeleteManyArgs} args - Arguments to filter RecommendationAudits to delete.
+     * @example
+     * // Delete a few RecommendationAudits
+     * const { count } = await prisma.recommendationAudit.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends RecommendationAuditDeleteManyArgs>(args?: SelectSubset<T, RecommendationAuditDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RecommendationAudits.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecommendationAuditUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many RecommendationAudits
+     * const recommendationAudit = await prisma.recommendationAudit.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends RecommendationAuditUpdateManyArgs>(args: SelectSubset<T, RecommendationAuditUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one RecommendationAudit.
+     * @param {RecommendationAuditUpsertArgs} args - Arguments to update or create a RecommendationAudit.
+     * @example
+     * // Update or create a RecommendationAudit
+     * const recommendationAudit = await prisma.recommendationAudit.upsert({
+     *   create: {
+     *     // ... data to create a RecommendationAudit
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the RecommendationAudit we want to update
+     *   }
+     * })
+     */
+    upsert<T extends RecommendationAuditUpsertArgs>(args: SelectSubset<T, RecommendationAuditUpsertArgs<ExtArgs>>): Prisma__RecommendationAuditClient<$Result.GetResult<Prisma.$RecommendationAuditPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of RecommendationAudits.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecommendationAuditCountArgs} args - Arguments to filter RecommendationAudits to count.
+     * @example
+     * // Count the number of RecommendationAudits
+     * const count = await prisma.recommendationAudit.count({
+     *   where: {
+     *     // ... the filter for the RecommendationAudits we want to count
+     *   }
+     * })
+    **/
+    count<T extends RecommendationAuditCountArgs>(
+      args?: Subset<T, RecommendationAuditCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RecommendationAuditCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a RecommendationAudit.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecommendationAuditAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RecommendationAuditAggregateArgs>(args: Subset<T, RecommendationAuditAggregateArgs>): Prisma.PrismaPromise<GetRecommendationAuditAggregateType<T>>
+
+    /**
+     * Group by RecommendationAudit.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RecommendationAuditGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends RecommendationAuditGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: RecommendationAuditGroupByArgs['orderBy'] }
+        : { orderBy?: RecommendationAuditGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, RecommendationAuditGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRecommendationAuditGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the RecommendationAudit model
+   */
+  readonly fields: RecommendationAuditFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for RecommendationAudit.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__RecommendationAuditClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the RecommendationAudit model
+   */ 
+  interface RecommendationAuditFieldRefs {
+    readonly id: FieldRef<"RecommendationAudit", 'String'>
+    readonly userId: FieldRef<"RecommendationAudit", 'String'>
+    readonly cycleId: FieldRef<"RecommendationAudit", 'String'>
+    readonly assessmentId: FieldRef<"RecommendationAudit", 'String'>
+    readonly engineVersion: FieldRef<"RecommendationAudit", 'String'>
+    readonly decision: FieldRef<"RecommendationAudit", 'String'>
+    readonly reasonCodes: FieldRef<"RecommendationAudit", 'Json'>
+    readonly metricsSnapshot: FieldRef<"RecommendationAudit", 'Json'>
+    readonly aiSummary: FieldRef<"RecommendationAudit", 'String'>
+    readonly presentedAt: FieldRef<"RecommendationAudit", 'DateTime'>
+    readonly userAction: FieldRef<"RecommendationAudit", 'String'>
+    readonly userActionAt: FieldRef<"RecommendationAudit", 'DateTime'>
+    readonly createdAt: FieldRef<"RecommendationAudit", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * RecommendationAudit findUnique
+   */
+  export type RecommendationAuditFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecommendationAudit
+     */
+    select?: RecommendationAuditSelect<ExtArgs> | null
+    /**
+     * Filter, which RecommendationAudit to fetch.
+     */
+    where: RecommendationAuditWhereUniqueInput
+  }
+
+  /**
+   * RecommendationAudit findUniqueOrThrow
+   */
+  export type RecommendationAuditFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecommendationAudit
+     */
+    select?: RecommendationAuditSelect<ExtArgs> | null
+    /**
+     * Filter, which RecommendationAudit to fetch.
+     */
+    where: RecommendationAuditWhereUniqueInput
+  }
+
+  /**
+   * RecommendationAudit findFirst
+   */
+  export type RecommendationAuditFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecommendationAudit
+     */
+    select?: RecommendationAuditSelect<ExtArgs> | null
+    /**
+     * Filter, which RecommendationAudit to fetch.
+     */
+    where?: RecommendationAuditWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RecommendationAudits to fetch.
+     */
+    orderBy?: RecommendationAuditOrderByWithRelationInput | RecommendationAuditOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RecommendationAudits.
+     */
+    cursor?: RecommendationAuditWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RecommendationAudits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RecommendationAudits.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RecommendationAudits.
+     */
+    distinct?: RecommendationAuditScalarFieldEnum | RecommendationAuditScalarFieldEnum[]
+  }
+
+  /**
+   * RecommendationAudit findFirstOrThrow
+   */
+  export type RecommendationAuditFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecommendationAudit
+     */
+    select?: RecommendationAuditSelect<ExtArgs> | null
+    /**
+     * Filter, which RecommendationAudit to fetch.
+     */
+    where?: RecommendationAuditWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RecommendationAudits to fetch.
+     */
+    orderBy?: RecommendationAuditOrderByWithRelationInput | RecommendationAuditOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RecommendationAudits.
+     */
+    cursor?: RecommendationAuditWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RecommendationAudits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RecommendationAudits.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RecommendationAudits.
+     */
+    distinct?: RecommendationAuditScalarFieldEnum | RecommendationAuditScalarFieldEnum[]
+  }
+
+  /**
+   * RecommendationAudit findMany
+   */
+  export type RecommendationAuditFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecommendationAudit
+     */
+    select?: RecommendationAuditSelect<ExtArgs> | null
+    /**
+     * Filter, which RecommendationAudits to fetch.
+     */
+    where?: RecommendationAuditWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RecommendationAudits to fetch.
+     */
+    orderBy?: RecommendationAuditOrderByWithRelationInput | RecommendationAuditOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing RecommendationAudits.
+     */
+    cursor?: RecommendationAuditWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RecommendationAudits from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RecommendationAudits.
+     */
+    skip?: number
+    distinct?: RecommendationAuditScalarFieldEnum | RecommendationAuditScalarFieldEnum[]
+  }
+
+  /**
+   * RecommendationAudit create
+   */
+  export type RecommendationAuditCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecommendationAudit
+     */
+    select?: RecommendationAuditSelect<ExtArgs> | null
+    /**
+     * The data needed to create a RecommendationAudit.
+     */
+    data: XOR<RecommendationAuditCreateInput, RecommendationAuditUncheckedCreateInput>
+  }
+
+  /**
+   * RecommendationAudit createMany
+   */
+  export type RecommendationAuditCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many RecommendationAudits.
+     */
+    data: RecommendationAuditCreateManyInput | RecommendationAuditCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RecommendationAudit createManyAndReturn
+   */
+  export type RecommendationAuditCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecommendationAudit
+     */
+    select?: RecommendationAuditSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many RecommendationAudits.
+     */
+    data: RecommendationAuditCreateManyInput | RecommendationAuditCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RecommendationAudit update
+   */
+  export type RecommendationAuditUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecommendationAudit
+     */
+    select?: RecommendationAuditSelect<ExtArgs> | null
+    /**
+     * The data needed to update a RecommendationAudit.
+     */
+    data: XOR<RecommendationAuditUpdateInput, RecommendationAuditUncheckedUpdateInput>
+    /**
+     * Choose, which RecommendationAudit to update.
+     */
+    where: RecommendationAuditWhereUniqueInput
+  }
+
+  /**
+   * RecommendationAudit updateMany
+   */
+  export type RecommendationAuditUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update RecommendationAudits.
+     */
+    data: XOR<RecommendationAuditUpdateManyMutationInput, RecommendationAuditUncheckedUpdateManyInput>
+    /**
+     * Filter which RecommendationAudits to update
+     */
+    where?: RecommendationAuditWhereInput
+  }
+
+  /**
+   * RecommendationAudit upsert
+   */
+  export type RecommendationAuditUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecommendationAudit
+     */
+    select?: RecommendationAuditSelect<ExtArgs> | null
+    /**
+     * The filter to search for the RecommendationAudit to update in case it exists.
+     */
+    where: RecommendationAuditWhereUniqueInput
+    /**
+     * In case the RecommendationAudit found by the `where` argument doesn't exist, create a new RecommendationAudit with this data.
+     */
+    create: XOR<RecommendationAuditCreateInput, RecommendationAuditUncheckedCreateInput>
+    /**
+     * In case the RecommendationAudit was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<RecommendationAuditUpdateInput, RecommendationAuditUncheckedUpdateInput>
+  }
+
+  /**
+   * RecommendationAudit delete
+   */
+  export type RecommendationAuditDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecommendationAudit
+     */
+    select?: RecommendationAuditSelect<ExtArgs> | null
+    /**
+     * Filter which RecommendationAudit to delete.
+     */
+    where: RecommendationAuditWhereUniqueInput
+  }
+
+  /**
+   * RecommendationAudit deleteMany
+   */
+  export type RecommendationAuditDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RecommendationAudits to delete
+     */
+    where?: RecommendationAuditWhereInput
+  }
+
+  /**
+   * RecommendationAudit without action
+   */
+  export type RecommendationAuditDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RecommendationAudit
+     */
+    select?: RecommendationAuditSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Model CycleSessionFeedback
    */
 
@@ -26765,6 +27849,9 @@ export namespace Prisma {
     muscleGroupsActivated: 'muscleGroupsActivated',
     instructions: 'instructions',
     videoUrl: 'videoUrl',
+    movementPattern: 'movementPattern',
+    mechanics: 'mechanics',
+    contraindications: 'contraindications',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -27036,6 +28123,25 @@ export namespace Prisma {
   export type CycleAssessmentScalarFieldEnum = (typeof CycleAssessmentScalarFieldEnum)[keyof typeof CycleAssessmentScalarFieldEnum]
 
 
+  export const RecommendationAuditScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    cycleId: 'cycleId',
+    assessmentId: 'assessmentId',
+    engineVersion: 'engineVersion',
+    decision: 'decision',
+    reasonCodes: 'reasonCodes',
+    metricsSnapshot: 'metricsSnapshot',
+    aiSummary: 'aiSummary',
+    presentedAt: 'presentedAt',
+    userAction: 'userAction',
+    userActionAt: 'userActionAt',
+    createdAt: 'createdAt'
+  };
+
+  export type RecommendationAuditScalarFieldEnum = (typeof RecommendationAuditScalarFieldEnum)[keyof typeof RecommendationAuditScalarFieldEnum]
+
+
   export const CycleSessionFeedbackScalarFieldEnum: {
     id: 'id',
     cycleId: 'cycleId',
@@ -27172,6 +28278,13 @@ export namespace Prisma {
   };
 
   export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
   export const QueryMode: {
@@ -27346,6 +28459,9 @@ export namespace Prisma {
     muscleGroupsActivated?: StringNullableListFilter<"Exercise">
     instructions?: StringFilter<"Exercise"> | string
     videoUrl?: StringNullableFilter<"Exercise"> | string | null
+    movementPattern?: StringNullableFilter<"Exercise"> | string | null
+    mechanics?: StringNullableFilter<"Exercise"> | string | null
+    contraindications?: StringNullableListFilter<"Exercise">
     createdAt?: DateTimeFilter<"Exercise"> | Date | string
     updatedAt?: DateTimeFilter<"Exercise"> | Date | string
     workoutExercises?: WorkoutExerciseListRelationFilter
@@ -27362,6 +28478,9 @@ export namespace Prisma {
     muscleGroupsActivated?: SortOrder
     instructions?: SortOrder
     videoUrl?: SortOrderInput | SortOrder
+    movementPattern?: SortOrderInput | SortOrder
+    mechanics?: SortOrderInput | SortOrder
+    contraindications?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     workoutExercises?: WorkoutExerciseOrderByRelationAggregateInput
@@ -27381,6 +28500,9 @@ export namespace Prisma {
     muscleGroupsActivated?: StringNullableListFilter<"Exercise">
     instructions?: StringFilter<"Exercise"> | string
     videoUrl?: StringNullableFilter<"Exercise"> | string | null
+    movementPattern?: StringNullableFilter<"Exercise"> | string | null
+    mechanics?: StringNullableFilter<"Exercise"> | string | null
+    contraindications?: StringNullableListFilter<"Exercise">
     createdAt?: DateTimeFilter<"Exercise"> | Date | string
     updatedAt?: DateTimeFilter<"Exercise"> | Date | string
     workoutExercises?: WorkoutExerciseListRelationFilter
@@ -27397,6 +28519,9 @@ export namespace Prisma {
     muscleGroupsActivated?: SortOrder
     instructions?: SortOrder
     videoUrl?: SortOrderInput | SortOrder
+    movementPattern?: SortOrderInput | SortOrder
+    mechanics?: SortOrderInput | SortOrder
+    contraindications?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ExerciseCountOrderByAggregateInput
@@ -27417,6 +28542,9 @@ export namespace Prisma {
     muscleGroupsActivated?: StringNullableListFilter<"Exercise">
     instructions?: StringWithAggregatesFilter<"Exercise"> | string
     videoUrl?: StringNullableWithAggregatesFilter<"Exercise"> | string | null
+    movementPattern?: StringNullableWithAggregatesFilter<"Exercise"> | string | null
+    mechanics?: StringNullableWithAggregatesFilter<"Exercise"> | string | null
+    contraindications?: StringNullableListFilter<"Exercise">
     createdAt?: DateTimeWithAggregatesFilter<"Exercise"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Exercise"> | Date | string
   }
@@ -28804,6 +29932,98 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"CycleAssessment"> | Date | string
   }
 
+  export type RecommendationAuditWhereInput = {
+    AND?: RecommendationAuditWhereInput | RecommendationAuditWhereInput[]
+    OR?: RecommendationAuditWhereInput[]
+    NOT?: RecommendationAuditWhereInput | RecommendationAuditWhereInput[]
+    id?: StringFilter<"RecommendationAudit"> | string
+    userId?: StringFilter<"RecommendationAudit"> | string
+    cycleId?: StringFilter<"RecommendationAudit"> | string
+    assessmentId?: StringNullableFilter<"RecommendationAudit"> | string | null
+    engineVersion?: StringFilter<"RecommendationAudit"> | string
+    decision?: StringFilter<"RecommendationAudit"> | string
+    reasonCodes?: JsonFilter<"RecommendationAudit">
+    metricsSnapshot?: JsonFilter<"RecommendationAudit">
+    aiSummary?: StringNullableFilter<"RecommendationAudit"> | string | null
+    presentedAt?: DateTimeFilter<"RecommendationAudit"> | Date | string
+    userAction?: StringNullableFilter<"RecommendationAudit"> | string | null
+    userActionAt?: DateTimeNullableFilter<"RecommendationAudit"> | Date | string | null
+    createdAt?: DateTimeFilter<"RecommendationAudit"> | Date | string
+  }
+
+  export type RecommendationAuditOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    cycleId?: SortOrder
+    assessmentId?: SortOrderInput | SortOrder
+    engineVersion?: SortOrder
+    decision?: SortOrder
+    reasonCodes?: SortOrder
+    metricsSnapshot?: SortOrder
+    aiSummary?: SortOrderInput | SortOrder
+    presentedAt?: SortOrder
+    userAction?: SortOrderInput | SortOrder
+    userActionAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RecommendationAuditWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: RecommendationAuditWhereInput | RecommendationAuditWhereInput[]
+    OR?: RecommendationAuditWhereInput[]
+    NOT?: RecommendationAuditWhereInput | RecommendationAuditWhereInput[]
+    userId?: StringFilter<"RecommendationAudit"> | string
+    cycleId?: StringFilter<"RecommendationAudit"> | string
+    assessmentId?: StringNullableFilter<"RecommendationAudit"> | string | null
+    engineVersion?: StringFilter<"RecommendationAudit"> | string
+    decision?: StringFilter<"RecommendationAudit"> | string
+    reasonCodes?: JsonFilter<"RecommendationAudit">
+    metricsSnapshot?: JsonFilter<"RecommendationAudit">
+    aiSummary?: StringNullableFilter<"RecommendationAudit"> | string | null
+    presentedAt?: DateTimeFilter<"RecommendationAudit"> | Date | string
+    userAction?: StringNullableFilter<"RecommendationAudit"> | string | null
+    userActionAt?: DateTimeNullableFilter<"RecommendationAudit"> | Date | string | null
+    createdAt?: DateTimeFilter<"RecommendationAudit"> | Date | string
+  }, "id">
+
+  export type RecommendationAuditOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    cycleId?: SortOrder
+    assessmentId?: SortOrderInput | SortOrder
+    engineVersion?: SortOrder
+    decision?: SortOrder
+    reasonCodes?: SortOrder
+    metricsSnapshot?: SortOrder
+    aiSummary?: SortOrderInput | SortOrder
+    presentedAt?: SortOrder
+    userAction?: SortOrderInput | SortOrder
+    userActionAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: RecommendationAuditCountOrderByAggregateInput
+    _max?: RecommendationAuditMaxOrderByAggregateInput
+    _min?: RecommendationAuditMinOrderByAggregateInput
+  }
+
+  export type RecommendationAuditScalarWhereWithAggregatesInput = {
+    AND?: RecommendationAuditScalarWhereWithAggregatesInput | RecommendationAuditScalarWhereWithAggregatesInput[]
+    OR?: RecommendationAuditScalarWhereWithAggregatesInput[]
+    NOT?: RecommendationAuditScalarWhereWithAggregatesInput | RecommendationAuditScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"RecommendationAudit"> | string
+    userId?: StringWithAggregatesFilter<"RecommendationAudit"> | string
+    cycleId?: StringWithAggregatesFilter<"RecommendationAudit"> | string
+    assessmentId?: StringNullableWithAggregatesFilter<"RecommendationAudit"> | string | null
+    engineVersion?: StringWithAggregatesFilter<"RecommendationAudit"> | string
+    decision?: StringWithAggregatesFilter<"RecommendationAudit"> | string
+    reasonCodes?: JsonWithAggregatesFilter<"RecommendationAudit">
+    metricsSnapshot?: JsonWithAggregatesFilter<"RecommendationAudit">
+    aiSummary?: StringNullableWithAggregatesFilter<"RecommendationAudit"> | string | null
+    presentedAt?: DateTimeWithAggregatesFilter<"RecommendationAudit"> | Date | string
+    userAction?: StringNullableWithAggregatesFilter<"RecommendationAudit"> | string | null
+    userActionAt?: DateTimeNullableWithAggregatesFilter<"RecommendationAudit"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"RecommendationAudit"> | Date | string
+  }
+
   export type CycleSessionFeedbackWhereInput = {
     AND?: CycleSessionFeedbackWhereInput | CycleSessionFeedbackWhereInput[]
     OR?: CycleSessionFeedbackWhereInput[]
@@ -29455,6 +30675,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseCreatemuscleGroupsActivatedInput | string[]
     instructions: string
     videoUrl?: string | null
+    movementPattern?: string | null
+    mechanics?: string | null
+    contraindications?: ExerciseCreatecontraindicationsInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
@@ -29471,6 +30694,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseCreatemuscleGroupsActivatedInput | string[]
     instructions: string
     videoUrl?: string | null
+    movementPattern?: string | null
+    mechanics?: string | null
+    contraindications?: ExerciseCreatecontraindicationsInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
@@ -29487,6 +30713,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseUpdatemuscleGroupsActivatedInput | string[]
     instructions?: StringFieldUpdateOperationsInput | string
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    movementPattern?: NullableStringFieldUpdateOperationsInput | string | null
+    mechanics?: NullableStringFieldUpdateOperationsInput | string | null
+    contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
@@ -29503,6 +30732,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseUpdatemuscleGroupsActivatedInput | string[]
     instructions?: StringFieldUpdateOperationsInput | string
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    movementPattern?: NullableStringFieldUpdateOperationsInput | string | null
+    mechanics?: NullableStringFieldUpdateOperationsInput | string | null
+    contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
@@ -29519,6 +30751,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseCreatemuscleGroupsActivatedInput | string[]
     instructions: string
     videoUrl?: string | null
+    movementPattern?: string | null
+    mechanics?: string | null
+    contraindications?: ExerciseCreatecontraindicationsInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -29533,6 +30768,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseUpdatemuscleGroupsActivatedInput | string[]
     instructions?: StringFieldUpdateOperationsInput | string
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    movementPattern?: NullableStringFieldUpdateOperationsInput | string | null
+    mechanics?: NullableStringFieldUpdateOperationsInput | string | null
+    contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -29547,6 +30785,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseUpdatemuscleGroupsActivatedInput | string[]
     instructions?: StringFieldUpdateOperationsInput | string
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    movementPattern?: NullableStringFieldUpdateOperationsInput | string | null
+    mechanics?: NullableStringFieldUpdateOperationsInput | string | null
+    contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -31146,6 +32387,118 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type RecommendationAuditCreateInput = {
+    id?: string
+    userId: string
+    cycleId: string
+    assessmentId?: string | null
+    engineVersion: string
+    decision: string
+    reasonCodes: JsonNullValueInput | InputJsonValue
+    metricsSnapshot: JsonNullValueInput | InputJsonValue
+    aiSummary?: string | null
+    presentedAt?: Date | string
+    userAction?: string | null
+    userActionAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type RecommendationAuditUncheckedCreateInput = {
+    id?: string
+    userId: string
+    cycleId: string
+    assessmentId?: string | null
+    engineVersion: string
+    decision: string
+    reasonCodes: JsonNullValueInput | InputJsonValue
+    metricsSnapshot: JsonNullValueInput | InputJsonValue
+    aiSummary?: string | null
+    presentedAt?: Date | string
+    userAction?: string | null
+    userActionAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type RecommendationAuditUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    cycleId?: StringFieldUpdateOperationsInput | string
+    assessmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    engineVersion?: StringFieldUpdateOperationsInput | string
+    decision?: StringFieldUpdateOperationsInput | string
+    reasonCodes?: JsonNullValueInput | InputJsonValue
+    metricsSnapshot?: JsonNullValueInput | InputJsonValue
+    aiSummary?: NullableStringFieldUpdateOperationsInput | string | null
+    presentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userAction?: NullableStringFieldUpdateOperationsInput | string | null
+    userActionAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RecommendationAuditUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    cycleId?: StringFieldUpdateOperationsInput | string
+    assessmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    engineVersion?: StringFieldUpdateOperationsInput | string
+    decision?: StringFieldUpdateOperationsInput | string
+    reasonCodes?: JsonNullValueInput | InputJsonValue
+    metricsSnapshot?: JsonNullValueInput | InputJsonValue
+    aiSummary?: NullableStringFieldUpdateOperationsInput | string | null
+    presentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userAction?: NullableStringFieldUpdateOperationsInput | string | null
+    userActionAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RecommendationAuditCreateManyInput = {
+    id?: string
+    userId: string
+    cycleId: string
+    assessmentId?: string | null
+    engineVersion: string
+    decision: string
+    reasonCodes: JsonNullValueInput | InputJsonValue
+    metricsSnapshot: JsonNullValueInput | InputJsonValue
+    aiSummary?: string | null
+    presentedAt?: Date | string
+    userAction?: string | null
+    userActionAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type RecommendationAuditUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    cycleId?: StringFieldUpdateOperationsInput | string
+    assessmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    engineVersion?: StringFieldUpdateOperationsInput | string
+    decision?: StringFieldUpdateOperationsInput | string
+    reasonCodes?: JsonNullValueInput | InputJsonValue
+    metricsSnapshot?: JsonNullValueInput | InputJsonValue
+    aiSummary?: NullableStringFieldUpdateOperationsInput | string | null
+    presentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userAction?: NullableStringFieldUpdateOperationsInput | string | null
+    userActionAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RecommendationAuditUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    cycleId?: StringFieldUpdateOperationsInput | string
+    assessmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    engineVersion?: StringFieldUpdateOperationsInput | string
+    decision?: StringFieldUpdateOperationsInput | string
+    reasonCodes?: JsonNullValueInput | InputJsonValue
+    metricsSnapshot?: JsonNullValueInput | InputJsonValue
+    aiSummary?: NullableStringFieldUpdateOperationsInput | string | null
+    presentedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userAction?: NullableStringFieldUpdateOperationsInput | string | null
+    userActionAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type CycleSessionFeedbackCreateInput = {
     id?: string
     readinessScore?: number | null
@@ -31973,6 +33326,9 @@ export namespace Prisma {
     muscleGroupsActivated?: SortOrder
     instructions?: SortOrder
     videoUrl?: SortOrder
+    movementPattern?: SortOrder
+    mechanics?: SortOrder
+    contraindications?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -31986,6 +33342,8 @@ export namespace Prisma {
     type?: SortOrder
     instructions?: SortOrder
     videoUrl?: SortOrder
+    movementPattern?: SortOrder
+    mechanics?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -31999,6 +33357,8 @@ export namespace Prisma {
     type?: SortOrder
     instructions?: SortOrder
     videoUrl?: SortOrder
+    movementPattern?: SortOrder
+    mechanics?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -33287,6 +34647,97 @@ export namespace Prisma {
     confidenceScore?: SortOrder
     dataQualityScore?: SortOrder
   }
+  export type JsonFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type RecommendationAuditCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    cycleId?: SortOrder
+    assessmentId?: SortOrder
+    engineVersion?: SortOrder
+    decision?: SortOrder
+    reasonCodes?: SortOrder
+    metricsSnapshot?: SortOrder
+    aiSummary?: SortOrder
+    presentedAt?: SortOrder
+    userAction?: SortOrder
+    userActionAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RecommendationAuditMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    cycleId?: SortOrder
+    assessmentId?: SortOrder
+    engineVersion?: SortOrder
+    decision?: SortOrder
+    aiSummary?: SortOrder
+    presentedAt?: SortOrder
+    userAction?: SortOrder
+    userActionAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RecommendationAuditMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    cycleId?: SortOrder
+    assessmentId?: SortOrder
+    engineVersion?: SortOrder
+    decision?: SortOrder
+    aiSummary?: SortOrder
+    presentedAt?: SortOrder
+    userAction?: SortOrder
+    userActionAt?: SortOrder
+    createdAt?: SortOrder
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
+  }
 
   export type WorkoutScheduleRelationFilter = {
     is?: WorkoutScheduleWhereInput
@@ -33763,6 +35214,10 @@ export namespace Prisma {
     set: string[]
   }
 
+  export type ExerciseCreatecontraindicationsInput = {
+    set: string[]
+  }
+
   export type WorkoutExerciseCreateNestedManyWithoutExerciseInput = {
     create?: XOR<WorkoutExerciseCreateWithoutExerciseInput, WorkoutExerciseUncheckedCreateWithoutExerciseInput> | WorkoutExerciseCreateWithoutExerciseInput[] | WorkoutExerciseUncheckedCreateWithoutExerciseInput[]
     connectOrCreate?: WorkoutExerciseCreateOrConnectWithoutExerciseInput | WorkoutExerciseCreateOrConnectWithoutExerciseInput[]
@@ -33818,6 +35273,11 @@ export namespace Prisma {
 
   export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null
+  }
+
+  export type ExerciseUpdatecontraindicationsInput = {
+    set?: string[]
+    push?: string | string[]
   }
 
   export type DateTimeFieldUpdateOperationsInput = {
@@ -35220,6 +36680,28 @@ export namespace Prisma {
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
+  export type NestedJsonFilter<$PrismaModel = never> = 
+    | PatchUndefined<
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type WorkoutExerciseCreateWithoutExerciseInput = {
     id?: string
@@ -35557,6 +37039,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseCreatemuscleGroupsActivatedInput | string[]
     instructions: string
     videoUrl?: string | null
+    movementPattern?: string | null
+    mechanics?: string | null
+    contraindications?: ExerciseCreatecontraindicationsInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutProgramExercises?: WorkoutProgramExerciseCreateNestedManyWithoutExerciseInput
@@ -35572,6 +37057,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseCreatemuscleGroupsActivatedInput | string[]
     instructions: string
     videoUrl?: string | null
+    movementPattern?: string | null
+    mechanics?: string | null
+    contraindications?: ExerciseCreatecontraindicationsInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedCreateNestedManyWithoutExerciseInput
@@ -35684,6 +37172,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseUpdatemuscleGroupsActivatedInput | string[]
     instructions?: StringFieldUpdateOperationsInput | string
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    movementPattern?: NullableStringFieldUpdateOperationsInput | string | null
+    mechanics?: NullableStringFieldUpdateOperationsInput | string | null
+    contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutProgramExercises?: WorkoutProgramExerciseUpdateManyWithoutExerciseNestedInput
@@ -35699,6 +37190,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseUpdatemuscleGroupsActivatedInput | string[]
     instructions?: StringFieldUpdateOperationsInput | string
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    movementPattern?: NullableStringFieldUpdateOperationsInput | string | null
+    mechanics?: NullableStringFieldUpdateOperationsInput | string | null
+    contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutProgramExercises?: WorkoutProgramExerciseUncheckedUpdateManyWithoutExerciseNestedInput
@@ -36333,6 +37827,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseCreatemuscleGroupsActivatedInput | string[]
     instructions: string
     videoUrl?: string | null
+    movementPattern?: string | null
+    mechanics?: string | null
+    contraindications?: ExerciseCreatecontraindicationsInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseCreateNestedManyWithoutExerciseInput
@@ -36348,6 +37845,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseCreatemuscleGroupsActivatedInput | string[]
     instructions: string
     videoUrl?: string | null
+    movementPattern?: string | null
+    mechanics?: string | null
+    contraindications?: ExerciseCreatecontraindicationsInput | string[]
     createdAt?: Date | string
     updatedAt?: Date | string
     workoutExercises?: WorkoutExerciseUncheckedCreateNestedManyWithoutExerciseInput
@@ -36414,6 +37914,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseUpdatemuscleGroupsActivatedInput | string[]
     instructions?: StringFieldUpdateOperationsInput | string
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    movementPattern?: NullableStringFieldUpdateOperationsInput | string | null
+    mechanics?: NullableStringFieldUpdateOperationsInput | string | null
+    contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUpdateManyWithoutExerciseNestedInput
@@ -36429,6 +37932,9 @@ export namespace Prisma {
     muscleGroupsActivated?: ExerciseUpdatemuscleGroupsActivatedInput | string[]
     instructions?: StringFieldUpdateOperationsInput | string
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    movementPattern?: NullableStringFieldUpdateOperationsInput | string | null
+    mechanics?: NullableStringFieldUpdateOperationsInput | string | null
+    contraindications?: ExerciseUpdatecontraindicationsInput | string[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workoutExercises?: WorkoutExerciseUncheckedUpdateManyWithoutExerciseNestedInput
@@ -39419,6 +40925,10 @@ export namespace Prisma {
      * @deprecated Use CycleAssessmentDefaultArgs instead
      */
     export type CycleAssessmentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = CycleAssessmentDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use RecommendationAuditDefaultArgs instead
+     */
+    export type RecommendationAuditArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = RecommendationAuditDefaultArgs<ExtArgs>
     /**
      * @deprecated Use CycleSessionFeedbackDefaultArgs instead
      */

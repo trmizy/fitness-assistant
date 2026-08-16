@@ -29,7 +29,7 @@ export interface WorkoutProgramDay {
   };
 }
 
-export type ScheduleStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED";
+export type ScheduleStatus = "NOT_STARTED" | "IN_PROGRESS" | "PARTIALLY_COMPLETED" | "COMPLETED" | "SKIPPED" | "CANCELLED";
 
 export interface WorkoutSchedule {
   id: string;

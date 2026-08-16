@@ -20,6 +20,8 @@ export interface DecisionEngineResult {
   recommendedActionScope: ActionScope;
 }
 
+export type ExperienceLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "UNKNOWN";
+
 export interface DecisionEngineInput {
   cycleDurationDays: number;
   completedSessions: number;
@@ -31,6 +33,15 @@ export interface DecisionEngineInput {
    * changed since the prior cycle — a REBUILD trigger the engine itself
    * cannot infer from metrics alone. */
   goalOrContextChangedSincePriorCycle?: boolean;
+  /** User's training level, from UserProfile.experienceLevel. UNKNOWN/absent
+   * is treated exactly like BEGINNER throughout this engine — never
+   * silently upgraded to INTERMEDIATE (see docs/USER_LEVEL_PERSONALIZATION_PLAN.md §0). */
+  experienceLevel?: ExperienceLevel;
+  /** UserProfile.competesInSport — "professional/competitive" is modeled as
+   * ADVANCED + this flag, not a 5th experienceLevel value (ACSM's
+   * progression model only distinguishes 3 levels; see plan doc §0). Only
+   * has an effect when experienceLevel is ADVANCED. */
+  competesInSport?: boolean;
 }
 
 /** Pain/injury safety flags — deterministic, evaluated independently of and
@@ -79,7 +90,7 @@ interface Gate {
 
 /** INSUFFICIENT_DATA gates — checked first; any one firing short-circuits
  * the rest of the decision logic. Each condition mirrors spec §5 verbatim. */
-function evaluateInsufficientDataGates(input: DecisionEngineInput): Gate[] {
+function evaluateInsufficientDataGates(input: DecisionEngineInput, isProfessional: boolean): Gate[] {
   const t = cycleThresholds.assessment;
   const { metrics } = input;
   return [
@@ -93,6 +104,14 @@ function evaluateInsufficientDataGates(input: DecisionEngineInput): Gate[] {
     {
       fires: metrics.inBodyQuality.outlierFlags.length > 0 && metrics.inBodyQuality.comparableRecordCount === 0,
       reasonCode: "TOO_MANY_DATA_ERRORS_OR_OUTLIERS",
+    },
+    // Professional/competing athletes pay a higher real-world cost for a
+    // wrong quantitative call — require a stronger data-quality bar than a
+    // recreational ADVANCED lifter before letting any confident decision
+    // through (docs/USER_LEVEL_PERSONALIZATION_PLAN.md §D).
+    {
+      fires: isProfessional && metrics.dataQualityScore < t.professionalMinimumDataQualityScore,
+      reasonCode: "PROFESSIONAL_REQUIRES_HIGHER_DATA_QUALITY",
     },
   ];
 }
@@ -113,7 +132,21 @@ function computeProgressScore(metrics: CycleMetricsResult): {
       value: metrics.volumeTrendPercent == null ? null : Math.max(0, Math.min(1, 0.5 + metrics.volumeTrendPercent / 40)),
       weight: 0.75,
     },
+    // Regression-based volume slope across every week of data (resists a
+    // single noisy final week, unlike the naive first-vs-last volumeTrend
+    // above) — a distinct, additional signal, not a replacement, since the
+    // two occasionally disagreeing is itself meaningful audit information
+    // (surfaced via conflictingSignals below).
+    {
+      name: "volumeProgressionSlope",
+      value: metrics.volumeProgressionSlope == null ? null : Math.max(0, Math.min(1, 0.5 + metrics.volumeProgressionSlope / 40)),
+      weight: 0.75,
+    },
     { name: "newPRs", value: metrics.newPRs.length > 0 ? 1 : 0.5, weight: 0.5 },
+    // Nutrition consistency — already 0..1 scaled by computeNutritionConsistencyScore.
+    // A user missing their nutrition target consistently is real signal for
+    // why progress may be stalling, independent of training-side metrics.
+    { name: "nutritionConsistencyScore", value: metrics.nutritionConsistencyScore, weight: 1 },
   ];
 
   const withData = signals.filter((s) => s.value != null) as Array<{ name: string; value: number; weight: number }>;
@@ -150,10 +183,18 @@ function hasTwoConsecutiveMissedCycles(priorDecisions: CycleDecision[] | undefin
 
 export function evaluateCycle(input: DecisionEngineInput): DecisionEngineResult {
   const { metrics } = input;
+  const t = cycleThresholds.assessment;
+  // UNKNOWN/absent reads as BEGINNER for safety purposes throughout this
+  // engine — never silently upgraded to INTERMEDIATE (plan doc §0).
+  const experienceLevel = input.experienceLevel ?? "UNKNOWN";
+  const isBeginner = experienceLevel === "BEGINNER" || experienceLevel === "UNKNOWN";
+  const isAdvancedOrPro = experienceLevel === "ADVANCED";
+  const isProfessional = isAdvancedOrPro && input.competesInSport === true;
+
   const safetyFlags = evaluateSafetyFlags(metrics);
   const hasCriticalSafetyFlag = safetyFlags.some((f) => f.severity === "critical");
 
-  const gates = evaluateInsufficientDataGates(input);
+  const gates = evaluateInsufficientDataGates(input, isProfessional);
   const firedGates = gates.filter((g) => g.fires);
 
   const supportingMetrics: Record<string, unknown> = {
@@ -162,11 +203,16 @@ export function evaluateCycle(input: DecisionEngineInput): DecisionEngineResult 
     strengthProgressScore: metrics.strengthProgressScore,
     performanceConsistencyScore: metrics.performanceConsistencyScore,
     volumeTrendPercent: metrics.volumeTrendPercent,
+    volumeProgressionSlope: metrics.volumeProgressionSlope,
+    missedSessionCount: metrics.missedSessionCount,
+    nutritionConsistencyScore: metrics.nutritionConsistencyScore,
     fatigueScore: metrics.fatigueScore,
     recoveryScore: metrics.recoveryScore,
     painTrend: metrics.painTrend,
     dataQualityScore: metrics.dataQualityScore,
     newPRsCount: metrics.newPRs.length,
+    experienceLevel,
+    competesInSport: input.competesInSport === true,
   };
 
   if (firedGates.length > 0) {
@@ -185,9 +231,23 @@ export function evaluateCycle(input: DecisionEngineInput): DecisionEngineResult 
   const reasonCodes: string[] = [];
 
   // DELOAD takes priority over pure performance-based decisions — recovery
-  // signals override an otherwise-good score, per spec §5.
-  const fatigued = metrics.fatigueScore != null && metrics.fatigueScore >= 0.7;
-  const poorRecovery = metrics.recoveryScore != null && metrics.recoveryScore <= 0.35;
+  // signals override an otherwise-good score, per spec §5. Thresholds are
+  // level-aware (plan doc §C/§D): beginners rarely accumulate enough real
+  // fatigue to need a deload in a first block, so require a stronger signal
+  // before it fires for them; advanced/professional lifters train closer to
+  // their real capacity, so the engine should react earlier for this group.
+  const fatigueThreshold = isBeginner
+    ? t.highFatigueScoreBeginner
+    : isAdvancedOrPro
+      ? t.highFatigueScoreAdvanced
+      : t.highFatigueScoreDefault;
+  const recoveryThreshold = isBeginner
+    ? t.lowRecoveryScoreBeginner
+    : isAdvancedOrPro
+      ? t.lowRecoveryScoreAdvanced
+      : t.lowRecoveryScoreDefault;
+  const fatigued = metrics.fatigueScore != null && metrics.fatigueScore >= fatigueThreshold;
+  const poorRecovery = metrics.recoveryScore != null && metrics.recoveryScore <= recoveryThreshold;
   const performanceDeclining = score < -0.15;
   if ((fatigued || poorRecovery || hasCriticalSafetyFlag) && performanceDeclining && metrics.adherenceRate >= cycleThresholds.assessment.minimumAdherenceRate) {
     reasonCodes.push("PERFORMANCE_DECLINE_WITH_ELEVATED_FATIGUE_OR_PAIN", "ADHERENCE_GOOD_SO_DECLINE_NOT_JUST_MISSED_SESSIONS");
@@ -204,9 +264,16 @@ export function evaluateCycle(input: DecisionEngineInput): DecisionEngineResult 
 
   // REBUILD — two consecutive missed cycles despite decent data, or an
   // explicit context change the engine can't infer from metrics alone.
+  // Never fires for a BEGINNER/UNKNOWN user: this decision is inherently a
+  // "your last two cycles' worth of history says this" call, and a user
+  // this new to training has not accumulated the cycle history the rule is
+  // reasoning about (plan doc §A: "REBUILD (chưa có 'chu kỳ trước' để so
+  // sánh)") — an explicit goal/context change still routes to ADJUST/KEEP
+  // below instead, which is a safe, milder outcome for this group.
   if (
-    (hasTwoConsecutiveMissedCycles(input.priorCycleDecisions) && score < 0.1) ||
-    input.goalOrContextChangedSincePriorCycle
+    !isBeginner &&
+    ((hasTwoConsecutiveMissedCycles(input.priorCycleDecisions) && score < 0.1) ||
+      input.goalOrContextChangedSincePriorCycle)
   ) {
     reasonCodes.push(
       input.goalOrContextChangedSincePriorCycle
@@ -226,9 +293,14 @@ export function evaluateCycle(input: DecisionEngineInput): DecisionEngineResult 
 
   // PROGRESS — strong composite score AND room to push (RPE not already
   // pinned high/rising, which would mean the user has no headroom left).
+  // Professional/competing athletes require a stronger score before the
+  // engine calls them "ready to push more" — a wrong progression call costs
+  // more mid competition-prep than for a recreational lifter (plan doc §D).
   const rpeHasHeadroom = metrics.rpeTrend !== "increasing";
-  if (score >= 0.35 && rpeHasHeadroom && metrics.adherenceRate >= cycleThresholds.assessment.minimumAdherenceRate) {
+  const progressScoreThreshold = isProfessional ? t.progressScoreThresholdProfessional : t.progressScoreThresholdDefault;
+  if (score >= progressScoreThreshold && rpeHasHeadroom && metrics.adherenceRate >= cycleThresholds.assessment.minimumAdherenceRate) {
     reasonCodes.push("STRONG_COMPOSITE_PROGRESS_SCORE", "RPE_TREND_NOT_RISING_HEADROOM_AVAILABLE");
+    if (isProfessional) reasonCodes.push("PROFESSIONAL_STRICTER_PROGRESS_BAR_MET");
     return {
       decision: "PROGRESS",
       confidenceScore: Math.round(metrics.dataQualityScore * (0.7 + score * 0.3) * 100) / 100,

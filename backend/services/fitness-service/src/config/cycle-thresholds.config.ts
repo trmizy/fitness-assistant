@@ -78,5 +78,31 @@ export const cycleThresholds = {
     plateauWindowWeeks: num("CYCLE_ASSESSMENT_PLATEAU_WINDOW_WEEKS", 3),
     highPainScore: num("CYCLE_ASSESSMENT_HIGH_PAIN_SCORE", 7),
     lowConfidenceThreshold: num("CYCLE_ASSESSMENT_LOW_CONFIDENCE_THRESHOLD", 0.6),
+
+    // Level-aware Decision Engine tuning (docs/USER_LEVEL_PERSONALIZATION_PLAN.md).
+    // Beginners rarely accumulate enough real training fatigue to need a
+    // deload in a first block — require a higher fatigue/lower recovery
+    // reading before DELOAD fires for them. Advanced/professional lifters
+    // train closer to their real capacity, so the same engine should react
+    // to fatigue/poor recovery earlier for this group (§C, §D).
+    highFatigueScoreDefault: num("CYCLE_ASSESSMENT_HIGH_FATIGUE_DEFAULT", 0.7),
+    highFatigueScoreBeginner: num("CYCLE_ASSESSMENT_HIGH_FATIGUE_BEGINNER", 0.85),
+    highFatigueScoreAdvanced: num("CYCLE_ASSESSMENT_HIGH_FATIGUE_ADVANCED", 0.6),
+    lowRecoveryScoreDefault: num("CYCLE_ASSESSMENT_LOW_RECOVERY_DEFAULT", 0.35),
+    lowRecoveryScoreBeginner: num("CYCLE_ASSESSMENT_LOW_RECOVERY_BEGINNER", 0.25),
+    lowRecoveryScoreAdvanced: num("CYCLE_ASSESSMENT_LOW_RECOVERY_ADVANCED", 0.45),
+    // PROGRESS bar: a competing/professional athlete (ADVANCED + competesInSport)
+    // pays a higher real-world cost for a wrong "you're ready to push more"
+    // call (competition prep), so require a stronger composite score before
+    // recommending progression than for a recreational lifter (§D).
+    progressScoreThresholdDefault: num("CYCLE_ASSESSMENT_PROGRESS_SCORE_DEFAULT", 0.35),
+    progressScoreThresholdProfessional: num("CYCLE_ASSESSMENT_PROGRESS_SCORE_PROFESSIONAL", 0.5),
+    // Professional athletes (ADVANCED + competesInSport) get an extra,
+    // stricter INSUFFICIENT_DATA gate on top of the shared gates — per the
+    // design doc, an under-confident quantitative call costs more for this
+    // group (affects competition prep), so a mediocre data-quality score
+    // that would still be enough for a recreational ADVANCED lifter should
+    // not be enough here.
+    professionalMinimumDataQualityScore: num("CYCLE_ASSESSMENT_PROFESSIONAL_MIN_DATA_QUALITY", 0.65),
   },
 } as const;

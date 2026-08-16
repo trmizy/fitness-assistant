@@ -1,0 +1,395 @@
+##############################################################################
+# docker-compose.prod.yml — Single-EC2 production deployment (Option A)
+#
+# Strategy
+# ─────────
+# One EC2 instance runs every application container via this compose file.
+# Postgres is NOT a container here — it's Amazon RDS, reached over the
+# network via env vars set in the untracked ../../.env on the host. Redis,
+# Qdrant, and Ollama stay as containers on this instance (no AWS managed
+# equivalent for Qdrant; Redis and Ollama are kept as containers for the MVP
+# — see the FCAJ report's Proposal §8/§9 for the scope reasoning: Amazon
+# ElastiCache and Amazon Bedrock are listed as future work, not MVP).
+#
+# Scope: gateway, auth-service, user-service, fitness-service, ai-service,
+# payment-service, gym-service. chat-service is intentionally NOT included —
+# it adds real-time Socket.IO infrastructure that's out of MVP scope.
+#
+# Differences from docker-compose.dev.yml:
+#   - Uses each service's production Dockerfile (multi-stage, compiled dist/,
+#     no tsx watch) instead of Dockerfile.dev.
+#   - No source bind-mounts — the image is the deployable artifact.
+#   - No host port mappings for backend services — only `web` (port 80) is
+#     reachable from outside the instance; everything else talks over the
+#     internal `gymcoach-network` by Docker service name, matching how
+#     frontend/web/nginx.prod.conf proxies /api and /socket.io to
+#     api-gateway (same same-origin approach as vite.config.ts's dev proxy,
+#     so there's no CORS/mixed-content issue even without a domain/TLS yet).
+#   - Postgres container removed; DATABASE_URL points at the RDS endpoint
+#     from ../../.env instead. Redis/Qdrant/Ollama stay as containers.
+#   - chat-service, n8n / Prometheus / Grafana / exporters / db-seeder
+#     omitted — this is the MVP production surface.
+#
+# Required ../../.env keys (see ../../.env.example — same file, prod values):
+#   RDS_ENDPOINT, RDS_USER, RDS_PASSWORD
+#   JWT_SECRET, INTERNAL_SERVICE_SECRET, INTERNAL_API_SECRET (real random
+#     values — NOT the dev defaults baked into docker-compose.dev.yml)
+#   ANTHROPIC_API_KEY (InBody vision OCR, user-service — always required;
+#     also used for ai-service chat only if you opt into LLM_PROVIDER=anthropic)
+#   CORS_ORIGIN, FRONTEND_URL (the EC2 Elastic IP or domain, e.g.
+#     http://<elastic-ip>)
+#
+# Usage
+# ─────
+#   First run (build images + start everything):
+#     docker compose -f infra/compose/docker-compose.prod.yml up -d --build
+#
+#   Redeploy after a code change:
+#     docker compose -f infra/compose/docker-compose.prod.yml up -d --build <service>
+#
+#   Logs:
+#     docker compose -f infra/compose/docker-compose.prod.yml logs -f <service>
+##############################################################################
+
+services:
+  # ── Frontend ────────────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ../..
+      dockerfile: frontend/web/Dockerfile
+    container_name: gymcoach-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      # Overrides the image's baked-in nginx.conf (plain static file server,
+      # no proxying) with the reverse-proxy config that forwards /api and
+      # /socket.io to api-gateway — same-origin, no VITE_API_URL needed.
+      - ../../frontend/web/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api-gateway
+    networks:
+      - default
+
+  # ── API Gateway ─────────────────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ../..
+      dockerfile: backend/gateway/Dockerfile
+    container_name: gymcoach-gateway
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3004
+      FITNESS_SERVICE_URL: http://fitness-service:3002
+      AI_SERVICE_URL: http://ai-service:3003
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      GYM_SERVICE_URL: http://gym-service:3006
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    env_file:
+      - ../../.env
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      fitness-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      gym-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - default
+
+  # ── Auth Service ─────────────────────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/auth-service/Dockerfile
+    container_name: gymcoach-auth
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://${RDS_USER}:${RDS_PASSWORD}@${RDS_ENDPOINT}:5432/gymcoach_auth?sslmode=require
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-7d}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+    env_file:
+      - ../../.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - default
+
+  # ── User Service ─────────────────────────────────────────────────────────────
+  user-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/user-service/Dockerfile
+    container_name: gymcoach-user
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      DATABASE_URL: postgresql://${RDS_USER}:${RDS_PASSWORD}@${RDS_ENDPOINT}:5432/gymcoach_user?sslmode=require
+      AUTH_SERVICE_URL: http://auth-service:3001
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+      INBODY_VISION_MODEL: ${INBODY_VISION_MODEL:-claude-sonnet-4-6}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+    env_file:
+      - ../../.env
+    volumes:
+      # Uploaded InBody scan images — the only thing on this instance that
+      # isn't reproducible from a rebuild (no S3 integration yet — see
+      # Proposal §9/§25). Back this up (see AWS guide).
+      - user_uploads:/app/backend/services/user-service/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3004/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+
+  # ── Fitness Service ──────────────────────────────────────────────────────────
+  fitness-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/fitness-service/Dockerfile
+    container_name: gymcoach-fitness
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgresql://${RDS_USER}:${RDS_PASSWORD}@${RDS_ENDPOINT}:5432/gymcoach_fitness?sslmode=require
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      AUTH_SERVICE_URL: http://auth-service:3001
+      AI_SERVICE_URL: http://ai-service:3003
+      USER_SERVICE_URL: http://user-service:3004
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+    env_file:
+      - ../../.env
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - default
+
+  # ── AI Service ───────────────────────────────────────────────────────────────
+  ai-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/ai-service/Dockerfile
+    container_name: gymcoach-ai
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: postgresql://${RDS_USER}:${RDS_PASSWORD}@${RDS_ENDPOINT}:5432/gymcoach_ai?sslmode=require
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      USER_SERVICE_URL: http://user-service:3004
+      FITNESS_SERVICE_URL: http://fitness-service:3002
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      # MVP default stays Ollama (self-hosted, sized on this instance — see
+      # Proposal §8/§11). LLM_PROVIDER=anthropic is available as an opt-in
+      # override in ../../.env, but is NOT the MVP default for this report.
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      LLM_MODEL: ${LLM_MODEL:-llama3.2:3b}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      LLM_BASE_URL: http://ollama:11434
+      OLLAMA_BASE_URL: http://ollama:11434
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-768}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-300000}
+      EMBEDDING_TIMEOUT_MS: ${EMBEDDING_TIMEOUT_MS:-120000}
+      ENABLE_TOOL_CALLING: "false"
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+    env_file:
+      - ../../.env
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      ollama:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3003/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - default
+
+  # ── Payment Service ──────────────────────────────────────────────────────────
+  payment-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/payment-service/Dockerfile
+    container_name: gymcoach-payment
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3007
+      DATABASE_URL: postgresql://${RDS_USER}:${RDS_PASSWORD}@${RDS_ENDPOINT}:5432/gymcoach_payment?sslmode=require
+      AUTH_SERVICE_URL: http://auth-service:3001
+      GYM_SERVICE_URL: http://gym-service:3006
+      USER_SERVICE_URL: http://user-service:3004
+      PLATFORM_COMMISSION_RATE: ${PLATFORM_COMMISSION_RATE:-0.10}
+      TOPUP_STALE_MINUTES: ${TOPUP_STALE_MINUTES:-60}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-MOCK}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+    env_file:
+      - ../../.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3007/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - default
+
+  # ── Gym Service ──────────────────────────────────────────────────────────────
+  gym-service:
+    build:
+      context: ../..
+      dockerfile: backend/services/gym-service/Dockerfile
+    container_name: gymcoach-gym
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3006
+      DATABASE_URL: postgresql://${RDS_USER}:${RDS_PASSWORD}@${RDS_ENDPOINT}:5432/gymcoach_gym?sslmode=require
+      AUTH_SERVICE_URL: http://auth-service:3001
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET}
+    env_file:
+      - ../../.env
+    depends_on:
+      payment-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3006/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - default
+
+  # ── Infrastructure kept as containers for the MVP ───────────────────────────
+  # (Amazon ElastiCache is listed as future work in the Proposal, not MVP —
+  # Redis stays a plain container here.)
+  redis:
+    image: redis:7-alpine
+    container_name: gymcoach-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - default
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: gymcoach-qdrant
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__SERVICE__ENABLE_UI=false
+    networks:
+      - default
+
+  # Self-hosted LLM (chat + embeddings) — real CPU/RAM requirements; size the
+  # EC2 instance for this, don't assume a Free Tier instance is enough (see
+  # Proposal §11 / Workshop 5.9 sizing notes).
+  ollama:
+    image: ollama/ollama:latest
+    container_name: gymcoach-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - default
+
+  # Pulls the chat + embedding models once on first start; exits after
+  # (`restart: no`).
+  ollama-model-puller:
+    image: curlimages/curl:latest
+    container_name: gymcoach-ollama-puller
+    restart: "no"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        'until curl -s http://ollama:11434/api/tags; do sleep 5; done; curl http://ollama:11434/api/pull -d ''{"name": "${LLM_MODEL:-llama3.2:3b}"}''; curl http://ollama:11434/api/pull -d ''{"name": "${EMBEDDING_MODEL:-nomic-embed-text}"}''',
+      ]
+    networks:
+      - default
+
+volumes:
+  user_uploads:
+  redis_data:
+  qdrant_data:
+  ollama_data:
+
+networks:
+  default:
+    name: gymcoach-network

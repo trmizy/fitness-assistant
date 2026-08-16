@@ -1,3 +1,4 @@
+import Anthropic from "@anthropic-ai/sdk";
 import axios, { AxiosError } from "axios";
 import { logger } from "@gym-coach/shared";
 import type { LLMResponse } from "../models/ai.models";
@@ -5,7 +6,47 @@ import { LlmError } from "../errors/api-error";
 
 const LLM_PROVIDER = process.env.LLM_PROVIDER || "ollama";
 const LLM_BASE_URL = process.env.LLM_BASE_URL || "http://localhost:11434";
-export const LLM_MODEL = process.env.LLM_MODEL || "llama3.2:3b";
+const DEFAULT_LLM_MODEL_BY_PROVIDER: Record<string, string> = {
+  ollama: "llama3.2:3b",
+  anthropic: "claude-sonnet-5",
+};
+export const LLM_MODEL =
+  process.env.LLM_MODEL ||
+  DEFAULT_LLM_MODEL_BY_PROVIDER[LLM_PROVIDER] ||
+  "llama3.2:3b";
+
+// Embeddings always go through LLM_BASE_URL (Ollama-compatible /api/embeddings),
+// regardless of LLM_PROVIDER — Claude has no embeddings endpoint. Run Ollama
+// CPU-only for the (small) embedding model even when chat completions are
+// routed to Claude; this needs no GPU.
+let anthropicClient: Anthropic | undefined;
+function getAnthropicClient(): Anthropic {
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return anthropicClient;
+}
+
+function buildAnthropicRequest(
+  prompt: string,
+  responseFormat?: "json" | "text",
+): { system?: string; messages: Anthropic.MessageParam[] } {
+  const split = buildOllamaMessages(prompt);
+  const systemMessage = split.find((m) => m.role === "system");
+  const userMessage = split.find((m) => m.role === "user") ?? split[0];
+
+  let system = systemMessage?.content;
+  if (responseFormat === "json") {
+    const jsonInstruction =
+      "Respond with valid JSON only — no prose, no markdown code fences, no explanation.";
+    system = system ? `${system}\n\n${jsonInstruction}` : jsonInstruction;
+  }
+
+  return {
+    system,
+    messages: [{ role: "user", content: userMessage.content }],
+  };
+}
 export const EMBEDDING_MODEL =
   process.env.EMBEDDING_MODEL || "nomic-embed-text";
 const MOCK_EMBEDDING_DIM = 768;
@@ -196,6 +237,23 @@ export const llmService = {
         };
       }
 
+      if (LLM_PROVIDER === "anthropic") {
+        // Deliberately does not make a live Anthropic request — this health
+        // check runs on a short interval (Docker healthcheck) and a real
+        // call would burn billed tokens continuously. Config presence is
+        // the practical signal here.
+        const hasKey = Boolean(process.env.ANTHROPIC_API_KEY);
+        return {
+          llmAvailable: hasKey,
+          llmProvider: LLM_PROVIDER,
+          llmUrl: "https://api.anthropic.com",
+          model: LLM_MODEL,
+          embeddingModel: EMBEDDING_MODEL,
+          checkedAt,
+          ...(hasKey ? {} : { error: "ANTHROPIC_API_KEY is not set" }),
+        };
+      }
+
       if (LLM_PROVIDER === "ollama") {
         const response = await axios.get(`${LLM_BASE_URL}/api/tags`, {
           timeout: timeoutMs,
@@ -329,6 +387,44 @@ export const llmService = {
           promptTokens,
           completionTokens,
           totalTokens: promptTokens + completionTokens,
+        };
+      }
+
+      if (LLM_PROVIDER === "anthropic") {
+        const { system, messages } = buildAnthropicRequest(
+          prompt,
+          opts?.responseFormat,
+        );
+        const response = await getAnthropicClient().messages.create({
+          model: LLM_MODEL,
+          max_tokens:
+            opts?.numPredict ??
+            (opts?.responseFormat === "json" ? 2048 : 1024),
+          // Sampling params (temperature/top_p) are not accepted on current
+          // Claude models — steer output via prompting instead.
+          system,
+          messages,
+        });
+
+        // The pinned SDK's type defs predate the "refusal" stop reason;
+        // cast to check it anyway so a safety decline surfaces as an error
+        // instead of returning empty/partial content silently.
+        if ((response.stop_reason as string) === "refusal") {
+          throw new LlmError(
+            "Anthropic declined to answer this request (safety refusal).",
+          );
+        }
+
+        const textBlock = response.content.find((b) => b.type === "text");
+        const answer =
+          textBlock && textBlock.type === "text" ? textBlock.text : "";
+
+        return {
+          answer,
+          promptTokens: response.usage.input_tokens,
+          completionTokens: response.usage.output_tokens,
+          totalTokens:
+            response.usage.input_tokens + response.usage.output_tokens,
         };
       }
 

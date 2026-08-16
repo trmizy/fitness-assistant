@@ -224,6 +224,15 @@ export const trainingCycleController = {
     }
   },
 
+  async listRecommendationAudits(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const audits = await trainingCycleService.listRecommendationAudits(req.params.id, req.user!.id);
+      res.json({ audits });
+    } catch (error: any) {
+      handleServiceError(res, error, "Failed to list recommendation audits");
+    }
+  },
+
   async report(req: AuthRequest, res: Response): Promise<void> {
     try {
       const result = await trainingCycleService.getCycleReport(req.params.id, req.user!.id);
