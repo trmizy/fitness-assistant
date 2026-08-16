@@ -1,5 +1,11 @@
 -- CreateTable
-CREATE TABLE "nutrition_goals" (
+--
+-- IF NOT EXISTS: the dev database already had this table from `db push` before this migration
+-- history became the source of truth (see 20260816000000_catch_up_db_push_drift for the fuller
+-- version of this problem). A plain CREATE TABLE fails on replay against that database with
+-- "relation nutrition_goals already exists" — this makes both a fresh database and the
+-- already-drifted dev database reach the same state.
+CREATE TABLE IF NOT EXISTS "nutrition_goals" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "calories" INTEGER NOT NULL,
@@ -14,4 +20,4 @@ CREATE TABLE "nutrition_goals" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "nutrition_goals_user_id_key" ON "nutrition_goals"("user_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "nutrition_goals_user_id_key" ON "nutrition_goals"("user_id");
