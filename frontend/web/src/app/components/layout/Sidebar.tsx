@@ -60,6 +60,12 @@ const clientNavFull = [
 
 /** Gym owner / staff nav — wallet balance is shown per-gym inside GymManagePage */
 const gymOwnerNav = [
+  {
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    to: "/gym-owner/dashboard",
+    sourceLang: "en" as const,
+  },
   { label: "Phòng gym của tôi", icon: Dumbbell, to: "/gym-owner/gyms" },
 ];
 

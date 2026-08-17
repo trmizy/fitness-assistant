@@ -10,6 +10,9 @@ interface KpiCardProps {
   iconBg: string;
   border: string;
   loading?: boolean;
+  /** One of the fixed `delay-*` classes from tw-animate-css, for a staggered load-in
+   * across a KPI row. Omit for no delay. */
+  animationDelayClass?: string;
 }
 
 export function KpiCard({
@@ -22,10 +25,13 @@ export function KpiCard({
   iconBg,
   border,
   loading,
+  animationDelayClass = "",
 }: KpiCardProps) {
   return (
-    <div className={`${bg} rounded-xl p-4 border ${border}`}>
-      <div className="flex items-start justify-between mb-3">
+    <div
+      className={`${bg} ${border} animate-in fade-in-0 slide-in-from-bottom-2 duration-500 fill-mode-both ${animationDelayClass} rounded-xl border p-4 transition-transform duration-300 ease-out hover:-translate-y-0.5`}
+    >
+      <div className="mb-3 flex items-start justify-between">
         <div
           className={`w-9 h-9 ${iconBg} rounded-lg flex items-center justify-center`}
         >

@@ -55,7 +55,7 @@ export function LoginPage() {
           rawRole === "ADMIN"
             ? "/admin/dashboard"
             : rawRole === "GYM_OWNER" || rawRole === "GYM_STAFF"
-              ? "/gym-owner/gyms"
+              ? "/gym-owner/dashboard"
               : storedUser.isPT
                 ? "/pt/dashboard"
                 : "/client/dashboard",

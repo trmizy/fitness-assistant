@@ -35,6 +35,7 @@ import { PTProfilePage } from "./pages/pt/PTProfilePage";
 import { PTWalletPage } from "./pages/pt/PTWalletPage";
 
 // Gym owner pages
+import { GymOwnerDashboard } from "./pages/gym-owner/GymOwnerDashboard";
 import { MyGymsPage } from "./pages/gym-owner/MyGymsPage";
 import { GymManagePage } from "./pages/gym-owner/GymManagePage";
 
@@ -161,7 +162,8 @@ export const router = createBrowserRouter([
           </RequireRole>
         ),
         children: [
-          { index: true, element: <Navigate to="/gym-owner/gyms" replace /> },
+          { index: true, element: <Navigate to="/gym-owner/dashboard" replace /> },
+          { path: "dashboard", Component: GymOwnerDashboard },
           { path: "gyms", Component: MyGymsPage },
           { path: "gyms/:id", Component: GymManagePage },
         ],
