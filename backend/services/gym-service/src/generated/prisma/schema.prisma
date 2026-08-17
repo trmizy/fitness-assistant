@@ -46,9 +46,31 @@ enum GymTrainerVisibility {
   INTERNAL_ONLY
 }
 
+/// A chain: one owner, one name, many physical locations (Gym rows below). Optional —
+/// a gym created without ever choosing a brand stays exactly as it always has, a single
+/// standalone location with `brandId = null`. Client search groups branches under their
+/// brand's card; a gym with no brand is just its own card, same as before this feature.
+model GymBrand {
+  id          String   @id @default(uuid())
+  ownerId     String   @map("owner_id")
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  branches Gym[]
+
+  @@index([ownerId])
+  @@map("gym_brands")
+}
+
 model Gym {
   id          String    @id @default(uuid())
   ownerId     String    @map("owner_id")
+  /// Which brand this location belongs to, if any. A branch's own plans, wallet, checkins,
+  /// and reviews stay keyed to this row exactly as for a standalone gym — brand is purely
+  /// a grouping label for search and owner navigation, not a second source of truth.
+  brandId     String?   @map("brand_id")
   name        String
   description String?
   address     String
@@ -59,6 +81,7 @@ model Gym {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
+  brand          GymBrand?               @relation(fields: [brandId], references: [id])
   plans          GymMembershipPlan[]
   memberships    GymMembershipContract[]
   affiliations   GymTrainerAffiliation[]
@@ -67,6 +90,7 @@ model Gym {
 
   @@index([status])
   @@index([ownerId])
+  @@index([brandId])
   @@map("gyms")
 }
 
@@ -79,6 +103,12 @@ model GymMembershipPlan {
   durationDays Int                     @map("duration_days")
   visitLimit   Int?                    @map("visit_limit")
   status       GymMembershipPlanStatus @default(ACTIVE)
+  /// Optional marketing window: the plan can only be PURCHASED while now is inside
+  /// [saleStartAt, saleEndAt]. Distinct from durationDays, which is how long a membership
+  /// lasts once bought — the sale window closing never shortens a membership already sold.
+  /// Both null (the common case) means always on sale while status is ACTIVE.
+  saleStartAt  DateTime?               @map("sale_start_at")
+  saleEndAt    DateTime?               @map("sale_end_at")
   createdAt    DateTime                @default(now()) @map("created_at")
   updatedAt    DateTime                @updatedAt @map("updated_at")
 

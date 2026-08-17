@@ -2756,7 +2756,7 @@ export const gymService = {
     const { data } = await api.get('/owner/gyms');
     return data?.data ?? data;
   },
-  createGym: async (payload: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string }) => {
+  createGym: async (payload: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string; brandId?: string }) => {
     const { data } = await api.post('/owner/gyms', payload);
     return data?.data ?? data;
   },
@@ -2768,12 +2768,41 @@ export const gymService = {
     const { data } = await api.get(`/owner/gyms/${gymId}/wallet`);
     return data?.data ?? data;
   },
-  createPlan: async (gymId: string, payload: { name: string; description?: string; price: number; durationDays: number; visitLimit?: number }) => {
+  createPlan: async (
+    gymId: string,
+    payload: { name: string; description?: string; price: number; durationDays: number; visitLimit?: number; saleStartAt?: string; saleEndAt?: string },
+  ) => {
     const { data } = await api.post(`/owner/gyms/${gymId}/plans`, payload);
+    return data?.data ?? data;
+  },
+  updatePlan: async (
+    gymId: string,
+    planId: string,
+    payload: Partial<{ name: string; description: string; price: number; durationDays: number; visitLimit: number; status: 'ACTIVE' | 'INACTIVE'; saleStartAt: string | null; saleEndAt: string | null }>,
+  ) => {
+    const { data } = await api.patch(`/owner/gyms/${gymId}/plans/${planId}`, payload);
     return data?.data ?? data;
   },
   listOwnedPlans: async (gymId: string) => {
     const { data } = await api.get(`/owner/gyms/${gymId}/plans`);
+    return data?.data ?? data;
+  },
+
+  // ── Brands (chains) ──────────────────────────────────────────────────
+  createBrand: async (payload: { name: string; description?: string }) => {
+    const { data } = await api.post('/owner/brands', payload);
+    return data?.data ?? data;
+  },
+  listOwnedBrands: async () => {
+    const { data } = await api.get('/owner/brands');
+    return data?.data ?? data;
+  },
+  getOwnedBrand: async (brandId: string) => {
+    const { data } = await api.get(`/owner/brands/${brandId}`);
+    return data?.data ?? data;
+  },
+  updateBrand: async (brandId: string, payload: Partial<{ name: string; description: string }>) => {
+    const { data } = await api.patch(`/owner/brands/${brandId}`, payload);
     return data?.data ?? data;
   },
   listOwnedMemberships: async (gymId: string) => {

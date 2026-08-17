@@ -122,9 +122,19 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.GymBrandScalarFieldEnum = {
+  id: 'id',
+  ownerId: 'ownerId',
+  name: 'name',
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.GymScalarFieldEnum = {
   id: 'id',
   ownerId: 'ownerId',
+  brandId: 'brandId',
   name: 'name',
   description: 'description',
   address: 'address',
@@ -145,6 +155,8 @@ exports.Prisma.GymMembershipPlanScalarFieldEnum = {
   durationDays: 'durationDays',
   visitLimit: 'visitLimit',
   status: 'status',
+  saleStartAt: 'saleStartAt',
+  saleEndAt: 'saleEndAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -300,6 +312,7 @@ exports.CollaborationParty = exports.$Enums.CollaborationParty = {
 };
 
 exports.Prisma.ModelName = {
+  GymBrand: 'GymBrand',
   Gym: 'Gym',
   GymMembershipPlan: 'GymMembershipPlan',
   GymMembershipContract: 'GymMembershipContract',

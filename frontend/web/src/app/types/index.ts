@@ -355,9 +355,23 @@ export type GymMembershipContractStatus =
   | "EXPIRED"
   | "CANCELLED";
 
+/** A chain: one owner, one name, many physical locations (branches, below). */
+export interface GymBrand {
+  id: string;
+  ownerId: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  /** Present only on GET /owner/brands/:id — the branch-management view. */
+  branches?: Gym[];
+}
+
 export interface Gym {
   id: string;
   ownerId: string;
+  /** Which brand this location belongs to, if any — most gyms have none. */
+  brandId?: string | null;
   name: string;
   description?: string;
   address: string;
@@ -369,6 +383,8 @@ export interface Gym {
   updatedAt: string;
   averageRating?: number; // public DTO only
   reviewCount?: number; // public DTO only
+  /** Included on public/owner listings so the client can group branches without a second call. */
+  brand?: { id: string; name: string } | null;
 }
 
 export interface GymMembershipPlan {
@@ -380,6 +396,10 @@ export interface GymMembershipPlan {
   durationDays: number;
   visitLimit?: number;
   status: GymMembershipPlanStatus;
+  /** Marketing window: the plan can only be bought while now is inside this range. Both
+   * unset means always on sale while status is ACTIVE. */
+  saleStartAt?: string | null;
+  saleEndAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

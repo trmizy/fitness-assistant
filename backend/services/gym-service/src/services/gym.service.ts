@@ -1,5 +1,6 @@
 import { gymRepository } from '../repositories/gym.repository';
 import { reviewRepository } from '../repositories/review.repository';
+import { brandService } from './brand.service';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -24,7 +25,10 @@ export const gymService = {
     return { ...gym, averageRating: round2(r.averageRating), reviewCount: r.count };
   },
 
-  async createGym(ownerId: string, data: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string }) {
+  async createGym(ownerId: string, data: { name: string; description?: string; address: string; city?: string; phone?: string; email?: string; brandId?: string }) {
+    // A branch must join a brand the same owner actually created — otherwise anyone could
+    // attach their gym to someone else's chain by guessing a brandId.
+    if (data.brandId) await brandService.getOwnedBrand(data.brandId, ownerId);
     return gymRepository.create({
       ownerId,
       name: data.name,
@@ -33,6 +37,7 @@ export const gymService = {
       city: data.city,
       phone: data.phone,
       email: data.email,
+      ...(data.brandId ? { brand: { connect: { id: data.brandId } } } : {}),
     });
   },
 

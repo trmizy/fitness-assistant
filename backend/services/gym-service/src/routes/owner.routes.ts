@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { extractUser, requireAuth, requireRoles } from '../middleware/auth.middleware';
 import { gymController } from '../controllers/gym.controller';
+import { brandController } from '../controllers/brand.controller';
 import { planController } from '../controllers/plan.controller';
 import { membershipController } from '../controllers/membership.controller';
 import { affiliationController } from '../controllers/affiliation.controller';
@@ -12,6 +13,13 @@ import { asyncHandler } from '../middleware/asyncHandler';
 
 const router = Router();
 router.use(extractUser, requireAuth, requireRoles('GYM_OWNER'));
+
+// A chain: one owner, many branches (Gym rows below with brandId set). Optional — an owner
+// who never creates a brand just keeps creating standalone gyms exactly as before.
+router.post('/brands', asyncHandler(brandController.create));
+router.get('/brands', asyncHandler(brandController.listOwned));
+router.get('/brands/:id', asyncHandler(brandController.getOwnedById));
+router.patch('/brands/:id', asyncHandler(brandController.update));
 
 // Ownership is verified per-row inside each service method (gymService.getOwnedGym) —
 // requireRoles('GYM_OWNER') alone only proves the caller is *a* gym owner, not that

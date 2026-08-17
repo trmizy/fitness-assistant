@@ -14,6 +14,14 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
 
 
 /**
+ * Model GymBrand
+ * A chain: one owner, one name, many physical locations (Gym rows below). Optional —
+ * a gym created without ever choosing a brand stays exactly as it always has, a single
+ * standalone location with `brandId = null`. Client search groups branches under their
+ * brand's card; a gym with no brand is just its own card, same as before this feature.
+ */
+export type GymBrand = $Result.DefaultSelection<Prisma.$GymBrandPayload>
+/**
  * Model Gym
  * 
  */
@@ -188,8 +196,8 @@ export const CollaborationParty: typeof $Enums.CollaborationParty
  * @example
  * ```
  * const prisma = new PrismaClient()
- * // Fetch zero or more Gyms
- * const gyms = await prisma.gym.findMany()
+ * // Fetch zero or more GymBrands
+ * const gymBrands = await prisma.gymBrand.findMany()
  * ```
  *
  * 
@@ -209,8 +217,8 @@ export class PrismaClient<
    * @example
    * ```
    * const prisma = new PrismaClient()
-   * // Fetch zero or more Gyms
-   * const gyms = await prisma.gym.findMany()
+   * // Fetch zero or more GymBrands
+   * const gymBrands = await prisma.gymBrand.findMany()
    * ```
    *
    * 
@@ -305,6 +313,16 @@ export class PrismaClient<
   $extends: $Extensions.ExtendsHook<"extends", Prisma.TypeMapCb, ExtArgs>
 
       /**
+   * `prisma.gymBrand`: Exposes CRUD operations for the **GymBrand** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more GymBrands
+    * const gymBrands = await prisma.gymBrand.findMany()
+    * ```
+    */
+  get gymBrand(): Prisma.GymBrandDelegate<ExtArgs>;
+
+  /**
    * `prisma.gym`: Exposes CRUD operations for the **Gym** model.
     * Example usage:
     * ```ts
@@ -824,6 +842,7 @@ export namespace Prisma {
 
 
   export const ModelName: {
+    GymBrand: 'GymBrand',
     Gym: 'Gym',
     GymMembershipPlan: 'GymMembershipPlan',
     GymMembershipContract: 'GymMembershipContract',
@@ -847,10 +866,80 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymMembershipReferral"
+      modelProps: "gymBrand" | "gym" | "gymMembershipPlan" | "gymMembershipContract" | "gymTrainerAffiliation" | "gymCheckIn" | "gymReview" | "gymPtCollaboration" | "gymMembershipReferral"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
+      GymBrand: {
+        payload: Prisma.$GymBrandPayload<ExtArgs>
+        fields: Prisma.GymBrandFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.GymBrandFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.GymBrandFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPayload>
+          }
+          findFirst: {
+            args: Prisma.GymBrandFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.GymBrandFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPayload>
+          }
+          findMany: {
+            args: Prisma.GymBrandFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPayload>[]
+          }
+          create: {
+            args: Prisma.GymBrandCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPayload>
+          }
+          createMany: {
+            args: Prisma.GymBrandCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.GymBrandCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPayload>[]
+          }
+          delete: {
+            args: Prisma.GymBrandDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPayload>
+          }
+          update: {
+            args: Prisma.GymBrandUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPayload>
+          }
+          deleteMany: {
+            args: Prisma.GymBrandDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.GymBrandUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.GymBrandUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$GymBrandPayload>
+          }
+          aggregate: {
+            args: Prisma.GymBrandAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateGymBrand>
+          }
+          groupBy: {
+            args: Prisma.GymBrandGroupByArgs<ExtArgs>
+            result: $Utils.Optional<GymBrandGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.GymBrandCountArgs<ExtArgs>
+            result: $Utils.Optional<GymBrandCountAggregateOutputType> | number
+          }
+        }
+      }
       Gym: {
         payload: Prisma.$GymPayload<ExtArgs>
         fields: Prisma.GymFieldRefs
@@ -1568,6 +1657,37 @@ export namespace Prisma {
 
 
   /**
+   * Count Type GymBrandCountOutputType
+   */
+
+  export type GymBrandCountOutputType = {
+    branches: number
+  }
+
+  export type GymBrandCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    branches?: boolean | GymBrandCountOutputTypeCountBranchesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * GymBrandCountOutputType without action
+   */
+  export type GymBrandCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrandCountOutputType
+     */
+    select?: GymBrandCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * GymBrandCountOutputType without action
+   */
+  export type GymBrandCountOutputTypeCountBranchesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymWhereInput
+  }
+
+
+  /**
    * Count Type GymCountOutputType
    */
 
@@ -1701,6 +1821,966 @@ export namespace Prisma {
    */
 
   /**
+   * Model GymBrand
+   */
+
+  export type AggregateGymBrand = {
+    _count: GymBrandCountAggregateOutputType | null
+    _min: GymBrandMinAggregateOutputType | null
+    _max: GymBrandMaxAggregateOutputType | null
+  }
+
+  export type GymBrandMinAggregateOutputType = {
+    id: string | null
+    ownerId: string | null
+    name: string | null
+    description: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymBrandMaxAggregateOutputType = {
+    id: string | null
+    ownerId: string | null
+    name: string | null
+    description: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type GymBrandCountAggregateOutputType = {
+    id: number
+    ownerId: number
+    name: number
+    description: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type GymBrandMinAggregateInputType = {
+    id?: true
+    ownerId?: true
+    name?: true
+    description?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymBrandMaxAggregateInputType = {
+    id?: true
+    ownerId?: true
+    name?: true
+    description?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type GymBrandCountAggregateInputType = {
+    id?: true
+    ownerId?: true
+    name?: true
+    description?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type GymBrandAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymBrand to aggregate.
+     */
+    where?: GymBrandWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymBrands to fetch.
+     */
+    orderBy?: GymBrandOrderByWithRelationInput | GymBrandOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: GymBrandWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymBrands from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymBrands.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned GymBrands
+    **/
+    _count?: true | GymBrandCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: GymBrandMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: GymBrandMaxAggregateInputType
+  }
+
+  export type GetGymBrandAggregateType<T extends GymBrandAggregateArgs> = {
+        [P in keyof T & keyof AggregateGymBrand]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateGymBrand[P]>
+      : GetScalarType<T[P], AggregateGymBrand[P]>
+  }
+
+
+
+
+  export type GymBrandGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: GymBrandWhereInput
+    orderBy?: GymBrandOrderByWithAggregationInput | GymBrandOrderByWithAggregationInput[]
+    by: GymBrandScalarFieldEnum[] | GymBrandScalarFieldEnum
+    having?: GymBrandScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: GymBrandCountAggregateInputType | true
+    _min?: GymBrandMinAggregateInputType
+    _max?: GymBrandMaxAggregateInputType
+  }
+
+  export type GymBrandGroupByOutputType = {
+    id: string
+    ownerId: string
+    name: string
+    description: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: GymBrandCountAggregateOutputType | null
+    _min: GymBrandMinAggregateOutputType | null
+    _max: GymBrandMaxAggregateOutputType | null
+  }
+
+  type GetGymBrandGroupByPayload<T extends GymBrandGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<GymBrandGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof GymBrandGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], GymBrandGroupByOutputType[P]>
+            : GetScalarType<T[P], GymBrandGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type GymBrandSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ownerId?: boolean
+    name?: boolean
+    description?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    branches?: boolean | GymBrand$branchesArgs<ExtArgs>
+    _count?: boolean | GymBrandCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["gymBrand"]>
+
+  export type GymBrandSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ownerId?: boolean
+    name?: boolean
+    description?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["gymBrand"]>
+
+  export type GymBrandSelectScalar = {
+    id?: boolean
+    ownerId?: boolean
+    name?: boolean
+    description?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type GymBrandInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    branches?: boolean | GymBrand$branchesArgs<ExtArgs>
+    _count?: boolean | GymBrandCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type GymBrandIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $GymBrandPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "GymBrand"
+    objects: {
+      branches: Prisma.$GymPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ownerId: string
+      name: string
+      description: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["gymBrand"]>
+    composites: {}
+  }
+
+  type GymBrandGetPayload<S extends boolean | null | undefined | GymBrandDefaultArgs> = $Result.GetResult<Prisma.$GymBrandPayload, S>
+
+  type GymBrandCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<GymBrandFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: GymBrandCountAggregateInputType | true
+    }
+
+  export interface GymBrandDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['GymBrand'], meta: { name: 'GymBrand' } }
+    /**
+     * Find zero or one GymBrand that matches the filter.
+     * @param {GymBrandFindUniqueArgs} args - Arguments to find a GymBrand
+     * @example
+     * // Get one GymBrand
+     * const gymBrand = await prisma.gymBrand.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends GymBrandFindUniqueArgs>(args: SelectSubset<T, GymBrandFindUniqueArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one GymBrand that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {GymBrandFindUniqueOrThrowArgs} args - Arguments to find a GymBrand
+     * @example
+     * // Get one GymBrand
+     * const gymBrand = await prisma.gymBrand.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends GymBrandFindUniqueOrThrowArgs>(args: SelectSubset<T, GymBrandFindUniqueOrThrowArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first GymBrand that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandFindFirstArgs} args - Arguments to find a GymBrand
+     * @example
+     * // Get one GymBrand
+     * const gymBrand = await prisma.gymBrand.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends GymBrandFindFirstArgs>(args?: SelectSubset<T, GymBrandFindFirstArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first GymBrand that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandFindFirstOrThrowArgs} args - Arguments to find a GymBrand
+     * @example
+     * // Get one GymBrand
+     * const gymBrand = await prisma.gymBrand.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends GymBrandFindFirstOrThrowArgs>(args?: SelectSubset<T, GymBrandFindFirstOrThrowArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more GymBrands that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all GymBrands
+     * const gymBrands = await prisma.gymBrand.findMany()
+     * 
+     * // Get first 10 GymBrands
+     * const gymBrands = await prisma.gymBrand.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const gymBrandWithIdOnly = await prisma.gymBrand.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends GymBrandFindManyArgs>(args?: SelectSubset<T, GymBrandFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a GymBrand.
+     * @param {GymBrandCreateArgs} args - Arguments to create a GymBrand.
+     * @example
+     * // Create one GymBrand
+     * const GymBrand = await prisma.gymBrand.create({
+     *   data: {
+     *     // ... data to create a GymBrand
+     *   }
+     * })
+     * 
+     */
+    create<T extends GymBrandCreateArgs>(args: SelectSubset<T, GymBrandCreateArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many GymBrands.
+     * @param {GymBrandCreateManyArgs} args - Arguments to create many GymBrands.
+     * @example
+     * // Create many GymBrands
+     * const gymBrand = await prisma.gymBrand.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends GymBrandCreateManyArgs>(args?: SelectSubset<T, GymBrandCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many GymBrands and returns the data saved in the database.
+     * @param {GymBrandCreateManyAndReturnArgs} args - Arguments to create many GymBrands.
+     * @example
+     * // Create many GymBrands
+     * const gymBrand = await prisma.gymBrand.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many GymBrands and only return the `id`
+     * const gymBrandWithIdOnly = await prisma.gymBrand.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends GymBrandCreateManyAndReturnArgs>(args?: SelectSubset<T, GymBrandCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a GymBrand.
+     * @param {GymBrandDeleteArgs} args - Arguments to delete one GymBrand.
+     * @example
+     * // Delete one GymBrand
+     * const GymBrand = await prisma.gymBrand.delete({
+     *   where: {
+     *     // ... filter to delete one GymBrand
+     *   }
+     * })
+     * 
+     */
+    delete<T extends GymBrandDeleteArgs>(args: SelectSubset<T, GymBrandDeleteArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one GymBrand.
+     * @param {GymBrandUpdateArgs} args - Arguments to update one GymBrand.
+     * @example
+     * // Update one GymBrand
+     * const gymBrand = await prisma.gymBrand.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends GymBrandUpdateArgs>(args: SelectSubset<T, GymBrandUpdateArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more GymBrands.
+     * @param {GymBrandDeleteManyArgs} args - Arguments to filter GymBrands to delete.
+     * @example
+     * // Delete a few GymBrands
+     * const { count } = await prisma.gymBrand.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends GymBrandDeleteManyArgs>(args?: SelectSubset<T, GymBrandDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more GymBrands.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many GymBrands
+     * const gymBrand = await prisma.gymBrand.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends GymBrandUpdateManyArgs>(args: SelectSubset<T, GymBrandUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one GymBrand.
+     * @param {GymBrandUpsertArgs} args - Arguments to update or create a GymBrand.
+     * @example
+     * // Update or create a GymBrand
+     * const gymBrand = await prisma.gymBrand.upsert({
+     *   create: {
+     *     // ... data to create a GymBrand
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the GymBrand we want to update
+     *   }
+     * })
+     */
+    upsert<T extends GymBrandUpsertArgs>(args: SelectSubset<T, GymBrandUpsertArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of GymBrands.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandCountArgs} args - Arguments to filter GymBrands to count.
+     * @example
+     * // Count the number of GymBrands
+     * const count = await prisma.gymBrand.count({
+     *   where: {
+     *     // ... the filter for the GymBrands we want to count
+     *   }
+     * })
+    **/
+    count<T extends GymBrandCountArgs>(
+      args?: Subset<T, GymBrandCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], GymBrandCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a GymBrand.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends GymBrandAggregateArgs>(args: Subset<T, GymBrandAggregateArgs>): Prisma.PrismaPromise<GetGymBrandAggregateType<T>>
+
+    /**
+     * Group by GymBrand.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {GymBrandGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends GymBrandGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: GymBrandGroupByArgs['orderBy'] }
+        : { orderBy?: GymBrandGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, GymBrandGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetGymBrandGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the GymBrand model
+   */
+  readonly fields: GymBrandFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for GymBrand.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__GymBrandClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    branches<T extends GymBrand$branchesArgs<ExtArgs> = {}>(args?: Subset<T, GymBrand$branchesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the GymBrand model
+   */ 
+  interface GymBrandFieldRefs {
+    readonly id: FieldRef<"GymBrand", 'String'>
+    readonly ownerId: FieldRef<"GymBrand", 'String'>
+    readonly name: FieldRef<"GymBrand", 'String'>
+    readonly description: FieldRef<"GymBrand", 'String'>
+    readonly createdAt: FieldRef<"GymBrand", 'DateTime'>
+    readonly updatedAt: FieldRef<"GymBrand", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * GymBrand findUnique
+   */
+  export type GymBrandFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandInclude<ExtArgs> | null
+    /**
+     * Filter, which GymBrand to fetch.
+     */
+    where: GymBrandWhereUniqueInput
+  }
+
+  /**
+   * GymBrand findUniqueOrThrow
+   */
+  export type GymBrandFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandInclude<ExtArgs> | null
+    /**
+     * Filter, which GymBrand to fetch.
+     */
+    where: GymBrandWhereUniqueInput
+  }
+
+  /**
+   * GymBrand findFirst
+   */
+  export type GymBrandFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandInclude<ExtArgs> | null
+    /**
+     * Filter, which GymBrand to fetch.
+     */
+    where?: GymBrandWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymBrands to fetch.
+     */
+    orderBy?: GymBrandOrderByWithRelationInput | GymBrandOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymBrands.
+     */
+    cursor?: GymBrandWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymBrands from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymBrands.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymBrands.
+     */
+    distinct?: GymBrandScalarFieldEnum | GymBrandScalarFieldEnum[]
+  }
+
+  /**
+   * GymBrand findFirstOrThrow
+   */
+  export type GymBrandFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandInclude<ExtArgs> | null
+    /**
+     * Filter, which GymBrand to fetch.
+     */
+    where?: GymBrandWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymBrands to fetch.
+     */
+    orderBy?: GymBrandOrderByWithRelationInput | GymBrandOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for GymBrands.
+     */
+    cursor?: GymBrandWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymBrands from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymBrands.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of GymBrands.
+     */
+    distinct?: GymBrandScalarFieldEnum | GymBrandScalarFieldEnum[]
+  }
+
+  /**
+   * GymBrand findMany
+   */
+  export type GymBrandFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandInclude<ExtArgs> | null
+    /**
+     * Filter, which GymBrands to fetch.
+     */
+    where?: GymBrandWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of GymBrands to fetch.
+     */
+    orderBy?: GymBrandOrderByWithRelationInput | GymBrandOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing GymBrands.
+     */
+    cursor?: GymBrandWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` GymBrands from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` GymBrands.
+     */
+    skip?: number
+    distinct?: GymBrandScalarFieldEnum | GymBrandScalarFieldEnum[]
+  }
+
+  /**
+   * GymBrand create
+   */
+  export type GymBrandCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandInclude<ExtArgs> | null
+    /**
+     * The data needed to create a GymBrand.
+     */
+    data: XOR<GymBrandCreateInput, GymBrandUncheckedCreateInput>
+  }
+
+  /**
+   * GymBrand createMany
+   */
+  export type GymBrandCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many GymBrands.
+     */
+    data: GymBrandCreateManyInput | GymBrandCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymBrand createManyAndReturn
+   */
+  export type GymBrandCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many GymBrands.
+     */
+    data: GymBrandCreateManyInput | GymBrandCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * GymBrand update
+   */
+  export type GymBrandUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandInclude<ExtArgs> | null
+    /**
+     * The data needed to update a GymBrand.
+     */
+    data: XOR<GymBrandUpdateInput, GymBrandUncheckedUpdateInput>
+    /**
+     * Choose, which GymBrand to update.
+     */
+    where: GymBrandWhereUniqueInput
+  }
+
+  /**
+   * GymBrand updateMany
+   */
+  export type GymBrandUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update GymBrands.
+     */
+    data: XOR<GymBrandUpdateManyMutationInput, GymBrandUncheckedUpdateManyInput>
+    /**
+     * Filter which GymBrands to update
+     */
+    where?: GymBrandWhereInput
+  }
+
+  /**
+   * GymBrand upsert
+   */
+  export type GymBrandUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandInclude<ExtArgs> | null
+    /**
+     * The filter to search for the GymBrand to update in case it exists.
+     */
+    where: GymBrandWhereUniqueInput
+    /**
+     * In case the GymBrand found by the `where` argument doesn't exist, create a new GymBrand with this data.
+     */
+    create: XOR<GymBrandCreateInput, GymBrandUncheckedCreateInput>
+    /**
+     * In case the GymBrand was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<GymBrandUpdateInput, GymBrandUncheckedUpdateInput>
+  }
+
+  /**
+   * GymBrand delete
+   */
+  export type GymBrandDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandInclude<ExtArgs> | null
+    /**
+     * Filter which GymBrand to delete.
+     */
+    where: GymBrandWhereUniqueInput
+  }
+
+  /**
+   * GymBrand deleteMany
+   */
+  export type GymBrandDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which GymBrands to delete
+     */
+    where?: GymBrandWhereInput
+  }
+
+  /**
+   * GymBrand.branches
+   */
+  export type GymBrand$branchesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Gym
+     */
+    select?: GymSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymInclude<ExtArgs> | null
+    where?: GymWhereInput
+    orderBy?: GymOrderByWithRelationInput | GymOrderByWithRelationInput[]
+    cursor?: GymWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: GymScalarFieldEnum | GymScalarFieldEnum[]
+  }
+
+  /**
+   * GymBrand without action
+   */
+  export type GymBrandDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model Gym
    */
 
@@ -1713,6 +2793,7 @@ export namespace Prisma {
   export type GymMinAggregateOutputType = {
     id: string | null
     ownerId: string | null
+    brandId: string | null
     name: string | null
     description: string | null
     address: string | null
@@ -1727,6 +2808,7 @@ export namespace Prisma {
   export type GymMaxAggregateOutputType = {
     id: string | null
     ownerId: string | null
+    brandId: string | null
     name: string | null
     description: string | null
     address: string | null
@@ -1741,6 +2823,7 @@ export namespace Prisma {
   export type GymCountAggregateOutputType = {
     id: number
     ownerId: number
+    brandId: number
     name: number
     description: number
     address: number
@@ -1757,6 +2840,7 @@ export namespace Prisma {
   export type GymMinAggregateInputType = {
     id?: true
     ownerId?: true
+    brandId?: true
     name?: true
     description?: true
     address?: true
@@ -1771,6 +2855,7 @@ export namespace Prisma {
   export type GymMaxAggregateInputType = {
     id?: true
     ownerId?: true
+    brandId?: true
     name?: true
     description?: true
     address?: true
@@ -1785,6 +2870,7 @@ export namespace Prisma {
   export type GymCountAggregateInputType = {
     id?: true
     ownerId?: true
+    brandId?: true
     name?: true
     description?: true
     address?: true
@@ -1872,6 +2958,7 @@ export namespace Prisma {
   export type GymGroupByOutputType = {
     id: string
     ownerId: string
+    brandId: string | null
     name: string
     description: string | null
     address: string
@@ -1903,6 +2990,7 @@ export namespace Prisma {
   export type GymSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     ownerId?: boolean
+    brandId?: boolean
     name?: boolean
     description?: boolean
     address?: boolean
@@ -1912,6 +3000,7 @@ export namespace Prisma {
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    brand?: boolean | Gym$brandArgs<ExtArgs>
     plans?: boolean | Gym$plansArgs<ExtArgs>
     memberships?: boolean | Gym$membershipsArgs<ExtArgs>
     affiliations?: boolean | Gym$affiliationsArgs<ExtArgs>
@@ -1923,6 +3012,7 @@ export namespace Prisma {
   export type GymSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     ownerId?: boolean
+    brandId?: boolean
     name?: boolean
     description?: boolean
     address?: boolean
@@ -1932,11 +3022,13 @@ export namespace Prisma {
     status?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    brand?: boolean | Gym$brandArgs<ExtArgs>
   }, ExtArgs["result"]["gym"]>
 
   export type GymSelectScalar = {
     id?: boolean
     ownerId?: boolean
+    brandId?: boolean
     name?: boolean
     description?: boolean
     address?: boolean
@@ -1949,6 +3041,7 @@ export namespace Prisma {
   }
 
   export type GymInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    brand?: boolean | Gym$brandArgs<ExtArgs>
     plans?: boolean | Gym$plansArgs<ExtArgs>
     memberships?: boolean | Gym$membershipsArgs<ExtArgs>
     affiliations?: boolean | Gym$affiliationsArgs<ExtArgs>
@@ -1956,11 +3049,14 @@ export namespace Prisma {
     collaborations?: boolean | Gym$collaborationsArgs<ExtArgs>
     _count?: boolean | GymCountOutputTypeDefaultArgs<ExtArgs>
   }
-  export type GymIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type GymIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    brand?: boolean | Gym$brandArgs<ExtArgs>
+  }
 
   export type $GymPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Gym"
     objects: {
+      brand: Prisma.$GymBrandPayload<ExtArgs> | null
       plans: Prisma.$GymMembershipPlanPayload<ExtArgs>[]
       memberships: Prisma.$GymMembershipContractPayload<ExtArgs>[]
       affiliations: Prisma.$GymTrainerAffiliationPayload<ExtArgs>[]
@@ -1970,6 +3066,12 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       ownerId: string
+      /**
+       * Which brand this location belongs to, if any. A branch's own plans, wallet, checkins,
+       * and reviews stay keyed to this row exactly as for a standalone gym — brand is purely
+       * a grouping label for search and owner navigation, not a second source of truth.
+       */
+      brandId: string | null
       name: string
       description: string | null
       address: string
@@ -2343,6 +3445,7 @@ export namespace Prisma {
    */
   export interface Prisma__GymClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    brand<T extends Gym$brandArgs<ExtArgs> = {}>(args?: Subset<T, Gym$brandArgs<ExtArgs>>): Prisma__GymBrandClient<$Result.GetResult<Prisma.$GymBrandPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     plans<T extends Gym$plansArgs<ExtArgs> = {}>(args?: Subset<T, Gym$plansArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymMembershipPlanPayload<ExtArgs>, T, "findMany"> | Null>
     memberships<T extends Gym$membershipsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$membershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymMembershipContractPayload<ExtArgs>, T, "findMany"> | Null>
     affiliations<T extends Gym$affiliationsArgs<ExtArgs> = {}>(args?: Subset<T, Gym$affiliationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GymTrainerAffiliationPayload<ExtArgs>, T, "findMany"> | Null>
@@ -2379,6 +3482,7 @@ export namespace Prisma {
   interface GymFieldRefs {
     readonly id: FieldRef<"Gym", 'String'>
     readonly ownerId: FieldRef<"Gym", 'String'>
+    readonly brandId: FieldRef<"Gym", 'String'>
     readonly name: FieldRef<"Gym", 'String'>
     readonly description: FieldRef<"Gym", 'String'>
     readonly address: FieldRef<"Gym", 'String'>
@@ -2609,6 +3713,10 @@ export namespace Prisma {
      */
     data: GymCreateManyInput | GymCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -2699,6 +3807,21 @@ export namespace Prisma {
      * Filter which Gyms to delete
      */
     where?: GymWhereInput
+  }
+
+  /**
+   * Gym.brand
+   */
+  export type Gym$brandArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the GymBrand
+     */
+    select?: GymBrandSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: GymBrandInclude<ExtArgs> | null
+    where?: GymBrandWhereInput
   }
 
   /**
@@ -2849,6 +3972,8 @@ export namespace Prisma {
     durationDays: number | null
     visitLimit: number | null
     status: $Enums.GymMembershipPlanStatus | null
+    saleStartAt: Date | null
+    saleEndAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2862,6 +3987,8 @@ export namespace Prisma {
     durationDays: number | null
     visitLimit: number | null
     status: $Enums.GymMembershipPlanStatus | null
+    saleStartAt: Date | null
+    saleEndAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2875,6 +4002,8 @@ export namespace Prisma {
     durationDays: number
     visitLimit: number
     status: number
+    saleStartAt: number
+    saleEndAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -2902,6 +4031,8 @@ export namespace Prisma {
     durationDays?: true
     visitLimit?: true
     status?: true
+    saleStartAt?: true
+    saleEndAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2915,6 +4046,8 @@ export namespace Prisma {
     durationDays?: true
     visitLimit?: true
     status?: true
+    saleStartAt?: true
+    saleEndAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2928,6 +4061,8 @@ export namespace Prisma {
     durationDays?: true
     visitLimit?: true
     status?: true
+    saleStartAt?: true
+    saleEndAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -3028,6 +4163,8 @@ export namespace Prisma {
     durationDays: number
     visitLimit: number | null
     status: $Enums.GymMembershipPlanStatus
+    saleStartAt: Date | null
+    saleEndAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: GymMembershipPlanCountAggregateOutputType | null
@@ -3060,6 +4197,8 @@ export namespace Prisma {
     durationDays?: boolean
     visitLimit?: boolean
     status?: boolean
+    saleStartAt?: boolean
+    saleEndAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
@@ -3076,6 +4215,8 @@ export namespace Prisma {
     durationDays?: boolean
     visitLimit?: boolean
     status?: boolean
+    saleStartAt?: boolean
+    saleEndAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     gym?: boolean | GymDefaultArgs<ExtArgs>
@@ -3090,6 +4231,8 @@ export namespace Prisma {
     durationDays?: boolean
     visitLimit?: boolean
     status?: boolean
+    saleStartAt?: boolean
+    saleEndAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -3118,6 +4261,14 @@ export namespace Prisma {
       durationDays: number
       visitLimit: number | null
       status: $Enums.GymMembershipPlanStatus
+      /**
+       * Optional marketing window: the plan can only be PURCHASED while now is inside
+       * [saleStartAt, saleEndAt]. Distinct from durationDays, which is how long a membership
+       * lasts once bought — the sale window closing never shortens a membership already sold.
+       * Both null (the common case) means always on sale while status is ACTIVE.
+       */
+      saleStartAt: Date | null
+      saleEndAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["gymMembershipPlan"]>
@@ -3523,6 +4674,8 @@ export namespace Prisma {
     readonly durationDays: FieldRef<"GymMembershipPlan", 'Int'>
     readonly visitLimit: FieldRef<"GymMembershipPlan", 'Int'>
     readonly status: FieldRef<"GymMembershipPlan", 'GymMembershipPlanStatus'>
+    readonly saleStartAt: FieldRef<"GymMembershipPlan", 'DateTime'>
+    readonly saleEndAt: FieldRef<"GymMembershipPlan", 'DateTime'>
     readonly createdAt: FieldRef<"GymMembershipPlan", 'DateTime'>
     readonly updatedAt: FieldRef<"GymMembershipPlan", 'DateTime'>
   }
@@ -10215,9 +11368,22 @@ export namespace Prisma {
   export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+  export const GymBrandScalarFieldEnum: {
+    id: 'id',
+    ownerId: 'ownerId',
+    name: 'name',
+    description: 'description',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type GymBrandScalarFieldEnum = (typeof GymBrandScalarFieldEnum)[keyof typeof GymBrandScalarFieldEnum]
+
+
   export const GymScalarFieldEnum: {
     id: 'id',
     ownerId: 'ownerId',
+    brandId: 'brandId',
     name: 'name',
     description: 'description',
     address: 'address',
@@ -10241,6 +11407,8 @@ export namespace Prisma {
     durationDays: 'durationDays',
     visitLimit: 'visitLimit',
     status: 'status',
+    saleStartAt: 'saleStartAt',
+    saleEndAt: 'saleEndAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -10395,20 +11563,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'GymStatus'
-   */
-  export type EnumGymStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymStatus'>
-    
-
-
-  /**
-   * Reference to a field of type 'GymStatus[]'
-   */
-  export type ListEnumGymStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymStatus[]'>
-    
-
-
-  /**
    * Reference to a field of type 'DateTime'
    */
   export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
@@ -10419,6 +11573,20 @@ export namespace Prisma {
    * Reference to a field of type 'DateTime[]'
    */
   export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymStatus'
+   */
+  export type EnumGymStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'GymStatus[]'
+   */
+  export type ListEnumGymStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GymStatus[]'>
     
 
 
@@ -10572,12 +11740,73 @@ export namespace Prisma {
    */
 
 
+  export type GymBrandWhereInput = {
+    AND?: GymBrandWhereInput | GymBrandWhereInput[]
+    OR?: GymBrandWhereInput[]
+    NOT?: GymBrandWhereInput | GymBrandWhereInput[]
+    id?: StringFilter<"GymBrand"> | string
+    ownerId?: StringFilter<"GymBrand"> | string
+    name?: StringFilter<"GymBrand"> | string
+    description?: StringNullableFilter<"GymBrand"> | string | null
+    createdAt?: DateTimeFilter<"GymBrand"> | Date | string
+    updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
+    branches?: GymListRelationFilter
+  }
+
+  export type GymBrandOrderByWithRelationInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    branches?: GymOrderByRelationAggregateInput
+  }
+
+  export type GymBrandWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: GymBrandWhereInput | GymBrandWhereInput[]
+    OR?: GymBrandWhereInput[]
+    NOT?: GymBrandWhereInput | GymBrandWhereInput[]
+    ownerId?: StringFilter<"GymBrand"> | string
+    name?: StringFilter<"GymBrand"> | string
+    description?: StringNullableFilter<"GymBrand"> | string | null
+    createdAt?: DateTimeFilter<"GymBrand"> | Date | string
+    updatedAt?: DateTimeFilter<"GymBrand"> | Date | string
+    branches?: GymListRelationFilter
+  }, "id">
+
+  export type GymBrandOrderByWithAggregationInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: GymBrandCountOrderByAggregateInput
+    _max?: GymBrandMaxOrderByAggregateInput
+    _min?: GymBrandMinOrderByAggregateInput
+  }
+
+  export type GymBrandScalarWhereWithAggregatesInput = {
+    AND?: GymBrandScalarWhereWithAggregatesInput | GymBrandScalarWhereWithAggregatesInput[]
+    OR?: GymBrandScalarWhereWithAggregatesInput[]
+    NOT?: GymBrandScalarWhereWithAggregatesInput | GymBrandScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"GymBrand"> | string
+    ownerId?: StringWithAggregatesFilter<"GymBrand"> | string
+    name?: StringWithAggregatesFilter<"GymBrand"> | string
+    description?: StringNullableWithAggregatesFilter<"GymBrand"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"GymBrand"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"GymBrand"> | Date | string
+  }
+
   export type GymWhereInput = {
     AND?: GymWhereInput | GymWhereInput[]
     OR?: GymWhereInput[]
     NOT?: GymWhereInput | GymWhereInput[]
     id?: StringFilter<"Gym"> | string
     ownerId?: StringFilter<"Gym"> | string
+    brandId?: StringNullableFilter<"Gym"> | string | null
     name?: StringFilter<"Gym"> | string
     description?: StringNullableFilter<"Gym"> | string | null
     address?: StringFilter<"Gym"> | string
@@ -10587,6 +11816,7 @@ export namespace Prisma {
     status?: EnumGymStatusFilter<"Gym"> | $Enums.GymStatus
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
+    brand?: XOR<GymBrandNullableRelationFilter, GymBrandWhereInput> | null
     plans?: GymMembershipPlanListRelationFilter
     memberships?: GymMembershipContractListRelationFilter
     affiliations?: GymTrainerAffiliationListRelationFilter
@@ -10597,6 +11827,7 @@ export namespace Prisma {
   export type GymOrderByWithRelationInput = {
     id?: SortOrder
     ownerId?: SortOrder
+    brandId?: SortOrderInput | SortOrder
     name?: SortOrder
     description?: SortOrderInput | SortOrder
     address?: SortOrder
@@ -10606,6 +11837,7 @@ export namespace Prisma {
     status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    brand?: GymBrandOrderByWithRelationInput
     plans?: GymMembershipPlanOrderByRelationAggregateInput
     memberships?: GymMembershipContractOrderByRelationAggregateInput
     affiliations?: GymTrainerAffiliationOrderByRelationAggregateInput
@@ -10619,6 +11851,7 @@ export namespace Prisma {
     OR?: GymWhereInput[]
     NOT?: GymWhereInput | GymWhereInput[]
     ownerId?: StringFilter<"Gym"> | string
+    brandId?: StringNullableFilter<"Gym"> | string | null
     name?: StringFilter<"Gym"> | string
     description?: StringNullableFilter<"Gym"> | string | null
     address?: StringFilter<"Gym"> | string
@@ -10628,6 +11861,7 @@ export namespace Prisma {
     status?: EnumGymStatusFilter<"Gym"> | $Enums.GymStatus
     createdAt?: DateTimeFilter<"Gym"> | Date | string
     updatedAt?: DateTimeFilter<"Gym"> | Date | string
+    brand?: XOR<GymBrandNullableRelationFilter, GymBrandWhereInput> | null
     plans?: GymMembershipPlanListRelationFilter
     memberships?: GymMembershipContractListRelationFilter
     affiliations?: GymTrainerAffiliationListRelationFilter
@@ -10638,6 +11872,7 @@ export namespace Prisma {
   export type GymOrderByWithAggregationInput = {
     id?: SortOrder
     ownerId?: SortOrder
+    brandId?: SortOrderInput | SortOrder
     name?: SortOrder
     description?: SortOrderInput | SortOrder
     address?: SortOrder
@@ -10658,6 +11893,7 @@ export namespace Prisma {
     NOT?: GymScalarWhereWithAggregatesInput | GymScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Gym"> | string
     ownerId?: StringWithAggregatesFilter<"Gym"> | string
+    brandId?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     name?: StringWithAggregatesFilter<"Gym"> | string
     description?: StringNullableWithAggregatesFilter<"Gym"> | string | null
     address?: StringWithAggregatesFilter<"Gym"> | string
@@ -10681,6 +11917,8 @@ export namespace Prisma {
     durationDays?: IntFilter<"GymMembershipPlan"> | number
     visitLimit?: IntNullableFilter<"GymMembershipPlan"> | number | null
     status?: EnumGymMembershipPlanStatusFilter<"GymMembershipPlan"> | $Enums.GymMembershipPlanStatus
+    saleStartAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
+    saleEndAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
@@ -10696,6 +11934,8 @@ export namespace Prisma {
     durationDays?: SortOrder
     visitLimit?: SortOrderInput | SortOrder
     status?: SortOrder
+    saleStartAt?: SortOrderInput | SortOrder
+    saleEndAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     gym?: GymOrderByWithRelationInput
@@ -10714,6 +11954,8 @@ export namespace Prisma {
     durationDays?: IntFilter<"GymMembershipPlan"> | number
     visitLimit?: IntNullableFilter<"GymMembershipPlan"> | number | null
     status?: EnumGymMembershipPlanStatusFilter<"GymMembershipPlan"> | $Enums.GymMembershipPlanStatus
+    saleStartAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
+    saleEndAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
     gym?: XOR<GymRelationFilter, GymWhereInput>
@@ -10729,6 +11971,8 @@ export namespace Prisma {
     durationDays?: SortOrder
     visitLimit?: SortOrderInput | SortOrder
     status?: SortOrder
+    saleStartAt?: SortOrderInput | SortOrder
+    saleEndAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: GymMembershipPlanCountOrderByAggregateInput
@@ -10750,6 +11994,8 @@ export namespace Prisma {
     durationDays?: IntWithAggregatesFilter<"GymMembershipPlan"> | number
     visitLimit?: IntNullableWithAggregatesFilter<"GymMembershipPlan"> | number | null
     status?: EnumGymMembershipPlanStatusWithAggregatesFilter<"GymMembershipPlan"> | $Enums.GymMembershipPlanStatus
+    saleStartAt?: DateTimeNullableWithAggregatesFilter<"GymMembershipPlan"> | Date | string | null
+    saleEndAt?: DateTimeNullableWithAggregatesFilter<"GymMembershipPlan"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GymMembershipPlan"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"GymMembershipPlan"> | Date | string
   }
@@ -11290,6 +12536,73 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"GymMembershipReferral"> | Date | string
   }
 
+  export type GymBrandCreateInput = {
+    id?: string
+    ownerId: string
+    name: string
+    description?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    branches?: GymCreateNestedManyWithoutBrandInput
+  }
+
+  export type GymBrandUncheckedCreateInput = {
+    id?: string
+    ownerId: string
+    name: string
+    description?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    branches?: GymUncheckedCreateNestedManyWithoutBrandInput
+  }
+
+  export type GymBrandUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    branches?: GymUpdateManyWithoutBrandNestedInput
+  }
+
+  export type GymBrandUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    branches?: GymUncheckedUpdateManyWithoutBrandNestedInput
+  }
+
+  export type GymBrandCreateManyInput = {
+    id?: string
+    ownerId: string
+    name: string
+    description?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymBrandUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymBrandUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type GymCreateInput = {
     id?: string
     ownerId: string
@@ -11302,6 +12615,7 @@ export namespace Prisma {
     status?: $Enums.GymStatus
     createdAt?: Date | string
     updatedAt?: Date | string
+    brand?: GymBrandCreateNestedOneWithoutBranchesInput
     plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
@@ -11312,6 +12626,7 @@ export namespace Prisma {
   export type GymUncheckedCreateInput = {
     id?: string
     ownerId: string
+    brandId?: string | null
     name: string
     description?: string | null
     address: string
@@ -11340,6 +12655,7 @@ export namespace Prisma {
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneWithoutBranchesNestedInput
     plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
@@ -11350,6 +12666,7 @@ export namespace Prisma {
   export type GymUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
@@ -11369,6 +12686,7 @@ export namespace Prisma {
   export type GymCreateManyInput = {
     id?: string
     ownerId: string
+    brandId?: string | null
     name: string
     description?: string | null
     address: string
@@ -11397,6 +12715,7 @@ export namespace Prisma {
   export type GymUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
@@ -11416,6 +12735,8 @@ export namespace Prisma {
     durationDays: number
     visitLimit?: number | null
     status?: $Enums.GymMembershipPlanStatus
+    saleStartAt?: Date | string | null
+    saleEndAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutPlansInput
@@ -11431,6 +12752,8 @@ export namespace Prisma {
     durationDays: number
     visitLimit?: number | null
     status?: $Enums.GymMembershipPlanStatus
+    saleStartAt?: Date | string | null
+    saleEndAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutPlanInput
@@ -11444,6 +12767,8 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutPlansNestedInput
@@ -11459,6 +12784,8 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutPlanNestedInput
@@ -11473,6 +12800,8 @@ export namespace Prisma {
     durationDays: number
     visitLimit?: number | null
     status?: $Enums.GymMembershipPlanStatus
+    saleStartAt?: Date | string | null
+    saleEndAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -11485,6 +12814,8 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -11498,6 +12829,8 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -12128,13 +13461,6 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
-  export type EnumGymStatusFilter<$PrismaModel = never> = {
-    equals?: $Enums.GymStatus | EnumGymStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumGymStatusFilter<$PrismaModel> | $Enums.GymStatus
-  }
-
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -12146,34 +13472,10 @@ export namespace Prisma {
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
-  export type GymMembershipPlanListRelationFilter = {
-    every?: GymMembershipPlanWhereInput
-    some?: GymMembershipPlanWhereInput
-    none?: GymMembershipPlanWhereInput
-  }
-
-  export type GymMembershipContractListRelationFilter = {
-    every?: GymMembershipContractWhereInput
-    some?: GymMembershipContractWhereInput
-    none?: GymMembershipContractWhereInput
-  }
-
-  export type GymTrainerAffiliationListRelationFilter = {
-    every?: GymTrainerAffiliationWhereInput
-    some?: GymTrainerAffiliationWhereInput
-    none?: GymTrainerAffiliationWhereInput
-  }
-
-  export type GymReviewListRelationFilter = {
-    every?: GymReviewWhereInput
-    some?: GymReviewWhereInput
-    none?: GymReviewWhereInput
-  }
-
-  export type GymPtCollaborationListRelationFilter = {
-    every?: GymPtCollaborationWhereInput
-    some?: GymPtCollaborationWhereInput
-    none?: GymPtCollaborationWhereInput
+  export type GymListRelationFilter = {
+    every?: GymWhereInput
+    some?: GymWhereInput
+    none?: GymWhereInput
   }
 
   export type SortOrderInput = {
@@ -12181,64 +13483,33 @@ export namespace Prisma {
     nulls?: NullsOrder
   }
 
-  export type GymMembershipPlanOrderByRelationAggregateInput = {
+  export type GymOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
-  export type GymMembershipContractOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type GymTrainerAffiliationOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type GymReviewOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type GymPtCollaborationOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type GymCountOrderByAggregateInput = {
+  export type GymBrandCountOrderByAggregateInput = {
     id?: SortOrder
     ownerId?: SortOrder
     name?: SortOrder
     description?: SortOrder
-    address?: SortOrder
-    city?: SortOrder
-    phone?: SortOrder
-    email?: SortOrder
-    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type GymMaxOrderByAggregateInput = {
+  export type GymBrandMaxOrderByAggregateInput = {
     id?: SortOrder
     ownerId?: SortOrder
     name?: SortOrder
     description?: SortOrder
-    address?: SortOrder
-    city?: SortOrder
-    phone?: SortOrder
-    email?: SortOrder
-    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type GymMinOrderByAggregateInput = {
+  export type GymBrandMinOrderByAggregateInput = {
     id?: SortOrder
     ownerId?: SortOrder
     name?: SortOrder
     description?: SortOrder
-    address?: SortOrder
-    city?: SortOrder
-    phone?: SortOrder
-    email?: SortOrder
-    status?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -12279,16 +13550,6 @@ export namespace Prisma {
     _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
-  export type EnumGymStatusWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.GymStatus | EnumGymStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumGymStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymStatus
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumGymStatusFilter<$PrismaModel>
-    _max?: NestedEnumGymStatusFilter<$PrismaModel>
-  }
-
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -12301,6 +13562,123 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
+  }
+
+  export type EnumGymStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymStatus | EnumGymStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymStatusFilter<$PrismaModel> | $Enums.GymStatus
+  }
+
+  export type GymBrandNullableRelationFilter = {
+    is?: GymBrandWhereInput | null
+    isNot?: GymBrandWhereInput | null
+  }
+
+  export type GymMembershipPlanListRelationFilter = {
+    every?: GymMembershipPlanWhereInput
+    some?: GymMembershipPlanWhereInput
+    none?: GymMembershipPlanWhereInput
+  }
+
+  export type GymMembershipContractListRelationFilter = {
+    every?: GymMembershipContractWhereInput
+    some?: GymMembershipContractWhereInput
+    none?: GymMembershipContractWhereInput
+  }
+
+  export type GymTrainerAffiliationListRelationFilter = {
+    every?: GymTrainerAffiliationWhereInput
+    some?: GymTrainerAffiliationWhereInput
+    none?: GymTrainerAffiliationWhereInput
+  }
+
+  export type GymReviewListRelationFilter = {
+    every?: GymReviewWhereInput
+    some?: GymReviewWhereInput
+    none?: GymReviewWhereInput
+  }
+
+  export type GymPtCollaborationListRelationFilter = {
+    every?: GymPtCollaborationWhereInput
+    some?: GymPtCollaborationWhereInput
+    none?: GymPtCollaborationWhereInput
+  }
+
+  export type GymMembershipPlanOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymMembershipContractOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymTrainerAffiliationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymReviewOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymPtCollaborationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type GymCountOrderByAggregateInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    brandId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    address?: SortOrder
+    city?: SortOrder
+    phone?: SortOrder
+    email?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    brandId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    address?: SortOrder
+    city?: SortOrder
+    phone?: SortOrder
+    email?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type GymMinOrderByAggregateInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    brandId?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    address?: SortOrder
+    city?: SortOrder
+    phone?: SortOrder
+    email?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumGymStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymStatus | EnumGymStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymStatusFilter<$PrismaModel>
   }
 
   export type DecimalFilter<$PrismaModel = never> = {
@@ -12343,6 +13721,17 @@ export namespace Prisma {
     not?: NestedEnumGymMembershipPlanStatusFilter<$PrismaModel> | $Enums.GymMembershipPlanStatus
   }
 
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type GymRelationFilter = {
     is?: GymWhereInput
     isNot?: GymWhereInput
@@ -12357,6 +13746,8 @@ export namespace Prisma {
     durationDays?: SortOrder
     visitLimit?: SortOrder
     status?: SortOrder
+    saleStartAt?: SortOrder
+    saleEndAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -12376,6 +13767,8 @@ export namespace Prisma {
     durationDays?: SortOrder
     visitLimit?: SortOrder
     status?: SortOrder
+    saleStartAt?: SortOrder
+    saleEndAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -12389,6 +13782,8 @@ export namespace Prisma {
     durationDays?: SortOrder
     visitLimit?: SortOrder
     status?: SortOrder
+    saleStartAt?: SortOrder
+    saleEndAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -12457,14 +13852,7 @@ export namespace Prisma {
     _max?: NestedEnumGymMembershipPlanStatusFilter<$PrismaModel>
   }
 
-  export type EnumGymMembershipContractStatusFilter<$PrismaModel = never> = {
-    equals?: $Enums.GymMembershipContractStatus | EnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel> | $Enums.GymMembershipContractStatus
-  }
-
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
     notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -12472,7 +13860,17 @@ export namespace Prisma {
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type EnumGymMembershipContractStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymMembershipContractStatus | EnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel> | $Enums.GymMembershipContractStatus
   }
 
   export type BoolFilter<$PrismaModel = never> = {
@@ -12579,20 +13977,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
     _max?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
-  }
-
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type BoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -12970,6 +14354,66 @@ export namespace Prisma {
     clawedBack?: SortOrder
   }
 
+  export type GymCreateNestedManyWithoutBrandInput = {
+    create?: XOR<GymCreateWithoutBrandInput, GymUncheckedCreateWithoutBrandInput> | GymCreateWithoutBrandInput[] | GymUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymCreateOrConnectWithoutBrandInput | GymCreateOrConnectWithoutBrandInput[]
+    createMany?: GymCreateManyBrandInputEnvelope
+    connect?: GymWhereUniqueInput | GymWhereUniqueInput[]
+  }
+
+  export type GymUncheckedCreateNestedManyWithoutBrandInput = {
+    create?: XOR<GymCreateWithoutBrandInput, GymUncheckedCreateWithoutBrandInput> | GymCreateWithoutBrandInput[] | GymUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymCreateOrConnectWithoutBrandInput | GymCreateOrConnectWithoutBrandInput[]
+    createMany?: GymCreateManyBrandInputEnvelope
+    connect?: GymWhereUniqueInput | GymWhereUniqueInput[]
+  }
+
+  export type StringFieldUpdateOperationsInput = {
+    set?: string
+  }
+
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
+  export type DateTimeFieldUpdateOperationsInput = {
+    set?: Date | string
+  }
+
+  export type GymUpdateManyWithoutBrandNestedInput = {
+    create?: XOR<GymCreateWithoutBrandInput, GymUncheckedCreateWithoutBrandInput> | GymCreateWithoutBrandInput[] | GymUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymCreateOrConnectWithoutBrandInput | GymCreateOrConnectWithoutBrandInput[]
+    upsert?: GymUpsertWithWhereUniqueWithoutBrandInput | GymUpsertWithWhereUniqueWithoutBrandInput[]
+    createMany?: GymCreateManyBrandInputEnvelope
+    set?: GymWhereUniqueInput | GymWhereUniqueInput[]
+    disconnect?: GymWhereUniqueInput | GymWhereUniqueInput[]
+    delete?: GymWhereUniqueInput | GymWhereUniqueInput[]
+    connect?: GymWhereUniqueInput | GymWhereUniqueInput[]
+    update?: GymUpdateWithWhereUniqueWithoutBrandInput | GymUpdateWithWhereUniqueWithoutBrandInput[]
+    updateMany?: GymUpdateManyWithWhereWithoutBrandInput | GymUpdateManyWithWhereWithoutBrandInput[]
+    deleteMany?: GymScalarWhereInput | GymScalarWhereInput[]
+  }
+
+  export type GymUncheckedUpdateManyWithoutBrandNestedInput = {
+    create?: XOR<GymCreateWithoutBrandInput, GymUncheckedCreateWithoutBrandInput> | GymCreateWithoutBrandInput[] | GymUncheckedCreateWithoutBrandInput[]
+    connectOrCreate?: GymCreateOrConnectWithoutBrandInput | GymCreateOrConnectWithoutBrandInput[]
+    upsert?: GymUpsertWithWhereUniqueWithoutBrandInput | GymUpsertWithWhereUniqueWithoutBrandInput[]
+    createMany?: GymCreateManyBrandInputEnvelope
+    set?: GymWhereUniqueInput | GymWhereUniqueInput[]
+    disconnect?: GymWhereUniqueInput | GymWhereUniqueInput[]
+    delete?: GymWhereUniqueInput | GymWhereUniqueInput[]
+    connect?: GymWhereUniqueInput | GymWhereUniqueInput[]
+    update?: GymUpdateWithWhereUniqueWithoutBrandInput | GymUpdateWithWhereUniqueWithoutBrandInput[]
+    updateMany?: GymUpdateManyWithWhereWithoutBrandInput | GymUpdateManyWithWhereWithoutBrandInput[]
+    deleteMany?: GymScalarWhereInput | GymScalarWhereInput[]
+  }
+
+  export type GymBrandCreateNestedOneWithoutBranchesInput = {
+    create?: XOR<GymBrandCreateWithoutBranchesInput, GymBrandUncheckedCreateWithoutBranchesInput>
+    connectOrCreate?: GymBrandCreateOrConnectWithoutBranchesInput
+    connect?: GymBrandWhereUniqueInput
+  }
+
   export type GymMembershipPlanCreateNestedManyWithoutGymInput = {
     create?: XOR<GymMembershipPlanCreateWithoutGymInput, GymMembershipPlanUncheckedCreateWithoutGymInput> | GymMembershipPlanCreateWithoutGymInput[] | GymMembershipPlanUncheckedCreateWithoutGymInput[]
     connectOrCreate?: GymMembershipPlanCreateOrConnectWithoutGymInput | GymMembershipPlanCreateOrConnectWithoutGymInput[]
@@ -13040,20 +14484,18 @@ export namespace Prisma {
     connect?: GymPtCollaborationWhereUniqueInput | GymPtCollaborationWhereUniqueInput[]
   }
 
-  export type StringFieldUpdateOperationsInput = {
-    set?: string
-  }
-
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
-  }
-
   export type EnumGymStatusFieldUpdateOperationsInput = {
     set?: $Enums.GymStatus
   }
 
-  export type DateTimeFieldUpdateOperationsInput = {
-    set?: Date | string
+  export type GymBrandUpdateOneWithoutBranchesNestedInput = {
+    create?: XOR<GymBrandCreateWithoutBranchesInput, GymBrandUncheckedCreateWithoutBranchesInput>
+    connectOrCreate?: GymBrandCreateOrConnectWithoutBranchesInput
+    upsert?: GymBrandUpsertWithoutBranchesInput
+    disconnect?: GymBrandWhereInput | boolean
+    delete?: GymBrandWhereInput | boolean
+    connect?: GymBrandWhereUniqueInput
+    update?: XOR<XOR<GymBrandUpdateToOneWithWhereWithoutBranchesInput, GymBrandUpdateWithoutBranchesInput>, GymBrandUncheckedUpdateWithoutBranchesInput>
   }
 
   export type GymMembershipPlanUpdateManyWithoutGymNestedInput = {
@@ -13244,6 +14686,10 @@ export namespace Prisma {
     set?: $Enums.GymMembershipPlanStatus
   }
 
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
   export type GymUpdateOneRequiredWithoutPlansNestedInput = {
     create?: XOR<GymCreateWithoutPlansInput, GymUncheckedCreateWithoutPlansInput>
     connectOrCreate?: GymCreateOrConnectWithoutPlansInput
@@ -13320,10 +14766,6 @@ export namespace Prisma {
 
   export type EnumGymMembershipContractStatusFieldUpdateOperationsInput = {
     set?: $Enums.GymMembershipContractStatus
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type BoolFieldUpdateOperationsInput = {
@@ -13520,13 +14962,6 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
-  export type NestedEnumGymStatusFilter<$PrismaModel = never> = {
-    equals?: $Enums.GymStatus | EnumGymStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumGymStatusFilter<$PrismaModel> | $Enums.GymStatus
-  }
-
   export type NestedDateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -13594,16 +15029,6 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
-  export type NestedEnumGymStatusWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.GymStatus | EnumGymStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumGymStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymStatus
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumGymStatusFilter<$PrismaModel>
-    _max?: NestedEnumGymStatusFilter<$PrismaModel>
-  }
-
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -13616,6 +15041,23 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymStatus | EnumGymStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymStatusFilter<$PrismaModel> | $Enums.GymStatus
+  }
+
+  export type NestedEnumGymStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymStatus | EnumGymStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymStatus[] | ListEnumGymStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymStatusWithAggregatesFilter<$PrismaModel> | $Enums.GymStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumGymStatusFilter<$PrismaModel>
+    _max?: NestedEnumGymStatusFilter<$PrismaModel>
   }
 
   export type NestedDecimalFilter<$PrismaModel = never> = {
@@ -13634,6 +15076,17 @@ export namespace Prisma {
     in?: $Enums.GymMembershipPlanStatus[] | ListEnumGymMembershipPlanStatusFieldRefInput<$PrismaModel>
     notIn?: $Enums.GymMembershipPlanStatus[] | ListEnumGymMembershipPlanStatusFieldRefInput<$PrismaModel>
     not?: NestedEnumGymMembershipPlanStatusFilter<$PrismaModel> | $Enums.GymMembershipPlanStatus
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type NestedDecimalWithAggregatesFilter<$PrismaModel = never> = {
@@ -13716,14 +15169,7 @@ export namespace Prisma {
     _max?: NestedEnumGymMembershipPlanStatusFilter<$PrismaModel>
   }
 
-  export type NestedEnumGymMembershipContractStatusFilter<$PrismaModel = never> = {
-    equals?: $Enums.GymMembershipContractStatus | EnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel> | $Enums.GymMembershipContractStatus
-  }
-
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
     notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -13731,7 +15177,17 @@ export namespace Prisma {
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumGymMembershipContractStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.GymMembershipContractStatus | EnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.GymMembershipContractStatus[] | ListEnumGymMembershipContractStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel> | $Enums.GymMembershipContractStatus
   }
 
   export type NestedBoolFilter<$PrismaModel = never> = {
@@ -13747,20 +15203,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
     _max?: NestedEnumGymMembershipContractStatusFilter<$PrismaModel>
-  }
-
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -13883,6 +15325,111 @@ export namespace Prisma {
     _max?: NestedEnumCollaborationPartyFilter<$PrismaModel>
   }
 
+  export type GymCreateWithoutBrandInput = {
+    id?: string
+    ownerId: string
+    name: string
+    description?: string | null
+    address: string
+    city?: string | null
+    phone?: string | null
+    email?: string | null
+    status?: $Enums.GymStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
+    memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
+    affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
+    reviews?: GymReviewCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationCreateNestedManyWithoutGymInput
+  }
+
+  export type GymUncheckedCreateWithoutBrandInput = {
+    id?: string
+    ownerId: string
+    name: string
+    description?: string | null
+    address: string
+    city?: string | null
+    phone?: string | null
+    email?: string | null
+    status?: $Enums.GymStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    plans?: GymMembershipPlanUncheckedCreateNestedManyWithoutGymInput
+    memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutGymInput
+    affiliations?: GymTrainerAffiliationUncheckedCreateNestedManyWithoutGymInput
+    reviews?: GymReviewUncheckedCreateNestedManyWithoutGymInput
+    collaborations?: GymPtCollaborationUncheckedCreateNestedManyWithoutGymInput
+  }
+
+  export type GymCreateOrConnectWithoutBrandInput = {
+    where: GymWhereUniqueInput
+    create: XOR<GymCreateWithoutBrandInput, GymUncheckedCreateWithoutBrandInput>
+  }
+
+  export type GymCreateManyBrandInputEnvelope = {
+    data: GymCreateManyBrandInput | GymCreateManyBrandInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type GymUpsertWithWhereUniqueWithoutBrandInput = {
+    where: GymWhereUniqueInput
+    update: XOR<GymUpdateWithoutBrandInput, GymUncheckedUpdateWithoutBrandInput>
+    create: XOR<GymCreateWithoutBrandInput, GymUncheckedCreateWithoutBrandInput>
+  }
+
+  export type GymUpdateWithWhereUniqueWithoutBrandInput = {
+    where: GymWhereUniqueInput
+    data: XOR<GymUpdateWithoutBrandInput, GymUncheckedUpdateWithoutBrandInput>
+  }
+
+  export type GymUpdateManyWithWhereWithoutBrandInput = {
+    where: GymScalarWhereInput
+    data: XOR<GymUpdateManyMutationInput, GymUncheckedUpdateManyWithoutBrandInput>
+  }
+
+  export type GymScalarWhereInput = {
+    AND?: GymScalarWhereInput | GymScalarWhereInput[]
+    OR?: GymScalarWhereInput[]
+    NOT?: GymScalarWhereInput | GymScalarWhereInput[]
+    id?: StringFilter<"Gym"> | string
+    ownerId?: StringFilter<"Gym"> | string
+    brandId?: StringNullableFilter<"Gym"> | string | null
+    name?: StringFilter<"Gym"> | string
+    description?: StringNullableFilter<"Gym"> | string | null
+    address?: StringFilter<"Gym"> | string
+    city?: StringNullableFilter<"Gym"> | string | null
+    phone?: StringNullableFilter<"Gym"> | string | null
+    email?: StringNullableFilter<"Gym"> | string | null
+    status?: EnumGymStatusFilter<"Gym"> | $Enums.GymStatus
+    createdAt?: DateTimeFilter<"Gym"> | Date | string
+    updatedAt?: DateTimeFilter<"Gym"> | Date | string
+  }
+
+  export type GymBrandCreateWithoutBranchesInput = {
+    id?: string
+    ownerId: string
+    name: string
+    description?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymBrandUncheckedCreateWithoutBranchesInput = {
+    id?: string
+    ownerId: string
+    name: string
+    description?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymBrandCreateOrConnectWithoutBranchesInput = {
+    where: GymBrandWhereUniqueInput
+    create: XOR<GymBrandCreateWithoutBranchesInput, GymBrandUncheckedCreateWithoutBranchesInput>
+  }
+
   export type GymMembershipPlanCreateWithoutGymInput = {
     id?: string
     name: string
@@ -13891,6 +15438,8 @@ export namespace Prisma {
     durationDays: number
     visitLimit?: number | null
     status?: $Enums.GymMembershipPlanStatus
+    saleStartAt?: Date | string | null
+    saleEndAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractCreateNestedManyWithoutPlanInput
@@ -13904,6 +15453,8 @@ export namespace Prisma {
     durationDays: number
     visitLimit?: number | null
     status?: $Enums.GymMembershipPlanStatus
+    saleStartAt?: Date | string | null
+    saleEndAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     memberships?: GymMembershipContractUncheckedCreateNestedManyWithoutPlanInput
@@ -14079,6 +15630,35 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type GymBrandUpsertWithoutBranchesInput = {
+    update: XOR<GymBrandUpdateWithoutBranchesInput, GymBrandUncheckedUpdateWithoutBranchesInput>
+    create: XOR<GymBrandCreateWithoutBranchesInput, GymBrandUncheckedCreateWithoutBranchesInput>
+    where?: GymBrandWhereInput
+  }
+
+  export type GymBrandUpdateToOneWithWhereWithoutBranchesInput = {
+    where?: GymBrandWhereInput
+    data: XOR<GymBrandUpdateWithoutBranchesInput, GymBrandUncheckedUpdateWithoutBranchesInput>
+  }
+
+  export type GymBrandUpdateWithoutBranchesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type GymBrandUncheckedUpdateWithoutBranchesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type GymMembershipPlanUpsertWithWhereUniqueWithoutGymInput = {
     where: GymMembershipPlanWhereUniqueInput
     update: XOR<GymMembershipPlanUpdateWithoutGymInput, GymMembershipPlanUncheckedUpdateWithoutGymInput>
@@ -14107,6 +15687,8 @@ export namespace Prisma {
     durationDays?: IntFilter<"GymMembershipPlan"> | number
     visitLimit?: IntNullableFilter<"GymMembershipPlan"> | number | null
     status?: EnumGymMembershipPlanStatusFilter<"GymMembershipPlan"> | $Enums.GymMembershipPlanStatus
+    saleStartAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
+    saleEndAt?: DateTimeNullableFilter<"GymMembershipPlan"> | Date | string | null
     createdAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
     updatedAt?: DateTimeFilter<"GymMembershipPlan"> | Date | string
   }
@@ -14261,6 +15843,7 @@ export namespace Prisma {
     status?: $Enums.GymStatus
     createdAt?: Date | string
     updatedAt?: Date | string
+    brand?: GymBrandCreateNestedOneWithoutBranchesInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
@@ -14270,6 +15853,7 @@ export namespace Prisma {
   export type GymUncheckedCreateWithoutPlansInput = {
     id?: string
     ownerId: string
+    brandId?: string | null
     name: string
     description?: string | null
     address: string
@@ -14363,6 +15947,7 @@ export namespace Prisma {
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneWithoutBranchesNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
@@ -14372,6 +15957,7 @@ export namespace Prisma {
   export type GymUncheckedUpdateWithoutPlansInput = {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
@@ -14415,6 +16001,7 @@ export namespace Prisma {
     status?: $Enums.GymStatus
     createdAt?: Date | string
     updatedAt?: Date | string
+    brand?: GymBrandCreateNestedOneWithoutBranchesInput
     plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
@@ -14424,6 +16011,7 @@ export namespace Prisma {
   export type GymUncheckedCreateWithoutMembershipsInput = {
     id?: string
     ownerId: string
+    brandId?: string | null
     name: string
     description?: string | null
     address: string
@@ -14452,6 +16040,8 @@ export namespace Prisma {
     durationDays: number
     visitLimit?: number | null
     status?: $Enums.GymMembershipPlanStatus
+    saleStartAt?: Date | string | null
+    saleEndAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     gym: GymCreateNestedOneWithoutPlansInput
@@ -14466,6 +16056,8 @@ export namespace Prisma {
     durationDays: number
     visitLimit?: number | null
     status?: $Enums.GymMembershipPlanStatus
+    saleStartAt?: Date | string | null
+    saleEndAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -14555,6 +16147,7 @@ export namespace Prisma {
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneWithoutBranchesNestedInput
     plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
@@ -14564,6 +16157,7 @@ export namespace Prisma {
   export type GymUncheckedUpdateWithoutMembershipsInput = {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
@@ -14598,6 +16192,8 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     gym?: GymUpdateOneRequiredWithoutPlansNestedInput
@@ -14612,6 +16208,8 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -14693,6 +16291,7 @@ export namespace Prisma {
     status?: $Enums.GymStatus
     createdAt?: Date | string
     updatedAt?: Date | string
+    brand?: GymBrandCreateNestedOneWithoutBranchesInput
     plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     reviews?: GymReviewCreateNestedManyWithoutGymInput
@@ -14702,6 +16301,7 @@ export namespace Prisma {
   export type GymUncheckedCreateWithoutAffiliationsInput = {
     id?: string
     ownerId: string
+    brandId?: string | null
     name: string
     description?: string | null
     address: string
@@ -14745,6 +16345,7 @@ export namespace Prisma {
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneWithoutBranchesNestedInput
     plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     reviews?: GymReviewUpdateManyWithoutGymNestedInput
@@ -14754,6 +16355,7 @@ export namespace Prisma {
   export type GymUncheckedUpdateWithoutAffiliationsInput = {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
@@ -14877,6 +16479,7 @@ export namespace Prisma {
     status?: $Enums.GymStatus
     createdAt?: Date | string
     updatedAt?: Date | string
+    brand?: GymBrandCreateNestedOneWithoutBranchesInput
     plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
@@ -14886,6 +16489,7 @@ export namespace Prisma {
   export type GymUncheckedCreateWithoutReviewsInput = {
     id?: string
     ownerId: string
+    brandId?: string | null
     name: string
     description?: string | null
     address: string
@@ -14929,6 +16533,7 @@ export namespace Prisma {
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneWithoutBranchesNestedInput
     plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
@@ -14938,6 +16543,7 @@ export namespace Prisma {
   export type GymUncheckedUpdateWithoutReviewsInput = {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
@@ -14965,6 +16571,7 @@ export namespace Prisma {
     status?: $Enums.GymStatus
     createdAt?: Date | string
     updatedAt?: Date | string
+    brand?: GymBrandCreateNestedOneWithoutBranchesInput
     plans?: GymMembershipPlanCreateNestedManyWithoutGymInput
     memberships?: GymMembershipContractCreateNestedManyWithoutGymInput
     affiliations?: GymTrainerAffiliationCreateNestedManyWithoutGymInput
@@ -14974,6 +16581,7 @@ export namespace Prisma {
   export type GymUncheckedCreateWithoutCollaborationsInput = {
     id?: string
     ownerId: string
+    brandId?: string | null
     name: string
     description?: string | null
     address: string
@@ -15017,6 +16625,7 @@ export namespace Prisma {
     status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    brand?: GymBrandUpdateOneWithoutBranchesNestedInput
     plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
     memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
     affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
@@ -15026,6 +16635,7 @@ export namespace Prisma {
   export type GymUncheckedUpdateWithoutCollaborationsInput = {
     id?: StringFieldUpdateOperationsInput | string
     ownerId?: StringFieldUpdateOperationsInput | string
+    brandId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
     address?: StringFieldUpdateOperationsInput | string
@@ -15137,6 +16747,72 @@ export namespace Prisma {
     checkIns?: GymCheckInUncheckedUpdateManyWithoutMembershipNestedInput
   }
 
+  export type GymCreateManyBrandInput = {
+    id?: string
+    ownerId: string
+    name: string
+    description?: string | null
+    address: string
+    city?: string | null
+    phone?: string | null
+    email?: string | null
+    status?: $Enums.GymStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type GymUpdateWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plans?: GymMembershipPlanUpdateManyWithoutGymNestedInput
+    memberships?: GymMembershipContractUpdateManyWithoutGymNestedInput
+    affiliations?: GymTrainerAffiliationUpdateManyWithoutGymNestedInput
+    reviews?: GymReviewUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUpdateManyWithoutGymNestedInput
+  }
+
+  export type GymUncheckedUpdateWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plans?: GymMembershipPlanUncheckedUpdateManyWithoutGymNestedInput
+    memberships?: GymMembershipContractUncheckedUpdateManyWithoutGymNestedInput
+    affiliations?: GymTrainerAffiliationUncheckedUpdateManyWithoutGymNestedInput
+    reviews?: GymReviewUncheckedUpdateManyWithoutGymNestedInput
+    collaborations?: GymPtCollaborationUncheckedUpdateManyWithoutGymNestedInput
+  }
+
+  export type GymUncheckedUpdateManyWithoutBrandInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: StringFieldUpdateOperationsInput | string
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: EnumGymStatusFieldUpdateOperationsInput | $Enums.GymStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type GymMembershipPlanCreateManyGymInput = {
     id?: string
     name: string
@@ -15145,6 +16821,8 @@ export namespace Prisma {
     durationDays: number
     visitLimit?: number | null
     status?: $Enums.GymMembershipPlanStatus
+    saleStartAt?: Date | string | null
+    saleEndAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -15215,6 +16893,8 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUpdateManyWithoutPlanNestedInput
@@ -15228,6 +16908,8 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     memberships?: GymMembershipContractUncheckedUpdateManyWithoutPlanNestedInput
@@ -15241,6 +16923,8 @@ export namespace Prisma {
     durationDays?: IntFieldUpdateOperationsInput | number
     visitLimit?: NullableIntFieldUpdateOperationsInput | number | null
     status?: EnumGymMembershipPlanStatusFieldUpdateOperationsInput | $Enums.GymMembershipPlanStatus
+    saleStartAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    saleEndAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -15537,6 +17221,10 @@ export namespace Prisma {
    * Aliases for legacy arg types
    */
     /**
+     * @deprecated Use GymBrandCountOutputTypeDefaultArgs instead
+     */
+    export type GymBrandCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymBrandCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use GymCountOutputTypeDefaultArgs instead
      */
     export type GymCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymCountOutputTypeDefaultArgs<ExtArgs>
@@ -15548,6 +17236,10 @@ export namespace Prisma {
      * @deprecated Use GymMembershipContractCountOutputTypeDefaultArgs instead
      */
     export type GymMembershipContractCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymMembershipContractCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use GymBrandDefaultArgs instead
+     */
+    export type GymBrandArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = GymBrandDefaultArgs<ExtArgs>
     /**
      * @deprecated Use GymDefaultArgs instead
      */

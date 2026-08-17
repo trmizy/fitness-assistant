@@ -2356,6 +2356,15 @@ router.use(
   requireRoles('GYM_OWNER'),
   createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
 );
+// Owner — brand (chain) CRUD. Sibling path outside the /owner/gyms prefix above, so — same
+// gotcha as /owner/collaborations below — it needs its own explicit declaration or it 404s
+// at the gateway despite working fine directly against gym-service.
+router.use(
+  '/owner/brands',
+  authMiddleware,
+  requireRoles('GYM_OWNER'),
+  createProxyMiddleware({ target: GYM_SERVICE_URL, changeOrigin: true, onError: serviceUnavailable('Gym service') }),
+);
 // `/owner/gyms/:gymId/collaborations` (invite a PT) is already covered by the blanket
 // `/owner/gyms` proxy above. `/owner/collaborations/:id` (respond/terminate) is a sibling
 // path outside that prefix and needs its own declaration (money-flow plan §1.3/F3).

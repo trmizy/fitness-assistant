@@ -8,6 +8,7 @@ import { profileClient } from '../clients/profile.client';
 import { gymService } from './gym.service';
 import { collaborationService } from './collaboration.service';
 import { paymentClient } from '../clients/payment.client';
+import { isPlanOnSale } from './plan.service';
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -82,6 +83,9 @@ export const membershipService = {
   ) {
     const plan = await planRepository.findById(planId);
     if (!plan || plan.gymId !== gymId || plan.status !== 'ACTIVE') throw err('Plan not found or inactive', 404);
+    // Re-check server-side: the client may have had this plan open in a tab since before a
+    // marketing window closed. Never trust that what the browser is showing is still true.
+    if (!isPlanOnSale(plan)) throw err('Gói này hiện không còn trong thời gian mở bán', 409);
 
     const existingOpen = await membershipRepository.findOpenByClientAndGym(clientId, gymId);
     if (existingOpen) {
