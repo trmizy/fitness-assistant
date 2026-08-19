@@ -203,7 +203,7 @@ rồi bật **Gỡ lỗi USB** trong *Tuỳ chọn nhà phát triển*, cắm c�
 | Manifest đủ 4 quyền + `usesCleartextTraffic="true"` | ✅ |
 | `gradlew assembleDebug` | ✅ BUILD SUCCESSFUL (1m11s) |
 | `app-debug.apk` tồn tại | ✅ 17 MB |
-| `apps/mobile` không bị thay đổi | ✅ |
+| `apps/mobile` không bị thay đổi | ✅ (đúng tại thời điểm ghi chú này — xem cập nhật bên dưới) |
 
 ### Kiểm thử trên điện thoại thật — **CHƯA XÁC MINH**
 
@@ -232,4 +232,8 @@ rồi bật **Gỡ lỗi USB** trong *Tuỳ chọn nhà phát triển*, cắm c�
 | — | Thêm `server.watch.ignored: ["**/android/**"]` vào `vite.config.ts` | Chỉ là cấu hình. Không có nó, mỗi lần Gradle build lại ghi file vào `android/app/build/...` khiến dev server reload trang vô cớ. |
 
 Không sửa bất kỳ logic nghiệp vụ nào trong `frontend/web/src`.
-Thư mục `apps/mobile` **không bị đụng tới**.
+Thư mục `apps/mobile` không bị đụng tới **lúc bọc Capacitor ban đầu**.
+
+> **Cập nhật:** `apps/mobile` (app Expo/React Native riêng biệt) đã bị **xóa hẳn** khỏi repo theo
+> yêu cầu — app mobile chính thức của dự án từ giờ là bản Capacitor này (`frontend/web/android`).
+> `apps/*` cũng đã bỏ khỏi `pnpm-workspace.yaml` và `package.json`'s `workspaces`.

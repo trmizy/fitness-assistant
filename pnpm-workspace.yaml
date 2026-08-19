@@ -4,4 +4,3 @@ packages:
   - "backend/gateway"
   - "backend/services/*"
   - "backend/shared"
-  - "apps/*"
