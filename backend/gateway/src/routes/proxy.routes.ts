@@ -461,7 +461,7 @@ router.get(
     try {
       const authHeader = req.headers.authorization;
 
-      const [usersResult, ptsResult, statsResult, probesResult] =
+      const [usersResult, ptsResult, statsResult, probesResult, reconResult] =
         await Promise.allSettled([
           axios.get(`${AUTH_SERVICE_URL}/auth/users`, {
             headers: authHeader ? { Authorization: authHeader } : undefined,
@@ -476,6 +476,14 @@ router.get(
             timeout: 6000,
           }),
           probeServices(),
+          // Platform-wide money state — the dashboard is the admin's landing page, and
+          // "where is the money" is the first thing they ask; it was previously nowhere
+          // in this aggregation at all, not just missing from the frontend render.
+          axios.get(`${PAYMENT_SERVICE_URL}/admin/payments/reconciliation`, {
+            headers: authHeader ? { Authorization: authHeader } : undefined,
+            timeout: 6000,
+            validateStatus: () => true, // 409 (unbalanced) is still data we want to show
+          }),
         ]);
 
       const usersRes =
@@ -485,6 +493,8 @@ router.get(
         statsResult.status === "fulfilled" ? statsResult.value : null;
       const probes =
         probesResult.status === "fulfilled" ? probesResult.value : [];
+      const reconRes =
+        reconResult.status === "fulfilled" ? reconResult.value : null;
 
       if (usersResult.status === "rejected") {
         logger.error(
@@ -508,6 +518,12 @@ router.get(
         logger.error(
           { error: probesResult.reason?.message },
           "Admin dashboard monitor probe failed",
+        );
+      }
+      if (reconResult.status === "rejected") {
+        logger.error(
+          { error: reconResult.reason?.message },
+          "Admin dashboard reconciliation upstream failed",
         );
       }
 
@@ -664,6 +680,15 @@ router.get(
             healthyCount: monitorSummary.healthyCount,
             serviceCount: monitorSummary.serviceCount,
           },
+          // null (not zeros) when payment-service didn't answer, so the UI can tell "no
+          // money on the platform yet" apart from "couldn't reach payment-service".
+          money: reconRes?.data?.data
+            ? {
+                escrow: reconRes.data.data.escrow,
+                platformRevenue: reconRes.data.data.breakdown.platformRevenueAvailable,
+                balanced: reconRes.data.data.balanced,
+              }
+            : null,
         },
       });
     } catch (error: any) {

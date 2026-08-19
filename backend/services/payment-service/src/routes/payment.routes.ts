@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { extractUser, requireAuth } from '../middleware/auth.middleware';
 import { transactionRepository } from '../repositories/transaction.repository';
 import { providerConfigStatus, DEFAULT_PROVIDER } from '../services/payment.service';
+import { pollAndSettle } from '../services/webhook.service';
 
 const router = Router();
 router.use(extractUser, requireAuth);
@@ -64,6 +65,40 @@ router.get('/:id', async (req: Request, res: Response) => {
     return;
   }
   res.json({ success: true, data: txn });
+});
+
+// POST /me/payments/:id/sync — actively check this transaction at its own gateway instead
+// of waiting for the 5-minute reconciliation sweep or an IPN that cannot reach this
+// deployment (ZaloPay/MoMo/PayOS). Owner-only, same 404-not-403 rule as GET above.
+// pollAndSettle itself is the one no-op guard for anything already terminal (PAID/FAILED/
+// CANCELLED/REFUNDED) — it must NOT be duplicated here as a PROCESSING-only check: a
+// checkout is created PENDING and never moves to PROCESSING, so that used to skip every
+// real purchase without ever asking the gateway.
+router.post('/:id/sync', async (req: Request, res: Response) => {
+  const txn = await transactionRepository.findById(req.params.id);
+  if (!txn || txn.payerId !== req.user!.userId) {
+    res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } });
+    return;
+  }
+  try {
+    const result = await pollAndSettle(txn);
+    const fresh = result === 'PAID' ? await transactionRepository.findById(txn.id) : txn;
+    // purpose/relatedEntityType let the result page say what actually got activated
+    // (membership, PT contract, ...) instead of generic wallet-topup wording, and link
+    // to the right place instead of a wallet that no purchase ever touches any more.
+    res.json({
+      success: true,
+      data: {
+        status: fresh?.status ?? txn.status,
+        gatewayResult: result,
+        purpose: fresh?.purpose ?? txn.purpose,
+        relatedEntityType: fresh?.relatedEntityType ?? txn.relatedEntityType,
+        relatedEntityId: fresh?.relatedEntityId ?? txn.relatedEntityId,
+      },
+    });
+  } catch (e: any) {
+    res.status(e.status || 500).json({ success: false, error: { code: 'SYNC_FAILED', message: e.message } });
+  }
 });
 
 export default router;

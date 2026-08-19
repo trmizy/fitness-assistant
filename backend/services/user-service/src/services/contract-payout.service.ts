@@ -1,8 +1,15 @@
 import { logger } from "@gym-coach/shared";
-import { Prisma } from "../generated/prisma";
+import { Prisma, ContractStatus } from "../generated/prisma";
 import { contractRepository } from "../repositories/contract.repository";
 import { paymentClient } from "../clients/payment.client";
 import { prisma } from "../repositories/profile.repository";
+
+/** Every termination reason ends the contract in exactly one of these two final states. */
+function statusFor(reason: string): ContractStatus {
+  if (reason === "COMPLETED") return ContractStatus.COMPLETED;
+  if (reason === "EXPIRED") return ContractStatus.EXPIRED;
+  return ContractStatus.CANCELLED; // CLIENT_CANCELLED, PT_CANCELLED, PT_BANNED, MUTUAL
+}
 
 /**
  * Tells payment-service to move a contract's money when a session's outcome is settled.
@@ -175,9 +182,13 @@ export async function terminateContractMoney(
     label: `Contract ${contract.id} termination`,
   });
 
+  // Money settles above regardless — this must still land, or the contract stays ACTIVE
+  // forever with its escrow already emptied: assertSlotBookable only gates on status, so a
+  // client could keep booking new sessions against a contract that has no money left behind
+  // it.
   await prisma.contract.update({
     where: { id: contract.id },
-    data: { terminationReason: reason as any, terminatedAt: new Date() },
+    data: { terminationReason: reason as any, terminatedAt: new Date(), status: statusFor(reason) },
   });
 
   return result;

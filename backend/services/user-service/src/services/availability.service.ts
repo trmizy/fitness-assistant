@@ -1,7 +1,9 @@
-import { DayOfWeek } from "../generated/prisma";
+import { DayOfWeek, SessionStatus } from "../generated/prisma";
 import { availabilityRepository } from "../repositories/availability.repository";
 import { sessionRepository } from "../repositories/session.repository";
 import { profileRepository, prisma } from "../repositories/profile.repository";
+import { notificationService } from "./notification.service";
+import { compensateNoShowMoney } from "./contract-payout.service";
 
 function err(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -388,11 +390,63 @@ export const availabilityService = {
     return availabilityRepository.findExceptions(ptUserId);
   },
 
-  // Add a blocked date
+  /**
+   * Add a blocked date. Any session already sitting on that date must not just silently keep
+   * pointing at a PT who has now marked themselves unavailable that day:
+   *   - CONFIRMED → the PT is the one at fault, same as a same-day no-show (§3.4): the client
+   *     is compensated one session's value via compensateNoShowMoney, the session doesn't
+   *     count against quota, and the reason is recorded on the session itself.
+   *   - REQUESTED (never confirmed) → nothing was committed yet, so just cancel it, no
+   *     compensation — there is nothing to refund.
+   * Both notify the affected client with the block's reason.
+   */
   async addException(ptUserId: string, dateStr: string, reason?: string) {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) throw err("Invalid date", 400);
-    return availabilityRepository.addException(ptUserId, date, reason);
+    const exception = await availabilityRepository.addException(ptUserId, date, reason);
+
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+    const conflicts = await sessionRepository.findConflictsByDate(ptUserId, dayStart, dayEnd);
+
+    const reasonSuffix = reason ? `: ${reason}` : "";
+    for (const session of conflicts) {
+      if (session.status === SessionStatus.CONFIRMED) {
+        await sessionRepository.updateStatus(session.id, SessionStatus.NO_SHOW, {
+          sessionDeducted: false,
+          ptNotes: `PT chặn lịch ngày này${reasonSuffix}`,
+        });
+        await compensateNoShowMoney(session.contractId, session.id);
+        await notificationService
+          .create({
+            userId: session.clientUserId,
+            text: `Huấn luyện viên đã chặn lịch ngày ${dateStr}${reasonSuffix}. Buổi tập của bạn không bị trừ và bạn được hoàn tiền một buổi vào ví.`,
+            eventType: "SESSION_NO_SHOW_PT",
+            entityType: "SESSION",
+            entityId: session.id,
+            link: "/client/wallet",
+          })
+          .catch(() => {});
+      } else {
+        await sessionRepository.updateStatus(session.id, SessionStatus.CANCELLED, {
+          ptNotes: `PT chặn lịch ngày này trước khi xác nhận${reasonSuffix}`,
+        });
+        await notificationService
+          .create({
+            userId: session.clientUserId,
+            text: `Huấn luyện viên đã chặn lịch ngày ${dateStr}${reasonSuffix}. Yêu cầu đặt lịch của bạn đã bị hủy — chưa được xác nhận nên không có khoản nào bị trừ.`,
+            eventType: "SESSION_CANCELLED",
+            entityType: "SESSION",
+            entityId: session.id,
+            link: "/client/booking",
+          })
+          .catch(() => {});
+      }
+    }
+
+    return { exception, affectedSessions: conflicts.length };
   },
 
   // Remove a blocked date
