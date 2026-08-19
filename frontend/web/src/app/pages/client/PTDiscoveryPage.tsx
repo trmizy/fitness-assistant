@@ -886,8 +886,8 @@ export function PTDiscoveryPage() {
                         <div className="flex justify-center p-4">
                           <Loader2 className="w-6 h-6 text-green-500 animate-spin" />
                         </div>
-                      ) : packagesData?.length > 0 ? (
-                        packagesData.map((pkg: any) => {
+                      ) : packagesData?.packages?.length > 0 ? (
+                        packagesData.packages.map((pkg: any) => {
                           const isPerSession = pkg.sessionCount === 1;
                           return (
                             <div
@@ -1003,9 +1003,10 @@ export function PTDiscoveryPage() {
                     {selectedPT.firstName} {selectedPT.lastName}
                   </div>
                   <div className="text-xs text-zinc-500">
-                    {requestType === "PER_SESSION"
+                    {selectedPackage?.sessionCount === 1
                       ? "Theo buổi"
                       : "Gói dịch vụ"}
+                    {" · "}
                     {selectedPackage?.sessionMode === "ONLINE" ? "Online" : "Offline"}
                   </div>
                 </div>

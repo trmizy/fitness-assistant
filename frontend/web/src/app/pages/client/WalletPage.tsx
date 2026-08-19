@@ -1,8 +1,6 @@
-import { useState } from "react";
-import { Wallet as WalletIcon, ArrowDownCircle, ArrowUpCircle, Loader2, Plus, X } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Wallet as WalletIcon, ArrowDownCircle, ArrowUpCircle, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { walletService } from "../../services/api";
-import { toast } from "sonner";
 import type { Wallet, WalletLedgerEntry } from "../../types";
 import { formatVND } from "../../utils/currency";
 
@@ -10,13 +8,11 @@ function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+// Wallet top-up was removed from the product (backend commit "direct-to-gateway checkout,
+// wallet top-up removed" — POST /me/wallet/topup now answers 410 TOPUP_REMOVED). Clients pay
+// each gym membership / PT contract at the gateway directly; this wallet only ever receives
+// refunds and no-show compensation, so there is nothing to top up here any more.
 export function WalletPage() {
-  const queryClient = useQueryClient();
-  const [showTopup, setShowTopup] = useState(false);
-  const [amount, setAmount] = useState("");
-  // Sandbox gateways only — the mock "auto-paid" method was removed from the product.
-  const [provider, setProvider] = useState("VNPAY");
-
   const { data: wallet, isLoading: walletLoading } = useQuery<Wallet>({
     queryKey: ["client-wallet"],
     queryFn: () => walletService.getWallet(),
@@ -27,47 +23,13 @@ export function WalletPage() {
     queryFn: () => walletService.getTransactions(),
   });
 
-  const topupMutation = useMutation({
-    // clientRequestId generated once per submission — reused on any retry of *this*
-    // submission so a double-click dedupes to one top-up (see payment-service plan §1.3).
-    mutationFn: ({ value, clientRequestId }: { value: number; clientRequestId: string }) =>
-      walletService.topup(value, clientRequestId, provider),
-    onSuccess: (result: any) => {
-      // External gateways (VNPay, ...) return a redirectUrl — send the browser to the
-      // hosted checkout. The wallet is only credited after the gateway confirms
-      // (return/IPN/sync), so we do NOT optimistically refetch here.
-      if (result?.redirectUrl) {
-        window.location.href = result.redirectUrl;
-        return;
-      }
-      toast.success("Top-up submitted — balance will update shortly");
-      setShowTopup(false);
-      setAmount("");
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["client-wallet"] });
-        queryClient.invalidateQueries({ queryKey: ["client-wallet-transactions"] });
-      }, 800);
-    },
-    onError: (err: any) =>
-      toast.error(err?.response?.data?.error?.message || err?.response?.data?.error?.code || "Top-up failed"),
-  });
-
-  const handleTopup = () => {
-    const value = Number(amount);
-    if (!value || value <= 0) {
-      toast.error("Enter a valid amount");
-      return;
-    }
-    topupMutation.mutate({ value, clientRequestId: crypto.randomUUID() });
-  };
-
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5">
       <div>
         <h1 className="text-zinc-100 flex items-center gap-2 text-xl font-bold">
           <WalletIcon className="w-5 h-5 text-green-400" /> My Wallet
         </h1>
-        <p className="text-zinc-500 text-sm mt-0.5">Top up and pay for gym memberships and PT contracts</p>
+        <p className="text-zinc-500 text-sm mt-0.5">Refunds and no-show compensation land here</p>
       </div>
 
       {/* Balance card */}
@@ -78,13 +40,6 @@ export function WalletPage() {
         ) : (
           <div className="text-3xl font-bold text-zinc-100">{formatVND(Number(wallet?.availableBalance ?? 0))}</div>
         )}
-        <button
-          type="button"
-          onClick={() => setShowTopup(true)}
-          className="mt-4 flex items-center gap-2 bg-green-500 hover:bg-green-400 text-black px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-500/20"
-        >
-          <Plus className="w-4 h-4" /> Top Up
-        </button>
       </div>
 
       {/* Transaction history */}
@@ -124,76 +79,6 @@ export function WalletPage() {
           </div>
         )}
       </div>
-
-      {/* Top-up dialog */}
-      {showTopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-zinc-900 border border-zinc-700/60 rounded-2xl w-full max-w-sm shadow-2xl">
-            <div className="p-5 border-b border-zinc-800/60 flex items-center justify-between">
-              <h3 className="text-zinc-100 font-bold">Top Up Wallet</h3>
-              <button type="button" onClick={() => setShowTopup(false)} className="text-zinc-500 hover:text-zinc-300">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="p-5 space-y-3">
-              <label htmlFor="topup-provider" className="text-xs font-semibold text-zinc-400 block">Phương thức</label>
-              <select
-                id="topup-provider"
-                value={provider}
-                onChange={(e) => setProvider(e.target.value)}
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 outline-none focus:border-green-500/50"
-              >
-                <option value="VNPAY">VNPay (sandbox)</option>
-                <option value="ZALOPAY">ZaloPay (sandbox)</option>
-                {/* PayOS ẩn tạm khỏi UI (VietQR — cần tiền thật, không có sandbox tiền giả).
-                    Backend vẫn giữ nguyên PayOSProvider + factory + guard; thêm lại option này
-                    là bật lại được khi có PAYOS_CLIENT_ID/API_KEY/CHECKSUM_KEY trong .env. */}
-              </select>
-              <p className="text-[11px] text-zinc-600 leading-snug">
-                {provider === "VNPAY"
-                  ? "Sẽ chuyển sang trang VNPay sandbox — dùng thẻ thử NCB, không mất tiền thật."
-                  : "Sẽ hiện mã QR ZaloPay sandbox — quét bằng app ZaloPay sandbox, không mất tiền thật."}
-              </p>
-              <label htmlFor="topup-amount" className="text-xs font-semibold text-zinc-400 block">Amount (VND)</label>
-              <input
-                id="topup-amount"
-                type="number"
-                min={1}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="500000"
-                className="w-full px-3 py-2.5 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-green-500/50"
-              />
-              <div className="flex gap-2">
-                {[200000, 500000, 1000000].map((v) => (
-                  <button
-                    type="button"
-                    key={v}
-                    onClick={() => setAmount(String(v))}
-                    className="flex-1 py-2 rounded-lg border border-zinc-700/60 text-xs text-zinc-400 hover:border-green-500/40 hover:text-green-400 transition-colors"
-                  >
-                    {formatVND(v)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="p-5 border-t border-zinc-800/60 flex gap-3">
-              <button type="button" onClick={() => setShowTopup(false)} className="flex-1 py-2.5 border border-zinc-700/60 text-zinc-300 text-sm font-semibold rounded-lg hover:bg-zinc-800 transition-colors">
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleTopup}
-                disabled={topupMutation.isPending}
-                className="flex-1 py-2.5 bg-green-500 hover:bg-green-400 disabled:opacity-60 text-black text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
-              >
-                {topupMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

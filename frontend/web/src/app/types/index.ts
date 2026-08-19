@@ -324,6 +324,10 @@ export interface Wallet {
   ownerType: "CLIENT" | "PT" | "GYM" | "PLATFORM";
   ownerId: string;
   availableBalance: string;
+  // Revenue already credited but held until the underlying contract/membership ends (see
+  // docs/money-flow.md §13.3) — not withdrawable yet. The API has always returned this;
+  // it was just missing from this type, which is why no wallet screen ever drew it.
+  pendingBalance: string;
   lockedBalance: string;
   status: "ACTIVE" | "FROZEN" | "CLOSED";
   createdAt: string;

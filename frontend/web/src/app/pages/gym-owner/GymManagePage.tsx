@@ -8,6 +8,7 @@ import type { Gym, GymMembershipPlan, GymMembershipContract, Wallet, GymReviewsR
 import { formatVND } from "../../utils/currency";
 import { Stars } from "../../components/gym/Stars";
 import { GymCheckinPanel } from "../../components/gym/GymCheckinPanel";
+import { CollaborationPanel } from "../../components/gym/CollaborationPanel";
 
 /** Owner-facing label for a plan's marketing window — mirrors gym-service's isPlanOnSale
  * so the badge here always matches what the public listing would actually show. */
@@ -114,16 +115,28 @@ export function GymManagePage() {
       </div>
 
       {/* Wallet */}
-      <div className="bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-2xl border border-green-500/20 p-5 flex items-center gap-3">
-        <WalletIcon className="w-5 h-5 text-green-400" />
+      <div className="bg-gradient-to-br from-green-500/15 to-zinc-900 rounded-2xl border border-green-500/20 p-5 flex flex-wrap items-center gap-x-6 gap-y-2">
+        <div className="flex items-center gap-3">
+          <WalletIcon className="w-5 h-5 text-green-400" />
+          <div>
+            <div className="text-xs text-zinc-400">Có thể rút</div>
+            <div className="text-xl font-bold text-zinc-100">{formatVND(Number(wallet?.availableBalance ?? 0))}</div>
+          </div>
+        </div>
         <div>
-          <div className="text-xs text-zinc-400">Gym Revenue Wallet</div>
-          <div className="text-xl font-bold text-zinc-100">{formatVND(Number(wallet?.availableBalance ?? 0))}</div>
+          <div className="text-xs text-zinc-500">Đang chờ (gói hội viên chưa kết thúc)</div>
+          <div className="text-base font-semibold text-amber-400">{formatVND(Number(wallet?.pendingBalance ?? 0))}</div>
         </div>
       </div>
 
       {/* Check-in */}
       <GymCheckinPanel gymId={id!} />
+
+      {/* PT collaboration — component existed, fully built, but was never mounted on any
+          page: an owner had no way to reach it at all. */}
+      <div className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-5">
+        <CollaborationPanel as="GYM" gymId={id!} />
+      </div>
 
       {/* Plans */}
       <div>

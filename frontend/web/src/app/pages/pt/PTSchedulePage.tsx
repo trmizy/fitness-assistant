@@ -248,11 +248,17 @@ export function PTSchedulePage() {
   const addExceptionMut = useMutation({
     mutationFn: ({ date, reason }: { date: string; reason?: string }) =>
       availabilityService.addException(date, reason),
-    onSuccess: () => {
-      toast.success("Date blocked");
+    onSuccess: (result: any) => {
+      const affected = result?.affectedSessions ?? result?.data?.affectedSessions ?? 0;
+      toast.success(
+        affected > 0
+          ? `Date blocked — ${affected} session(s) on that day were cancelled and the client(s) compensated`
+          : "Date blocked",
+      );
       setBlockDate("");
       setBlockReason("");
       queryClient.invalidateQueries({ queryKey: ["pt-exceptions"] });
+      queryClient.invalidateQueries({ queryKey: ["pt-sessions"] });
     },
     onError: (err: any) => toast.error(err?.response?.data?.error || "Failed"),
   });

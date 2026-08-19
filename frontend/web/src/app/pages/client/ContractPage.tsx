@@ -164,6 +164,27 @@ export function ContractPage() {
     },
   });
 
+  // ACTIVE contracts have real money already split into PT/gym/platform pending buckets —
+  // cancelMutation above (a plain status flip) must never be used here. This settles
+  // everyone per money-flow.md §3.3: client gets 90% of the unused value back, the rest is
+  // the cancellation penalty.
+  const terminateMutation = useMutation({
+    mutationFn: (id: string) => contractService.terminateContract(id, "CLIENT_CANCELLED"),
+    onSuccess: (result: any) => {
+      const refund = Number(result?.settlement?.refund ?? 0);
+      toast.success(
+        refund > 0
+          ? `Đã hủy hợp đồng — hoàn ${formatVND(refund)} vào ví của bạn`
+          : "Đã hủy hợp đồng",
+      );
+      setShowCancelDialog(false);
+      queryClient.invalidateQueries({ queryKey: ["client-contracts"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error || "Failed to cancel");
+    },
+  });
+
   /**
    * Pay a PENDING_PAYMENT contract at the gateway the client picked.
    *
@@ -195,6 +216,12 @@ export function ContractPage() {
   });
 
   const selected = contracts.find((c: Contract) => c.id === selectedId);
+
+  const { data: breakdown } = useQuery({
+    queryKey: ["contract-money-breakdown", selectedId],
+    queryFn: () => contractService.getMoneyBreakdown(selectedId!),
+    enabled: showCancelDialog && !!selectedId && selected?.status === "ACTIVE",
+  });
 
   if (isLoading) {
     return (
@@ -575,23 +602,58 @@ export function ContractPage() {
               </h3>
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-sm text-zinc-400">
-                {selected.status === "PENDING_REVIEW"
-                  ? "Are you sure you want to withdraw this coaching request?"
-                  : "Are you sure you want to cancel this contract? This action cannot be undone."}
-              </p>
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">
-                  Reason
-                </label>
-                <textarea
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  rows={3}
-                  placeholder="Please provide a reason..."
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-red-500/50 resize-none"
-                />
-              </div>
+              {selected.status === "ACTIVE" ? (
+                <>
+                  <p className="text-sm text-zinc-400">
+                    Hợp đồng đã thanh toán và đang hoạt động. Hủy sẽ áp dụng phí hủy 10% trên
+                    phần chưa dùng — bạn nhận lại phần còn lại vào ví.
+                  </p>
+                  {breakdown ? (
+                    <div className="bg-zinc-800/50 rounded-lg p-3 space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-zinc-500">Giá hợp đồng</span>
+                        <span>{formatVND(Number(breakdown.price))}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-500">Đã dùng</span>
+                        <span>{breakdown.usedSessions}/{breakdown.totalSessions} buổi</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-500">Giá trị chưa dùng</span>
+                        <span>{formatVND(Number(breakdown.remaining))}</span>
+                      </div>
+                      <div className="flex justify-between text-green-400 font-bold pt-1 border-t border-zinc-700/50">
+                        <span>Hoàn về ví (90%)</span>
+                        <span>{formatVND(Number(breakdown.refundIfCancelledNow))}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-center py-3">
+                      <Loader2 className="w-4 h-4 text-zinc-500 animate-spin" />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-zinc-400">
+                    {selected.status === "PENDING_REVIEW"
+                      ? "Are you sure you want to withdraw this coaching request?"
+                      : "Are you sure you want to cancel this contract? This action cannot be undone."}
+                  </p>
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">
+                      Reason
+                    </label>
+                    <textarea
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      rows={3}
+                      placeholder="Please provide a reason..."
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700/60 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-red-500/50 resize-none"
+                    />
+                  </div>
+                </>
+              )}
             </div>
             <div className="p-5 border-t border-zinc-800/60 flex gap-3">
               <button
@@ -603,21 +665,34 @@ export function ContractPage() {
               >
                 Keep
               </button>
-              <button
-                onClick={() =>
-                  cancelMutation.mutate({
-                    id: selected.id,
-                    reason: cancelReason,
-                  })
-                }
-                disabled={!cancelReason.trim() || cancelMutation.isPending}
-                className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
-              >
-                {cancelMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : null}
-                {selected.status === "PENDING_REVIEW" ? "Withdraw" : "Cancel"}
-              </button>
+              {selected.status === "ACTIVE" ? (
+                <button
+                  onClick={() => terminateMutation.mutate(selected.id)}
+                  disabled={terminateMutation.isPending}
+                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                >
+                  {terminateMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : null}
+                  Xác nhận hủy
+                </button>
+              ) : (
+                <button
+                  onClick={() =>
+                    cancelMutation.mutate({
+                      id: selected.id,
+                      reason: cancelReason,
+                    })
+                  }
+                  disabled={!cancelReason.trim() || cancelMutation.isPending}
+                  className="flex-1 py-2.5 bg-red-500 hover:bg-red-400 disabled:bg-zinc-700 disabled:text-zinc-500 text-white text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                >
+                  {cancelMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : null}
+                  {selected.status === "PENDING_REVIEW" ? "Withdraw" : "Cancel"}
+                </button>
+              )}
             </div>
           </div>
         </div>
